@@ -198,6 +198,7 @@ int md2_defineframe(int modelid, const char *framename, int tilenume, int skinnu
 
 	if ((unsigned long)modelid >= (unsigned long)nextmodelid) return -1;
 	if ((unsigned long)tilenume >= (unsigned long)MAXTILES) return -2;
+	if (!framename) return -3;
 
 	m = &models[modelid];
 	for (i=0; i<m->numframes; i++) {
@@ -282,6 +283,26 @@ int md2_defineskin(int modelid, const char *skinfn, int palnum, int skinnum)
 	sk->fn = (char *)malloc(strlen(skinfn)+1);
 	if (!sk->fn) return -4;
 	strcpy(sk->fn, skinfn);
+
+	return 0;
+}
+
+   //Move this to appropriate place!
+typedef struct { float xadd, yadd, zadd; short angadd, flags; } hudtyp;
+hudtyp hudmem[2][MAXTILES]; //~320KB ... ok for now ... could replace with dynamic alloc
+
+int md2_definehud (int modelid, int tilex, double xadd, double yadd, double zadd, double angadd, int flags)
+{
+	if (!md2inited) md2init();
+
+	if ((unsigned long)modelid >= (unsigned long)nextmodelid) return -1;
+	if ((unsigned long)tilex >= (unsigned long)MAXTILES) return -2;
+
+	hudmem[(flags>>2)&1][tilex].xadd = xadd;
+	hudmem[(flags>>2)&1][tilex].yadd = yadd;
+	hudmem[(flags>>2)&1][tilex].zadd = zadd;
+	hudmem[(flags>>2)&1][tilex].angadd = (short)angadd;
+	hudmem[(flags>>2)&1][tilex].flags = (short)flags;
 
 	return 0;
 }

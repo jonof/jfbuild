@@ -1993,6 +1993,7 @@ void showframe(int w)
 			bglLoadIdentity();
 
 			bglDisable(GL_DEPTH_TEST);
+			bglDisable(GL_ALPHA_TEST);
 			bglDisable(GL_TEXTURE_2D);
 
 			bglEnable(GL_BLEND);

@@ -151,7 +151,7 @@ void uninitmultiplayers () { netuninit(); }
 long getpacket(long *, char *);
 void initmultiplayers (long argc, char **argv, char damultioption, char dacomrateoption, char dapriority)
 {
-	long i, j, k, daindex, otims;
+	long i, j, k, daindex, otims, foundnet = 0;
 
 	initcrc16();
 	memset(icnt0,0,sizeof(icnt0));
@@ -170,7 +170,8 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 	danetmode = 255; daindex = 0;
 	for(i=1;i<argc;i++)
 	{
-		if ((!stricmp("-net",argv[i])) || (!stricmp("/net",argv[i]))) { i++; continue; }
+		if ((!stricmp("-net",argv[i])) || (!stricmp("/net",argv[i]))) { foundnet = 1; continue; }
+		if (!foundnet) continue;
 
 		if ((argv[i][0] == '-') || (argv[i][0] == '/'))
 			if ((argv[i][1] == 'N') || (argv[i][1] == 'n') || (argv[i][1] == 'I') || (argv[i][1] == 'i'))

@@ -71,7 +71,7 @@ ENGINEOBJS=$(OBJ)engine.$o \
 	$(OBJ)compat.$o \
 	$(OBJ)kplib.$o \
 	$(OBJ)scriptfile.$o \
-	$(OBJ)mmulti_null.$o \
+	$(OBJ)mmulti.$o \
 	$(OBJ)defs.$o
 
 EDITOROBJS=$(OBJ)build.$o \

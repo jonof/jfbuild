@@ -32,6 +32,7 @@ enum {
 	T_FRAME,
 	T_ANIM,
 	T_SKIN,
+	T_TILE,
 	T_TILE0,
 	T_TILE1,
 	T_FRAME0,
@@ -39,6 +40,14 @@ enum {
 	T_FPS,
 	T_FLAGS,
 	T_PAL,
+	T_HUD,
+	T_XADD,
+	T_YADD,
+	T_ZADD,
+	T_ANGADD,
+	T_FLIPPED,
+	T_HIDE,
+	T_NOBOB
 };
 
 typedef struct { char *text; int tokenid; } tokenlist;
@@ -68,6 +77,7 @@ static tokenlist modeltokens[] = {
 	{ "frame",  T_FRAME  },
 	{ "anim",   T_ANIM   },
 	{ "skin",   T_SKIN   },
+	{ "hud",    T_HUD    }
 };
 
 static tokenlist modelframetokens[] = {
@@ -82,11 +92,24 @@ static tokenlist modelanimtokens[] = {
 	{ "frame1", T_FRAME1 },
 	{ "fps",    T_FPS    },
 	{ "flags",  T_FLAGS  },
-};               
+};
 
 static tokenlist modelskintokens[] = {
 	{ "pal",    T_PAL    },
 	{ "file",   T_FILE   },
+};
+
+static tokenlist modelhudtokens[] = {
+	{ "tile",   T_TILE   },
+	{ "tile0",  T_TILE0  },
+	{ "tile1",  T_TILE1  },
+	{ "xadd",   T_XADD   },
+	{ "yadd",   T_YADD   },
+	{ "zadd",   T_ZADD   },
+	{ "angadd", T_ANGADD },
+	{ "hide",   T_HIDE   },
+	{ "nobob",  T_NOBOB  },
+	{ "flipped",T_FLIPPED},
 };
 
 
@@ -415,7 +438,7 @@ static int defsparser(scriptfile *script)
 					}
 #endif
 					if (scriptfile_getbraces(script,&modelend)) break;
-					while (script->textptr < modelend)
+					while (script->textptr < modelend) {
 						switch (getatoken(script,modeltokens,sizeof(modeltokens)/sizeof(tokenlist))) {
 							//case T_ERROR: initprintf("Error on line %s:%d in model tokens\n", script->filename,script->linenum); break;
 							case T_SCALE: scriptfile_getdouble(script,&scale); break;
@@ -528,8 +551,58 @@ static int defsparser(scriptfile *script)
 								}
 #endif
 							} break;
-						}
+							case T_HUD:
+							{
+								char happy=1, *frameend;
+								int ftilenume = 0, ltilenume = 0, tilex = 0, flags = 0;
+								double xadd = 0.0, yadd = 0.0, zadd = 0.0, angadd = 0.0;
 
+								if (scriptfile_getbraces(script,&frameend)) break;
+								while (script->textptr < frameend) {
+									switch(getatoken(script,modelhudtokens,sizeof(modelhudtokens)/sizeof(tokenlist))) {
+										case T_TILE:  scriptfile_getnumber(script,&ftilenume); ltilenume = ftilenume; break;
+										case T_TILE0: scriptfile_getnumber(script,&ftilenume); break; //first tile number
+										case T_TILE1: scriptfile_getnumber(script,&ltilenume); break; //last tile number (inclusive)
+										case T_XADD:  scriptfile_getdouble(script,&xadd); break;
+										case T_YADD:  scriptfile_getdouble(script,&yadd); break;
+										case T_ZADD:  scriptfile_getdouble(script,&zadd); break;
+										case T_ANGADD:scriptfile_getdouble(script,&angadd); break;
+										case T_HIDE:    flags |= 1; break;
+										case T_NOBOB:   flags |= 2; break;
+										case T_FLIPPED: flags |= 4; break;
+									}
+								}
+
+								if (ltilenume < ftilenume) {
+									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, script->linenum);
+									tilex = ftilenume;
+									ftilenume = ltilenume;
+									ltilenume = tilex;
+								}
+
+								if (lastmodelid < 0) {
+									initprintf("Warning: Ignoring frame definition.\n");
+									break;
+								}
+#if defined(POLYMOST) && defined(USE_OPENGL)
+								for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++) {
+									switch (md2_definehud(lastmodelid, tilex, xadd, yadd, zadd, angadd, flags)) {
+										case 0: break;
+										case -1: happy = 0; break; // invalid model id!?
+										case -2: initprintf("Invalid tile number on line %s:%d\n",
+												script->filename, script->linenum);
+											happy = 0;
+											break;
+										case -3: initprintf("Invalid frame name on line %s:%d\n",
+												script->filename, script->linenum);
+											happy = 0;
+											break;
+									}
+								}
+#endif
+							} break;
+						}
+					}
 
 					md2_setmisc(lastmodelid,(float)scale, shadeoffs);
 
@@ -562,3 +635,5 @@ int loaddefinitionsfile(char *fn)
 
 	return 0;
 }
+
+// vim:ts=4:

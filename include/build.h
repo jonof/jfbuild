@@ -471,6 +471,7 @@ int md2_tilehasmodel(int tilenume);
 int md2_defineframe(int modelid, const char *framename, int tilenume, int skinnum);
 int md2_defineanimation(int modelid, const char *framestart, const char *frameend, int fps, int flags);
 int md2_defineskin(int modelid, const char *skinfn, int palnum, int skinnum);
+int md2_definehud (int modelid, int tilex, double xadd, double yadd, double zadd, double angadd, int flags);
 
 int loaddefinitionsfile(char *fn);
 

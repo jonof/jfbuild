@@ -3523,31 +3523,19 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 {
 	long i, n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
 	long ogpicnum, ogshade, ogpal, ofoffset, oxdimen, oydimen;
-	double ogchang, ogshang, ogctang, ogstang, oghalfx, oghoriz, fx, fy, x1, y1, x2, y2;
+	double ogchang, ogshang, ogctang, ogstang, oghalfx, oghoriz, fx, fy, x1, y1, z1, x2, y2;
 	double ogrhalfxdown10, ogrhalfxdown10x;
 	double d, cosang, sinang, cosang2, sinang2, px[8], py[8], px2[8], py2[8];
 
 #ifdef USE_OPENGL
 	if (rendmode == 3 && usemodels)
 	{
-		spritetype tspr;
-		memset(&tspr,0,sizeof(spritetype));
+		if ((tiletomodel[picnum].modelid >= 0) && (tiletomodel[picnum].framenum >= 0))
+		{
+			spritetype tspr;
+			memset(&tspr,0,sizeof(spritetype));
 
-		d = ((double)sx)/(65536.0*160.0)-1.0; //-1: left of screen, +1: right of screen
-		tspr.x = (double)gcosang - (double)gsinang*d + globalposx;
-		tspr.y = (double)gsinang + (double)gcosang*d + globalposy;
-		d = ((double)sy)/(65536.0*100.0)-1.0; //-1: top of screen, +1: bottom of screen
-		tspr.z = globalposz + d*1024.0;
-
-		tspr.picnum = picnum;
-		tspr.shade = dashade;
-		tspr.pal = dapalnum;
-		tspr.xrepeat = 8;
-		tspr.yrepeat = 8;
-		tspr.ang = globalang;
-
-		if (tiletomodel[tspr.picnum].modelid >= 0 &&
-			 tiletomodel[tspr.picnum].framenum >= 0) {
+			if (hudmem[(dastat&4)>>2][picnum].flags&1) return; //"HIDE" is specified in DEF
 
 			ogchang = gchang; gchang = 1.0;
 			ogshang = gshang; gshang = 0.0; d = (double)z/(65536.0*16384.0);
@@ -3556,10 +3544,55 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 			ogshade  = globalshade;  globalshade  = dashade;
 			ogpal    = globalpal;    globalpal    = (long)((unsigned char)dapalnum);
 
+			if (dastat&2)  //Auto window size scaling
+			{
+				if (!(dastat&8))
+				{
+					x = xdimenscale;   //= scale(xdimen,yxaspect,320);
+					sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),xdimen,320);
+					sy = ((cy1+cy2+2)<<15)+mulscale16(sy-(200<<15),x);
+				}
+				else
+				{
+						//If not clipping to startmosts, & auto-scaling on, as a
+						//hard-coded bonus, scale to full screen instead
+					x = scale(xdim,yxaspect,320);
+					sx = (xdim<<15)+32768+scale(sx-(320<<15),xdim,320);
+					sy = (ydim<<15)+32768+mulscale16(sy-(200<<15),x);
+				}
+				z = mulscale16(z,x);
+			}
+
+			if (hudmem[(dastat&4)>>2][picnum].flags&2) //"NOBOB" is specified in DEF
+			{
+				x1 = y1 = 0;
+			}
+			else
+			{
+				x1 = ((double)sx)/((double)(xdim<<15))-1.0; //-1: left of screen, +1: right of screen
+				y1 = ((double)sy)/((double)(ydim<<15))-1.0; //-1: top of screen, +1: bottom of screen
+			}
+			z1 = 1.30;
+			tspr.ang = globalang;
+			tspr.xrepeat = tspr.yrepeat = 1;
+
+			x1 += hudmem[(dastat&4)>>2][picnum].xadd;
+			y1 += hudmem[(dastat&4)>>2][picnum].yadd;
+			z1 += hudmem[(dastat&4)>>2][picnum].zadd;
+			tspr.ang += hudmem[(dastat&4)>>2][picnum].angadd;
+
+			if (dastat&4) { x1 = -x1; y1 = -y1; }
+			tspr.x = ((double)gcosang*z1 - (double)gsinang*x1)*512.0 + globalposx;
+			tspr.y = ((double)gsinang*z1 + (double)gcosang*x1)*512.0 + globalposy;
+			tspr.z = globalposz + y1*512.0;
+			tspr.picnum = picnum;
+			tspr.shade = dashade;
+			tspr.pal = dapalnum;
 			globalorientation = 0;
 			if (dastat&1) globalorientation |= 1;
 			if (dastat&32) globalorientation |= 512;
 			if (dastat&4) globalorientation |= 8;
+
 			md2draw(0,&tspr);
 
 			globalshade  = ogshade;
@@ -3568,7 +3601,6 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 			gshang = ogshang;
 			gctang = ogctang;
 			gstang = ogstang;
-
 			return;
 		}
 	}
@@ -3605,6 +3637,7 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 			bglLoadIdentity();
 		}
 		bglDisable(GL_DEPTH_TEST);
+		bglDisable(GL_ALPHA_TEST);
 		bglEnable(GL_TEXTURE_2D);
 	}
 #endif
@@ -3760,6 +3793,7 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 	pth = gltexcache(wallnum,0,4);
 	bglBindTexture(GL_TEXTURE_2D,pth ? pth->glpic : 0);
 
+	bglDisable(GL_ALPHA_TEST);
 	bglDisable(GL_TEXTURE_2D);
 	bglBegin(GL_TRIANGLE_FAN);
 	bglColor4f((float)curpalette[255].r/255.0,(float)curpalette[255].g/255.0,(float)curpalette[255].b/255.0,1);

@@ -403,15 +403,19 @@ long app_main(long argc, char *argv[])
 	Bstrcpy(apptitle, "KenBuild by Ken Silverman");
 
 	Bstrcpy(boardfilename, "nukeland.map");
+	j = 0;
 	for (i=1;i<argc;i++) {
-		if (argv[i][0] == '-' || argv[i][0] == '/') {
-			if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '0')) { networkmode = 0; continue; }
-			if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '1')) { networkmode = 1; continue; }
+		if ((!stricmp("-net",argv[i])) || (!stricmp("/net",argv[i]))) { j = 1; continue; }
+		if (j) {
+			if (argv[i][0] == '-' || argv[i][0] == '/') {
+				if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '0')) { networkmode = 0; continue; }
+				if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '1')) { networkmode = 1; continue; }
+			}
+			if (isvalidipaddress(argv[i])) continue;
+		} else {
+			Bstrcpy(boardfilename, argv[i]);
+			if (!Bstrrchr(boardfilename,'.')) Bstrcat(boardfilename,".map");
 		}
-		if (isvalidipaddress(argv[i])) continue;
-			
-		Bstrcpy(boardfilename, argv[i]);
-		if (!Bstrrchr(boardfilename,'.')) Bstrcat(boardfilename,".map");
 	}
 
 	OSD_SetLogFile("console.txt");
