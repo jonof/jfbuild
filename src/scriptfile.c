@@ -1,6 +1,7 @@
 /*
  * File Tokeniser/Parser/Whatever
  * by Jonathon Fowler
+ * Remixed completely by Ken Silverman
  * See the included license file "BUILDLIC.TXT" for license info.
  */
 
@@ -10,68 +11,68 @@
 
 
 #define ISWS(x) ((x == ' ') || (x == '\t') || (x == '\r') || (x == '\n'))
-
-static void skipoverws(scriptfile *sf) {
-	while ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength) {
-		if (ISWS(*sf->textptr)) {
-			if (*sf->textptr == '\n') sf->linenum++;
-			sf->textptr++;
-		} else if (sf->textptr[0] == '/' && sf->textptr[1] == '/') {
-			sf->textptr += 2;
-			while (*sf->textptr != '\n' && ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength))
-				sf->textptr++;
-		} else if (sf->textptr[0] == '/' && sf->textptr[1] == '*') {
-			sf->textptr += 2;
-			while (sf->textptr[0] != '*' && sf->textptr[1] != '/' &&
-				 ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength)) {
-				if (*sf->textptr == '\n') sf->linenum++;
-				sf->textptr++;
-			}
-			sf->textptr += 2;
-		} else {
-			break;
-		}
-	}
-}
-static void skipovertoken(scriptfile *sf) {
-	while ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength && !ISWS(*sf->textptr)) sf->textptr++;
-}
+static void skipoverws(scriptfile *sf) { if ((sf->textptr < sf->eof) && (!sf->textptr[0])) sf->textptr++; }
+static void skipovertoken(scriptfile *sf) { while ((sf->textptr < sf->eof) && (sf->textptr[0])) sf->textptr++; }
 
 char *scriptfile_gettoken(scriptfile *sf)
 {
 	char *start;
 
 	skipoverws(sf);
-	if ((unsigned)(sf->textptr - sf->textbuf) >= sf->textlength) return NULL;   // eof
+	if (sf->textptr >= sf->eof) return NULL;
 
 	start = sf->textptr;
-	while ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength) {
-		if (ISWS(*sf->textptr)) {
-			if (*sf->textptr == '\n') sf->linenum++;
-			break;
-		}
-		sf->textptr++;
-	}
-	*(sf->textptr++) = 0;
-
+	skipovertoken(sf);
 	return start;
+}
+
+int scriptfile_getstring(scriptfile *sf, char **retst)
+{
+	(*retst) = scriptfile_gettoken(sf);
+	if (*retst == NULL)
+	{
+		initprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		return(-2);
+	}
+	return(0);
 }
 
 int scriptfile_getnumber(scriptfile *sf, int *num)
 {
 	skipoverws(sf);
-	if ((unsigned)(sf->textptr - sf->textbuf) >= sf->textlength) return -1;   // eof
+	if (sf->textptr >= sf->eof)
+	{
+		initprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		return -1;
+	}
+
+	while ((sf->textptr[0] == '0') && (sf->textptr[1] >= '0') && (sf->textptr[1] <= '9'))
+		sf->textptr++; //hack to treat octal numbers like decimal
+	
 	(*num) = strtol((const char *)sf->textptr,&sf->textptr,0);
-	if (!ISWS(*sf->textptr) && *sf->textptr) { skipovertoken(sf); return -2; }
+	if (!ISWS(*sf->textptr) && *sf->textptr) {
+		skipovertoken(sf);
+		initprintf("Error on line %s:%d: expecting int\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		return -2;
+	}
 	return 0;
 }
 
 int scriptfile_getdouble(scriptfile *sf, double *num)
 {
 	skipoverws(sf);
-	if ((unsigned)(sf->textptr - sf->textbuf) >= sf->textlength) return -1;   // eof
+	if (sf->textptr >= sf->eof)
+	{
+		initprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		return -1;
+	}
 	(*num) = strtod((const char *)sf->textptr,&sf->textptr);
-	if (!ISWS(*sf->textptr) && *sf->textptr) { skipovertoken(sf); return -2; }
+	if (!ISWS(*sf->textptr) && *sf->textptr)
+	{
+		skipovertoken(sf);
+		initprintf("Error on line %s:%d: expecting float\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		return -2;
+	}
 	return 0;
 }
 
@@ -83,10 +84,11 @@ int scriptfile_getsymbol(scriptfile *sf, int *num)
 	t = scriptfile_gettoken(sf);
 	if (!t) return -1;
 
-	v = Bstrtol(t, &e, 0);
+	v = Bstrtol(t, &e, 10);
 	if (*e) {
 		// looks like a string, so find it in the symbol table
 		if (scriptfile_getsymbolvalue(t, num)) return 0;
+		initprintf("Error on line %s:%d: expecting symbol\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
 		return -2;   // not found
 	}
 
@@ -94,45 +96,111 @@ int scriptfile_getsymbol(scriptfile *sf, int *num)
 	return 0;
 }
 
-char *scriptfile_getstring(scriptfile *sf)
+int scriptfile_getbraces(scriptfile *sf, char **braceend)
 {
-	char *start = NULL, *gulper = NULL;
-	char insidequotes = 0, swallownext = 0;
+	int bracecnt;
+	char *bracestart;
 
 	skipoverws(sf);
-	if ((unsigned)(sf->textptr - sf->textbuf) >= sf->textlength) return NULL;   // eof
+	if (sf->textptr >= sf->eof)
+	{
+		initprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		return -1;
+	}
 
-	if (sf->textptr[0] == '"') {
+	if (sf->textptr[0] != '{') {
+		initprintf("Error on line %s:%d: expecting '{'\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		return -1;
+	}
+	bracestart = ++sf->textptr; bracecnt = 1;
+	while (1)
+	{
+		if (sf->textptr >= sf->eof) return(0);
+		if (sf->textptr[0] == '{') bracecnt++;
+		if (sf->textptr[0] == '}') { bracecnt--; if (!bracecnt) break; }
 		sf->textptr++;
-		insidequotes = 1;
 	}
-	start = gulper = sf->textptr;
+	(*braceend) = sf->textptr;
+	sf->textptr = bracestart;
+	return 0;
+}
 
-	while ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength) {
-		if (*sf->textptr == '\n') sf->linenum++;
-		if (!insidequotes && ISWS(*sf->textptr) && !swallownext) {
-			*gulper = 0;
-			sf->textptr++;
-			break;   // whitespace delimited bare string ends
-		}
 
-		if (*sf->textptr == '\\' && !swallownext) {
-			swallownext = 1;
-			sf->textptr++;
-			continue;
-		}
+int scriptfile_getlinum (scriptfile *sf, char *ptr)
+{
+	int i, stp, ind;
 
-		if (*sf->textptr == '"' && !swallownext && insidequotes) {
-			*gulper = 0;
-			sf->textptr++;
-			break;   // quoted string ends
-		}
+	//for(i=0;i<sf->linenum;i++) if (sf->lineoffs[i] >= ind) return(i+1); //brute force algo
 
-		*(gulper++) = *(sf->textptr++);
-		swallownext = 0;
+	ind = ((long)ptr) - ((long)sf->textbuf);
+
+	for(stp=1;stp+stp<sf->linenum;stp+=stp); //stp = highest power of 2 less than sf->linenum
+	for(i=0;stp;stp>>=1)
+		if ((i+stp < sf->linenum) && (sf->lineoffs[i+stp] < ind)) i += stp;
+	return(i+1); //i = index to highest lineoffs which is less than ind; convert to 1-based line numbers
+}
+
+void scriptfile_preparse (scriptfile *sf, char *tx, long flen)
+{
+	long i, cr, numcr, nflen, ws, cs, inquote;
+
+		//Count number of lines
+	numcr = 1;
+	for(i=0;i<flen;i++)
+	{
+			//detect all 4 types of carriage return (\r, \n, \r\n, \n\r :)
+		cr=0;if (tx[i] == '\r') { i += (tx[i+1] == '\n'); cr = 1; }
+		else if (tx[i] == '\n') { i += (tx[i+1] == '\r'); cr = 1; }
+		if (cr) { numcr++; continue; }
 	}
 
-	return start;
+	sf->linenum = numcr;
+	sf->lineoffs = (long *)malloc(sf->linenum*sizeof(long));
+
+		//Preprocess file for comments (// and /*...*/, and convert all whitespace to single spaces)
+	nflen = 0; ws = 0; cs = 0; numcr = 0; inquote = 0;
+	for(i=0;i<flen;i++)
+	{
+			//detect all 4 types of carriage return (\r, \n, \r\n, \n\r :)
+		cr=0;if (tx[i] == '\r') { i += (tx[i+1] == '\n'); cr = 1; }
+		else if (tx[i] == '\n') { i += (tx[i+1] == '\r'); cr = 1; }
+		if (cr)
+		{
+				//Remember line numbers by storing the byte index at the start of each line
+				//Line numbers can be retrieved by doing a binary search on the byte index :)
+			sf->lineoffs[numcr++] = nflen;
+			if (cs == 1) cs = 0;
+			ws = 1; continue; //strip CR/LF
+		}
+
+		if ((!inquote) && ((tx[i] == ' ') || (tx[i] == '\t'))) { ws = 1; continue; } //strip Space/Tab
+		if ((tx[i] == '/') && (tx[i+1] == '/') && (!cs)) cs = 1;
+		if ((tx[i] == '/') && (tx[i+1] == '*') && (!cs)) { ws = 1; cs = 2; }
+		if ((tx[i] == '*') && (tx[i+1] == '/') && (cs == 2)) { cs = 0; i++; continue; }
+		if (cs) continue;
+
+		if (ws) { tx[nflen++] = 0; ws = 0; }
+
+			//quotes inside strings: \"
+		if ((tx[i] == '\\') && (tx[i+1] == '\"')) { i++; tx[nflen++] = '\"'; continue; }
+		if (tx[i] == '\"') { inquote ^= 1; continue; }
+		tx[nflen++] = tx[i];
+	}
+	tx[nflen++] = 0; sf->lineoffs[numcr] = nflen;
+	tx[nflen++] = 0;
+
+#if 0
+		//for debugging only:
+	printf("pre-parsed file:flen=%d,nflen=%d\n",flen,nflen);
+	for(i=0;i<nflen;i++) { if (tx[i] < 32) printf("_"); else printf("%c",tx[i]); }
+	printf("[eof]\nnumlines=%d\n",sf->linenum);
+	for(i=0;i<sf->linenum;i++) printf("line %d = byte %d\n",i,sf->lineoffs[i]);
+#endif
+	flen = nflen;
+
+	sf->textbuf = sf->textptr = tx;
+	sf->textlength = nflen;
+	sf->eof = &sf->textbuf[nflen-1];
 }
 
 scriptfile *scriptfile_fromfile(char *fn)
@@ -146,7 +214,6 @@ scriptfile *scriptfile_fromfile(char *fn)
 	if (fp<0) return NULL;
 
 	flen = kfilelength(fp);
-
 	tx = (char *) malloc(flen + 2);
 	if (!tx) {
 		kclose(fp);
@@ -156,21 +223,17 @@ scriptfile *scriptfile_fromfile(char *fn)
 	sf = (scriptfile*) malloc(sizeof(scriptfile));
 	if (!sf) {
 		kclose(fp);
-		free(tx);
+		kfree(tx);
 		return NULL;
 	}
 
 	kread(fp, tx, flen);
-	tx[flen] = 0;
-	tx[flen+1] = 0;
+	tx[flen] = tx[flen+1] = 0;
 
 	kclose(fp);
 
-	sf->textbuf = tx;
-	sf->textlength = flen;
-	sf->textptr = tx;
+	scriptfile_preparse(sf,tx,flen);
 	sf->filename = strdup(fn);
-	sf->linenum = 0;
 
 	return sf;
 }
@@ -195,14 +258,10 @@ scriptfile *scriptfile_fromstring(char *string)
 	}
 
 	memcpy(tx, string, flen);
-	tx[flen] = 0;
-	tx[flen+1] = 0;
+	tx[flen] = tx[flen+1] = 0;
 
-	sf->textbuf = tx;
-	sf->textlength = flen;
-	sf->textptr = tx;
+	scriptfile_preparse(sf,tx,flen);
 	sf->filename = NULL;
-	sf->linenum = 0;
 
 	return sf;
 }
@@ -210,6 +269,7 @@ scriptfile *scriptfile_fromstring(char *string)
 void scriptfile_close(scriptfile *sf)
 {
 	if (!sf) return;
+	if (sf->lineoffs) free(sf->lineoffs);
 	if (sf->textbuf) free(sf->textbuf);
 	if (sf->filename) free(sf->filename);
 	sf->textbuf = NULL;
@@ -225,26 +285,16 @@ static char *symbtab = NULL;
 static char * getsymbtabspace(int reqd)
 {
 	char *pos,*np;
-	if (!symbtab) {
-		int newsize = SYMBTABSTARTSIZE;
-		while (newsize < reqd) newsize *= 2;
+	int i;
 
-		symbtab = (char *)malloc(newsize);
-		if (!symbtab) return NULL;
-		symbtaballoclength = newsize;
-		symbtablength = reqd;
-		return symbtab;
+	if (symbtablength + reqd > symbtaballoclength)
+	{
+		for(i=max(symbtaballoclength,SYMBTABSTARTSIZE);symbtablength+reqd>i;i<<=1);
+		np = (char *)realloc(symbtab, i); if (!np) return NULL;
+		symbtab = np; symbtaballoclength = i;
 	}
-	if (symbtablength + reqd > symbtaballoclength) {
-		int newsize = symbtaballoclength * 2;
-		while (newsize < symbtablength + reqd) newsize *= 2;
 
-		np = (char *)realloc(symbtab, newsize);
-		if (!np) return NULL;
-		symbtab = np;
-		symbtaballoclength = newsize;
-	}
-	pos = symbtab + symbtablength;
+	pos = &symbtab[symbtablength];
 	symbtablength += reqd;
 	return pos;
 }

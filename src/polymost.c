@@ -961,7 +961,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 
 		if (!(method&3)) bglDisable(GL_BLEND); else bglEnable(GL_BLEND);
 
-		bglEnable(GL_ALPHA_TEST); bglAlphaFunc(GL_GREATER,0.5);
+		bglEnable(GL_ALPHA_TEST); bglAlphaFunc(GL_GREATER,0.32);
 
 		if (!dorot)
 		{

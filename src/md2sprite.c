@@ -135,7 +135,7 @@ static void md2init(void)
 }
 
 static long md2load (md2model *m, const char *filename);
-int md2_loadmodel(const char *fn, float scale, int shadeoff)
+int md2_loadmodel(const char *fn)
 {
 	md2model *m;
 
@@ -158,8 +158,6 @@ int md2_loadmodel(const char *fn, float scale, int shadeoff)
 
 	m = &models[nextmodelid];
 	memset(m, 0, sizeof(md2model));
-	m->bscale = scale;
-	m->shadeoff = shadeoff;
 
 	if (md2load(m, fn)) {
 		nextmodelid++;
@@ -167,6 +165,20 @@ int md2_loadmodel(const char *fn, float scale, int shadeoff)
 	}
 
 	return -1;
+}
+
+int md2_setmisc(int modelid, float scale, int shadeoff)
+{
+	md2model *m;
+	
+	if (!md2inited) md2init();
+	
+	if ((unsigned long)modelid >= (unsigned long)nextmodelid) return -1;
+	m = &models[modelid];
+	m->bscale = scale;	
+	m->shadeoff = shadeoff;
+
+	return 0;
 }
 
 int md2_tilehasmodel(int tilenume)
@@ -649,7 +661,7 @@ static void md2draw (float time, spritetype *tspr)
 	if (m->usesalpha) //Sprites with alpha in texture
 	{
 		bglEnable(GL_BLEND);// bglBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-		bglEnable(GL_ALPHA_TEST); bglAlphaFunc(GL_GREATER,0.5);
+		bglEnable(GL_ALPHA_TEST); bglAlphaFunc(GL_GREATER,0.32);
 	}
 	else
 	{

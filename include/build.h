@@ -465,7 +465,8 @@ void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned c
 int hicsetsubsttex(long picnum, long palnum, char *filen, long centx, long centy, long tsizx, long tsizy);
 int hicsetskybox(long picnum, long palnum, char *faces[6]);
 
-int md2_loadmodel(const char *fn, float scale, int shadeoffs);
+int md2_loadmodel(const char *fn);
+int md2_setmisc(int modelid, float scale, int shadeoff);
 int md2_tilehasmodel(int tilenume);
 int md2_defineframe(int modelid, const char *framename, int tilenume, int skinnum);
 int md2_defineanimation(int modelid, const char *framestart, const char *frameend, int fps, int flags);

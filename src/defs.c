@@ -1,6 +1,7 @@
 /*
  * Definitions file parser for Build
  * by Jonathon Fowler (jonof@edgenetwork.org)
+ * Remixed substantially by Ken Silverman
  * See the included license file "BUILDLIC.TXT" for license info.
  */
 
@@ -23,76 +24,105 @@ enum {
 	T_DEFINEMODELSKIN,
 	T_SELECTMODELSKIN,
 	T_DEFINEVOXEL,
-	T_DEFINEVOXELTILES
+	T_DEFINEVOXELTILES,
+	T_MODEL,
+	T_FILE,
+	T_SCALE,
+	T_SHADE,
+	T_FRAME,
+	T_ANIM,
+	T_SKIN,
+	T_TILE0,
+	T_TILE1,
+	T_FRAME0,
+	T_FRAME1,
+	T_FPS,
+	T_FLAGS,
+	T_PAL,
 };
 
-static struct {
-	char *text;
-	int tokenid;
-} legaltokens[] = {
-	{ "include", T_INCLUDE },
-	{ "#include", T_INCLUDE },
-	{ "define", T_DEFINE },
-	{ "#define", T_DEFINE },
-	{ "definetexture", T_DEFINETEXTURE },
-	{ "defineskybox", T_DEFINESKYBOX },
-	{ "definetint", T_DEFINETINT },
-	{ "definemodel", T_DEFINEMODEL },
-	{ "definemodelframe", T_DEFINEMODELFRAME },
-	{ "definemodelanim", T_DEFINEMODELANIM },
-	{ "definemodelskin", T_DEFINEMODELSKIN },
-	{ "selectmodelskin", T_SELECTMODELSKIN },
-	{ "definevoxel", T_DEFINEVOXEL },
-	{ "definevoxeltiles", T_DEFINEVOXELTILES }
+typedef struct { char *text; int tokenid; } tokenlist;
+static tokenlist basetokens[] = {
+	{ "include",         T_INCLUDE          },
+	{ "#include",        T_INCLUDE          },
+	{ "define",          T_DEFINE           },
+	{ "#define",         T_DEFINE           },
+	{ "definetexture",   T_DEFINETEXTURE    },
+	{ "defineskybox",    T_DEFINESKYBOX     },
+	{ "definetint",      T_DEFINETINT       },
+	{ "definemodel",     T_DEFINEMODEL      },
+	{ "definemodelframe",T_DEFINEMODELFRAME },
+	{ "definemodelanim", T_DEFINEMODELANIM  },
+	{ "definemodelskin", T_DEFINEMODELSKIN  },
+	{ "selectmodelskin", T_SELECTMODELSKIN  },
+	{ "definevoxel",     T_DEFINEVOXEL      },
+	{ "definevoxeltiles",T_DEFINEVOXELTILES },
+	{ "model",           T_MODEL            },
 };
-#define numlegaltokens (sizeof(legaltokens)/sizeof(legaltokens[0]))
 
-static int getatoken(scriptfile *sf)
+static tokenlist modeltokens[] = {
+	{ "file",   T_FILE   },
+	{ "name",   T_FILE   },
+	{ "scale",  T_SCALE  },
+	{ "shade",  T_SHADE  },
+	{ "frame",  T_FRAME  },
+	{ "anim",   T_ANIM   },
+	{ "skin",   T_SKIN   },
+};
+
+static tokenlist modelframetokens[] = {
+	{ "frame",  T_FRAME   },
+	{ "name",   T_FRAME   },
+	{ "tile0",  T_TILE0  },
+	{ "tile1",  T_TILE1  },
+};
+
+static tokenlist modelanimtokens[] = {
+	{ "frame0", T_FRAME0 },
+	{ "frame1", T_FRAME1 },
+	{ "fps",    T_FPS    },
+	{ "flags",  T_FLAGS  },
+};               
+
+static tokenlist modelskintokens[] = {
+	{ "pal",    T_PAL    },
+	{ "file",   T_FILE   },
+};
+
+
+static int getatoken(scriptfile *sf, tokenlist *tl, int ntokens)
 {
 	char *tok;
 	int i;
-	
+
 	if (!sf) return T_ERROR;
 	tok = scriptfile_gettoken(sf);
 	if (!tok) return T_EOF;
 
-	for(i=0;i<(int)numlegaltokens;i++) {
-		if (!Bstrcasecmp(tok, legaltokens[i].text))
-			return legaltokens[i].tokenid;
+	for(i=0;i<ntokens;i++) {
+		if (!Bstrcasecmp(tok, tl[i].text))
+			return tl[i].tokenid;
 	}
 
 	return T_ERROR;
 }
-
-
-static int numerrors = 0;
 
 static int lastmodelid = -1, lastvoxid = -1, modelskin = -1, lastmodelskin = -1, seenframe = 0;
 extern int nextvoxid;
 
 static int defsparser(scriptfile *script)
 {
-	int tok;
-
-	do {
-		tok = getatoken(script);
-		switch (tok) {
+	while (1) {
+		switch (getatoken(script,basetokens,sizeof(basetokens)/sizeof(tokenlist))) {
 			case T_ERROR:
 				initprintf("Error on line %s:%d.\n", script->filename,script->linenum);
 				break;
 			case T_EOF:
-				break;
+				return(0);
 			case T_INCLUDE:
 				{
 					char *fn;
-					fn = scriptfile_getstring(script);
-					if (!fn) {
-						initprintf("Unexpected EOF in T_INCLUDE on line %s:%d\n",
-								script->filename,script->linenum);
-						tok = T_EOF;
-						numerrors++;
-						break;
-					} else {
+					if (!scriptfile_getstring(script,&fn)) {
 						scriptfile *included;
 
 						included = scriptfile_fromfile(fn);
@@ -110,20 +140,9 @@ static int defsparser(scriptfile *script)
 				{
 					char *name;
 					int number;
-					name = scriptfile_getstring(script);
-					if (!name) {
-						initprintf("Unexpected EOF in T_DEFINE on line %s:%d\n",
-								script->filename,script->linenum);
-						tok = T_EOF;
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getsymbol(script, &number)) {
-						initprintf("Invalid symbol name or numeric constant on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
+
+					if (scriptfile_getstring(script,&name)) break;
+					if (scriptfile_getsymbol(script,&number)) break;
 
 					if (scriptfile_addsymbolvalue(name,number) < 0)
 						initprintf("Warning: Symbol %s was NOT redefined to %d on line %s:%d\n",
@@ -132,130 +151,46 @@ static int defsparser(scriptfile *script)
 				}
 			case T_DEFINETEXTURE:
 				{
-					int tile,pal;
-					int cx,cy,sx,sy;
-					char *fn,happy=1;
+					int tile,pal,cx,cy,sx,sy;
+					char *fn;
 
-					if (scriptfile_getsymbol(script,&tile)) {
-						initprintf("Invalid symbol name or numeric constant for tile number "
-									  "on line %s:%d\n", script->filename,script->linenum);
-						numerrors++;
-						happy=0;
-					}
-					if (scriptfile_getsymbol(script,&pal)) {
-						initprintf("Invalid symbol name or numeric constant for palette number "
-									  "on line %s:%d\n", script->filename,script->linenum);
-						numerrors++;
-						happy=0;
-					}
-					if (scriptfile_getnumber(script,&cx)) {
-						initprintf("Invalid numeric constant for x-center on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getnumber(script,&cy)) {
-						initprintf("Invalid numeric constant for y-center on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getnumber(script,&sx)) {
-						initprintf("Invalid numeric constant for x-size on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getnumber(script,&sy)) {
-						initprintf("Invalid numeric constant for y-size on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
-					if ((fn = scriptfile_getstring(script)) == NULL) {
-						initprintf("Invalid string constant for filename on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
-					if (happy) hicsetsubsttex(tile,pal,fn,cx,cy,sx,sy);
+					if (scriptfile_getsymbol(script,&tile)) break;
+					if (scriptfile_getsymbol(script,&pal)) break;
+					if (scriptfile_getnumber(script,&cx)) break; //x-center
+					if (scriptfile_getnumber(script,&cy)) break; //y-center
+					if (scriptfile_getnumber(script,&sx)) break; //x-size
+					if (scriptfile_getnumber(script,&sy)) break; //y-size
+					if (scriptfile_getstring(script,&fn)) break;
+					hicsetsubsttex(tile,pal,fn,cx,cy,sx,sy);
 				}
 				break;
 			case T_DEFINESKYBOX:
 				{
 					int tile,pal,i;
-					char *fn[6],happy=1;
-					const char *faces[6] = {
+					char *fn[6];
+					const char *faces[6] = { //would be nice to use these strings for error messages :)
 						"front face", "right face", "back face",
 						"left face", "top face", "bottom face"
 					};
 
-					if (scriptfile_getsymbol(script,&tile)) {
-						initprintf("Invalid symbol name or numeric constant for tile number "
-									  "on line %s:%d\n", script->filename,script->linenum);
-						numerrors++;
-						happy=0;
-					}
-					if (scriptfile_getsymbol(script,&pal)) {
-						initprintf("Invalid symbol name or numeric constant for palette number "
-									  "on line %s:%d\n", script->filename,script->linenum);
-						numerrors++;
-						happy=0;
-					}
-					if (scriptfile_getnumber(script,&i)) {
-						initprintf("Invalid numeric constant for reserved parameter on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						happy=0;
-					}
-					for (i=0;i<6;i++) {
-						if ((fn[i] = scriptfile_getstring(script)) == NULL) {
-							initprintf("Invalid string constant for %s filename on line %s:%d\n",
-									faces[i],script->filename,script->linenum);
-							numerrors++;
-							happy=0;
-						}
-					}
-					if (happy) hicsetskybox(tile,pal,fn);
+					if (scriptfile_getsymbol(script,&tile)) break;
+					if (scriptfile_getsymbol(script,&pal)) break;
+					if (scriptfile_getsymbol(script,&i)) break; //future expansion
+					for (i=0;i<6;i++) if (scriptfile_getstring(script,&fn[i])) break; //grab the 6 faces
+					if (i < 6) break;
+					hicsetskybox(tile,pal,fn);
 				}
 				break;
 			case T_DEFINETINT:
 				{
-					int pal;
-					int r,g,b,f;
-					char happy=1;
+					int pal, r,g,b,f;
 
-					if (scriptfile_getsymbol(script,&pal)) {
-						initprintf("Invalid symbol name or numeric constant for palette number "
-									  "on line %s:%d\n", script->filename,script->linenum);
-						numerrors++;
-						happy=0;
-					}
-					if (scriptfile_getnumber(script,&r)) {
-						initprintf("Invalid numeric constant for red value on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getnumber(script,&g)) {
-						initprintf("Invalid numeric constant for green blue on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getnumber(script,&b)) {
-						initprintf("Invalid numeric constant for blue value on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getnumber(script,&f)) {
-						initprintf("Invalid numeric constant for effects value on line %s:%d\n",
-								script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
-					if (happy) hicsetpalettetint(pal,r,g,b,f);
+					if (scriptfile_getsymbol(script,&pal)) break;
+					if (scriptfile_getnumber(script,&r)) break;
+					if (scriptfile_getnumber(script,&g)) break;
+					if (scriptfile_getnumber(script,&b)) break;
+					if (scriptfile_getnumber(script,&f)) break; //effects
+					hicsetpalettetint(pal,r,g,b,f);
 				}
 				break;
 			case T_DEFINEMODEL:
@@ -264,34 +199,17 @@ static int defsparser(scriptfile *script)
 					double scale;
 					int shadeoffs;
 
-					modelfn = scriptfile_getstring(script);
-					if (!modelfn) {
-						initprintf("Invalid string constant for model filename on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
-
-					if (scriptfile_getdouble(script,&scale)) {
-						initprintf("Invalid numeric constant for scale on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
-
-					if (scriptfile_getnumber(script,&shadeoffs)) {
-						initprintf("Invalid numeric constant for shadeoffs on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
+					if (scriptfile_getstring(script,&modelfn)) break;
+					if (scriptfile_getdouble(script,&scale)) break;
+					if (scriptfile_getnumber(script,&shadeoffs)) break;
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-					lastmodelid = md2_loadmodel(modelfn, (float)scale, shadeoffs);
+					lastmodelid = md2_loadmodel(modelfn);
 					if (lastmodelid < 0) {
 						initprintf("Failure loading MD2 model \"%s\"\n", modelfn);
 						break;
 					}
+					md2_setmisc(lastmodelid,(float)scale, shadeoffs);
 #endif
 					modelskin = lastmodelskin = 0;
 					seenframe = 0;
@@ -302,28 +220,11 @@ static int defsparser(scriptfile *script)
 					char *framename, happy=1;
 					int ftilenume, ltilenume, tilex;
 
-					framename = scriptfile_getstring(script);
-					if (!framename) {
-						initprintf("Invalid string constant for frame name on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getnumber(script,&ftilenume)) {
-						initprintf("Invalid numeric constant for first tile number on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getnumber(script,&ltilenume)) {
-						initprintf("Invalid numeric constant for last tile number on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
+					if (scriptfile_getstring(script,&framename)) break;
+					if (scriptfile_getnumber(script,&ftilenume)) break; //first tile number
+					if (scriptfile_getnumber(script,&ltilenume)) break; //last tile number (inclusive)
 					if (ltilenume < ftilenume) {
-						initprintf("Warning: backwards tile range on line %s:%d\n",
-								script->filename, script->linenum);
+						initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, script->linenum);
 						tilex = ftilenume;
 						ftilenume = ltilenume;
 						ltilenume = tilex;
@@ -358,32 +259,10 @@ static int defsparser(scriptfile *script)
 					int flags;
 					double dfps;
 
-					startframe = scriptfile_getstring(script);
-					if (!startframe) {
-						initprintf("Invalid string constant for start frame name on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
-					endframe = scriptfile_getstring(script);
-					if (!endframe) {
-						initprintf("Invalid string constant for end frame name on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getdouble(script,&dfps)) {
-						initprintf("Invalid double constant for frame rate on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getnumber(script,&flags)) {
-						initprintf("Invalid numeric constant for flags on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
+					if (scriptfile_getstring(script,&startframe)) break;
+					if (scriptfile_getstring(script,&endframe)) break;
+					if (scriptfile_getdouble(script,&dfps)) break; //animation frame rate
+					if (scriptfile_getnumber(script,&flags)) break;
 
 					if (lastmodelid < 0) {
 						initprintf("Warning: Ignoring animation definition.\n");
@@ -411,33 +290,21 @@ static int defsparser(scriptfile *script)
 					int palnum, palnumer;
 					char *skinfn;
 					
-					palnumer = scriptfile_getsymbol(script,&palnum);
-					skinfn = scriptfile_getstring(script);
-					if (palnumer) {
-						initprintf("Invalid symbol name or numeric constant for palette number "
-									  "on line %s:%d\n", script->filename,script->linenum);
-						numerrors++;
-						break;
-					}
-					if (!skinfn) {
-						initprintf("Invalid string constant for skin filename on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
+					if (scriptfile_getsymbol(script,&palnum)) break;
+					if (scriptfile_getstring(script,&skinfn)) break; //skin filename
 
 					// if we see a sequence of definemodelskin, then a sequence of definemodelframe,
 					// and then a definemodelskin, we need to increment the skin counter.
 					//
 					// definemodel "mymodel.md2" 1 1
-					// definemodelskin 0 "normal.png"	// skin 0
+					// definemodelskin 0 "normal.png"   // skin 0
 					// definemodelskin 21 "normal21.png"
-					// definemodelframe "foo" 1000 1002	// these use skin 0
-					// definemodelskin 0 "wounded.png"	// skin 1
+					// definemodelframe "foo" 1000 1002   // these use skin 0
+					// definemodelskin 0 "wounded.png"   // skin 1
 					// definemodelskin 21 "wounded21.png"
-					// definemodelframe "foo2" 1003 1004	// these use skin 1
-					// selectmodelskin 0			// resets to skin 0
-					// definemodelframe "foo3" 1005 1006	// these use skin 0
+					// definemodelframe "foo2" 1003 1004   // these use skin 1
+					// selectmodelskin 0         // resets to skin 0
+					// definemodelframe "foo3" 1005 1006   // these use skin 0
 					if (seenframe) { modelskin = ++lastmodelskin; }
 					seenframe = 0;
 
@@ -455,28 +322,20 @@ static int defsparser(scriptfile *script)
 									 script->filename, script->linenum);
 							 break;
 					}
-#endif					
+#endif               
 				}
 				break;
 			case T_SELECTMODELSKIN:
 				{
-					if (scriptfile_getsymbol(script,&modelskin)) {
-						initprintf("Invalid symbol name or numeric constant for skin number "
-									  "on line %s:%d\n", script->filename,script->linenum);
-						numerrors++;
-					}
+					if (scriptfile_getsymbol(script,&modelskin)) break;
 				}
 				break;
 			case T_DEFINEVOXEL:
 				{
 					char *fn;
 
-					fn = scriptfile_getstring(script);
-					if (!fn) {
-						initprintf("Invalid string constant for voxel filename on line %s:%d\n",
-								script->filename, script->linenum);
-						break;
-					}
+					if (scriptfile_getstring(script,&fn)) break; //voxel filename
+
 					if (nextvoxid == MAXVOXELS) {
 						initprintf("Maximum number of voxels already defined.\n");
 						break;
@@ -494,18 +353,9 @@ static int defsparser(scriptfile *script)
 				{
 					int ftilenume, ltilenume, tilex;
 
-					if (scriptfile_getnumber(script,&ftilenume)) {
-						initprintf("Invalid numeric constant for first tile number on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
-					if (scriptfile_getnumber(script,&ltilenume)) {
-						initprintf("Invalid numeric constant for last tile number on line %s:%d\n",
-								script->filename, script->linenum);
-						numerrors++;
-						break;
-					}
+					if (scriptfile_getnumber(script,&ftilenume)) break; //1st tile #
+					if (scriptfile_getnumber(script,&ltilenume)) break; //last tile #
+
 					if (ltilenume < ftilenume) {
 						initprintf("Warning: backwards tile range on line %s:%d\n",
 								script->filename, script->linenum);
@@ -528,11 +378,170 @@ static int defsparser(scriptfile *script)
 					}
 				}
 				break;
+			case T_MODEL:
+				{
+#if 0
+					Old method:
+
+					 definemodel "models/pig.md2" 17 0
+					 definemodelskin 0 "normal.png"
+					 definemodelskin 21 "normal21.png"
+					 definemodelanim "stand00" "stand01"
+					 definemodelanim "stand00" "stand00"
+					 definemodelframe "walk1" 2000 2019
+
+					New method:
+
+					 model "models/pig.md2" {
+					  scale 17 //shade 0
+					  skin { pal 0 file "normal.png" }
+					  skin { file "normal21.png" pal 21}
+					  anim { name "ATROOPSTAND" frame0 "stand00" frame1 "stand01" }
+					  anim { name "ATROOPFROZEN" frame0 "stand00" frame1 "stand00" skin { pal 1 file "frozen.png" } }
+					  frame { name "walk1" tile0 2000 tile1 2019 }
+					 }
+#endif
+					char *modelend, *modelfn;
+					double scale=1.0;
+					int shadeoffs=0;
+
+					if (scriptfile_getstring(script,&modelfn)) break;
+
+#if defined(POLYMOST) && defined(USE_OPENGL)
+					lastmodelid = md2_loadmodel(modelfn);
+					if (lastmodelid < 0) {
+						initprintf("Failure loading MD2 model \"%s\"\n", modelfn);
+						break;
+					}
+#endif
+					if (scriptfile_getbraces(script,&modelend)) break;
+					while (script->textptr < modelend)
+						switch (getatoken(script,modeltokens,sizeof(modeltokens)/sizeof(tokenlist))) {
+							//case T_ERROR: initprintf("Error on line %s:%d in model tokens\n", script->filename,script->linenum); break;
+							case T_SCALE: scriptfile_getdouble(script,&scale); break;
+							case T_SHADE: scriptfile_getnumber(script,&shadeoffs); break;
+							case T_FRAME:
+							{
+								char *frameend, *framename = 0, happy=1;
+								int ftilenume = 0, ltilenume = 0, tilex = 0;
+
+								if (scriptfile_getbraces(script,&frameend)) break;
+								while (script->textptr < frameend)
+									switch(getatoken(script,modelframetokens,sizeof(modelframetokens)/sizeof(tokenlist))) {
+										case T_FRAME: scriptfile_getstring(script,&framename); break;
+										case T_TILE0: scriptfile_getnumber(script,&ftilenume); break; //first tile number
+										case T_TILE1: scriptfile_getnumber(script,&ltilenume); break; //last tile number (inclusive)
+									}
+
+								if (ltilenume < ftilenume) {
+									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, script->linenum);
+									tilex = ftilenume;
+									ftilenume = ltilenume;
+									ltilenume = tilex;
+								}
+
+								if (lastmodelid < 0) {
+									initprintf("Warning: Ignoring frame definition.\n");
+									break;
+								}
+#if defined(POLYMOST) && defined(USE_OPENGL)
+								for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++)
+									switch (md2_defineframe(lastmodelid, framename, tilex, max(0,modelskin))) {
+										case 0: break;
+										case -1: happy = 0; break; // invalid model id!?
+										case -2: initprintf("Invalid tile number on line %s:%d\n",
+													 script->filename, script->linenum);
+											 happy = 0;
+											 break;
+										case -3: initprintf("Invalid frame name on line %s:%d\n",
+													 script->filename, script->linenum);
+											 happy = 0;
+											 break;
+									}
+#endif
+								seenframe = 1;
+								}
+								break;
+							case T_ANIM:
+							{
+								char *animend, *startframe = 0, *endframe = 0;
+								int flags = 0;
+								double dfps = 1.0;
+
+								if (scriptfile_getbraces(script,&animend)) break;
+								while (script->textptr < animend)
+									switch(getatoken(script,modelanimtokens,sizeof(modelanimtokens)/sizeof(tokenlist))) {
+										case T_FRAME0: scriptfile_getstring(script,&startframe); break;
+										case T_FRAME1: scriptfile_getstring(script,&endframe); break;
+										case T_FPS: scriptfile_getdouble(script,&dfps); break; //animation frame rate
+										case T_FLAGS: scriptfile_getnumber(script,&flags); break;
+									}
+
+								if (lastmodelid < 0) {
+									initprintf("Warning: Ignoring animation definition.\n");
+									break;
+								}
+#if defined(POLYMOST) && defined(USE_OPENGL)
+								switch (md2_defineanimation(lastmodelid, startframe, endframe, (int)(dfps*(65536.0*.001)), flags)) {
+									case 0: break;
+									case -1: break; // invalid model id!?
+									case -2: initprintf("Invalid starting frame name on line %s:%d\n",
+												 script->filename, script->linenum);
+										 break;
+									case -3: initprintf("Invalid ending frame name on line %s:%d\n",
+												 script->filename, script->linenum);
+										 break;
+									case -4: initprintf("Out of memory on line %s:%d\n",
+												 script->filename, script->linenum);
+										 break;
+								}
+#endif
+							} break;
+							case T_SKIN:
+							{
+								char *skinend, *skinfn = 0;
+								int palnum = 0;
+
+								if (scriptfile_getbraces(script,&skinend)) break;
+								while (script->textptr < skinend)
+									switch(getatoken(script,modelskintokens,sizeof(modelskintokens)/sizeof(tokenlist))) {
+										case T_PAL: scriptfile_getsymbol(script,&palnum); break;
+										case T_FILE: scriptfile_getstring(script,&skinfn); break; //skin filename
+									}
+
+								if (seenframe) { modelskin = ++lastmodelskin; }
+								seenframe = 0;
+
+#if defined(POLYMOST) && defined(USE_OPENGL)
+								switch (md2_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin))) {
+									case 0: break;
+									case -1: break; // invalid model id!?
+									case -2: initprintf("Invalid skin filename on line %s:%d\n",
+												 script->filename, script->linenum);
+										 break;
+									case -3: initprintf("Invalid palette number on line %s:%d\n",
+												 script->filename, script->linenum);
+										 break;
+									case -4: initprintf("Out of memory on line %s:%d\n",
+												 script->filename, script->linenum);
+										 break;
+								}
+#endif
+							} break;
+						}
+
+
+					md2_setmisc(lastmodelid,(float)scale, shadeoffs);
+
+					modelskin = lastmodelskin = 0;
+					seenframe = 0;
+
+				}
+				break;
 			default:
 				initprintf("Unknown token."); break;
 		}
-	} while (tok != T_EOF);
-
+	}
 	return 0;
 }
 
@@ -540,13 +549,13 @@ static int defsparser(scriptfile *script)
 int loaddefinitionsfile(char *fn)
 {
 	scriptfile *script;
-	
+
 	script = scriptfile_fromfile(fn);
 	if (!script) return -1;
 
-	numerrors = 0;
+	//numerrors = 0;
 	defsparser(script);
-	initprintf("%s read with %d error(s)\n",fn,numerrors);
+	//initprintf("%s read with %d error(s)\n",fn,numerrors);
 
 	scriptfile_close(script);
 	scriptfile_clearsymbols();
