@@ -969,10 +969,14 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		for(xx=1;xx<tsizx;xx+=xx); ox2 = (double)1.0/(double)xx;
 		for(yy=1;yy<tsizy;yy+=yy); oy2 = (double)1.0/(double)yy;
 
-		if (!(method&3)) bglDisable(GL_BLEND); else bglEnable(GL_BLEND);
-
-		bglEnable(GL_ALPHA_TEST);
-		bglAlphaFunc(GL_GREATER,0.32);
+		if (!(method&3)) {
+			bglDisable(GL_BLEND);
+			bglDisable(GL_ALPHA_TEST);
+		} else {
+			bglEnable(GL_BLEND);
+			bglEnable(GL_ALPHA_TEST);
+			bglAlphaFunc(GL_GREATER,0.32);
+		}
 
 		if (!dorot)
 		{
