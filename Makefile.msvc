@@ -37,7 +37,7 @@ flags_cl=/G5 /Ot /Z7
 flags_link=/DEBUG
 !else
 # release options
-#flags_cl=/G6fy /Ox
+#flags_cl=/G6Fy /Ox
 flags_cl=/G6 /O2
 flags_link=/RELEASE
 !endif
@@ -143,15 +143,15 @@ kgroup$(EXESUFFIX): $(OBJ)kgroup.$o $(OBJ)compat.$o
 	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 	copy /y $(OBJ)$@ $@
 
-transpal$(EXESUFFIX): $(OBJ)transpal.$o $(OBJ)compat.$o
+transpal$(EXESUFFIX): $(OBJ)transpal.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
 	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 	copy /y $(OBJ)$@ $@
 
-wad2map$(EXESUFFIX): $(OBJ)wad2map.$o $(OBJ)compat.$o
+wad2map$(EXESUFFIX): $(OBJ)wad2map.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
 	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 	copy /y $(OBJ)$@ $@
 
-wad2art$(EXESUFFIX): $(OBJ)wad2art.$o $(OBJ)compat.$o
+wad2art$(EXESUFFIX): $(OBJ)wad2art.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
 	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 	copy /y $(OBJ)$@ $@
 

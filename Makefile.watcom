@@ -87,6 +87,7 @@ CFLAGS+= -d$(PLATFORM) -dRENDERTYPE$(RENDERTYPE)=1
 .wasm:	$(SRC)
 .c:	$(SRC)
 .c:	$(SRC)tmp/
+.c:	$(SRC)util/
 .rc:	$(SRC)misc/
 
 .wasm.$o:
@@ -145,6 +146,22 @@ build$(EXESUFFIX): $(EDITOREXEOBJS) $(OBJ)buildres.$(res) $(OBJ)$(ENGINELIB) $(O
 		LIBPATH  $(FMODROOT)\lib &
 		LIBPATH  $(OBJ) &
 		LIBFILE  { $(LIBS) $(ENGINELIB) $(EDITORLIB) }
+	copy /y $(OBJ)$@ $@
+
+kextract$(EXESUFFIX): $(OBJ)kextract.$o $(OBJ)compat.$o
+	wlink	NAME $(OBJ)$@  SYSTEM 386  DEBUG ALL  FILE { $< }
+	copy /y $(OBJ)$@ $@
+kgroup$(EXESUFFIX): $(OBJ)kgroup.$o $(OBJ)compat.$o
+	wlink	NAME $(OBJ)$@  SYSTEM 386  DEBUG ALL  FILE { $< }
+	copy /y $(OBJ)$@ $@
+transpal$(EXESUFFIX): $(OBJ)transpal.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
+	wlink	NAME $(OBJ)$@  SYSTEM 386  DEBUG ALL  FILE { $< }
+	copy /y $(OBJ)$@ $@
+wad2art$(EXESUFFIX): $(OBJ)wad2art.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
+	wlink	NAME $(OBJ)$@  SYSTEM 386  DEBUG ALL  FILE { $< }
+	copy /y $(OBJ)$@ $@
+wad2map$(EXESUFFIX): $(OBJ)wad2map.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
+	wlink	NAME $(OBJ)$@  SYSTEM 386  DEBUG ALL  FILE { $< }
 	copy /y $(OBJ)$@ $@
 
 # DEPENDENCIES

@@ -6,6 +6,7 @@
 // by Jonathon Fowler (jonof@edgenetwk.com)
 
 #include "compat.h"
+#include "pragmas.h"
 
 #define MAXWADS 4096
 #define MAXPOINTS 8192
@@ -175,24 +176,7 @@ static thinglisttype thinglist[THINGLISTNUM] =
 {15,"PLAYN0"},{18,"POSSL0"},{19,"SPOSL0"},{20,"TROOM0"},{21,"SARGN0"},{22,"HEADL0"},
 {23,""}};
 
-static long klabs(long a) { if (a < 0) return -a; return a; }
-static long ksgn(long a)  { if (a > 0) return 1; if (a < 0) return -1; return 0; }
-void clearbufbyte(void *D, long c, long a)
-{ // Cringe City
-	char *p = (char*)D;
-	long m[4] = { 0xffl,0xff00l,0xff0000l,0xff000000l };
-	long n[4] = { 0,8,16,24 };
-	long z=0;
-	while ((c--) > 0) {
-		*(p++) = (char)((a & m[z])>>n[z]);
-		z=(z+1)&3;
-	}
-}
-long mulscale10(long eax, long edx)
-{
-	return (long)(((int64)(eax) * (int64)(edx)) >> 10);
-}
-
+// These three were nicked from Build's engine.c.
 static inline unsigned long ksqrtasm(unsigned long a)
 {
 	unsigned short c;

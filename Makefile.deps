@@ -39,7 +39,7 @@ $(OBJ)build_icon.$o: $(RSRC)build_icon.c
 $(OBJ)kextract.$o: $(SRC)util/kextract.c $(INC)compat.h
 $(OBJ)kgroup.$o: $(SRC)util/kgroup.c $(INC)compat.h
 $(OBJ)transpal.$o: $(SRC)util/transpal.c $(INC)compat.h $(INC)pragmas.h
-$(OBJ)wad2art.$o: $(SRC)util/wad2art.c $(INC)compat.h
-$(OBJ)wad2map.$o: $(SRC)util/wad2map.c $(INC)compat.h
+$(OBJ)wad2art.$o: $(SRC)util/wad2art.c $(INC)compat.h $(INC)pragmas.h
+$(OBJ)wad2map.$o: $(SRC)util/wad2map.c $(INC)compat.h $(INC)pragmas.h
 $(OBJ)generateicon.$o: $(SRC)util/generateicon.c
 

@@ -6,6 +6,7 @@
 // by Jonathon Fowler (jonof@edgenetwk.com)
 
 #include "compat.h"
+#include "pragmas.h"
 
 #define MAXWADS 4096
 
@@ -18,17 +19,6 @@ static short tilesizx[MAXWADS], tilesizy[MAXWADS];
 static char pal[768], palookup[8192];
 static char screen[65536], tempbuf[131072];
 
-void clearbuf(void *d, long c, long a)
-{
-	long *p = (long*)d;
-	while ((c--) > 0) *(p++) = a;
-}
-
-void copybuf(void *s, void *d, long c)
-{
-	long *p = (long*)s, *q = (long*)d;
-	while ((c--) > 0) *(q++) = *(p++);
-}
 
 void loadwadheader(void)
 {
@@ -63,10 +53,7 @@ void convpalette(void)
 	while (Bstrncasecmp(wadata[i],"PLAYPAL",7) != 0) i++;
 	Blseek(fil1,wadplc[i],BSEEK_SET);
 	Bread(fil1,pal,768);
-	for(i=0;i<768;i++)
-	{
-		pal[i] >>= 2;
-	}
+	for(i=0;i<768;i++) pal[i] >>= 2;
 
 	i = 0;
 	while (Bstrncasecmp(wadata[i],"COLORMAP",8) != 0) i++;

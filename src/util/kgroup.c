@@ -7,17 +7,86 @@
 
 #include "compat.h"
 
-static void strupr(char *s) { while (*s) { *s = Btoupper(*s); s++; } }
+// Glibc doesn't provide this function, so for the sake of less ugliess
+// for all platforms, here's a replacement just for this program.
+static void jstrupr(char *s) { while (*s) { *s = Btoupper(*s); s++; } }
 
 #define MAXFILES 4096
 
-static char buf[65536];
+static char buf[65536];		// These limits should be abolished one day
 
 static long numfiles;
 static char filespec[MAXFILES][128], filelist[MAXFILES][16];
 static long fileleng[MAXFILES];
 
-void findfiles(const char *dafilespec);
+
+static char *matchstr = "*.*";
+int checkmatch(const struct Bdirent *a)
+{
+	if (a->namlen > 12) return 0;	// name too long
+	return wildmatch(a->name, matchstr);
+}
+
+long filesize(const char *path, const char *name)
+{
+	char p[BMAX_PATH];
+	struct stat st;
+
+	strcpy(p, path);
+	strcat(p, "/");
+	strcat(p, name);
+
+	if (!stat(p, &st)) return st.st_size;
+	return 0;
+}
+
+void findfiles(const char *dafilespec)
+{
+	struct Bdirent *name;
+	long daspeclen;
+	char daspec[128], *dir;
+	BDIR *di;
+
+	strcpy(daspec,dafilespec);
+	daspeclen=strlen(daspec);
+	while ((daspec[daspeclen] != '\\') && (daspec[daspeclen] != '/') && (daspeclen > 0)) daspeclen--;
+	if (daspeclen > 0) {
+		daspec[daspeclen]=0;
+		dir = daspec;
+		matchstr = &daspec[daspeclen+1];
+	} else {
+		dir = ".";
+		matchstr = daspec;
+	}
+
+	di = Bopendir(dir);
+	if (!di) return;
+
+	while ((name = Breaddir(di))) {
+		if (!checkmatch(name)) continue;
+
+		strcpy(&filelist[numfiles][0],name->name);
+		jstrupr(&filelist[numfiles][0]);
+		fileleng[numfiles] = name->size;
+		filelist[numfiles][12] = (char)(fileleng[numfiles]&255);
+		filelist[numfiles][13] = (char)((fileleng[numfiles]>>8)&255);
+		filelist[numfiles][14] = (char)((fileleng[numfiles]>>16)&255);
+		filelist[numfiles][15] = (char)((fileleng[numfiles]>>24)&255);
+
+		strcpy(filespec[numfiles],dir);
+		strcat(filespec[numfiles], "/");
+		strcat(filespec[numfiles],name->name);
+
+		numfiles++;
+		if (numfiles > MAXFILES)
+		{
+			printf("FATAL ERROR: TOO MANY FILES SELECTED! (MAX is 4096)\n");
+			exit(0);
+		}
+	}
+
+	Bclosedir(di);
+}
 
 int main(int argc, char **argv)
 {
@@ -99,70 +168,3 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-static char *matchstr = "*.*";
-int checkmatch(const struct Bdirent *a)
-{
-	if (a->namlen > 12) return 0;	// name too long
-	return wildmatch(a->name, matchstr);
-}
-
-long filesize(const char *path, const char *name)
-{
-	char p[BMAX_PATH];
-	struct stat st;
-
-	strcpy(p, path);
-	strcat(p, "/");
-	strcat(p, name);
-
-	if (!stat(p, &st)) return st.st_size;
-	return 0;
-}
-
-void findfiles(const char *dafilespec)
-{
-	struct Bdirent *name;
-	long daspeclen;
-	char daspec[128], *dir;
-	BDIR *di;
-
-	strcpy(daspec,dafilespec);
-	daspeclen=strlen(daspec);
-	while ((daspec[daspeclen] != '\\') && (daspec[daspeclen] != '/') && (daspeclen > 0)) daspeclen--;
-	if (daspeclen > 0) {
-		daspec[daspeclen]=0;
-		dir = daspec;
-		matchstr = &daspec[daspeclen+1];
-	} else {
-		dir = ".";
-		matchstr = daspec;
-	}
-
-	di = Bopendir(dir);
-	if (!di) return;
-
-	while ((name = Breaddir(di))) {
-		if (!checkmatch(name)) continue;
-
-		strcpy(&filelist[numfiles][0],name->name);
-		strupr(&filelist[numfiles][0]);
-		fileleng[numfiles] = name->size;
-		filelist[numfiles][12] = (char)(fileleng[numfiles]&255);
-		filelist[numfiles][13] = (char)((fileleng[numfiles]>>8)&255);
-		filelist[numfiles][14] = (char)((fileleng[numfiles]>>16)&255);
-		filelist[numfiles][15] = (char)((fileleng[numfiles]>>24)&255);
-
-		strcpy(filespec[numfiles],dir);
-		strcat(filespec[numfiles], "/");
-		strcat(filespec[numfiles],name->name);
-
-		numfiles++;
-		if (numfiles > MAXFILES)
-		{
-			printf("FATAL ERROR: TOO MANY FILES SELECTED! (MAX is 4096)\n");
-			exit(0);
-		}
-	}
-
-	Bclosedir(di);
-}

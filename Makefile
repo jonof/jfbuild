@@ -164,9 +164,9 @@ kgroup$(EXESUFFIX): $(OBJ)kgroup.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
 transpal$(EXESUFFIX): $(OBJ)transpal.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
-wad2art$(EXESUFFIX): $(OBJ)wad2art.$o $(OBJ)compat.$o
+wad2art$(EXESUFFIX): $(OBJ)wad2art.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
-wad2map$(EXESUFFIX): $(OBJ)wad2map.$o $(OBJ)compat.$o
+wad2map$(EXESUFFIX): $(OBJ)wad2map.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
 generateicon$(EXESUFFIX): $(OBJ)generateicon.$o $(OBJ)kplib.$o
 	$(CC) -o $@ $^

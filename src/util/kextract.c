@@ -16,7 +16,22 @@ static char marked4extraction[MAXFILES];
 static char filelist[MAXFILES][16];
 static long fileoffs[MAXFILES+1], fileleng[MAXFILES];
 
-void findfiles(const char *dafilespec);
+void findfiles(const char *dafilespec)
+{
+	char t[13];
+	int i;
+
+	for(i=numfiles-1;i>=0;i--)
+	{
+		memcpy(t,filelist[i],12);
+		t[12] = 0;
+		
+		if (wildmatch(t,dafilespec)) {
+			marked4extraction[i] = 1;
+			anyfiles4extraction = 1;
+		}
+	}
+}
 
 int main(int argc, char **argv)
 {
@@ -131,19 +146,3 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-void findfiles(const char *dafilespec)
-{
-	char t[13];
-	int i;
-
-	for(i=numfiles-1;i>=0;i--)
-	{
-		memcpy(t,filelist[i],12);
-		t[12] = 0;
-		
-		if (wildmatch(t,dafilespec)) {
-			marked4extraction[i] = 1;
-			anyfiles4extraction = 1;
-		}
-	}
-}
