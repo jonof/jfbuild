@@ -9606,8 +9606,6 @@ void draw2dscreen(long posxe, long posye, short ange, long zoome, short gride)
 	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16+yp1,midydim16-xp1,15);
 	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16-yp1,midydim16+xp1,15);
 
-	drawcircle16(103,-17,343,6);
-
 	enddrawing();	//}}}
 }
 
