@@ -299,132 +299,132 @@ inline long getkensmessagecrc(long b)
 
 static inline long nsqrtasm(long a)
 {
-	_asm mov eax, a
 	_asm {
-	test eax, 0xff000000
-	mov ebx, eax
-	jnz short over24
-	shr ebx, 12
-	mov cx, word ptr shlookup[ebx*2]
-	jmp short under24
-	}
+		push ebx
+		mov eax, a
+		test eax, 0xff000000
+		mov ebx, eax
+		jnz short over24
+		shr ebx, 12
+		mov cx, word ptr shlookup[ebx*2]
+		jmp short under24
 	over24:
-	_asm {
-	shr ebx, 24
-	mov cx, word ptr shlookup[ebx*2+8192]
-	}
+		shr ebx, 24
+		mov cx, word ptr shlookup[ebx*2+8192]
 	under24:
-	_asm {
-	shr eax, cl
-	mov cl, ch
-	mov ax, word ptr sqrtable[eax*2]
-	shr eax, cl
+		shr eax, cl
+		mov cl, ch
+		mov ax, word ptr sqrtable[eax*2]
+		shr eax, cl
+		pop ebx
 	}
 }
 
 static inline long msqrtasm(long c)
 {
-	_asm mov ecx, c
 	_asm {
-	mov eax, 0x40000000
-	mov ebx, 0x20000000
-	}
+		push ebx
+		mov ecx, c
+		mov eax, 0x40000000
+		mov ebx, 0x20000000
 	begit:
-	_asm {
-	cmp ecx, eax
-	jl skip
-	sub ecx, eax
-	lea eax, [eax+ebx*4]
-	}
+		cmp ecx, eax
+		jl skip
+		sub ecx, eax
+		lea eax, [eax+ebx*4]
 	skip:
-	_asm {
-	sub eax, ebx
-	shr eax, 1
-	shr ebx, 2
-	jnz begit
-	cmp ecx, eax
-	sbb eax, -1
-	shr eax, 1
+		sub eax, ebx
+		shr eax, 1
+		shr ebx, 2
+		jnz begit
+		cmp ecx, eax
+		sbb eax, -1
+		shr eax, 1
+		pop ebx
 	}
 }
 
 	//0x007ff000 is (11<<13), 0x3f800000 is (127<<23)
 static inline long krecipasm(long a)
 {
-	_asm mov eax, a
 	_asm {
-	mov fpuasm, eax
-	fild dword ptr fpuasm
-	add eax, eax
-	fstp dword ptr fpuasm
-	sbb ebx, ebx
-	mov eax, fpuasm
-	mov ecx, eax
-	and eax, 0x007ff000
-	shr eax, 10
-	sub ecx, 0x3f800000
-	shr ecx, 23
-	mov eax, dword ptr reciptable[eax]
-	sar eax, cl
-	xor eax, ebx
+		push ebx
+		mov eax, a
+		mov fpuasm, eax
+		fild dword ptr fpuasm
+		add eax, eax
+		fstp dword ptr fpuasm
+		sbb ebx, ebx
+		mov eax, fpuasm
+		mov ecx, eax
+		and eax, 0x007ff000
+		shr eax, 10
+		sub ecx, 0x3f800000
+		shr ecx, 23
+		mov eax, dword ptr reciptable[eax]
+		sar eax, cl
+		xor eax, ebx
+		pop ebx
 	}
 }
 
 static inline void setgotpic(long a)
 {
-	_asm mov eax, a
 	_asm {
-	mov ebx, eax
-	cmp byte ptr walock[eax], 200
-	jae skipit
-	mov byte ptr walock[eax], 199
-	}
+		push ebx
+		mov eax, a
+		mov ebx, eax
+		cmp byte ptr walock[eax], 200
+		jae skipit
+		mov byte ptr walock[eax], 199
 	skipit:
-	_asm {
-	shr eax, 3
-	and ebx, 7
-	mov dl, byte ptr gotpic[eax]
-	mov bl, byte ptr pow2char[ebx]
-	or dl, bl
-	mov byte ptr gotpic[eax], dl
+		shr eax, 3
+		and ebx, 7
+		mov dl, byte ptr gotpic[eax]
+		mov bl, byte ptr pow2char[ebx]
+		or dl, bl
+		mov byte ptr gotpic[eax], dl
+		pop ebx
 	}
 }
 
 static inline long getclipmask(long a, long b, long c, long d)
 {
-	_asm mov eax, a
-	_asm mov ebx, b
-	_asm mov ecx, c
-	_asm mov edx, d
 	_asm {
-	sar eax, 31
-	add ebx, ebx
-	adc eax, eax
-	add ecx, ecx
-	adc eax, eax
-	add edx, edx
-	adc eax, eax
-	mov ebx, eax
-	shl ebx, 4
-	or al, 0xf0
-	xor eax, ebx
+		push ebx
+		mov eax, a
+		mov ebx, b
+		mov ecx, c
+		mov edx, d
+		sar eax, 31
+		add ebx, ebx
+		adc eax, eax
+		add ecx, ecx
+		adc eax, eax
+		add edx, edx
+		adc eax, eax
+		mov ebx, eax
+		shl ebx, 4
+		or al, 0xf0
+		xor eax, ebx
+		pop ebx
 	}
 }
 
 static inline long getkensmessagecrc(void *b)
 {
-	_asm mov ebx, b
 	_asm {
-	xor eax, eax
-	mov ecx, 32
-	}
+		push ebx
+		mov ebx, b
+		xor eax, eax
+		mov ecx, 32
 	beg:
-	_asm {
-	mov edx, dword ptr [ebx+ecx*4-4]
-	ror edx, cl
-	adc eax, edx
-	bswap eax
-	loop short beg
+		mov edx, dword ptr [ebx+ecx*4-4]
+		ror edx, cl
+		adc eax, edx
+		bswap eax
+		loop short beg
+		pop ebx
 	}
 }
 

@@ -3523,6 +3523,7 @@ void view(short snum, long *vx, long *vy, long *vz, short *vsectnum, short ang, 
 	sp->cstat = bakcstat;
 }
 
+#if 0	// JBF: now in the engine
 void updatesectorz(long x, long y, long z, short *sectnum)
 {
 	walltype *wal;
@@ -3560,6 +3561,7 @@ void updatesectorz(long x, long y, long z, short *sectnum)
 
 	*sectnum = -1;
 }
+#endif
 
 void drawscreen(short snum, long dasmoothratio)
 {
