@@ -62,6 +62,10 @@ static __inline long filelength (int h)
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
+#if defined(__WATCOMC__) || defined(_MSC_VER)
+#define inline _inline
+#endif
+
 	//use GCC-specific extension to force symbol name to be something in particular to override underscoring.
 #if defined(__GNUC__) && defined(__i386__) && !defined(NOASM)
 #define ASMNAME(x) asm(x)
@@ -150,10 +154,6 @@ static long qhufval0[1<<LOGQHUFSIZ0], qhufval1[1<<LOGQHUFSIZ1];
 static unsigned char qhufbit0[1<<LOGQHUFSIZ0], qhufbit1[1<<LOGQHUFSIZ1];
 
 #if defined(NOASM)
-
-#if defined(__WATCOMC__) || defined(_MSC_VER)
-#define inline _inline
-#endif
 
 static inline unsigned long bswap (unsigned long a)
 {
