@@ -10,13 +10,13 @@
 static palette_t hictinting[MAXPALOOKUPS];
 
 struct hicskybox_t {
-	char ignore;
+	long ignore;
 	char *face[6];
 };
 typedef struct hicreplc_t {
 	struct hicreplc_t *next;
-	char palnum;
-	char *filename, ignore;
+	long palnum, ignore;
+	char *filename;
 	struct hicskybox_t *skybox;
 } hicreplctyp;
 static hicreplctyp *hicreplc[MAXTILES];
@@ -25,36 +25,27 @@ static char hicfirstinit = 0;
 //
 // find the index into hicreplc[] which contains the replacement tile particulars
 //
-static hicreplctyp * hicfindsubst(short picnum, short palnum)
+static hicreplctyp * hicfindsubst(long picnum, long palnum, long skybox)
 {
 	hicreplctyp *hr;
 
 	if (!hicfirstinit) return NULL;
-	if (picnum < 0 || picnum >= MAXTILES) return NULL;
+	if ((unsigned long)picnum >= (unsigned long)MAXTILES) return NULL;
 
-	for (hr = hicreplc[picnum]; hr; hr = hr->next) {
-		if (hr->palnum == palnum) {
-			if (hr->ignore) return NULL;
-			return hr;
+	do {
+		for (hr = hicreplc[picnum]; hr; hr = hr->next) {
+			if (hr->palnum == palnum) {
+				if (skybox) {
+					if (hr->skybox && !hr->skybox->ignore) return hr;
+				} else {
+					if (!hr->ignore) return hr;
+				}
+			}
 		}
-	}
 
-	return NULL;	// no replacement found
-}
-
-static hicreplctyp * hicfindskybox(short picnum, short palnum)
-{
-	hicreplctyp *hr;
-
-	if (!hicfirstinit) return NULL;
-	if (picnum < 0 || picnum >= MAXTILES) return NULL;
-
-	for (hr = hicreplc[picnum]; hr; hr = hr->next) {
-		if (hr->palnum == palnum) {
-			if (hr->skybox && !hr->skybox->ignore) return hr;
-			return NULL;
-		}
-	}
+		if (!palnum) break;
+		palnum = 0;
+	} while (1);
 
 	return NULL;	// no replacement found
 }
@@ -105,9 +96,9 @@ void hicinit(void)
 //   palette shifts on true-colour textures and only true-colour textures.
 //   effect bitset: 1 = greyscale, 2 = invert
 //
-void hicsetpalettetint(short palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect)
+void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect)
 {
-	if (palnum < 0 || palnum >= MAXPALOOKUPS) return;
+	if ((unsigned long)palnum >= (unsigned long)MAXPALOOKUPS) return;
 	if (!hicfirstinit) hicinit();
 
 	hictinting[palnum].r = r;
@@ -121,12 +112,12 @@ void hicsetpalettetint(short palnum, unsigned char r, unsigned char g, unsigned 
 // hicsetsubsttex(picnum,pal,filen,sizx,sizy)
 //   Specifies a replacement graphic file for an ART tile.
 //
-int hicsetsubsttex(short picnum, short palnum, char *filen, short centx, short centy, short tsizx, short tsizy)
+int hicsetsubsttex(long picnum, long palnum, char *filen, long centx, long centy, long tsizx, long tsizy)
 {
 	hicreplctyp *hr, *hrn;
 
-	if (picnum < 0 || picnum >= MAXTILES) return -1;
-	if (palnum < 0 || palnum >= MAXPALOOKUPS) return -1;
+	if ((unsigned long)picnum >= (unsigned long)MAXTILES) return -1;
+	if ((unsigned long)palnum >= (unsigned long)MAXPALOOKUPS) return -1;
 	if (!hicfirstinit) hicinit();
 
 	for (hr = hicreplc[picnum]; hr; hr = hr->next) {
@@ -166,13 +157,13 @@ int hicsetsubsttex(short picnum, short palnum, char *filen, short centx, short c
 // hicsetskybox(picnum,pal,faces[6])
 //   Specifies a graphic files making up a skybox.
 //
-int hicsetskybox(short picnum, short palnum, char *faces[6])
+int hicsetskybox(long picnum, long palnum, char *faces[6])
 {
 	hicreplctyp *hr, *hrn;
 	long j;
 
-	if (picnum < 0 || picnum >= MAXTILES) return -1;
-	if (palnum < 0 || palnum >= MAXPALOOKUPS) return -1;
+	if ((unsigned long)picnum >= (unsigned long)MAXTILES) return -1;
+	if ((unsigned long)palnum >= (unsigned long)MAXPALOOKUPS) return -1;
 	for (j=5;j>=0;j--) if (!faces[j]) return -1;
 	if (!hicfirstinit) hicinit();
 

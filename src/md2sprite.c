@@ -555,13 +555,22 @@ static void md2draw (float time, spritetype *tspr)
 	a0.z = f0->add.z*m->scale; a0.z = (f1->add.z*m->scale-a0.z)*f+a0.z;
 	c0 = &f0->verts[0].v[0]; c1 = &f1->verts[0].v[0];
 
+	if (globalorientation&8) //y-flipping
+	{
+		m0.z = -m0.z; m1.z = -m1.z; a0.z = -a0.z;
+			//Add height of 1st frame (use same frame to prevent animation bounce)
+		a0.z += ((frametyp *)m->frames)->mul.z*m->scale*255;
+	}
+	if (globalorientation&4) { m0.y = -m0.y; m1.y = -m1.y; a0.y = -a0.y; } //x-flipping
+
 	f = ((float)tspr->xrepeat)/64*m->bscale;
 	m0.x *= f; m1.x *= f; a0.x *= f; f = -f;	// 20040610: backwards models aren't cool
 	m0.y *= f; m1.y *= f; a0.y *= f;
 	f = ((float)tspr->yrepeat)/64*m->bscale;
 	m0.z *= f; m1.z *= f; a0.z *= f;
 
-	k0 = tspr->z; if (globalorientation&128) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<1);
+	k0 = tspr->z;
+	if (globalorientation&128) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<1);
 
 	f = (65536.0*512.0)/((float)xdimen*viewingrange);
 	g = 32.0/((float)xdimen*gxyaspect);
@@ -622,7 +631,7 @@ static void md2draw (float time, spritetype *tspr)
 		bglDepthRange(0.0,0.9999);
 	}
 	bglPushAttrib(GL_POLYGON_BIT);
-	if (grhalfxdown10x >= 0) bglFrontFace(GL_CW); else bglFrontFace(GL_CCW);
+	if ((grhalfxdown10x >= 0) ^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)) bglFrontFace(GL_CW); else bglFrontFace(GL_CCW);
 	bglEnable(GL_CULL_FACE);
 	bglCullFace(GL_BACK);
 

@@ -266,26 +266,14 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 {
 	long i, j;
 	hicreplctyp *si;
-	long trypalnum;
 	pthtyp *pth;
 
 	j = (dapicnum&(GLTEXCACHEADSIZ-1));
-	trypalnum = dapalnum;
 
-	if (drawingskybox > 0) {
-		si = hicfindskybox(dapicnum,dapalnum);
-		if (!si && dapalnum != 0) {
-			si = hicfindskybox(dapicnum,0);
-			trypalnum = 0;
-		}
-		if (!si) return NULL;
-	} else {		
-		si = hicfindsubst(dapicnum,dapalnum);
-		if (!si && dapalnum != 0) {
-			si = hicfindsubst(dapicnum,0);
-			trypalnum = 0;
-		}
-		if (!si) goto tryart;
+	si = hicfindsubst(dapicnum,dapalnum,drawingskybox);
+	if (!si) {
+		if (drawingskybox) return NULL;
+		goto tryart;
 	}
 
 	/* if palette > 0 && replacement found
@@ -297,8 +285,8 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 	// load a replacement
 	for(pth=gltexcachead[j]; pth; pth=pth->next) {
 		if (pth->picnum == dapicnum &&
-			pth->palnum == trypalnum &&
-			(trypalnum>0 ? 1 : (pth->effects == hictinting[dapalnum].f)) &&
+			pth->palnum == si->palnum &&
+			(si->palnum>0 ? 1 : (pth->effects == hictinting[dapalnum].f)) &&
 			(pth->flags & (1+2+4)) == (((dameth&4)>>2)+2+((drawingskybox>0)<<2)) &&
 			(drawingskybox>0 ? (pth->skyface == drawingskybox) : 1)
 			)
@@ -307,7 +295,7 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 			{
 				pth->flags &= ~128;
 				if (gloadtile_hi(dapicnum,drawingskybox,si,dameth,pth,0,
-							(trypalnum>0) ? 0 : hictinting[dapalnum].f)) {  // reload tile
+							(si->palnum>0) ? 0 : hictinting[dapalnum].f)) {  // reload tile
 					if (drawingskybox) return NULL;
 					goto tryart;   // failed, so try for ART
 				}
@@ -319,12 +307,12 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 	pth = (pthtyp *)calloc(1,sizeof(pthtyp));
 	if (!pth) return NULL;
 
-	if (gloadtile_hi(dapicnum,drawingskybox,si,dameth,pth,1, (trypalnum>0) ? 0 : hictinting[dapalnum].f)) {
+	if (gloadtile_hi(dapicnum,drawingskybox,si,dameth,pth,1, (si->palnum>0) ? 0 : hictinting[dapalnum].f)) {
 		free(pth);
 		if (drawingskybox) return NULL;
 		goto tryart;   // failed, so try for ART
 	}
-	pth->palnum = trypalnum;
+	pth->palnum = si->palnum;
 	pth->next = gltexcachead[j];
 	gltexcachead[j] = pth;
 	return(pth);
@@ -1955,7 +1943,7 @@ static void polymost_drawalls (long bunch)
 						{ skyclamphack = 1; break; }
 			}
 #endif
-			if (!hicfindskybox(globalpicnum,globalpal))
+			if (!hicfindsubst(globalpicnum,globalpal,1))
 			{
 				dd[0] = (float)xdimen*.0000001; //Adjust sky depth based on screen size!
 				t = (double)((1<<(picsiz[globalpicnum]&15))<<pskybits);
@@ -2088,9 +2076,10 @@ static void polymost_drawalls (long bunch)
 
 						//ceiling of skybox
 					ft[0] = 512/16; ft[1] = 512/-16;
-					ft[2] = (float)cosglobalang/4194304; ft[3] = (float)singlobalang/4194304;
+					ft[2] = ((float)cosglobalang)*(1.f/2147483648.f);
+					ft[3] = ((float)singlobalang)*(1.f/2147483648.f);
 					gdx = 0;
-					gdy = gxyaspect/8192;
+					gdy = gxyaspect*(1.f/4194304.f);
 					gdo = -ghoriz*gdy;
 					gux = (double)ft[3]*((double)viewingrange)/-65536.0;
 					gvx = (double)ft[2]*((double)viewingrange)/-65536.0;
@@ -2117,11 +2106,11 @@ static void polymost_drawalls (long bunch)
 
 						//wall of skybox
 					drawingskybox = i+1; //i+1th texture/index i of skybox
-					gdx = (_ryp0-_ryp1)*gxyaspect / (_ox0-_ox1);
+					gdx = (_ryp0-_ryp1)*gxyaspect*(1.f/512.f) / (_ox0-_ox1);
 					gdy = 0;
-					gdo = _ryp0*gxyaspect - gdx*_ox0;
-					gux = (_t0*_ryp0 - _t1*_ryp1)*gxyaspect*64.f / (_ox0-_ox1);
-					guo = _t0*_ryp0*gxyaspect*64.f - gux*_ox0;
+					gdo = _ryp0*gxyaspect*(1.f/512.f) - gdx*_ox0;
+					gux = (_t0*_ryp0 - _t1*_ryp1)*gxyaspect*(64.f/512.f) / (_ox0-_ox1);
+					guo = _t0*_ryp0*gxyaspect*(64.f/512.f) - gux*_ox0;
 					guy = 0;
 					_t0 = -8192.0*_ryp0 + ghoriz;
 					_t1 = -8192.0*_ryp1 + ghoriz;
@@ -2148,9 +2137,10 @@ static void polymost_drawalls (long bunch)
 					//Floor of skybox
 				drawingskybox = 5; //floor/6th texture/index 5 of skybox
 				ft[0] = 512/16; ft[1] = -512/-16;
-				ft[2] = (float)cosglobalang/4194304; ft[3] = (float)singlobalang/4194304;
+				ft[2] = ((float)cosglobalang)*(1.f/2147483648.f);
+				ft[3] = ((float)singlobalang)*(1.f/2147483648.f);
 				gdx = 0;
-				gdy = gxyaspect/-8192;
+				gdy = gxyaspect*(-1.f/4194304.f);
 				gdo = -ghoriz*gdy;
 				gux = (double)ft[3]*((double)viewingrange)/-65536.0;
 				gvx = (double)ft[2]*((double)viewingrange)/-65536.0;
@@ -2295,7 +2285,7 @@ static void polymost_drawalls (long bunch)
 			}
 #endif
 				//Parallaxing sky...
-			if (!hicfindskybox(globalpicnum,globalpal))
+			if (!hicfindsubst(globalpicnum,globalpal,1))
 			{
 					//Render for parallaxtype == 0 / paper-sky
 				dd[0] = (float)xdimen*.0000001; //Adjust sky depth based on screen size!
@@ -2425,10 +2415,12 @@ static void polymost_drawalls (long bunch)
 						//(_x0,ncy0)-(_x1,ncy1)
 
 						//ceiling of skybox
+					drawingskybox = 5; //ceiling/5th texture/index 4 of skybox
 					ft[0] = 512/16; ft[1] = -512/-16;
-					ft[2] = (float)cosglobalang/4194304; ft[3] = (float)singlobalang/4194304;
+					ft[2] = ((float)cosglobalang)*(1.f/2147483648.f);
+					ft[3] = ((float)singlobalang)*(1.f/2147483648.f);
 					gdx = 0;
-					gdy = gxyaspect/-8192;
+					gdy = gxyaspect*-(1.f/4194304.f);
 					gdo = -ghoriz*gdy;
 					gux = (double)ft[3]*((double)viewingrange)/-65536.0;
 					gvx = (double)ft[2]*((double)viewingrange)/-65536.0;
@@ -2436,7 +2428,6 @@ static void polymost_drawalls (long bunch)
 					guo = (double)ft[0]*gdo; gvo = (double)ft[1]*gdo;
 					guo += (double)(ft[2]-gux)*ghalfx;
 					gvo -= (double)(ft[3]+gvx)*ghalfx;
-					drawingskybox = 5; //ceiling/5th texture/index 4 of skybox
 					if ((_cy0 < ncy0) && (_cy1 < ncy1)) domost(_x1,_cy1,_x0,_cy0);
 					else if ((_cy0 < ncy0) != (_cy1 < ncy1))
 					{
@@ -2454,11 +2445,11 @@ static void polymost_drawalls (long bunch)
 
 						//wall of skybox
 					drawingskybox = i+1; //i+1th texture/index i of skybox
-					gdx = (_ryp0-_ryp1)*gxyaspect / (_ox0-_ox1);
+					gdx = (_ryp0-_ryp1)*gxyaspect*(1.f/512.f) / (_ox0-_ox1);
 					gdy = 0;
-					gdo = _ryp0*gxyaspect - gdx*_ox0;
-					gux = (_t0*_ryp0 - _t1*_ryp1)*gxyaspect*64.f / (_ox0-_ox1);
-					guo = _t0*_ryp0*gxyaspect*64.f - gux*_ox0;
+					gdo = _ryp0*gxyaspect*(1.f/512.f) - gdx*_ox0;
+					gux = (_t0*_ryp0 - _t1*_ryp1)*gxyaspect*(64.f/512.f) / (_ox0-_ox1);
+					guo = _t0*_ryp0*gxyaspect*(64.f/512.f) - gux*_ox0;
 					guy = 0;
 					_t0 = -8192.0*_ryp0 + ghoriz;
 					_t1 = -8192.0*_ryp1 + ghoriz;
@@ -2485,9 +2476,10 @@ static void polymost_drawalls (long bunch)
 					//Floor of skybox
 				drawingskybox = 6; //floor/6th texture/index 5 of skybox
 				ft[0] = 512/16; ft[1] = 512/-16;
-				ft[2] = (float)cosglobalang/4194304; ft[3] = (float)singlobalang/4194304;
+				ft[2] = ((float)cosglobalang)*(1.f/2147483648.f);
+				ft[3] = ((float)singlobalang)*(1.f/2147483648.f);
 				gdx = 0;
-				gdy = gxyaspect/8192;
+				gdy = gxyaspect*(1.f/4194304.f);
 				gdo = -ghoriz*gdy;
 				gux = (double)ft[3]*((double)viewingrange)/-65536.0;
 				gvx = (double)ft[2]*((double)viewingrange)/-65536.0;

@@ -458,9 +458,9 @@ void gltexapplyprops (void);
 
 void hicinit(void);
 // effect bitset: 1 = greyscale, 2 = invert
-void hicsetpalettetint(short palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect);
-int hicsetsubsttex(short picnum, short palnum, char *filen, short centx, short centy, short tsizx, short tsizy);
-int hicsetskybox(short picnum, short palnum, char *faces[6]);
+void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect);
+int hicsetsubsttex(long picnum, long palnum, char *filen, long centx, long centy, long tsizx, long tsizy);
+int hicsetskybox(long picnum, long palnum, char *faces[6]);
 
 int md2_loadmodel(const char *fn, float scale, int shadeoffs);
 int md2_tilehasmodel(int tilenume);
