@@ -3,6 +3,7 @@
 
 #include "compat.h"
 #include "build.h"
+#include "osd.h"
 
 #ifdef RENDERTYPEWIN
 #include "winlayer.h"

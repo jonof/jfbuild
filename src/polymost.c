@@ -247,12 +247,12 @@ typedef struct pthtyp_t
 	short picnum;
 	char palnum;
 	char effects;
-	char flags;		// 1 = clamped (dameth&4), 2 = hightile, 4 = skybox face, 128 = invalidated
+	char flags;      // 1 = clamped (dameth&4), 2 = hightile, 4 = skybox face, 128 = invalidated
 	char skyface;
-	short substind;
+	hicreplctyp *hicr;
 
 	unsigned short sizx, sizy;
-	double scalex, scaley;
+	float scalex, scaley;
 } pthtyp;
 
 #define GLTEXCACHEADSIZ 8192
@@ -261,85 +261,56 @@ static pthtyp *gltexcachead[GLTEXCACHEADSIZ];
 static long drawingskybox = 0;
 
 int gloadtile_art(long,long,long,pthtyp*,long);
-int gloadtile_hi(long,long,long,pthtyp*,long,char);
-int gloadtile_skyface(long,long,long,long,pthtyp*,long,char);
+int gloadtile_hi(long,long,hicreplctyp*,long,pthtyp*,long,char);
 static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 {
 	long i, j;
-	long si;
+	hicreplctyp *si;
 	long trypalnum;
 	pthtyp *pth;
 
 	j = (dapicnum&(GLTEXCACHEADSIZ-1));
 	trypalnum = dapalnum;
 
-	if (drawingskybox) {
+	if (drawingskybox > 0) {
 		si = hicfindskybox(dapicnum,dapalnum);
-		if (si == -1 && dapalnum != 0) {
+		if (!si && dapalnum != 0) {
 			si = hicfindskybox(dapicnum,0);
 			trypalnum = 0;
 		}
-		if (si == -1) return NULL;
-
-		for(pth=gltexcachead[j]; pth; pth=pth->next) {
-			if (pth->picnum == dapicnum &&
-				pth->palnum == trypalnum &&
-				(trypalnum>0 ? 1 : (pth->effects == hictinting[dapalnum].f)) &&
-				(pth->flags & (1+2+4)) == (((dameth&4)>>2)+2+4) &&
-				pth->skyface == drawingskybox-1
-			   )
-			{
-				if (pth->flags & 128)
-				{
-					pth->flags &= ~128;
-					if (gloadtile_skyface(dapicnum,drawingskybox-1,si,dameth,pth,0,
-								(trypalnum>0) ? 0 : hictinting[dapalnum].f))   // reload tile
-						return NULL;   // failed, so try for ART
-				}
-				return(pth);
-			}
+		if (!si) return NULL;
+	} else {		
+		si = hicfindsubst(dapicnum,dapalnum);
+		if (!si && dapalnum != 0) {
+			si = hicfindsubst(dapicnum,0);
+			trypalnum = 0;
 		}
-
-		pth = (pthtyp *)calloc(1,sizeof(pthtyp));
-		if (!pth) return NULL;
-
-		if (gloadtile_skyface(dapicnum,drawingskybox-1,si,dameth,pth,1, (trypalnum>0) ? 0 : hictinting[dapalnum].f)) {
-			free(pth);
-			return NULL;   // failed, so try for ART
-		}
-		pth->palnum = trypalnum;
-		pth->next = gltexcachead[j];
-		gltexcachead[j] = pth;
-		return(pth);
+		if (!si) goto tryart;
 	}
-
-	si = hicfindsubst(dapicnum,dapalnum);
-	if (si == -1 && dapalnum != 0) {
-		si = hicfindsubst(dapicnum,0);
-		trypalnum = 0;
-	}
-	if (si == -1) goto tryart;
 
 	/* if palette > 0 && replacement found
 	 *    no effects are applied to the texture
 	 * else if palette > 0 && no replacement found
 	 *    effects are applied to the palette 0 texture if it exists
-     */
+	  */
 
 	// load a replacement
 	for(pth=gltexcachead[j]; pth; pth=pth->next) {
 		if (pth->picnum == dapicnum &&
 			pth->palnum == trypalnum &&
 			(trypalnum>0 ? 1 : (pth->effects == hictinting[dapalnum].f)) &&
-			(pth->flags & (1+2)) == (((dameth&4)>>2)+2)
-		   )
+			(pth->flags & (1+2+4)) == (((dameth&4)>>2)+2+((drawingskybox>0)<<2)) &&
+			(drawingskybox>0 ? (pth->skyface == drawingskybox) : 1)
+			)
 		{
 			if (pth->flags & 128)
 			{
 				pth->flags &= ~128;
-				if (gloadtile_hi(dapicnum,si,dameth,pth,0,
-							(trypalnum>0) ? 0 : hictinting[dapalnum].f))   // reload tile
+				if (gloadtile_hi(dapicnum,drawingskybox,si,dameth,pth,0,
+							(trypalnum>0) ? 0 : hictinting[dapalnum].f)) {  // reload tile
+					if (drawingskybox) return NULL;
 					goto tryart;   // failed, so try for ART
+				}
 			}
 			return(pth);
 		}
@@ -348,8 +319,9 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 	pth = (pthtyp *)calloc(1,sizeof(pthtyp));
 	if (!pth) return NULL;
 
-	if (gloadtile_hi(dapicnum,si,dameth,pth,1, (trypalnum>0) ? 0 : hictinting[dapalnum].f)) {
+	if (gloadtile_hi(dapicnum,drawingskybox,si,dameth,pth,1, (trypalnum>0) ? 0 : hictinting[dapalnum].f)) {
 		free(pth);
+		if (drawingskybox) return NULL;
 		goto tryart;   // failed, so try for ART
 	}
 	pth->palnum = trypalnum;
@@ -363,7 +335,7 @@ tryart:
 		if (pth->picnum == dapicnum &&
 			pth->palnum == dapalnum &&
 			(pth->flags & 1) == ((dameth&4)>>2)
-		   )
+			)
 		{
 			if (pth->flags & 128)
 			{
@@ -726,26 +698,36 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 	pth->palnum = dapal;
 	pth->effects = 0;
 	pth->flags = ((dameth&4)>>2);
-	pth->substind = 0;
+	pth->hicr = NULL;
 	
 	return 0;
 }
 
-int gloadtile_hi(long dapic, long substind, long dameth, pthtyp *pth, long doalloc, char effect)
+int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp *pth, long doalloc, char effect)
 {
 	coltype *pic, *rpptr;
 	long j, x, y, x2, y2, xsiz, ysiz, tsizx, tsizy;
 
-	char *picfil = 0;
+	char *picfil = 0, *fn;
 	long picfillen, texfmt = GL_RGBA, intexfmt = GL_RGBA, filh;
 
-	if (substind < 0) return -1;
-	if (!hicreplc[substind]) return -1;
-	if (!hicreplc[substind]->filename) return -1;
+	if (!hicr) return -1;
+	if (facen > 0) {
+		if (!hicr->skybox) return -1;
+		if (facen > 6) return -1;
+		if (!hicr->skybox->face[facen-1]) return -1;
+		fn = hicr->skybox->face[facen-1];
+	} else {
+		if (!hicr->filename) return -1;
+		fn = hicr->filename;
+	}
 
-	if ((filh = kopen4load(hicreplc[substind]->filename, 0)) < 0) {
-		OSD_Printf("Hightile: %s not found!\n", hicreplc[substind]->filename);
-		hicreplc[substind]->ignore = 1;
+	if ((filh = kopen4load(fn, 0)) < 0) {
+		OSD_Printf("Hightile: %s not found!\n", fn);
+		if (facen > 0)
+			hicr->skybox->ignore = 1;
+		else
+			hicr->ignore = 1;
 		return -1;
 	}
 	picfillen = kfilelength(filh);
@@ -816,10 +798,15 @@ int gloadtile_hi(long dapic, long substind, long dameth, pthtyp *pth, long doall
 	free(picfil); picfil = 0;
 
 	// precalculate scaling parameters for replacement
-	for(x2=1;x2<tilesizx[dapic];x2+=x2);
-	for(y2=1;y2<tilesizy[dapic];y2+=y2);
-	pth->scalex = ((double)tsizx) / ((double)tilesizx[dapic]);
-	pth->scaley = ((double)tsizy) / ((double)tilesizy[dapic]);
+	if (facen > 0) {
+		pth->scalex = ((float)tsizx) / 64.0;
+		pth->scaley = ((float)tsizy) / 64.0;
+	} else {
+		//for(x2=1;x2<tilesizx[dapic];x2+=x2);
+		//for(y2=1;y2<tilesizy[dapic];y2+=y2);
+		pth->scalex = ((float)tsizx) / ((float)tilesizx[dapic]);
+		pth->scaley = ((float)tsizy) / ((float)tilesizy[dapic]);
+	}
 
 	if (glinfo.texcompr && glusetexcompr) intexfmt = GL_COMPRESSED_RGBA_ARB;
 	if (glinfo.bgra) texfmt = GL_BGRA;
@@ -856,140 +843,9 @@ int gloadtile_hi(long dapic, long substind, long dameth, pthtyp *pth, long doall
 
 	pth->picnum = dapic;
 	pth->effects = effect;
-	pth->flags = ((dameth&4)>>2) + 2;
-	pth->substind = substind;
-
-	return 0;
-}
-
-int gloadtile_skyface(long dapic, long facen, long substind, long dameth, pthtyp *pth, long doalloc, char effect)
-{
-	coltype *pic, *rpptr;
-	long j, x, y, x2, y2, xsiz, ysiz, tsizx, tsizy;
-
-	char *picfil = 0;
-	long picfillen, texfmt = GL_RGBA, intexfmt = GL_RGBA, filh;
-
-	if (substind < 0) return -1;
-	if (!hicreplc[substind]) return -1;
-	if (!hicreplc[substind]->skybox) return -1;
-	if (facen < 0 || facen > 5) return -1;
-	if (!hicreplc[substind]->skybox->face[facen]) return -1;
-
-	if ((filh = kopen4load(hicreplc[substind]->skybox->face[facen], 0)) < 0) {
-		OSD_Printf("Hightile: %s not found!\n", hicreplc[substind]->skybox->face[facen]);
-		hicreplc[substind]->skybox->ignore = 1;
-		return -1;
-	}
-	picfillen = kfilelength(filh);
-	picfil = (char *)malloc(picfillen); if (!picfil) { kclose(filh); return 1; }
-	kread(filh, picfil, picfillen);
-	kclose(filh);
-
-	// tsizx/y = replacement texture's natural size
-	// xsiz/y = 2^x size of replacement
-
-	kpgetdim(picfil,picfillen,&tsizx,&tsizy);
-	if (tsizx == 0 || tsizy == 0) { free(picfil); return -1; }
-	pth->sizx = tsizx;
-	pth->sizy = tsizy;
-
-	for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
-	for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
-	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype)); if (!pic) { free(picfil); return 1; }
-	memset(pic,0,xsiz*ysiz*sizeof(coltype));
-
-	if (kprender(picfil,picfillen,(long)pic,xsiz*sizeof(coltype),xsiz,ysiz,0,0)) { free(picfil); free(pic); return -2; }
-	for(y=0,j=0;y<tsizy;y++,j+=xsiz)
-	{
-		coltype tcol;
-		char *cptr = &britable[curbrightness][0]; rpptr = &pic[j];
-
-		for(x=0;x<tsizx;x++)
-		{
-			tcol.b = cptr[rpptr[x].b];
-			tcol.g = cptr[rpptr[x].g];
-			tcol.r = cptr[rpptr[x].r];
-			tcol.a = rpptr[x].a;
-
-			if (effect & 1) {
-				// greyscale
-				tcol.b = max(tcol.b, max(tcol.g, tcol.r));
-				tcol.g = tcol.r = tcol.b;
-			}
-			if (effect & 2) {
-				// invert
-				tcol.b = 255-tcol.b;
-				tcol.g = 255-tcol.g;
-				tcol.r = 255-tcol.r;
-			}
-
-			rpptr[x].b = tcol.b;
-			rpptr[x].g = tcol.g;
-			rpptr[x].r = tcol.r;
-			rpptr[x].a = tcol.a;
-		}
-	}
-	if (!(dameth&4)) //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
-	{
-		if (xsiz > tsizx) //Copy left to right
-		{
-			long *lptr = (long *)pic;
-			for(y=0;y<tsizy;y++,lptr+=xsiz)
-				memcpy(&lptr[tsizx],lptr,(xsiz-tsizx)<<2);
-		}
-		if (ysiz > tsizy)  //Copy top to bottom
-			memcpy(&pic[xsiz*tsizy],pic,(ysiz-tsizy)*xsiz<<2);
-	}
-	if (!glinfo.bgra) {
-		for(j=xsiz*ysiz-1;j>=0;j++) {
-			swapchar(&pic[j].r, &pic[j].b);
-		}
-	}
-	free(picfil); picfil = 0;
-
-	// precalculate scaling parameters for replacement
-	pth->scalex = ((double)tsizx) / 64.0;
-	pth->scaley = ((double)tsizy) / 64.0;
-
-	if (glinfo.texcompr && glusetexcompr) intexfmt = GL_COMPRESSED_RGBA_ARB;
-	if (glinfo.bgra) texfmt = GL_BGRA;
-
-	if (doalloc) bglGenTextures(1,&pth->glpic);  //# of textures (make OpenGL allocate structure)
-	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
-
-	fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);
-	uploadtexture(doalloc,xsiz,ysiz,intexfmt,texfmt,pic,-1,tsizy,dameth);
-
-	if (gltexfiltermode < 0) gltexfiltermode = 0;
-	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
-
-	if (glinfo.maxanisotropy > 1.0)
-	{
-		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = glinfo.maxanisotropy;
-		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
-	}
-
-	if (!(dameth&4))
-	{
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-	}
-	else
-	{     //For sprite textures, clamping looks better than wrapping
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
-	}
-
-	if (pic) free(pic);
-
-	pth->picnum = dapic;
-	pth->effects = effect;
-	pth->flags = ((dameth&4)>>2) + 2 + 4;
+	pth->flags = ((dameth&4)>>2) + 2 + ((facen>0)<<2);
 	pth->skyface = facen;
-	pth->substind = substind;
+	pth->hicr = hicr;
 
 	return 0;
 }
@@ -2099,7 +1955,7 @@ static void polymost_drawalls (long bunch)
 						{ skyclamphack = 1; break; }
 			}
 #endif
-			if (1) //parallaxtype == 0)
+			if (!hicfindskybox(globalpicnum,globalpal))
 			{
 				dd[0] = (float)xdimen*.0000001; //Adjust sky depth based on screen size!
 				t = (double)((1<<(picsiz[globalpicnum]&15))<<pskybits);
@@ -2148,6 +2004,164 @@ static void polymost_drawalls (long bunch)
 					pow2xsplit = 0; domost(ox,(ox-x0)*r+fy0,fx,(fx-x0)*r+fy0); //flor
 				} while (i >= 0);
 
+			}
+			else  //NOTE: code copied from ceiling code... lots of duplicated stuff :/
+			{     //Skybox code for parallax ceiling!
+				double _xp0, _yp0, _xp1, _yp1, _oxp0, _oyp0, _t0, _t1, _nx0, _ny0, _nx1, _ny1;
+				double _ryp0, _ryp1, _x0, _x1, _cy0, _fy0, _cy1, _fy1, _ox0, _ox1;
+				double nfy0, nfy1;
+				long skywalx[4] = {-512,512,512,-512}, skywaly[4] = {-512,-512,512,512};
+
+				pow2xsplit = 0;
+				skyclamphack = 1;
+
+				for(i=0;i<4;i++)
+				{
+					x = skywalx[i&3]; y = skywaly[i&3];
+					_xp0 = (double)y*gcosang  - (double)x*gsinang;
+					_yp0 = (double)x*gcosang2 + (double)y*gsinang2;
+					x = skywalx[(i+1)&3]; y = skywaly[(i+1)&3];
+					_xp1 = (double)y*gcosang  - (double)x*gsinang;
+					_yp1 = (double)x*gcosang2 + (double)y*gsinang2;
+
+					_oxp0 = _xp0; _oyp0 = _yp0;
+
+						//Clip to close parallel-screen plane
+					if (_yp0 < SCISDIST)
+					{
+						if (_yp1 < SCISDIST) continue;
+						_t0 = (SCISDIST-_yp0)/(_yp1-_yp0); _xp0 = (_xp1-_xp0)*_t0+_xp0; _yp0 = SCISDIST;
+						_nx0 = (skywalx[(i+1)&3]-skywalx[i&3])*_t0+skywalx[i&3];
+						_ny0 = (skywaly[(i+1)&3]-skywaly[i&3])*_t0+skywaly[i&3];
+					}
+					else { _t0 = 0.f; _nx0 = skywalx[i&3]; _ny0 = skywaly[i&3]; }
+					if (_yp1 < SCISDIST)
+					{
+						_t1 = (SCISDIST-_oyp0)/(_yp1-_oyp0); _xp1 = (_xp1-_oxp0)*_t1+_oxp0; _yp1 = SCISDIST;
+						_nx1 = (skywalx[(i+1)&3]-skywalx[i&3])*_t1+skywalx[i&3];
+						_ny1 = (skywaly[(i+1)&3]-skywaly[i&3])*_t1+skywaly[i&3];
+					}
+					else { _t1 = 1.f; _nx1 = skywalx[(i+1)&3]; _ny1 = skywaly[(i+1)&3]; }
+
+					_ryp0 = 1.f/_yp0; _ryp1 = 1.f/_yp1;
+
+						//Generate screen coordinates for front side of wall
+					_x0 = ghalfx*_xp0*_ryp0 + ghalfx;
+					_x1 = ghalfx*_xp1*_ryp1 + ghalfx;
+					if (_x1 <= _x0) continue;
+					if ((_x0 >= x1) || (x0 >= _x1)) continue;
+
+					_ryp0 *= gyxscale; _ryp1 *= gyxscale;
+
+					_cy0 = -8192.f*_ryp0 + ghoriz;
+					_fy0 =  8192.f*_ryp0 + ghoriz;
+					_cy1 = -8192.f*_ryp1 + ghoriz;
+					_fy1 =  8192.f*_ryp1 + ghoriz;
+
+					_ox0 = _x0; _ox1 = _x1;
+
+						//Make sure: x0<=_x0<_x1<=_x1
+					nfy0 = fy0; nfy1 = fy1;
+					if (_x0 < x0)
+					{
+						t = (x0-_x0)/(_x1-_x0);
+						_cy0 += (_cy1-_cy0)*t;
+						_fy0 += (_fy1-_fy0)*t;
+						_x0 = x0;
+					}
+					else if (_x0 > x0) nfy0 += (_x0-x0)*(fy1-fy0)/(x1-x0);
+					if (_x1 > x1)
+					{
+						t = (x1-_x1)/(_x1-_x0);
+						_cy1 += (_cy1-_cy0)*t;
+						_fy1 += (_fy1-_fy0)*t;
+						_x1 = x1;
+					}
+					else if (_x1 < x1) nfy1 += (_x1-x1)*(fy1-fy0)/(x1-x0);
+
+						//   (skybox floor)
+						//(_x0,_fy0)-(_x1,_fy1)
+						//   (skybox wall)
+						//(_x0,_cy0)-(_x1,_cy1)
+						//   (skybox ceiling)
+						//(_x0,nfy0)-(_x1,nfy1)
+
+						//ceiling of skybox
+					ft[0] = 512/16; ft[1] = 512/-16;
+					ft[2] = (float)cosglobalang/4194304; ft[3] = (float)singlobalang/4194304;
+					gdx = 0;
+					gdy = gxyaspect/8192;
+					gdo = -ghoriz*gdy;
+					gux = (double)ft[3]*((double)viewingrange)/-65536.0;
+					gvx = (double)ft[2]*((double)viewingrange)/-65536.0;
+					guy = (double)ft[0]*gdy; gvy = (double)ft[1]*gdy;
+					guo = (double)ft[0]*gdo; gvo = (double)ft[1]*gdo;
+					guo += (double)(ft[2]-gux)*ghalfx;
+					gvo -= (double)(ft[3]+gvx)*ghalfx;
+					gvx = -gvx; gvy = -gvy; gvo = -gvo; //y-flip skybox floor
+					drawingskybox = 6; //ceiling/5th texture/index 4 of skybox
+					if ((_fy0 > nfy0) && (_fy1 > nfy1)) domost(_x0,_fy0,_x1,_fy1);
+					else if ((_fy0 > nfy0) != (_fy1 > nfy1))
+					{
+							//(ox,oy) is intersection of: (_x0,_cy0)-(_x1,_cy1)
+							//                            (_x0,nfy0)-(_x1,nfy1)
+							//ox = _x0 + (_x1-_x0)*t
+							//oy = _cy0 + (_cy1-_cy0)*t
+							//oy = nfy0 + (nfy1-nfy0)*t
+						t = (_fy0-nfy0)/(nfy1-nfy0-_fy1+_fy0);
+						ox = _x0 + (_x1-_x0)*t;
+						oy = _fy0 + (_fy1-_fy0)*t;
+						if (nfy0 > _fy0) { domost(_x0,nfy0,ox,oy); domost(ox,oy,_x1,_fy1); }
+										else { domost(_x0,_fy0,ox,oy); domost(ox,oy,_x1,nfy1); }
+					} else domost(_x0,nfy0,_x1,nfy1);
+
+						//wall of skybox
+					drawingskybox = i+1; //i+1th texture/index i of skybox
+					gdx = (_ryp0-_ryp1)*gxyaspect / (_ox0-_ox1);
+					gdy = 0;
+					gdo = _ryp0*gxyaspect - gdx*_ox0;
+					gux = (_t0*_ryp0 - _t1*_ryp1)*gxyaspect*64.f / (_ox0-_ox1);
+					guo = _t0*_ryp0*gxyaspect*64.f - gux*_ox0;
+					guy = 0;
+					_t0 = -8192.0*_ryp0 + ghoriz;
+					_t1 = -8192.0*_ryp1 + ghoriz;
+					t = ((gdx*_ox0 + gdo)*8.f) / ((_ox1-_ox0) * _ryp0 * 2048.f);
+					gvx = (_t0-_t1)*t;
+					gvy = (_ox1-_ox0)*t;
+					gvo = -gvx*_ox0 - gvy*_t0;
+					if ((_cy0 > nfy0) && (_cy1 > nfy1)) domost(_x0,_cy0,_x1,_cy1);
+					else if ((_cy0 > nfy0) != (_cy1 > nfy1))
+					{
+							//(ox,oy) is intersection of: (_x0,_fy0)-(_x1,_fy1)
+							//                            (_x0,nfy0)-(_x1,nfy1)
+							//ox = _x0 + (_x1-_x0)*t
+							//oy = _fy0 + (_fy1-_fy0)*t
+							//oy = nfy0 + (nfy1-nfy0)*t
+						t = (_cy0-nfy0)/(nfy1-nfy0-_cy1+_cy0);
+						ox = _x0 + (_x1-_x0)*t;
+						oy = _cy0 + (_cy1-_cy0)*t;
+						if (nfy0 > _cy0) { domost(_x0,nfy0,ox,oy); domost(ox,oy,_x1,_cy1); }
+										else { domost(_x0,_cy0,ox,oy); domost(ox,oy,_x1,nfy1); }
+					} else domost(_x0,nfy0,_x1,nfy1);
+				}
+
+					//Floor of skybox
+				drawingskybox = 5; //floor/6th texture/index 5 of skybox
+				ft[0] = 512/16; ft[1] = -512/-16;
+				ft[2] = (float)cosglobalang/4194304; ft[3] = (float)singlobalang/4194304;
+				gdx = 0;
+				gdy = gxyaspect/-8192;
+				gdo = -ghoriz*gdy;
+				gux = (double)ft[3]*((double)viewingrange)/-65536.0;
+				gvx = (double)ft[2]*((double)viewingrange)/-65536.0;
+				guy = (double)ft[0]*gdy; gvy = (double)ft[1]*gdy;
+				guo = (double)ft[0]*gdo; gvo = (double)ft[1]*gdo;
+				guo += (double)(ft[2]-gux)*ghalfx;
+				gvo -= (double)(ft[3]+gvx)*ghalfx;
+				domost(x0,fy0,x1,fy1);
+
+				skyclamphack = 0;
+				drawingskybox = 0;
 			}
 #ifdef USE_OPENGL
 			if (rendmode == 3)
@@ -2281,7 +2295,7 @@ static void polymost_drawalls (long bunch)
 			}
 #endif
 				//Parallaxing sky...
-			if (hicfindskybox(globalpicnum,globalpal) < 0)
+			if (!hicfindskybox(globalpicnum,globalpal))
 			{
 					//Render for parallaxtype == 0 / paper-sky
 				dd[0] = (float)xdimen*.0000001; //Adjust sky depth based on screen size!
@@ -3808,8 +3822,6 @@ void polymost_initosdfuncs(void)
 void polymost_precache(long dapicnum, long dapalnum, long datype)
 {
 #ifdef USE_OPENGL
-	long substind;
-	
 	// dapicnum and dapalnum are like you'd expect
 	// datype is 0 for a wall/floor/ceiling and 1 for a sprite
 	//    basically this just means walls are repeating
