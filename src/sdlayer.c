@@ -99,6 +99,10 @@ static unsigned char keytranslation[SDLK_LAST] = {
 
 int main(int argc, char *argv[])
 {
+#ifdef HAVE_GTK2
+	gtk_init(&argc, &argv);
+#endif
+
 	_buildargc = argc;
 	_buildargv = (char**)argv;
 	//_buildargv = (char**)malloc(argc * sizeof(char*));

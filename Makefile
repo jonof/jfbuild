@@ -24,17 +24,10 @@ OBJ?=obj.gnu/
 INC=include/
 CFLAGS?=-DSUPERBUILD -DPOLYMOST -DUSE_OPENGL -DDYNAMIC_OPENGL
 
-# If DYNAMIC_OPENGL is absent from above, uncomment these lines
-#GLLIBWIN=-lopengl32
-#GLLIBLIN=-lGL
-
 # filename extensions
 o=o
 res=o
 asm=nasm
-
-ENGINELIB=libengine.a
-EDITORLIB=libbuild.a
 
 # JBF 20040622: I've begun linking to the MS DX6.1 SDK as I'm using
 # DirectMusic in another project and MinGW is happy to use MS-format
@@ -43,9 +36,9 @@ DXROOT=c:/sdks/msc/dx61
 FMODROOT=c:/sdks/fmodapi370win32/api
 
 # debugging enabled
-debug=-DDEBUGGINGAIDS -ggdb
+#debug=-DDEBUGGINGAIDS -ggdb
 # debugging disabled
-#debug=-fomit-frame-pointer
+debug=-fomit-frame-pointer
 
 # -D these to enable certain features of the port's compile process
 # USE_GCC_ASSEMBLY   Use NASM and compile the ported A.ASM assembly code.
@@ -78,7 +71,7 @@ ENGINEOBJS=$(OBJ)engine.$o \
 	$(OBJ)compat.$o \
 	$(OBJ)kplib.$o \
 	$(OBJ)scriptfile.$o \
-	$(OBJ)mmulti.$o \
+	$(OBJ)mmulti_null.$o \
 	$(OBJ)defs.$o
 
 EDITOROBJS=$(OBJ)build.$o \
@@ -93,41 +86,38 @@ EDITOREXEOBJS=$(OBJ)bstub.$o \
 	$(OBJ)$(EDITORLIB) \
 	$(OBJ)$(ENGINELIB)
 
+include Makefile.shared
+
 # detect the platform
-uname=$(strip $(shell uname -s))
-ifeq ($(findstring Linux,$(uname)),Linux)
-	PLATFORM=LINUX
-	RENDERTYPE=SDL
+ifeq ($(PLATFORM),LINUX)
 	ASFLAGS+= -f elf
-	LIBS+= $(GLLIBLIN)
 else
-	ifeq ($(findstring MINGW32,$(uname)),MINGW32)
-		PLATFORM=WINDOWS
-		EXESUFFIX=.exe
+	ifeq ($(PLATFORM),WIN)
 		override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOT)/inc
-		LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -L$(FMODROOT)/lib -lws2_32 $(GLLIBWIN)
 		ASFLAGS+= -DUNDERSCORES
 		GAMEEXEOBJS+= $(OBJ)gameres.$(res)
 		EDITOREXEOBJS+= $(OBJ)buildres.$(res)
-		RENDERTYPE ?= WIN
 		ASFLAGS+= -f win32
-	else
-		PLATFORM=UNKNOWN
 	endif
 endif
 	
 ifeq ($(RENDERTYPE),SDL)
 	ENGINEOBJS+= $(OBJ)sdlayer.$o
 	override CFLAGS+= $(subst -Dmain=SDL_main,,$(shell sdl-config --cflags))
-	LIBS+= $(shell sdl-config --libs)
+
+	ifeq (1,$(HAVE_GTK2))
+		override CFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
+	endif
 else
 	ifeq ($(RENDERTYPE),WIN)
 		ENGINEOBJS+= $(OBJ)winlayer.$o
-		LIBS+= -mwindows -ldxguid
 	endif
 endif
 
-override CFLAGS+= -D$(PLATFORM) -DRENDERTYPE$(RENDERTYPE)=1
+
+ifeq ($(DYNAMIC_OPENGL),1)
+	override CFLAGS+= -DDYNAMIC_OPENGL
+endif
 
 .PHONY: clean all utils writeengineinfo enginelib editorlib
 
