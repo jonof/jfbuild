@@ -78,8 +78,6 @@ static tokenlist basetokens[] = {
 };
 
 static tokenlist modeltokens[] = {
-//	{ "file",   T_FILE   },
-//	{ "name",   T_FILE   },
 	{ "scale",  T_SCALE  },
 	{ "shade",  T_SHADE  },
 	{ "frame",  T_FRAME  },
@@ -91,6 +89,7 @@ static tokenlist modeltokens[] = {
 static tokenlist modelframetokens[] = {
 	{ "frame",  T_FRAME   },
 	{ "name",   T_FRAME   },
+	{ "tile",   T_TILE   },
 	{ "tile0",  T_TILE0  },
 	{ "tile1",  T_TILE1  },
 };
@@ -491,6 +490,7 @@ static int defsparser(scriptfile *script)
 								while (script->textptr < frameend) {
 									switch(getatoken(script,modelframetokens,sizeof(modelframetokens)/sizeof(tokenlist))) {
 										case T_FRAME: scriptfile_getstring(script,&framename); break;
+										case T_TILE:  scriptfile_getnumber(script,&ftilenume); ltilenume = ftilenume; break;
 										case T_TILE0: scriptfile_getnumber(script,&ftilenume); break; //first tile number
 										case T_TILE1: scriptfile_getnumber(script,&ltilenume); break; //last tile number (inclusive)
 									}
@@ -610,7 +610,7 @@ static int defsparser(scriptfile *script)
 							case T_HUD:
 							{
 								char happy=1, *frameend;
-								int ftilenume = 0, ltilenume = 0, tilex = 0, flags = 0;
+								int ftilenume = -1, ltilenume = -1, tilex = 0, flags = 0;
 								double xadd = 0.0, yadd = 0.0, zadd = 0.0, angadd = 0.0;
 
 								if (scriptfile_getbraces(script,&frameend)) break;
@@ -629,6 +629,10 @@ static int defsparser(scriptfile *script)
 										case T_NODEPTH: flags |= 8; break;
 									}
 								}
+
+								if (ftilenume < 0) initprintf("Error: missing 'first tile number' for hud definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
+								if (ltilenume < 0) initprintf("Error: missing 'last tile number' for hud definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
+								if (!happy) break;
 
 								if (ltilenume < ftilenume) {
 									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, script->linenum);
