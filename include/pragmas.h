@@ -7,8 +7,84 @@
 
 extern long dmval;
 
-#if defined(USE_GCC_PRAGMAS)
+#if defined(NOASM)
 
+//
+// Generic C
+//
+
+//{{{
+long sqr(long eax);
+long scale(long eax, long edx, long ecx);
+long mulscale(long eax, long edx, long ecx);
+long divscale(long eax, long ebx, long ecx);
+long dmulscale(long eax, long edx, long esi, long edi, long ecx);
+long boundmulscale(long a, long d, long c);
+void qinterpolatedown16 (long bufptr, long num, long val, long add);
+void qinterpolatedown16short (long bufptr, long num, long val, long add);
+
+//#define readpixel(s)		(*((char*)(s)))
+//#define drawpixel(s,a)	(*((char*)(s)) = (char)(a))
+//#define drawpixels(s,a)	(*((short*)(s)) = (short)(a))
+//#define drawpixelses(s,a)	(*((long*)(s)) = (long)(a))
+char readpixel(void* s);
+void drawpixel(void* s, char a);
+void drawpixels(void* s, short a);
+void drawpixelses(void* s, long a);
+
+//#define mul3(a)		((a)*3)
+//#define mul5(a)		((a)*5)
+//#define mul9(a)		((a)*9)
+long mul3(long a);
+long mul5(long a);
+long mul9(long a);
+
+long divmod(long a, long b);
+long moddiv(long a, long b);
+
+long klabs(long a);
+long ksgn(long a);
+
+long umin(long a, long b);
+long umax(long a, long b);
+long kmin(long a, long b);
+long kmax(long a, long b);
+
+void swapchar(void* a, void* b);
+void swapchar2(void* a, void* b, long s);
+void swapshort(void* a, void* b);
+void swaplong(void* a, void* b);
+void swap64bit(void* a, void* b);
+
+void clearbuf(void* d, long c, long a);
+void copybuf(void* s, void* d, long c);
+void swapbuf4(void* a, void* b, long c);
+
+void clearbufbyte(void *D, long c, long a);
+void copybufbyte(void *S, void *D, long c);
+void copybufreverse(void *S, void *D, long c);
+
+#define _scaler(a) \
+long mulscale##a(long eax, long edx); \
+long divscale##a(long eax, long ebx); \
+long dmulscale##a(long eax, long edx, long esi, long edi); \
+long tmulscale##a(long eax, long edx, long ebx, long ecx, long esi, long edi); \
+
+_scaler(1)	_scaler(2)	_scaler(3)	_scaler(4)
+_scaler(5)	_scaler(6)	_scaler(7)	_scaler(8)
+_scaler(9)	_scaler(10)	_scaler(11)	_scaler(12)
+_scaler(13)	_scaler(14)	_scaler(15)	_scaler(16)
+_scaler(17)	_scaler(18)	_scaler(19)	_scaler(20)
+_scaler(21)	_scaler(22)	_scaler(23)	_scaler(24)
+_scaler(25)	_scaler(26)	_scaler(27)	_scaler(28)
+_scaler(29)	_scaler(30)	_scaler(31)	_scaler(32)
+
+#undef _scaler
+	
+// boundmulscale
+//}}}
+
+#elif defined(__GNUC__) && defined(__i386__)	// NOASM
 
 //
 // GCC Inline Assembler version
@@ -962,7 +1038,7 @@ void copybufreverse(void *S, void *D, long c);
 
 //}}}
 	
-#elif defined(USE_WATCOM_PRAGMAS)	// USE_GCC_PRAGMAS
+#elif defined(__WATCOMC__)	// __GNUC__ && __i386__
 
 //
 // Watcom C inline assembler
@@ -2650,7 +2726,7 @@ void copybufreverse(void *S, void *D, long c);
 	modify exact [ecx edx esi]\
 //}}}
 
-#elif defined(USE_MSC_PRAGMAS)		// USE_WATCOM_PRAGMAS
+#elif defined(_MSC_VER)		// __WATCOMC__
 
 //
 // Microsoft C inline assembler
@@ -3330,83 +3406,9 @@ static __inline void swapchar2(void *a, void *b, long s)
 }
 //}}}
 
-#else				// USE_MSC_PRAGMAS
+#else				// _MSC_VER
 
-//
-// Generic C
-//
-
-//{{{
-long sqr(long eax);
-long scale(long eax, long edx, long ecx);
-long mulscale(long eax, long edx, long ecx);
-long divscale(long eax, long ebx, long ecx);
-long dmulscale(long eax, long edx, long esi, long edi, long ecx);
-long boundmulscale(long a, long d, long c);
-void qinterpolatedown16 (long bufptr, long num, long val, long add);
-void qinterpolatedown16short (long bufptr, long num, long val, long add);
-
-//#define readpixel(s)		(*((char*)(s)))
-//#define drawpixel(s,a)	(*((char*)(s)) = (char)(a))
-//#define drawpixels(s,a)	(*((short*)(s)) = (short)(a))
-//#define drawpixelses(s,a)	(*((long*)(s)) = (long)(a))
-char readpixel(void* s);
-void drawpixel(void* s, char a);
-void drawpixels(void* s, short a);
-void drawpixelses(void* s, long a);
-
-//#define mul3(a)		((a)*3)
-//#define mul5(a)		((a)*5)
-//#define mul9(a)		((a)*9)
-long mul3(long a);
-long mul5(long a);
-long mul9(long a);
-
-long divmod(long a, long b);
-long moddiv(long a, long b);
-
-long klabs(long a);
-long ksgn(long a);
-
-long umin(long a, long b);
-long umax(long a, long b);
-long kmin(long a, long b);
-long kmax(long a, long b);
-
-void swapchar(void* a, void* b);
-void swapchar2(void* a, void* b, long s);
-void swapshort(void* a, void* b);
-void swaplong(void* a, void* b);
-void swap64bit(void* a, void* b);
-
-void clearbuf(void* d, long c, long a);
-void copybuf(void* s, void* d, long c);
-void swapbuf4(void* a, void* b, long c);
-
-void clearbufbyte(void *D, long c, long a);
-void copybufbyte(void *S, void *D, long c);
-void copybufreverse(void *S, void *D, long c);
-
-#define _scaler(a) \
-long mulscale##a(long eax, long edx); \
-long divscale##a(long eax, long ebx); \
-long dmulscale##a(long eax, long edx, long esi, long edi); \
-long tmulscale##a(long eax, long edx, long ebx, long ecx, long esi, long edi); \
-
-_scaler(1)	_scaler(2)	_scaler(3)	_scaler(4)
-_scaler(5)	_scaler(6)	_scaler(7)	_scaler(8)
-_scaler(9)	_scaler(10)	_scaler(11)	_scaler(12)
-_scaler(13)	_scaler(14)	_scaler(15)	_scaler(16)
-_scaler(17)	_scaler(18)	_scaler(19)	_scaler(20)
-_scaler(21)	_scaler(22)	_scaler(23)	_scaler(24)
-_scaler(25)	_scaler(26)	_scaler(27)	_scaler(28)
-_scaler(29)	_scaler(30)	_scaler(31)	_scaler(32)
-
-#undef _scaler
-	
-// boundmulscale
-//}}}
-
+#error Unsupported compiler or architecture.
 
 #endif
 

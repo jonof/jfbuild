@@ -27,13 +27,14 @@ FMODROOT=c:\sdks\fmodapi370win32\api
 ! loaddll wcc386 wccd386
 !endif
 
-# -D these to enable certain features of the port's compile process
-# USE_WATCOM_ASSEMBLY   Use WASM and compile the A.ASM assembly code.
-#                       If this is not defined, alter the $(OBJ)a.$o in the
-#                       ENGINEOBJS declaration to be $(OBJ)a-c.$o
-# USE_WATCOM_PRAGMAS    Use Watcom inline assembly instead of C code for
-#                       the features in PRAGMAS.H
-TARGETOPTS=-dUSE_WATCOM_ASSEMBLY -dUSE_WATCOM_PRAGMAS
+# -d these to enable certain features of the port's compile process
+# USE_A_C   This uses a C version of the classic renderer code rather
+#           than the assembly version in A.ASM.
+#           If this is defined, alter the $(OBJ)a.$o in the
+#           ENGINEOBJS declaration to be $(OBJ)a-c.$o
+# NOASM     When defined, uses C code instead of Watcom inline
+#           assembly for the features in PRAGMAS.H
+TARGETOPTS=#-dUSE_A_C #-dNOASM
 
 CC=wcc386
 AS=wasm

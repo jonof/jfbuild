@@ -47,6 +47,7 @@ extern long posx, posy, posz, horiz;
 extern short ang, cursectnum;
 
 //static long hang = 0;
+//static long rollangle = 0;
 
 //Detecting 2D / 3D mode:
 //   qsetmode is 200 in 3D mode
@@ -316,6 +317,9 @@ void ExtCheckKeys(void)
 		if (keystatus[0xb]) setaspect(viewingrange-(viewingrange>>8),yxaspect-(yxaspect>>8));
 		if (keystatus[0xc]) setaspect(viewingrange,yxaspect-(yxaspect>>8));
 		if (keystatus[0xd]) setaspect(viewingrange,yxaspect+(yxaspect>>8));
+		//if (keystatus[0x38]) setrollangle(rollangle+=((keystatus[0x2a]|keystatus[0x36])*6+2));
+		//if (keystatus[0xb8]) setrollangle(rollangle-=((keystatus[0x2a]|keystatus[0x36])*6+2));
+		//if (keystatus[0x1d]|keystatus[0x9d]) setrollangle(rollangle=0);
 
 		begindrawing();
 		

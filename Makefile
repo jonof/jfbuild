@@ -41,12 +41,13 @@ debug=-DDEBUGGINGAIDS -ggdb
 #debug=-fomit-frame-pointer
 
 # -D these to enable certain features of the port's compile process
-# USE_GCC_ASSEMBLY   Use NASM and compile the ported A.ASM assembly code.
-#                    If this is not defined, alter the $(OBJ)a.$o in the
-#                    ENGINEOBJS declaration to be $(OBJ)a-c.$o
-# USE_GCC_PRAGMAS    Use GCC inline assembly macros instead of C code for
-#                    the features in PRAGMAS.H
-TARGETOPTS=-DUSE_GCC_ASSEMBLY -DUSE_GCC_PRAGMAS
+# USE_A_C   This uses a C version of the classic renderer code rather
+#           than the assembly version in A.ASM.
+#           If this is defined, alter the $(OBJ)a.$o in the
+#           ENGINEOBJS declaration to be $(OBJ)a-c.$o
+# NOASM     When defined, uses C code instead of GCC inline
+#           assembly for the features in PRAGMAS.H
+TARGETOPTS=#-DUSE_A_C #-DNOASM
 
 CC=gcc
 AS=nasm

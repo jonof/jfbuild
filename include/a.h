@@ -6,7 +6,54 @@
 #ifndef __a_h__
 #define __a_h__
 
-#if defined(USE_WATCOM_ASSEMBLY)
+#if defined(USE_A_C)
+
+#define ENGINE_USING_A_C
+
+void setvlinebpl(long dabpl);
+void fixtransluscence(long datransoff);
+void settransnormal(void);
+void settransreverse(void);
+
+void sethlinesizes(long logx, long logy, long bufplc);
+void setpalookupaddress(char *paladdr);
+void setuphlineasm4(long bxinc, long byinc);
+void hlineasm4(long cnt, long skiploadincs, long paloffs, unsigned long by, unsigned long bx, long p);
+
+void setupslopevlin(long logylogx, long bufplc, long pinc);
+void slopevlin(long p, long i, long slopaloffs, long cnt, long bx, long by);
+
+void setupvlineasm(long neglogy);
+void vlineasm1(long vinc, long paloffs, long cnt, unsigned long vplc, long bufplc, long p);
+
+void setupmvlineasm(long neglogy);
+void mvlineasm1(long vinc, long paloffs, long cnt, unsigned long vplc, long bufplc, long p);
+
+void setuptvlineasm(long neglogy);
+void tvlineasm1(long vinc, long paloffs, long cnt, unsigned long vplc, long bufplc, long p);
+
+void msethlineshift(long logx, long logy);
+void mhline(long bufplc, unsigned long bx, long cntup16, long junk, unsigned long by, long p);
+
+void tsethlineshift(long logx, long logy);
+void thline(long bufplc, unsigned long bx, long cntup16, long junk, unsigned long by, long p);
+
+void setupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2);
+void spritevline(long bx, long by, long cnt, long bufplc, long p, long reserved);
+
+void msetupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2);
+void mspritevline(long bx, long by, long cnt, long bufplc, long p, long reserved);
+
+void tsetupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2);
+void tspritevline(long bx, long by, long cnt, long bufplc, long p, long reserved);
+
+void setupdrawslab (long dabpl, long pal);
+void drawslab (long dx, long v, long dy, long vi, long vptr, long p);
+void stretchhline (long p0, long u, long cnt, long uinc, long rptr, long p);
+
+void mmxoverlay();
+
+#elif defined(__WATCOMC__)	// USE_A_C
 
 extern long mmxoverlay();
 #pragma aux mmxoverlay modify [eax ebx ecx edx];
@@ -93,7 +140,7 @@ extern long setupdrawslab(long,long);
 extern long drawslab(long,long,long,long,long,long);
 #pragma aux drawslab parm [eax][ebx][ecx][edx][esi][edi];
 
-#elif defined(USE_GCC_ASSEMBLY)	// USE_WATCOM_ASSEMBLY
+#elif defined(__GNUC__) && defined(__i386__)	// __WATCOMC__
 
 #if defined(LINUX) || defined(BSD)
 #define __cdecl
@@ -143,7 +190,7 @@ extern long __cdecl setupdrawslab(long,long);
 extern long __cdecl drawslab(long,long,long,long,long,long);
 extern void __cdecl stretchhline(long,long,long,long,long,long);
 
-#elif defined(USE_MSC_ASSEMBLY)	// USE_GCC_ASSEMBLY
+#elif defined(_MSC_VER)	// __GNUC__ && __i386__
 
 extern long _cdecl mmxoverlay();
 extern long _cdecl sethlinesizes(long,long,long);
@@ -189,52 +236,9 @@ extern long _cdecl setupdrawslab(long,long);
 extern long _cdecl drawslab(long,long,long,long,long,long);
 extern void _cdecl stretchhline(long,long,long,long,long,long);
 
-#else				// USE_MSC_ASSEMBLY
+#else				// _MSC_VER
 
-#define ENGINE_USING_A_C
-
-void setvlinebpl(long dabpl);
-void fixtransluscence(long datransoff);
-void settransnormal(void);
-void settransreverse(void);
-
-void sethlinesizes(long logx, long logy, long bufplc);
-void setpalookupaddress(char *paladdr);
-void setuphlineasm4(long bxinc, long byinc);
-void hlineasm4(long cnt, long skiploadincs, long paloffs, unsigned long by, unsigned long bx, long p);
-
-void setupslopevlin(long logylogx, long bufplc, long pinc);
-void slopevlin(long p, long i, long slopaloffs, long cnt, long bx, long by);
-
-void setupvlineasm(long neglogy);
-void vlineasm1(long vinc, long paloffs, long cnt, unsigned long vplc, long bufplc, long p);
-
-void setupmvlineasm(long neglogy);
-void mvlineasm1(long vinc, long paloffs, long cnt, unsigned long vplc, long bufplc, long p);
-
-void setuptvlineasm(long neglogy);
-void tvlineasm1(long vinc, long paloffs, long cnt, unsigned long vplc, long bufplc, long p);
-
-void msethlineshift(long logx, long logy);
-void mhline(long bufplc, unsigned long bx, long cntup16, long junk, unsigned long by, long p);
-
-void tsethlineshift(long logx, long logy);
-void thline(long bufplc, unsigned long bx, long cntup16, long junk, unsigned long by, long p);
-
-void setupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2);
-void spritevline(long bx, long by, long cnt, long bufplc, long p, long reserved);
-
-void msetupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2);
-void mspritevline(long bx, long by, long cnt, long bufplc, long p, long reserved);
-
-void tsetupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2);
-void tspritevline(long bx, long by, long cnt, long bufplc, long p, long reserved);
-
-void setupdrawslab (long dabpl, long pal);
-void drawslab (long dx, long v, long dy, long vi, long vptr, long p);
-void stretchhline (long p0, long u, long cnt, long uinc, long rptr, long p);
-
-void mmxoverlay();
+#error Unsupported compiler or architecture.
 
 #endif	// else
 

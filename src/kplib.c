@@ -1,11 +1,10 @@
 /**************************************************************************************************
 KPLIB.C: Ken's Picture LIBrary written by Ken Silverman
-This version modified for specific use with Polymost and Hightile.
 Copyright (c) 1998-2004 Ken Silverman
 Ken Silverman's official web site: http://www.advsys.net/ken
 
 This source file includes routines for decompression of the following picture formats:
-   JPG,PNG,GIF,PCX,TGA,CEL
+	JPG,PNG,GIF,PCX,TGA,CEL
 It also includes code to handle ZIP decompression.
 
 Brief history:
@@ -20,18 +19,44 @@ I offer this code to the community for the benefit of Jonathon Fowler's Duke3D p
 
 -Ken S.
 **************************************************************************************************/
-//Modifications to Ken's original code by Jonathon Fowler (jonof@edgenetwork.org)
+	//KPLIB.C is used in these dirs: voxlap,wintest,groudraw,polyspri,test,kgl,pano,ksuck
+	//kpnggetdimen,uninitkpng,kpng legacy code used by these: kpng(old),kube,kubegl
 
-#include "compat.h"
-#include "cache1d.h"
-
-#ifndef WINDOWS
-static inline unsigned long _lrotl (unsigned long i, int sh)
+#if !defined(_WIN32) && !defined(__DOS__)
+#include <unistd.h>
+typedef long long __int64;
+static __inline long _lrotl (long i, int sh)
 	{ return((i>>(-sh))|(i<<sh)); }
+#else
+#include <io.h>
+#endif
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdio.h>
+#ifndef NOKPLIBZIP
+#ifndef _WIN32
+#include <dos.h>
+#include <stdlib.h>
+#else
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <stdlib.h>
+#endif
+#endif //NOKPLIBZIP
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+#if !defined(max)
+#define max(a,b) (((a) > (b)) ? (a) : (b))
+#endif
+#if !defined(min)
+#define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
 	//use GCC-specific extension to force symbol name to be something in particular to override underscoring.
-#if defined(__GNUC__) && defined(__i386__)
+#if defined(__GNUC__) && defined(__i386__) && !defined(NOASM)
 #define ASMNAME(x) asm(x)
 #else
 #define ASMNAME(x)
@@ -107,7 +132,29 @@ static long gotcmov = -2, abstab10[1024] ASMNAME("abstab10");
 static long qhufval0[1<<LOGQHUFSIZ0], qhufval1[1<<LOGQHUFSIZ1];
 static unsigned char qhufbit0[1<<LOGQHUFSIZ0], qhufbit1[1<<LOGQHUFSIZ1];
 
-#if defined(USE_WATCOM_PRAGMAS)
+#if defined(NOASM)
+
+#if defined(__WATCOMC__) || defined(_MSC_VER)
+#define inline _inline
+#endif
+
+static inline unsigned long bswap (unsigned long a)
+{
+	return(((a&0xff0000)>>8) + ((a&0xff00)<<8) + (a<<24) + (a>>24));
+}
+
+static inline long bitrev (long b, long c)
+{
+	long i, j;
+	for(i=1,j=0,c=(1<<c);i<c;i+=i) { j += j; if (b&i) j++; }
+	return(j);
+}
+
+static inline long testflag (long c) { return(0); }
+
+static inline void cpuid(long a, long *s) {}
+
+#elif defined(__WATCOMC__)
 
 long bswap (long);
 #pragma aux bswap =\
@@ -159,7 +206,7 @@ void cpuid (long, long *);
 	modify exact [eax ebx ecx edx]\
 	value
 
-#elif defined(USE_MSC_PRAGMAS)
+#elif defined(_MSC_VER)
 
 static _inline unsigned long bswap (unsigned long a)
 {
@@ -223,7 +270,7 @@ static _inline void cpuid (long a, long *s)
 	}
 }
 
-#elif defined(USE_GCC_PRAGMAS)
+#elif defined(__GNUC__) && defined(__i386__)
 
 static inline unsigned long bswap (unsigned long a)
 {
@@ -261,21 +308,7 @@ static inline void cpuid (long a, long *s)
 
 #else
 
-static inline unsigned long bswap (unsigned long a)
-{
-	return(((a&0xff0000)>>8) + ((a&0xff00)<<8) + (a<<24) + (a>>24));
-}
-
-static inline long bitrev (long b, long c)
-{
-	long i, j;
-	for(i=1,j=0,c=(1<<c);i<c;i+=i) { j += j; if (b&i) j++; }
-	return(j);
-}
-
-static inline long testflag (long c) { return(0); }
-
-static inline void cpuid(long a, long *s) {}
+#error Unsupported compiler or architecture.
 
 #endif
 
@@ -486,7 +519,35 @@ static long Paeth (long a, long b, long c)
 	if (pb <= pc) return(b); else return(c);
 }
 
-#if defined(USE_WATCOM_PRAGMAS)
+#if defined(NOASM)
+
+static inline long Paeth686 (long a, long b, long c)
+{
+	return(Paeth(a,b,c));
+}
+
+static inline void rgbhlineasm (long x, long xr1, long p, long ixstp)
+{
+	long i;
+	if (!trnsrgb)
+	{
+		for(;x>xr1;p+=ixstp,x-=3) *(long *)p = (*(long *)&olinbuf[x])|0xff000000;
+		return;
+	}
+	for(;x>xr1;p+=ixstp,x-=3)
+	{
+		i = (*(long *)&olinbuf[x])|0xff000000;
+		if (i == trnsrgb) i &= 0xffffff;
+		*(long *)p = i;
+	}
+}
+
+static inline void pal8hlineasm (long x, long xr1, long p, long ixstp)
+{
+	for(;x>xr1;p+=ixstp,x--) *(long *)p = palcol[olinbuf[x]];
+}
+
+#elif defined(__WATCOMC__)
 
 	//NOTE: cmov now has correctly ordered registers (thx to bug fix in 11.0c!)
 long Paeth686 (long, long, long);
@@ -517,6 +578,7 @@ void rgbhlineasm (long, long, long, long);
 	"jz short begit2"\
 	"begit: mov eax, dword ptr [ecx+edx]"\
 	"or eax, 0xff000000"\
+	"cmp eax, dword ptr trnsrgb"\
 	"jne short skipit"\
 	"and eax, 0xffffff"\
 	"skipit: sub ecx, 3"\
@@ -551,7 +613,7 @@ void pal8hlineasm (long, long, long, long);
 	modify exact [eax ecx edi]\
 	value
 
-#elif defined(USE_MSC_PRAGMAS)
+#elif defined(_MSC_VER)
 
 static _inline long Paeth686 (long a, long b, long c)
 {
@@ -589,6 +651,7 @@ static _inline void rgbhlineasm (long c, long d, long t, long b)
 		jz short begit2
 		begit: mov eax, dword ptr [ecx+edx]
 		or eax, 0xff000000
+		cmp eax, dword ptr trnsrgb
 		jne short skipit
 		and eax, 0xffffff
 		skipit: sub ecx, 3
@@ -627,7 +690,7 @@ static _inline void pal8hlineasm (long c, long d, long t, long b)
 	}
 }
 
-#elif defined(USE_GCC_PRAGMAS)
+#elif defined(__GNUC__) && defined(__i386__)
 
 static inline long Paeth686 (long a, long b, long c)
 {
@@ -648,7 +711,7 @@ static inline void rgbhlineasm (long c, long d, long t, long b)
 	__asm__ __volatile__ (
 		"subl %%edx, %%ecx\n\tjle 3f\n\taddl $olinbuf, %%edx\n\t"
 		"cmpl $0, trnsrgb(,1)\n\tjz 2f\n\t"
-		"0: movl (%%ecx,%%edx,1), %%eax\n\torl $0xff000000, %%eax\n\t"
+		"0: movl (%%ecx,%%edx,1), %%eax\n\torl $0xff000000, %%eax\n\tcmpl trnsrgb(,1), %%eax\n\t"
 		"jne 1f\n\tandl $0xffffff, %%eax\n\t"
 		"1: subl $3, %%ecx\n\tmovl %%eax, (%%edi)\n\tleal (%%edi,%%ebx,1), %%edi\n\t"
 		"jnz 0b\n\tjmp 3f\n\t"
@@ -672,20 +735,7 @@ static inline void pal8hlineasm (long c, long d, long t, long b)
 
 #else
 
-static inline long Paeth686 (long a, long b, long c)
-{
-	return(Paeth(a,b,c));
-}
-	
-static inline void rgbhlineasm (long x, long xr1, long p, long ixstp)
-{
-	for(;x>xr1;p+=ixstp,x-=3) *(long *)p = (*(long *)&olinbuf[x]) | 0xff000000l;
-}
-
-static inline void pal8hlineasm (long x, long xr1, long p, long ixstp)
-{
-	for(;x>xr1;p+=ixstp,x--) *(long *)p = palcol[olinbuf[x]];
-}
+#error Unsupported compiler or architecture.
 
 #endif
 
@@ -754,7 +804,7 @@ static void putbuf (const unsigned char *buf, long leng)
 			switch (coltype)
 			{
 				case 2:
-					rgbhlineasm(x,xr1,p,ixstp); //for(;x>xr1;p+=ixstp,x-=3) *(long *)p = *(long *)&olinbuf[x];
+					rgbhlineasm(x,xr1,p,ixstp);
 					break;
 				case 4:
 					for(;x>xr1;p+=ixstp,x-=2)
@@ -914,11 +964,13 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 			switch(coltype)
 			{
 				case 0:
-					palcol[((long)filptr[0]<<8)+(long)filptr[1]] &= 0xffffff;
+					if (bitdepth == 8)
+						palcol[(long)filptr[1]] &= 0xffffff;
+					//else {} // /c0 /d16 not yet supported
 					break;
 				case 2:
 					if (bitdepth == 8)
-						{ trnsrgb = (((long)filptr[0])<<16)+(((long)filptr[2])<<8)+((long)filptr[4])+0xff000000; }
+						{ trnsrgb = (((long)filptr[1])<<16)+(((long)filptr[3])<<8)+((long)filptr[5])+0xff000000; }
 					//else {} //WARNING: PNG docs say: MUST compare all 48 bits :(
 					break;
 				case 3:
@@ -1096,7 +1148,19 @@ static long lcomphsampmask[4], lcomphsampshift[4], lcompvsampshift[4];
 static long colclip[1024], colclipup8[1024], colclipup16[1024];
 static unsigned char pow2char[8] = {1,2,4,8,16,32,64,128};
 
-#if defined(USE_WATCOM_PRAGMAS)
+#if defined(NOASM)
+
+static inline long mulshr24 (long a, long b)
+{
+	return((long)((((__int64)a)*((__int64)b))>>24));
+}
+
+static inline long mulshr32 (long a, long b)
+{
+	return((long)((((__int64)a)*((__int64)b))>>32));
+}
+
+#elif defined(__WATCOMC__)
 
 long mulshr24 (long, long);
 #pragma aux mulshr24 =\
@@ -1112,7 +1176,7 @@ long mulshr32 (long, long);
 	modify exact [eax edx]\
 	value [edx]
 
-#elif defined(USE_MSC_PRAGMAS)
+#elif defined(_MSC_VER)
 
 static _inline long mulshr24 (long a, long d)
 {
@@ -1134,31 +1198,23 @@ static _inline long mulshr32 (long a, long d)
 	}
 }
 
-#elif defined(USE_GCC_PRAGMAS)
+#elif defined(__GNUC__) && defined(__i386__)
 
 #define mulshr24(a,d) \
 	({ long __a=(a), __d=(d); \
-	   __asm__ __volatile__ ("imull %%edx; shrdl $24, %%edx, %%eax" \
+		__asm__ __volatile__ ("imull %%edx; shrdl $24, %%edx, %%eax" \
 		: "+a" (__a), "+d" (__d) : : "cc"); \
 	 __a; })
 
 #define mulshr32(a,d) \
 	({ long __a=(a), __d=(d); \
-	   __asm__ __volatile__ ("imull %%edx" \
+		__asm__ __volatile__ ("imull %%edx" \
 		: "+a" (__a), "+d" (__d) : : "cc"); \
 	 __d; })
 
 #else
 
-static inline long mulshr24 (long a, long b)
-{
-	return((long)((((__int64)a)*((__int64)b))>>24));
-}
-
-static inline long mulshr32 (long a, long b)
-{
-	return((long)((((__int64)a)*((__int64)b))>>32));
-}
+#error Unsupported compiler or architecture.
 
 #endif
 
@@ -1527,71 +1583,71 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 							yyyend = min(clipydim-(y+yy+globyoffs),8);
 							if ((lcomphsamp[0] == 1) && (xxxend == 8))
 							{
-									for(yyy=0;yyy<yyyend;yyy++)
+								for(yyy=0;yyy<yyyend;yyy++)
+								{
+									for(xxx=0;xxx<8;xxx++)
 									{
-										for(xxx=0;xxx<8;xxx++)
-										{
-											yv = dc[xxx];
-											cr = (dc2[xxx+64]>>13)&~1;
-											cb = (dc2[xxx]>>13)&~1;
-											((long *)p)[xxx] = colclipup16[(unsigned)(yv+crmul[cr+2048])>>22]+
-																	  colclipup8[(unsigned)(yv+crmul[cr+2049]+cbmul[cb+2048])>>22]+
-																		  colclip[(unsigned)(yv+cbmul[cb+2049])>>22];
-										}
-										p += bytesperline;
-										dc += 8;
-										if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
+										yv = dc[xxx];
+										cr = (dc2[xxx+64]>>13)&~1;
+										cb = (dc2[xxx]>>13)&~1;
+										((long *)p)[xxx] = colclipup16[(unsigned)(yv+crmul[cr+2048])>>22]+
+																  colclipup8[(unsigned)(yv+crmul[cr+2049]+cbmul[cb+2048])>>22]+
+																	  colclip[(unsigned)(yv+cbmul[cb+2049])>>22];
 									}
+									p += bytesperline;
+									dc += 8;
+									if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
+								}
 							}
 							else if ((lcomphsamp[0] == 2) && (xxxend == 8))
 							{
-									for(yyy=0;yyy<yyyend;yyy++)
+								for(yyy=0;yyy<yyyend;yyy++)
+								{
+									for(xxx=0;xxx<8;xxx+=2)
 									{
-										for(xxx=0;xxx<8;xxx+=2)
-										{
-											yv = dc[xxx];
-											cr = (dc2[(xxx>>1)+64]>>13)&~1;
-											cb = (dc2[(xxx>>1)]>>13)&~1;
-											i = crmul[cr+2049]+cbmul[cb+2048];
-											cr = crmul[cr+2048];
-											cb = cbmul[cb+2049];
-											((long *)p)[xxx] = colclipup16[(unsigned)(yv+cr)>>22]+
-																	  colclipup8[(unsigned)(yv+i)>>22]+
-																		  colclip[(unsigned)(yv+cb)>>22];
-											yv = dc[xxx+1];
-											((long *)p)[xxx+1] = colclipup16[(unsigned)(yv+cr)>>22]+
-																		 colclipup8[(unsigned)(yv+i)>>22]+
-																			 colclip[(unsigned)(yv+cb)>>22];
-										}
-										p += bytesperline;
-										dc += 8;
-										if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
+										yv = dc[xxx];
+										cr = (dc2[(xxx>>1)+64]>>13)&~1;
+										cb = (dc2[(xxx>>1)]>>13)&~1;
+										i = crmul[cr+2049]+cbmul[cb+2048];
+										cr = crmul[cr+2048];
+										cb = cbmul[cb+2049];
+										((long *)p)[xxx] = colclipup16[(unsigned)(yv+cr)>>22]+
+																  colclipup8[(unsigned)(yv+i)>>22]+
+																	  colclip[(unsigned)(yv+cb)>>22];
+										yv = dc[xxx+1];
+										((long *)p)[xxx+1] = colclipup16[(unsigned)(yv+cr)>>22]+
+																	 colclipup8[(unsigned)(yv+i)>>22]+
+																		 colclip[(unsigned)(yv+cb)>>22];
 									}
+									p += bytesperline;
+									dc += 8;
+									if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
+								}
 							}
 							else
 							{
-									for(yyy=0;yyy<yyyend;yyy++)
-									{
-										i = 0; j = 1;
+								for(yyy=0;yyy<yyyend;yyy++)
+								{
+									i = 0; j = 1;
 									for(xxx=0;xxx<xxxend;xxx++)
+									{
+										yv = dc[xxx];
+										j--;
+										if (!j)
 										{
-											yv = dc[xxx];
-											j--;
-											if (!j)
-											{
-												j = lcomphsamp[0];
-												cr = (dc2[i+64]>>13)&~1;
-												cb = (dc2[i]>>13)&~1;
-												i++;
-											}
-											((long *)p)[xxx] = colclipup16[(unsigned)(yv+crmul[cr+2048])>>22]+
-																	  colclipup8[(unsigned)(yv+crmul[cr+2049]+cbmul[cb+2048])>>22]+
-																		  colclip[(unsigned)(yv+cbmul[cb+2049])>>22];
+											j = lcomphsamp[0];
+											cr = (dc2[i+64]>>13)&~1;
+											cb = (dc2[i]>>13)&~1;
+											i++;
 										}
-										p += bytesperline;
-										dc += 8;
-										if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
+										((long *)p)[xxx] = colclipup16[(unsigned)(yv+crmul[cr+2048])>>22]+
+																  colclipup8[(unsigned)(yv+crmul[cr+2049]+cbmul[cb+2048])>>22]+
+																	  colclip[(unsigned)(yv+cbmul[cb+2049])>>22];
 									}
+									p += bytesperline;
+									dc += 8;
+									if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
+								}
 							}
 						}
 
@@ -1783,8 +1839,8 @@ static long kcelrend (const char *buf, long fleng,
 	for(i=0;i<256;i++)
 	{
 		palcol[i] = (((long)cptr[0])<<18) +
-					  (((long)cptr[1])<<10) +
-					  (((long)cptr[2])<< 2) + 0xff000000;
+						(((long)cptr[1])<<10) +
+						(((long)cptr[2])<< 2) + 0xff000000;
 		cptr += 3;
 	}
 
@@ -2024,8 +2080,8 @@ static long kpcxrend (const char *buf, long fleng,
 		for(i=0;i<256;i++)
 		{
 			palcol[i] = (((long)cptr[0])<<16) +
-						  (((long)cptr[1])<< 8) +
-						  (((long)cptr[2])    ) + 0xff000000;
+							(((long)cptr[1])<< 8) +
+							(((long)cptr[2])    ) + 0xff000000;
 			cptr += 3;
 		}
 		coltype = 3; bitdepth = 8; paleng = 256; //For PNGOUT
@@ -2192,7 +2248,95 @@ long kprender (const char *buf, long leng, long frameptr, long bpl,
 static char *skfilebuf = 0, ofilename[260] = "";
 static long skfilength;
 
+void uninitkpng ()
+{
+	if (skfilebuf) { free(skfilebuf); skfilebuf = 0; }
+	ofilename[0] = 0;
+}
+
+void kpnggetdimen (const char *filename, long *picxsiz, long *picysiz)
+{
+	long i;
+
+	(*picxsiz) = 0; (*picysiz) = 0;
+	if (strcmp(filename,ofilename))
+	{
+		strcpy(ofilename,filename);
+		i = open(filename,O_BINARY|O_RDONLY,S_IREAD); if (i == -1) return;
+		skfilength = filelength(i);
+		if (skfilength <= 0) { close(i); return; }
+		if (skfilebuf) { free(skfilebuf); skfilebuf = 0; }
+		skfilebuf = (char *)malloc(skfilength); if (!skfilebuf) { close(i); return; }
+		read(i,skfilebuf,skfilength);
+		close(i);
+	}
+	kpgetdim(skfilebuf,skfilength,picxsiz,picysiz);
+}
+
+long kpng (const char *filename, long *daframeplace, long *dabytesperline,
+	long *daxres, long *dayres, long *daglobxoffs, long *daglobyoffs,
+	long *picxsiz, long *picysiz)
+{
+	long i;
+
+	if (strcmp(filename,ofilename))
+	{
+		strcpy(ofilename,filename);
+		i = open(filename,O_BINARY|O_RDONLY,S_IREAD); if (i == -1) return(-2);
+		skfilength = filelength(i);
+		if (skfilength <= 0) { close(i); return(-2); }
+		if (skfilebuf) { free(skfilebuf); skfilebuf = 0; }
+		skfilebuf = (char *)malloc(skfilength); if (!skfilebuf) { close(i); return(-1); }
+		read(i,skfilebuf,skfilength);
+		close(i);
+	}
+
+	kpgetdim(skfilebuf,skfilength,picxsiz,picysiz);
+	if ((*daframeplace) == 0)
+	{
+		(*daxres) = (*picxsiz);
+		(*dayres) = (*picysiz);
+		(*dabytesperline) = ((*daxres)<<2);
+		(*daframeplace) = (long)malloc((*dabytesperline)*(*dayres)); if (!(*daframeplace)) return(-1);
+	}
+	if ((*daglobxoffs) == 0x7fffffff)
+	{
+		(*daglobxoffs) = ((((*daxres)-(*picxsiz))>>1)&~7);
+		(*daglobyoffs) = ((((*dayres)-(*picysiz))>>1)&~7);
+	}
+	return(kprender(skfilebuf,skfilength,*daframeplace,*dabytesperline,
+				*daxres,*dayres,*daglobxoffs,*daglobyoffs));
+}
+
 //======================= Legacy emulation code ends =========================
+#ifndef NOKPLIBZIP
+	//Brute-force case-insensitive, slash-insensitive, * and ? wildcard matcher
+	//Given: string i and string j. string j can have wildcards
+	//Returns: 1:matches, 0:doesn't match
+static long wildmatch (const char *i, const char *j)
+{
+	const char *k;
+	char c0, c1;
+
+	if (!*j) return(1);
+	do
+	{
+		if (*j == '*')
+		{
+			for(k=i,j++;*k;k++) if (wildmatch(k,j)) return(1);
+			continue;
+		}
+		if (!*i) return(0);
+		if (*j == '?') { i++; j++; continue; }
+		c0 = *i; if ((c0 >= 'a') && (c0 <= 'z')) c0 -= 32;
+		c1 = *j; if ((c1 >= 'a') && (c1 <= 'z')) c1 -= 32;
+		if (c0 == '/') c0 = '\\';
+		if (c1 == '/') c1 = '\\';
+		if (c0 != c1) return(0);
+		i++; j++;
+	} while (*j);
+	return(!*i);
+}
 
 	//Same as: stricmp(st0,st1) except: '/' == '\'
 static long filnamcmp (const char *st0, const char *st1)
@@ -2266,6 +2410,7 @@ static long kzcheckhash (const char *filnam, char **zipnam, long *zipseek)
 	long i;
 
 	if (!kzhashbuf) return(0);
+	if (filnam[0] == '|') filnam++;
 	for(i=kzhashead[kzcalchash(filnam)];i>=0;i=(*(long *)&kzhashbuf[i]))
 		if (!filnamcmp(filnam,&kzhashbuf[i+16]))
 		{
@@ -2289,10 +2434,10 @@ long kzaddstack (const char *zipnam)
 	long i, j, hashind, zipnamoffs, numfiles;
 	char tempbuf[260+46];
 
-	fil = fopen(zipnam,"rb"); if (!fil) return -1;
+	fil = fopen(zipnam,"rb"); if (!fil) return(-1);
 
 		//Write ZIP filename to hash
-	i = strlen(zipnam)+1; if (!kzcheckhashsiz(i)) { fclose(fil); return -1; }
+	i = strlen(zipnam)+1; if (!kzcheckhashsiz(i)) { fclose(fil); return(-1); }
 	strcpy(&kzhashbuf[kzhashpos],zipnam);
 	zipnamoffs = kzhashpos; kzhashpos += i;
 
@@ -2315,20 +2460,20 @@ long kzaddstack (const char *zipnam)
 			fseek(fil,(*(long *)&tempbuf[14]) + (*(short *)&tempbuf[24]) + (*(short *)&tempbuf[22]),SEEK_CUR);
 			numfiles++;
 		}
-		if (numfiles < 0) { fclose(fil); return -1; }
+		if (numfiles < 0) { fclose(fil); return(-1); }
 		fseek(fil,-4,SEEK_CUR);
 	}
 	for(i=0;i<numfiles;i++)
 	{
 		fread(tempbuf,46,1,fil);
-		if (*(long *)&tempbuf[0] != 0x02014b50) { fclose(fil); return 0; }
+		if (*(long *)&tempbuf[0] != 0x02014b50) { fclose(fil); return(0); }
 
 		j = (*(short *)&tempbuf[28]); //filename length
 		fread(&tempbuf[46],j,1,fil);
 		tempbuf[j+46] = 0;
 
 			//Write information into hash
-		j = strlen(&tempbuf[46])+17; if (!kzcheckhashsiz(j)) { fclose(fil); return -1; }
+		j = strlen(&tempbuf[46])+17; if (!kzcheckhashsiz(j)) { fclose(fil); return(-1); }
 		hashind = kzcalchash(&tempbuf[46]);
 		*(long *)&kzhashbuf[kzhashpos] = kzhashead[hashind];
 		*(long *)&kzhashbuf[kzhashpos+4] = kzlastfnam;
@@ -2342,7 +2487,7 @@ long kzaddstack (const char *zipnam)
 		fseek(fil,j,SEEK_CUR);
 	}
 	fclose(fil);
-	return 0;
+	return(0);
 }
 
 long kzopen (const char *filnam)
@@ -2352,6 +2497,19 @@ long kzopen (const char *filnam)
 	char tempbuf[46+260], *zipnam;
 
 	//kzfs.fil = 0;
+	if (filnam[0] != '|')
+	{
+		kzfs.fil = fopen(filnam,"rb");
+		if (kzfs.fil)
+		{
+			kzfs.comptyp = 0;
+			kzfs.seek0 = 0;
+			kzfs.leng = filelength(_fileno(kzfs.fil));
+			kzfs.pos = 0;
+			kzfs.i = 0;
+			return((long)kzfs.fil);
+		}
+	}
 	if (kzcheckhash(filnam,&zipnam,&zipseek))
 	{
 		fil = fopen(zipnam,"rb"); if (!fil) return(0);
@@ -2387,12 +2545,29 @@ long kzopen (const char *filnam)
 
 static long srchstat = -1, wildstpathleng;
 
+#if defined(__DOS__)
 static char wildst[260] = "";
+static struct find_t findata;
+#elif defined(_WIN32)
+static char wildst[MAX_PATH] = "";
+static HANDLE hfind = INVALID_HANDLE_VALUE;
+static WIN32_FIND_DATA findata;
+#else
+static char wildst[260] = "";
+#endif
 
 void kzfindfilestart (const char *st)
 {
+#ifdef _WIN32
+	if (hfind != INVALID_HANDLE_VALUE)
+		{ FindClose(hfind); hfind = INVALID_HANDLE_VALUE; }
+#endif
 	strcpy(wildst,st);
+#if defined(_WIN32) || defined(__DOS__)
+	srchstat = -3;
+#else
 	srchstat = kzlastfnam;
+#endif
 }
 
 long kzfindfile (char *filnam)
@@ -2400,11 +2575,85 @@ long kzfindfile (char *filnam)
 	long i;
 
 	filnam[0] = 0;
+	if (srchstat == -3)
+	{
+		if (!wildst[0]) { srchstat = -1; return(0); }
+		do
+		{
+			srchstat = -2;
+
+				//Extract directory from wildcard string for pre-pending
+			wildstpathleng = 0;
+			for(i=0;wildst[i];i++)
+				if ((wildst[i] == '/') || (wildst[i] == '\\'))
+					wildstpathleng = i+1;
+
+			memcpy(filnam,wildst,wildstpathleng);
+
+#if defined(__DOS__)
+			if (_dos_findfirst(wildst,_A_SUBDIR,&findata))
+				{ if (!kzhashbuf) return(0); srchstat = kzlastfnam; continue; }
+			i = wildstpathleng;
+			if (findata.attrib&16)
+			{
+				if ((findata.name[0] == '.') && (!findata.name[1])) continue;
+				filnam[i++] = '\\';
+			}
+			strcpy(&filnam[i],findata.name);
+#elif defined(_WIN32)
+			hfind = FindFirstFile(wildst,&findata);
+			if (hfind == INVALID_HANDLE_VALUE)
+				{ if (!kzhashbuf) return(0); srchstat = kzlastfnam; continue; }
+			if (findata.dwFileAttributes&FILE_ATTRIBUTE_HIDDEN) continue;
+			i = wildstpathleng;
+			if (findata.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
+			{
+				if ((findata.cFileName[0] == '.') && (!findata.cFileName[1])) continue;
+				filnam[i++] = '\\';
+			}
+			strcpy(&filnam[i],findata.cFileName);
+#else
+			return(0);
+#endif
+			return(1);
+		} while (0);
+	}
+	if (srchstat == -2)
+		while (1)
+		{
+			memcpy(filnam,wildst,wildstpathleng);
+#if defined(__DOS__)
+			if (_dos_findnext(&findata))
+				{ if (!kzhashbuf) return(0); srchstat = kzlastfnam; break; }
+			i = wildstpathleng;
+			if (findata.attrib&16)
+			{
+				if ((findata.name[0] == '.') && (!findata.name[1])) continue;
+				filnam[i++] = '\\';
+			}
+			strcpy(&filnam[i],findata.name);
+#elif defined(_WIN32)
+			if (!FindNextFile(hfind,&findata))
+				{ FindClose(hfind); if (!kzhashbuf) return(0); srchstat = kzlastfnam; break; }
+			if (findata.dwFileAttributes&FILE_ATTRIBUTE_HIDDEN) continue;
+			i = wildstpathleng;
+			if (findata.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
+			{
+				if ((findata.cFileName[0] == '.') && (!findata.cFileName[1])) continue;
+				filnam[i++] = '\\';
+			}
+			strcpy(&filnam[i],findata.cFileName);
+#else
+			return(0);
+#endif
+			return(1);
+		}
 	while (srchstat >= 0)
 	{
 		if (wildmatch(&kzhashbuf[srchstat+16],wildst))
 		{
-			strcpy(filnam,&kzhashbuf[srchstat+16]);
+			//strcpy(filnam,&kzhashbuf[srchstat+16]);
+			filnam[0] = '|'; strcpy(&filnam[1],&kzhashbuf[srchstat+16]);
 			srchstat = *(long *)&kzhashbuf[srchstat+4];
 			return(1);
 		}
@@ -2419,6 +2668,7 @@ long kzfindfile (char *filnam)
 //   while (kzfindfile(filnam)) puts(filnam);
 //NOTES:
 // * Directory names begin with '\'
+// * Files inside zip begin with '|'
 
 // --------------------------------------------------------------------------
 
@@ -2505,6 +2755,28 @@ kzreadplc0:;
 		do
 		{
 			bfinal = getbits(1); btype = getbits(2);
+
+#if 0
+				//Display Huffman block offsets&lengths of input file - for debugging only!
+			{
+			static long ouncomppos = 0, ocomppos = 0;
+			if (kzfs.comptell == sizeof(olinbuf)) i = 0;
+			else if (kzfs.comptell < kzfs.compleng) i = kzfs.comptell-(sizeof(olinbuf)-4);
+			else i = kzfs.comptell-(kzfs.comptell%(sizeof(olinbuf)-4));
+			i += ((long)&filptr[bitpos>>3])-((long)(&olinbuf[0]));
+			i = (i<<3)+(bitpos&7)-3;
+			if (slidew) printf(" ULng:0x%08x CLng:0x%08x.%x",slidew-ouncomppos,(i-ocomppos)>>3,((i-ocomppos)&7)<<1);
+			printf("\ntype:%d, Uoff:0x%08x Coff:0x%08x.%x",btype,slidew,i>>3,(i&7)<<1);
+			if (bfinal)
+			{
+				printf(" ULng:0x%08x CLng:0x%08x.%x",kzfs.leng-slidew,((kzfs.compleng<<3)-i)>>3,(((kzfs.compleng<<3)-i)&7)<<1);
+				printf("\n        Uoff:0x%08x Coff:0x%08x.0",kzfs.leng,kzfs.compleng);
+				ouncomppos = ocomppos = 0;
+			}
+			else { ouncomppos = slidew; ocomppos = i; }
+			}
+#endif
+
 			if (btype == 0)
 			{
 				  //Raw (uncompressed)
@@ -2621,7 +2893,7 @@ long kzfilelength ()
 	//         kzseek(0,SEEK_END);       can make next kzread very slow!!!
 long kzseek (long offset, long whence)
 {
-	if (!kzfs.fil) return -1;
+	if (!kzfs.fil) return(-1);
 	switch (whence)
 	{
 		case SEEK_CUR: kzfs.pos += offset; break;
@@ -2630,7 +2902,7 @@ long kzseek (long offset, long whence)
 	}
 	if (kzfs.pos < 0) kzfs.pos = 0;
 	if (kzfs.pos > kzfs.leng) kzfs.pos = kzfs.leng;
-	return kzfs.pos;
+	return(kzfs.pos);
 }
 
 long kztell ()
@@ -2679,3 +2951,4 @@ void kpzload (const char *filnam, long *pic, long *bpl, long *xsiz, long *ysiz)
 	free(buf);
 }
 //====================== HANDY PICTURE function ends =========================
+#endif //NOKPLIBZIP

@@ -10,7 +10,7 @@
 
 #ifndef ENGINE_USING_A_C
 # error A.H has indicated that optimized code has been requested. This means a-c.c is being compiled \
-	when USE_xxx_ASSEMBLY is defined.
+	when USE_A_C has not been defined.
 #endif
 
 long krecip(long num);	// from engine.c

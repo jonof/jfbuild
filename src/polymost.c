@@ -3549,7 +3549,7 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 	float m[4][4];
 
 #ifdef USE_OPENGL
-	if (rendmode == 3 && usemodels)
+	if (rendmode == 3 && usemodels && hudmem[(dastat&4)>>2][picnum].angadd)
 	{
 		if ((tiletomodel[picnum].modelid >= 0) && (tiletomodel[picnum].framenum >= 0))
 		{

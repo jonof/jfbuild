@@ -302,7 +302,7 @@ int md2_definehud (int modelid, int tilex, double xadd, double yadd, double zadd
 	hudmem[(flags>>2)&1][tilex].xadd = xadd;
 	hudmem[(flags>>2)&1][tilex].yadd = yadd;
 	hudmem[(flags>>2)&1][tilex].zadd = zadd;
-	hudmem[(flags>>2)&1][tilex].angadd = (short)angadd;
+	hudmem[(flags>>2)&1][tilex].angadd = ((short)angadd)|2048;
 	hudmem[(flags>>2)&1][tilex].flags = (short)flags;
 
 	return 0;

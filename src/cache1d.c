@@ -14,6 +14,20 @@
 
 #ifdef WITHKPLIB
 #include "kplib.h"
+
+	//Insert '|' in front of filename
+	//Doing this tells kzopen to load the file only if inside a .ZIP file
+static long kzipopen(char *filnam)
+{
+	long i;
+	char newst[BMAX_PATH+4];
+
+	newst[0] = '|';
+	for(i=0;filnam[i] && (i < sizeof(newst)-2);i++) newst[i+1] = filnam[i];
+	newst[i+1] = 0;
+	return(kzopen(newst));
+}
+
 #endif
 
 
@@ -437,7 +451,7 @@ long kopen4load(char *filename, char searchfirst)
 		if (kzcurhand >= 0) filepos[kzcurhand] = kztell();
 		kzclose();
 	}
-	if (searchfirst != 1 && (i = kzopen(filename)) != 0) {
+	if (searchfirst != 1 && (i = kzipopen(filename)) != 0) {
 		kzcurhand = newhandle;
 		filegrp[newhandle] = 254;
 		filehan[newhandle] = i;
@@ -491,7 +505,7 @@ long kread(long handle, void *buffer, long leng)
 		{
 			if (kztell() >= 0) { filepos[kzcurhand] = kztell(); kzclose(); }
 			kzcurhand = handle;
-			kzopen(filenamsav[handle]);
+			kzipopen(filenamsav[handle]);
 			kzseek(filepos[handle],SEEK_SET);
 		}
 		return(kzread(buffer,leng));
@@ -530,7 +544,7 @@ long klseek(long handle, long offset, long whence)
 		{
 			if (kztell() >= 0) { filepos[kzcurhand] = kztell(); kzclose(); }
 			kzcurhand = handle;
-			kzopen(filenamsav[handle]);
+			kzipopen(filenamsav[handle]);
 			kzseek(filepos[handle],SEEK_SET);
 		}
 		return(kzseek(offset,whence));
@@ -568,7 +582,7 @@ long kfilelength(long handle)
 		{
 			if (kztell() >= 0) { filepos[kzcurhand] = kztell(); kzclose(); }
 			kzcurhand = handle;
-			kzopen(filenamsav[handle]);
+			kzipopen(filenamsav[handle]);
 			kzseek(filepos[handle],SEEK_SET);
 		}
 		return kzfilelength();
@@ -592,7 +606,7 @@ long ktell(long handle)
 		{
 			if (kztell() >= 0) { filepos[kzcurhand] = kztell(); kzclose(); }
 			kzcurhand = handle;
-			kzopen(filenamsav[handle]);
+			kzipopen(filenamsav[handle]);
 			kzseek(filepos[handle],SEEK_SET);
 		}
 		return kztell();
