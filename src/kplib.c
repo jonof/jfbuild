@@ -987,7 +987,7 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 			switch(coltype)
 			{
 				case 0:
-					if (bitdepth == 8)
+					if (bitdepth <= 8)
 						palcol[(long)filptr[1]] &= 0xffffff;
 					//else {} // /c0 /d16 not yet supported
 					break;
@@ -2277,72 +2277,7 @@ long kprender (const char *buf, long leng, long frameptr, long bpl,
 }
 
 //==================== External picture interface ends =======================
-//====================== Legacy emulation code begins ========================
 
-static char *skfilebuf = 0, ofilename[260] = "";
-static long skfilength;
-
-void uninitkpng ()
-{
-	if (skfilebuf) { free(skfilebuf); skfilebuf = 0; }
-	ofilename[0] = 0;
-}
-
-void kpnggetdimen (const char *filename, long *picxsiz, long *picysiz)
-{
-	long i;
-
-	(*picxsiz) = 0; (*picysiz) = 0;
-	if (strcmp(filename,ofilename))
-	{
-		strcpy(ofilename,filename);
-		i = open(filename,O_BINARY|O_RDONLY,S_IREAD); if (i == -1) return;
-		skfilength = filelength(i);
-		if (skfilength <= 0) { close(i); return; }
-		if (skfilebuf) { free(skfilebuf); skfilebuf = 0; }
-		skfilebuf = (char *)malloc(skfilength); if (!skfilebuf) { close(i); return; }
-		read(i,skfilebuf,skfilength);
-		close(i);
-	}
-	kpgetdim(skfilebuf,skfilength,picxsiz,picysiz);
-}
-
-long kpng (const char *filename, long *daframeplace, long *dabytesperline,
-	long *daxres, long *dayres, long *daglobxoffs, long *daglobyoffs,
-	long *picxsiz, long *picysiz)
-{
-	long i;
-
-	if (strcmp(filename,ofilename))
-	{
-		strcpy(ofilename,filename);
-		i = open(filename,O_BINARY|O_RDONLY,S_IREAD); if (i == -1) return(-2);
-		skfilength = filelength(i);
-		if (skfilength <= 0) { close(i); return(-2); }
-		if (skfilebuf) { free(skfilebuf); skfilebuf = 0; }
-		skfilebuf = (char *)malloc(skfilength); if (!skfilebuf) { close(i); return(-1); }
-		read(i,skfilebuf,skfilength);
-		close(i);
-	}
-
-	kpgetdim(skfilebuf,skfilength,picxsiz,picysiz);
-	if ((*daframeplace) == 0)
-	{
-		(*daxres) = (*picxsiz);
-		(*dayres) = (*picysiz);
-		(*dabytesperline) = ((*daxres)<<2);
-		(*daframeplace) = (long)malloc((*dabytesperline)*(*dayres)); if (!(*daframeplace)) return(-1);
-	}
-	if ((*daglobxoffs) == 0x7fffffff)
-	{
-		(*daglobxoffs) = ((((*daxres)-(*picxsiz))>>1)&~7);
-		(*daglobyoffs) = ((((*dayres)-(*picysiz))>>1)&~7);
-	}
-	return(kprender(skfilebuf,skfilength,*daframeplace,*dabytesperline,
-				*daxres,*dayres,*daglobxoffs,*daglobyoffs));
-}
-
-//======================= Legacy emulation code ends =========================
 #ifndef NOKPLIBZIP
 	//Brute-force case-insensitive, slash-insensitive, * and ? wildcard matcher
 	//Given: string i and string j. string j can have wildcards
@@ -2815,7 +2750,7 @@ kzreadplc0:;
 			{
 				  //Raw (uncompressed)
 				suckbits((-bitpos)&7);  //Synchronize to start of next byte
-				i = getbits(16); if ((getbits(16)^i) != 0xffff) { free(skfilebuf); skfilebuf = 0; return(-1); }
+				i = getbits(16); if ((getbits(16)^i) != 0xffff) return(-1);
 				for(;i;i--)
 				{
 					if (gslidew >= gslider)
