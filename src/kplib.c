@@ -22,29 +22,38 @@ I offer this code to the community for the benefit of Jonathon Fowler's Duke3D p
 	//KPLIB.C is used in these dirs: voxlap,wintest,groudraw,polyspri,test,kgl,pano,ksuck
 	//kpnggetdimen,uninitkpng,kpng legacy code used by these: kpng(old),kube,kubegl
 
-#if !defined(_WIN32) && !defined(__DOS__)
-#include <unistd.h>
-typedef long long __int64;
-static __inline long _lrotl (long i, int sh)
-	{ return((i>>(-sh))|(i<<sh)); }
-#else
-#include <io.h>
-#endif
 #include <string.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
-#ifndef NOKPLIBZIP
-#ifndef _WIN32
-#include <dos.h>
 #include <stdlib.h>
+
+#if !defined(_WIN32) && !defined(__DOS__)
+#include <unistd.h>
+typedef long long __int64;
+static __inline long _lrotl (long i, int sh)
+	{ return((i>>(-sh))|(i<<sh)); }
+static __inline long filelength(int h)
+{
+        struct stat st;
+        if (fstat(h,&st) < 0) return -1;
+        return st.st_size;
+}
+#define _fileno fileno
 #else
+#include <io.h>
+#endif
+
+#ifndef NOKPLIBZIP
+#if defined(__DOS__)
+#include <dos.h>
+#elif defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <stdlib.h>
 #endif
 #endif //NOKPLIBZIP
+
 #ifndef O_BINARY
 #define O_BINARY 0
 #endif
