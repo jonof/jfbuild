@@ -440,7 +440,23 @@ long app_main(long argc, char *argv[])
 	if (option[3] != 0) initmouse();
 	inittimer(TIMERINTSPERSECOND);
 
-	initmultiplayers(argc-netparm,&argv[netparm],option[4],option[5],0);
+	//initmultiplayers(argc-netparm,&argv[netparm],option[4],option[5],0);
+	if (initmultiplayersparms(argc-netparm,&argv[netparm])) {
+		while (initmultiplayerscycle()) {
+			handleevents();
+			if (quitevent) {
+				sendlogoff();         //Signing off
+				musicoff();
+				uninitmultiplayers();
+				uninittimer();
+				uninitinput();
+				uninitengine();
+				uninitsb();
+				uninitgroupfile();
+				return 0;
+			}
+		}
+	}
 	option[4] = (numplayers >= 2);
 
 	pskyoff[0] = 0; pskyoff[1] = 0; pskybits = 1;

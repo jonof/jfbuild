@@ -208,9 +208,9 @@ static unsigned short getcrc16 (char *buffer, long bufleng)
 void uninitmultiplayers () { netuninit(); }
 
 long getpacket(long *, char *);
-void initmultiplayers (long argc, char **argv, char damultioption, char dacomrateoption, char dapriority)
+static void initmultiplayers_reset(void)
 {
-	long i, j, k, daindex, otims, portnum = NETPORT; //, foundnet = 0;
+	long i;
 
 	initcrc16();
 	memset(icnt0,0,sizeof(icnt0));
@@ -229,6 +229,24 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 
 	memset(otherip,0,sizeof(otherip));
 	for(i=0;i<MAXPLAYERS;i++) otherport[i] = htons(NETPORT);
+}
+
+	// Multiplayer command line summary. Assume myconnectindex always = 0 for 192.168.1.2
+	//
+	// /n0 (mast/slav) 2 player:               3 player:
+	// 192.168.1.2     game /n0                game /n0:3
+	// 192.168.1.100   game /n0 192.168.1.2    game /n0 192.168.1.2
+	// 192.168.1.4                             game /n0 192.168.1.2
+	//
+	// /n1 (peer-peer) 2 player:               3 player:
+	// 192.168.1.2     game /n1 192.168.1.100  game /n1 192.168.1.100 192.168.1.4
+	// 192.168.1.100   game 192.168.1.2 /n1    game 192.168.1.2 /n1 192.168.1.4
+	// 192.168.1.4                             game 192.168.1.2 192.168.1.100 /n1
+long initmultiplayersparms(long argc, char **argv)
+{
+	long i, j, daindex, portnum = NETPORT;
+
+	initmultiplayers_reset();
 	danetmode = 255; daindex = 0;
 
 	// go looking for the port, if specified
@@ -240,7 +258,6 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 			if (!(*p) && j > 0 && j<65535) portnum = j;
 		}
 	}
-			
 
 	netinit(portnum);
 
@@ -316,18 +333,51 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 	for(i=0;i<numplayers-1;i++) connectpoint2[i] = i+1;
 	connectpoint2[numplayers-1] = -1;
 
-		// Multiplayer command line summary. Assume myconnectindex always = 0 for 192.168.1.2
-		//
-		// /n0 (mast/slav) 2 player:               3 player:
-		// 192.168.1.2     game /n0                game /n0:3
-		// 192.168.1.100   game /n0 192.168.1.2    game /n0 192.168.1.2
-		// 192.168.1.4                             game /n0 192.168.1.2
-		//
-		// /n1 (peer-peer) 2 player:               3 player:
-		// 192.168.1.2     game /n1 192.168.1.100  game /n1 192.168.1.100 192.168.1.4
-		// 192.168.1.100   game 192.168.1.2 /n1    game 192.168.1.2 /n1 192.168.1.4
-		// 192.168.1.4                             game 192.168.1.2 192.168.1.100 /n1
-	if (((!danetmode) && (numplayers >= 2)) || (numplayers == 2))
+	return (((!danetmode) && (numplayers >= 2)) || (numplayers == 2));
+}
+
+long initmultiplayerscycle(void)
+{
+	long i, k;
+
+	getpacket(&i,0);
+
+	tims = GetTickCount();
+	if (myconnectindex == connecthead)
+	{
+		for(i=numplayers-1;i>0;i--)
+			if (!otherip[i]) break;
+		if (!i) return 0;
+	}
+	else
+	{
+		if (netready) return 0;
+		if (tims < lastsendtims[connecthead]) lastsendtims[connecthead] = tims;
+		if (tims >= lastsendtims[connecthead]+250) //1000/PAKRATE)
+		{
+			lastsendtims[connecthead] = tims;
+
+				//   short crc16ofs;       //offset of crc16
+				//   long icnt0;           //-1 (special packet for MMULTI.C's player collection)
+				//   ...
+				//   unsigned short crc16; //CRC16 of everything except crc16
+			k = 2;
+			*(long *)&pakbuf[k] = -1; k += 4;
+			pakbuf[k++] = 0xaa;
+			*(unsigned short *)&pakbuf[0] = (unsigned short)k;
+			*(unsigned short *)&pakbuf[k] = getcrc16(pakbuf,k); k += 2;
+			netsend(connecthead,pakbuf,k);
+		}
+	}
+
+	return 1;
+}
+
+void initmultiplayers (long argc, char **argv, char damultioption, char dacomrateoption, char dapriority)
+{
+	long i, j, k, otims;
+
+	if (initmultiplayersparms(argc,argv))
 	{
 #if 0
 			//Console code seems to crash Win98 upon quitting game
@@ -338,39 +388,10 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 		AllocConsole();
 		SetConsoleTitle("Multiplayer status...");
 		hconsout = GetStdHandle(STD_OUTPUT_HANDLE);
-#endif
 		otims = 0;
-		while (1)
+#endif
+		while (initmultiplayerscycle())
 		{
-			getpacket(&i,0);
-
-			tims = GetTickCount();
-			if (myconnectindex == connecthead)
-			{
-				for(i=numplayers-1;i>0;i--)
-					if (!otherip[i]) break;
-				if (!i) break;
-			}
-			else
-			{
-				if (netready) break;
-				if (tims < lastsendtims[connecthead]) lastsendtims[connecthead] = tims;
-				if (tims >= lastsendtims[connecthead]+250) //1000/PAKRATE)
-				{
-					lastsendtims[connecthead] = tims;
-
-						//   short crc16ofs;       //offset of crc16
-						//   long icnt0;           //-1 (special packet for MMULTI.C's player collection)
-						//   ...
-						//   unsigned short crc16; //CRC16 of everything except crc16
-					k = 2;
-					*(long *)&pakbuf[k] = -1; k += 4;
-					pakbuf[k++] = 0xaa;
-					*(unsigned short *)&pakbuf[0] = (unsigned short)k;
-					*(unsigned short *)&pakbuf[k] = getcrc16(pakbuf,k); k += 2;
-					netsend(connecthead,pakbuf,k);
-				}
-			}
 #if 0
 			if ((tims < otims) || (tims > otims+100))
 			{

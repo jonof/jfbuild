@@ -466,6 +466,9 @@ static int defsparser(scriptfile *script)
 					double scale=1.0;
 					int shadeoffs=0;
 
+					modelskin = lastmodelskin = 0;
+					seenframe = 0;
+
 					if (scriptfile_getstring(script,&modelfn)) break;
 
 #if defined(POLYMOST) && defined(USE_OPENGL)

@@ -13,6 +13,12 @@ extern int glusecds;
 long win_gethwnd(void);
 long win_gethinstance(void);
 
+	// *hwnd      - receives the window handle to the startup dialog box
+	// saferect[] - receives the safe area to draw controls over (l,t,w,h)
+	// onclose    - called before the startup window closes
+	//  returns 0 if successful, 1 if the window isn't open
+int win_getstartupwin(long *hwnd, long saferect[4], void (*onclose)(void));
+
 void win_allowtaskswitching(int onf);
 
 /*

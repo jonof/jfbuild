@@ -2,8 +2,8 @@
 #    make -f MakeDistributions [source|binary]
 
 SOURCEFILES=build.cfg buildlic.txt ChangeLog game.cfg LICENSE \
-	   Makefile Makefile.deps Makefile.msvc Makefile.watcom MakeDistributions \
-	   makegnu.bat makemsc.bat makew.bat NAMES.H README
+	   Makefile Makefile.deps Makefile.shared Makefile.msvc Makefile.watcom \
+           MakeDistributions makegnu.bat makemsc.bat makew.bat NAMES.H README
 
 BINARYFILES=build.cfg build.exe buildlic.txt ChangeLog fmod.dll \
            game.cfg game.exe LICENSE NAMES.H neatsong.ogg README
@@ -12,8 +12,8 @@ BINARYFILES=build.cfg build.exe buildlic.txt ChangeLog fmod.dll \
 
 datenow=$(shell date +%Y%m%d)
 
-sourcedir=buildport_src_$(datenow)
-binarydir=winbuild_$(datenow)
+sourcedir=jfbuild_src_$(datenow)
+binarydir=jfbuild_$(datenow)
 
 all: source binary
 

@@ -51,7 +51,10 @@ static HWND hWindow = 0;
 #define WINDOW_STYLE (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX)
 #define WindowClass "buildapp"
 static BOOL window_class_registered = FALSE;
+
 static HWND startupdlg = NULL;
+static long startupdlgsaferect[4] = { -1,-1,-1,-1 };
+static void (*startupdlgonclose)(void) = NULL;
 int    backgroundidle = 1;
 
 static char gamma_saved = 0, gamma_supported = 0;
@@ -236,12 +239,13 @@ static void SignalHandler(int signum)
 // startup_dlgproc() -- dialog procedure for the initialisation dialog
 //
 #define FIELDSWIDE 366
-#define PADWIDE 5
-#define BITMAPRES 200
-#define ITEMBITMAP 100
-#define ITEMTEXT 101
-#define ITEMLIST 102
-// An overlayed child dialog should have the DS_CONTROL style and be 248x172 in size
+#define PADWIDE 5		// 5 units of padding
+#define BITMAPRES 200		// bitmap should be ID 200 in the resource file
+#define ITEMBITMAP 100		// bitmap has ID 100 in dialog template
+#define ITEMTEXT 101		// text header has ID 101
+#define ITEMLIST 102		// output list box has ID 102
+// An overlayed child dialog should have the DS_CONTROL style
+
 static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	static HBITMAP hbmp = NULL;
@@ -300,9 +304,16 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 					rdlg.right,rdlg.bottom,
 					SWP_NOREPOSITION);
 
+			// save the safe region of the window
+			startupdlgsaferect[0] = rbmp.right;		// left
+			startupdlgsaferect[1] = 0;			// top
+			startupdlgsaferect[2] = PADWIDE+FIELDSWIDE+PADWIDE;	// width
+			startupdlgsaferect[3] = rbmp.bottom;		// height
+
 			return TRUE;
 
 		case WM_CLOSE:
+			quitevent = 1;
 			return TRUE;
 
 		case WM_DESTROY:
@@ -311,6 +322,8 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 				hbmp = NULL;
 			}
 
+			if (startupdlgonclose) startupdlgonclose();
+
 			startupdlg = NULL;
 			return TRUE;
 	}
@@ -318,6 +331,17 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 	return FALSE;
 }
 
+
+int win_getstartupwin(long *hwnd, long saferect[4], void (*onclose)(void))
+{
+	if (!startupdlg) return 1;
+
+	*hwnd = (long)startupdlg;
+	memcpy(saferect, startupdlgsaferect, sizeof(long)*4);
+	startupdlgonclose = onclose;
+
+	return 0;
+}
 
 
 //
@@ -653,6 +677,9 @@ int handleevents(void)
 	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 		if (msg.message == WM_QUIT)
 			quitevent = 1;
+
+		if (IsWindow(startupdlg) && IsDialogMessage(startupdlg, &msg)) continue;
+		
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}

@@ -281,7 +281,7 @@ int md2_defineskin(int modelid, const char *skinfn, int palnum, int skinnum)
 
 		if (!skl) models[modelid].skinmap = sk;
 		else skl->next = sk;
-	}
+	} else if (sk->fn) free(sk->fn);
 
 	sk->palette = (unsigned char)palnum;
 	sk->skinnum = skinnum;
@@ -387,12 +387,13 @@ static int daskinloader(const char *fn, long *fptr, long *bpl, long *sizx, long 
 
 static long md2loadskin (md2model *m, int number, int pal)
 {
-	long fptr, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
+	long i, fptr, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
 	char *skinfile, hasalpha, fn[BMAX_PATH+65];
 	unsigned int *texidx;
 	md2skinmap *sk, *skzero = NULL;
 
 	if ((unsigned)pal >= (unsigned)MAXPALOOKUPS) return 0;
+	i = -1;
 	for (sk = m->skinmap; sk; sk = sk->next) {
 		if ((int)sk->palette == pal && sk->skinnum == number) {
 			skinfile = sk->fn;
@@ -400,11 +401,11 @@ static long md2loadskin (md2model *m, int number, int pal)
 			strcpy(fn,skinfile);
 			//OSD_Printf("Using def skin (%d,%d) %s\n",pal,number,skinfile);
 			break;
-		} else if (sk->palette == 0 && sk->skinnum == 0) {
-			if (!skzero) skzero = sk;
-		} else if ((int)sk->palette == pal && sk->skinnum == 0) {
-			skzero = sk;
 		}
+			//If no match, give highest priority to number, then pal.. (Parkar's request, 02/27/2005)
+		else if (((int)sk->palette ==   0) && (sk->skinnum == number) && (i < 2)) { i = 2; skzero = sk; }
+		else if (((int)sk->palette == pal) && (sk->skinnum ==      0) && (i < 1)) { i = 1; skzero = sk; }
+		else if (((int)sk->palette ==   0) && (sk->skinnum ==      0) && (i < 0)) { i = 0; skzero = sk; }
 	}
 	if (!sk) {
 		if (skzero) {

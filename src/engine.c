@@ -3063,7 +3063,7 @@ static void drawsprite(long snum)
 	long xv, yv, top, topinc, bot, botinc, hplc, hinc;
 	long cosang, sinang, dax, day, lpoint, lmax, rpoint, rmax, dax1, dax2, y;
 	long npoints, npoints2, zz, t, zsgn, zzsgn, *longptr;
-	short tilenum, spritenum;
+	long tilenum, vtilenum, spritenum;
 	char swapped, daclip;
 
 	//============================================================================= //POLYMOST BEGINS
@@ -3081,8 +3081,12 @@ static void drawsprite(long snum)
 	cstat = tspr->cstat;
 
 #ifdef SUPERBUILD
-	if ((cstat&48)!=48 && bpp == 8 && usevoxels && tiletovox[tilenum] != -1) {
-		tilenum = tiletovox[tilenum];
+	if (((cstat&48)!=48) && (bpp == 8) && (usevoxels) && (tiletovox[tilenum] != -1)
+#if defined(POLYMOST) && defined(USE_OPENGL)
+	    && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD2))
+#endif
+	   ) {
+		vtilenum = tiletovox[tilenum];
 		cstat |= 48;
 	}
 	if ((cstat&48)==48 && bpp != 8) cstat &= ~48;	// no voxels in polymost
@@ -3882,13 +3886,13 @@ static void drawsprite(long snum)
 		}
 
 		for(i=0;i<MAXVOXMIPS;i++)
-			if (!voxoff[tilenum][i])
+			if (!voxoff[vtilenum][i])
 			{
-				kloadvoxel(tilenum);
+				kloadvoxel(vtilenum);
 				break;
 			}
 
-		longptr = (long *)voxoff[tilenum][0];
+		longptr = (long *)voxoff[vtilenum][0];
 		if (!(cstat&128)) tspr->z -= mulscale6(longptr[5],(long)tspr->yrepeat);
 		yoff = (long)((signed char)((picanm[sprite[tspr->owner].picnum]>>16)&255))+((long)tspr->yoffset);
 		tspr->z -= ((yoff*tspr->yrepeat)<<2);
@@ -3944,7 +3948,11 @@ static void drawsprite(long snum)
 			}
 		}
 
-		drawvox(tspr->x,tspr->y,tspr->z,(long)tspr->ang+1536,(long)tspr->xrepeat,(long)tspr->yrepeat,tilenum,tspr->shade,tspr->pal,lwall,swall);
+		i = (long)tspr->ang+1536;
+#if defined(POLYMOST) && defined(USE_OPENGL)
+		i += spriteext[tspr->owner].angoff;
+#endif
+		drawvox(tspr->x,tspr->y,tspr->z,i,(long)tspr->xrepeat,(long)tspr->yrepeat,vtilenum,tspr->shade,tspr->pal,lwall,swall);
 	}
 #endif
 	if (automapping == 1) show2dsprite[spritenum>>3] |= pow2char[spritenum&7];
