@@ -55,7 +55,7 @@ AS=nasm
 RC=windres
 override CFLAGS+= $(debug) -W -Wall -Werror-implicit-function-declaration \
 	-Wno-char-subscripts -Wno-unused \
-	-march=pentium -funsigned-char -DNO_GCC_BUILTINS $(TARGETOPTS) \
+	-march=pentium -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
 	-I$(INC) -I../jfaud/inc
 LIBS=-lm -lfmod # ../jfaud/jfaud.a
 ASFLAGS=-s #-g

@@ -981,7 +981,7 @@ void setjoydeadzone(int axis, unsigned short dead, unsigned short satur)
 	dipdw.dwData = dead;
 
 	result = IDirectInputDevice2_SetProperty(lpDID[JOYSTICK], DIPROP_DEADZONE, &dipdw.diph);
-	if (result != DI_OK && result != DI_PROPNOEFFECT) {
+	if FAILED(result) {
 		//ShowDInputErrorBox("Failed setting joystick dead zone", result);
 		initprintf("Failed setting joystick dead zone: %s\n", GetDInputError(result));
 		return;
@@ -990,7 +990,7 @@ void setjoydeadzone(int axis, unsigned short dead, unsigned short satur)
 	dipdw.dwData = satur;
 
 	result = IDirectInputDevice2_SetProperty(lpDID[JOYSTICK], DIPROP_SATURATION, &dipdw.diph);
-	if (result != DI_OK && result != DI_PROPNOEFFECT) {
+	if FAILED(result) {
 		//ShowDInputErrorBox("Failed setting joystick saturation point", result);
 		initprintf("Failed setting joystick saturation point: %s\n", GetDInputError(result));
 		return;
@@ -1022,7 +1022,7 @@ void getjoydeadzone(int axis, unsigned short *dead, unsigned short *satur)
 	}
 
 	result = IDirectInputDevice2_GetProperty(lpDID[JOYSTICK], DIPROP_DEADZONE, &dipdw.diph);
-	if (result != DI_OK) {
+	if FAILED(result) {
 		//ShowDInputErrorBox("Failed getting joystick dead zone", result);
 		initprintf("Failed getting joystick dead zone: %s\n", GetDInputError(result));
 		return;
@@ -1031,7 +1031,7 @@ void getjoydeadzone(int axis, unsigned short *dead, unsigned short *satur)
 	*dead = dipdw.dwData;
 				
 	result = IDirectInputDevice2_GetProperty(lpDID[JOYSTICK], DIPROP_SATURATION, &dipdw.diph);
-	if (result != DI_OK) {
+	if FAILED(result) {
 		//ShowDInputErrorBox("Failed getting joystick saturation point", result);
 		initprintf("Failed getting joystick saturation point: %s\n", GetDInputError(result));
 		return;
@@ -1180,11 +1180,10 @@ static BOOL CALLBACK InitDirectInput_enumobjects(LPCDIDEVICEOBJECTINSTANCE lpddo
 	return DIENUM_CONTINUE;
 }
 
-#define HorribleDInputDeath( x, y ) { \
+#define HorribleDInputDeath( x, y ) \
 	ShowDInputErrorBox(x,y); \
 	UninitDirectInput(); \
-	return TRUE; \
-}
+	return TRUE
 
 static BOOL InitDirectInput(void)
 {
@@ -1192,6 +1191,7 @@ static BOOL InitDirectInput(void)
 	HRESULT (WINAPI *aDirectInputCreateA)(HINSTANCE, DWORD, LPDIRECTINPUTA *, LPUNKNOWN);
 	DIPROPDWORD dipdw;
 	LPDIRECTINPUTDEVICEA dev;
+	LPDIRECTINPUTDEVICE2A dev2;
 	DIDEVCAPS didc;
 
 	int devn,i;
@@ -1217,12 +1217,15 @@ static BOOL InitDirectInput(void)
 	// create a new DirectInput object
 	initprintf("  - Creating DirectInput object\n");
 	result = aDirectInputCreateA(hInstance, DIRECTINPUT_VERSION, &lpDI, NULL);
-	if (result != DI_OK) HorribleDInputDeath("DirectInputCreateA() failed", result)
+	if FAILED(result) { HorribleDInputDeath("DirectInputCreateA() failed", result); }
+	else if (result != DI_OK) initprintf("    Created DirectInput object with warning: %s\n",GetDInputError(result));
 
 	// enumerate devices to make us look fancy
 	initprintf("  - Enumerating attached input devices\n");
 	inputdevices = 0;
-	IDirectInput_EnumDevices(lpDI, 0, InitDirectInput_enum, NULL, DIEDFL_ATTACHEDONLY);
+	result = IDirectInput_EnumDevices(lpDI, 0, InitDirectInput_enum, NULL, DIEDFL_ATTACHEDONLY);
+	if FAILED(result) { HorribleDInputDeath("Failed enumerating attached input devices", result); }
+	else if (result != DI_OK) initprintf("    Enumerated input devices with warning: %s\n",GetDInputError(result));
 	if (!(inputdevices & (1<<KEYBOARD))) {
 		ShowErrorBox("No keyboard detected!");
 		UninitDirectInput();
@@ -1234,18 +1237,36 @@ static BOOL InitDirectInput(void)
 	// ***
 	for (devn = 0; devn < NUM_INPUTS; devn++) {
 		if ((inputdevices & (1<<devn)) == 0) continue;
+		*devicedef[devn].did = NULL;
 
 		initprintf("  - Creating %s device\n", devicedef[devn].name);
 		result = IDirectInput_CreateDevice(lpDI, &guidDevs[devn], &dev, NULL);
-		if (result != DI_OK) HorribleDInputDeath("Failed creating device", result)
+		if FAILED(result) { HorribleDInputDeath("Failed creating device", result); }
+		else if (result != DI_OK) initprintf("    Created device with warning: %s\n",GetDInputError(result));
 
-		result = IDirectInputDevice_QueryInterface(dev, &IID_IDirectInputDevice2, (LPVOID *)devicedef[devn].did);
+		result = IDirectInputDevice_QueryInterface(dev, &IID_IDirectInputDevice2, (LPVOID *)&dev2);
 		IDirectInputDevice_Release(dev);
-		if (result != DI_OK) HorribleDInputDeath("Failed querying DirectInput2 interface for device", result)
+		if FAILED(result) { HorribleDInputDeath("Failed querying DirectInput2 interface for device", result); }
+		else if (result != DI_OK) initprintf("    Queried IDirectInputDevice2 interface with warning: %s\n",GetDInputError(result));
 
-		result = IDirectInputDevice2_SetDataFormat(*devicedef[devn].did, devicedef[devn].df);
-		if (result != DI_OK) HorribleDInputDeath("Failed setting data format", result)
+		result = IDirectInputDevice2_SetDataFormat(dev2, devicedef[devn].df);
+		if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting data format", result); }
+		else if (result != DI_OK) initprintf("    Set data format with warning: %s\n",GetDInputError(result));
 
+		inputevt[devn] = CreateEvent(NULL, FALSE, FALSE, NULL);
+		if (inputevt[devn] == NULL) {
+			IDirectInputDevice_Release(dev2);
+			ShowErrorBox("Couldn't create event object");
+			UninitDirectInput();
+			return TRUE;
+		}
+
+		result = IDirectInputDevice2_SetEventNotification(dev2, inputevt[devn]);
+		if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting event object", result); }
+		else if (result != DI_OK) initprintf("    Set event object with warning: %s\n",GetDInputError(result));
+
+		IDirectInputDevice2_Unacquire(dev2);
+		
 		memset(&dipdw, 0, sizeof(dipdw));
 		dipdw.diph.dwSize = sizeof(DIPROPDWORD);
 		dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
@@ -1253,40 +1274,19 @@ static BOOL InitDirectInput(void)
 		dipdw.diph.dwHow = DIPH_DEVICE;
 		dipdw.dwData = INPUT_BUFFER_SIZE;
 
-		result = IDirectInputDevice2_SetProperty(*devicedef[devn].did, DIPROP_BUFFERSIZE, &dipdw.diph);
-		if (result != DI_OK) HorribleDInputDeath("Failed setting buffering", result)
+		result = IDirectInputDevice2_SetProperty(dev2, DIPROP_BUFFERSIZE, &dipdw.diph);
+		if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting buffering", result); }
+		else if (result != DI_OK) initprintf("    Set buffering with warning: %s\n",GetDInputError(result));
 
-		inputevt[devn] = CreateEvent(NULL, FALSE, FALSE, NULL);
-		if (inputevt[devn] == NULL) {
-			ShowErrorBox("Couldn't create event object");
-			UninitDirectInput();
-			return TRUE;
-		}
-
-		result = IDirectInputDevice2_SetEventNotification(*devicedef[devn].did, inputevt[devn]);
-		if (result != DI_OK) HorribleDInputDeath("Failed setting event object", result)
-			
 		// set up device
 		if (devn == JOYSTICK) {
 			int typecounts[3] = {0,0,0};
-			/*
-			int deadzone, saturation;
-
-			if (joyisgamepad) {
-				deadzone = 2500;	// 25% of range is dead
-				saturation = 5000;	// >50% of range is saturated
-			} else {
-				deadzone = 1000;	// 10% dead
-				saturation = 9500;	// >95% saturated
-			}
-			
-			setjoydeadzone(-1,deadzone,saturation);
-			*/
 			
 			memset(&didc, 0, sizeof(didc));
 			didc.dwSize = sizeof(didc);
-			result = IDirectInputDevice2_GetCapabilities(*devicedef[devn].did, &didc);
-			if (result != DI_OK) HorribleDInputDeath("Failed getting joystick capabilities", result)
+			result = IDirectInputDevice2_GetCapabilities(dev2, &didc);
+			if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick capabilities", result); }
+			else if (result != DI_OK) initprintf("    Fetched joystick capabilities with warning: %s\n",GetDInputError(result));
 
 			joynumaxes    = (char)didc.dwAxes;
 			joynumbuttons = min(32,(char)didc.dwButtons);
@@ -1300,11 +1300,12 @@ static BOOL InitDirectInput(void)
 			joyaxis = (long *)Bcalloc(didc.dwAxes, sizeof(long));
 			joyhat = (long *)Bcalloc(didc.dwPOVs, sizeof(long));
 
-			result = IDirectInputDevice2_EnumObjects(*devicedef[devn].did,
-					InitDirectInput_enumobjects, (LPVOID)typecounts, DIDFT_ALL);
-			if (result != DI_OK) HorribleDInputDeath("Failed getting joystick axis info", result)
-
+			result = IDirectInputDevice2_EnumObjects(dev2, InitDirectInput_enumobjects, (LPVOID)typecounts, DIDFT_ALL);
+			if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick features", result); }
+			else if (result != DI_OK) initprintf("    Fetched joystick features with warning: %s\n",GetDInputError(result));
 		}
+
+		*devicedef[devn].did = dev2;
 	}
 
 	GetKeyNames();
