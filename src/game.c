@@ -35,6 +35,7 @@ void refreshaudio(void);
 
 // declared in config.c
 int loadsetup(const char *);
+int writesetup(const char *);
 
 
 /***************************************************************************
@@ -122,12 +123,6 @@ static long fvel2, svel2, avel2;
 
 #define NUMOPTIONS 8
 #define NUMKEYS 19
-static long vesares[13][2] = {
-	{320,200}, {360,200}, {320,240}, {360,240},
-	{320,400}, {360,400}, {640,350}, {640,400},
-	{640,480}, {800,600}, {1024,768},
-	{1280,1024}, {1600,1200}
-};
 char option[NUMOPTIONS] = {0,0,0,0,0,0,1,0};
 char keys[NUMKEYS] =
 {
@@ -135,6 +130,7 @@ char keys[NUMKEYS] =
 	0x1e,0x2c,0xd1,0xc9,0x33,0x34,
 	0x9c,0x1c,0xd,0xc,0xf
 };
+long xdimgame = 320, ydimgame = 200, bppgame = 8, xdim2d = 640, ydim2d = 480;	// JBF 20050318: config.c expects to find these
 
 static long digihz[8] = {6000,8000,11025,16000,22050,32000,44100,48000};
 
@@ -391,6 +387,10 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
+#ifdef RENDERTYPEWIN
+int DoLaunchWindow(void);	// gamestartwin.c
+#endif
+
 long app_main(long argc, char *argv[])
 {
 	long i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
@@ -401,7 +401,7 @@ long app_main(long argc, char *argv[])
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
 #endif
 	
-	Bstrcpy(apptitle, "KenBuild by Ken Silverman");
+	wm_setapptitle("KenBuild by Ken Silverman");
 
 	Bstrcpy(boardfilename, "nukeland.map");
 	j = 0; netparm = argc;
@@ -436,6 +436,12 @@ long app_main(long argc, char *argv[])
 		initprintf("There was a problem initialising the engine.\n");
 		return -1;
 	}
+
+#ifdef RENDERTYPEWIN
+	if (DoLaunchWindow()) return -1;
+	writesetup("game.cfg");
+#endif
+
 	initinput();
 	if (option[3] != 0) initmouse();
 	inittimer(TIMERINTSPERSECOND);
@@ -4703,7 +4709,7 @@ void setup3dscreen(void)
 {
 	long i, dax, day, dax2, day2;
 
-	i = setgamemode(fullscreen,vesares[option[6]&15][0],vesares[option[6]&15][1],bpp);
+	i = setgamemode(fullscreen,xdimgame,ydimgame,bppgame);
 	if (i < 0)
 	{
 		printf("Error setting video mode.\n");

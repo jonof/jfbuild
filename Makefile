@@ -117,7 +117,8 @@ ifeq ($(RENDERTYPE),SDL)
 endif
 ifeq ($(RENDERTYPE),WIN)
 	ENGINEOBJS+= $(OBJ)winlayer.$o
-	GAMEEXEOBJS+= $(OBJ)gameres.$(res)
+	EDITOROBJS+= $(OBJ)buildstartwin.$o
+	GAMEEXEOBJS+= $(OBJ)gameres.$(res) $(OBJ)gamestartwin.$o
 	EDITOREXEOBJS+= $(OBJ)buildres.$(res)
 endif
 

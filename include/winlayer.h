@@ -13,6 +13,13 @@ extern int glusecds;
 long win_gethwnd(void);
 long win_gethinstance(void);
 
+// resource ids
+#define WIN_STARTWIN		1000
+#define WIN_STARTWIN_ITEMBITMAP	100	// banner bitmap
+#define WIN_STARTWIN_ITEMTEXT	101	// text header
+#define WIN_STARTWIN_ITEMLIST	102	// output list box
+#define WIN_STARTWINBMP		200
+
 	// *hwnd      - receives the window handle to the startup dialog box
 	// saferect[] - receives the safe area to draw controls over (l,t,w,h)
 	// onclose    - called before the startup window closes

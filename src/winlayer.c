@@ -230,6 +230,11 @@ void wm_setapptitle(char *name)
 	}
 
 	if (hWindow) SetWindowText(hWindow, apptitle);
+	if (startupdlg) {
+		char buf[1000];
+		Bsnprintf(buf, 1000, "%s Startup", apptitle);
+		SetWindowText(startupdlg, buf);
+	}
 }
 
 //
@@ -254,10 +259,6 @@ static void SignalHandler(int signum)
 //
 #define FIELDSWIDE 366
 #define PADWIDE 5		// 5 units of padding
-#define BITMAPRES 200		// bitmap should be ID 200 in the resource file
-#define ITEMBITMAP 100		// bitmap has ID 100 in dialog template
-#define ITEMTEXT 101		// text header has ID 101
-#define ITEMLIST 102		// output list box has ID 102
 // An overlayed child dialog should have the DS_CONTROL style
 
 static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -270,28 +271,28 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 	switch (uMsg) {
 		case WM_INITDIALOG:
 			// set the bitmap
-			hbmp = LoadBitmap(hInstance, MAKEINTRESOURCE(BITMAPRES));
-			SendDlgItemMessage(hwndDlg, ITEMBITMAP, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hbmp);
+			hbmp = LoadBitmap(hInstance, MAKEINTRESOURCE(WIN_STARTWINBMP));
+			SendDlgItemMessage(hwndDlg, WIN_STARTWIN_ITEMBITMAP, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hbmp);
 
 			// fetch the adjusted size
-			GetClientRect(GetDlgItem(hwndDlg,ITEMBITMAP), &rbmp);
+			GetClientRect(GetDlgItem(hwndDlg,WIN_STARTWIN_ITEMBITMAP), &rbmp);
 			rbmp.right++; rbmp.bottom++;
 
-			GetClientRect(GetDlgItem(hwndDlg,ITEMTEXT), &rtxt);
+			GetClientRect(GetDlgItem(hwndDlg,WIN_STARTWIN_ITEMTEXT), &rtxt);
 			rtxt.bottom++;
 
 			// move the bitmap to the top of the client area
-			MoveWindow(GetDlgItem(hwndDlg,ITEMBITMAP),
+			MoveWindow(GetDlgItem(hwndDlg,WIN_STARTWIN_ITEMBITMAP),
 					0,0, rbmp.right,rbmp.bottom,
 					FALSE);
 
 			// move the label
-			MoveWindow(GetDlgItem(hwndDlg,ITEMTEXT),
+			MoveWindow(GetDlgItem(hwndDlg,WIN_STARTWIN_ITEMTEXT),
 					rbmp.right+PADWIDE,PADWIDE, FIELDSWIDE,rtxt.bottom,
 					FALSE);
 
 			// move the list box
-			MoveWindow(GetDlgItem(hwndDlg,ITEMLIST),
+			MoveWindow(GetDlgItem(hwndDlg,WIN_STARTWIN_ITEMLIST),
 					rbmp.right+PADWIDE,PADWIDE+rtxt.bottom+PADWIDE,
 					FIELDSWIDE,rbmp.bottom-(PADWIDE+rtxt.bottom+PADWIDE+PADWIDE),
 					FALSE);
@@ -473,7 +474,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 	instanceflag = CreateSemaphore(NULL, 1,1, WindowClass);
 
-	startupdlg = CreateDialog(hInstance, MAKEINTRESOURCE(1000), NULL, startup_dlgproc);
+	startupdlg = CreateDialog(hInstance, MAKEINTRESOURCE(WIN_STARTWIN), NULL, startup_dlgproc);
 	
 	r = app_main(_buildargc, _buildargv);
 

@@ -165,6 +165,7 @@ typedef signed   long bssize_t;
 #define Bfputs fputs
 #define Bfread fread
 #define Bfwrite fwrite
+#define Bfprintf fprintf
 #define Bstrdup strdup
 #define Bstrcpy strcpy
 #define Bstrncpy strncpy

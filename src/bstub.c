@@ -17,34 +17,17 @@
 
 
 static char tempbuf[256];
-extern long qsetmode;
-extern short searchsector, searchwall, searchstat;
-extern long zmode, kensplayerheight;
-extern short defaultspritecstat;
-
-extern short temppicnum, tempcstat, templotag, temphitag, tempextra;
-extern char tempshade, temppal, tempxrepeat, tempyrepeat;
-extern char somethingintab;
 
 #define NUMOPTIONS 9
-#define NUMKEYS 19
-static long vesares[13][2] = {{320,200},{360,200},{320,240},{360,240},{320,400},
-				{360,400},{640,350},{640,400},{640,480},{800,600},
-				{1024,768},{1280,1024},{1600,1200}};
 char option[NUMOPTIONS] = {0,0,0,0,0,0,1,0,0};
-char keys[NUMKEYS] =
+char keys[NUMBUILDKEYS] =
 {
 	0xc8,0xd0,0xcb,0xcd,0x2a,0x9d,0x1d,0x39,
 	0x1e,0x2c,0xd1,0xc9,0x33,0x34,
-	0x9c,0x1c,0xd,0xc,0xf,
+	0x9c,0x1c,0xd,0xc,0xf,0x45
 };
 
-extern char buildkeys[NUMKEYS];
 
-extern long ydim16, xdimgame, ydimgame, bppgame, xdim2d, ydim2d;
-extern long frameplace, xdimenscale, ydimen;
-extern long posx, posy, posz, horiz;
-extern short ang, cursectnum;
 
 //static long hang = 0;
 //static long rollangle = 0;
@@ -102,8 +85,7 @@ int ExtInit(void)
 	*/
 	bpp = 8;
 	if (loadsetup("build.cfg") < 0) initprintf("Configuration file not found, using defaults.\n");
-	Bmemcpy((void *)buildkeys,(void *)keys,NUMKEYS);   //Trick to make build use setup.dat keys
-
+	Bmemcpy((void *)buildkeys,(void *)keys,NUMBUILDKEYS);   //Trick to make build use setup.dat keys
 	if (option[4] > 0) option[4] = 0;
 	if (initengine()) {
 		wm_msgbox("Build Engine Initialisation Error",
@@ -112,9 +94,6 @@ int ExtInit(void)
 	}
 	initinput();
 	initmouse();
-	xdimgame = vesares[option[6]&15][0]; ydimgame = vesares[option[6]&15][1];
-	xdim2d = vesares[option[8]&15][0]; ydim2d = vesares[option[8]&15][1];
-	bppgame = bpp;
 
 		//You can load your own palette lookup tables here if you just
 		//copy the right code!
@@ -141,6 +120,7 @@ int ExtInit(void)
 void ExtUnInit(void)
 {
 	uninitgroupfile();
+	writesetup("build.cfg");
 }
 
 static long daviewingrange, daaspect, horizval1, horizval2;

@@ -67,12 +67,14 @@ ENGINEOBJS=$(OBJ)engine.$o \
 	$(OBJ)defs.$o
 
 EDITOROBJS=$(OBJ)build.$o \
-	$(OBJ)config.$o
+	$(OBJ)config.$o \
+	$(OBJ)buildstartwin.$o
 
 GAMEEXEOBJS=$(OBJ)game.$o \
 	$(OBJ)sound.$o \
 	$(OBJ)config.$o \
 	$(OBJ)gameres.$(res) \
+	$(OBJ)gamestartwin.$o \
 	$(OBJ)$(ENGINELIB)
 
 EDITOREXEOBJS=$(OBJ)bstub.$o \

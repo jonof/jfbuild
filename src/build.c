@@ -48,12 +48,11 @@ extern void ExtEditSpriteData(short spritenum);
 
 long vel, svel, angvel;
 
-#define NUMKEYS 19
-char buildkeys[NUMKEYS] =
+char buildkeys[NUMBUILDKEYS] =
 {
 	0xc8,0xd0,0xcb,0xcd,0x2a,0x9d,0x1d,0x39,
 	0x1e,0x2c,0xd1,0xc9,0x33,0x34,
-	0x9c,0x1c,0xd,0xc,0xf,
+	0x9c,0x1c,0xd,0xc,0xf,0x45
 };
 
 long posx, posy, posz, horiz = 100;
@@ -228,6 +227,10 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
+#ifdef RENDERTYPEWIN
+int DoLaunchWindow(void);	// buildstartwin.c
+#endif
+
 extern char *defsfilename;	// set in bstub.c
 int app_main(int argc, char **argv)
 {
@@ -239,7 +242,7 @@ int app_main(int argc, char **argv)
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
 #endif
 	
-	Bstrcpy(apptitle, "BUILD by Ken Silverman");
+	wm_setapptitle("BUILD by Ken Silverman");
 
 #ifdef RENDERTYPEWIN
 	backgroundidle = 1;
@@ -267,6 +270,9 @@ int app_main(int argc, char **argv)
 	}
 
 	if (ExtInit()) return -1;
+#ifdef RENDERTYPEWIN
+	if (DoLaunchWindow()) return -1;
+#endif
 	inittimer(TIMERINTSPERSECOND);
 	installusertimercallback(keytimerstuff);
 

@@ -5455,6 +5455,7 @@ int initengine(void)
 	captureformat = 0;
 
 	loadpalette();
+	getvalidmodes();
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (!hicfirstinit) hicinit();
 	if (!md2inited) md2init();
