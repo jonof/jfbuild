@@ -7,6 +7,7 @@ DYNAMIC_OPENGL=1
 
 # These are used when DYNAMIC_OPENGL is false
 GLLIBWIN=-lopengl32
+GLLIBBSD=-lopengl32
 GLLIBLIN=-lGL
 
 # detect the platform
@@ -27,7 +28,15 @@ else
 		endif
 		RENDERTYPE ?= WIN
 	else
-		PLATFORM=UNKNOWN
+		ifeq ($(findstring BSD,$(uname)),BSD)
+			PLATFORM=BSD
+			RENDERTYPE=SDL
+			ifneq ($(DYNAMIC_OPENGL),1)
+				LIBS+= $(GLLIBBSD)
+			endif
+		else
+			PLATFORM=UNKNOWN
+		endif
 	endif
 endif
 
