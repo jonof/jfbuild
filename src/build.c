@@ -5865,7 +5865,10 @@ short getnumber256(char namestart[80], short num, long maxnumber, char sign)
 		showframe(1);
 
 		if (ch >= '0' && ch <= '9') {
-			n = (danum*10)+(ch-'0');
+			if (sign && danum<0)
+				n = (danum*10)-(ch-'0');
+			else
+				n = (danum*10)+(ch-'0');
 			if (n < maxnumber) danum = n;
 		} else if (ch == 8) {	// backspace
 			danum /= 10;
