@@ -51,6 +51,7 @@ static HWND hWindow = 0;
 #define WINDOW_STYLE (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX)
 #define WindowClass "buildapp"
 static BOOL window_class_registered = FALSE;
+static HANDLE instanceflag = NULL;
 
 static HWND startupdlg = NULL;
 static long startupdlgsaferect[4] = { -1,-1,-1,-1 };
@@ -183,7 +184,8 @@ void win_allowtaskswitching(int onf)
 //
 int win_checkinstance(void)
 {
-	return (FindWindow(WindowClass, NULL) != NULL);
+	if (!instanceflag) return 0;
+	return (WaitForSingleObject(instanceflag,0) == WAIT_TIMEOUT);
 }
 
 
@@ -469,11 +471,15 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 	baselayer_init();
 
+	instanceflag = CreateSemaphore(NULL, 1,1, WindowClass);
+
 	startupdlg = CreateDialog(hInstance, MAKEINTRESOURCE(1000), NULL, startup_dlgproc);
 	
 	r = app_main(_buildargc, _buildargv);
 
 	fclose(stdout);
+
+	if (instanceflag) CloseHandle(instanceflag);
 
 	if (argvbuf) free(argvbuf);
 

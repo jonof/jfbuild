@@ -22,7 +22,7 @@
 #define MAXSPRITES MAXSPRITESV8
 
 #define MAXTILES 9216
-#define MAXVOXELS 512
+#define MAXVOXELS 4096
 #define MAXSTATUS 1024
 #define MAXPLAYERS 16
 #define MAXXDIM 1600
@@ -232,7 +232,7 @@ extern long dommxoverlay, novoxmips;
 
 #ifdef SUPERBUILD
 extern long tiletovox[MAXTILES];
-extern long usevoxels;
+extern long usevoxels, voxscale[MAXVOXELS];
 #endif
 #ifdef POLYMOST
 extern long usemodels, usehightile;

@@ -1,10 +1,10 @@
 /**************************************************************************************************
 KPLIB.C: Ken's Picture LIBrary written by Ken Silverman
-Copyright (c) 1998-2004 Ken Silverman
+Copyright (c) 1998-2005 Ken Silverman
 Ken Silverman's official web site: http://www.advsys.net/ken
 
 This source file includes routines for decompression of the following picture formats:
-	JPG,PNG,GIF,PCX,TGA,CEL
+	JPG,PNG,GIF,PCX,TGA,BMP,CEL
 It also includes code to handle ZIP decompression.
 
 Brief history:
@@ -19,8 +19,6 @@ I offer this code to the community for the benefit of Jonathon Fowler's Duke3D p
 
 -Ken S.
 **************************************************************************************************/
-	//KPLIB.C is used in these dirs: voxlap,wintest,groudraw,polyspri,test,kgl,pano,ksuck
-	//kpnggetdimen,uninitkpng,kpng legacy code used by these: kpng(old),kube,kubegl
 
 #include <string.h>
 #include <fcntl.h>
@@ -34,11 +32,11 @@ I offer this code to the community for the benefit of Jonathon Fowler's Duke3D p
 typedef long long __int64;
 static __inline long _lrotl (long i, int sh)
 	{ return((i>>(-sh))|(i<<sh)); }
-static __inline long filelength(int h)
+static __inline long filelength (int h)
 {
-        struct stat st;
-        if (fstat(h,&st) < 0) return -1;
-        return st.st_size;
+	struct stat st;
+	if (fstat(h,&st) < 0) return(-1);
+	return(st.st_size);
 }
 #define _fileno fileno
 #else
@@ -73,7 +71,17 @@ static __inline long filelength(int h)
 
 static long frameplace, bytesperline, xres, yres, globxoffs, globyoffs;
 
-static long pow2mask[32];
+static const long pow2mask[32] =
+{
+	0x00000000,0x00000001,0x00000003,0x00000007,
+	0x0000000f,0x0000001f,0x0000003f,0x0000007f,
+	0x000000ff,0x000001ff,0x000003ff,0x000007ff,
+	0x00000fff,0x00001fff,0x00003fff,0x00007fff,
+	0x0000ffff,0x0001ffff,0x0003ffff,0x0007ffff,
+	0x000fffff,0x001fffff,0x003fffff,0x007fffff,
+	0x00ffffff,0x01ffffff,0x03ffffff,0x07ffffff,
+	0x0fffffff,0x1fffffff,0x3fffffff,0x7fffffff,
+};
 
 	//Hack for peekbits,getbits,suckbits (to prevent lots of duplicate code)
 	//   0: PNG: do 12-byte chunk_header removal hack
@@ -343,14 +351,10 @@ static long getcputype ()
 
 static unsigned char fakebuf[8], *nfilptr;
 static long nbitpos;
-static long peekbits (long n)
+static void suckbitsnextblock ()
 {
-	return(((*(long *)&filptr[bitpos>>3])>>(bitpos&7))&pow2mask[n]);
-}
+	long n;
 
-static void suckbits (long n)
-{
-	bitpos += n; if (bitpos < 0) return;
 	if (!zipfilmode)
 	{
 		if (!nfilptr)
@@ -370,7 +374,7 @@ static void suckbits (long n)
 			filptr = nfilptr; nfilptr = 0;
 			bitpos -= ((nbitpos-4)<<3);
 		}
-		//if (n < 4) It will crash - do something to fix this!
+		//if (n_from_suckbits < 4) will it crash?
 	}
 	else
 	{
@@ -383,7 +387,9 @@ static void suckbits (long n)
 	}
 }
 
-static long getbits (long n) { long i = peekbits(n); suckbits(n); return(i); }
+static inline long peekbits (long n) { return(((*(long *)&filptr[bitpos>>3])>>(bitpos&7))&pow2mask[n]); }
+static inline void suckbits (long n) { bitpos += n; if (bitpos >= 0) suckbitsnextblock(); }
+static inline long getbits (long n) { long i = peekbits(n); suckbits(n); return(i); }
 
 static long hufgetsym (long *hitab, long *hbmax)
 {
@@ -394,6 +400,16 @@ static long hufgetsym (long *hitab, long *hbmax)
 	return(hitab[hbmax[n]+v]);
 }
 
+	//This did not result in a speed-up on P4-3.6Ghz (02/22/2005)
+//static long hufgetsym_skipb (long *hitab, long *hbmax, long n, long addit)
+//{
+//   long v;
+//
+//   v = bitrev(getbits(n),n)+addit;
+//   do { v = (v<<1)+getbits(1)+hbmax[n]-hbmax[n+1]; n++; } while (v >= 0);
+//   return(hitab[hbmax[n]+v]);
+//}
+
 static void qhufgencode (long *hitab, long *hbmax, long *qhval, unsigned char *qhbit, long numbits)
 {
 	long i, j, k, n, r;
@@ -402,18 +418,13 @@ static void qhufgencode (long *hitab, long *hbmax, long *qhval, unsigned char *q
 	i = r = 0;
 	for(n=1;n<=numbits;n++)
 		for(k=hbmax[n-1];k<hbmax[n];k++)
-		{
-			j = i+pow2mask[numbits-n];
-			while (i <= j)
+			for(j=i+pow2mask[numbits-n];i<=j;i++)
 			{
 				r = bitrev(i,numbits);
 				qhval[r] = hitab[k];
 				qhbit[r] = (char)n;
-				i++;
-			}
 		}
-	j = pow2mask[numbits];
-	while (i <= j)
+	for(j=pow2mask[numbits];i<=j;i++)
 	{
 		r = bitrev(i,numbits);
 
@@ -435,8 +446,11 @@ static void qhufgencode (long *hitab, long *hbmax, long *qhval, unsigned char *q
 		//qhval[r] = k;
 
 		qhbit[r] = 0; //n-32;
-		i++;
 	}
+
+	//   //hufgetsym_skipb related code:
+	//for(k=n=0;n<numbits;n++) k = (k<<1)+hbmax[n]-hbmax[n+1];
+	//return(k);
 }
 
 	//inbuf[inum] : Bit length of each symbol
@@ -892,8 +906,6 @@ static void initpngtables()
 	}
 	hxbit[285+30-257][1] = 258; hxbit[285+30-257][0] = 0;
 
-	for(i=31;i>=0;i--) pow2mask[i] = (1<<i)-1;
-
 	k = getcputype();
 	if (k&(1<<15))
 	{
@@ -907,6 +919,7 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 	long daglobxoffs, long daglobyoffs)
 {
 	long i, j, k, bfinal, btype, hlit, hdist, leng;
+	//long qhuf0v, qhuf1v;
 
 	if (!pnginited) { pnginited = 1; initpngtables(); }
 
@@ -997,7 +1010,7 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 		//Initialize this for the getbits() function
 	zipfilmode = 0;
 	filptr = &filptr[leng-4]; bitpos = -((leng-4)<<3); nfilptr = 0;
-	//if (leng < 4) It will crash - do something to fix this!
+	//if (leng < 4) will it crash?
 
 	frameplace = daframeplace;
 	bytesperline = dabytesperline;
@@ -1094,9 +1107,11 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 		}
 
 		hufgencode(clen,hlit,ibuf0,nbuf0);
+		//qhuf0v = //hufgetsym_skipb related code
 		qhufgencode(ibuf0,nbuf0,qhufval0,qhufbit0,LOGQHUFSIZ0);
 
 		hufgencode(&clen[hlit],hdist,ibuf1,nbuf1);
+		//qhuf1v = //hufgetsym_skipb related code
 		qhufgencode(ibuf1,nbuf1,qhufval1,qhufbit1,LOGQHUFSIZ1);
 
 		while (1)
@@ -1110,6 +1125,7 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 			k = peekbits(LOGQHUFSIZ0);
 			if (qhufbit0[k]) { i = qhufval0[k]; suckbits((long)qhufbit0[k]); }
 			else i = hufgetsym(ibuf0,nbuf0);
+			//else i = hufgetsym_skipb(ibuf0,nbuf0,LOGQHUFSIZ0,qhuf0v); //hufgetsym_skipb related code
 
 			if (i < 256) { slidebuf[(slidew++)&32767] = (char)i; continue; }
 			if (i == 256) break;
@@ -1118,9 +1134,10 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 			k = peekbits(LOGQHUFSIZ1);
 			if (qhufbit1[k]) { j = qhufval1[k]; suckbits((long)qhufbit1[k]); }
 			else j = hufgetsym(ibuf1,nbuf1);
+			//else j = hufgetsym_skipb(ibuf1,nbuf1,LOGQHUFSIZ1,qhuf1v); //hufgetsym_skipb related code
 
 			j = getbits(hxbit[j][0]) + hxbit[j][1];
-			for(;i;i--) slidebuf[(slidew++)&32767] = slidebuf[(slidew-j)&32767];
+			for(i+=slidew;slidew<i;slidew++) slidebuf[slidew&32767] = slidebuf[(slidew-j)&32767];
 		}
 	} while (!bfinal);
 
@@ -1269,8 +1286,6 @@ static void initkpeg ()
 
 	memset((void *)&dct[16][0],0,64*2*sizeof(dct[0][0]));
 	memset((void *)&dct[18][0],0xa0,64*sizeof(dct[0][0]));
-
-	for(i=31;i>=0;i--) pow2mask[i] = (1<<i)-1;
 }
 
 static void huffgetval (long index, long curbits, long num, long *daval, long *dabits)
@@ -1872,7 +1887,7 @@ static long ktgarend (const char *header, long fleng,
 	long daframeplace, long dabytesperline, long daxres, long dayres,
 	long daglobxoffs, long daglobyoffs)
 {
-	long i, x, y, xi, yi, x0, x1, y0, y1, xsiz, ysiz, rlestat, colbyte, pixbyte;
+	long i, p, x, y, pi, xi, yi, x0, x1, y0, y1, xsiz, ysiz, rlestat, colbyte, pixbyte;
 	const char *fptr, *cptr, *nptr;
 
 		//Ugly and unreliable identification for .TGA!
@@ -1895,23 +1910,27 @@ static long ktgarend (const char *header, long fleng,
 
 	switch(pixbyte) //For PNGOUT
 	{
-		case 1: coltype = 0; bitdepth = 8; break;
+		case 1: coltype = 0; bitdepth = 8; palcol[0] = 0xff000000;
+				  for(i=1;i<256;i++) palcol[i] = palcol[i-1]+0x10101; break;
 		case 2: case 3: coltype = 2; break;
 		case 4: coltype = 6; break;
 	}
 
-	if (!(header[17]&16)) { x0 = 0; x1 = xsiz; xi = 1; } else { x0 = xsiz-1; x1 = -1; xi = -1; }
-	if (header[17]&32) { y0 = 0; y1 = ysiz; yi = 1; } else { y0 = ysiz-1; y1 = -1; yi = -1; }
+	if (!(header[17]&16)) { x0 = 0;      x1 = xsiz; xi = 1; }
+						  else { x0 = xsiz-1; x1 = -1;   xi =-1; }
+	if (header[17]&32) { y0 = 0;      y1 = ysiz; yi = 1; pi = dabytesperline; }
+					  else { y0 = ysiz-1; y1 = -1;   yi =-1; pi =-dabytesperline; }
 	x0 += daglobxoffs; y0 += daglobyoffs;
 	x1 += daglobxoffs; y1 += daglobyoffs;
 	if (header[2] < 8) rlestat = -2; else rlestat = -1;
 
-	for(y=y0;y!=y1;y+=yi)
+	p = y0*dabytesperline+daframeplace;
+	for(y=y0;y!=y1;y+=yi,p+=pi)
 		for(x=x0;x!=x1;x+=xi)
 		{
 			if (rlestat < 128)
 			{
-				if ((rlestat&127) == 127) { rlestat = fptr[0]; fptr++; }
+				if ((rlestat&127) == 127) { rlestat = (long)fptr[0]; fptr++; }
 				if (header[1] == 1)
 				{
 					if (colbyte == 1) i = fptr[0];
@@ -1921,7 +1940,7 @@ static long ktgarend (const char *header, long fleng,
 
 				switch(pixbyte)
 				{
-					case 1: i = ((((long)nptr[0])*0x10101)|0xff000000); break;
+					case 1: i = palcol[(long)nptr[0]]; break;
 					case 2: i = (long)(*(unsigned short *)&nptr[0]);
 						i = ((i&0x7c00)<<9) + ((i&0x03e0)<<6) + ((i&0x001f)<<3) + 0xff000000;
 						break;
@@ -1933,7 +1952,7 @@ static long ktgarend (const char *header, long fleng,
 			if (rlestat >= 0) rlestat--;
 
 			if (((unsigned long)x < (unsigned long)daxres) && ((unsigned long)y < (unsigned long)dayres))
-				*(long *)(y*dabytesperline+x*4+daframeplace) = i;
+				*(long *)(x*4+p) = i;
 		}
 	return(0);
 }
@@ -2108,33 +2127,40 @@ static long kpcxrend (const char *buf, long fleng,
 			for(x=x0;x<x1;x++) *(char *)((x<<2)+i) = 255;
 	}
 
-	p = nplanes-1;
 	x = x0 = daglobxoffs; x1 = xsiz+daglobxoffs;
 	y = y0 = daglobyoffs; y1 = ysiz+daglobyoffs;
 	cptr = (unsigned char *)&buf[128];
-	do
+	p = y*dabytesperline+daframeplace;
+
+	j = nplanes-1; daxres <<= 2; x0 <<= 2; x1 <<= 2; x <<= 2; x += j;
+	if (nplanes == 1) //8-bit PCX
 	{
-		c = *cptr++; if (c < 192) i = 1; else { i = (c&63); c = *cptr++; }
-		if (nplanes == 1)
+		do
 		{
-			j = palcol[(long)c]; //8-bit PCX
+			c = *cptr++; if (c < 192) i = 1; else { i = (c&63); c = *cptr++; }
+			j = palcol[(long)c];
 			for(;i;i--)
 			{
-				if (((unsigned long)x < (unsigned long)daxres) && ((unsigned long)y < (unsigned long)dayres))
-					*(long *)(y*dabytesperline+x*4+daframeplace) = j;
-				x++; if (x >= x1) { x = x0; y++; }
+				if ((unsigned long)y < (unsigned long)dayres)
+					if ((unsigned long)x < (unsigned long)daxres) *(long *)(x+p) = j;
+				x += 4; if (x >= x1) { x = x0; y++; p += dabytesperline; }
 			}
-		}
-		else if (nplanes == 3)
+		} while (y < y1);
+	}
+	else if (nplanes == 3) //24-bit PCX
+	{
+		do
 		{
-			for(;i;i--) //24-bit PCX
+			c = *cptr++; if (c < 192) i = 1; else { i = (c&63); c = *cptr++; }
+			for(;i;i--)
 			{
-				if (((unsigned long)x < (unsigned long)daxres) && ((unsigned long)y < (unsigned long)dayres))
-					*(char *)(y*dabytesperline+x*4+daframeplace+p) = c;
-				x++; if (x >= x1) { x = x0; p--; if (p < 0) { p = nplanes-1; y++; } }
+				if ((unsigned long)y < (unsigned long)dayres)
+					if ((unsigned long)x < (unsigned long)daxres) *(char *)(x+p) = c;
+				x += 4; if (x >= x1) { j--; if (j < 0) { j = 3-1; y++; p += dabytesperline; } x = x0+j; }
 			}
-		}
-	} while (y < y1);
+		} while (y < y1);
+	}
+
 	return(0);
 }
 

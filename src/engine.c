@@ -55,11 +55,13 @@ long usevoxels = 1;
 long dommxoverlay = 1, novoxmips = 0;
 
 	//These variables need to be copied into BUILD
-#define MAXXSIZ 128
-#define MAXYSIZ 128
-#define MAXZSIZ 200
+#define MAXXSIZ 256
+#define MAXYSIZ 256
+#define MAXZSIZ 255
 #define MAXVOXMIPS 5
 long voxoff[MAXVOXELS][MAXVOXMIPS]; char voxlock[MAXVOXELS][MAXVOXMIPS];
+long voxscale[MAXVOXELS];
+
 static long ggxinc[MAXXSIZ+1], ggyinc[MAXXSIZ+1];
 static long lowrecip[1024], nytooclose, nytoofar;
 static unsigned long distrecip[65536];
@@ -2867,7 +2869,14 @@ static void drawvox(long dasprx, long daspry, long dasprz, long dasprang,
 	if (!davoxptr && i > 0) { davoxptr = (char *)voxoff[daindex][0]; i = 0; } 
 	if (!davoxptr) return;
 
-	daxscale <<= (i+8); dayscale <<= (i+8);
+	if (voxscale[daindex] == 65536)
+		{ daxscale <<= (i+8); dayscale <<= (i+8); }
+	else
+	{
+		daxscale = mulscale8(daxscale<<i,voxscale[daindex]);
+		dayscale = mulscale8(dayscale<<i,voxscale[daindex]);
+	}
+
 	odayscale = dayscale;
 	daxscale = mulscale16(daxscale,xyaspect);
 	daxscale = scale(daxscale,xdimenscale,xdimen<<8);
@@ -2880,6 +2889,13 @@ static void drawvox(long dasprx, long daspry, long dasprz, long dasprang,
 	daxsiz = longptr[0]; daysiz = longptr[1]; dazsiz = longptr[2];
 	daxpivot = longptr[3]; daypivot = longptr[4]; dazpivot = longptr[5];
 	davoxptr += (6<<2);
+	//if (voxscale[daindex] != 65536)
+	//{
+	//   i = voxscale[daindex];
+	//   daxpivot = mulscale16(daxpivot,i); //FUK
+	//   daypivot = mulscale16(daypivot,i);
+	//   dazpivot = mulscale16(dazpivot,i);
+	//}
 
 	x = mulscale16(globalposx-dasprx,daxscalerecip);
 	y = mulscale16(globalposy-daspry,daxscalerecip);
@@ -3840,6 +3856,8 @@ static void drawsprite(long snum)
 #ifdef SUPERBUILD
 	else if ((cstat&48) == 48)
 	{
+		long nxrepeat, nyrepeat;
+
 		lx = 0; rx = xdim-1;
 		for(x=lx;x<=rx;x++)
 		{
@@ -3893,9 +3911,21 @@ static void drawsprite(long snum)
 			}
 
 		longptr = (long *)voxoff[vtilenum][0];
-		if (!(cstat&128)) tspr->z -= mulscale6(longptr[5],(long)tspr->yrepeat);
+
+		if (voxscale[vtilenum] == 65536)
+		{
+			nxrepeat = (((long)tspr->xrepeat)<<16);
+			nyrepeat = (((long)tspr->yrepeat)<<16);
+		}
+		else
+		{
+			nxrepeat = ((long)tspr->xrepeat)*voxscale[vtilenum];
+			nyrepeat = ((long)tspr->yrepeat)*voxscale[vtilenum];
+		}
+
+		if (!(cstat&128)) tspr->z -= mulscale22(longptr[5],nyrepeat);
 		yoff = (long)((signed char)((picanm[sprite[tspr->owner].picnum]>>16)&255))+((long)tspr->yoffset);
-		tspr->z -= ((yoff*tspr->yrepeat)<<2);
+		tspr->z -= mulscale14(yoff,nyrepeat);
 
 		globvis = globalvisibility;
 		if (sec->visibility != 0) globvis = mulscale4(globvis,(long)((unsigned char)(sec->visibility+16)));
@@ -3904,12 +3934,12 @@ static void drawsprite(long snum)
 		{
 			siz = divscale19(xdimenscale,yp);
 
-			xv = mulscale16(((long)tspr->xrepeat)<<16,xyaspect);
+			xv = mulscale16(nxrepeat,xyaspect);
 
 			xspan = ((longptr[0]+longptr[1])>>1);
 			yspan = longptr[2];
 			xsiz = mulscale30(siz,xv*xspan);
-			ysiz = mulscale14(siz,tspr->yrepeat*yspan);
+			ysiz = mulscale30(siz,nyrepeat*yspan);
 
 				//Watch out for divscale overflow
 			if (((xspan>>11) < xsiz) && (yspan < (ysiz>>1)))
@@ -3920,7 +3950,7 @@ static void drawsprite(long snum)
 				if ((cstat&4) == 0) x1 -= i; else x1 += i;
 
 				y1 = mulscale16(tspr->z-globalposz,siz);
-				//y1 -= mulscale14(siz,tspr->yrepeat*yoff);
+				//y1 -= mulscale30(siz,nyrepeat*yoff);
 				y1 += (globalhoriz<<8)-ysiz;
 				//if (cstat&128)  //Already fixed up above
 				y1 += (ysiz>>1);
@@ -5392,6 +5422,7 @@ int initengine(void)
 		}
 	for(i=0;i<MAXTILES;i++)
 		tiletovox[i] = -1;
+	clearbuf(&voxscale[0],sizeof(voxscale)>>2,65536L);
 #endif
 
 #ifdef POLYMOST

@@ -123,7 +123,8 @@ static tokenlist modelhudtokens[] = {
 static tokenlist voxeltokens[] = {
 	{ "tile",   T_TILE   },
 	{ "tile0",  T_TILE0  },
-	{ "tile1",  T_TILE1  }
+	{ "tile1",  T_TILE1  },
+	{ "scale",  T_SCALE  }
 };
 
 static tokenlist skyboxtokens[] = {
@@ -707,6 +708,12 @@ static int defsparser(scriptfile *script)
 									{ initprintf("Invalid tile range on line %s:%d\n",script->filename, script->linenum); break; }
 								for(tilex=tile0;tilex<=tile1;tilex++) tiletovox[tilex] = lastvoxid;
 								break; //last tile number (inclusive)
+							case T_SCALE: {
+								double scale=1.0;
+								scriptfile_getdouble(script,&scale);
+								voxscale[lastvoxid] = 65536*scale;
+								break;
+							}
 						}
 					}
 					lastvoxid = -1;
