@@ -99,7 +99,7 @@ static unsigned char keytranslation[SDLK_LAST] = {
 int main(int argc, char *argv[])
 {
 	_buildargc = argc;
-	_buildargv = (char**)argc;
+	_buildargv = (char**)argv;
 	//_buildargv = (char**)malloc(argc * sizeof(char*));
 	//memcpy(_buildargv, argv, sizeof(char*)*argc);
 
