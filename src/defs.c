@@ -136,17 +136,13 @@ static int defsparser(scriptfile *script)
 					int cx,cy,sx,sy;
 					char *fn,happy=1;
 
-					int tilerv,palrv;
-
-					tilerv = scriptfile_getsymbol(script,&tile);
-					palrv = scriptfile_getsymbol(script,&pal);
-					if (tilerv) {
+					if (scriptfile_getsymbol(script,&tile)) {
 						initprintf("Invalid symbol name or numeric constant for tile number "
 									  "on line %s:%d\n", script->filename,script->linenum);
 						numerrors++;
 						happy=0;
 					}
-					if (palrv) {
+					if (scriptfile_getsymbol(script,&pal)) {
 						initprintf("Invalid symbol name or numeric constant for palette number "
 									  "on line %s:%d\n", script->filename,script->linenum);
 						numerrors++;
@@ -194,19 +190,21 @@ static int defsparser(scriptfile *script)
 						"left face", "top face", "bottom face"
 					};
 
-					int tilerv,palrv;
-
-					tilerv = scriptfile_getsymbol(script,&tile);
-					palrv = scriptfile_getsymbol(script,&pal);
-					if (tilerv) {
+					if (scriptfile_getsymbol(script,&tile)) {
 						initprintf("Invalid symbol name or numeric constant for tile number "
 									  "on line %s:%d\n", script->filename,script->linenum);
 						numerrors++;
 						happy=0;
 					}
-					if (palrv) {
+					if (scriptfile_getsymbol(script,&pal)) {
 						initprintf("Invalid symbol name or numeric constant for palette number "
 									  "on line %s:%d\n", script->filename,script->linenum);
+						numerrors++;
+						happy=0;
+					}
+					if (scriptfile_getnumber(script,&i)) {
+						initprintf("Invalid numeric constant for reserved parameter on line %s:%d\n",
+								script->filename,script->linenum);
 						numerrors++;
 						happy=0;
 					}

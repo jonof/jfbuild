@@ -767,7 +767,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 			rpptr[x].a = tcol.a;
 		}
 	}
-	if (!(dameth&4)) //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
+	if (!(dameth&4) || (facen)) //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
 	{
 		if (xsiz > tsizx) //Copy left to right
 		{
