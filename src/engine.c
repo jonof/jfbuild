@@ -4435,6 +4435,11 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
 	if (rendmode) { polymost_dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2); return; }
 #endif
 	//============================================================================= //POLYMOST ENDS
+	
+	if (cx1 < 0) cx1 = 0;
+	if (cy1 < 0) cy2 = 0;
+	if (cx2 > xres-1) cx2 = xres-1;
+	if (cy2 > yres-1) cy2 = yres-1;
 
 	xsiz = tilesizx[picnum]; ysiz = tilesizy[picnum];
 	if (dastat&16) { xoff = 0; yoff = 0; }
