@@ -48,7 +48,7 @@ static int readconfig(BFILE *fp, const char *key, char *value, unsigned len)
 }
 
 extern short brightness;
-extern long fullscreen, bitsperpixel;
+extern long fullscreen;
 extern char option[8];
 extern char keys[19];
 extern double msens;
@@ -129,7 +129,7 @@ int loadsetup(const char *fn)
 	}
 
 	if (readconfig(fp, "bpp", val, VL) > 0) {
-		bitsperpixel = Batoi(val);
+		bpp = Batoi(val);
 	}
 	
 	if (readconfig(fp, "renderer", val, VL) > 0) {

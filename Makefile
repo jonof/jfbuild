@@ -46,7 +46,7 @@ debug=-DDEBUGGINGAIDS -ggdb
 #                    ENGINEOBJS declaration to be $(OBJ)a-c.$o
 # USE_GCC_PRAGMAS    Use GCC inline assembly macros instead of C code for
 #                    the features in PRAGMAS.H
-TARGETOPTS=-DUSE_GCC_ASSEMBLY -DUSE_GCC_PRAGMAS
+TARGETOPTS=#-DUSE_GCC_ASSEMBLY -DUSE_GCC_PRAGMAS
 
 CC=gcc
 AS=nasm
@@ -61,7 +61,7 @@ EXESUFFIX=
 
 ENGINEOBJS=$(OBJ)engine.$o \
 	$(OBJ)cache1d.$o \
-	$(OBJ)a.$o \
+	$(OBJ)a-c.$o \
 	$(OBJ)pragmas.$o \
 	$(OBJ)osd.$o \
 	$(OBJ)crc32.$o \

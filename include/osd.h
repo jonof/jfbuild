@@ -77,10 +77,9 @@ int OSD_Dispatch(const char *cmd);
 
 // registers a function
 //   name = name of the function
-//   minparms = minimum number of parameters
 //   help = a short help string
 //   func = the entry point to the function
-int OSD_RegisterFunction(const char *name, int minparams, const char *help, int (*func)(const osdfuncparm_t*));
+int OSD_RegisterFunction(const char *name, const char *help, int (*func)(const osdfuncparm_t*));
 
 // registers a variable
 //   name  = name of variable

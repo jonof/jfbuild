@@ -163,7 +163,7 @@ void initsb(char dadigistat, char damusistat, long dasamplerate, char danumspeak
 	jfauderr err;
 	int i;
 
-	JFAud_setdebuglevel(DEBUGLVL_ALL);
+	//JFAud_setdebuglevel(DEBUGLVL_ALL);
 	
 	parms.samplerate = dasamplerate;
 	inited = 0;

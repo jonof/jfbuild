@@ -15,7 +15,6 @@ typedef struct _symbol {
 	int type;
 	union {
 		struct {
-			int         minparms;
 			const char *help;
 			int (*func)(const osdfuncparm_t *);
 		} func;
@@ -299,6 +298,7 @@ static int _internal_osdfunc_help(const osdfuncparm_t *parm)
 {
 	symbol_t *symb;
 
+	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
 	symb = findexactsymbol(parm->parms[0]);
 	if (!symb) {
 		OSD_Printf("Help Error: \"%s\" is not a defined variable or function\n", parm->parms[0]);
@@ -349,8 +349,8 @@ void OSD_Init(void)
 
 	osdinited=1;
 
-	OSD_RegisterFunction("listsymbols",0,"listsymbols: lists all the recognized symbols",_internal_osdfunc_listsymbols);
-	OSD_RegisterFunction("help",1,"help: displays help on the named symbol",_internal_osdfunc_help);
+	OSD_RegisterFunction("listsymbols","listsymbols: lists all the recognized symbols",_internal_osdfunc_listsymbols);
+	OSD_RegisterFunction("help","help: displays help on the named symbol",_internal_osdfunc_help);
 	OSD_RegisterVariable("osdrows", OSDVAR_INTEGER, &osdrows, 0, _validate_osdlines);
 
 	atexit(OSD_Cleanup);
@@ -934,16 +934,12 @@ int OSD_Dispatch(const char *cmd)
 	//for (i=0;i<numparms;i++) OSD_Printf("Parm %d: %s\n",i,parms[i]);
 
 	if (symb->type == SYMBTYPE_FUNC) {
-		if (numparms < symb->i.func.minparms) {
-			OSD_Printf("%s\n", symb->i.func.help);
-		} else {
-			ofp.numparms = numparms;
-			ofp.parms    = (const char **)parms;
-			ofp.raw      = cmd;
-			switch (symb->i.func.func(&ofp)) {
-				case OSDCMD_OK: break;
-				case OSDCMD_SHOWHELP: OSD_Printf("%s\n", symb->i.func.help); break;
-			}
+		ofp.numparms = numparms;
+		ofp.parms    = (const char **)parms;
+		ofp.raw      = cmd;
+		switch (symb->i.func.func(&ofp)) {
+			case OSDCMD_OK: break;
+			case OSDCMD_SHOWHELP: OSD_Printf("%s\n", symb->i.func.help); break;
 		}
 	} else if (symb->type == SYMBTYPE_VAR) {
 		if (numparms >= 1) {
@@ -993,7 +989,7 @@ int OSD_Dispatch(const char *cmd)
 //
 // OSD_RegisterFunction() -- Registers a new function
 //
-int OSD_RegisterFunction(const char *name, int minparm, const char *help, int (*func)(const osdfuncparm_t*))
+int OSD_RegisterFunction(const char *name, const char *help, int (*func)(const osdfuncparm_t*))
 {
 	symbol_t *symb;
 	const char *cp;
@@ -1024,7 +1020,6 @@ int OSD_RegisterFunction(const char *name, int minparm, const char *help, int (*
 		}
 	}
 
-	if (minparm < 0) minparm = 0;
 	if (!help) help = "(no description for this function)";
 	if (!func) {
 		Bprintf("OSD_RegisterFunction(): may not register a null function\n");
@@ -1050,7 +1045,6 @@ int OSD_RegisterFunction(const char *name, int minparm, const char *help, int (*
 
 	symb->name = name;
 	symb->type = SYMBTYPE_FUNC;
-	symb->i.func.minparms = minparm;
 	symb->i.func.help = help;
 	symb->i.func.func = func;
 

@@ -85,7 +85,7 @@ unsigned long getticks(void);
 int gettimerfreq(void);
 void (*installusertimercallback(void (*callback)(void)))(void);
 
-int checkvideomode(long *x, long *y, int c, int fs);
+int checkvideomode(int *x, int *y, int c, int fs);
 int setvideomode(int x, int y, int c, int fs);
 void getvalidmodes(void);
 void resetvideomode(void);

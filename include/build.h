@@ -141,7 +141,6 @@ typedef struct BPACK
 	short lotag, hitag, extra;
 } spritetype;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
 typedef struct BPACK {
 	unsigned long md2animtims;
 	short md2animcur;
@@ -151,7 +150,6 @@ typedef struct BPACK {
 #define SPREXT_NOTMD2 1
 #define SPREXT_NOMD2ANIM 2
 EXTERN spriteexttype spriteext[MAXSPRITES];
-#endif
 
 
 EXTERN sectortype sector[MAXSECTORS];

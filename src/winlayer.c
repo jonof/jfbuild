@@ -90,7 +90,7 @@ static void ReleaseOpenGL(void);
 static void UninitOpenGL(void);
 static int SetupOpenGL(int width, int height, int bitspp);
 static BOOL RegisterWindowClass(void);
-static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wtitle);
+static BOOL CreateAppWindow(int modenum, char *wtitle);
 static void DestroyAppWindow(void);
 static void SaveSystemColours(void);
 static void SetBWSystemColours(void);
@@ -101,7 +101,8 @@ static void RestoreSystemColours(void);
 static long desktopxdim=0,desktopydim=0,desktopbpp=0,modesetusing=-1;
 long xres=-1, yres=-1, fullscreen=0, bpp=0, bytesperline=0, imageSize=0;
 long frameplace=0, lockcount=0;
-static int windowposx, windowposy;
+static int windowposx, windowposy, curvidmode = -1, customxdim = 640, customydim = 480;
+static unsigned modeschecked=0, maxrefreshfreq=60;
 char modechange=1, repaintneeded=0;
 char offscreenrendering=0;
 long glcolourdepth=32;
@@ -433,6 +434,27 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 }
 
 
+static int set_maxrefreshfreq(const osdfuncparm_t *parm)
+{
+	int freq;
+	if (parm->numparms == 0) {
+		if (maxrefreshfreq == 0)
+			OSD_Printf("maxrefreshfreq = No maximum\n");
+		else
+			OSD_Printf("maxrefreshfreq = %d Hz\n",maxrefreshfreq);
+		return OSDCMD_OK;
+	}
+	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
+	
+	freq = Batol(parm->parms[0]);
+	if (freq < 0) return OSDCMD_SHOWHELP;
+
+	maxrefreshfreq = (unsigned)freq;
+	modeschecked = 0;
+
+	return OSDCMD_OK;
+}
+
 //
 // initsystem() -- init systems
 //
@@ -473,6 +495,7 @@ int initsystem(void)
 	if (InitDirectDraw())
 		initprintf("DirectDraw initialisation failed. Fullscreen modes will be unavailable.\n");
 
+	OSD_RegisterFunction("maxrefreshfreq", "maxrefreshfreq: maximum display frequency to set for OpenGL Polymost modes (0=no maximum)", set_maxrefreshfreq);
 	return 0;
 }
 
@@ -1696,7 +1719,7 @@ static int cdsmodefreq[MAXVALIDMODES];
 //
 // checkvideomode() -- makes sure the video mode passed is legal
 //
-int checkvideomode(long *x, long *y, int c, int fs)
+int checkvideomode(int *x, int *y, int c, int fs)
 {
 	int i, nearest=-1, dx, dy, odx=9999, ody=9999;
 
@@ -1748,9 +1771,17 @@ int checkvideomode(long *x, long *y, int c, int fs)
 int setvideomode(int x, int y, int c, int fs)
 {
 	int inp;
+	int modenum;
 	
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
 		!videomodereset) return 0;
+
+	modenum = checkvideomode(&x,&y,c,fs);
+	if (modenum < 0) return -1;
+	if (modenum == 0x7fffffff) {
+		customxdim = x;
+		customydim = y;
+	}
 
 	inp = inputacquired;
 	AcquireInputDevices(0);
@@ -1758,7 +1789,7 @@ int setvideomode(int x, int y, int c, int fs)
 	initprintf("Setting video mode %dx%d (%d-bit %s)\n",
 			x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
 
-	if (CreateAppWindow(x, y, fs, c, apptitle)) return -1;
+	if (CreateAppWindow(modenum, apptitle)) return -1;
 
 	if (inp) AcquireInputDevices(1);
 	modechange=1;
@@ -1780,7 +1811,7 @@ int setvideomode(int x, int y, int c, int fs)
 	cdsmodefreq[validmodecnt]=n; \
 	validmodecnt++; \
 	initprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
-	}	
+	}
 
 #define CHECK(w,h) if ((w < maxx) && (h < maxy))
 
@@ -1822,13 +1853,15 @@ static void cdsenummodes(void)
 				 && modes[i].bpp == dm.dmBitsPerPel)
 					break;
 			}
-			if (i==nmodes || dm.dmDisplayFrequency > modes[i].freq) {
-				if (i==nmodes) nmodes++;
+			if (dm.dmDisplayFrequency > maxrefreshfreq && maxrefreshfreq > 0) {
+				if (i==nmodes || dm.dmDisplayFrequency > modes[i].freq) {
+					if (i==nmodes) nmodes++;
 
-				modes[i].x = dm.dmPelsWidth;
-				modes[i].y = dm.dmPelsHeight;
-				modes[i].bpp = dm.dmBitsPerPel;
-				modes[i].freq = dm.dmDisplayFrequency;
+					modes[i].x = dm.dmPelsWidth;
+					modes[i].y = dm.dmPelsHeight;
+					modes[i].bpp = dm.dmBitsPerPel;
+					modes[i].freq = dm.dmDisplayFrequency;
+				}
 			}
 		}
 		
@@ -1844,7 +1877,6 @@ static void cdsenummodes(void)
 }
 #endif
 
-static int modeschecked=0;
 void getvalidmodes(void)
 {
 	static int defaultres[][2] = {
@@ -2738,12 +2770,23 @@ static int SetupOpenGL(int width, int height, int bitspp)
 //
 // CreateAppWindow() -- create the application window
 //
-static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wtitle)
+static BOOL CreateAppWindow(int modenum, char *wtitle)
 {
 	RECT rect;
 	int w, h, x, y, stylebits = 0, stylebitsex = 0;
+	int width, height, fs, bitspp;
 
 	HRESULT result;
+
+	if (modenum == 0x7fffffff) {
+		width = customxdim;
+		height = customydim;
+	} else {
+		width = validmodexdim[modenum];
+		height = validmodeydim[modenum];
+	}
+	fs = validmodefs[modenum];
+	bitspp = validmodebpp[modenum];
 
 	if (width == xres && height == yres && fs == fullscreen && bitspp == bpp && !videomodereset) return FALSE;
 
@@ -2862,14 +2905,6 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 #if defined(USE_OPENGL) && defined(POLYMOST)
 		if (/*glusecds &&*/ bitspp > 8) {
 			DEVMODE dmScreenSettings;
-			int i;
-
-			for (i=0;i<validmodecnt;i++) {
-				if (validmodexdim[i] == width &&
-				    validmodeydim[i] == height &&
-				    validmodebpp[i] == bitspp &&
-				    validmodefs[i]) break;
-			}
 
 			//initprintf("Using ChangeDisplaySettings() for mode change.\n");
 			
@@ -2878,8 +2913,11 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 			dmScreenSettings.dmPelsWidth = width;
 			dmScreenSettings.dmPelsHeight = height;
 			dmScreenSettings.dmBitsPerPel = bitspp;
-			dmScreenSettings.dmDisplayFrequency = cdsmodefreq[i];
-			dmScreenSettings.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFREQUENCY;
+			dmScreenSettings.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
+			if (modenum != 0x7fffffff) {
+				dmScreenSettings.dmDisplayFrequency = cdsmodefreq[modenum];
+				dmScreenSettings.dmFields |= DM_DISPLAYFREQUENCY;
+			}
 
 			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL) {
 				ShowErrorBox("Video mode not supported.");
@@ -2930,16 +2968,16 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 	xres = width;
 	yres = height;
 	bpp = bitspp;
+	fullscreen = fs;
+	curvidmode = modenum;
 
-	// bytesperline is set when framebuffer is locked
-	//bytesperline = width;
 	frameplace = 0;
 	lockcount = 0;
 
+	// bytesperline is set when framebuffer is locked
+	//bytesperline = width;
 	//imageSize = bytesperline*yres;
 
-	fullscreen = fs;
-	
 	modechange = 1;
 	OSD_ResizeDisplay(xres,yres);
 

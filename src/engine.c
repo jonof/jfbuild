@@ -6309,7 +6309,7 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 //	if (getkensmessagecrc(FP_OFF(kensmessage)) != 0x56c764d4)
 //		{ printOSD("Nice try.\n"); exit(0); }
 
-	if (checkvideomode(&daxdim, &daydim, dabpp, davidoption)<0) return (-1);
+	//if (checkvideomode(&daxdim, &daydim, dabpp, davidoption)<0) return (-1);
 
 	//bytesperline is set in this function
 	j = bpp;
@@ -9259,9 +9259,6 @@ void qsetmodeany(long daxdim, long daydim)
 {
 	if (daxdim < 640) daxdim = 640;
 	if (daydim < 480) daydim = 480;
-	if (checkvideomode(&daxdim, &daydim, 8, fullscreen)<0) {
-		return;
-	}
 
 	if (qsetmode != ((daxdim<<16)|(daydim&0xffff))) {
 		if (setvideomode(daxdim, daydim, 8, fullscreen) < 0)

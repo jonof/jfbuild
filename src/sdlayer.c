@@ -85,7 +85,74 @@ static unsigned char keytranslation[SDLK_LAST] = {
 
 //static SDL_Surface * loadtarga(const char *fn);		// for loading the icon
 
-#include "sdlayer_extra.c"
+#ifdef HAVE_GTK2
+#include <gtk/gtk.h>
+#endif
+
+int wm_msgbox(char *name, char *fmt, ...)
+{
+	char buf[1000];
+	va_list va;
+
+	va_start(va,fmt);
+	vsprintf(buf,fmt,va);
+	va_end(va);
+
+#ifdef HAVE_GTK2
+	{
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new(NULL,
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+				GTK_MESSAGE_INFO,
+				GTK_BUTTONS_OK,
+				buf);
+		gtk_window_set_title(GTK_WINDOW(dialog), name);
+		gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+	}
+#else
+	puts(buf);
+	getchar();
+#endif
+	return 0;
+}
+
+int wm_ynbox(char *name, char *fmt, ...)
+{
+	char buf[1000];
+	va_list va;
+	int r;
+
+	va_start(va,fmt);
+	vsprintf(buf,fmt,va);
+	va_end(va);
+
+#ifdef HAVE_GTK2
+	{
+		GtkWidget *dialog;
+
+		dialog = gtk_message_dialog_new(NULL,
+				GTK_DIALOG_DESTROY_WITH_PARENT,
+				GTK_MESSAGE_INFO,
+				GTK_BUTTONS_YES_NO,
+				buf);
+		gtk_window_set_title(GTK_WINDOW(dialog), name);
+		r = gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy(dialog);
+		if (r == GTK_RESPONSE_YES) return 1;
+	}
+#else
+	{
+		char c;
+		puts(buf);
+		do c = getchar(); while (c != 'Y' && c != 'y' && c != 'N' && c != 'n');
+		if (c == 'Y' || c == 'y') return 1;
+	}
+#endif
+	return 0;
+}
+
 
 //
 //
@@ -612,7 +679,7 @@ void getvalidmodes(void)
 //
 // checkvideomode() -- makes sure the video mode passed is legal
 //
-int checkvideomode(long *x, long *y, int c, int fs)
+int checkvideomode(int *x, int *y, int c, int fs)
 {
 	int i, nearest=-1, dx, dy, odx=9999, ody=9999;
 
@@ -665,8 +732,12 @@ int checkvideomode(long *x, long *y, int c, int fs)
 //
 int setvideomode(int x, int y, int c, int fs)
 {
+	int modenum;
+	
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
 	    !videomodereset) return 0;
+
+	if (checkvideomode(&x,&y,c,fs) < 0) return -1;
 
 	if (mouseacquired) {
 		SDL_WM_GrabInput(SDL_GRAB_OFF);

@@ -61,7 +61,6 @@ short ang, cursectnum;
 long hvel;
 
 extern double msens;
-long bitsperpixel = 8;
 
 static long synctics = 0, lockclock = 0;
 
@@ -71,7 +70,7 @@ extern char picsiz[MAXTILES];
 extern long startposx, startposy, startposz;
 extern short startang, startsectnum;
 extern long frameplace, ydim16, halfxdim16, midydim16;
-long xdim2d, ydim2d, xdimgame, ydimgame;
+long xdim2d, ydim2d, xdimgame, ydimgame, bppgame;
 
 extern long cachesize, artsize;
 
@@ -191,7 +190,7 @@ static int osdcmd_restartvid(const osdfuncparm_t *parm)
 	if (qsetmode != 200) return OSDCMD_OK;
 
 	resetvideomode();
-	if (setgamemode(fullscreen,xdim,ydim,bitsperpixel))
+	if (setgamemode(fullscreen,xdim,ydim,bpp))
 		OSD_Printf("restartvid: Reset failed...\n");
 
 	return OSDCMD_OK;
@@ -199,12 +198,12 @@ static int osdcmd_restartvid(const osdfuncparm_t *parm)
 
 static int osdcmd_vidmode(const osdfuncparm_t *parm)
 {
-	long newx = xdim, newy = ydim, newbpp = bpp;
+	long newx = xdim, newy = ydim, newbpp = bpp, newfullscreen = fullscreen;
 	extern long qsetmode;
 
 	if (qsetmode != 200) return OSDCMD_OK;
 
-	if (parm->numparms < 1 || parm->numparms > 3) return OSDCMD_SHOWHELP;
+	if (parm->numparms < 1 || parm->numparms > 4) return OSDCMD_SHOWHELP;
 
 	switch (parm->numparms) {
 		case 1:	// bpp switch
@@ -215,17 +214,17 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 			newy = Batol(parm->parms[1]);
 			break;
 		case 3:	// res & bpp switch
+		case 4:
 			newx = Batol(parm->parms[0]);
 			newy = Batol(parm->parms[1]);
 			newbpp = Batol(parm->parms[2]);
+			if (parm->numparms == 4)
+				newfullscreen = (Batol(parm->parms[3]) != 0);
 			break;
 	}
 
-	if (setgamemode(fullscreen,newx,newy,newbpp))
+	if (setgamemode(newfullscreen,newx,newy,newbpp))
 		OSD_Printf("vidmode: Mode change failed!\n");
-	else
-		bitsperpixel = newbpp;
-
 	return OSDCMD_OK;
 }
 
@@ -236,9 +235,8 @@ int app_main(int argc, char **argv)
 	long i, j, k;
 
 #ifdef USE_OPENGL
-	OSD_RegisterVariable("bpp", OSDVAR_INTEGER, &bitsperpixel, 0, osd_internal_validate_integer);
-	OSD_RegisterFunction("restartvid",0,"restartvid: reinitialise the video mode",osdcmd_restartvid);
-	OSD_RegisterFunction("vidmode",1,"vidmode [xdim ydim] [bpp]: immediately change the video mode",osdcmd_vidmode);
+	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
+	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
 #endif
 	
 	Bstrcpy(apptitle, "BUILD by Ken Silverman");
@@ -280,7 +278,7 @@ int app_main(int argc, char **argv)
 
 	if (!loaddefinitionsfile(defsfilename)) initprintf("Definitions file loaded.\n");
 	
-		if (setgamemode(fullscreen,xdimgame,ydimgame,bitsperpixel) < 0)
+		if (setgamemode(fullscreen,xdimgame,ydimgame,bppgame) < 0)
 		{
 			ExtUnInit();
 			uninitengine();
@@ -5336,7 +5334,7 @@ void overheadeditor(void)
 
 	fixspritesectors();
 
-	if (setgamemode(fullscreen,xdimgame,ydimgame,bitsperpixel) < 0)
+	if (setgamemode(fullscreen,xdimgame,ydimgame,bppgame) < 0)
 	{
 		ExtUnInit();
 		uninitinput();

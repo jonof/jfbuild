@@ -39,6 +39,7 @@ static int osdfunc_setrendermode(const osdfuncparm_t *parm)
 		"polygonal textured software", "polygonal OpenGL"
 	};
 
+	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
 	m = Bstrtol(parm->parms[0], &p, 10);
 
 	if (m < 0 || m > 3) return OSDCMD_SHOWHELP;
@@ -55,6 +56,8 @@ static int osdcmd_hicsetpalettetint(const osdfuncparm_t *parm)
 {
 	long pal, cols[3], eff;
 	char *p;
+
+	if (parm->numparms != 5) return OSDCMD_SHOWHELP;
 
 	pal = Batol(parm->parms[0]);
 	cols[0] = Batol(parm->parms[1]);
@@ -125,7 +128,7 @@ static int osdcmd_glinfo(const osdfuncparm_t *parm)
 int baselayer_init(void)
 {
 #ifdef POLYMOST
-	OSD_RegisterFunction("setrendermode",1,"setrendermode <number>: sets the engine's rendering mode.\n"
+	OSD_RegisterFunction("setrendermode","setrendermode <number>: sets the engine's rendering mode.\n"
 			"Mode numbers are:\n"
 			"   0 - Classic Build software\n"
 			"   1 - Polygonal flat-shaded software\n"
@@ -136,7 +139,7 @@ int baselayer_init(void)
 			,
 			osdfunc_setrendermode);
 #endif
-	OSD_RegisterFunction("dumpbuildinfo",0,"dumpbuildinfo: outputs engine compilation information",osdfunc_dumpbuildinfo);
+	OSD_RegisterFunction("dumpbuildinfo","dumpbuildinfo: outputs engine compilation information",osdfunc_dumpbuildinfo);
 	OSD_RegisterVariable("screencaptureformat", OSDVAR_INTEGER, &captureformat, 0, osd_internal_validate_integer);
 #ifdef SUPERBUILD
 	OSD_RegisterVariable("novoxmips", OSDVAR_INTEGER, &novoxmips, 0, osd_internal_validate_boolean);
@@ -144,11 +147,11 @@ int baselayer_init(void)
 #endif
 #ifdef DEBUGGINGAIDS
 #if defined(POLYMOST) && defined(USE_OPENGL)
-	OSD_RegisterFunction("hicsetpalettetint",5,"hicsetpalettetint: sets palette tinting values",osdcmd_hicsetpalettetint);
+	OSD_RegisterFunction("hicsetpalettetint","hicsetpalettetint: sets palette tinting values",osdcmd_hicsetpalettetint);
 #endif
 #endif
 #if defined(POLYMOST) && defined(USE_OPENGL)
-	OSD_RegisterFunction("glinfo",0,"glinfo: shows OpenGL information about the current OpenGL mode",osdcmd_glinfo);
+	OSD_RegisterFunction("glinfo","glinfo: shows OpenGL information about the current OpenGL mode",osdcmd_glinfo);
 #endif
 #if defined(RENDERTYPEWIN)
 	OSD_RegisterVariable("glusecds", OSDVAR_INTEGER, &glusecds, 0, osd_internal_validate_boolean);

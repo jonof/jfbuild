@@ -3888,8 +3888,8 @@ void polymost_initosdfuncs(void)
 #ifdef USE_OPENGL
 	OSD_RegisterVariable("glusetexcompr", OSDVAR_INTEGER, &glusetexcompr, 0, osd_internal_validate_boolean);
 	OSD_RegisterVariable("glredbluemode", OSDVAR_INTEGER, &glredbluemode, 1, osd_internal_validate_boolean);
-	OSD_RegisterFunction("gltexturemode", 0, "gltexturemode: changes the texture filtering settings", gltexturemode);
-	OSD_RegisterFunction("gltextureanisotropy", 0, "gltextureanisotropy: changes the texture anisotropy setting", gltextureanisotropy);
+	OSD_RegisterFunction("gltexturemode", "gltexturemode: changes the texture filtering settings", gltexturemode);
+	OSD_RegisterFunction("gltextureanisotropy", "gltextureanisotropy: changes the texture anisotropy setting", gltextureanisotropy);
 	OSD_RegisterVariable("gltexturemaxsize", OSDVAR_INTEGER, &gltexmaxsize, 1, osd_internal_validate_integer);
 #endif
 	OSD_RegisterVariable("usemodels", OSDVAR_INTEGER, &usemodels, 0, osd_internal_validate_boolean);

@@ -26,8 +26,6 @@ extern short temppicnum, tempcstat, templotag, temphitag, tempextra;
 extern char tempshade, temppal, tempxrepeat, tempyrepeat;
 extern char somethingintab;
 
-extern long bitsperpixel;
-
 #define NUMOPTIONS 9
 #define NUMKEYS 19
 static long vesares[13][2] = {{320,200},{360,200},{320,240},{360,240},{320,400},
@@ -43,7 +41,7 @@ char keys[NUMKEYS] =
 
 extern char buildkeys[NUMKEYS];
 
-extern long ydim16, xdimgame, ydimgame, xdim2d, ydim2d;
+extern long ydim16, xdimgame, ydimgame, bppgame, xdim2d, ydim2d;
 extern long frameplace, xdimenscale, ydimen;
 extern long posx, posy, posz, horiz;
 extern short ang, cursectnum;
@@ -101,6 +99,7 @@ int ExtInit(void)
 		close(fil);
 	}
 	*/
+	bpp = 8;
 	if (loadsetup("build.cfg") < 0) initprintf("Configuration file not found, using defaults.\n");
 	Bmemcpy((void *)buildkeys,(void *)keys,NUMKEYS);   //Trick to make build use setup.dat keys
 
@@ -114,6 +113,7 @@ int ExtInit(void)
 	initmouse();
 	xdimgame = vesares[option[6]&15][0]; ydimgame = vesares[option[6]&15][1];
 	xdim2d = vesares[option[8]&15][0]; ydim2d = vesares[option[8]&15][1];
+	bppgame = bpp;
 
 		//You can load your own palette lookup tables here if you just
 		//copy the right code!
@@ -153,7 +153,7 @@ void ExtPreCheckKeys(void)
 
 			//cycle through all vesa modes, then screen-buffer mode
 		if (keystatus[0x2a]|keystatus[0x36]) {
-			setgamemode(!fullscreen, xdim, ydim, bitsperpixel);
+			setgamemode(!fullscreen, xdim, ydim, bpp);
 		} else {
 
 			//cycle through all modes
@@ -164,18 +164,18 @@ void ExtPreCheckKeys(void)
 				if ((validmodexdim[i] == xdim) &&
 					(validmodeydim[i] == ydim) &&
 					(validmodefs[i] == fullscreen) &&
-					(validmodebpp[i] == bitsperpixel))
+					(validmodebpp[i] == bpp))
 					{ j=i; break; }
 			
 			for (k=0; k<validmodecnt; k++)
-				if (validmodefs[k] == fullscreen && validmodebpp[k] == bitsperpixel) break;
+				if (validmodefs[k] == fullscreen && validmodebpp[k] == bpp) break;
 
 			if (j==-1) j=k;
 			else {
 				j++;
 				if (j==validmodecnt) j=k;
 			}
-			setgamemode(fullscreen,validmodexdim[j],validmodeydim[j],bitsperpixel);
+			setgamemode(fullscreen,validmodexdim[j],validmodeydim[j],bpp);
 		}
 	}
 

@@ -350,14 +350,12 @@ static long animatevel[MAXANIMATES], animateacc[MAXANIMATES], animatecnt = 0;
 }
 #endif
 
-long bitsperpixel = 8;
-
 int nextvoxid = 0;
 
 static int osdcmd_restartvid(const osdfuncparm_t *parm)
 {
 	resetvideomode();
-	if (setgamemode(fullscreen,xdim,ydim,bitsperpixel))
+	if (setgamemode(fullscreen,xdim,ydim,bpp))
 		OSD_Printf("restartvid: Reset failed...\n");
 
 	return OSDCMD_OK;
@@ -365,9 +363,9 @@ static int osdcmd_restartvid(const osdfuncparm_t *parm)
 
 static int osdcmd_vidmode(const osdfuncparm_t *parm)
 {
-	long newx = xdim, newy = ydim, newbpp = bpp;
+	long newx = xdim, newy = ydim, newbpp = bpp, newfullscreen = fullscreen;
 
-	if (parm->numparms < 1 || parm->numparms > 3) return OSDCMD_SHOWHELP;
+	if (parm->numparms < 1 || parm->numparms > 4) return OSDCMD_SHOWHELP;
 
 	switch (parm->numparms) {
 		case 1:   // bpp switch
@@ -378,14 +376,18 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 			newy = Batol(parm->parms[1]);
 			break;
 		case 3:   // res & bpp switch
+		case 4:
 			newx = Batol(parm->parms[0]);
 			newy = Batol(parm->parms[1]);
 			newbpp = Batol(parm->parms[2]);
+			if (parm->numparms == 4)
+				newfullscreen = (Batol(parm->parms[3]) != 0);
 			break;
 	}
 
-	if (setgamemode(fullscreen,newx,newy,newbpp))
+	if (setgamemode(newfullscreen,newx,newy,newbpp))
 		OSD_Printf("vidmode: Mode change failed!\n");
+	screensize = xdim+1;
 	return OSDCMD_OK;
 }
 
@@ -395,9 +397,8 @@ long app_main(long argc, char *argv[])
 	long other, packleng;
 
 #ifdef USE_OPENGL
-	OSD_RegisterVariable("bpp", OSDVAR_INTEGER, &bitsperpixel, 0, osd_internal_validate_integer);
-	OSD_RegisterFunction("restartvid",0,"restartvid: reinitialise the video mode",osdcmd_restartvid);
-	OSD_RegisterFunction("vidmode",1,"vidmode [xdim ydim] [bpp]: immediately change the video mode",osdcmd_vidmode);
+	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
+	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
 #endif
 	
 	Bstrcpy(apptitle, "KenBuild by Ken Silverman");
@@ -4070,7 +4071,7 @@ void drawscreen(short snum, long dasmoothratio)
 		keystatus[0x3e] = 0;
 
 		if (keystatus[0x2a]|keystatus[0x36]) {
-			setgamemode(!fullscreen, xdim, ydim, bitsperpixel);
+			setgamemode(!fullscreen, xdim, ydim, bpp);
 		} else {
 
 			//cycle through all modes
@@ -4081,18 +4082,18 @@ void drawscreen(short snum, long dasmoothratio)
 				if ((validmodexdim[i] == xdim) &&
 					 (validmodeydim[i] == ydim) &&
 					(validmodefs[i] == fullscreen) &&
-					(validmodebpp[i] == bitsperpixel))
+					(validmodebpp[i] == bpp))
 					{ j=i; break; }
 
 			for (k=0; k<validmodecnt; k++)
-				if (validmodefs[k] == fullscreen && validmodebpp[k] == bitsperpixel) break;
+				if (validmodefs[k] == fullscreen && validmodebpp[k] == bpp) break;
 
 			if (j==-1) j=k;
 			else {
 				j++;
 				if (j==validmodecnt) j=k;
 			}
-			setgamemode(fullscreen,validmodexdim[j],validmodeydim[j],bitsperpixel);
+			setgamemode(fullscreen,validmodexdim[j],validmodeydim[j],bpp);
 		}
 		screensize = xdim+1;
 
@@ -4686,7 +4687,7 @@ void setup3dscreen(void)
 {
 	long i, dax, day, dax2, day2;
 
-	i = setgamemode(fullscreen,vesares[option[6]&15][0],vesares[option[6]&15][1],bitsperpixel);
+	i = setgamemode(fullscreen,vesares[option[6]&15][0],vesares[option[6]&15][1],bpp);
 	if (i < 0)
 	{
 		printf("Error setting video mode.\n");
