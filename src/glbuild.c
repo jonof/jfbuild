@@ -30,6 +30,7 @@ void (APIENTRY * bglHint)( GLenum target, GLenum mode );
 
 // Depth
 void (APIENTRY * bglDepthFunc)( GLenum func );
+void (APIENTRY * bglDepthMask)( GLboolean flag );
 void (APIENTRY * bglDepthRange)( GLclampd near_val, GLclampd far_val );
 
 // Matrix
@@ -150,6 +151,7 @@ int loadgldriver(const char *driver)
 
 	// Depth
 	bglDepthFunc		= GETPROC("glDepthFunc");
+	bglDepthMask		= GETPROC("glDepthMask");
 	bglDepthRange		= GETPROC("glDepthRange");
 
 	// Matrix
@@ -245,6 +247,7 @@ int unloadgldriver(void)
 
 	// Depth
 	bglDepthFunc		= NULL;
+	bglDepthMask		= NULL;
 	bglDepthRange		= NULL;
 
 	// Matrix

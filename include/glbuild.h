@@ -36,6 +36,7 @@ extern void (APIENTRY * bglHint)( GLenum target, GLenum mode );
 
 // Depth
 extern void (APIENTRY * bglDepthFunc)( GLenum func );
+extern void (APIENTRY * bglDepthMask)( GLboolean flag );
 extern void (APIENTRY * bglDepthRange)( GLclampd near_val, GLclampd far_val );
 
 // Matrix

@@ -68,6 +68,7 @@ Low priority:
 static long animateoffs(short tilenum, short fakevar);
 long rendmode = 0;
 long usemodels=1, usehightile=1;
+static GLuint polymosttext = 0;
 
 #include <math.h> //<-important!
 typedef struct { float x, cy[2], fy[2]; long n, p, tag, ctag, ftag; } vsptyp;
@@ -472,6 +473,10 @@ void polymost_glreset ()
 		}
 		clearskins();
 	}
+	
+	if (polymosttext) bglDeleteTextures(1,&polymosttext);
+	polymosttext=0;
+	
 	memset(gltexcachead,0,sizeof(gltexcachead));
 	glox1 = -1;
 }
@@ -3866,6 +3871,99 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 #else
 	return -1;
 #endif
+}
+
+long polymost_printext256(long xpos, long ypos, short col, short backcol, char *name, char fontsize)
+{
+	GLfloat tx, ty, txc, tyc;
+	int c;
+
+	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
+
+	if (!polymosttext) {
+		// construct a 256x128 8-bit alpha-only texture for the font glyph matrix
+		unsigned char *tbuf, *cptr, *tptr;
+		int h,i,j,l;
+
+		bglGenTextures(1,&polymosttext);
+		if (!polymosttext) return -1;
+
+		tbuf = (unsigned char *)Bmalloc(256*128);
+		if (!tbuf) {
+			bglDeleteTextures(1,&polymosttext);
+			polymosttext = 0;
+			return -1;
+		}
+		Bmemset(tbuf, 0, 256*128);
+
+		cptr = textfont;
+		for (h=0;h<256;h++) {
+			tptr = tbuf + (h%32)*8 + (h/32)*256*8;
+			for (i=0;i<8;i++) {
+				for (j=0;j<8;j++) {
+					if (cptr[h*8+i] & pow2char[7-j]) tptr[j] = 255;
+				}
+				tptr += 256;
+			}
+		}
+		
+		cptr = smalltextfont;
+		for (h=0;h<256;h++) {
+			tptr = tbuf + 256*64 + (h%32)*8 + (h/32)*256*8;
+			for (i=1;i<7;i++) {
+				for (j=2;j<6;j++) {
+					if (cptr[h*8+i] & pow2char[7-j]) tptr[j-2] = 255;
+				}
+				tptr += 256;
+			}
+		}
+
+		bglBindTexture(GL_TEXTURE_2D, polymosttext);
+		bglTexImage2D(GL_TEXTURE_2D,0,GL_ALPHA,256,128,0,GL_ALPHA,GL_UNSIGNED_BYTE,(GLvoid*)tbuf);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+		free(tbuf);
+	}
+	else bglBindTexture(GL_TEXTURE_2D, polymosttext);
+
+	setpolymost2dview();	// disables blending, texturing, and depth testing
+	bglDisable(GL_ALPHA_TEST);
+	bglDepthMask(GL_FALSE);	// disable writing to the z-buffer
+
+	if (backcol >= 0) {
+		bglColor4ub(curpalette[backcol].r,curpalette[backcol].g,curpalette[backcol].b,255);
+		c = Bstrlen(name);
+		
+		bglBegin(GL_QUADS);
+		bglVertex2i(xpos,ypos);
+		bglVertex2i(xpos,ypos+(fontsize?6:8));
+		bglVertex2i(xpos+(c<<(3-fontsize)),ypos+(fontsize?6:8));
+		bglVertex2i(xpos+(c<<(3-fontsize)),ypos);
+		bglEnd();
+	}
+
+	bglEnable(GL_TEXTURE_2D);
+	bglEnable(GL_BLEND);
+	bglColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
+	txc = fontsize ? (4.0/256.0) : (8.0/256.0);
+	tyc = fontsize ? (6.0/128.0) : (8.0/128.0);
+	bglBegin(GL_QUADS);
+	for (c=0; name[c]; c++) {
+		tx = (float)(name[c]%32)/32.0;
+		ty = (float)((name[c]/32) + (fontsize*8))/16.0;
+
+		bglTexCoord2f(tx,ty);         bglVertex2i(xpos,ypos);
+		bglTexCoord2f(tx+txc,ty);     bglVertex2i(xpos+(8>>fontsize),ypos);
+		bglTexCoord2f(tx+txc,ty+tyc); bglVertex2i(xpos+(8>>fontsize),ypos+(fontsize?6:8));
+		bglTexCoord2f(tx,ty+tyc);     bglVertex2i(xpos,ypos+(fontsize?6:8));
+		
+		xpos += (8>>fontsize);
+	}
+	bglEnd();
+
+	bglDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
+	
+	return 0;
 }
 
 // Console commands by JBF

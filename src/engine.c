@@ -9707,11 +9707,15 @@ void printext256(long xpos, long ypos, short col, short backcol, char *name, cha
 	else { fontptr = textfont; charxsiz = 8; }
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
+	if (!polymost_printext256(xpos,ypos,col,backcol,name,fontsize)) return;
+
 	if (rendmode == 3) {
 		long xx, yy;
 		int lc=-1;
 
-		setpolymost2dview();	// JBF 20040205: more efficient setup
+		setpolymost2dview();
+		bglDisable(GL_ALPHA_TEST);
+		bglDepthMask(GL_FALSE);	// disable writing to the z-buffer
 
 		bglBegin(GL_POINTS);
 		 
@@ -9739,6 +9743,7 @@ void printext256(long xpos, long ypos, short col, short backcol, char *name, cha
 		}
 
 		bglEnd();
+		bglDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
 
 		return;
 	}
