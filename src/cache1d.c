@@ -209,9 +209,11 @@ static void reportandexit(char *errormessage)
 	for(i=0;i<cacnum;i++)
 	{
 		Bprintf("%ld- ",i);
-		Bprintf("ptr: 0x%lx, ",*cac[i].hand);
+		if (cac[i].hand) Bprintf("ptr: 0x%lx, ",*cac[i].hand);
+		else Bprintf("ptr: NULL, ");
 		Bprintf("leng: %ld, ",cac[i].leng);
-		Bprintf("lock: %d\n",*cac[i].lock);
+		if (cac[i].lock) Bprintf("lock: %d\n",*cac[i].lock);
+		else Bprintf("lock: NULL\n");
 		j += cac[i].leng;
 	}
 	Bprintf("Cachesize = %ld\n",cachesize);
