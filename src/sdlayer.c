@@ -265,7 +265,7 @@ int initinput(void)
 	SDL_EnableUNICODE(1);	// let's hope this doesn't hit us too hard
 
 	memset(keynames,0,sizeof(keynames));
-	for (i=0; i<SDLK_LAST; i++) 
+	for (i=0; i<SDLK_LAST; i++) {
 		if (!keytranslation[i]) continue;
 		strncpy(keynames[ keytranslation[i] ], SDL_GetKeyName(i), sizeof(keynames[i])-1);
 	}
