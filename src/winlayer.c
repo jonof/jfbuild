@@ -1869,15 +1869,15 @@ static void cdsenummodes(void)
 				 && modes[i].bpp == dm.dmBitsPerPel)
 					break;
 			}
-			if (i==nmodes || (dm.dmDisplayFrequency <= maxrefreshfreq && maxrefreshfreq > 0)) {
-				if (i==nmodes || dm.dmDisplayFrequency > modes[i].freq) {
-					if (i==nmodes) nmodes++;
+			if ((i==nmodes) ||
+			    (dm.dmDisplayFrequency <= maxrefreshfreq && dm.dmDisplayFrequency > modes[i].freq && maxrefreshfreq > 0) ||
+			    (dm.dmDisplayFrequency > modes[i].freq && maxrefreshfreq == 0)) {
+				if (i==nmodes) nmodes++;
 
-					modes[i].x = dm.dmPelsWidth;
-					modes[i].y = dm.dmPelsHeight;
-					modes[i].bpp = dm.dmBitsPerPel;
-					modes[i].freq = dm.dmDisplayFrequency;
-				}
+				modes[i].x = dm.dmPelsWidth;
+				modes[i].y = dm.dmPelsHeight;
+				modes[i].bpp = dm.dmBitsPerPel;
+				modes[i].freq = dm.dmDisplayFrequency;
 			}
 		}
 		

@@ -217,7 +217,7 @@ EXTERN char gotsector[(MAXSECTORS+7)>>3];
 
 EXTERN char captureformat;
 extern char vgapalette[5*256];
-extern long drawlinepat;
+extern unsigned long drawlinepat;
 
 extern void faketimerhandler(void);
 
