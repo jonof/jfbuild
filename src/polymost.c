@@ -1609,6 +1609,8 @@ long testvisiblemost (float x0, float x1)
 	return(0);
 }
 
+static long domostpolymethod = 0;
+
 void domost (float x0, float y0, float x1, float y1)
 {
 	double dpx[4], dpy[4];
@@ -1728,24 +1730,24 @@ void domost (float x0, float y0, float x1, float y1)
 					case 1: case 2:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
-						dpx[2] = dx0; dpy[2] = ny0; drawpoly(dpx,dpy,3,0);
+						dpx[2] = dx0; dpy[2] = ny0; drawpoly(dpx,dpy,3,domostpolymethod);
 						vsp[i].cy[0] = ny0; vsp[i].ctag = gtag; break;
 					case 3: case 6:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
-						dpx[2] = dx1; dpy[2] = ny1; drawpoly(dpx,dpy,3,0);
+						dpx[2] = dx1; dpy[2] = ny1; drawpoly(dpx,dpy,3,domostpolymethod);
 						vsp[i].cy[1] = ny1; vsp[i].ctag = gtag; break;
 					case 4: case 5: case 7:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = ny1;
-						dpx[3] = dx0; dpy[3] = ny0; drawpoly(dpx,dpy,4,0);
+						dpx[3] = dx0; dpy[3] = ny0; drawpoly(dpx,dpy,4,domostpolymethod);
 						vsp[i].cy[0] = ny0; vsp[i].cy[1] = ny1; vsp[i].ctag = gtag; break;
 					case 8:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,0);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod);
 						vsp[i].ctag = vsp[i].ftag = -1; break;
 					default: break;
 				}
@@ -1757,24 +1759,24 @@ void domost (float x0, float y0, float x1, float y1)
 					case 7: case 6:
 						dpx[0] = dx0; dpy[0] = ny0;
 						dpx[1] = dx1; dpy[1] = vsp[i].fy[1];
-						dpx[2] = dx0; dpy[2] = vsp[i].fy[0]; drawpoly(dpx,dpy,3,0);
+						dpx[2] = dx0; dpy[2] = vsp[i].fy[0]; drawpoly(dpx,dpy,3,domostpolymethod);
 						vsp[i].fy[0] = ny0; vsp[i].ftag = gtag; break;
 					case 5: case 2:
 						dpx[0] = dx0; dpy[0] = vsp[i].fy[0];
 						dpx[1] = dx1; dpy[1] = ny1;
-						dpx[2] = dx1; dpy[2] = vsp[i].fy[1]; drawpoly(dpx,dpy,3,0);
+						dpx[2] = dx1; dpy[2] = vsp[i].fy[1]; drawpoly(dpx,dpy,3,domostpolymethod);
 						vsp[i].fy[1] = ny1; vsp[i].ftag = gtag; break;
 					case 4: case 3: case 1:
 						dpx[0] = dx0; dpy[0] = ny0;
 						dpx[1] = dx1; dpy[1] = ny1;
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,0);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod);
 						vsp[i].fy[0] = ny0; vsp[i].fy[1] = ny1; vsp[i].ftag = gtag; break;
 					case 0:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,0);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod);
 						vsp[i].ctag = vsp[i].ftag = -1; break;
 					default: break;
 				}
@@ -1813,8 +1815,15 @@ static void polymost_drawalls (long bunch)
 
 #ifdef USE_OPENGL
 	if (!nofog) {
-	if (rendmode == 3)
-		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
+		if (rendmode == 3) {
+			float col[4];
+			col[0] = (float)palookupfog[sec->floorpal].r / 63.f;
+			col[1] = (float)palookupfog[sec->floorpal].g / 63.f;
+			col[2] = (float)palookupfog[sec->floorpal].b / 63.f;
+			col[3] = 0;
+			bglFogfv(GL_FOG_COLOR,col);
+			bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
+		}
 	}
 #endif
 
@@ -1969,7 +1978,9 @@ static void polymost_drawalls (long bunch)
 												  else { gux *= r; guy *= r; guo *= r; }
 				}
 			}
+			domostpolymethod = (globalorientation>>7)&3;
 			pow2xsplit = 0; domost(x0,fy0,x1,fy1); //flor
+			domostpolymethod = 0;
 		}
 		else if ((nextsectnum < 0) || (!(sector[nextsectnum].floorstat&1)))
 		{
@@ -1978,10 +1989,10 @@ static void polymost_drawalls (long bunch)
 			if (rendmode == 3)
 			{
 				if (!nofog) {
-				bglDisable(GL_FOG);
-				//r = ((float)globalpisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE;
-				//r *= ((double)xdimscale*(double)viewingrange*gdo) / (65536.0*65536.0);
-				//bglFogf(GL_FOG_DENSITY,r);
+					bglDisable(GL_FOG);
+					//r = ((float)globalpisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE;
+					//r *= ((double)xdimscale*(double)viewingrange*gdo) / (65536.0*65536.0);
+					//bglFogf(GL_FOG_DENSITY,r);
 				}
 
 					//Use clamping for tiled sky textures
@@ -2205,8 +2216,8 @@ static void polymost_drawalls (long bunch)
 			{
 				skyclamphack = 0;
 				if (!nofog) {
-				bglEnable(GL_FOG);
-				//bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
+					bglEnable(GL_FOG);
+					//bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
 				}
 			}
 #endif
@@ -2311,7 +2322,9 @@ static void polymost_drawalls (long bunch)
 												  else { gux *= r; guy *= r; guo *= r; }
 				}
 			}
+			domostpolymethod = (globalorientation>>7)&3;
 			pow2xsplit = 0; domost(x1,cy1,x0,cy0); //ceil
+			domostpolymethod = 0;
 		}
 		else if ((nextsectnum < 0) || (!(sector[nextsectnum].ceilingstat&1)))
 		{
@@ -2319,10 +2332,10 @@ static void polymost_drawalls (long bunch)
 			if (rendmode == 3)
 			{
 				if (!nofog) {
-				bglDisable(GL_FOG);
-				//r = ((float)globalpisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE;
-				//r *= ((double)xdimscale*(double)viewingrange*gdo) / (65536.0*65536.0);
-				//bglFogf(GL_FOG_DENSITY,r);
+					bglDisable(GL_FOG);
+					//r = ((float)globalpisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE;
+					//r *= ((double)xdimscale*(double)viewingrange*gdo) / (65536.0*65536.0);
+					//bglFogf(GL_FOG_DENSITY,r);
 				}
 
 					//Use clamping for tiled sky textures
@@ -2545,8 +2558,8 @@ static void polymost_drawalls (long bunch)
 			{
 				skyclamphack = 0;
 				if (!nofog) {
-				bglEnable(GL_FOG);
-				//bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
+					bglEnable(GL_FOG);
+					//bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
 				}
 			}
 #endif
@@ -3138,8 +3151,15 @@ void polymost_drawmaskwall (long damaskwallcnt)
 
 #ifdef USE_OPENGL
 	if (!nofog) {
-	if (rendmode == 3)
-		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
+		if (rendmode == 3) {
+			float col[4];
+			col[0] = (float)palookupfog[sec->floorpal].r / 63.f;
+			col[1] = (float)palookupfog[sec->floorpal].g / 63.f;
+			col[2] = (float)palookupfog[sec->floorpal].b / 63.f;
+			col[3] = 0;
+			bglFogfv(GL_FOG_COLOR,col);
+			bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
+		}
 	}
 #endif
 
@@ -3219,6 +3239,8 @@ void polymost_drawsprite (long snum)
 	spritetype *tspr;
 
 	tspr = tspriteptr[snum];
+	if (tspr->owner < 0) return;
+
 	globalpicnum      = tspr->picnum;
 	globalshade       = tspr->shade;
 	globalpal         = tspr->pal;
@@ -3234,8 +3256,15 @@ void polymost_drawsprite (long snum)
 
 #ifdef USE_OPENGL
 	if (!nofog) {
-	if (rendmode == 3)
-		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16))));
+		if (rendmode == 3) {
+			float col[4];
+			col[0] = (float)palookupfog[sector[tspr->sectnum].floorpal].r / 63.f;
+			col[1] = (float)palookupfog[sector[tspr->sectnum].floorpal].g / 63.f;
+			col[2] = (float)palookupfog[sector[tspr->sectnum].floorpal].b / 63.f;
+			col[3] = 0;
+			bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
+			bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16))));
+		}
 	}
 #endif
 
@@ -4060,4 +4089,4 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 #endif
 }
 
-// vim:ts=4:sw=4:tw=0:
+// vim:ts=4:sw=4:

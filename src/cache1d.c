@@ -204,6 +204,7 @@ void agecache(void)
 	char ch;
 
 	if (agecount >= cacnum) agecount = cacnum-1;
+	if (agecount < 0) return;
 	for(cnt=(cacnum>>4);cnt>=0;cnt--)
 	{
 		ch = (*cac[agecount].lock);

@@ -445,6 +445,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			}
 			if (fp) setvbuf(fp, 0, _IONBF, 0);
 			*stdout = *fp;
+			*stderr = *fp;
 		}
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
@@ -2352,7 +2353,7 @@ int setpalette(int start, int num, char *dapal)
 		lpal.palPalEntry[i].peRed = dapal[2] << 2;
 		*/
 		curpalettefaded[i].f = lpal.palPalEntry[i].peFlags = PC_RESERVED | PC_NOCOLLAPSE;
-		dapal += 4;
+		//dapal += 4;
 	}
 
 

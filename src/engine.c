@@ -85,6 +85,9 @@ static unsigned char tempbuf[MAXWALLS];
 
 long ebpbak, espbak;
 long slopalookup[16384];	// was 2048
+#if defined(USE_OPENGL)
+static palette_t palookupfog[MAXPALOOKUPS];
+#endif
 
 static char permanentlock = 255;
 long artversion, mapversion=7L;	// JBF 20040211: default mapversion to 7
@@ -3090,7 +3093,8 @@ static void drawsprite(long snum)
 	cstat = tspr->cstat;
 
 #ifdef SUPERBUILD
-	if (((cstat&48)!=48) && (bpp == 8) && (usevoxels) && (tiletovox[tilenum] != -1)
+	if (((cstat&48)==48) && (bpp==8)) vtilenum = tilenum;	// if the game wants voxels, it gets voxels
+	else if (((cstat&48)!=48) && (bpp == 8) && (usevoxels) && (tiletovox[tilenum] != -1)
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	    && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD2))
 #endif
@@ -6846,7 +6850,11 @@ long setsprite(short spritenum, long newx, long newy, long newz)
 	sprite[spritenum].z = newz;
 
 	tempsectnum = sprite[spritenum].sectnum;
+#ifdef SETSPRITEZ
+	updatesectorz(newx,newy,newz,&tempsectnum);
+#else
 	updatesector(newx,newy,&tempsectnum);
+#endif
 	if (tempsectnum < 0)
 		return(-1);
 	if (tempsectnum != sprite[spritenum].sectnum)
@@ -7961,7 +7969,7 @@ long pushmove (long *x, long *y, long *z, short *sectnum,
 
 
 //
-// updatesector
+// updatesector[z]
 //
 void updatesector(long x, long y, short *sectnum)
 {
@@ -7994,6 +8002,44 @@ void updatesector(long x, long y, short *sectnum)
 			*sectnum = i;
 			return;
 		}
+
+	*sectnum = -1;
+}
+
+void updatesectorz(long x, long y, long z, short *sectnum)
+{
+	walltype *wal;
+	long i, j, cz, fz;
+
+	getzsofslope(*sectnum, x, y, &cz, &fz);
+	if ((z >= cz) && (z <= fz))
+		if (inside(x,y,*sectnum) != 0) return;
+
+	if ((*sectnum >= 0) && (*sectnum < numsectors))
+	{
+		wal = &wall[sector[*sectnum].wallptr];
+		j = sector[*sectnum].wallnum;
+		do
+		{
+			i = wal->nextsector;
+			if (i >= 0)
+			{
+				getzsofslope(i, x, y, &cz, &fz);
+				if ((z >= cz) && (z <= fz))
+					if (inside(x,y,(short)i) == 1)
+						{ *sectnum = i; return; }
+			}
+			wal++; j--;
+		} while (j != 0);
+	}
+
+	for (i=numsectors-1;i>=0;i--)
+	{
+		getzsofslope(i, x, y, &cz, &fz);
+		if ((z >= cz) && (z <= fz))
+			if (inside(x,y,(short)i) == 1)
+				{ *sectnum = i; return; }
+	}
 
 	*sectnum = -1;
 }
@@ -8395,6 +8441,11 @@ void makepalookup(long palnum, char *remapbuf, signed char r, signed char g, sig
 			for(j=0;j<numpalookups;j++)
 				{ *ptr2 = *ptr; ptr += 256; ptr2 += 256; }
 		}
+#if defined(USE_OPENGL)
+		palookupfog[palnum].r = 0;
+		palookupfog[palnum].g = 0;
+		palookupfog[palnum].b = 0;
+#endif
 	}
 	else
 	{
@@ -8410,6 +8461,11 @@ void makepalookup(long palnum, char *remapbuf, signed char r, signed char g, sig
 							(long)ptr[2]+mulscale16(b-ptr[2],palscale));
 			}
 		}
+#if defined(USE_OPENGL)
+		palookupfog[palnum].r = r;
+		palookupfog[palnum].g = g;
+		palookupfog[palnum].b = b;
+#endif
 	}
 }
 
@@ -8434,7 +8490,8 @@ void setbrightness(char dabrightness, char *dapal, char noapply)
 	long i, k;
 	//float f;
 
-	curbrightness = min(max((long)dabrightness,0),15);
+	if (!(noapply&4))
+		curbrightness = min(max((long)dabrightness,0),15);
 
 	//f = -1.0 - ((float)curbrightness / 30.0);
 	//if (setgamma(f,f,f)) {

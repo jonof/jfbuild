@@ -56,7 +56,7 @@ int Bopen(const char *pathname, int flags, unsigned mode)
 {
 	int n=0,o=0;
 	
-	if (flags&BO_BINARY) n|=O_TEXT; else n|=O_BINARY;
+	if (flags&BO_BINARY) n|=O_BINARY; else n|=O_TEXT;
 	if ((flags&BO_RDWR)==BO_RDWR) n|=O_RDWR;
 	else if ((flags&BO_RDWR)==BO_WRONLY) n|=O_WRONLY;
 	else if ((flags&BO_RDWR)==BO_RDONLY) n|=O_RDONLY;
@@ -669,4 +669,22 @@ long wildmatch (const char *i, const char *j)
 	} while (*j);
 	return(!*i);
 }
+
+#if !defined(WINDOWS)
+char *Bstrlwr(char *s)
+{
+	char *t = s;
+	if (!s) return s;
+	while (*t) { *t = Btolower(*t); t++; }
+	return s;
+}
+
+char *Bstrupr(char *s)
+{
+	char *t = s;
+	if (!s) return s;
+	while (*t) { *t = Btoupper(*t); t++; }
+	return s;
+}
+#endif
 

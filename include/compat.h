@@ -184,6 +184,10 @@ typedef signed   long bssize_t;
 #define Bstrcasecmp strcasecmp
 #define Bstrncasecmp strncasecmp
 #endif
+#if defined(WINDOWS)
+#define Bstrlwr strlwr
+#define Bstrupr strupr
+#endif
 #define Bstrcat strcat
 #define Bstrncat strncat
 #define Bstrlen strlen
@@ -270,6 +274,11 @@ char *Bgetsystemdrives(void);
 bsize_t Bfilelength(int fd);
 char *Bstrtoken(char *s, char *delim, char **ptrptr, int chop);
 long wildmatch (const char *i, const char *j);
+
+#if !defined(WINDOWS)
+char *Bstrlwr(char *);
+char *Bstrupr(char *);
+#endif
 
 #endif // __compat_h__
 

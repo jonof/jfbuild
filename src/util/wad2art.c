@@ -277,5 +277,7 @@ int main(int argc, char **argv)
 	Bclose(fil1);
 
 	printf("Congratulations!  Your disk actually had enough space this time!\n");
+
+	return 0;
 }
 

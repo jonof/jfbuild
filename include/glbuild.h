@@ -117,6 +117,7 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 
 // Depth
 #define bglDepthFunc		glDepthFunc
+#define bglDepthMask		glDepthMask
 #define bglDepthRange		glDepthRange
 
 // Matrix

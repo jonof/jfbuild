@@ -22,7 +22,7 @@ ifeq ($(findstring Linux,$(uname)),Linux)
 		LIBS+= $(GLLIBLIN)
 	endif
 else
-	ifeq ($(findstring MINGW32,$(uname)),MINGW32)
+	ifeq ($(findstring MINGW,$(uname)),MINGW)
 		PLATFORM=WINDOWS
 		EXESUFFIX=.exe
 		LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -lws2_32

@@ -392,6 +392,7 @@ long   hitscan(long xs, long ys, long zs, short sectnum, long vx, long vy, long 
 long   neartag(long xs, long ys, long zs, short sectnum, short ange, short *neartagsector, short *neartagwall, short *neartagsprite, long *neartaghitdist, long neartagrange, char tagsearch);
 long   cansee(long x1, long y1, long z1, short sect1, long x2, long y2, long z2, short sect2);
 void   updatesector(long x, long y, short *sectnum);
+void   updatesectorz(long x, long y, long z, short *sectnum);
 long   inside(long x, long y, short sectnum);
 void   dragpoint(short pointhighlight, long dax, long day);
 void   setfirstwall(short sectnum, short newfirstwall);

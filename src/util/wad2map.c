@@ -1608,6 +1608,8 @@ int main(int argc, char **argv)
 	Bclose(fil);
 
 	printf("Map converted.\n");
+
+	return 0;
 }
 
 
