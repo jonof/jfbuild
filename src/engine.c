@@ -115,8 +115,7 @@ char britable[16][256];	// JBF 20040207: full 8bit precision
 #include "smalltextfont.c"
 
 static char kensmessage[128];
-
-static int rendmodebak = -1;
+char *engineerrstr = "No error";
 
 
 #if defined(USE_WATCOM_PRAGMAS)
@@ -4973,7 +4972,8 @@ static int loadtables(void)
 
 			kclose(fil);
 		} else {
-			initprintf("ERROR: Failed to load TABLES.DAT!\n");
+			engineerrstr = "Failed to load TABLES.DAT!";
+			initprintf("ERROR: %s\n", engineerrstr);
 			return 1;
 		}
 		tablesloaded = 1;
@@ -6122,6 +6122,7 @@ long loadmaphack(char *filename)
 		{ "angleoff", 1 },
 		{ "angoff", 1 },
 		{ "notmd2", 2 },
+		{ "nomd2anim", 3 },
 		{ NULL, -1 }
 	};
 
@@ -6177,11 +6178,20 @@ long loadmaphack(char *filename)
 			case 2:		// notmd2
 				if (whichsprite < 0) {
 					// no sprite directive preceeding
-						initprintf("Ignoring not-MD2 directive because of absent/invalid sprite number on line %s:%d\n",
+					initprintf("Ignoring not-MD2 directive because of absent/invalid sprite number on line %s:%d\n",
 							script->filename, script->linenum);
 					break;
 				}
 				spriteext[whichsprite].flags |= SPREXT_NOTMD2;
+				break;
+			case 3:		// nomd2anim
+				if (whichsprite < 0) {
+					// no sprite directive preceeding
+					initprintf("Ignoring no-MD2-anim directive because of absent/invalid sprite number on line %s:%d\n",
+							script->filename, script->linenum);
+					break;
+				}
+				spriteext[whichsprite].flags |= SPREXT_NOMD2ANIM;
 				break;
 			default:
 				// unrecognised token

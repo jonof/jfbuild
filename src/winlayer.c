@@ -173,6 +173,37 @@ void win_allowtaskswitching(int onf)
 
 
 //
+// wm_msgbox/wm_ynbox() -- window-manager-provided message boxes
+//
+int wm_msgbox(char *name, char *fmt, ...)
+{
+	char buf[1000];
+	va_list va;
+
+	va_start(va,fmt);
+	vsprintf(buf,fmt,va);
+	va_end(va);
+
+	MessageBox(hWindow,buf,name,MB_OK|MB_TASKMODAL);
+	return 0;
+}
+int wm_ynbox(char *name, char *fmt, ...)
+{
+	char buf[1000];
+	va_list va;
+	int r;
+
+	va_start(va,fmt);
+	vsprintf(buf,fmt,va);
+	va_end(va);
+
+	r = MessageBox((HWND)win_gethwnd(),buf,name,MB_YESNO|MB_TASKMODAL);
+	if (r==IDYES) return 1;
+	return 0;
+}
+
+
+//
 // SignalHandler() -- called when we've sprung a leak
 //
 static void SignalHandler(int signum)

@@ -7,7 +7,7 @@ $(OBJ)cache1d.$o: $(SRC)cache1d.c $(INC)compat.h $(INC)cache1d.h $(INC)pragmas.h
 $(OBJ)engine.$o: $(SRC)engine.c $(SRC)polymost.c $(INC)kplib.h $(SRC)hightile.c $(SRC)md2sprite.c $(INC)compat.h $(INC)build.h $(INC)pragmas.h $(INC)cache1d.h $(INC)a.h $(INC)osd.h $(INC)baselayer.h
 $(OBJ)a.$o: $(SRC)a.$(asm)
 $(OBJ)a-c.$o: $(SRC)a-c.c $(INC)a.h
-$(OBJ)sdlayer.$o: $(SRC)sdlayer.c $(INC)compat.h $(INC)sdlayer.h $(INC)baselayer.h $(INC)cache1d.h $(INC)pragmas.h $(INC)a.h $(INC)build.h $(INC)osd.h $(INC)glbuild.h
+$(OBJ)sdlayer.$o: $(SRC)sdlayer.c $(SRC)sdlayer_extra.c $(INC)compat.h $(INC)sdlayer.h $(INC)baselayer.h $(INC)cache1d.h $(INC)pragmas.h $(INC)a.h $(INC)build.h $(INC)osd.h $(INC)glbuild.h
 $(OBJ)winlayer.$o: $(SRC)winlayer.c $(INC)compat.h $(INC)winlayer.h $(INC)baselayer.h $(INC)pragmas.h $(INC)build.h $(INC)a.h $(INC)osd.h $(INC)dxdidf.h $(INC)glbuild.h
 $(OBJ)baselayer.$o: $(SRC)baselayer.c $(INC)compat.h $(INC)baselayer.h $(INC)build.h $(INC)osd.h
 $(OBJ)glbuild.$o: $(SRC)glbuild.c $(INC)glbuild.h $(INC)baselayer.h

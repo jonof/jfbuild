@@ -241,7 +241,6 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 static long md2tims, omd2tims;
 #include "md2sprite.c"
 
-
 //--------------------------------------------------------------------------------------------------
 //TEXTURE MANAGEMENT: treats same texture with different .PAL as a separate texture. This makes the
 //   max number of virtual textures very large (MAXTILES*256). Instead of allocating a handle for
@@ -504,7 +503,7 @@ void resizeglcheck ()
 		bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
 		}
 
-		bglEnable(GL_TEXTURE_2D);
+		//bglEnable(GL_TEXTURE_2D);
 		bglBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 	}
 }
@@ -962,8 +961,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 
 		if (!(method&3)) bglDisable(GL_BLEND); else bglEnable(GL_BLEND);
 
-		//bglEnable(GL_ALPHA_TEST);
-		//bglAlphaFunc(GL_GREATER,0.5);
+		bglEnable(GL_ALPHA_TEST); bglAlphaFunc(GL_GREATER,0.5);
 
 		if (!dorot)
 		{
@@ -2815,7 +2813,7 @@ void polymost_drawrooms ()
 		resizeglcheck();
 
 		//bglClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-		//bglEnable(GL_TEXTURE_2D);
+		bglEnable(GL_TEXTURE_2D);
 		//bglTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE); //default anyway
 		bglEnable(GL_DEPTH_TEST);
 		bglDepthFunc(GL_ALWAYS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
@@ -3565,6 +3563,7 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 			bglLoadIdentity();
 		}
 		bglDisable(GL_DEPTH_TEST);
+		bglEnable(GL_TEXTURE_2D);
 	}
 #endif
 

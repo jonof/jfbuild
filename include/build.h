@@ -149,6 +149,7 @@ typedef struct BPACK {
 	short angoff;
 } spriteexttype;
 #define SPREXT_NOTMD2 1
+#define SPREXT_NOMD2ANIM 2
 EXTERN spriteexttype spriteext[MAXSPRITES];
 #endif
 
@@ -234,8 +235,10 @@ extern long tiletovox[MAXTILES];
 extern long usevoxels;
 #endif
 #ifdef POLYMOST
-extern long usemodels;
+extern long usemodels, usehightile;
 #endif
+
+extern char *engineerrstr;
 
 /*************************************************************************
 POSITION VARIABLES:

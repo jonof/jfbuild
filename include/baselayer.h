@@ -100,6 +100,8 @@ int setgamma(float ro, float go, float bo);
 
 int switchrendermethod(int,int);	// 0 = software, 1 = opengl | bool = reinit
 
+int wm_msgbox(char *name, char *fmt, ...);
+int wm_ynbox(char *name, char *fmt, ...);
 
 // baselayer.c
 int baselayer_init();

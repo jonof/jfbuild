@@ -508,7 +508,8 @@ static void md2draw (float time, spritetype *tspr)
 		  anim = anim->next) ;
 	if (anim)
 	{
-		if (((long)spriteext[tspr->owner].md2animcur) != anim->startframe)
+		if (((long)spriteext[tspr->owner].md2animcur) != anim->startframe ||
+				(spriteext[tspr->owner].flags & SPREXT_NOMD2ANIM))
 		{
 			spriteext[tspr->owner].md2animcur = (short)anim->startframe;
 			spriteext[tspr->owner].md2animtims = md2tims;
@@ -648,7 +649,7 @@ static void md2draw (float time, spritetype *tspr)
 	if (m->usesalpha) //Sprites with alpha in texture
 	{
 		bglEnable(GL_BLEND);// bglBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-		bglEnable(GL_ALPHA_TEST);// bglAlphaFunc(GL_GREATER,0.5);
+		bglEnable(GL_ALPHA_TEST); bglAlphaFunc(GL_GREATER,0.5);
 	}
 	else
 	{

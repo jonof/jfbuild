@@ -106,7 +106,10 @@ int ExtInit(void)
 
 	if (option[4] > 0) option[4] = 0;
 	if (initengine()) {
-		initprintf("There was a problem initialising the engine.\n");
+#ifdef RENDERTYPEWIN
+		wm_msgbox("Build Engine Initialisation Error",
+				"There was a problem initialising the Build engine: %s", engineerrstr);
+#endif
 		return -1;
 	}
 	initinput();

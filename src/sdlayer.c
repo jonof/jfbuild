@@ -85,6 +85,7 @@ static unsigned char keytranslation[SDLK_LAST] = {
 
 //static SDL_Surface * loadtarga(const char *fn);		// for loading the icon
 
+#include "sdlayer_extra.c"
 
 //
 //
