@@ -95,7 +95,7 @@ static int defsparser(scriptfile *script)
 
 						included = scriptfile_fromfile(fn);
 						if (!included) {
-							initprintf("Failure including %s on line %s:%d\n",
+							initprintf("Warning: Failed including %s on line %s:%d\n",
 									fn, script->filename,script->linenum);
 						} else {
 							defsparser(included);
@@ -124,7 +124,7 @@ static int defsparser(scriptfile *script)
 					}
 
 					if (scriptfile_addsymbolvalue(name,number) < 0)
-						initprintf("Symbol %s was not redefined to %d on line %s:%d\n",
+						initprintf("Warning: Symbol %s was NOT redefined to %d on line %s:%d\n",
 								name,number,script->filename,script->linenum);
 					break;
 				}

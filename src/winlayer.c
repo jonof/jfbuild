@@ -109,7 +109,7 @@ char videomodereset = 0;
 
 // input and events
 char inputdevices=0;
-char quitevent=0, appactive=1;
+char quitevent=0, appactive=1, mousegrab=1;
 short mousex=0, mousey=0, mouseb=0,mouseba[2];
 long joyaxis[16], joyb=0;
 char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
@@ -198,6 +198,7 @@ static void SignalHandler(int signum)
 #define ITEMBITMAP 100
 #define ITEMTEXT 101
 #define ITEMLIST 102
+// An overlayed child dialog should have the DS_CONTROL style and be 248x172 in size
 static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	static HBITMAP hbmp = NULL;
@@ -767,7 +768,9 @@ void grabmouse(char a)
 {
 	if (!moustat) return;
 
-	AcquireInputDevices(a);
+	AcquireInputDevices(128|a);	// only release or grab the mouse
+
+	mousegrab = a;
 
 	mousex = 0;
 	mousey = 0;
@@ -780,7 +783,7 @@ void grabmouse(char a)
 //
 void readmousexy(short *x, short *y)
 {
-	if (!inputacquired) { *x = *y = 0; return; }
+	if (!inputacquired || !mousegrab) { *x = *y = 0; return; }
 	*x = mousex;
 	*y = mousey;
 	mousex = 0;
@@ -793,7 +796,7 @@ void readmousexy(short *x, short *y)
 //
 void readmousebstatus(short *b)
 {
-	if (!inputacquired) *b = 0;
+	if (!inputacquired || !mousegrab) *b = 0;
 	else *b = mouseb;
 }
 
@@ -1178,10 +1181,12 @@ static void AcquireInputDevices(char acquire)
 
 	inputacquired = acquire;
 
-	if (acquire) {
+	if (acquire&127) {
 		if (!appactive) return;		// why acquire when inactive?
 		for (i=0; i<NUM_INPUTS; i++) {
 			if (! *devicedef[i].did) continue;
+			if ((acquire & 128) && i != MOUSE) continue;	// don't touch other devices if only the mouse is wanted
+			else if (!(acquire&128) && !mousegrab && i == MOUSE) continue;	// don't grab the mouse if we don't want it grabbed
 			
 			IDirectInputDevice2_Unacquire(*devicedef[i].did);
 
@@ -1203,6 +1208,7 @@ static void AcquireInputDevices(char acquire)
 		
 		for (i=0; i<NUM_INPUTS; i++) {
 			if (! *devicedef[i].did) continue;
+			if ((acquire & 128) && i != MOUSE) continue;	// don't touch other devices if only the mouse is wanted
 			
 			IDirectInputDevice2_Unacquire(*devicedef[i].did);
 			
@@ -1255,18 +1261,20 @@ static void ProcessInputDevices(void)
 	}
 
 	// do this here because we only want the wheel to signal once, but hold the state for a moment
-	if (mouseba[0]>0) {
-		if (mouseba[0]<16) mouseba[0]++;
-		else {
-			if (mousepresscallback) mousepresscallback(5,0);
-			mouseba[0]=0; mouseb &= ~16;
+	if (mousegrab) {
+		if (mouseba[0]>0) {
+			if (mouseba[0]<16) mouseba[0]++;
+			else {
+				if (mousepresscallback) mousepresscallback(5,0);
+				mouseba[0]=0; mouseb &= ~16;
+			}
 		}
-	}
-	if (mouseba[1]>0) {
-		if (mouseba[1]<16) mouseba[1]++;
-		else {
-			if (mousepresscallback) mousepresscallback(6,0);
-			mouseba[1]=0; mouseb &= ~32;
+		if (mouseba[1]>0) {
+			if (mouseba[1]<16) mouseba[1]++;
+			else {
+				if (mousepresscallback) mousepresscallback(6,0);
+				mouseba[1]=0; mouseb &= ~32;
+			}
 		}
 	}
 
@@ -1311,6 +1319,8 @@ static void ProcessInputDevices(void)
 				if (!lpDID[MOUSE]) break;
 				result = IDirectInputDevice2_GetDeviceData(lpDID[MOUSE], sizeof(DIDEVICEOBJECTDATA),
 						(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
+
+				if (!mousegrab) break;
 
 				if (result == DI_OK) {
 					// process the mouse events
@@ -3251,7 +3261,7 @@ static BOOL RegisterWindowClass(void)
 	wcx.hInstance	= hInstance;
 	wcx.hIcon	= LoadImage(hInstance, MAKEINTRESOURCE(100), IMAGE_ICON,
 				GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR);
-	wcx.hCursor	= LoadCursor(hInstance, IDC_ARROW);
+	wcx.hCursor	= LoadCursor(NULL, IDC_ARROW);
 	wcx.hbrBackground = (HBRUSH)COLOR_GRAYTEXT;
 	wcx.lpszMenuName = NULL;
 	wcx.lpszClassName = WindowClass;

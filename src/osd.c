@@ -740,6 +740,7 @@ void OSD_ShowDisplay(int onf)
 	osdeditcontrol = 0;
 	osdeditshift = 0;
 
+	grabmouse(osdvisible == 0);
 	onshowosd(osdvisible);
 	if (osdvisible) releaseallbuttons();
 }
