@@ -26,25 +26,6 @@
 static long crctable[256];
 static char kensig[24];
 
-extern int ExtInit(void);
-extern void ExtUnInit(void);
-extern void ExtPreCheckKeys(void);
-#ifdef SUPERBUILD
-extern void ExtAnalyzeSprites(void);
-#endif
-extern void ExtCheckKeys(void);
-extern void ExtLoadMap(const char *mapname);
-extern void ExtSaveMap(const char *mapname);
-extern const char *ExtGetSectorCaption(short sectnum);
-extern const char *ExtGetWallCaption(short wallnum);
-extern const char *ExtGetSpriteCaption(short spritenum);
-extern void ExtShowSectorData(short sectnum);
-extern void ExtShowWallData(short wallnum);
-extern void ExtShowSpriteData(short spritenum);
-extern void ExtEditSectorData(short sectnum);
-extern void ExtEditWallData(short wallnum);
-extern void ExtEditSpriteData(short spritenum);
-
 
 long vel, svel, angvel;
 
@@ -304,6 +285,7 @@ int app_main(int argc, char **argv)
 	for(i=0;i<MAXWALLS;i++) wall[i].extra = -1;
 	for(i=0;i<MAXSPRITES;i++) sprite[i].extra = -1;
 
+	ExtPreLoadMap();
 	if (loadboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum) == -1)
 	{
 		initspritelists();
@@ -400,6 +382,7 @@ int app_main(int argc, char **argv)
 				keystatus[0x15] = 0;
 
 				updatesector(startposx,startposy,&startsectnum);
+				ExtPreSaveMap();
 				saveboard(boardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
 				ExtSaveMap(boardfilename);
 				break;
@@ -3248,7 +3231,7 @@ void overheadeditor(void)
 				{
 					i = pointhighlight-16384;
 					Bsprintf(buffer,"Sprite (%ld) Lo-tag: ",i);
-					sprite[i].lotag = getnumber16(buffer,sprite[i].lotag,65536L);
+					sprite[i].lotag = getnumber16(buffer,sprite[i].lotag,65536L,0);
 					clearmidstatbar16();
 					showspritedata((short)i);
 				}
@@ -3256,7 +3239,7 @@ void overheadeditor(void)
 				{
 					i = linehighlight;
 					Bsprintf(buffer,"Wall (%ld) Lo-tag: ",i);
-					wall[i].lotag = getnumber16(buffer,wall[i].lotag,65536L);
+					wall[i].lotag = getnumber16(buffer,wall[i].lotag,65536L,0);
 					clearmidstatbar16();
 					showwalldata((short)i);
 				}
@@ -3268,7 +3251,7 @@ void overheadeditor(void)
 					if (inside(mousxplc,mousyplc,i) == 1)
 					{
 						Bsprintf(buffer,"Sector (%ld) Lo-tag: ",i);
-						sector[i].lotag = getnumber16(buffer,sector[i].lotag,65536L);
+						sector[i].lotag = getnumber16(buffer,sector[i].lotag,65536L,0);
 						clearmidstatbar16();
 						showsectordata((short)i);
 						break;
@@ -3306,7 +3289,7 @@ void overheadeditor(void)
 				{
 					i = pointhighlight-16384;
 					Bsprintf(buffer,"Sprite (%ld) Hi-tag: ",i);
-					sprite[i].hitag = getnumber16(buffer,sprite[i].hitag,65536L);
+					sprite[i].hitag = getnumber16(buffer,sprite[i].hitag,65536L,0);
 					clearmidstatbar16();
 					showspritedata((short)i);
 				}
@@ -3314,7 +3297,7 @@ void overheadeditor(void)
 				{
 					i = linehighlight;
 					Bsprintf(buffer,"Wall (%ld) Hi-tag: ",i);
-					wall[i].hitag = getnumber16(buffer,wall[i].hitag,65536L);
+					wall[i].hitag = getnumber16(buffer,wall[i].hitag,65536L,0);
 					clearmidstatbar16();
 					showwalldata((short)i);
 				}
@@ -3325,7 +3308,7 @@ void overheadeditor(void)
 					if (inside(mousxplc,mousyplc,i) == 1)
 					{
 						Bsprintf(buffer,"Sector (%ld) Hi-tag: ",i);
-						sector[i].hitag = getnumber16(buffer,sector[i].hitag,65536L);
+						sector[i].hitag = getnumber16(buffer,sector[i].hitag,65536L,0);
 						clearmidstatbar16();
 						showsectordata((short)i);
 						break;
@@ -3341,12 +3324,12 @@ void overheadeditor(void)
 				if (inside(mousxplc,mousyplc,i) == 1)
 				{
 					Bsprintf(buffer,"Sector (%ld) Ceilingpal: ",i);
-					sector[i].ceilingpal = getnumber16(buffer,sector[i].ceilingpal,256L);
+					sector[i].ceilingpal = getnumber16(buffer,sector[i].ceilingpal,256L,0);
 					clearmidstatbar16();
 					showsectordata((short)i);
 
 					Bsprintf(buffer,"Sector (%ld) Floorpal: ",i);
-					sector[i].floorpal = getnumber16(buffer,sector[i].floorpal,256L);
+					sector[i].floorpal = getnumber16(buffer,sector[i].floorpal,256L,0);
 					clearmidstatbar16();
 					showsectordata((short)i);
 
@@ -3360,7 +3343,7 @@ void overheadeditor(void)
 			{
 				i = pointhighlight-16384;
 				Bsprintf(buffer,"Sprite (%ld) Status list: ",i);
-				changespritestat(i,getnumber16(buffer,sprite[i].statnum,65536L));
+				changespritestat(i,getnumber16(buffer,sprite[i].statnum,65536L,0));
 				clearmidstatbar16();
 				showspritedata((short)i);
 			}
@@ -5111,6 +5094,7 @@ void overheadeditor(void)
 						for(i=0;i<MAXWALLS;i++) wall[i].extra = -1;
 						for(i=0;i<MAXSPRITES;i++) sprite[i].extra = -1;
 
+						ExtPreLoadMap();
 						if (loadboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum) == -1)
 						{
 							printmessage16("Invalid map format.");
@@ -5246,6 +5230,7 @@ void overheadeditor(void)
 
 						fixspritesectors();   //Do this before saving!
 						updatesector(startposx,startposy,&startsectnum);
+						ExtPreSaveMap();
 						saveboard(selectedboardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
 						ExtSaveMap(selectedboardfilename);
 						printmessage16("Board saved.");
@@ -5260,6 +5245,7 @@ void overheadeditor(void)
 					showframe(1);
 					fixspritesectors();   //Do this before saving!
 					updatesector(startposx,startposy,&startsectnum);
+					ExtPreSaveMap();
 					saveboard(boardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
 					ExtSaveMap(boardfilename);
 					printmessage16("Board saved.");
@@ -5297,6 +5283,7 @@ void overheadeditor(void)
 								{
 									fixspritesectors();   //Do this before saving!
 									updatesector(startposx,startposy,&startsectnum);
+									ExtPreSaveMap();
 									saveboard(boardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
 									ExtSaveMap(boardfilename);
 									break;
@@ -5809,7 +5796,7 @@ long numloopsofsector(short sectnum)
 	return(numloops);
 }
 
-short getnumber16(char namestart[80], short num, long maxnumber)
+short getnumber16(char namestart[80], short num, long maxnumber, char sign)
 {
 	char buffer[80], ch;
 	long j, k, n, danum, oldnum;
@@ -5830,7 +5817,10 @@ short getnumber16(char namestart[80], short num, long maxnumber)
 		showframe(1);
 
 		if (ch >= '0' && ch <= '9') {
-			n = (danum*10)+(ch-'0');
+			if (sign && danum<0)
+				n = (danum*10)-(ch-'0');
+			else
+				n = (danum*10)+(ch-'0');
 			if (n < maxnumber) danum = n;
 		} else if (ch == 8) {	// backspace
 			danum /= 10;
@@ -5838,6 +5828,8 @@ short getnumber16(char namestart[80], short num, long maxnumber)
 			oldnum = danum;
 			asksave = 1;
 			break;
+		} else if (ch == '-' && sign) {	// negate
+			danum = -danum;
 		}
 	}
 	clearkeys();

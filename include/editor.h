@@ -21,6 +21,28 @@ extern char buildkeys[NUMBUILDKEYS];
 extern long ydim16, xdimgame, ydimgame, bppgame, xdim2d, ydim2d;
 
 
+extern int ExtInit(void);
+extern void ExtUnInit(void);
+extern void ExtPreCheckKeys(void);
+#ifdef SUPERBUILD
+extern void ExtAnalyzeSprites(void);
+#endif
+extern void ExtCheckKeys(void);
+extern void ExtPreLoadMap(void);
+extern void ExtLoadMap(const char *mapname);
+extern void ExtPreSaveMap(void);
+extern void ExtSaveMap(const char *mapname);
+extern const char *ExtGetSectorCaption(short sectnum);
+extern const char *ExtGetWallCaption(short wallnum);
+extern const char *ExtGetSpriteCaption(short spritenum);
+extern void ExtShowSectorData(short sectnum);
+extern void ExtShowWallData(short wallnum);
+extern void ExtShowSpriteData(short spritenum);
+extern void ExtEditSectorData(short sectnum);
+extern void ExtEditWallData(short wallnum);
+extern void ExtEditSpriteData(short spritenum);
+
+
 int loadsetup(const char *fn);	// from config.c
 int writesetup(const char *fn);	// from config.c
 
@@ -28,7 +50,7 @@ void editinput(void);
 void clearmidstatbar16(void);
 
 short getnumber256(char namestart[80], short num, long maxnumber, char sign);
-short getnumber16(char namestart[80], short num, long maxnumber);
+short getnumber16(char namestart[80], short num, long maxnumber, char sign);
 void printmessage256(char name[82]);
 void printmessage16(char name[82]);
 
