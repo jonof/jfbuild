@@ -623,6 +623,8 @@ static void md2draw (float time, spritetype *tspr)
 	mat[3] = mat[7] = mat[11] = 0.f; mat[15] = 1.f; bglLoadMatrixf(mat);
 #endif
 
+	i = md2loadskin(m,tiletomodel[tspr->picnum].skinnum,globalpal); if (!i) return;
+
 	//bit 10 is an ugly hack in game.c\animatesprites telling MD2SPRITE
 	//to use Z-buffer hacks to hide overdraw problems with the shadows
 	if (tspr->cstat&1024)
@@ -636,7 +638,6 @@ static void md2draw (float time, spritetype *tspr)
 	bglCullFace(GL_BACK);
 
 	bglEnable(GL_TEXTURE_2D);
-	i = md2loadskin(m,tiletomodel[tspr->picnum].skinnum,globalpal); if (!i) return;
 	bglBindTexture(GL_TEXTURE_2D, i);
 
 	pc[0] = pc[1] = pc[2] = ((float)(numpalookups-min(max(globalshade+m->shadeoff,0),numpalookups)))/((float)numpalookups);
