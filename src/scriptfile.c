@@ -6,6 +6,7 @@
  */
 
 #include "scriptfile.h"
+#include "baselayer.h"
 #include "compat.h"
 #include "cache1d.h"
 
@@ -223,7 +224,7 @@ scriptfile *scriptfile_fromfile(char *fn)
 	sf = (scriptfile*) malloc(sizeof(scriptfile));
 	if (!sf) {
 		kclose(fp);
-		kfree(tx);
+		free(tx);
 		return NULL;
 	}
 

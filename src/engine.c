@@ -6142,12 +6142,8 @@ long loadmaphack(char *filename)
 		for (i=0;legaltokens[i].text;i++) if (!Bstrcasecmp(tok,legaltokens[i].text)) break;
 		switch (legaltokens[i].tokenid) {
 			case 0:		// sprite <xx>
-				if (scriptfile_getnumber(script, &whichsprite)) {
-					// failed reading number
-					initprintf("Invalid numeric constant for sprite number on line %s:%d\n",
-							script->filename, script->linenum);
-					break;
-				}
+				if (scriptfile_getnumber(script, &whichsprite)) break;
+
 				if (whichsprite < 0 || whichsprite >= MAXSPRITES) {
 					// sprite number out of range
 					initprintf("Sprite number out of range 0-%d on line %s:%d\n",
@@ -6160,12 +6156,8 @@ long loadmaphack(char *filename)
 			case 1:		// angoff <xx>
 				{
 					int ang;
-					if (scriptfile_getnumber(script, &ang)) {
-						// failed reading number
-						initprintf("Invalid numeric constant for angle offset on line %s:%d\n",
-							script->filename, script->linenum);
-						break;
-					}
+					if (scriptfile_getnumber(script, &ang)) break;
+
 					if (whichsprite < 0) {
 						// no sprite directive preceeding
 						initprintf("Ignoring angle offset directive because of absent/invalid sprite number on line %s:%d\n",
