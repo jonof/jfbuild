@@ -476,7 +476,7 @@ void ExtEditSectorData(short sectnum)    //F7
 	{
 		Bsprintf(tempbuf,"Sector (%d) Nick's variable: ",sectnum);
 		nickdata = 0;
-		nickdata = getnumber16(tempbuf,nickdata,65536L);
+		nickdata = getnumber16(tempbuf,nickdata,65536L,0);
 
 		printmessage16("");              //Clear message box (top right of status bar)
 		ExtShowSectorData(sectnum);
@@ -494,7 +494,7 @@ void ExtEditWallData(short wallnum)       //F8
 	{
 		Bsprintf(tempbuf,"Wall (%d) Nick's variable: ",wallnum);
 		nickdata = 0;
-		nickdata = getnumber16(tempbuf,nickdata,65536L);
+		nickdata = getnumber16(tempbuf,nickdata,65536L,0);
 
 		printmessage16("");              //Clear message box (top right of status bar)
 		ExtShowWallData(wallnum);
@@ -512,7 +512,7 @@ void ExtEditSpriteData(short spritenum)   //F8
 	{
 		Bsprintf(tempbuf,"Sprite (%d) Nick's variable: ",spritenum);
 		nickdata = 0;
-		nickdata = getnumber16(tempbuf,nickdata,65536L);
+		nickdata = getnumber16(tempbuf,nickdata,65536L,0);
 		printmessage16("");
 
 		printmessage16("");              //Clear message box (top right of status bar)
