@@ -48,9 +48,11 @@ enum {
 	T_FLIPPED,
 	T_HIDE,
 	T_NOBOB,
+	T_NODEPTH,
 	T_VOXEL,
 	T_SKYBOX,
-	T_FRONT,T_RIGHT,T_BACK,T_LEFT,T_TOP,T_BOTTOM
+	T_FRONT,T_RIGHT,T_BACK,T_LEFT,T_TOP,T_BOTTOM,
+	T_TINT,T_RED,T_GREEN,T_BLUE
 };
 
 typedef struct { char *text; int tokenid; } tokenlist;
@@ -71,12 +73,13 @@ static tokenlist basetokens[] = {
 	{ "definevoxeltiles",T_DEFINEVOXELTILES },
 	{ "model",           T_MODEL            },
 	{ "voxel",           T_VOXEL            },
-	{ "skybox",          T_SKYBOX           }
+	{ "skybox",          T_SKYBOX           },
+	{ "tint",            T_TINT             }
 };
 
 static tokenlist modeltokens[] = {
-	{ "file",   T_FILE   },
-	{ "name",   T_FILE   },
+//	{ "file",   T_FILE   },
+//	{ "name",   T_FILE   },
 	{ "scale",  T_SCALE  },
 	{ "shade",  T_SHADE  },
 	{ "frame",  T_FRAME  },
@@ -115,6 +118,7 @@ static tokenlist modelhudtokens[] = {
 	{ "hide",   T_HIDE   },
 	{ "nobob",  T_NOBOB  },
 	{ "flipped",T_FLIPPED},
+	{ "nodepth",T_NODEPTH},
 };
 
 static tokenlist voxeltokens[] = {
@@ -124,15 +128,23 @@ static tokenlist voxeltokens[] = {
 };
 
 static tokenlist skyboxtokens[] = {
-	{ "tile",   T_TILE   },
-	{ "pal",    T_PAL    },
-	{ "ft",     T_FRONT  },{ "front",  T_FRONT  },{ "forward",T_FRONT  },
+	{ "tile"   ,T_TILE   },
+	{ "pal"    ,T_PAL    },
+	{ "ft"     ,T_FRONT  },{ "front"  ,T_FRONT  },{ "forward",T_FRONT  },
 	{ "rt"     ,T_RIGHT  },{ "right"  ,T_RIGHT  },
 	{ "bk"     ,T_BACK   },{ "back"   ,T_BACK   },
 	{ "lf"     ,T_LEFT   },{ "left"   ,T_LEFT   },{ "lt"     ,T_LEFT   },
 	{ "up"     ,T_TOP    },{ "top"    ,T_TOP    },{ "ceiling",T_TOP    },{ "ceil"   ,T_TOP    },
 	{ "dn"     ,T_BOTTOM },{ "bottom" ,T_BOTTOM },{ "floor"  ,T_BOTTOM },{ "down"   ,T_BOTTOM }
 }; 
+
+static tokenlist tinttokens[] = {
+	{ "pal",   T_PAL },
+	{ "red",   T_RED   },{ "r", T_RED },
+	{ "green", T_GREEN },{ "g", T_GREEN },
+	{ "blue",  T_BLUE  },{ "b", T_BLUE },
+	{ "flags", T_FLAGS }
+};
 
 
 static int getatoken(scriptfile *sf, tokenlist *tl, int ntokens)
@@ -154,6 +166,11 @@ static int getatoken(scriptfile *sf, tokenlist *tl, int ntokens)
 
 static int lastmodelid = -1, lastvoxid = -1, modelskin = -1, lastmodelskin = -1, seenframe = 0;
 extern int nextvoxid;
+
+static const char *skyfaces[6] = {
+	"front face", "right face", "back face",
+	"left face", "top face", "bottom face"
+};
 
 static int defsparser(scriptfile *script)
 {
@@ -194,6 +211,8 @@ static int defsparser(scriptfile *script)
 								name,number,script->filename,script->linenum);
 					break;
 				}
+
+				// OLD (DEPRECATED) DEFINITION SYNTAX
 			case T_DEFINETEXTURE:
 				{
 					int tile,pal,cx,cy,sx,sy;
@@ -213,10 +232,6 @@ static int defsparser(scriptfile *script)
 				{
 					int tile,pal,i;
 					char *fn[6];
-					const char *faces[6] = { //would be nice to use these strings for error messages :)
-						"front face", "right face", "back face",
-						"left face", "top face", "bottom face"
-					};
 
 					if (scriptfile_getsymbol(script,&tile)) break;
 					if (scriptfile_getsymbol(script,&pal)) break;
@@ -423,6 +438,8 @@ static int defsparser(scriptfile *script)
 					}
 				}
 				break;
+
+				// NEW (ENCOURAGED) DEFINITION SYNTAX
 			case T_MODEL:
 				{
 #if 0
@@ -468,15 +485,20 @@ static int defsparser(scriptfile *script)
 							case T_FRAME:
 							{
 								char *frameend, *framename = 0, happy=1;
-								int ftilenume = 0, ltilenume = 0, tilex = 0;
+								int ftilenume = -1, ltilenume = -1, tilex = 0;
 
 								if (scriptfile_getbraces(script,&frameend)) break;
-								while (script->textptr < frameend)
+								while (script->textptr < frameend) {
 									switch(getatoken(script,modelframetokens,sizeof(modelframetokens)/sizeof(tokenlist))) {
 										case T_FRAME: scriptfile_getstring(script,&framename); break;
 										case T_TILE0: scriptfile_getnumber(script,&ftilenume); break; //first tile number
 										case T_TILE1: scriptfile_getnumber(script,&ltilenume); break; //last tile number (inclusive)
 									}
+								}
+
+								if (ftilenume < 0) initprintf("Error: missing 'first tile number' for frame definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
+								if (ltilenume < 0) initprintf("Error: missing 'last tile number' for frame definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
+								if (!happy) break;
 
 								if (ltilenume < ftilenume) {
 									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, script->linenum);
@@ -490,7 +512,7 @@ static int defsparser(scriptfile *script)
 									break;
 								}
 #if defined(POLYMOST) && defined(USE_OPENGL)
-								for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++)
+								for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++) {
 									switch (md2_defineframe(lastmodelid, framename, tilex, max(0,modelskin))) {
 										case 0: break;
 										case -1: happy = 0; break; // invalid model id!?
@@ -503,25 +525,31 @@ static int defsparser(scriptfile *script)
 											 happy = 0;
 											 break;
 									}
+								}
 #endif
 								seenframe = 1;
 								}
 								break;
 							case T_ANIM:
 							{
-								char *animend, *startframe = 0, *endframe = 0;
+								char *animend, *startframe = 0, *endframe = 0, happy=1;
 								int flags = 0;
 								double dfps = 1.0;
 
 								if (scriptfile_getbraces(script,&animend)) break;
-								while (script->textptr < animend)
+								while (script->textptr < animend) {
 									switch(getatoken(script,modelanimtokens,sizeof(modelanimtokens)/sizeof(tokenlist))) {
 										case T_FRAME0: scriptfile_getstring(script,&startframe); break;
 										case T_FRAME1: scriptfile_getstring(script,&endframe); break;
 										case T_FPS: scriptfile_getdouble(script,&dfps); break; //animation frame rate
 										case T_FLAGS: scriptfile_getnumber(script,&flags); break;
 									}
+								}
 
+								if (!startframe) initprintf("Error: missing 'start frame' for anim definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
+								if (!endframe) initprintf("Error: missing 'end frame' for anim definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
+								if (!happy) break;
+								
 								if (lastmodelid < 0) {
 									initprintf("Warning: Ignoring animation definition.\n");
 									break;
@@ -548,11 +576,17 @@ static int defsparser(scriptfile *script)
 								int palnum = 0;
 
 								if (scriptfile_getbraces(script,&skinend)) break;
-								while (script->textptr < skinend)
+								while (script->textptr < skinend) {
 									switch(getatoken(script,modelskintokens,sizeof(modelskintokens)/sizeof(tokenlist))) {
 										case T_PAL: scriptfile_getsymbol(script,&palnum); break;
 										case T_FILE: scriptfile_getstring(script,&skinfn); break; //skin filename
 									}
+								}
+
+								if (!skinfn) {
+										initprintf("Error: missing 'skin filename' for skin definition near line %s:%d\n", script->filename, script->linenum);
+										break;
+								}
 
 								if (seenframe) { modelskin = ++lastmodelskin; }
 								seenframe = 0;
@@ -592,6 +626,7 @@ static int defsparser(scriptfile *script)
 										case T_HIDE:    flags |= 1; break;
 										case T_NOBOB:   flags |= 2; break;
 										case T_FLIPPED: flags |= 4; break;
+										case T_NODEPTH: flags |= 8; break;
 									}
 								}
 
@@ -672,12 +707,13 @@ static int defsparser(scriptfile *script)
 				break;
 			case T_SKYBOX:
 				{
-					char *fn[6] = {0,0,0,0,0,0}, *modelend;
-					int i, tile = MAXTILES, pal = 0;
+					char *fn[6] = {0,0,0,0,0,0}, *modelend, happy=1;
+					int i, tile = -1, pal = 0;
 
 					if (scriptfile_getbraces(script,&modelend)) break;
 					while (script->textptr < modelend) {
 						switch (getatoken(script,skyboxtokens,sizeof(skyboxtokens)/sizeof(tokenlist))) {
+							//case T_ERROR: initprintf("Error on line %s:%d in skybox tokens\n",script->filename,script->linenum); break;
 							case T_TILE:  scriptfile_getnumber(script,&tile ); break;
 							case T_PAL:   scriptfile_getnumber(script,&pal  ); break;
 							case T_FRONT: scriptfile_getstring(script,&fn[0]); break;
@@ -686,13 +722,43 @@ static int defsparser(scriptfile *script)
 							case T_LEFT:  scriptfile_getstring(script,&fn[3]); break;
 							case T_TOP:   scriptfile_getstring(script,&fn[4]); break;
 							case T_BOTTOM:scriptfile_getstring(script,&fn[5]); break;
-							default:
-							case T_ERROR: initprintf("Error on line %s:%d in skybox tokens\n", script->filename,script->linenum); break;
 						}
 					}
+
+					if (tile < 0) initprintf("Error: missing 'tile number' for skybox definition near line %s:%d\n", script->filename, script->linenum), happy=0;
+					for (i=0;i<6;i++) {
+							if (!fn[i]) initprintf("Error: missing '%s filename' for skybox definition near line %s:%d\n", skyfaces[i], script->filename, script->linenum), happy = 0;
+					}
+
+					if (!happy) break;
+					
 					hicsetskybox(tile,pal,fn);
 				}
-				break; 
+				break;
+			case T_TINT:
+				{
+					int red=255, green=255, blue=255, pal=-1, flags=0;
+					char *tintend;
+
+					if (scriptfile_getbraces(script,&tintend)) break;
+					while (script->textptr < tintend) {
+						switch (getatoken(script,tinttokens,sizeof(tinttokens)/sizeof(tokenlist))) {
+							case T_PAL:   scriptfile_getnumber(script,&pal);   break;
+							case T_RED:   scriptfile_getnumber(script,&red);   red   = min(255,max(0,red));   break;
+							case T_GREEN: scriptfile_getnumber(script,&green); green = min(255,max(0,green)); break;
+							case T_BLUE:  scriptfile_getnumber(script,&blue);  blue  = min(255,max(0,blue));  break;
+							case T_FLAGS: scriptfile_getnumber(script,&flags); break;
+						}
+					}
+
+					if (pal < 0) {
+							initprintf("Error: missing 'palette number' for tint definition near line %s:%d\n", script->filename, script->linenum);
+							break;
+					}
+
+					hicsetpalettetint(pal,red,green,blue,flags);
+				}
+				break;
 			
 			default:
 				initprintf("Unknown token.\n"); break;

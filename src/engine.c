@@ -4437,7 +4437,7 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
 	//============================================================================= //POLYMOST ENDS
 	
 	if (cx1 < 0) cx1 = 0;
-	if (cy1 < 0) cy2 = 0;
+	if (cy1 < 0) cy1 = 0;
 	if (cx2 > xres-1) cx2 = xres-1;
 	if (cy2 > yres-1) cy2 = yres-1;
 
@@ -6429,6 +6429,11 @@ void nextpage(void)
 
 	if ((totalclock >= lastageclock+8) || (totalclock < lastageclock))
 		{ lastageclock = totalclock; agecache(); }
+
+#ifdef USE_OPENGL
+	omd2tims = md2tims; md2tims = getticks();
+	if (((unsigned long)(md2tims-omd2tims)) > 10000) omd2tims = md2tims;
+#endif
 
 	beforedrawrooms = 1;
 	numframes++;

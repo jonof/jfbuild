@@ -136,7 +136,7 @@ char keys[NUMKEYS] =
 	0x9c,0x1c,0xd,0xc,0xf
 };
 
-static long digihz[7] = {6000,8000,11025,16000,22050,32000,44100};
+static long digihz[8] = {6000,8000,11025,16000,22050,32000,44100,48000};
 
 static char frame2draw[MAXPLAYERS];
 static long frameskipcnt[MAXPLAYERS];
@@ -394,10 +394,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 long app_main(long argc, char *argv[])
 {
 	long i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
-	long other, packleng;
-
-	long netparmcount = 0;
-	char **netparms = NULL;
+	long other, packleng, netparm;
 
 #ifdef USE_OPENGL
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
@@ -407,26 +404,20 @@ long app_main(long argc, char *argv[])
 	Bstrcpy(apptitle, "KenBuild by Ken Silverman");
 
 	Bstrcpy(boardfilename, "nukeland.map");
-	j = 0;
+	j = 0; netparm = argc;
 	for (i=1;i<argc;i++) {
-		if ((!Bstrcasecmp("-net",argv[i])) || (!Bstrcasecmp("/net",argv[i]))) {
-			j = i;
-			netparmcount = argc - j - 1;
-			netparms = (char**)calloc(netparmcount,sizeof(char*));
-			continue;
-		}
+		if ((!Bstrcasecmp("-net",argv[i])) || (!Bstrcasecmp("/net",argv[i]))) { j = 1; netparm = i; continue; }
 		if (j) {
 			if (argv[i][0] == '-' || argv[i][0] == '/') {
-				if      (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '0')) { networkmode = 0; }
-				else if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '1')) { networkmode = 1; }
+				if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '0')) { networkmode = 0; continue; }
+				if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '1')) { networkmode = 1; continue; }
 			}
-			netparms[i-j-1] = argv[i];
+			if (isvalidipaddress(argv[i])) continue;
 		} else {
 			Bstrcpy(boardfilename, argv[i]);
 			if (!Bstrrchr(boardfilename,'.')) Bstrcat(boardfilename,".map");
 		}
 	}
-	if (j) argc = j;	// clip off all the net parms
 	
 	OSD_SetLogFile("console.txt");
 
@@ -449,10 +440,8 @@ long app_main(long argc, char *argv[])
 	if (option[3] != 0) initmouse();
 	inittimer(TIMERINTSPERSECOND);
 
-	initmultiplayers(netparmcount,netparms,option[4],option[5],0);
+	initmultiplayers(argc-netparm,&argv[netparm],option[4],option[5],0);
 	option[4] = (numplayers >= 2);
-
-	if (netparms) free(netparms);
 
 	pskyoff[0] = 0; pskyoff[1] = 0; pskybits = 1;
 

@@ -63,7 +63,7 @@ static char pakmem[4194304]; static long pakmemi = 1;
 
 #define NETPORT 0x5bd9
 static SOCKET mysock;
-static long myip, otherip[MAXPLAYERS], otherport[MAXPLAYERS];
+static long myip, myport = NETPORT, otherip[MAXPLAYERS], otherport[MAXPLAYERS];
 static long snatchip = 0, snatchport = 0, danetmode = 255, netready = 0;
 
 void netuninit ()
@@ -74,7 +74,7 @@ void netuninit ()
 #endif
 }
 
-long netinit ()
+long netinit (long portnum)
 {
 	LPHOSTENT lpHostEnt;
 	char hostnam[256];
@@ -92,16 +92,14 @@ long netinit ()
 
 	ip.sin_family = AF_INET;
 	ip.sin_addr.s_addr = INADDR_ANY;
-	for(i=NETPORT;i<NETPORT+20;i++)
+	ip.sin_port = htons(portnum);
+	if (bind(mysock,(struct sockaddr *)&ip,sizeof(ip)) != SOCKET_ERROR)
 	{
-		ip.sin_port = htons(i);
-		if (bind(mysock,(struct sockaddr *)&ip,sizeof(ip)) != SOCKET_ERROR)
-		{
-			if (gethostname(hostnam,sizeof(hostnam)) != SOCKET_ERROR)
-				if ((lpHostEnt = gethostbyname(hostnam)))
-					{ myip = ip.sin_addr.s_addr = *(long *)lpHostEnt->h_addr; }
-			return(1);
-		}
+		myport = portnum;
+		if (gethostname(hostnam,sizeof(hostnam)) != SOCKET_ERROR)
+			if ((lpHostEnt = gethostbyname(hostnam)))
+				{ myip = ip.sin_addr.s_addr = *(long *)lpHostEnt->h_addr; }
+		return(1);
 	}
 	return(0);
 }
@@ -212,7 +210,7 @@ void uninitmultiplayers () { netuninit(); }
 long getpacket(long *, char *);
 void initmultiplayers (long argc, char **argv, char damultioption, char dacomrateoption, char dapriority)
 {
-	long i, j, k, daindex, otims;
+	long i, j, k, daindex, otims, portnum = NETPORT; //, foundnet = 0;
 
 	initcrc16();
 	memset(icnt0,0,sizeof(icnt0));
@@ -233,10 +231,29 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 	for(i=0;i<MAXPLAYERS;i++) otherport[i] = htons(NETPORT);
 	danetmode = 255; daindex = 0;
 
-	netinit();
+	// go looking for the port, if specified
+	for (i=0;i<argc;i++) {
+		if (argv[i][0] != '-' && argv[i][0] != '/') continue;
+		if ((argv[i][1] == 'p' || argv[i][1] == 'P') && argv[i][2]) {
+			char *p;
+			j = strtol(argv[i]+2, &p, 10);
+			if (!(*p) && j > 0 && j<65535) portnum = j;
+		}
+	}
+			
+
+	netinit(portnum);
 
 	for(i=0;i<argc;i++)
 	{
+		//if (((argv[i][0] == '/') || (argv[i][0] == '-')) &&
+		//    ((argv[i][1] == 'N') || (argv[i][1] == 'n')) &&
+		//    ((argv[i][2] == 'E') || (argv[i][2] == 'e')) &&
+		//    ((argv[i][3] == 'T') || (argv[i][3] == 't')) &&
+		//     (!argv[i][4]))
+		//   { foundnet = 1; continue; }
+		//if (!foundnet) continue;
+
 		if ((argv[i][0] == '-') || (argv[i][0] == '/'))
 			if ((argv[i][1] == 'N') || (argv[i][1] == 'n') || (argv[i][1] == 'I') || (argv[i][1] == 'i'))
 			{
@@ -267,25 +284,24 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 			otherip[daindex] = inet_addr(argv[i]);
 			daindex++;
 			continue;
-		} else {
-			LPHOSTENT lphe;
-			char *h = strdup(argv[i]);
+		}
+		else
+		{
+			LPHOSTENT lph;
 			unsigned short pt = htons(NETPORT);
-			long ip = 0;
+			char *st = strdup(argv[i]); if (!st) continue;
 
-			if (!h) continue;
-
-			for(j=0;h[j];j++)
-				if (h[j] == ':')
-					{ pt = htons((unsigned short)atol(&h[j+1])); h[j] = 0; break; }
-			if ((lphe = gethostbyname(h))) {
-				ip = *(long*)lphe->h_addr;
+			for(j=0;st[j];j++)
+				if (st[j] == ':')
+					{ pt = htons((unsigned short)atol(&st[j+1])); st[j] = 0; break; }
+			if ((lph = gethostbyname(st)))
+			{
 				if ((danetmode == 1) && (daindex == myconnectindex)) daindex++;
-				otherip[daindex] = ip;
+				otherip[daindex] = *(long *)lph->h_addr;
 				otherport[daindex] = pt;
 				daindex++;
 			} else printf("Failed resolving %s\n",argv[i]);
-			free(h);
+			free(st);
 			continue;
 		}
 	}
@@ -293,12 +309,8 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 	if ((numplayers >= 2) && (daindex) && (!danetmode)) myconnectindex = 1;
 	if (daindex > numplayers) numplayers = daindex;
 
-	/*
-	for(i=0;i<daindex;i++)
-		printf("Player %d: %d.%d.%d.%d:%d\n", i,
-				otherip[i]&0xff,(otherip[i]&0xff00)>>8,(otherip[i]&0xff0000)>>16,(otherip[i]&0xff000000)>>24,
-				ntohs(otherport[i]));
-	*/
+		//for(i=0;i<numplayers;i++)
+		  //   printf("Player %d: %d.%d.%d.%d:%d\n",i,otherip[i]&255,(otherip[i]>>8)&255,(otherip[i]>>16)&255,((unsigned long)otherip[i])>>24,ntohs(otherport[i]));
 
 	connecthead = 0;
 	for(i=0;i<numplayers-1;i++) connectpoint2[i] = i+1;

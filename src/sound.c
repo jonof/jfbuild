@@ -85,6 +85,8 @@ void initsb(char dadigistat, char damusistat, long dasamplerate, char danumspeak
 	
 	printOSD("  Samplerate: %d hz\n", dasamplerate);
 
+	//FSOUND_SetOutput(FSOUND_OUTPUT_ASIO);
+
 	if (FSOUND_Init(dasamplerate, NUMCHANNELS, 0)) {
 		printOSD("  ... Success\n");
 		fmod_inited = 1;
@@ -99,6 +101,7 @@ void initsb(char dadigistat, char damusistat, long dasamplerate, char danumspeak
 		case FSOUND_OUTPUT_OSS: s = "OSS"; break;
 		case FSOUND_OUTPUT_ESD: s = "ESound"; break;
 		case FSOUND_OUTPUT_ALSA: s = "ALSA"; break;
+		case FSOUND_OUTPUT_ASIO: s = "ASIO"; break;
 		default: s = "Other"; break;
 	}
 	printOSD("Using FMOD \"%s\" output driver\n", s);

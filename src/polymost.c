@@ -452,7 +452,14 @@ void polymost_glreset ()
 	long i;
 	pthtyp *pth, *next;
 	//Reset if this is -1 (meaning 1st texture call ever), or > 0 (textures in memory)
-	if (gltexcacnum < 0) gltexcacnum = 0;
+	if (gltexcacnum < 0)
+	{
+		gltexcacnum = 0;
+
+			//Hack for polymost_dorotatesprite calls before 1st polymost_drawrooms()
+		gcosang = gcosang2 = ((double)16384)/262144.0;
+		gsinang = gsinang2 = ((double)    0)/262144.0;
+	}
 	else
 	{
 		for (i=GLTEXCACHEADSIZ-1; i>=0; i--) {
@@ -2813,8 +2820,6 @@ void polymost_drawrooms ()
 	frameoffset = frameplace + windowy1*bytesperline + windowx1;
 
 #ifdef USE_OPENGL
-	omd2tims = md2tims; md2tims = getticks();
-	if (((unsigned long)(md2tims-omd2tims)) > 10000) omd2tims = md2tims;
 	if (rendmode == 3)
 	{
 		resizeglcheck();
@@ -3535,11 +3540,13 @@ void polymost_drawsprite (long snum)
 void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 	signed char dashade, char dapalnum, char dastat, long cx1, long cy1, long cx2, long cy2)
 {
+	static long onumframes = 0;
 	long i, n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
-	long ogpicnum, ogshade, ogpal, ofoffset, oxdimen, oydimen;
+	long ogpicnum, ogshade, ogpal, ofoffset, oxdimen, oydimen, ogxyaspect, oldviewingrange;
 	double ogchang, ogshang, ogctang, ogstang, oghalfx, oghoriz, fx, fy, x1, y1, z1, x2, y2;
 	double ogrhalfxdown10, ogrhalfxdown10x;
 	double d, cosang, sinang, cosang2, sinang2, px[8], py[8], px2[8], py2[8];
+	float m[4][4];
 
 #ifdef USE_OPENGL
 	if (rendmode == 3 && usemodels)
@@ -3557,58 +3564,87 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 			ogstang = gstang; gstang = (double)sintable[a&2047]*d;
 			ogshade  = globalshade;  globalshade  = dashade;
 			ogpal    = globalpal;    globalpal    = (long)((unsigned char)dapalnum);
+			ogxyaspect = gxyaspect; gxyaspect = 1.0;
+			oldviewingrange = viewingrange; viewingrange = 65536;
 
-			if (dastat&2)  //Auto window size scaling
+			x1 = hudmem[(dastat&4)>>2][picnum].xadd;
+			y1 = hudmem[(dastat&4)>>2][picnum].yadd;
+			z1 = hudmem[(dastat&4)>>2][picnum].zadd;
+			if (!(hudmem[(dastat&4)>>2][picnum].flags&2)) //"NOBOB" is specified in DEF
 			{
-				if (!(dastat&8))
+				fx = ((double)sx)*(1.0/65536.0);
+				fy = ((double)sy)*(1.0/65536.0);
+
+				if (dastat&16)
 				{
-					x = xdimenscale;   //= scale(xdimen,yxaspect,320);
-					sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),xdimen,320);
-					sy = ((cy1+cy2+2)<<15)+mulscale16(sy-(200<<15),x);
-				}
-				else
-				{
-						//If not clipping to startmosts, & auto-scaling on, as a
-						//hard-coded bonus, scale to full screen instead
-					x = scale(xdim,yxaspect,320);
-					sx = (xdim<<15)+32768+scale(sx-(320<<15),xdim,320);
-					sy = (ydim<<15)+32768+mulscale16(sy-(200<<15),x);
-				}
-				z = mulscale16(z,x);
+					xsiz = tilesizx[globalpicnum]; ysiz = tilesizy[globalpicnum];
+					xoff = (long)((signed char)((picanm[globalpicnum]>>8)&255))+(xsiz>>1);
+					yoff = (long)((signed char)((picanm[globalpicnum]>>16)&255))+(ysiz>>1);
+
+					d = (double)z/(65536.0*16384.0);
+					cosang2 = cosang = (double)sintable[(a+512)&2047]*d;
+					sinang2 = sinang = (double)sintable[a&2047]*d;
+					if ((dastat&2) || (!(dastat&8))) //Don't aspect unscaled perms
+						{ d = (double)xyaspect/65536.0; cosang2 *= d; sinang2 *= d; }
+					fx += -(double)xoff*cosang2+ (double)yoff*sinang2;
+					fy += -(double)xoff*sinang - (double)yoff*cosang;
 			}
 
-			if (hudmem[(dastat&4)>>2][picnum].flags&2) //"NOBOB" is specified in DEF
+				if (!(dastat&2))
 			{
-				x1 = y1 = 0;
+					x1 += fx/((double)(xdim<<15))-1.0; //-1: left of screen, +1: right of screen
+					y1 += fy/((double)(ydim<<15))-1.0; //-1: top of screen, +1: bottom of screen
 			}
 			else
 			{
-				x1 = ((double)sx)/((double)(xdim<<15))-1.0; //-1: left of screen, +1: right of screen
-				y1 = ((double)sy)/((double)(ydim<<15))-1.0; //-1: top of screen, +1: bottom of screen
+					x1 += fx/160.0-1.0; //-1: left of screen, +1: right of screen
+					y1 += fy/100.0-1.0; //-1: top of screen, +1: bottom of screen
 			}
-			z1 = 1.30;
-			tspr.ang = globalang;
-			tspr.xrepeat = tspr.yrepeat = 1;
-
-			x1 += hudmem[(dastat&4)>>2][picnum].xadd;
-			y1 += hudmem[(dastat&4)>>2][picnum].yadd;
-			z1 += hudmem[(dastat&4)>>2][picnum].zadd;
-			tspr.ang += hudmem[(dastat&4)>>2][picnum].angadd;
+			}
+			tspr.ang = hudmem[(dastat&4)>>2][picnum].angadd+globalang;
+			tspr.xrepeat = tspr.yrepeat = 32;
 
 			if (dastat&4) { x1 = -x1; y1 = -y1; }
-			tspr.x = ((double)gcosang*z1 - (double)gsinang*x1)*512.0 + globalposx;
-			tspr.y = ((double)gsinang*z1 + (double)gcosang*x1)*512.0 + globalposy;
-			tspr.z = globalposz + y1*512.0;
+			tspr.x = ((double)gcosang*z1 - (double)gsinang*x1)*16384.0 + globalposx;
+			tspr.y = ((double)gsinang*z1 + (double)gcosang*x1)*16384.0 + globalposy;
+			tspr.z = globalposz + y1*16384.0*0.8;
 			tspr.picnum = picnum;
 			tspr.shade = dashade;
 			tspr.pal = dapalnum;
-			globalorientation = 0;
-			if (dastat&1) globalorientation |= 1;
-			if (dastat&32) globalorientation |= 512;
-			if (dastat&4) globalorientation |= 8;
+			globalorientation = (dastat&1)+((dastat&32)<<4)+((dastat&4)<<1);
+
+			if ((dastat&10) == 2) bglViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
+								else { bglViewport(0,0,xdim,ydim); glox1 = -1; } //Force fullscreen (glox1=-1 forces it to restore)
+			bglMatrixMode(GL_PROJECTION);
+			memset(m,0,sizeof(m));
+			if ((dastat&10) == 2)
+			{
+				m[0][0] = (float)ydimen; m[0][2] = 1.0;
+				m[1][1] = (float)xdimen; m[1][2] = 1.0;
+				m[2][2] = 1.0; m[2][3] = (float)ydimen;
+				m[3][2] =-1.0;
+			}
+			else { m[0][0] = m[2][3] = 1.0; m[1][1] = ((float)xdim)/((float)ydim); m[2][2] = 1.0001; m[3][2] = 1-m[2][2]; }
+			bglLoadMatrixf(&m[0][0]);
+			bglMatrixMode(GL_MODELVIEW);
+			bglLoadIdentity();
+
+			if (hudmem[(dastat&4)>>2][picnum].flags&8) //NODEPTH flag
+				bglDisable(GL_DEPTH_TEST);
+			else
+			{
+				bglEnable(GL_DEPTH_TEST);
+				if (onumframes != numframes)
+				{
+					onumframes = numframes;
+					bglClear(GL_DEPTH_BUFFER_BIT);
+				}
+			}
 
 			md2draw(0,&tspr);
 
+			viewingrange = oldviewingrange;
+			gxyaspect = ogxyaspect;
 			globalshade  = ogshade;
 			globalpal    = ogpal;
 			gchang = ogchang;
@@ -3638,18 +3674,14 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 #ifdef USE_OPENGL
 	if (rendmode == 3)
 	{
-		resizeglcheck();
-		if (1) //dastat&(2+8))
-		{
-			float m[4][4];
-			bglViewport(0,0,xdim,ydim); glox1 = -1; //Force fullscreen (glox1=-1 forces it to restore)
-			bglMatrixMode(GL_PROJECTION);
-			memset(m,0,sizeof(m));
-			m[0][0] = m[2][3] = 1.0; m[1][1] = ((float)xdim)/((float)ydim); m[2][2] = 1.0001; m[3][2] = 1-m[2][2];
-			bglLoadMatrixf(&m[0][0]);
-			bglMatrixMode(GL_MODELVIEW);
-			bglLoadIdentity();
-		}
+		bglViewport(0,0,xdim,ydim); glox1 = -1; //Force fullscreen (glox1=-1 forces it to restore)
+		bglMatrixMode(GL_PROJECTION);
+		memset(m,0,sizeof(m));
+		m[0][0] = m[2][3] = 1.0; m[1][1] = ((float)xdim)/((float)ydim); m[2][2] = 1.0001; m[3][2] = 1-m[2][2];
+		bglLoadMatrixf(&m[0][0]);
+		bglMatrixMode(GL_MODELVIEW);
+		bglLoadIdentity();
+
 		bglDisable(GL_DEPTH_TEST);
 		bglDisable(GL_ALPHA_TEST);
 		bglEnable(GL_TEXTURE_2D);
