@@ -9026,7 +9026,7 @@ void drawline256(long x1, long y1, long x2, long y2, char col)
 //
 // JBF: Had to add extra tests to make sure x-coordinates weren't winding up -'ve
 //   after clipping or crashes would ensue
-long drawlinepat = 0xffffffff;
+unsigned long drawlinepat = 0xffffffff;
 
 void drawline16(long x1, long y1, long x2, long y2, char col)
 {

@@ -990,25 +990,25 @@ void releaseallbuttons(void)
 static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef)
 {
 	const char *d;
-
-#define COPYGUID(d,s) memcpy(d,s,sizeof(GUID))
+	
+#define COPYGUID(d,s) memcpy(&d,&s,sizeof(GUID))
 	
 	switch (lpddi->dwDevType&0xff) {
 		case DIDEVTYPE_KEYBOARD:
 			inputdevices |= (1<<KEYBOARD);
 			d = "KEYBOARD";
-			COPYGUID(&guidDevs[KEYBOARD],&lpddi->guidInstance);
+			COPYGUID(guidDevs[KEYBOARD],lpddi->guidInstance);
 			break;
 		case DIDEVTYPE_MOUSE:
 			inputdevices |= (1<<MOUSE);
 			d = "MOUSE";
-			COPYGUID(&guidDevs[MOUSE],&lpddi->guidInstance);
+			COPYGUID(guidDevs[MOUSE],lpddi->guidInstance);
 			break;
 		case DIDEVTYPE_JOYSTICK:
 			inputdevices |= (1<<JOYSTICK);
 			joyisgamepad = ((lpddi->dwDevType & (DIDEVTYPEJOYSTICK_GAMEPAD<<8)) != 0);
 			d = joyisgamepad ? "GAMEPAD" : "JOYSTICK";
-			COPYGUID(&guidDevs[JOYSTICK],&lpddi->guidInstance);
+			COPYGUID(guidDevs[JOYSTICK],lpddi->guidInstance);
 			break;
 		default: d = "OTHER"; break;
 	}
@@ -1076,7 +1076,13 @@ static BOOL InitDirectInput(void)
 
 	// enumerate devices to make us look fancy
 	initprintf("  - Enumerating attached input devices\n");
+	inputdevices = 0;
 	IDirectInput_EnumDevices(lpDI, 0, InitDirectInput_enum, NULL, DIEDFL_ATTACHEDONLY);
+	if (!(inputdevices & (1<<KEYBOARD))) {
+		ShowErrorBox("No keyboard detected!");
+		UninitDirectInput();
+		return TRUE;
+	}
 
 	// ***
 	// create the devices
