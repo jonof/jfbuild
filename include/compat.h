@@ -148,6 +148,7 @@ typedef signed   long bssize_t;
 #define Brand rand
 #define Balloca alloca
 #define Bmalloc malloc
+#define Bcalloc calloc
 #define Brealloc realloc
 #define Bfree free
 #define Bopen open
@@ -155,6 +156,11 @@ typedef signed   long bssize_t;
 #define Bwrite write
 #define Bread read
 #define Blseek lseek
+#if defined(__GNUC__)
+#define Btell(h) lseek(h,0,SEEK_CUR)
+#else
+#define Btell tell
+#endif
 #define Bfopen fopen
 #define Bfclose fclose
 #define Bfeof feof

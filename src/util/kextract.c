@@ -5,18 +5,7 @@
 // This file has been modified from Ken Silverman's original release
 // by Jonathon Fowler (jonof@edgenetwk.com)
 
-#include <stdio.h>
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#ifndef O_BINARY
-# define O_BINARY 0
-#endif
-
-#define min(a,b) ( ((a) < (b)) ? (a) : (b) )
+#include "compat.h"
 
 #define MAXFILES 4096
 
@@ -27,12 +16,11 @@ static char marked4extraction[MAXFILES];
 static char filelist[MAXFILES][16];
 static long fileoffs[MAXFILES+1], fileleng[MAXFILES];
 
-void findfiles(char *dafilespec);
+void findfiles(const char *dafilespec);
 
-int main(short argc, char **argv)
+int main(int argc, char **argv)
 {
 	long i, j, k, l, fil, fil2;
-	char stuffile[16], filename[128];
 
 	if (argc < 3)
 	{
@@ -41,30 +29,28 @@ int main(short argc, char **argv)
 		printf("   You can extract files using the ? and * wildcards.\n");
 		printf("   Ex: kextract stuff.dat tiles000.art nukeland.map palette.dat\n");
 		printf("      (stuff.dat is the group file, the rest are the files to extract)\n");
-		exit(0);
+		return(0);
 	}
 
-	strcpy(stuffile,argv[1]);
-
-	if ((fil = open(stuffile,O_BINARY|O_RDONLY,S_IREAD)) == -1)
+	if ((fil = Bopen(argv[1],BO_BINARY|BO_RDONLY,BS_IREAD)) == -1)
 	{
-		printf("Error: %s could not be opened\n",stuffile);
-		exit(0);
+		printf("Error: %s could not be opened\n",argv[1]);
+		return(0);
 	}
 
-	read(fil,buf,16);
+	Bread(fil,buf,16);
 	if ((buf[0] != 'K') || (buf[1] != 'e') || (buf[2] != 'n') ||
 		 (buf[3] != 'S') || (buf[4] != 'i') || (buf[5] != 'l') ||
 		 (buf[6] != 'v') || (buf[7] != 'e') || (buf[8] != 'r') ||
 		 (buf[9] != 'm') || (buf[10] != 'a') || (buf[11] != 'n'))
 	{
-		close(fil);
-		printf("Error: %s not a valid group file\n",fil);
-		exit(0);
+		Bclose(fil);
+		printf("Error: %s not a valid group file\n",argv[1]);
+		return(0);
 	}
 	numfiles = ((long)buf[12])+(((long)buf[13])<<8)+(((long)buf[14])<<16)+(((long)buf[15])<<24);
 
-	read(fil,filelist,numfiles<<4);
+	Bread(fil,filelist,numfiles<<4);
 
 	j = 0;
 	for(i=0;i<numfiles;i++)
@@ -81,12 +67,11 @@ int main(short argc, char **argv)
 	anyfiles4extraction = 0;
 	for(i=argc-1;i>1;i--)
 	{
-		strcpy(filename,argv[i]);
-		if (filename[0] == '@')
+		if (argv[i][0] == '@')
 		{
-			if ((fil2 = open(&filename[1],O_BINARY|O_RDWR,S_IREAD)) != -1)
+			if ((fil2 = Bopen(&argv[i][1],BO_BINARY|BO_RDONLY,BS_IREAD)) != -1)
 			{
-				l = read(fil2,buf,65536);
+				l = Bread(fil2,buf,65536);
 				j = 0;
 				while ((j < l) && (buf[j] <= 32)) j++;
 				while (j < l)
@@ -100,18 +85,18 @@ int main(short argc, char **argv)
 
 					while ((j < l) && (buf[j] <= 32)) j++;
 				}
-				close(fil2);
+				Bclose(fil2);
 			}
 		}
 		else
-			findfiles(filename);
+			findfiles(argv[i]);
 	}
 
 	if (anyfiles4extraction == 0)
 	{
-		close(fil);
+		Bclose(fil);
 		printf("No files found in group file with those names\n");
-		exit(0);
+		return(0);
 	}
 
 	for(i=0;i<numfiles;i++)
@@ -120,67 +105,45 @@ int main(short argc, char **argv)
 
 		fileleng[i] = fileoffs[i+1]-fileoffs[i];
 
-		if ((fil2 = open(filelist[i],O_BINARY|O_TRUNC|O_CREAT|O_WRONLY,S_IWRITE)) == -1)
+		if ((fil2 = Bopen(filelist[i],BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)
 		{
 			printf("Error: Could not write to %s\n",filelist[i]);
 			continue;
 		}
 		printf("Extracting %s...\n",filelist[i]);
-		lseek(fil,fileoffs[i]+((numfiles+1)<<4),SEEK_SET);
+		Blseek(fil,fileoffs[i]+((numfiles+1)<<4),SEEK_SET);
 		for(j=0;j<fileleng[i];j+=65536)
 		{
 			k = min(fileleng[i]-j,65536);
-			read(fil,buf,k);
-			if (write(fil2,buf,k) < k)
+			Bread(fil,buf,k);
+			if (Bwrite(fil2,buf,k) < k)
 			{
 				printf("Write error (drive full?)\n");
-				close(fil2);
-				close(fil);
-				exit(0);
+				Bclose(fil2);
+				Bclose(fil);
+				return(0);
 			}
 		}
-		close(fil2);
+		Bclose(fil2);
 	}
-	close(fil);
+	Bclose(fil);
 
 	return 0;
 }
 
-void findfiles(char *dafilespec)
+void findfiles(const char *dafilespec)
 {
-	long i, j, k;
-	char ch1, ch2, bad, buf1[12], buf2[12];
-
-	for(k=0;k<12;k++) buf1[k] = 32;
-	j = 0;
-	for(k=0;dafilespec[k];k++)
-	{
-		if (dafilespec[k] == '.') j = 8;
-		buf1[j++] = dafilespec[k];
-	}
+	char t[13];
+	int i;
 
 	for(i=numfiles-1;i>=0;i--)
 	{
-		for(k=0;k<12;k++) buf2[k] = 32;
-		j = 0;
-		for(k=0;filelist[i][k];k++)
-		{
-			if (filelist[i][k] == '.') j = 8;
-			buf2[j++] = filelist[i][k];
+		memcpy(t,filelist[i],12);
+		t[12] = 0;
+		
+		if (wildmatch(t,dafilespec)) {
+			marked4extraction[i] = 1;
+			anyfiles4extraction = 1;
 		}
-
-		bad = 0;
-		for(j=0;j<12;j++)
-		{
-			ch1 = buf1[j]; if ((ch1 >= 97) && (ch1 <= 123)) ch1 -= 32;
-			ch2 = buf2[j]; if ((ch2 >= 97) && (ch2 <= 123)) ch2 -= 32;
-			if (ch1 == '*')
-			{
-				if (j < 8) j = 8; else j = 12;
-				continue;
-			}
-			if ((ch1 != '?') && (ch1 != ch2)) { bad = 1; break; }
-		}
-		if (bad == 0) { marked4extraction[i] = 1; anyfiles4extraction = 1; }
 	}
 }

@@ -106,7 +106,7 @@ static INT_PTR CALLBACK LaunchWindowProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 					if (HIWORD(wParam) == CBN_SELCHANGE) {
 						int i;
 						i = ComboBox_GetCurSel((HWND)lParam);
-						if (i != CB_ERR) i = ComboBox_GetItemData(lParam, i);
+						if (i != CB_ERR) i = ComboBox_GetItemData((HWND)lParam, i);
 						if (i != CB_ERR) {
 							xdim2d = validmodexdim[i];
 							ydim2d = validmodeydim[i];

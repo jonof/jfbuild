@@ -1,13 +1,10 @@
 // "Build Engine & Tools" Copyright (c) 1993-1997 Ken Silverman
 // Ken Silverman's official web site: "http://www.advsys.net/ken"
 // See the included license file "BUILDLIC.TXT" for license info.
+//
+// This file has been modified from Ken Silverman's original release
+// by Jonathon Fowler (jonof@edgenetwk.com)
 
-#include <fcntl.h>
-#include <io.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include "pragmas.h"
 #include "compat.h"
 
@@ -198,16 +195,16 @@ int main(int argc, char **argv)
 	if ((transratio < 0) || (transratio > 256))
 		{ printf("Invalid transluscent ratio\n"); exit(0); }
 
-	if ((fil = open(palettefilename,O_BINARY|O_RDWR,S_IREAD)) == -1)
+	if ((fil = Bopen(palettefilename,BO_BINARY|BO_RDONLY,BS_IREAD)) == -1)
 	{
 		printf("%s not found",palettefilename);
-		exit(0);
+		return(0);
 	}
-	read(fil,palette,768);
-	read(fil,&orignumpalookups,2);
+	Bread(fil,palette,768);
+	Bread(fil,&orignumpalookups,2);
 	orignumpalookups = min(max(orignumpalookups,1),256);
-	read(fil,origpalookup,(long)orignumpalookups<<8);
-	close(fil);
+	Bread(fil,origpalookup,(long)orignumpalookups<<8);
+	Bclose(fil);
 
 	clearbuf(buf,65536>>2,0L);
 
@@ -243,24 +240,24 @@ int main(int argc, char **argv)
 
 	if (ch == 13)
 	{
-		if ((fil = open(palettefilename,O_BINARY|O_TRUNC|O_CREAT|O_WRONLY,S_IWRITE)) == -1)
-			{ printf("Couldn't save file",palettefilename); exit(0); }
-		write(fil,palette,768);
-		write(fil,&numpalookups,2);
-		write(fil,palookup,numpalookups<<8);
-		write(fil,transluc,65536);
-		close(fil);
+		if ((fil = Bopen(palettefilename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)
+			{ printf("Couldn't save file",palettefilename); return(0); }
+		Bwrite(fil,palette,768);
+		Bwrite(fil,&numpalookups,2);
+		Bwrite(fil,palookup,numpalookups<<8);
+		Bwrite(fil,transluc,65536);
+		Bclose(fil);
 		printf("Shade table AND transluscent table updated\n");
 	}
 	else if (ch == 32)
 	{
-		if ((fil = open(palettefilename,O_BINARY|O_TRUNC|O_CREAT|O_WRONLY,S_IWRITE)) == -1)
-			{ printf("Couldn't save file",palettefilename); exit(0); }
-		write(fil,palette,768);
-		write(fil,&orignumpalookups,2);
-		write(fil,origpalookup,(long)orignumpalookups<<8);
-		write(fil,transluc,65536);
-		close(fil);
+		if ((fil = Bopen(palettefilename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)
+			{ printf("Couldn't save file",palettefilename); return(0); }
+		Bwrite(fil,palette,768);
+		Bwrite(fil,&orignumpalookups,2);
+		Bwrite(fil,origpalookup,(long)orignumpalookups<<8);
+		Bwrite(fil,transluc,65536);
+		Bclose(fil);
 		printf("Transluscent table updated\n");
 	}
 	else

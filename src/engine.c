@@ -2889,13 +2889,6 @@ static void drawvox(long dasprx, long daspry, long dasprz, long dasprang,
 	daxsiz = longptr[0]; daysiz = longptr[1]; dazsiz = longptr[2];
 	daxpivot = longptr[3]; daypivot = longptr[4]; dazpivot = longptr[5];
 	davoxptr += (6<<2);
-	//if (voxscale[daindex] != 65536)
-	//{
-	//   i = voxscale[daindex];
-	//   daxpivot = mulscale16(daxpivot,i); //FUK
-	//   daypivot = mulscale16(daypivot,i);
-	//   dazpivot = mulscale16(dazpivot,i);
-	//}
 
 	x = mulscale16(globalposx-dasprx,daxscalerecip);
 	y = mulscale16(globalposy-daspry,daxscalerecip);

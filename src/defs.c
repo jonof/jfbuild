@@ -124,7 +124,7 @@ static tokenlist voxeltokens[] = {
 	{ "tile",   T_TILE   },
 	{ "tile0",  T_TILE0  },
 	{ "tile1",  T_TILE1  },
-	{ "scale",  T_SCALE  }
+	{ "scale",  T_SCALE  },
 };
 
 static tokenlist skyboxtokens[] = {

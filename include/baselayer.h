@@ -41,7 +41,7 @@ extern unsigned char keynames[256][24];
 extern short mousex, mousey, mouseb;
 
 // joystick
-extern long joyaxis[16], joyb;
+extern long *joyaxis, *joyhat, joyb;
 extern char joyisgamepad, joynumaxes, joynumbuttons, joynumhats;
 extern long joyaxespresent;
 
@@ -65,6 +65,8 @@ void releaseallbuttons(void);
 void setkeypresscallback(void (*callback)(long,long));
 void setmousepresscallback(void (*callback)(long,long));
 void setjoypresscallback(void (*callback)(long,long));
+const unsigned char *getkeyname(int num);
+const unsigned char *getjoyname(int what, int num);	// what: 0=axis, 1=button, 2=hat
 
 unsigned char bgetchar(void);
 int bkbhit(void);

@@ -118,15 +118,14 @@ char videomodereset = 0;
 char inputdevices=0;
 char quitevent=0, appactive=1, mousegrab=1;
 short mousex=0, mousey=0, mouseb=0,mouseba[2];
-long joyaxis[16], joyb=0;
+long *joyaxis = NULL, joyb=0, *joyhat = NULL;
 char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
-long joyaxespresent=0;
 
 static char taskswitching=1;
 
 char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
 unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
-unsigned char keynames[256][24];
+static unsigned char keynames[256][24];
 static unsigned long lastKeyDown = 0;
 static unsigned long lastKeyTime = 0;
 
@@ -613,7 +612,7 @@ void initprintf(const char *f, ...)
 			i = SendDlgItemMessage(startupdlg,102,LB_GETCOUNT,0,0);
 			if (i>0) {
 				overwriteline = i-1;
-				p = (char *)Bmalloc( SendDlgItemMessage(startupdlg,102,LB_GETTEXTLEN,overwriteline,0) );
+				p = (char *)Bmalloc( SendDlgItemMessage(startupdlg,102,LB_GETTEXTLEN,overwriteline,0)+1 );
 				i = SendDlgItemMessage(startupdlg,102,LB_GETTEXT,overwriteline,(LPARAM)p);
 				if (i>1023) i = 1023;
 				Bmemcpy(workbuf, p, i);
@@ -762,16 +761,55 @@ static struct {
 	{ "mouse",    &lpDID[MOUSE],    &c_dfDIMouse },
 	{ "joystick", &lpDID[JOYSTICK], &c_dfDIJoystick }
 };
-static struct {
-	char *name;
-	unsigned ofs;
-} axisdefs[] = {
-	{ "X", DIJOFS_X }, { "Y", DIJOFS_Y }, { "Z", DIJOFS_Z },
-	{ "RX", DIJOFS_RX }, { "RY", DIJOFS_RY }, { "RZ", DIJOFS_RZ },
-	{ "Slider 0", DIJOFS_SLIDER(0) }, { "Slider 1", DIJOFS_SLIDER(1) },
-	{ "Hat 0", DIJOFS_POV(0) }, { "Hat 1", DIJOFS_POV(1) },
-	{ "Hat 2", DIJOFS_POV(2) }, { "Hat 3", DIJOFS_POV(3) }
+static struct _joydef {
+	const char *name;
+	unsigned ofs;	// directinput 'dwOfs' value
+} *axisdefs = NULL, *buttondefs = NULL, *hatdefs = NULL;
+
+struct _joydevicefeature {
+	unsigned int ofs;
+	const char *name;
 };
+struct _joydevicedefn {
+	unsigned long devid;	// is the value of DIDEVICEINSTANCE.guidProduct.Data1
+	int nfeatures;
+	struct _joydevicefeature *features;
+};
+
+// This is to give more realistic names to the buttons, axes, etc on a controller than
+// those the driver reports. Curse inconsistency.
+struct _joydevicefeature joyfeatures_C20A046D[] = {	// Logitech WingMan RumblePad USB
+	{ 0,  "Left Stick X" },
+	{ 4,  "Left Stick Y" },
+	{ 8,  "Right Stick X" },
+	{ 20, "Right Stick Y" },
+	{ 24, "Throttle" },
+};
+struct _joydevicefeature joyfeatures_C218046D[] = {	// Logitech RumblePad 2 USB
+	{ 0,  "Left Stick X" },
+	{ 4,  "Left Stick Y" },
+	{ 8,  "Right Stick X" },
+	{ 20, "Right Stick Y" },
+	{ 32, "D-Pad" },
+	{ 48, "Button 1" },
+	{ 49, "Button 2" },
+	{ 50, "Button 3" },
+	{ 51, "Button 4" },
+	{ 52, "Button 5" },
+	{ 53, "Button 6" },
+	{ 54, "Button 7" },
+	{ 55, "Button 8" },
+	{ 56, "Button 9" },
+	{ 57, "Button 10" },
+	{ 58, "Left Stick Press" },
+	{ 59, "Right Stick Press" },
+};
+#define featurecount(x) (sizeof(x)/sizeof(struct _joydevicefeature))
+static struct _joydevicedefn *thisjoydef = NULL, joyfeatures[] = {
+	{ 0xC20A046D, featurecount(joyfeatures_C20A046D), joyfeatures_C20A046D },	// Logitech WingMan RumblePad USB
+	{ 0xC218046D, featurecount(joyfeatures_C218046D), joyfeatures_C218046D },	// Logitech RumblePad 2 USB
+};
+#undef featurecount
 
 // I don't see any pressing need to store the key-up events yet
 #define SetKey(key,state) { \
@@ -795,6 +833,7 @@ int initinput(void)
 	keyasciififoplc = keyasciififoend = 0;
 
 	inputdevices = 0;
+	joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
 
 	if (InitDirectInput())
 		return -1;
@@ -926,8 +965,7 @@ void setjoydeadzone(int axis, unsigned short dead, unsigned short satur)
 	if (dead > 10000) dead = 10000;
 	if (satur > 10000) satur = 10000;
 	if (dead >= satur) dead = satur-100;
-	if (axis >= (int)(sizeof(axisdefs)/sizeof(axisdefs[0]))) return;
-	if (axis >= 0 && !(joyaxespresent&(1<<axis))) return;
+	if (axis >= joynumaxes) return;
 
 	memset(&dipdw, 0, sizeof(dipdw));
 	dipdw.diph.dwSize = sizeof(DIPROPDWORD);
@@ -966,11 +1004,10 @@ void getjoydeadzone(int axis, unsigned short *dead, unsigned short *satur)
 {
 	DIPROPDWORD dipdw;
 	HRESULT result;
-	
+
 	if (!dead || !satur) return;
 	if (!lpDID[JOYSTICK]) { *dead = *satur = 0; return; }
-	if (axis >= (int)(sizeof(axisdefs)/sizeof(axisdefs[0]))) { *dead = *satur = 0; return; }
-	if (axis >= 0 && !(joyaxespresent&(1<<axis))) { *dead = *satur = 0; return; }
+	if (axis >= joynumaxes) { *dead = *satur = 0; return; }
 
 	memset(&dipdw, 0, sizeof(dipdw));
 	dipdw.diph.dwSize = sizeof(DIPROPDWORD);
@@ -1045,6 +1082,7 @@ void releaseallbuttons(void)
 static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef)
 {
 	const char *d;
+	int i;
 	
 #define COPYGUID(d,s) memcpy(&d,&s,sizeof(GUID))
 	
@@ -1064,6 +1102,26 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 			joyisgamepad = ((lpddi->dwDevType & (DIDEVTYPEJOYSTICK_GAMEPAD<<8)) != 0);
 			d = joyisgamepad ? "GAMEPAD" : "JOYSTICK";
 			COPYGUID(guidDevs[JOYSTICK],lpddi->guidInstance);
+
+			thisjoydef = NULL;
+			for (i=0; i<sizeof(joyfeatures)/sizeof(joyfeatures[0]); i++) {
+				if (lpddi->guidProduct.Data1 == joyfeatures[i].devid) {
+					thisjoydef = &joyfeatures[i];
+					break;
+				}
+			}
+
+			// Outputs the GUID of the joystick to the console
+			/*
+			initprintf("GUID = {%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}\n",
+					lpddi->guidProduct.Data1,
+					lpddi->guidProduct.Data2, lpddi->guidProduct.Data3,
+					lpddi->guidProduct.Data4[0], lpddi->guidProduct.Data4[1],
+					lpddi->guidProduct.Data4[2], lpddi->guidProduct.Data4[3],
+					lpddi->guidProduct.Data4[4], lpddi->guidProduct.Data4[5],
+					lpddi->guidProduct.Data4[6], lpddi->guidProduct.Data4[7]
+				);
+			*/
 			break;
 		default: d = "OTHER"; break;
 	}
@@ -1073,18 +1131,49 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 	return DIENUM_CONTINUE;
 }
 
+static const char *joyfindnameforofs(int ofs)
+{
+	int i;
+	if (!thisjoydef) return NULL;
+	for (i=0;i<thisjoydef->nfeatures;i++) {
+		if (ofs == thisjoydef->features[i].ofs)
+			return Bstrdup(thisjoydef->features[i].name);
+	}
+	return NULL;
+}
+
 static BOOL CALLBACK InitDirectInput_enumobjects(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef)
 {
 	unsigned i;
-	long *lpvref = (long*)pvRef;
-	
-	for (i=0;i<sizeof(axisdefs)/sizeof(axisdefs[0]);i++) {
-		if (lpddoi->dwOfs == axisdefs[i].ofs) {
-			if ((*lpvref)++ > 0) initprintf(", ");
-			initprintf(axisdefs[i].name);
-			joyaxespresent |= (1<<i);
-			break;
-		}
+	long *typecounts = (long*)pvRef;
+
+	if (lpddoi->dwType & DIDFT_AXIS) {
+		//initprintf(" Axis: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
+
+		axisdefs[ typecounts[0] ].name = joyfindnameforofs(lpddoi->dwOfs);
+		if (!axisdefs[ typecounts[0] ].name)
+			axisdefs[ typecounts[0] ].name = Bstrdup(lpddoi->tszName);
+		axisdefs[ typecounts[0] ].ofs = lpddoi->dwOfs;
+
+		typecounts[0]++;
+	} else if (lpddoi->dwType & DIDFT_BUTTON) {
+		//initprintf(" Button: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
+
+		buttondefs[ typecounts[1] ].name = joyfindnameforofs(lpddoi->dwOfs);
+		if (!buttondefs[ typecounts[1] ].name)
+			buttondefs[ typecounts[1] ].name = Bstrdup(lpddoi->tszName);
+		buttondefs[ typecounts[1] ].ofs = lpddoi->dwOfs;
+
+		typecounts[1]++;
+	} else if (lpddoi->dwType & DIDFT_POV) {
+		//initprintf(" POV: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
+
+		hatdefs[ typecounts[2] ].name = joyfindnameforofs(lpddoi->dwOfs);
+		if (!hatdefs[ typecounts[2] ].name)
+			hatdefs[ typecounts[2] ].name = Bstrdup(lpddoi->tszName);
+		hatdefs[ typecounts[2] ].ofs = lpddoi->dwOfs;
+
+		typecounts[2]++;
 	}
 
 	return DIENUM_CONTINUE;
@@ -1156,8 +1245,30 @@ static BOOL InitDirectInput(void)
 		result = IDirectInputDevice2_SetDataFormat(*devicedef[devn].did, devicedef[devn].df);
 		if (result != DI_OK) HorribleDInputDeath("Failed setting data format", result)
 
+		memset(&dipdw, 0, sizeof(dipdw));
+		dipdw.diph.dwSize = sizeof(DIPROPDWORD);
+		dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+		dipdw.diph.dwObj = 0;
+		dipdw.diph.dwHow = DIPH_DEVICE;
+		dipdw.dwData = INPUT_BUFFER_SIZE;
+
+		result = IDirectInputDevice2_SetProperty(*devicedef[devn].did, DIPROP_BUFFERSIZE, &dipdw.diph);
+		if (result != DI_OK) HorribleDInputDeath("Failed setting buffering", result)
+
+		inputevt[devn] = CreateEvent(NULL, FALSE, FALSE, NULL);
+		if (inputevt[devn] == NULL) {
+			ShowErrorBox("Couldn't create event object");
+			UninitDirectInput();
+			return TRUE;
+		}
+
+		result = IDirectInputDevice2_SetEventNotification(*devicedef[devn].did, inputevt[devn]);
+		if (result != DI_OK) HorribleDInputDeath("Failed setting event object", result)
+			
 		// set up device
 		if (devn == JOYSTICK) {
+			int typecounts[3] = {0,0,0};
+			/*
 			int deadzone, saturation;
 
 			if (joyisgamepad) {
@@ -1169,6 +1280,7 @@ static BOOL InitDirectInput(void)
 			}
 			
 			setjoydeadzone(-1,deadzone,saturation);
+			*/
 			
 			memset(&didc, 0, sizeof(didc));
 			didc.dwSize = sizeof(didc);
@@ -1176,38 +1288,21 @@ static BOOL InitDirectInput(void)
 			if (result != DI_OK) HorribleDInputDeath("Failed getting joystick capabilities", result)
 
 			joynumaxes    = (char)didc.dwAxes;
-			joynumbuttons = (char)didc.dwButtons;
+			joynumbuttons = min(32,(char)didc.dwButtons);
 			joynumhats    = (char)didc.dwPOVs;
 			initprintf("Joystick has %d axes, %d buttons, and %d hat(s).\n",joynumaxes,joynumbuttons,joynumhats);
 
-			joyaxespresent = 0; i=0;
-			initprintf("Joystick has these axes: ");
+			axisdefs = (struct _joydef *)Bcalloc(didc.dwAxes, sizeof(struct _joydef));
+			buttondefs = (struct _joydef *)Bcalloc(didc.dwButtons, sizeof(struct _joydef));
+			hatdefs = (struct _joydef *)Bcalloc(didc.dwPOVs, sizeof(struct _joydef));
+
+			joyaxis = (long *)Bcalloc(didc.dwAxes, sizeof(long));
+			joyhat = (long *)Bcalloc(didc.dwPOVs, sizeof(long));
+
 			result = IDirectInputDevice2_EnumObjects(*devicedef[devn].did,
-					InitDirectInput_enumobjects, (LPVOID)&i, DIDFT_ALL);
+					InitDirectInput_enumobjects, (LPVOID)typecounts, DIDFT_ALL);
 			if (result != DI_OK) HorribleDInputDeath("Failed getting joystick axis info", result)
 
-			initprintf("\n");
-			
-		} else {
-			memset(&dipdw, 0, sizeof(dipdw));
-			dipdw.diph.dwSize = sizeof(DIPROPDWORD);
-			dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
-			dipdw.diph.dwObj = 0;
-			dipdw.diph.dwHow = DIPH_DEVICE;
-			dipdw.dwData = INPUT_BUFFER_SIZE;
-
-			result = IDirectInputDevice2_SetProperty(*devicedef[devn].did, DIPROP_BUFFERSIZE, &dipdw.diph);
-			if (result != DI_OK) HorribleDInputDeath("Failed setting buffering", result)
-
-			inputevt[devn] = CreateEvent(NULL, FALSE, FALSE, NULL);
-			if (inputevt[devn] == NULL) {
-				ShowErrorBox("Couldn't create event object");
-				UninitDirectInput();
-				return TRUE;
-			}
-
-			result = IDirectInputDevice2_SetEventNotification(*devicedef[devn].did, inputevt[devn]);
-			if (result != DI_OK) HorribleDInputDeath("Failed setting event object", result)
 		}
 	}
 
@@ -1225,11 +1320,25 @@ static BOOL InitDirectInput(void)
 static void UninitDirectInput(void)
 {
 	int devn;
+	int i;
 	
 	if (bDInputInited) initprintf("Uninitialising DirectInput...\n");
 
 	AcquireInputDevices(0);
 
+	if (axisdefs) {
+		for (i=joynumaxes-1; i>=0; i--) if (axisdefs[i].name) free(axisdefs[i].name);
+		free(axisdefs); axisdefs = NULL;
+	}
+	if (buttondefs) {
+		for (i=joynumbuttons-1; i>=0; i--) if (buttondefs[i].name) free(buttondefs[i].name);
+		free(buttondefs); buttondefs = NULL;
+	}
+	if (hatdefs) {
+		for (i=joynumhats-1; i>=0; i--) if (hatdefs[i].name) free(hatdefs[i].name);
+		free(hatdefs); hatdefs = NULL;
+	}
+	
 	for (devn = 0; devn < NUM_INPUTS; devn++) {
 		if (*devicedef[devn].did) {
 			initprintf("  - Releasing %s device\n", devicedef[devn].name);
@@ -1284,6 +1393,31 @@ static void GetKeyNames(void)
 	}
 }
 
+const unsigned char *getkeyname(int num)
+{
+	if ((unsigned)num >= 256) return NULL;
+	return keynames[num];
+}
+
+const unsigned char *getjoyname(int what, int num)
+{
+	switch (what) {
+		case 0:	// axis
+			if ((unsigned)num > (unsigned)joynumaxes) return NULL;
+			return axisdefs[num].name;
+
+		case 1: // button
+			if ((unsigned)num > (unsigned)joynumbuttons) return NULL;
+			return buttondefs[num].name;
+
+		case 2: // hat
+			if ((unsigned)num > (unsigned)joynumhats) return NULL;
+			return hatdefs[num].name;
+
+		default:
+			return NULL;
+	}
+}
 
 //
 // AcquireInputDevices() -- (un)acquires the input devices
@@ -1370,7 +1504,7 @@ static void ProcessInputDevices(void)
 				}
 			}
 
-			if (t != JOYSTICK && devacquired[t]) {
+			if (devacquired[t]) {
 				waithnds[numdevs] = inputevt[t];
 				idevnums[numdevs] = t;
 				numdevs++;
@@ -1492,55 +1626,53 @@ static void ProcessInputDevices(void)
 					}
 				}
 				break;
-		}
-	}
+			case 2:		// joystick
+				if (!lpDID[JOYSTICK]) break;
+				result = IDirectInputDevice2_GetDeviceData(lpDID[JOYSTICK], sizeof(DIDEVICEOBJECTDATA),
+						(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
+				if (result == DI_OK) {
+					int j;
+					
+					for (i=0; i<dwElements; i++) {
+						// check axes
+						for (j=0; j<joynumaxes; j++) {
+							if (axisdefs[j].ofs != didod[i].dwOfs) continue;
+							joyaxis[j] = didod[i].dwData - 32767;
+							break;
+						}
+						if (j<joynumaxes) continue;
 
-	if (lpDID[JOYSTICK] && devacquired[JOYSTICK]) {
-		// joystick
+						// check buttons
+						for (j=0; j<joynumbuttons; j++) {
+							if (buttondefs[j].ofs != didod[i].dwOfs) continue;
+							if (didod[i].dwData & 0x80) joyb |= (1<<j);
+							else joyb &= ~(1<<j);
+							if (joypresscallback)
+								joypresscallback(j+1, (didod[i].dwData & 0x80)==0x80);
+							break;
+						}
+						if (j<joynumbuttons) continue;
 
-		DIJOYSTATE dijs;
-		
-		result = IDirectInputDevice2_GetDeviceState(lpDID[JOYSTICK], sizeof(DIJOYSTATE), (LPVOID)&dijs);
-		if (result == DI_OK) {
-			long x, xm;
-			joyb = 0;
-			for (x=0;x<32;x++) {
-				joyb |= ((dijs.rgbButtons[x]==0x80)<<x);
-				xm = 1<<x;
-				if (joypresscallback) {
-					if ((joyblast & xm) && !(joyb & xm))
-						joypresscallback(x+1, 0);	// release
-					else if (!(joyblast & xm) && (joyb & xm))
-						joypresscallback(x+1, 1);	// press
+						// check hats
+						for (j=0; j<joynumhats; j++) {
+							if (hatdefs[j].ofs != didod[i].dwOfs) continue;
+							joyhat[j] = didod[i].dwData;
+							break;
+						}
+					}
+
+					/*
+					OSD_Printf("axes:");
+					for (i=0;i<joynumaxes;i++) OSD_Printf(" %d", joyaxis[i]);
+					OSD_Printf(" - buttons: %x - hats:", joyb);
+					for (i=0;i<joynumhats;i++) OSD_Printf(" %d", joyhat[i]);
+					OSD_Printf("\n");
+					*/
 				}
-			}
-			
-			/*
-			OSD_Printf("Joy: x=%d y=%d z=%d rx=%d ry=%d rz=%d slider=(%d,%d) pov=(%d,%d,%d,%d) buttons=%x\n",
-				dijs.lX, dijs.lY, dijs.lZ, dijs.lRx, dijs.lRy, dijs.lRz,
-				dijs.rglSlider[0], dijs.rglSlider[1],
-				dijs.rgdwPOV[0], dijs.rgdwPOV[1], dijs.rgdwPOV[2], dijs.rgdwPOV[3], joyb);
-			*/
-
-			memset(joyaxis,0,sizeof(joyaxis));
-			joyaxis[8] = joyaxis[9] = joyaxis[10] = joyaxis[11] = -1;
-
-			if (joyaxespresent & 0x1) joyaxis[0]  = dijs.lX - 32767;
-			if (joyaxespresent & 0x2) joyaxis[1]  = dijs.lY - 32767;
-			if (joyaxespresent & 0x4) joyaxis[2]  = dijs.lZ - 32767;
-			if (joyaxespresent & 0x8) joyaxis[3]  = dijs.lRx;
-			if (joyaxespresent & 0x10) joyaxis[4]  = dijs.lRy;
-			if (joyaxespresent & 0x20) joyaxis[5]  = dijs.lRz;
-			if (joyaxespresent & 0x40) joyaxis[6]  = dijs.rglSlider[0];
-			if (joyaxespresent & 0x80) joyaxis[7]  = dijs.rglSlider[1];
-			if (joyaxespresent & 0x100) joyaxis[8]  = dijs.rgdwPOV[0];
-			if (joyaxespresent & 0x200) joyaxis[9]  = dijs.rgdwPOV[1];
-			if (joyaxespresent & 0x400) joyaxis[10] = dijs.rgdwPOV[2];
-			if (joyaxespresent & 0x800) joyaxis[11] = dijs.rgdwPOV[3];
-			joyblast = joyb;
+				break;
 		}
 	}
-
+	
 	// key repeat
 	// this is like this because the period of t is 1000ms
 	if (lastKeyDown > 0) {

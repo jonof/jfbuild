@@ -104,6 +104,9 @@ CFLAGS=$(CFLAGS) /D$(PLATFORM) /DRENDERTYPE$(RENDERTYPE)=1
 {$(SRC)tmp}.c{$(OBJ)}.$o:
 	$(CC) /c $(CFLAGS) /Fo$@ $<
 
+{$(SRC)util}.c{$(OBJ)}.$o:
+	$(CC) /c $(CFLAGS) /Fo$@ $<
+
 {$(SRC)misc}.rc{$(OBJ)}.$(res):
 	$(RC) /fo$@ /r $<
 
@@ -129,6 +132,27 @@ game$(EXESUFFIX): $(GAMEEXEOBJS)
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS)
 	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:WINDOWS /LIBPATH:$(DXROOT)\lib /LIBPATH:$(FMODROOT)\lib $(flags_link) /MAP $** $(LIBS) msvcrt.lib
+	copy /y $(OBJ)$@ $@
+
+# the tools
+kextract$(EXESUFFIX): $(OBJ)kextract.$o $(OBJ)compat.$o
+	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
+	copy /y $(OBJ)$@ $@
+
+kgroup$(EXESUFFIX): $(OBJ)kgroup.$o $(OBJ)compat.$o
+	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
+	copy /y $(OBJ)$@ $@
+
+transpal$(EXESUFFIX): $(OBJ)transpal.$o $(OBJ)compat.$o
+	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
+	copy /y $(OBJ)$@ $@
+
+wad2map$(EXESUFFIX): $(OBJ)wad2map.$o $(OBJ)compat.$o
+	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
+	copy /y $(OBJ)$@ $@
+
+wad2art$(EXESUFFIX): $(OBJ)wad2art.$o $(OBJ)compat.$o
+	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 	copy /y $(OBJ)$@ $@
 
 # DEPENDENCIES

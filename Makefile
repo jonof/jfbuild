@@ -158,26 +158,21 @@ build$(EXESUFFIX): $(EDITOREXEOBJS)
 pragmacheck$(EXESUFFIX): $(OBJ)pragmacheck.$o $(OBJ)pragmas.$o
 	$(CC) $(subst -Dmain=app_main,,$(CFLAGS)) -o $@ $^
 	
-kextract$(EXESUFFIX): $(OBJ)kextract.$o
+kextract$(EXESUFFIX): $(OBJ)kextract.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
-kgroup$(EXESUFFIX): $(OBJ)kgroup.$o
+kgroup$(EXESUFFIX): $(OBJ)kgroup.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
-transpal$(EXESUFFIX): $(OBJ)transpal.$o $(OBJ)pragmas.$o
+transpal$(EXESUFFIX): $(OBJ)transpal.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
+	$(CC) -o $@ $^
+wad2art$(EXESUFFIX): $(OBJ)wad2art.$o $(OBJ)compat.$o
+	$(CC) -o $@ $^
+wad2map$(EXESUFFIX): $(OBJ)wad2map.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
 generateicon$(EXESUFFIX): $(OBJ)generateicon.$o $(OBJ)kplib.$o
 	$(CC) -o $@ $^
 
 # DEPENDENCIES
 include Makefile.deps
-
-$(OBJ)kextract.$o: $(SRC)util/kextract.c
-	$(CC) -funsigned-char -c $< -o $@
-$(OBJ)kgroup.$o: $(SRC)util/kgroup.c
-	$(CC) -funsigned-char -c $< -o $@
-$(OBJ)transpal.$o: $(SRC)util/transpal.c
-	$(CC) -funsigned-char -I$(INC) -c $< -o $@
-$(OBJ)generateicon.$o: $(SRC)util/generateicon.c
-	$(CC) -funsigned-char -I$(INC) -c $< -o $@
 
 .PHONY: $(OBJ)engineinfo.$o
 $(OBJ)engineinfo.$o:

@@ -62,8 +62,8 @@ static __inline long filelength (int h)
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 
-#if defined(__WATCOMC__) || defined(_MSC_VER)
-#define inline _inline
+#if defined(__GNUC__)
+#define _inline inline
 #endif
 
 	//use GCC-specific extension to force symbol name to be something in particular to override underscoring.
@@ -137,7 +137,7 @@ unsigned char coltype, bitdepth;
 
 	//.PNG specific variables:
 static long bakcol = 0xff808080, bakr = 0x80, bakg = 0x80, bakb = 0x80; //this used to be public...
-static long slidew = 0, slider = 0, xm, xmn[4], xr0, xr1, xplc, yplc, nfplace;
+static long gslidew = 0, gslider = 0, xm, xmn[4], xr0, xr1, xplc, yplc, nfplace;
 static long clen[320], cclen[19], bitpos, filt, xsiz, ysiz;
 static long xsizbpl, ixsiz, ixoff, iyoff, ixstp, iystp, intlac, nbpl, trnsrgb ASMNAME("trnsrgb");
 static long ccind[19] = {16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15};
@@ -243,7 +243,7 @@ static _inline long bitrev (long b, long c)
 		xor eax, eax
  beg: shr edx, 1
 		adc eax, eax
-		dec ecx
+		sub ecx, 1
 		jnz short beg
 	}
 }
@@ -299,7 +299,7 @@ static inline long bitrev (long b, long c)
 {
 	long a;
 	__asm__ __volatile__ (
-		"xorl %%eax, %%eax\n\t0:\n\tshrl $1, %%ebx\n\tadcl %%eax, %%eax\n\tdecl %%ecx\n\tjnz 0b"
+		"xorl %%eax, %%eax\n\t0:\n\tshrl $1, %%ebx\n\tadcl %%eax, %%eax\n\tsubl $1, %%ecx\n\tjnz 0b"
 		: "+a" (a), "+b" (b), "+c" (c) : : "cc");
 	return a;
 }
@@ -387,9 +387,9 @@ static void suckbitsnextblock ()
 	}
 }
 
-static inline long peekbits (long n) { return(((*(long *)&filptr[bitpos>>3])>>(bitpos&7))&pow2mask[n]); }
-static inline void suckbits (long n) { bitpos += n; if (bitpos >= 0) suckbitsnextblock(); }
-static inline long getbits (long n) { long i = peekbits(n); suckbits(n); return(i); }
+static _inline long peekbits (long n) { return(((*(long *)&filptr[bitpos>>3])>>(bitpos&7))&pow2mask[n]); }
+static _inline void suckbits (long n) { bitpos += n; if (bitpos >= 0) suckbitsnextblock(); }
+static _inline long getbits (long n) { long i = peekbits(n); suckbits(n); return(i); }
 
 static long hufgetsym (long *hitab, long *hbmax)
 {
@@ -705,7 +705,7 @@ static _inline void pal8hlineasm (long c, long d, long t, long b)
 		add edx, offset olinbuf
 		begit: movzx eax, byte ptr [ecx+edx]
 		mov eax, dword ptr palcol[eax*4]
-		dec ecx
+		sub ecx, 1
 		mov [edi], eax
 		lea edi, [edi+ebx]
 		jnz short begit
@@ -750,7 +750,7 @@ static inline void pal8hlineasm (long c, long d, long t, long b)
 	__asm__ __volatile__ (
 		"subl %%edx, %%ecx\n\tjle 1f\n\taddl $olinbuf, %%edx\n\t"
 		"0: movzbl (%%ecx,%%edx,1), %%eax\n\tmovl palcol(,%%eax,4), %%eax\n\t"
-		"decl %%ecx\n\tmovl %%eax, (%%edi)\n\tleal (%%edi,%%ebx,1), %%edi\n\tjnz 0b\n\t"
+		"subl $1, %%ecx\n\tmovl %%eax, (%%edi)\n\tleal (%%edi,%%ebx,1), %%edi\n\tjnz 0b\n\t"
 		"1:"
 		: "+c" (c), "+D" (t) : "d" (d), "b" (b) : "eax","memory","cc"
 		);
@@ -919,6 +919,7 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 	long daglobxoffs, long daglobyoffs)
 {
 	long i, j, k, bfinal, btype, hlit, hdist, leng;
+	long slidew, slider;
 	//long qhuf0v, qhuf1v;
 
 	if (!pnginited) { pnginited = 1; initpngtables(); }
@@ -1123,8 +1124,7 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 			}
 
 			k = peekbits(LOGQHUFSIZ0);
-			if (qhufbit0[k]) { i = qhufval0[k]; suckbits((long)qhufbit0[k]); }
-			else i = hufgetsym(ibuf0,nbuf0);
+			if (qhufbit0[k]) { i = qhufval0[k]; suckbits((long)qhufbit0[k]); } else i = hufgetsym(ibuf0,nbuf0);
 			//else i = hufgetsym_skipb(ibuf0,nbuf0,LOGQHUFSIZ0,qhuf0v); //hufgetsym_skipb related code
 
 			if (i < 256) { slidebuf[(slidew++)&32767] = (char)i; continue; }
@@ -1132,12 +1132,11 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 			i = getbits(hxbit[i+30-257][0]) + hxbit[i+30-257][1];
 
 			k = peekbits(LOGQHUFSIZ1);
-			if (qhufbit1[k]) { j = qhufval1[k]; suckbits((long)qhufbit1[k]); }
-			else j = hufgetsym(ibuf1,nbuf1);
+			if (qhufbit1[k]) { j = qhufval1[k]; suckbits((long)qhufbit1[k]); } else j = hufgetsym(ibuf1,nbuf1);
 			//else j = hufgetsym_skipb(ibuf1,nbuf1,LOGQHUFSIZ1,qhuf1v); //hufgetsym_skipb related code
 
 			j = getbits(hxbit[j][0]) + hxbit[j][1];
-			for(i+=slidew;slidew<i;slidew++) slidebuf[slidew&32767] = slidebuf[(slidew-j)&32767];
+			i += slidew; do { slidebuf[slidew&32767] = slidebuf[(slidew-j)&32767]; slidew++; } while (slidew < i);
 		}
 	} while (!bfinal);
 
@@ -2567,7 +2566,7 @@ long kzopen (const char *filnam)
 				kzfs.compleng = *(long *)&tempbuf[18];
 
 					//WARNING: No file in ZIP can be > 2GB-32K bytes
-				slidew = 0x7fffffff; //Force reload at beginning
+				gslidew = 0x7fffffff; //Force reload at beginning
 
 				return((long)kzfs.fil);
 			default: fclose(kzfs.fil); kzfs.fil = 0; return(0);
@@ -2742,11 +2741,11 @@ long kzread (void *buffer, long leng)
 		kzfs.endpos = min(kzfs.pos+leng,kzfs.leng);
 		if (kzfs.endpos == kzfs.pos) return(0); //Guard against reading 0 length
 
-		if (kzfs.pos < slidew-32768) // Must go back to start :(
+		if (kzfs.pos < gslidew-32768) // Must go back to start :(
 		{
 			if (kzfs.comptell) fseek(kzfs.fil,kzfs.seek0,SEEK_SET);
 
-			slidew = 0; slider = 16384;
+			gslidew = 0; gslider = 16384;
 			kzfs.jmpplc = 0;
 
 				//Initialize for suckbits/peekbits/getbits
@@ -2759,11 +2758,11 @@ long kzread (void *buffer, long leng)
 		}
 		else
 		{
-			i = max(slidew-32768,0); j = slider-16384;
+			i = max(gslidew-32768,0); j = gslider-16384;
 
 				//HACK: Don't unzip anything until you have to...
 				//   (keeps file pointer as low as possible)
-			if (kzfs.endpos <= slidew) j = kzfs.endpos;
+			if (kzfs.endpos <= gslidew) j = kzfs.endpos;
 
 				//write uncompoffs on slidebuf from: i to j
 			if (!((i^j)&32768))
@@ -2776,7 +2775,7 @@ long kzread (void *buffer, long leng)
 
 				//HACK: Don't unzip anything until you have to...
 				//   (keeps file pointer as low as possible)
-			if (kzfs.endpos <= slidew) goto retkzread;
+			if (kzfs.endpos <= gslidew) goto retkzread;
 		}
 
 		switch (kzfs.jmpplc)
@@ -2800,15 +2799,15 @@ kzreadplc0:;
 			else i = kzfs.comptell-(kzfs.comptell%(sizeof(olinbuf)-4));
 			i += ((long)&filptr[bitpos>>3])-((long)(&olinbuf[0]));
 			i = (i<<3)+(bitpos&7)-3;
-			if (slidew) printf(" ULng:0x%08x CLng:0x%08x.%x",slidew-ouncomppos,(i-ocomppos)>>3,((i-ocomppos)&7)<<1);
-			printf("\ntype:%d, Uoff:0x%08x Coff:0x%08x.%x",btype,slidew,i>>3,(i&7)<<1);
+			if (gslidew) printf(" ULng:0x%08x CLng:0x%08x.%x",gslidew-ouncomppos,(i-ocomppos)>>3,((i-ocomppos)&7)<<1);
+			printf("\ntype:%d, Uoff:0x%08x Coff:0x%08x.%x",btype,gslidew,i>>3,(i&7)<<1);
 			if (bfinal)
 			{
-				printf(" ULng:0x%08x CLng:0x%08x.%x",kzfs.leng-slidew,((kzfs.compleng<<3)-i)>>3,(((kzfs.compleng<<3)-i)&7)<<1);
+				printf(" ULng:0x%08x CLng:0x%08x.%x",kzfs.leng-gslidew,((kzfs.compleng<<3)-i)>>3,(((kzfs.compleng<<3)-i)&7)<<1);
 				printf("\n        Uoff:0x%08x Coff:0x%08x.0",kzfs.leng,kzfs.compleng);
 				ouncomppos = ocomppos = 0;
 			}
-			else { ouncomppos = slidew; ocomppos = i; }
+			else { ouncomppos = gslidew; ocomppos = i; }
 			}
 #endif
 
@@ -2819,17 +2818,17 @@ kzreadplc0:;
 				i = getbits(16); if ((getbits(16)^i) != 0xffff) { free(skfilebuf); skfilebuf = 0; return(-1); }
 				for(;i;i--)
 				{
-					if (slidew >= slider)
+					if (gslidew >= gslider)
 					{
-						putbuf4zip(&slidebuf[(slider-16384)&32767],slider-16384,slider); slider += 16384;
-						if (slider-16384 >= kzfs.endpos)
+						putbuf4zip(&slidebuf[(gslider-16384)&32767],gslider-16384,gslider); gslider += 16384;
+						if (gslider-16384 >= kzfs.endpos)
 						{
 							kzfs.jmpplc = 1; kzfs.i = i; kzfs.bfinal = bfinal;
 							goto retkzread;
 kzreadplc1:;         i = kzfs.i; bfinal = kzfs.bfinal;
 						}
 					}
-					slidebuf[(slidew++)&32767] = (char)getbits(8);
+					slidebuf[(gslidew++)&32767] = (char)getbits(8);
 				}
 				continue;
 			}
@@ -2874,10 +2873,10 @@ kzreadplc1:;         i = kzfs.i; bfinal = kzfs.bfinal;
 
 			while (1)
 			{
-				if (slidew >= slider)
+				if (gslidew >= gslider)
 				{
-					putbuf4zip(&slidebuf[(slider-16384)&32767],slider-16384,slider); slider += 16384;
-					if (slider-16384 >= kzfs.endpos)
+					putbuf4zip(&slidebuf[(gslider-16384)&32767],gslider-16384,gslider); gslider += 16384;
+					if (gslider-16384 >= kzfs.endpos)
 					{
 						kzfs.jmpplc = 2; kzfs.bfinal = bfinal; goto retkzread;
 kzreadplc2:;      bfinal = kzfs.bfinal;
@@ -2888,7 +2887,7 @@ kzreadplc2:;      bfinal = kzfs.bfinal;
 				if (qhufbit0[k]) { i = qhufval0[k]; suckbits((long)qhufbit0[k]); }
 				else i = hufgetsym(ibuf0,nbuf0);
 
-				if (i < 256) { slidebuf[(slidew++)&32767] = (char)i; continue; }
+				if (i < 256) { slidebuf[(gslidew++)&32767] = (char)i; continue; }
 				if (i == 256) break;
 				i = getbits(hxbit[i+30-257][0]) + hxbit[i+30-257][1];
 
@@ -2897,17 +2896,17 @@ kzreadplc2:;      bfinal = kzfs.bfinal;
 				else j = hufgetsym(ibuf1,nbuf1);
 
 				j = getbits(hxbit[j][0]) + hxbit[j][1];
-				for(;i;i--) slidebuf[(slidew++)&32767] = slidebuf[(slidew-j)&32767];
+				for(;i;i--) slidebuf[(gslidew++)&32767] = slidebuf[(gslidew-j)&32767];
 			}
 		} while (!bfinal);
 
-		slider -= 16384;
-		if (!((slider^slidew)&32768))
-			putbuf4zip(&slidebuf[slider&32767],slider,slidew);
+		gslider -= 16384;
+		if (!((gslider^gslidew)&32768))
+			putbuf4zip(&slidebuf[gslider&32767],gslider,gslidew);
 		else
 		{
-			putbuf4zip(&slidebuf[slider&32767],slider,slidew&~32767);
-			putbuf4zip(slidebuf,slidew&~32767,slidew);
+			putbuf4zip(&slidebuf[gslider&32767],gslider,gslidew&~32767);
+			putbuf4zip(slidebuf,gslidew&~32767,gslidew);
 		}
 kzreadplc3:; kzfs.jmpplc = 3;
 	}

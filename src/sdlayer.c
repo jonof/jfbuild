@@ -52,7 +52,7 @@ static char nogl=0;
 char inputdevices=0;
 char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
 unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
-unsigned char keynames[256][24];
+static unsigned char keynames[256][24];
 short mousex=0,mousey=0,mouseb=0;
 long joyaxis[16], joyb=0;
 char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
@@ -362,6 +362,12 @@ int initinput(void)
 void uninitinput(void)
 {
 	grabmouse(0);
+}
+
+const unsigned char *getkeyname(int num)
+{
+	if ((unsigned)num >= 256) return NULL;
+	return keynames[num];
 }
 
 //
