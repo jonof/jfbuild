@@ -1751,8 +1751,13 @@ int checkvideomode(int *x, int *y, int c, int fs)
 	}
 		
 #ifdef ANY_WINDOWED_SIZE
-	if ((fs&1) == 0 && (nearest < 0 || (validmodexdim[nearest]!=*x || validmodeydim[nearest]!=*y)))
-		return 0x7fffffffl;
+	if ((fs&1) == 0 && (nearest < 0 || validmodexdim[nearest]!=*x || validmodeydim[nearest]!=*y)) {
+		// check the colour depth is recognised at the very least
+		for (i=0;i<validmodecnt;i++)
+			if (validmodebpp[i] == c)
+				return 0x7fffffffl;
+		return -1;	// strange colour depth
+	}
 #endif
 
 	if (nearest < 0) {

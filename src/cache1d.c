@@ -219,7 +219,7 @@ static void reportandexit(char *errormessage)
 	Bprintf("Cachesize = %ld\n",cachesize);
 	Bprintf("Cacnum = %ld\n",cacnum);
 	Bprintf("Cache length sum = %ld\n",j);
-	Bprintf("ERROR: %s",errormessage);
+	initprintf("ERROR: %s\n",errormessage);
 	exit(0);
 }
 

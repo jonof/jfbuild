@@ -119,9 +119,7 @@ typedef long long int64;
 #define NULL ((void *)0)
 #endif
 
-#ifndef MAX_PATH
-#define MAX_PATH 260
-#endif
+#define BMAX_PATH 260
 
 
 struct Bdirent {
