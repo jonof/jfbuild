@@ -92,12 +92,12 @@ include Makefile.shared
 ifeq ($(PLATFORM),LINUX)
 	ASFLAGS+= -f elf
 else
-	ifeq ($(PLATFORM),WIN)
+	ifeq ($(PLATFORM),WINDOWS)
 		override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOT)/inc
-		ASFLAGS+= -DUNDERSCORES
+		LIBS+= -L$(FMODROOT)/lib
+		ASFLAGS+= -DUNDERSCORES -f win32
 		GAMEEXEOBJS+= $(OBJ)gameres.$(res)
 		EDITOREXEOBJS+= $(OBJ)buildres.$(res)
-		ASFLAGS+= -f win32
 	endif
 endif
 	
