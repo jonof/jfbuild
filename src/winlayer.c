@@ -103,7 +103,8 @@ long xres=-1, yres=-1, fullscreen=0, bpp=0, bytesperline=0, imageSize=0;
 long frameplace=0, lockcount=0;
 static int windowposx, windowposy, curvidmode = -1;
 static int customxdim = 640, customydim = 480, custombpp = 8, customfs = 0;
-static unsigned modeschecked=0, maxrefreshfreq=60;
+static unsigned modeschecked=0;
+unsigned maxrefreshfreq=60;
 char modechange=1, repaintneeded=0;
 char offscreenrendering=0;
 long glcolourdepth=32;
@@ -1856,7 +1857,7 @@ static void cdsenummodes(void)
 				 && modes[i].bpp == dm.dmBitsPerPel)
 					break;
 			}
-			if (dm.dmDisplayFrequency > maxrefreshfreq && maxrefreshfreq > 0) {
+			if (i==nmodes || (dm.dmDisplayFrequency <= maxrefreshfreq && maxrefreshfreq > 0)) {
 				if (i==nmodes || dm.dmDisplayFrequency > modes[i].freq) {
 					if (i==nmodes) nmodes++;
 

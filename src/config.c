@@ -143,8 +143,8 @@ int loadsetup(const char *fn)
 	}
 
 #ifdef RENDERTYPEWIN
-	if (readconfig(fp, "glusecds", val, VL) > 0) {
-		glusecds = Batoi(val);
+	if (readconfig(fp, "maxrefreshfreq", val, VL) > 0) {
+		maxrefreshfreq = Batoi(val);
 	}
 #endif
 

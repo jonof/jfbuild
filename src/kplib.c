@@ -679,7 +679,7 @@ static inline long Paeth686 (long a, long b, long c)
 	
 static inline void rgbhlineasm (long x, long xr1, long p, long ixstp)
 {
-	for(;x>xr1;p+=ixstp,x-=3) *(long *)p = *(long *)&olinbuf[x] | 0xff000000l;
+	for(;x>xr1;p+=ixstp,x-=3) *(long *)p = (*(long *)&olinbuf[x]) | 0xff000000l;
 }
 
 static inline void pal8hlineasm (long x, long xr1, long p, long ixstp)

@@ -60,6 +60,10 @@ typedef struct
 } md2tilemap;
 static md2tilemap tiletomodel[MAXTILES];
 
+   //Move this to appropriate place!
+typedef struct { float xadd, yadd, zadd; short angadd, flags; } hudtyp;
+hudtyp hudmem[2][MAXTILES]; //~320KB ... ok for now ... could replace with dynamic alloc
+
 static char md2inited=0;
 
 #define MODELALLOCGROUP 10
@@ -132,6 +136,7 @@ static void clearskins(void)
 
 static void md2init(void)
 {
+	memset(hudmem,0,sizeof(hudmem));
 	freeallmodels();
 	md2inited = 1;
 }
@@ -286,10 +291,6 @@ int md2_defineskin(int modelid, const char *skinfn, int palnum, int skinnum)
 
 	return 0;
 }
-
-   //Move this to appropriate place!
-typedef struct { float xadd, yadd, zadd; short angadd, flags; } hudtyp;
-hudtyp hudmem[2][MAXTILES]; //~320KB ... ok for now ... could replace with dynamic alloc
 
 int md2_definehud (int modelid, int tilex, double xadd, double yadd, double zadd, double angadd, int flags)
 {
