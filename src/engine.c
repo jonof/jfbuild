@@ -9132,13 +9132,17 @@ void drawcircle16(long x1, long y1, long r, char col)
 	dse = 5 - (r << 1);
 	
 	begindrawing();
-	p = (y1*bytesperline)+x1+frameplace;
+	p = ylookup[y1]+x1+frameplace;
 
 	if (drawlinepat & pow2long[(patc++)&31]) {
-		if (y1 >= 0 && y1 < ydim16 && (x1+r) < xres   && (x1+r) >= 0) drawpixel((char *)(p+r), col);			// a
-		if (x1 >= 0 && x1 < xres   && (y1+r) < ydim16 && (y1+r) >= 0) drawpixel((char *)(p+(r*bytesperline)), col);	// b
-		if (y1 >= 0 && y1 < ydim16 && (x1-r) < xres   && (x1-r) >= 0) drawpixel((char *)(p-r), col);			// c
-		if (x1 >= 0 && x1 < xres   && (y1-r) < ydim16 && (y1-r) >= 0) drawpixel((char *)(p-(r*bytesperline)), col);	// d
+		if ((unsigned long)y1 < (unsigned long)ydim16 && (unsigned long)(x1+r) < (unsigned long)xres  )
+			drawpixel((char *)(p+r), col);			// a
+		if ((unsigned long)x1 < (unsigned long)xres   && (unsigned long)(y1+r) < (unsigned long)ydim16)
+			drawpixel((char *)(p+(r*bytesperline)), col);	// b
+		if ((unsigned long)y1 < (unsigned long)ydim16 && (unsigned long)(x1-r) < (unsigned long)xres  )
+			drawpixel((char *)(p-r), col);			// c
+		if ((unsigned long)x1 < (unsigned long)xres   && (unsigned long)(y1-r) < (unsigned long)ydim16)
+			drawpixel((char *)(p-(r*bytesperline)), col);	// d
 	}
 
 	while (yp > xp) {
@@ -9155,17 +9159,25 @@ void drawcircle16(long x1, long y1, long r, char col)
 			yp--;
 		}
 
-		ypbpl = yp*bytesperline;
-		xpbpl = xp*bytesperline;
+		ypbpl = ylookup[yp];
+		xpbpl = ylookup[xp];
 		if (drawlinepat & pow2long[(patc++)&31]) {
-			if ((x1+yp) >= 0 && (x1+yp) < xres && (y1+xp) >= 0 && (y1+xp) < ydim16) drawpixel((char *)(p+yp+xpbpl), col);	// 1
-			if ((x1+xp) >= 0 && (x1+xp) < xres && (y1+yp) >= 0 && (y1+yp) < ydim16) drawpixel((char *)(p+xp+ypbpl), col);	// 2
-			if ((x1-xp) >= 0 && (x1-xp) < xres && (y1+yp) >= 0 && (y1+yp) < ydim16) drawpixel((char *)(p-xp+ypbpl), col);	// 3
-			if ((x1-yp) >= 0 && (x1-yp) < xres && (y1+xp) >= 0 && (y1+xp) < ydim16) drawpixel((char *)(p-yp+xpbpl), col);	// 4
-			if ((x1-yp) >= 0 && (x1-yp) < xres && (y1-xp) >= 0 && (y1-xp) < ydim16) drawpixel((char *)(p-yp-xpbpl), col);	// 5
-			if ((x1-xp) >= 0 && (x1-xp) < xres && (y1-yp) >= 0 && (y1-yp) < ydim16) drawpixel((char *)(p-xp-ypbpl), col);	// 6
-			if ((x1+xp) >= 0 && (x1+xp) < xres && (y1-yp) >= 0 && (y1-yp) < ydim16) drawpixel((char *)(p+xp-ypbpl), col);	// 7
-			if ((x1+yp) >= 0 && (x1+yp) < xres && (y1-xp) >= 0 && (y1-xp) < ydim16) drawpixel((char *)(p+yp-xpbpl), col);	// 8
+			if ((unsigned long)(x1+yp) < (unsigned long)xres && (unsigned long)(y1+xp) < (unsigned long)ydim16)
+				drawpixel((char *)(p+yp+xpbpl), col);	// 1
+			if ((unsigned long)(x1+xp) < (unsigned long)xres && (unsigned long)(y1+yp) < (unsigned long)ydim16)
+				drawpixel((char *)(p+xp+ypbpl), col);	// 2
+			if ((unsigned long)(x1-xp) < (unsigned long)xres && (unsigned long)(y1+yp) < (unsigned long)ydim16)
+				drawpixel((char *)(p-xp+ypbpl), col);	// 3
+			if ((unsigned long)(x1-yp) < (unsigned long)xres && (unsigned long)(y1+xp) < (unsigned long)ydim16)
+				drawpixel((char *)(p-yp+xpbpl), col);	// 4
+			if ((unsigned long)(x1-yp) < (unsigned long)xres && (unsigned long)(y1-xp) < (unsigned long)ydim16)
+				drawpixel((char *)(p-yp-xpbpl), col);	// 5
+			if ((unsigned long)(x1-xp) < (unsigned long)xres && (unsigned long)(y1-yp) < (unsigned long)ydim16)
+				drawpixel((char *)(p-xp-ypbpl), col);	// 6
+			if ((unsigned long)(x1+xp) < (unsigned long)xres && (unsigned long)(y1-yp) < (unsigned long)ydim16)
+				drawpixel((char *)(p+xp-ypbpl), col);	// 7
+			if ((unsigned long)(x1+yp) < (unsigned long)xres && (unsigned long)(y1-xp) < (unsigned long)ydim16)
+				drawpixel((char *)(p+yp-xpbpl), col);	// 8
 		}
 	}
 	enddrawing();

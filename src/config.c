@@ -8,6 +8,7 @@
 #ifdef RENDERTYPEWIN
 #include "winlayer.h"
 #endif
+#include "baselayer.h"
 
 static int readconfig(BFILE *fp, const char *key, char *value, unsigned len)
 {
