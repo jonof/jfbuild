@@ -640,7 +640,7 @@ static long permhead = 0, permtail = 0;
 short numscans, numhits, numbunches;
 static short posfil, capturecount = 0, hitcnt;
 
-static char vgapal16[64] =
+char vgapal16[4*256] =
 {
 	00,00,00,00, 42,00,00,00, 00,42,00,00, 42,42,00,00, 00,00,42,00,
 	42,00,42,00, 00,21,42,00, 42,42,42,00, 21,21,21,00, 63,21,21,00,
@@ -8367,16 +8367,16 @@ void makepalookup(long palnum, char *remapbuf, signed char r, signed char g, sig
 }
 
 
-static void setvgapalette(void)
+void setvgapalette(void)
 {
 	int i;
 
-	for (i=0;i<16;i++) {
+	for (i=0;i<256;i++) {
 		curpalettefaded[i].b = curpalette[i].b = vgapal16[4*i] << 2;
 		curpalettefaded[i].g = curpalette[i].g = vgapal16[4*i+1] << 2;
 		curpalettefaded[i].r = curpalette[i].r = vgapal16[4*i+2] << 2;
 	}
-	setpalette(0,16,vgapal16);
+	setpalette(0,256,vgapal16);
 }
 
 //
@@ -9206,7 +9206,6 @@ void qsetmode640350(void)
 		xdim = xres;
 		ydim = yres;
 
-		//setpalette(0, 16, vgapal16);
 		setvgapalette();
 
 		ydim16 = 350;
@@ -9237,7 +9236,6 @@ void qsetmode640480(void)
 		xdim = xres;
 		ydim = yres;
 
-		//setpalette(0, 16, vgapal16);
 		setvgapalette();
 
 		ydim16 = 336;
@@ -9272,7 +9270,6 @@ void qsetmodeany(long daxdim, long daydim)
 		xdim = xres;
 		ydim = yres;
 
-		//setpalette(0, 16, vgapal16);
 		setvgapalette();
 
 		ydim16 = yres - STATUS2DSIZ;

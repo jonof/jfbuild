@@ -218,6 +218,7 @@ EXTERN char gotpic[(MAXTILES+7)>>3];
 EXTERN char gotsector[(MAXSECTORS+7)>>3];
 
 EXTERN char captureformat;
+extern char vgapalette[5*256];
 extern long drawlinepat;
 
 extern void faketimerhandler(void);
@@ -355,6 +356,7 @@ long   qloadkvx(long voxindex, char *filename);
 long   allocatepermanenttile(short tilenume, long xsiz, long ysiz);
 void   copytilepiece(long tilenume1, long sx1, long sy1, long xsiz, long ysiz, long tilenume2, long sx2, long sy2);
 void   makepalookup(long palnum, char *remapbuf, signed char r, signed char g, signed char b, char dastat);
+void   setvgapalette(void);
 void   setbrightness(char dabrightness, char *dapal, char noapply);
 void   setpalettefade(char r, char g, char b, char offset);
 void   setpalettefadeclamps(char r, char g, char b, char offset);
