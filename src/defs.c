@@ -48,7 +48,9 @@ enum {
 	T_FLIPPED,
 	T_HIDE,
 	T_NOBOB,
-	T_VOXEL
+	T_VOXEL,
+	T_SKYBOX,
+	T_FRONT,T_RIGHT,T_BACK,T_LEFT,T_TOP,T_BOTTOM
 };
 
 typedef struct { char *text; int tokenid; } tokenlist;
@@ -68,7 +70,8 @@ static tokenlist basetokens[] = {
 	{ "definevoxel",     T_DEFINEVOXEL      },
 	{ "definevoxeltiles",T_DEFINEVOXELTILES },
 	{ "model",           T_MODEL            },
-	{ "voxel",           T_VOXEL            }
+	{ "voxel",           T_VOXEL            },
+	{ "skybox",          T_SKYBOX           }
 };
 
 static tokenlist modeltokens[] = {
@@ -119,6 +122,17 @@ static tokenlist voxeltokens[] = {
 	{ "tile0",  T_TILE0  },
 	{ "tile1",  T_TILE1  }
 };
+
+static tokenlist skyboxtokens[] = {
+	{ "tile",   T_TILE   },
+	{ "pal",    T_PAL    },
+	{ "ft",     T_FRONT  },{ "front",  T_FRONT  },{ "forward",T_FRONT  },
+	{ "rt"     ,T_RIGHT  },{ "right"  ,T_RIGHT  },
+	{ "bk"     ,T_BACK   },{ "back"   ,T_BACK   },
+	{ "lf"     ,T_LEFT   },{ "left"   ,T_LEFT   },{ "lt"     ,T_LEFT   },
+	{ "up"     ,T_TOP    },{ "top"    ,T_TOP    },{ "ceiling",T_TOP    },{ "ceil"   ,T_TOP    },
+	{ "dn"     ,T_BOTTOM },{ "bottom" ,T_BOTTOM },{ "floor"  ,T_BOTTOM },{ "down"   ,T_BOTTOM }
+}; 
 
 
 static int getatoken(scriptfile *sf, tokenlist *tl, int ntokens)
@@ -656,8 +670,32 @@ static int defsparser(scriptfile *script)
 					lastvoxid = -1;
 				}
 				break;
+			case T_SKYBOX:
+				{
+					char *fn[6] = {0,0,0,0,0,0}, *modelend;
+					int i, tile = MAXTILES, pal = 0;
+
+					if (scriptfile_getbraces(script,&modelend)) break;
+					while (script->textptr < modelend) {
+						switch (getatoken(script,skyboxtokens,sizeof(skyboxtokens)/sizeof(tokenlist))) {
+							case T_TILE:  scriptfile_getnumber(script,&tile ); break;
+							case T_PAL:   scriptfile_getnumber(script,&pal  ); break;
+							case T_FRONT: scriptfile_getstring(script,&fn[0]); break;
+							case T_RIGHT: scriptfile_getstring(script,&fn[1]); break;
+							case T_BACK:  scriptfile_getstring(script,&fn[2]); break;
+							case T_LEFT:  scriptfile_getstring(script,&fn[3]); break;
+							case T_TOP:   scriptfile_getstring(script,&fn[4]); break;
+							case T_BOTTOM:scriptfile_getstring(script,&fn[5]); break;
+							default:
+							case T_ERROR: initprintf("Error on line %s:%d in skybox tokens\n", script->filename,script->linenum); break;
+						}
+					}
+					hicsetskybox(tile,pal,fn);
+				}
+				break; 
+			
 			default:
-				initprintf("Unknown token."); break;
+				initprintf("Unknown token.\n"); break;
 		}
 	}
 	return 0;
