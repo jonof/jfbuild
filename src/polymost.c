@@ -70,7 +70,7 @@ long rendmode = 0;
 #ifdef USE_PMDBGKEYS
 extern char keystatus[256];
 #endif
-long usemodels=1;
+long usemodels=1, usehightile=1;
 
 #include <math.h> //<-important!
 typedef struct { float x, cy[2], fy[2]; long n, p, tag, ctag, ftag; } vsptyp;
@@ -278,7 +278,8 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 
 	j = (dapicnum&(GLTEXCACHEADSIZ-1));
 
-	si = hicfindsubst(dapicnum,dapalnum,drawingskybox);
+	if (usehightile) si = hicfindsubst(dapicnum,dapalnum,drawingskybox);
+	else si = NULL;
 	if (!si) {
 		if (drawingskybox) return NULL;
 		goto tryart;
@@ -330,7 +331,7 @@ tryart:
 	for(pth=gltexcachead[j]; pth; pth=pth->next)
 		if (pth->picnum == dapicnum &&
 			pth->palnum == dapalnum &&
-			(pth->flags & 1) == ((dameth&4)>>2)
+			(pth->flags & (1+2)) == ((dameth&4)>>2)
 			)
 		{
 			if (pth->flags & 128)
@@ -1951,7 +1952,7 @@ static void polymost_drawalls (long bunch)
 						{ skyclamphack = 1; break; }
 			}
 #endif
-			if (!hicfindsubst(globalpicnum,globalpal,1))
+			if (!usehightile || !hicfindsubst(globalpicnum,globalpal,1))
 			{
 				dd[0] = (float)xdimen*.0000001; //Adjust sky depth based on screen size!
 				t = (double)((1<<(picsiz[globalpicnum]&15))<<pskybits);
@@ -2293,7 +2294,7 @@ static void polymost_drawalls (long bunch)
 			}
 #endif
 				//Parallaxing sky...
-			if (!hicfindsubst(globalpicnum,globalpal,1))
+			if (!usehightile || !hicfindsubst(globalpicnum,globalpal,1))
 			{
 					//Render for parallaxtype == 0 / paper-sky
 				dd[0] = (float)xdimen*.0000001; //Adjust sky depth based on screen size!
@@ -3815,8 +3816,9 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("gltexturemode", 0, "gltexturemode: changes the texture filtering settings", gltexturemode);
 	OSD_RegisterFunction("gltextureanisotropy", 0, "gltextureanisotropy: changes the texture anisotropy setting", gltextureanisotropy);
 	OSD_RegisterVariable("gltexturemaxsize", OSDVAR_INTEGER, &gltexmaxsize, 1, osd_internal_validate_integer);
-#endif
 	OSD_RegisterVariable("usemodels", OSDVAR_INTEGER, &usemodels, 0, osd_internal_validate_boolean);
+	OSD_RegisterVariable("usehightile", OSDVAR_INTEGER, &usehightile, 0, osd_internal_validate_boolean);
+#endif
 }
 
 void polymost_precache(long dapicnum, long dapalnum, long datype)
