@@ -1,0 +1,50 @@
+# Shared make information between Build engine and games
+
+ENGINELIB=libengine.a
+EDITORLIB=libbuild.a
+
+DYNAMIC_OPENGL=1
+
+# These are used when DYNAMIC_OPENGL is false
+GLLIBWIN=-lopengl32
+GLLIBLIN=-lGL
+
+# detect the platform
+uname=$(strip $(shell uname -s))
+ifeq ($(findstring Linux,$(uname)),Linux)
+	PLATFORM=LINUX
+	RENDERTYPE=SDL
+	ifeq ($(DYNAMIC_OPENGL),1)
+		LIBS+= $(GLLIBLIN)
+	endif
+else
+	ifeq ($(findstring MINGW32,$(uname)),MINGW32)
+		PLATFORM=WINDOWS
+		EXESUFFIX=.exe
+		LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -L$(FMODROOT)/lib -lws2_32
+		ifeq ($(DYNAMIC_OPENGL),1)
+			LIBS+= $(GLLIBWIN)
+		endif
+		RENDERTYPE ?= WIN
+	else
+		PLATFORM=UNKNOWN
+	endif
+endif
+
+ifeq ($(RENDERTYPE),SDL)
+	LIBS+= $(shell sdl-config --libs)
+
+	ifneq (No,$(shell pkg-config --exists gtk+-2.0 || echo No))
+		HAVE_GTK2=1
+		LIBS+= $(shell pkg-config --libs gtk+-2.0)
+	else
+		HAVE_GTK2=0
+	endif
+else
+	ifeq ($(RENDERTYPE),WIN)
+		LIBS+= -mwindows -ldxguid
+	endif
+endif
+
+override CFLAGS+= -D$(PLATFORM)=1 -DRENDERTYPE$(RENDERTYPE)=1
+
