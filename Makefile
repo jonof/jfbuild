@@ -24,7 +24,7 @@ OBJ?=obj.gnu/
 INC=include/
 CFLAGS?=-DSUPERBUILD -DPOLYMOST -DUSE_OPENGL -DDYNAMIC_OPENGL
 
-# If DYNAMIC_BUILD is absent from above, uncomment these lines
+# If DYNAMIC_OPENGL is absent from above, uncomment these lines
 #GLLIBWIN=-lopengl32
 #GLLIBLIN=-lGL
 
