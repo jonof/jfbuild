@@ -20,6 +20,7 @@ long win_gethinstance(void);
 int win_getstartupwin(long *hwnd, long saferect[4], void (*onclose)(void));
 
 void win_allowtaskswitching(int onf);
+int win_checkinstance(void);
 
 /*
 #ifdef KENBUILD

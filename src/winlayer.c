@@ -179,6 +179,15 @@ void win_allowtaskswitching(int onf)
 
 
 //
+// win_checkinstance() -- looks for another instance of a Build app
+//
+int win_checkinstance(void)
+{
+	return (FindWindow(WindowClass, NULL) != NULL);
+}
+
+
+//
 // wm_msgbox/wm_ynbox() -- window-manager-provided message boxes
 //
 int wm_msgbox(char *name, char *fmt, ...)
@@ -208,6 +217,9 @@ int wm_ynbox(char *name, char *fmt, ...)
 	return 0;
 }
 
+//
+// wm_setapptitle() -- changes the window title
+//
 void wm_setapptitle(char *name)
 {
 	if (name) {
