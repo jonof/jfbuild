@@ -54,8 +54,8 @@ RC=windres
 override CFLAGS+= $(debug) -W -Wall -Werror-implicit-function-declaration \
 	-Wno-char-subscripts -Wno-unused \
 	-march=pentium -funsigned-char -DNO_GCC_BUILTINS $(TARGETOPTS) \
-	-I$(INC) #-I../jfaud/inc
-LIBS=-lm -lfmod #../jfaud/libjfaud.a
+	-I$(INC) -I../jfaud/inc
+LIBS=-lm ../jfaud/libjfaud.a #-lfmod
 ASFLAGS=-s #-g
 EXESUFFIX=
 
@@ -78,7 +78,7 @@ EDITOROBJS=$(OBJ)build.$o \
 	$(OBJ)config.$o
 
 GAMEEXEOBJS=$(OBJ)game.$o \
-	$(OBJ)sound.$o \
+	$(OBJ)jfaud_sound.$o \
 	$(OBJ)config.$o \
 	$(OBJ)$(ENGINELIB)
 

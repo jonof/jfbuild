@@ -1,5 +1,37 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <compat.h>
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <winsock.h>
+#else
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/ioctl.h>
+#include <netdb.h>
+#define SOCKET int
+#define INVALID_HANDLE_VALUE (-1)
+#define INVALID_SOCKET (-1)
+#define SOCKET_ERROR (-1)
+#define closesocket close
+#define ioctlsocket ioctl
+#define LPHOSTENT struct hostent *
+
+#include <sys/time.h>
+static long GetTickCount(void)
+{
+	struct timeval tv;
+	long ti;
+	if (gettimeofday(&tv,NULL) < 0) return 0;
+	// tv is sec.usec, GTC gives msec
+	ti = tv.tv_sec * 1000;
+	ti += tv.tv_usec / 1000;
+	return ti;
+}
+#endif
 
 #define MAXPLAYERS 16
 #define MAXPAKSIZ 576
@@ -25,8 +57,6 @@ static long ipak[MAXPLAYERS][FIFSIZ], icnt0[MAXPLAYERS];
 static long opak[MAXPLAYERS][FIFSIZ], ocnt0[MAXPLAYERS], ocnt1[MAXPLAYERS];
 static char pakmem[4194304]; static long pakmemi = 1;
 
-#define WIN32_LEAN_AND_MEAN
-#include <winsock.h>
 #define NETPORT 0x5bd9
 static SOCKET mysock;
 static long myip, otherip[MAXPLAYERS], otherport[MAXPLAYERS];
@@ -35,18 +65,24 @@ static long snatchip = 0, snatchport = 0, danetmode = 255, netready = 0;
 void netuninit ()
 {
 	if (mysock != (SOCKET)INVALID_HANDLE_VALUE) closesocket(mysock);
+#ifdef _WIN32
 	WSACleanup();
+#endif
 }
 
 long netinit ()
 {
-	WSADATA ws;
 	LPHOSTENT lpHostEnt;
 	char hostnam[256];
 	struct sockaddr_in ip;
 	long i;
 
+#ifdef _WIN32
+	WSADATA ws;
+
 	if (WSAStartup(0x101,&ws) == SOCKET_ERROR) return(0);
+#endif
+
 	mysock = socket(AF_INET,SOCK_DGRAM,0); if (mysock == INVALID_SOCKET) return(0);
 	i = 1; if (ioctlsocket(mysock,FIONBIO,(unsigned long *)&i) == SOCKET_ERROR) return(0);
 
@@ -58,7 +94,7 @@ long netinit ()
 		if (bind(mysock,(struct sockaddr *)&ip,sizeof(ip)) != SOCKET_ERROR)
 		{
 			if (gethostname(hostnam,sizeof(hostnam)) != SOCKET_ERROR)
-				if (lpHostEnt = gethostbyname(hostnam))
+				if ((lpHostEnt = gethostbyname(hostnam)))
 					{ myip = ip.sin_addr.s_addr = *(long *)lpHostEnt->h_addr; }
 			return(1);
 		}
@@ -194,7 +230,7 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 	danetmode = 255; daindex = 0;
 	for(i=1;i<argc;i++)
 	{
-		if ((!stricmp("-net",argv[i])) || (!stricmp("/net",argv[i]))) { foundnet = 1; continue; }
+		if ((!Bstrcasecmp("-net",argv[i])) || (!Bstrcasecmp("/net",argv[i]))) { foundnet = 1; continue; }
 		if (!foundnet) continue;
 
 		if ((argv[i][0] == '-') || (argv[i][0] == '/'))
