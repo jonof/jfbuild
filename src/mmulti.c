@@ -207,7 +207,7 @@ void uninitmultiplayers () { netuninit(); }
 long getpacket(long *, char *);
 void initmultiplayers (long argc, char **argv, char damultioption, char dacomrateoption, char dapriority)
 {
-	long i, j, k, daindex, otims, foundnet = 0;
+	long i, j, k, daindex, otims;
 
 	initcrc16();
 	memset(icnt0,0,sizeof(icnt0));
@@ -227,16 +227,11 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 	memset(otherip,0,sizeof(otherip));
 	for(i=0;i<MAXPLAYERS;i++) otherport[i] = htons(NETPORT);
 	danetmode = 255; daindex = 0;
-	for(i=1;i<argc;i++)
-	{
-		if (((argv[i][0] == '/') || (argv[i][0] == '-')) &&
-		    ((argv[i][1] == 'N') || (argv[i][1] == 'n')) &&
-		    ((argv[i][2] == 'E') || (argv[i][2] == 'e')) &&
-		    ((argv[i][3] == 'T') || (argv[i][3] == 't')) &&
-		     (!argv[i][4]))
-		   { foundnet = 1; continue; }
-		if (!foundnet) continue;
 
+	netinit();
+
+	for(i=0;i<argc;i++)
+	{
 		if ((argv[i][0] == '-') || (argv[i][0] == '/'))
 			if ((argv[i][1] == 'N') || (argv[i][1] == 'n') || (argv[i][1] == 'I') || (argv[i][1] == 'i'))
 			{
@@ -267,13 +262,38 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 			otherip[daindex] = inet_addr(argv[i]);
 			daindex++;
 			continue;
+		} else {
+			LPHOSTENT lphe;
+			char *h = strdup(argv[i]);
+			unsigned short pt = htons(NETPORT);
+			long ip = 0;
+
+			if (!h) continue;
+
+			for(j=0;h[j];j++)
+				if (h[j] == ':')
+					{ pt = htons((unsigned short)atol(&h[j+1])); h[j] = 0; break; }
+			if ((lphe = gethostbyname(h))) {
+				ip = *(long*)lphe->h_addr;
+				if ((danetmode == 1) && (daindex == myconnectindex)) daindex++;
+				otherip[daindex] = ip;
+				otherport[daindex] = pt;
+				daindex++;
+			} else printf("Failed resolving %s\n",argv[i]);
+			free(h);
+			continue;
 		}
 	}
 	if ((danetmode == 255) && (daindex)) { numplayers = 2; danetmode = 0; } //an IP w/o /n# defaults to /n0
 	if ((numplayers >= 2) && (daindex) && (!danetmode)) myconnectindex = 1;
 	if (daindex > numplayers) numplayers = daindex;
 
-	netinit();
+	/*
+	for(i=0;i<daindex;i++)
+		printf("Player %d: %d.%d.%d.%d:%d\n", i,
+				otherip[i]&0xff,(otherip[i]&0xff00)>>8,(otherip[i]&0xff0000)>>16,(otherip[i]&0xff000000)>>24,
+				ntohs(otherport[i]));
+	*/
 
 	connecthead = 0;
 	for(i=0;i<numplayers-1;i++) connectpoint2[i] = i+1;
