@@ -4029,7 +4029,7 @@ void drawscreen(short snum, long dasmoothratio)
 			if (i == screenpeek) break;
 			j++;
 		}
-		sprintf(tempbuf,"(Player %ld's view)",j);
+		Bsprintf(tempbuf,"(Player %ld's view)",j);
 		printext256((xdim>>1)-(Bstrlen(tempbuf)<<2),0,24,-1,tempbuf,0);
 	}
 
@@ -4045,7 +4045,7 @@ void drawscreen(short snum, long dasmoothratio)
 //   for(i=0;i<cacnum;i++)
 //      if ((*cac[i].lock) >= 200)
 //      {
-//         sprintf(tempbuf,"Locked- %ld: Leng:%ld, Lock:%ld",i,cac[i].leng,*cac[i].lock);
+//         Bsprintf(tempbuf,"Locked- %ld: Leng:%ld, Lock:%ld",i,cac[i].leng,*cac[i].lock);
 //         printext256(0L,j,31,-1,tempbuf,1); j += 6;
 //      }
 
@@ -4096,7 +4096,7 @@ void drawscreen(short snum, long dasmoothratio)
 		}
 		screensize = xdim+1;
 
-		sprintf(getmessage,"Video mode: %ld x %ld",xdim,ydim);
+		Bsprintf(getmessage,"Video mode: %ld x %ld",xdim,ydim);
 		getmessageleng = Bstrlen(getmessage);
 		getmessagetimeoff = totalclock+120*5;
 	}
@@ -5103,7 +5103,7 @@ void checkmasterslaveswitch(void)
 			if (j == 1)
 				Bstrcpy(getmessage,"Player 1 (Master)");
 			else
-				sprintf(getmessage,"Player %ld (Slave)",j);
+				Bsprintf(getmessage,"Player %ld (Slave)",j);
 			getmessageleng = Bstrlen(getmessage);
 			getmessagetimeoff = totalclock+120;
 
@@ -6048,6 +6048,42 @@ void waitforeverybody ()
 	{
 		handleevents();
 		refreshaudio();
+
+		drawrooms(posx[myconnectindex],posy[myconnectindex],posz[myconnectindex],ang[myconnectindex],horiz[myconnectindex],cursectnum[myconnectindex]);
+		if (!networkmode) Bsprintf(tempbuf,"Master/slave mode");
+						 else Bsprintf(tempbuf,"Peer-peer mode");
+		printext256((xdim>>1)-(strlen(tempbuf)<<2),(ydim>>1)-24,31,0,tempbuf,0);
+		Bsprintf(tempbuf,"Waiting for players");
+		printext256((xdim>>1)-(strlen(tempbuf)<<2),(ydim>>1)-16,31,0,tempbuf,0);
+		for(i=connecthead;i>=0;i=connectpoint2[i])
+		{
+			if (playerreadyflag[i] < playerreadyflag[myconnectindex])
+			{
+					//slaves in M/S mode only wait for master
+				if ((!networkmode) && (myconnectindex != connecthead) && (i != connecthead))
+				{
+					Bsprintf(tempbuf,"Player %d",i);
+					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,15,0,tempbuf,0);
+				}
+				else
+				{
+					Bsprintf(tempbuf,"Player %d NOT ready",i);
+					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,127,0,tempbuf,0);
+				}
+			}
+			else
+			{
+				Bsprintf(tempbuf,"Player %d ready",i);
+				printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,31,0,tempbuf,0);
+			}
+			if (i == myconnectindex)
+			{
+				Bsprintf(tempbuf,"You->");
+				printext256((xdim>>1)-(26<<2),(ydim>>1)+i*8,95,0,tempbuf,0);
+			}
+		}
+		nextpage();
+
 
 		if (quitevent || keystatus[1]) {
 			sendlogoff();         //Signing off

@@ -269,8 +269,8 @@ void wsayfollow(char *dafilename, long dafreq, long davol, long *daxplc, long *d
 	props[2].val.v[2] = 0.0;
 	props[3].prop = JFAudProp_posrel;
 	props[3].val.i = 1;	// world-relative
-	props[4].prop = JFAudProp_threed;
-	props[4].val.i = 1;
+	props[4].prop = JFAudProp_rolloff;
+	props[4].val.f = 1.0;
 
 	err = JFAud_playsound(&handl, WAVESFILE, dafilename, 1, JFAudPlayMode_playing, 5, props);
 	if (err != jfauderr_ok) {
@@ -353,7 +353,7 @@ void refreshaudio(void)
 		props[0].val.v[1] = (float)(*sfxchans[i].posy)/UNITSPERMTR;
 		props[0].val.v[2] = 0.0;
 		
-		err = JFAud_setchannelprops(sfxchans[i].handle, 1, props);
+		err = JFAud_setsoundprops(sfxchans[i].handle, 1, props);
 		if (err != jfauderr_ok && err != jfauderr_notinited) {
 			OSD_Printf("JFAud_setchannelprops() error %s\n", JFAud_errstr(err));
 		}

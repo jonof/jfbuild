@@ -218,6 +218,7 @@ EXTERN char gotpic[(MAXTILES+7)>>3];
 EXTERN char gotsector[(MAXSECTORS+7)>>3];
 
 EXTERN char captureformat;
+extern long drawlinepat;
 
 extern void faketimerhandler(void);
 
@@ -426,6 +427,7 @@ void   clear2dscreen(void);
 void   draw2dgrid(long posxe, long posye, short ange, long zoome, short gride);
 void   draw2dscreen(long posxe, long posye, short ange, long zoome, short gride);
 void   drawline16(long x1, long y1, long x2, long y2, char col);
+void   drawcircle16(long x1, long y1, long r, char col);
 
 int   setrendermode(int renderer);
 int   getrendermode(void);

@@ -34,10 +34,10 @@ static long GetTickCount(void)
 #endif
 
 #define MAXPLAYERS 16
-#define MAXPAKSIZ 576
+#define MAXPAKSIZ 256 //576
 
 
-#define PAKRATE 1000 //No need to limit the packet rate :)
+#define PAKRATE 40   //Packet rate/sec limit ... necessary?
 #define SIMMIS 0     //Release:0  Test:100 Packets per 256 missed.
 #define SIMLAG 0     //Release:0  Test: 10 Packets to delay receipt
 static long simlagcnt[MAXPLAYERS];
@@ -230,7 +230,12 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 	danetmode = 255; daindex = 0;
 	for(i=1;i<argc;i++)
 	{
-		if ((!Bstrcasecmp("-net",argv[i])) || (!Bstrcasecmp("/net",argv[i]))) { foundnet = 1; continue; }
+		if (((argv[i][0] == '/') || (argv[i][0] == '-')) &&
+		    ((argv[i][1] == 'N') || (argv[i][1] == 'n')) &&
+		    ((argv[i][2] == 'E') || (argv[i][2] == 'e')) &&
+		    ((argv[i][3] == 'T') || (argv[i][3] == 't')) &&
+		     (!argv[i][4]))
+		   { foundnet = 1; continue; }
 		if (!foundnet) continue;
 
 		if ((argv[i][0] == '-') || (argv[i][0] == '/'))
@@ -286,7 +291,7 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 		// 192.168.1.2     game /n1 192.168.1.100  game /n1 192.168.1.100 192.168.1.4
 		// 192.168.1.100   game 192.168.1.2 /n1    game 192.168.1.2 /n1 192.168.1.4
 		// 192.168.1.4                             game 192.168.1.2 192.168.1.100 /n1
-	if ((!danetmode) && (numplayers >= 2))
+	if (((!danetmode) && (numplayers >= 2)) || (numplayers == 2))
 	{
 #if 0
 			//Console code seems to crash Win98 upon quitting game

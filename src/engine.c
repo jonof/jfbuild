@@ -6231,7 +6231,7 @@ long loadmaphack(char *filename)
 	return 0;
 }
 #else
-long loadmaphack(char *filename) { return 0; }
+long loadmaphack(char *filename) { return -1; }
 #endif
 
 
@@ -9021,9 +9021,12 @@ void drawline256(long x1, long y1, long x2, long y2, char col)
 //
 // JBF: Had to add extra tests to make sure x-coordinates weren't winding up -'ve
 //   after clipping or crashes would ensue
+long drawlinepat = 0xffffffff;
+
 void drawline16(long x1, long y1, long x2, long y2, char col)
 {
 	long i, dx, dy, p, pinc, d;
+	unsigned long patc=0;
 
 	dx = x2-x1; dy = y2-y1;
 	if (dx >= 0)
@@ -9064,13 +9067,14 @@ void drawline16(long x1, long y1, long x2, long y2, char col)
 		
 		begindrawing();	//{{{
 		p = (y1*bytesperline)+x1+frameplace;
-		if (dy == 0) {
+		if (dy == 0 && drawlinepat == 0xffffffff) {
 			i = ((long)col<<24)|((long)col<<16)|((long)col<<8)|col;
 			clearbufbyte((void *)p, dx, i);
 		} else
 		for(i=dx;i>0;i--)
 		{
-			drawpixel((char *)p, col);
+			if (drawlinepat & pow2long[(patc++)&31])
+				drawpixel((char *)p, col);
 			d += dy;
 			if (d >= dx) { d -= dx; p += pinc; }
 			p++;
@@ -9091,12 +9095,99 @@ void drawline16(long x1, long y1, long x2, long y2, char col)
 	p = (y1*bytesperline)+x1+frameplace;
 	for(i=dy;i>0;i--)
 	{
-		drawpixel((char *)p, col);
+		if (drawlinepat & pow2long[(patc++)&31])
+			drawpixel((char *)p, col);
 		d += dx;
 		if (d >= dy) { d -= dy; p += pinc; }
 		p += bytesperline;
 	}
 	enddrawing();	//}}}
+}
+
+void drawcircle16(long x1, long y1, long r, char col)
+{
+#if 1
+	long p, xp, yp, xpbpl, ypbpl, d, de, dse, patc=0;
+
+	if (r < 0) r = -r;
+	if (x1+r < 0 || x1-r >= xres) return;
+	if (y1+r < 0 || y1-r >= ydim16) return;
+
+	/*
+	 *      d
+	 *    6 | 7
+	 *   \  |  /
+	 *  5  \|/  8
+	 * c----+----a
+	 *  4  /|\  1
+	 *   /  |  \
+	 *    3 | 2
+	 *      b
+	 */
+
+	xp = 0;
+	yp = r;
+	d = 1 - r;
+	de = 2;
+	dse = 5 - (r << 1);
+	
+	begindrawing();
+	p = (y1*bytesperline)+x1+frameplace;
+
+	if (drawlinepat & pow2long[(patc++)&31]) {
+		if (y1 >= 0 && y1 < ydim16 && (x1+r) < xres   && (x1+r) >= 0) drawpixel((char *)(p+r), col);			// a
+		if (x1 >= 0 && x1 < xres   && (y1+r) < ydim16 && (y1+r) >= 0) drawpixel((char *)(p+(r*bytesperline)), col);	// b
+		if (y1 >= 0 && y1 < ydim16 && (x1-r) < xres   && (x1-r) >= 0) drawpixel((char *)(p-r), col);			// c
+		if (x1 >= 0 && x1 < xres   && (y1-r) < ydim16 && (y1-r) >= 0) drawpixel((char *)(p-(r*bytesperline)), col);	// d
+	}
+
+	while (yp > xp) {
+		if (d < 0) {
+			d += de;
+			de += 2;
+			dse += 2;
+			xp++;
+		} else {
+			d += dse;
+			de += 2;
+			dse += 4;
+			xp++;
+			yp--;
+		}
+
+		ypbpl = yp*bytesperline;
+		xpbpl = xp*bytesperline;
+		if (drawlinepat & pow2long[(patc++)&31]) {
+			if ((x1+yp) >= 0 && (x1+yp) < xres && (y1+xp) >= 0 && (y1+xp) < ydim16) drawpixel((char *)(p+yp+xpbpl), col);	// 1
+			if ((x1+xp) >= 0 && (x1+xp) < xres && (y1+yp) >= 0 && (y1+yp) < ydim16) drawpixel((char *)(p+xp+ypbpl), col);	// 2
+			if ((x1-xp) >= 0 && (x1-xp) < xres && (y1+yp) >= 0 && (y1+yp) < ydim16) drawpixel((char *)(p-xp+ypbpl), col);	// 3
+			if ((x1-yp) >= 0 && (x1-yp) < xres && (y1+xp) >= 0 && (y1+xp) < ydim16) drawpixel((char *)(p-yp+xpbpl), col);	// 4
+			if ((x1-yp) >= 0 && (x1-yp) < xres && (y1-xp) >= 0 && (y1-xp) < ydim16) drawpixel((char *)(p-yp-xpbpl), col);	// 5
+			if ((x1-xp) >= 0 && (x1-xp) < xres && (y1-yp) >= 0 && (y1-yp) < ydim16) drawpixel((char *)(p-xp-ypbpl), col);	// 6
+			if ((x1+xp) >= 0 && (x1+xp) < xres && (y1-yp) >= 0 && (y1-yp) < ydim16) drawpixel((char *)(p+xp-ypbpl), col);	// 7
+			if ((x1+yp) >= 0 && (x1+yp) < xres && (y1-xp) >= 0 && (y1-xp) < ydim16) drawpixel((char *)(p+yp-xpbpl), col);	// 8
+		}
+	}
+	enddrawing();
+#else
+	// JonoF's rough approximation of a circle
+	long l,spx,spy,lpx,lpy,px,py;
+
+	spx = lpx = x1+mulscale14(r,sintable[0]);
+	spy = lpy = y1+mulscale14(r,sintable[512]);
+
+	for (l=64;l<2048;l+=64) {
+		px = x1+mulscale14(r,sintable[l]);
+		py = y1+mulscale14(r,sintable[(l+512)&2047]);
+
+		drawline16(lpx,lpy,px,py,col);
+
+		lpx = px;
+		lpy = py;
+	}
+
+	drawline16(lpx,lpy,spx,spy,col);
+#endif
 }
 
 
@@ -9434,6 +9525,47 @@ void draw2dscreen(long posxe, long posye, short ange, long zoome, short gride)
 							drawpixel((char *)(templong-1+bytesperline), col);
 							drawpixel((char *)(templong+1-bytesperline), col);
 							drawpixel((char *)(templong-1-bytesperline), col);
+
+							/*
+							 * JBF 20050103: A little something intended for TerminX. It draws a box
+							 * indicating the extents of a floor-aligned sprite in the 2D view of the editor.
+							 *
+							if ((sprite[j].cstat&32) > 0) {
+								long fx = mulscale6(tilesizx[sprite[j].picnum], sprite[j].xrepeat);
+								long fy = mulscale6(tilesizy[sprite[j].picnum], sprite[j].yrepeat);
+								long co[4][2], ii;
+								long sinang = sintable[(sprite[j].ang+512+1024)&2047];
+								long cosang = sintable[(sprite[j].ang+1024)&2047];
+								long r,s;
+
+								fx = mulscale10(fx,zoome) >> 1;
+								fy = mulscale10(fy,zoome) >> 1;
+
+								co[0][0] = -fx;
+								co[0][1] = -fy;
+								co[1][0] =  fx;
+								co[1][1] = -fy;
+								co[2][0] =  fx;
+								co[2][1] =  fy;
+								co[3][0] = -fx;
+								co[3][1] =  fy;
+
+								for (ii=0;ii<4;ii++) {
+									r = mulscale14(cosang,co[ii][0]) - mulscale14(sinang,co[ii][1]);
+									s = mulscale14(sinang,co[ii][0]) + mulscale14(cosang,co[ii][1]);
+									co[ii][0] = r;
+									co[ii][1] = s;
+								}
+
+								drawlinepat = 0xcccccccc;
+								for (ii=0;ii<4;ii++) {
+									drawline16(halfxdim16 + xp1 + co[ii][0], midydim16 + yp1 - co[ii][1],
+										halfxdim16 + xp1 + co[(ii+1)&3][0], midydim16 + yp1 - co[(ii+1)&3][1],
+										col);
+								}
+								drawlinepat = 0xffffffff;
+							}
+							*/
 
 							xp2 = mulscale11(sintable[(sprite[j].ang+2560)&2047],zoome) / 768;
 							yp2 = mulscale11(sintable[(sprite[j].ang+2048)&2047],zoome) / 768;
