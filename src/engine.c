@@ -5733,6 +5733,42 @@ void drawmasks(void)
 		drawline256(xs+65536,ys-65536,xs-65536,ys+65536,31);
 	}*/
 
+
+#ifdef POLYMOST
+		//Hack to make it draw all opaque quads first. This should reduce the chances of
+		//bad sorting causing transparent quads knocking out opaque quads behind it.
+		//
+		//Need to store alpha flag with all textures before this works right!
+	if (rendmode == 3)
+	{
+		for(i=spritesortcnt-1;i>=0;i--)
+			if ((!(tspriteptr[i]->cstat&2)) && (!gltexmayhavealpha(tspriteptr[i]->picnum,tspriteptr[i]->pal)))
+				{ drawsprite(i); tspriteptr[i] = 0; } //draw only if it is fully opaque
+		for(i=j=0;i<spritesortcnt;i++)
+		{
+			if (!tspriteptr[i]) continue;
+			tspriteptr[j] = tspriteptr[i];
+			spritesx[j] = spritesx[i];
+			spritesy[j] = spritesy[i]; j++;
+		}
+		spritesortcnt = j;
+
+
+		for(i=maskwallcnt-1;i>=0;i--)
+		{
+			k = thewall[maskwall[i]];
+			if ((!(wall[k].cstat&128)) && (!gltexmayhavealpha(wall[k].overpicnum,wall[k].pal)))
+				{ drawmaskwall(i); maskwall[i] = -1; } //draw only if it is fully opaque
+		}
+		for(i=j=0;i<maskwallcnt;i++)
+		{
+			if (maskwall[i] < 0) continue;
+			maskwall[j++] = maskwall[i];
+		}
+		maskwallcnt = j;
+	}
+#endif
+
 	while ((spritesortcnt > 0) && (maskwallcnt > 0))  //While BOTH > 0
 	{
 		j = maskwall[maskwallcnt-1];

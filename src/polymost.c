@@ -67,9 +67,6 @@ Low priority:
 
 static long animateoffs(short tilenum, short fakevar);
 long rendmode = 0;
-#ifdef USE_PMDBGKEYS
-extern char keystatus[256];
-#endif
 long usemodels=1, usehightile=1;
 
 #include <math.h> //<-important!
@@ -84,12 +81,12 @@ static double dxb1[MAXWALLSB], dxb2[MAXWALLSB];
 #define USEZBUFFER 1 //1:use zbuffer (slow, nice sprite rendering), 0:no zbuffer (fast, bad sprite rendering)
 #define LINTERPSIZ 4 //log2 of interpolation size. 4:pretty fast&acceptable quality, 0:best quality/slow!
 #define DEPTHDEBUG 0 //1:render distance instead of texture, for debugging only!, 0:default
-#define FOGSCALE 0.00004
+#define FOGSCALE 0.0000384
 #define PI 3.14159265358979323
 
 static double gyxscale, gxyaspect, gviewxrange, ghalfx, grhalfxdown10, grhalfxdown10x, ghoriz;
 static double gcosang, gsinang, gcosang2, gsinang2;
-static double gchang, gshang, gctang, gstang;
+static double gchang, gshang, gctang, gstang, gvisibility;
 static float gtang = 0.0;
 double guo, gux, guy; //Screen-based texture mapping parameters
 double gvo, gvx, gvy;
@@ -241,6 +238,7 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 static long md2tims, omd2tims;
 #include "md2sprite.c"
 
+
 //--------------------------------------------------------------------------------------------------
 //TEXTURE MANAGEMENT: treats same texture with different .PAL as a separate texture. This makes the
 //   max number of virtual textures very large (MAXTILES*256). Instead of allocating a handle for
@@ -254,7 +252,7 @@ typedef struct pthtyp_t
 	short picnum;
 	char palnum;
 	char effects;
-	char flags;      // 1 = clamped (dameth&4), 2 = hightile, 4 = skybox face, 128 = invalidated
+	char flags;      // 1 = clamped (dameth&4), 2 = hightile, 4 = skybox face, 8 = hasalpha, 128 = invalidated
 	char skyface;
 	hicreplctyp *hicr;
 
@@ -351,6 +349,17 @@ tryart:
 	pth->next = gltexcachead[j];
 	gltexcachead[j] = pth;
 	return(pth);
+}
+
+long gltexmayhavealpha (long dapicnum, long dapalnum)
+{
+	long j = (dapicnum&(GLTEXCACHEADSIZ-1));
+	pthtyp *pth;
+
+	for(pth=gltexcachead[j]; pth; pth=pth->next)
+		if ((pth->picnum == dapicnum) && (pth->palnum == dapalnum))
+			return((pth->flags&8) != 0);
+	return(1);
 }
 
 void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
@@ -616,6 +625,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 {
 	coltype *pic, *wpptr;
 	long j, x, y, x2, y2, xsiz, ysiz, dacol, tsizx, tsizy;
+	char hasalpha = 0;
 
 	tsizx = tilesizx[dapic]; for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
 	tsizy = tilesizy[dapic]; for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
@@ -627,7 +637,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 			//Force invalid textures to draw something - an almost purely transparency texture
 			//This allows the Z-buffer to be updated for mirrors (which are invalidated textures)
 		pic[0].r = pic[0].g = pic[0].b = 0; pic[0].a = 1;
-		tsizx = tsizy = 1;
+		tsizx = tsizy = 1; hasalpha = 1;
 	}
 	else
 	{
@@ -646,7 +656,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 					wpptr->r = curpalette[255].r;
 					wpptr->g = curpalette[255].g;
 					wpptr->b = curpalette[255].b;
-					wpptr->a = 0;
+					wpptr->a = 0; hasalpha = 1;
 				}
 				else
 				{
@@ -693,7 +703,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 	pth->picnum = dapic;
 	pth->palnum = dapal;
 	pth->effects = 0;
-	pth->flags = ((dameth&4)>>2);
+	pth->flags = ((dameth&4)>>2) | (hasalpha<<3);
 	pth->hicr = NULL;
 	
 	return 0;
@@ -704,7 +714,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 	coltype *pic, *rpptr;
 	long j, x, y, x2, y2, xsiz, ysiz, tsizx, tsizy;
 
-	char *picfil = 0, *fn;
+	char *picfil = 0, *fn, hasalpha = 255;
 	long picfillen, texfmt = GL_RGBA, intexfmt = GL_RGBA, filh;
 
 	if (!hicr) return -1;
@@ -755,7 +765,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 			tcol.b = cptr[rpptr[x].b];
 			tcol.g = cptr[rpptr[x].g];
 			tcol.r = cptr[rpptr[x].r];
-			tcol.a = rpptr[x].a;
+			tcol.a = rpptr[x].a; hasalpha &= rpptr[x].a;
 
 			if (effect & 1) {
 				// greyscale
@@ -775,7 +785,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 			rpptr[x].a = tcol.a;
 		}
 	}
-	if (!(dameth&4) || (facen)) //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
+	if ((!(dameth&4)) || (facen)) //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
 	{
 		if (xsiz > tsizx) //Copy left to right
 		{
@@ -839,7 +849,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 
 	pth->picnum = dapic;
 	pth->effects = effect;
-	pth->flags = ((dameth&4)>>2) + 2 + ((facen>0)<<2);
+	pth->flags = ((dameth&4)>>2) + 2 + ((facen>0)<<2); if (hasalpha != 255) pth->flags |= 8;
 	pth->skyface = facen;
 	pth->hicr = hicr;
 
@@ -961,7 +971,8 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 
 		if (!(method&3)) bglDisable(GL_BLEND); else bglEnable(GL_BLEND);
 
-		bglEnable(GL_ALPHA_TEST); bglAlphaFunc(GL_GREATER,0.32);
+		bglEnable(GL_ALPHA_TEST);
+		bglAlphaFunc(GL_GREATER,0.32);
 
 		if (!dorot)
 		{
@@ -1432,7 +1443,10 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 
 	if (rendmode == 1)
 	{
+		if (method&3) //Only draw border around sprites/maskwalls
+		{
 		for(i=0,j=n-1;i<n;j=i,i++) drawline2d(px[i],py[i],px[j],py[j],31); //hopefully color index 31 is white
+		}
 
 		//ox = 0; oy = 0;
 		//for(i=0;i<n;i++) { ox += px[i]; oy += py[i]; }
@@ -1774,7 +1788,7 @@ static void polymost_drawalls (long bunch)
 #ifdef USE_OPENGL
 	if (!nofog) {
 	if (rendmode == 3)
-		bglFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
+		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
 	}
 #endif
 
@@ -2166,7 +2180,7 @@ static void polymost_drawalls (long bunch)
 				skyclamphack = 0;
 				if (!nofog) {
 				bglEnable(GL_FOG);
-				//bglFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
+				//bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
 				}
 			}
 #endif
@@ -2506,7 +2520,7 @@ static void polymost_drawalls (long bunch)
 				skyclamphack = 0;
 				if (!nofog) {
 				bglEnable(GL_FOG);
-				//bglFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
+				//bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
 				}
 			}
 #endif
@@ -2779,31 +2793,10 @@ void polymost_drawrooms ()
 	long i, j, k, n, n2, closest;
 	double ox, oy, oz, ox2, oy2, oz2, r, px[6], py[6], pz[6], px2[6], py2[6], pz2[6], sx[6], sy[6];
 
-#ifdef USE_PMDBGKEYS
-	if (keystatus[0x29])
-	{
-		keystatus[0x29] = 0;
-		if ((keystatus[0x1d]|keystatus[0x9d])) { i = rendmode-1; if (i < 0) i = 3; }
-													 else { if (rendmode == 3) i = 2; else i = 3; }
-		setrendermode(i);
-	}
-	if (keystatus[0x2b]) // Backslash
-	{
-		keystatus[0x2b] = 0;
-		glanisotropy >>= 1; if (!glanisotropy) glanisotropy = glinfo.maxanisotropy;
-		gltexinvalidateall();
-	}
-#endif
 	if (!rendmode) return;
 
 	begindrawing();
 	frameoffset = frameplace + windowy1*bytesperline + windowx1;
-
-#ifdef USE_PMDBGKEYS
-	if (keystatus[0x38]) gtang += (float)((keystatus[0x2a]|keystatus[0x36])*3+1)*0.01;
-	if (keystatus[0xb8]) gtang -= (float)((keystatus[0x2a]|keystatus[0x36])*3+1)*0.01;
-	if (keystatus[0x1d]|keystatus[0x9d]) gtang = 0;
-#endif
 
 #ifdef USE_OPENGL
 	omd2tims = md2tims; md2tims = getticks();
@@ -2856,6 +2849,8 @@ void polymost_drawrooms ()
 	gsinang2 = gsinang*((double)viewingrange)/65536.0;
 	ghalfx = (double)halfxdimen; grhalfxdown10 = 1.0/(((double)ghalfx)*1024);
 	ghoriz = (double)globalhoriz;
+
+	gvisibility = ((float)globalvisibility)*gxyaspect*FOGSCALE;
 
 		//global cos/sin height angle
 	r = (double)((ydimen>>1)-ghoriz);
@@ -3120,7 +3115,7 @@ void polymost_drawmaskwall (long damaskwallcnt)
 #ifdef USE_OPENGL
 	if (!nofog) {
 	if (rendmode == 3)
-		bglFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
+		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
 	}
 #endif
 
@@ -3216,7 +3211,7 @@ void polymost_drawsprite (long snum)
 #ifdef USE_OPENGL
 	if (!nofog) {
 	if (rendmode == 3)
-		bglFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sector[tspr->sectnum].visibility+16)))*FOGSCALE);
+		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16))));
 	}
 #endif
 
@@ -3532,6 +3527,53 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 	double ogrhalfxdown10, ogrhalfxdown10x;
 	double d, cosang, sinang, cosang2, sinang2, px[8], py[8], px2[8], py2[8];
 
+#ifdef USE_OPENGL
+	if (rendmode == 3 && usemodels)
+	{
+		spritetype tspr;
+		memset(&tspr,0,sizeof(spritetype));
+
+		d = ((double)sx)/(65536.0*160.0)-1.0; //-1: left of screen, +1: right of screen
+		tspr.x = (double)gcosang - (double)gsinang*d + globalposx;
+		tspr.y = (double)gsinang + (double)gcosang*d + globalposy;
+		d = ((double)sy)/(65536.0*100.0)-1.0; //-1: top of screen, +1: bottom of screen
+		tspr.z = globalposz + d*1024.0;
+
+		tspr.picnum = picnum;
+		tspr.shade = dashade;
+		tspr.pal = dapalnum;
+		tspr.xrepeat = 8;
+		tspr.yrepeat = 8;
+		tspr.ang = globalang;
+
+		if (tiletomodel[tspr.picnum].modelid >= 0 &&
+			 tiletomodel[tspr.picnum].framenum >= 0) {
+
+			ogchang = gchang; gchang = 1.0;
+			ogshang = gshang; gshang = 0.0; d = (double)z/(65536.0*16384.0);
+			ogctang = gctang; gctang = (double)sintable[(a+512)&2047]*d;
+			ogstang = gstang; gstang = (double)sintable[a&2047]*d;
+			ogshade  = globalshade;  globalshade  = dashade;
+			ogpal    = globalpal;    globalpal    = (long)((unsigned char)dapalnum);
+
+			globalorientation = 0;
+			if (dastat&1) globalorientation |= 1;
+			if (dastat&32) globalorientation |= 512;
+			if (dastat&4) globalorientation |= 8;
+			md2draw(0,&tspr);
+
+			globalshade  = ogshade;
+			globalpal    = ogpal;
+			gchang = ogchang;
+			gshang = ogshang;
+			gctang = ogctang;
+			gstang = ogstang;
+
+			return;
+		}
+	}
+#endif
+
 	ogpicnum = globalpicnum; globalpicnum = picnum;
 	ogshade  = globalshade;  globalshade  = dashade;
 	ogpal    = globalpal;    globalpal    = (long)((unsigned char)dapalnum);
@@ -3815,9 +3857,9 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("gltexturemode", 0, "gltexturemode: changes the texture filtering settings", gltexturemode);
 	OSD_RegisterFunction("gltextureanisotropy", 0, "gltextureanisotropy: changes the texture anisotropy setting", gltextureanisotropy);
 	OSD_RegisterVariable("gltexturemaxsize", OSDVAR_INTEGER, &gltexmaxsize, 1, osd_internal_validate_integer);
+#endif
 	OSD_RegisterVariable("usemodels", OSDVAR_INTEGER, &usemodels, 0, osd_internal_validate_boolean);
 	OSD_RegisterVariable("usehightile", OSDVAR_INTEGER, &usehightile, 0, osd_internal_validate_boolean);
-#endif
 }
 
 void polymost_precache(long dapicnum, long dapalnum, long datype)
