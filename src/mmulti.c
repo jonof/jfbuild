@@ -32,6 +32,10 @@ static long GetTickCount(void)
 }
 #endif
 
+#ifndef min
+#define min(a,b) ((a)<(b)?(a):(b))
+#endif
+
 #define MAXPLAYERS 16
 #define MAXPAKSIZ 256 //576
 
