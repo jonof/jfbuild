@@ -6305,7 +6305,7 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 	    (davidoption == fullscreen) && (xdim == daxdim) && (ydim == daydim) && (bpp == dabpp))
 		return(0);
 	
-//	strcpy(kensmessage,"!!!! BUILD engine&tools programmed by Ken Silverman of E.G. RI.  (c) Copyright 1995 Ken Silverman.  Summary:  BUILD = Ken. !!!!");
+	strcpy(kensmessage,"!!!! BUILD engine&tools programmed by Ken Silverman of E.G. RI.  (c) Copyright 1995 Ken Silverman.  Summary:  BUILD = Ken. !!!!");
 //	if (getkensmessagecrc(FP_OFF(kensmessage)) != 0x56c764d4)
 //		{ printOSD("Nice try.\n"); exit(0); }
 
@@ -8523,7 +8523,7 @@ void clearallviews(long dacol)
 	//clearbufbyte((void*)frameplace,imageSize,0L);
 	Bmemset((void*)frameplace,dacol,imageSize);
 	enddrawing();	//}}}
-	nextpage();
+	//nextpage();
 
 	faketimerhandler();
 }

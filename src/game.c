@@ -6048,8 +6048,7 @@ void waitforeverybody ()
 	{
 		handleevents();
 		refreshaudio();
-		
-		/*
+
 		if (quitevent || keystatus[1]) {
 			sendlogoff();         //Signing off
 			musicoff();
@@ -6060,14 +6059,14 @@ void waitforeverybody ()
 			uninitsb();
 			uninitgroupfile();
 			exit(0);
-		}*/
+		}
 
 		getpackets();
 
 		for(i=connecthead;i>=0;i=connectpoint2[i])
 		{
 			if (playerreadyflag[i] < playerreadyflag[myconnectindex]) break;
-			if ((!networkmode) && (myconnectindex != connecthead)) { i = -1; break; } //slaves in M/S mode only send to master
+			if ((!networkmode) && (myconnectindex != connecthead)) { i = -1; break; } //slaves in M/S mode only wait for master
 		}
 		if (i < 0) return;
 	}

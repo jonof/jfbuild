@@ -2,13 +2,23 @@
 #include <stdlib.h>
 
 #define MAXPLAYERS 16
-#define PACKRATE 40
+#define MAXPAKSIZ 576
+
+
+#define PAKRATE 1000 //No need to limit the packet rate :)
+#define SIMMIS 0     //Release:0  Test:100 Packets per 256 missed.
+#define SIMLAG 0     //Release:0  Test: 10 Packets to delay receipt
+static long simlagcnt[MAXPLAYERS];
+static char simlagfif[MAXPLAYERS][SIMLAG+1][MAXPAKSIZ+2];
+#if ((SIMMIS != 0) || (SIMLAG != 0))
+#pragma message("\n\nWARNING! INTENTIONAL PACKET LOSS SIMULATION IS ENABLED!\nREMEMBER TO CHANGE SIMMIS&SIMLAG to 0 before RELEASE!\n\n")
+#endif
 
 long myconnectindex, numplayers;
 long connecthead, connectpoint2[MAXPLAYERS];
 
 static long tims, lastsendtims[MAXPLAYERS];
-static char pakbuf[576];
+static char pakbuf[MAXPAKSIZ];
 
 #define FIFSIZ 512 //16384/40 = 6min:49sec
 static long ipak[MAXPLAYERS][FIFSIZ], icnt0[MAXPLAYERS];
@@ -74,12 +84,23 @@ long netread (long *other, char *dabuf, long bufsiz) //0:no packets in buffer
 
 	i = sizeof(ip);
 	if (recvfrom(mysock,dabuf,bufsiz,0,(struct sockaddr *)&ip,(int *)&i) == -1) return(0);
+#if (SIMMIS > 0)
+	if ((rand()&255) < SIMMIS) return(0);
+#endif
+
 	snatchip = (long)ip.sin_addr.s_addr; snatchport = (long)ip.sin_port;
 
 	(*other) = myconnectindex;
 	for(i=0;i<MAXPLAYERS;i++)
 		if ((otherip[i] == snatchip) && (otherport[i] == snatchport))
 			{ (*other) = i; break; }
+#if (SIMLAG > 1)
+	i = simlagcnt[*other]%(SIMLAG+1);
+	*(short *)&simlagfif[*other][i][0] = bufsiz; memcpy(&simlagfif[*other][i][2],dabuf,bufsiz);
+	simlagcnt[*other]++; if (simlagcnt[*other] < SIMLAG+1) return(0);
+	i = simlagcnt[*other]%(SIMLAG+1);
+	bufsiz = *(short *)&simlagfif[*other][i][0]; memcpy(dabuf,&simlagfif[*other][i][2],bufsiz);
+#endif
 
 	return(1);
 }
@@ -160,6 +181,9 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 	memset(ipak,0,sizeof(ipak));
 	//memset(opak,0,sizeof(opak)); //Don't need to init opak
 	//memset(pakmem,0,sizeof(pakmem)); //Don't need to init pakmem
+#if (SIMLAG > 1)
+	memset(simlagcnt,0,sizeof(simlagcnt));
+#endif
 
 	lastsendtims[0] = GetTickCount();
 	for(i=1;i<MAXPLAYERS;i++) lastsendtims[i] = lastsendtims[0];
@@ -254,7 +278,7 @@ void initmultiplayers (long argc, char **argv, char damultioption, char dacomrat
 			{
 				if (netready) break;
 				if (tims < lastsendtims[connecthead]) lastsendtims[connecthead] = tims;
-				if (tims >= lastsendtims[connecthead]+1000/PACKRATE)
+				if (tims >= lastsendtims[connecthead]+250) //1000/PAKRATE)
 				{
 					lastsendtims[connecthead] = tims;
 
@@ -312,7 +336,7 @@ void dosendpackets (long other)
 
 	tims = GetTickCount();
 	if (tims < lastsendtims[other]) lastsendtims[other] = tims;
-	if (tims < lastsendtims[other]+1000/PACKRATE) return;
+	if (tims < lastsendtims[other]+1000/PAKRATE) return;
 	lastsendtims[other] = tims;
 
 	k = 2;
@@ -403,12 +427,8 @@ long getpacket (long *retother, char *bufptr)
 				{
 					for(other=1;other<numplayers;other++)
 					{
-						if (otherip[other])
-						{
-							if ((otherip[other] == snatchip) &&
-								 (otherport[other] == snatchport)) break; //Ignore duplicate packets
-							continue; //Choose player index for slave
-						}
+							//Only send to others asking for a response
+						if ((otherip[other]) && ((otherip[other] != snatchip) || (otherport[other] != snatchport))) continue;
 						otherip[other] = snatchip;
 						otherport[other] = snatchport;
 

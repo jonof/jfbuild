@@ -816,7 +816,7 @@ int setvideomode(int x, int y, int c, int fs)
 	OSD_ResizeDisplay(xres,yres);
 
 	if (c==8) setpalette(0,256,0);
-	baselayer_onvideomodechange(c>8);
+	//baselayer_onvideomodechange(c>8);
 	
 	return 0;
 }

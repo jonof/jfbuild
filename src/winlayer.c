@@ -1763,7 +1763,7 @@ int setvideomode(int x, int y, int c, int fs)
 	if (inp) AcquireInputDevices(1);
 	modechange=1;
 	videomodereset = 0;
-	baselayer_onvideomodechange(c>8);
+	//baselayer_onvideomodechange(c>8);
 
 	return 0;
 }
