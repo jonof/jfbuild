@@ -52,8 +52,9 @@ int scriptfile_getnumber(scriptfile *sf, int *num)
 	
 	(*num) = strtol((const char *)sf->textptr,&sf->textptr,0);
 	if (!ISWS(*sf->textptr) && *sf->textptr) {
+		char *p = sf->textptr;
 		skipovertoken(sf);
-		initprintf("Error on line %s:%d: expecting int\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		initprintf("Error on line %s:%d: expecting int, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->textptr),p);
 		return -2;
 	}
 	return 0;
@@ -68,10 +69,10 @@ int scriptfile_getdouble(scriptfile *sf, double *num)
 		return -1;
 	}
 	(*num) = strtod((const char *)sf->textptr,&sf->textptr);
-	if (!ISWS(*sf->textptr) && *sf->textptr)
-	{
+	if (!ISWS(*sf->textptr) && *sf->textptr) {
+		char *p = sf->textptr;
 		skipovertoken(sf);
-		initprintf("Error on line %s:%d: expecting float\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		initprintf("Error on line %s:%d: expecting float, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->textptr),p);
 		return -2;
 	}
 	return 0;
@@ -89,7 +90,7 @@ int scriptfile_getsymbol(scriptfile *sf, int *num)
 	if (*e) {
 		// looks like a string, so find it in the symbol table
 		if (scriptfile_getsymbolvalue(t, num)) return 0;
-		initprintf("Error on line %s:%d: expecting symbol\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		initprintf("Error on line %s:%d: expecting symbol, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->textptr),t);
 		return -2;   // not found
 	}
 

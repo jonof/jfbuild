@@ -502,14 +502,14 @@ void resizeglcheck ()
 		bglLoadIdentity();
 
 		if (!nofog) {
-		bglEnable(GL_FOG);
-		bglFogi(GL_FOG_MODE,GL_EXP); //GL_EXP(default),GL_EXP2,GL_LINEAR
-		//bglHint(GL_FOG_HINT,GL_NICEST);
-		bglFogf(GL_FOG_DENSITY,1.0); //must be > 0, default is 1
-		bglFogf(GL_FOG_START,0.0); //default is 0
-		bglFogf(GL_FOG_END,1.0); //default is 1
-		col[0] = 0; col[1] = 0; col[2] = 0; col[3] = 0; //range:0 to 1
-		bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
+			bglEnable(GL_FOG);
+			bglFogi(GL_FOG_MODE,GL_EXP); //GL_EXP(default),GL_EXP2,GL_LINEAR
+			//bglHint(GL_FOG_HINT,GL_NICEST);
+			bglFogf(GL_FOG_DENSITY,1.0); //must be > 0, default is 1
+			bglFogf(GL_FOG_START,0.0); //default is 0
+			bglFogf(GL_FOG_END,1.0); //default is 1
+			col[0] = 0; col[1] = 0; col[2] = 0; col[3] = 0; //range:0 to 1
+			bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
 		}
 
 		//bglEnable(GL_TEXTURE_2D);
@@ -569,6 +569,18 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 	}
 	
 	while ((xsiz>>js) > (1<<gltexmaxsize) || (ysiz>>js) > (1<<gltexmaxsize)) js++;
+
+	/*
+	OSD_Printf("Uploading %dx%d %s as %s\n", xsiz,ysiz,
+			(texfmt==GL_RGBA?"GL_RGBA":
+			 texfmt==GL_RGB?"GL_RGB":
+			 texfmt==GL_BGR?"GL_BGR":
+			 texfmt==GL_BGRA?"GL_BGRA":"other"),
+			(intexfmt==GL_RGBA?"GL_RGBA":
+			 intexfmt==GL_RGB?"GL_RGB":
+			 intexfmt==GL_COMPRESSED_RGBA_ARB?"GL_COMPRESSED_RGBA_ARB":
+			 intexfmt==GL_COMPRESSED_RGB_ARB?"GL_COMPRESSED_RGB_ARB":"other"));
+	*/
 	
 	if (js == 0) {
 		if (doalloc)
@@ -674,7 +686,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
 
 	fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);
-	uploadtexture(doalloc,xsiz,ysiz,GL_RGBA,GL_RGBA,pic,tsizx,tsizy,dameth);
+	uploadtexture(doalloc,xsiz,ysiz,hasalpha?GL_RGBA:GL_RGB,GL_RGBA,pic,tsizx,tsizy,dameth);
 
 	if (gltexfiltermode < 0) gltexfiltermode = 0;
 	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
@@ -751,8 +763,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 
 	for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
 	for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
-	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype)); if (!pic) { free(picfil); return 1; }
-	memset(pic,0,xsiz*ysiz*sizeof(coltype));
+	pic = (coltype *)calloc(xsiz,ysiz*sizeof(coltype)); if (!pic) { free(picfil); return 1; }
 
 	if (kprender(picfil,picfillen,(long)pic,xsiz*sizeof(coltype),xsiz,ysiz,0,0)) { free(picfil); free(pic); return -2; }
 	for(y=0,j=0;y<tsizy;y++,j+=xsiz)
@@ -797,10 +808,10 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 			memcpy(&pic[xsiz*tsizy],pic,(ysiz-tsizy)*xsiz<<2);
 	}
 	if (!glinfo.bgra) {
-		for(j=xsiz*ysiz-1;j>=0;j++) {
+		for(j=xsiz*ysiz-1;j>=0;j--) {
 			swapchar(&pic[j].r, &pic[j].b);
 		}
-	}
+	} else texfmt = GL_BGRA;
 	free(picfil); picfil = 0;
 
 	// precalculate scaling parameters for replacement
@@ -808,14 +819,13 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 		pth->scalex = ((float)tsizx) / 64.0;
 		pth->scaley = ((float)tsizy) / 64.0;
 	} else {
-		//for(x2=1;x2<tilesizx[dapic];x2+=x2);
-		//for(y2=1;y2<tilesizy[dapic];y2+=y2);
 		pth->scalex = ((float)tsizx) / ((float)tilesizx[dapic]);
 		pth->scaley = ((float)tsizy) / ((float)tilesizy[dapic]);
 	}
 
-	if (glinfo.texcompr && glusetexcompr) intexfmt = GL_COMPRESSED_RGBA_ARB;
-	if (glinfo.bgra) texfmt = GL_BGRA;
+	if (glinfo.texcompr && glusetexcompr)
+		intexfmt = (hasalpha == 255) ? GL_COMPRESSED_RGB_ARB : GL_COMPRESSED_RGBA_ARB;
+	else if (hasalpha == 255) intexfmt = GL_RGB;
 
 	if (doalloc) bglGenTextures(1,&pth->glpic);  //# of textures (make OpenGL allocate structure)
 	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
@@ -1968,7 +1978,7 @@ static void polymost_drawalls (long bunch)
 						{ skyclamphack = 1; break; }
 			}
 #endif
-			if (!usehightile || !hicfindsubst(globalpicnum,globalpal,1))
+			if (bpp == 8 || !usehightile || !hicfindsubst(globalpicnum,globalpal,1))
 			{
 				dd[0] = (float)xdimen*.0000001; //Adjust sky depth based on screen size!
 				t = (double)((1<<(picsiz[globalpicnum]&15))<<pskybits);
@@ -2310,7 +2320,7 @@ static void polymost_drawalls (long bunch)
 			}
 #endif
 				//Parallaxing sky...
-			if (!usehightile || !hicfindsubst(globalpicnum,globalpal,1))
+			if (bpp == 8 || !usehightile || !hicfindsubst(globalpicnum,globalpal,1))
 			{
 					//Render for parallaxtype == 0 / paper-sky
 				dd[0] = (float)xdimen*.0000001; //Adjust sky depth based on screen size!
@@ -3798,14 +3808,17 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 	bglBindTexture(GL_TEXTURE_2D,pth ? pth->glpic : 0);
 
 	bglDisable(GL_ALPHA_TEST);
-	bglDisable(GL_TEXTURE_2D);
-	bglBegin(GL_TRIANGLE_FAN);
-	bglColor4f((float)curpalette[255].r/255.0,(float)curpalette[255].g/255.0,(float)curpalette[255].b/255.0,1);
-	bglVertex2f((float)tilex    ,(float)tiley    );
-	bglVertex2f((float)tilex+scx,(float)tiley    );
-	bglVertex2f((float)tilex+scx,(float)tiley+scy);
-	bglVertex2f((float)tilex    ,(float)tiley+scy);
-	bglEnd();
+
+	if (!pth || (pth->flags & 8)) {
+		bglDisable(GL_TEXTURE_2D);
+		bglBegin(GL_TRIANGLE_FAN);
+		bglColor4f((float)curpalette[255].r/255.0,(float)curpalette[255].g/255.0,(float)curpalette[255].b/255.0,1);
+		bglVertex2f((float)tilex    ,(float)tiley    );
+		bglVertex2f((float)tilex+scx,(float)tiley    );
+		bglVertex2f((float)tilex+scx,(float)tiley+scy);
+		bglVertex2f((float)tilex    ,(float)tiley+scy);
+		bglEnd();
+	}
 
 	bglColor4f(1,1,1,1);
 	bglEnable(GL_TEXTURE_2D);
