@@ -7,6 +7,8 @@
 
 #include "compat.h"
 
+static void strupr(char *s) { while (*s) { *s = Btoupper(*s); s++; } }
+
 #define MAXFILES 4096
 
 static char buf[65536];

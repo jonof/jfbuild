@@ -227,9 +227,11 @@ int writesetup(const char *fn)
 	"; 3D-mode colour depth\n"
 	"bpp = %d\n"
 	"\n"
+#ifdef RENDERTYPEWIN
 	"; Maximum OpenGL mode refresh rate (Windows only, in Hertz)\n"
 	"maxrefreshfreq = %d\n"
 	"\n"
+#endif
 	"; 3D mode brightness setting\n"
 	";   0  - lowest\n"
 	";   15 - highest\n"
@@ -303,7 +305,10 @@ int writesetup(const char *fn)
 	"\n",
 	
 	fullscreen, xdim2d, ydim2d, xdimgame, ydimgame, bppgame,
-	maxrefreshfreq, brightness, option[7]>>4, option[2],
+#ifdef RENDERTYPEWIN
+	maxrefreshfreq,
+#endif
+	brightness, option[7]>>4, option[2],
 	option[3], msens,
 	keys[0], keys[1], keys[2], keys[3], keys[4], keys[5],
 	keys[6], keys[7], keys[8], keys[9], keys[10], keys[11],

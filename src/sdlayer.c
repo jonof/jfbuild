@@ -54,7 +54,7 @@ char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
 unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
 static unsigned char keynames[256][24];
 short mousex=0,mousey=0,mouseb=0;
-long joyaxis[16], joyb=0;
+long *joyaxis = NULL, joyb=0, *joyhat = NULL;
 char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
 long joyaxespresent=0;
 extern char moustat;
@@ -368,6 +368,29 @@ const unsigned char *getkeyname(int num)
 {
 	if ((unsigned)num >= 256) return NULL;
 	return keynames[num];
+}
+
+const unsigned char *getjoyname(int what, int num)
+{
+	return NULL;
+	/*
+	switch (what) {
+		case 0:	// axis
+			if ((unsigned)num > (unsigned)joynumaxes) return NULL;
+			return axisdefs[num].name;
+
+		case 1: // button
+			if ((unsigned)num > (unsigned)joynumbuttons) return NULL;
+			return buttondefs[num].name;
+
+		case 2: // hat
+			if ((unsigned)num > (unsigned)joynumhats) return NULL;
+			return hatdefs[num].name;
+
+		default:
+			return NULL;
+	}
+	*/
 }
 
 //

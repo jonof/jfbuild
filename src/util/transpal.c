@@ -241,7 +241,7 @@ int main(int argc, char **argv)
 	if (ch == 13)
 	{
 		if ((fil = Bopen(palettefilename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)
-			{ printf("Couldn't save file",palettefilename); return(0); }
+			{ printf("Couldn't save file %s",palettefilename); return(0); }
 		Bwrite(fil,palette,768);
 		Bwrite(fil,&numpalookups,2);
 		Bwrite(fil,palookup,numpalookups<<8);
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
 	else if (ch == 32)
 	{
 		if ((fil = Bopen(palettefilename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)
-			{ printf("Couldn't save file",palettefilename); return(0); }
+			{ printf("Couldn't save file %s",palettefilename); return(0); }
 		Bwrite(fil,palette,768);
 		Bwrite(fil,&orignumpalookups,2);
 		Bwrite(fil,origpalookup,(long)orignumpalookups<<8);
@@ -262,5 +262,7 @@ int main(int argc, char **argv)
 	}
 	else
 		printf("Palette file wasn't touched\n");
+
+	return 0;
 }
 

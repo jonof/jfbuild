@@ -351,7 +351,7 @@ void parsescript(void)
 						sectypemode = 0;
 					}
 
-					if (stricmp(&tempbuf[lasti],"#define") == 0)
+					if (Bstrcasecmp(&tempbuf[lasti],"#define") == 0)
 						definemode = 1;
 
 					if (thingtypemode == 1)
@@ -375,7 +375,7 @@ void parsescript(void)
 
 						numthings++;
 					}
-					else if (stricmp(&tempbuf[lasti],"[THINGTYPES]") == 0)
+					else if (Bstrcasecmp(&tempbuf[lasti],"[THINGTYPES]") == 0)
 						thingtypemode = 1;
 
 					if (texturelookupmode == 1)
@@ -422,7 +422,7 @@ void parsescript(void)
 										}
 						}
 					}
-					else if (stricmp(&tempbuf[lasti],"[TEXTURELOOKUPS]") == 0)
+					else if (Bstrcasecmp(&tempbuf[lasti],"[TEXTURELOOKUPS]") == 0)
 						texturelookupmode = 1;
 
 					if (tagtypemode == 1)
@@ -446,7 +446,7 @@ void parsescript(void)
 
 						numtags++;
 					}
-					else if (stricmp(&tempbuf[lasti],"[TAGCONVERSIONS]") == 0)
+					else if (Bstrcasecmp(&tempbuf[lasti],"[TAGCONVERSIONS]") == 0)
 						tagtypemode = 1;
 
 					if (sectypemode == 1)
@@ -469,7 +469,7 @@ void parsescript(void)
 						}
 						numsecs++;
 					}
-					else if (stricmp(&tempbuf[lasti],"[SECTORCONVERSIONS]") == 0)
+					else if (Bstrcasecmp(&tempbuf[lasti],"[SECTORCONVERSIONS]") == 0)
 						sectypemode = 1;
 
 				}
@@ -500,35 +500,35 @@ void parsescript(void)
 						if (thingop[thingopnum] != 0) tempbuf[k-1] = 0;
 														 else tempbuf[k] = 0;
 
-						if (stricmp(&tempbuf[lasti],"x") == 0) thingfield[thingopnum] = 0;
-						if (stricmp(&tempbuf[lasti],"y") == 0) thingfield[thingopnum] = 1;
-						if (stricmp(&tempbuf[lasti],"z") == 0) thingfield[thingopnum] = 2;
-						if (stricmp(&tempbuf[lasti],"cstat") == 0) thingfield[thingopnum] = 3;
-						if (stricmp(&tempbuf[lasti],"shade") == 0) thingfield[thingopnum] = 4;
-						if (stricmp(&tempbuf[lasti],"pal") == 0) thingfield[thingopnum] = 5;
-						if (stricmp(&tempbuf[lasti],"clipdist") == 0) thingfield[thingopnum] = 6;
-						if (stricmp(&tempbuf[lasti],"xrepeat") == 0) thingfield[thingopnum] = 7;
-						if (stricmp(&tempbuf[lasti],"yrepeat") == 0) thingfield[thingopnum] = 8;
-						if (stricmp(&tempbuf[lasti],"xoffset") == 0) thingfield[thingopnum] = 9;
-						if (stricmp(&tempbuf[lasti],"yoffset") == 0) thingfield[thingopnum] = 10;
-						if (stricmp(&tempbuf[lasti],"picnum") == 0) thingfield[thingopnum] = 11;
-						if (stricmp(&tempbuf[lasti],"ang") == 0) thingfield[thingopnum] = 12;
-						if (stricmp(&tempbuf[lasti],"xvel") == 0) thingfield[thingopnum] = 13;
-						if (stricmp(&tempbuf[lasti],"yvel") == 0) thingfield[thingopnum] = 14;
-						if (stricmp(&tempbuf[lasti],"zvel") == 0) thingfield[thingopnum] = 15;
-						if (stricmp(&tempbuf[lasti],"owner") == 0) thingfield[thingopnum] = 16;
-						if (stricmp(&tempbuf[lasti],"sectnum") == 0) thingfield[thingopnum] = 17;
-						if (stricmp(&tempbuf[lasti],"statnum") == 0) thingfield[thingopnum] = 18;
-						if (stricmp(&tempbuf[lasti],"lotag") == 0) thingfield[thingopnum] = 19;
-						if (stricmp(&tempbuf[lasti],"hitag") == 0) thingfield[thingopnum] = 20;
-						if (stricmp(&tempbuf[lasti],"extra") == 0) thingfield[thingopnum] = 21;
+						if (Bstrcasecmp(&tempbuf[lasti],"x") == 0) thingfield[thingopnum] = 0;
+						if (Bstrcasecmp(&tempbuf[lasti],"y") == 0) thingfield[thingopnum] = 1;
+						if (Bstrcasecmp(&tempbuf[lasti],"z") == 0) thingfield[thingopnum] = 2;
+						if (Bstrcasecmp(&tempbuf[lasti],"cstat") == 0) thingfield[thingopnum] = 3;
+						if (Bstrcasecmp(&tempbuf[lasti],"shade") == 0) thingfield[thingopnum] = 4;
+						if (Bstrcasecmp(&tempbuf[lasti],"pal") == 0) thingfield[thingopnum] = 5;
+						if (Bstrcasecmp(&tempbuf[lasti],"clipdist") == 0) thingfield[thingopnum] = 6;
+						if (Bstrcasecmp(&tempbuf[lasti],"xrepeat") == 0) thingfield[thingopnum] = 7;
+						if (Bstrcasecmp(&tempbuf[lasti],"yrepeat") == 0) thingfield[thingopnum] = 8;
+						if (Bstrcasecmp(&tempbuf[lasti],"xoffset") == 0) thingfield[thingopnum] = 9;
+						if (Bstrcasecmp(&tempbuf[lasti],"yoffset") == 0) thingfield[thingopnum] = 10;
+						if (Bstrcasecmp(&tempbuf[lasti],"picnum") == 0) thingfield[thingopnum] = 11;
+						if (Bstrcasecmp(&tempbuf[lasti],"ang") == 0) thingfield[thingopnum] = 12;
+						if (Bstrcasecmp(&tempbuf[lasti],"xvel") == 0) thingfield[thingopnum] = 13;
+						if (Bstrcasecmp(&tempbuf[lasti],"yvel") == 0) thingfield[thingopnum] = 14;
+						if (Bstrcasecmp(&tempbuf[lasti],"zvel") == 0) thingfield[thingopnum] = 15;
+						if (Bstrcasecmp(&tempbuf[lasti],"owner") == 0) thingfield[thingopnum] = 16;
+						if (Bstrcasecmp(&tempbuf[lasti],"sectnum") == 0) thingfield[thingopnum] = 17;
+						if (Bstrcasecmp(&tempbuf[lasti],"statnum") == 0) thingfield[thingopnum] = 18;
+						if (Bstrcasecmp(&tempbuf[lasti],"lotag") == 0) thingfield[thingopnum] = 19;
+						if (Bstrcasecmp(&tempbuf[lasti],"hitag") == 0) thingfield[thingopnum] = 20;
+						if (Bstrcasecmp(&tempbuf[lasti],"extra") == 0) thingfield[thingopnum] = 21;
 
 						if ((tempbuf[k+1] >= 48) && (tempbuf[k+1] <= 57))
 							thingval[thingopnum] = atol(&tempbuf[k+1]);
 						else
 						{
 							for(l=0;l<numdefines;l++)
-								if (stricmp(defineptr[l],&tempbuf[k+1]) == 0)
+								if (Bstrcasecmp(defineptr[l],&tempbuf[k+1]) == 0)
 									{ thingval[thingopnum] = defineval[l]; break; }
 						}
 
@@ -542,7 +542,7 @@ void parsescript(void)
 						else
 						{
 							for(l=0;l<numdefines;l++)
-								if (stricmp(defineptr[l],&tempbuf[lasti]) == 0)
+								if (Bstrcasecmp(defineptr[l],&tempbuf[lasti]) == 0)
 									{ l = defineval[l]; break; }
 						}
 						for(k=textnum-1;k>=0;k--) texturelookup[tempshort[k]] = l;
@@ -572,80 +572,80 @@ void parsescript(void)
 							lasti++;
 						}
 
-						if (stricmp(&tempbuf[lasti],"sprite.x") == 0) tagfield[tagopnum] = 0;
-						if (stricmp(&tempbuf[lasti],"sprite.y") == 0) tagfield[tagopnum] = 1;
-						if (stricmp(&tempbuf[lasti],"sprite.z") == 0) tagfield[tagopnum] = 2;
-						if (stricmp(&tempbuf[lasti],"sprite.cstat") == 0) tagfield[tagopnum] = 3;
-						if (stricmp(&tempbuf[lasti],"sprite.shade") == 0) tagfield[tagopnum] = 4;
-						if (stricmp(&tempbuf[lasti],"sprite.pal") == 0) tagfield[tagopnum] = 5;
-						if (stricmp(&tempbuf[lasti],"sprite.clipdist") == 0) tagfield[tagopnum] = 6;
-						if (stricmp(&tempbuf[lasti],"sprite.xrepeat") == 0) tagfield[tagopnum] = 7;
-						if (stricmp(&tempbuf[lasti],"sprite.yrepeat") == 0) tagfield[tagopnum] = 8;
-						if (stricmp(&tempbuf[lasti],"sprite.xoffset") == 0) tagfield[tagopnum] = 9;
-						if (stricmp(&tempbuf[lasti],"sprite.yoffset") == 0) tagfield[tagopnum] = 10;
-						if (stricmp(&tempbuf[lasti],"sprite.picnum") == 0) tagfield[tagopnum] = 11;
-						if (stricmp(&tempbuf[lasti],"sprite.ang") == 0) tagfield[tagopnum] = 12;
-						if (stricmp(&tempbuf[lasti],"sprite.xvel") == 0) tagfield[tagopnum] = 13;
-						if (stricmp(&tempbuf[lasti],"sprite.yvel") == 0) tagfield[tagopnum] = 14;
-						if (stricmp(&tempbuf[lasti],"sprite.zvel") == 0) tagfield[tagopnum] = 15;
-						if (stricmp(&tempbuf[lasti],"sprite.owner") == 0) tagfield[tagopnum] = 16;
-						if (stricmp(&tempbuf[lasti],"sprite.sectnum") == 0) tagfield[tagopnum] = 17;
-						if (stricmp(&tempbuf[lasti],"sprite.statnum") == 0) tagfield[tagopnum] = 18;
-						if (stricmp(&tempbuf[lasti],"sprite.lotag") == 0) tagfield[tagopnum] = 19;
-						if (stricmp(&tempbuf[lasti],"sprite.hitag") == 0) tagfield[tagopnum] = 20;
-						if (stricmp(&tempbuf[lasti],"sprite.extra") == 0) tagfield[tagopnum] = 21;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.x") == 0) tagfield[tagopnum] = 0;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.y") == 0) tagfield[tagopnum] = 1;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.z") == 0) tagfield[tagopnum] = 2;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.cstat") == 0) tagfield[tagopnum] = 3;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.shade") == 0) tagfield[tagopnum] = 4;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.pal") == 0) tagfield[tagopnum] = 5;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.clipdist") == 0) tagfield[tagopnum] = 6;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.xrepeat") == 0) tagfield[tagopnum] = 7;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.yrepeat") == 0) tagfield[tagopnum] = 8;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.xoffset") == 0) tagfield[tagopnum] = 9;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.yoffset") == 0) tagfield[tagopnum] = 10;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.picnum") == 0) tagfield[tagopnum] = 11;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.ang") == 0) tagfield[tagopnum] = 12;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.xvel") == 0) tagfield[tagopnum] = 13;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.yvel") == 0) tagfield[tagopnum] = 14;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.zvel") == 0) tagfield[tagopnum] = 15;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.owner") == 0) tagfield[tagopnum] = 16;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.sectnum") == 0) tagfield[tagopnum] = 17;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.statnum") == 0) tagfield[tagopnum] = 18;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.lotag") == 0) tagfield[tagopnum] = 19;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.hitag") == 0) tagfield[tagopnum] = 20;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.extra") == 0) tagfield[tagopnum] = 21;
 
-						if (stricmp(&tempbuf[lasti],"sector.wallptr") == 0) tagfield[tagopnum] = 32;
-						if (stricmp(&tempbuf[lasti],"sector.wallnum") == 0) tagfield[tagopnum] = 33;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingpicnum") == 0) tagfield[tagopnum] = 34;
-						if (stricmp(&tempbuf[lasti],"sector.floorpicnum") == 0) tagfield[tagopnum] = 35;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingheinum") == 0) tagfield[tagopnum] = 36;
-						if (stricmp(&tempbuf[lasti],"sector.floorheinum") == 0) tagfield[tagopnum] = 37;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingz") == 0) tagfield[tagopnum] = 38;
-						if (stricmp(&tempbuf[lasti],"sector.floorz") == 0) tagfield[tagopnum] = 39;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingshade") == 0) tagfield[tagopnum] = 40;
-						if (stricmp(&tempbuf[lasti],"sector.floorshade") == 0) tagfield[tagopnum] = 41;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingxpanning") == 0) tagfield[tagopnum] = 42;
-						if (stricmp(&tempbuf[lasti],"sector.floorxpanning") == 0) tagfield[tagopnum] = 43;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingypanning") == 0) tagfield[tagopnum] = 44;
-						if (stricmp(&tempbuf[lasti],"sector.floorypanning") == 0) tagfield[tagopnum] = 45;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingstat") == 0) tagfield[tagopnum] = 46;
-						if (stricmp(&tempbuf[lasti],"sector.floorstat") == 0) tagfield[tagopnum] = 47;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingpal") == 0) tagfield[tagopnum] = 48;
-						if (stricmp(&tempbuf[lasti],"sector.floorpal") == 0) tagfield[tagopnum] = 49;
-						if (stricmp(&tempbuf[lasti],"sector.visibility") == 0) tagfield[tagopnum] = 50;
-						if (stricmp(&tempbuf[lasti],"sector.lotag") == 0) tagfield[tagopnum] = 51;
-						if (stricmp(&tempbuf[lasti],"sector.hitag") == 0) tagfield[tagopnum] = 52;
-						if (stricmp(&tempbuf[lasti],"sector.extra") == 0) tagfield[tagopnum] = 53;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.wallptr") == 0) tagfield[tagopnum] = 32;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.wallnum") == 0) tagfield[tagopnum] = 33;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingpicnum") == 0) tagfield[tagopnum] = 34;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorpicnum") == 0) tagfield[tagopnum] = 35;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingheinum") == 0) tagfield[tagopnum] = 36;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorheinum") == 0) tagfield[tagopnum] = 37;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingz") == 0) tagfield[tagopnum] = 38;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorz") == 0) tagfield[tagopnum] = 39;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingshade") == 0) tagfield[tagopnum] = 40;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorshade") == 0) tagfield[tagopnum] = 41;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingxpanning") == 0) tagfield[tagopnum] = 42;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorxpanning") == 0) tagfield[tagopnum] = 43;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingypanning") == 0) tagfield[tagopnum] = 44;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorypanning") == 0) tagfield[tagopnum] = 45;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingstat") == 0) tagfield[tagopnum] = 46;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorstat") == 0) tagfield[tagopnum] = 47;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingpal") == 0) tagfield[tagopnum] = 48;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorpal") == 0) tagfield[tagopnum] = 49;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.visibility") == 0) tagfield[tagopnum] = 50;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.lotag") == 0) tagfield[tagopnum] = 51;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.hitag") == 0) tagfield[tagopnum] = 52;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.extra") == 0) tagfield[tagopnum] = 53;
 
-						if (stricmp(&tempbuf[lasti],"wall.x") == 0) tagfield[tagopnum] = 64;
-						if (stricmp(&tempbuf[lasti],"wall.y") == 0) tagfield[tagopnum] = 65;
-						if (stricmp(&tempbuf[lasti],"wall.point2") == 0) tagfield[tagopnum] = 66;
-						if (stricmp(&tempbuf[lasti],"wall.nextsector") == 0) tagfield[tagopnum] = 67;
-						if (stricmp(&tempbuf[lasti],"wall.nextwall") == 0) tagfield[tagopnum] = 68;
-						if (stricmp(&tempbuf[lasti],"wall.picnum") == 0) tagfield[tagopnum] = 69;
-						if (stricmp(&tempbuf[lasti],"wall.overpicnum") == 0) tagfield[tagopnum] = 70;
-						if (stricmp(&tempbuf[lasti],"wall.shade") == 0) tagfield[tagopnum] = 71;
-						if (stricmp(&tempbuf[lasti],"wall.pal") == 0) tagfield[tagopnum] = 72;
-						if (stricmp(&tempbuf[lasti],"wall.cstat") == 0) tagfield[tagopnum] = 73;
-						if (stricmp(&tempbuf[lasti],"wall.xrepeat") == 0) tagfield[tagopnum] = 74;
-						if (stricmp(&tempbuf[lasti],"wall.yrepeat") == 0) tagfield[tagopnum] = 75;
-						if (stricmp(&tempbuf[lasti],"wall.xpanning") == 0) tagfield[tagopnum] = 76;
-						if (stricmp(&tempbuf[lasti],"wall.ypanning") == 0) tagfield[tagopnum] = 77;
-						if (stricmp(&tempbuf[lasti],"wall.lotag") == 0) tagfield[tagopnum] = 78;
-						if (stricmp(&tempbuf[lasti],"wall.hitag") == 0) tagfield[tagopnum] = 79;
-						if (stricmp(&tempbuf[lasti],"wall.extra") == 0) tagfield[tagopnum] = 80;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.x") == 0) tagfield[tagopnum] = 64;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.y") == 0) tagfield[tagopnum] = 65;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.point2") == 0) tagfield[tagopnum] = 66;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.nextsector") == 0) tagfield[tagopnum] = 67;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.nextwall") == 0) tagfield[tagopnum] = 68;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.picnum") == 0) tagfield[tagopnum] = 69;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.overpicnum") == 0) tagfield[tagopnum] = 70;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.shade") == 0) tagfield[tagopnum] = 71;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.pal") == 0) tagfield[tagopnum] = 72;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.cstat") == 0) tagfield[tagopnum] = 73;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.xrepeat") == 0) tagfield[tagopnum] = 74;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.yrepeat") == 0) tagfield[tagopnum] = 75;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.xpanning") == 0) tagfield[tagopnum] = 76;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.ypanning") == 0) tagfield[tagopnum] = 77;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.lotag") == 0) tagfield[tagopnum] = 78;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.hitag") == 0) tagfield[tagopnum] = 79;
+						if (Bstrcasecmp(&tempbuf[lasti],"wall.extra") == 0) tagfield[tagopnum] = 80;
 
 						tagfield[tagopnum] += (frontbackstat<<7) + (spritenumstat<<8);
 
 						if ((tempbuf[k+1] >= 48) && (tempbuf[k+1] <= 57))
 							tagval[tagopnum] = atol(&tempbuf[k+1]);
-						else if (stricmp("tag",&tempbuf[k+1]) == 0)
+						else if (Bstrcasecmp("tag",&tempbuf[k+1]) == 0)
 							tagval[tagopnum] = 0x80000000;
 						else
 						{
 							for(l=0;l<numdefines;l++)
-								if (stricmp(defineptr[l],&tempbuf[k+1]) == 0)
+								if (Bstrcasecmp(defineptr[l],&tempbuf[k+1]) == 0)
 									{ tagval[tagopnum] = defineval[l]; break; }
 						}
 
@@ -671,62 +671,62 @@ void parsescript(void)
 							lasti++;
 						}
 
-						if (stricmp(&tempbuf[lasti],"sprite.x") == 0) secfield[secopnum] = 0;
-						if (stricmp(&tempbuf[lasti],"sprite.y") == 0) secfield[secopnum] = 1;
-						if (stricmp(&tempbuf[lasti],"sprite.z") == 0) secfield[secopnum] = 2;
-						if (stricmp(&tempbuf[lasti],"sprite.cstat") == 0) secfield[secopnum] = 3;
-						if (stricmp(&tempbuf[lasti],"sprite.shade") == 0) secfield[secopnum] = 4;
-						if (stricmp(&tempbuf[lasti],"sprite.pal") == 0) secfield[secopnum] = 5;
-						if (stricmp(&tempbuf[lasti],"sprite.clipdist") == 0) secfield[secopnum] = 6;
-						if (stricmp(&tempbuf[lasti],"sprite.xrepeat") == 0) secfield[secopnum] = 7;
-						if (stricmp(&tempbuf[lasti],"sprite.yrepeat") == 0) secfield[secopnum] = 8;
-						if (stricmp(&tempbuf[lasti],"sprite.xoffset") == 0) secfield[secopnum] = 9;
-						if (stricmp(&tempbuf[lasti],"sprite.yoffset") == 0) secfield[secopnum] = 10;
-						if (stricmp(&tempbuf[lasti],"sprite.picnum") == 0) secfield[secopnum] = 11;
-						if (stricmp(&tempbuf[lasti],"sprite.ang") == 0) secfield[secopnum] = 12;
-						if (stricmp(&tempbuf[lasti],"sprite.xvel") == 0) secfield[secopnum] = 13;
-						if (stricmp(&tempbuf[lasti],"sprite.yvel") == 0) secfield[secopnum] = 14;
-						if (stricmp(&tempbuf[lasti],"sprite.zvel") == 0) secfield[secopnum] = 15;
-						if (stricmp(&tempbuf[lasti],"sprite.owner") == 0) secfield[secopnum] = 16;
-						if (stricmp(&tempbuf[lasti],"sprite.sectnum") == 0) secfield[secopnum] = 17;
-						if (stricmp(&tempbuf[lasti],"sprite.statnum") == 0) secfield[secopnum] = 18;
-						if (stricmp(&tempbuf[lasti],"sprite.lotag") == 0) secfield[secopnum] = 19;
-						if (stricmp(&tempbuf[lasti],"sprite.hitag") == 0) secfield[secopnum] = 20;
-						if (stricmp(&tempbuf[lasti],"sprite.extra") == 0) secfield[secopnum] = 21;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.x") == 0) secfield[secopnum] = 0;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.y") == 0) secfield[secopnum] = 1;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.z") == 0) secfield[secopnum] = 2;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.cstat") == 0) secfield[secopnum] = 3;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.shade") == 0) secfield[secopnum] = 4;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.pal") == 0) secfield[secopnum] = 5;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.clipdist") == 0) secfield[secopnum] = 6;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.xrepeat") == 0) secfield[secopnum] = 7;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.yrepeat") == 0) secfield[secopnum] = 8;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.xoffset") == 0) secfield[secopnum] = 9;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.yoffset") == 0) secfield[secopnum] = 10;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.picnum") == 0) secfield[secopnum] = 11;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.ang") == 0) secfield[secopnum] = 12;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.xvel") == 0) secfield[secopnum] = 13;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.yvel") == 0) secfield[secopnum] = 14;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.zvel") == 0) secfield[secopnum] = 15;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.owner") == 0) secfield[secopnum] = 16;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.sectnum") == 0) secfield[secopnum] = 17;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.statnum") == 0) secfield[secopnum] = 18;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.lotag") == 0) secfield[secopnum] = 19;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.hitag") == 0) secfield[secopnum] = 20;
+						if (Bstrcasecmp(&tempbuf[lasti],"sprite.extra") == 0) secfield[secopnum] = 21;
 
-						if (stricmp(&tempbuf[lasti],"sector.wallptr") == 0) secfield[secopnum] = 32;
-						if (stricmp(&tempbuf[lasti],"sector.wallnum") == 0) secfield[secopnum] = 33;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingpicnum") == 0) secfield[secopnum] = 34;
-						if (stricmp(&tempbuf[lasti],"sector.floorpicnum") == 0) secfield[secopnum] = 35;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingheinum") == 0) secfield[secopnum] = 36;
-						if (stricmp(&tempbuf[lasti],"sector.floorheinum") == 0) secfield[secopnum] = 37;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingz") == 0) secfield[secopnum] = 38;
-						if (stricmp(&tempbuf[lasti],"sector.floorz") == 0) secfield[secopnum] = 39;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingshade") == 0) secfield[secopnum] = 40;
-						if (stricmp(&tempbuf[lasti],"sector.floorshade") == 0) secfield[secopnum] = 41;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingxpanning") == 0) secfield[secopnum] = 42;
-						if (stricmp(&tempbuf[lasti],"sector.floorxpanning") == 0) secfield[secopnum] = 43;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingypanning") == 0) secfield[secopnum] = 44;
-						if (stricmp(&tempbuf[lasti],"sector.floorypanning") == 0) secfield[secopnum] = 45;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingstat") == 0) secfield[secopnum] = 46;
-						if (stricmp(&tempbuf[lasti],"sector.floorstat") == 0) secfield[secopnum] = 47;
-						if (stricmp(&tempbuf[lasti],"sector.ceilingpal") == 0) secfield[secopnum] = 48;
-						if (stricmp(&tempbuf[lasti],"sector.floorpal") == 0) secfield[secopnum] = 49;
-						if (stricmp(&tempbuf[lasti],"sector.visibility") == 0) secfield[secopnum] = 50;
-						if (stricmp(&tempbuf[lasti],"sector.lotag") == 0) secfield[secopnum] = 51;
-						if (stricmp(&tempbuf[lasti],"sector.hitag") == 0) secfield[secopnum] = 52;
-						if (stricmp(&tempbuf[lasti],"sector.extra") == 0) secfield[secopnum] = 53;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.wallptr") == 0) secfield[secopnum] = 32;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.wallnum") == 0) secfield[secopnum] = 33;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingpicnum") == 0) secfield[secopnum] = 34;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorpicnum") == 0) secfield[secopnum] = 35;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingheinum") == 0) secfield[secopnum] = 36;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorheinum") == 0) secfield[secopnum] = 37;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingz") == 0) secfield[secopnum] = 38;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorz") == 0) secfield[secopnum] = 39;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingshade") == 0) secfield[secopnum] = 40;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorshade") == 0) secfield[secopnum] = 41;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingxpanning") == 0) secfield[secopnum] = 42;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorxpanning") == 0) secfield[secopnum] = 43;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingypanning") == 0) secfield[secopnum] = 44;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorypanning") == 0) secfield[secopnum] = 45;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingstat") == 0) secfield[secopnum] = 46;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorstat") == 0) secfield[secopnum] = 47;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.ceilingpal") == 0) secfield[secopnum] = 48;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.floorpal") == 0) secfield[secopnum] = 49;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.visibility") == 0) secfield[secopnum] = 50;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.lotag") == 0) secfield[secopnum] = 51;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.hitag") == 0) secfield[secopnum] = 52;
+						if (Bstrcasecmp(&tempbuf[lasti],"sector.extra") == 0) secfield[secopnum] = 53;
 
 						secfield[secopnum] += (spritenumstat<<8);
 
 						if ((tempbuf[k+1] >= 48) && (tempbuf[k+1] <= 57))
 							secval[secopnum] = atol(&tempbuf[k+1]);
-						else if (stricmp("tag",&tempbuf[k+1]) == 0)
+						else if (Bstrcasecmp("tag",&tempbuf[k+1]) == 0)
 							secval[secopnum] = 0x80000000;
 						else
 						{
 							for(l=0;l<numdefines;l++)
-								if (stricmp(defineptr[l],&tempbuf[k+1]) == 0)
+								if (Bstrcasecmp(defineptr[l],&tempbuf[k+1]) == 0)
 									{ secval[secopnum] = defineval[l]; break; }
 						}
 
@@ -920,8 +920,8 @@ long getwadindex(char *nam)
 	i = 0;
 	for(j=2048;j>0;j>>=1)
 		if (i+j < inumwads)
-			if (stricmp(iwadata[slist[i+j]],nam) <= 0) i += j;
-	if (stricmp(iwadata[slist[i]],nam) == 0) return(slist[i]);
+			if (Bstrcasecmp(iwadata[slist[i+j]],nam) <= 0) i += j;
+	if (Bstrcasecmp(iwadata[slist[i]],nam) == 0) return(slist[i]);
 	return(-1);
 }
 
@@ -1026,7 +1026,7 @@ int main(int argc, char **argv)
 		for(z=0;z<inumwads-gap;z++)
 			for(zz=z;zz>=0;zz-=gap)
 			{
-				if (stricmp(iwadata[slist[zz]],iwadata[slist[zz+gap]]) <= 0) break;
+				if (Bstrcasecmp(iwadata[slist[zz]],iwadata[slist[zz+gap]]) <= 0) break;
 				i = slist[zz]; slist[zz] = slist[zz+gap]; slist[zz+gap] = i;
 			}
 
@@ -1131,7 +1131,7 @@ int main(int argc, char **argv)
 	{
 		Blseek(pfil,pwadplc[w],BSEEK_SET);
 
-		if (stricmp(pwadata[w],"VERTEXES") == 0)
+		if (Bstrcasecmp(pwadata[w],"VERTEXES") == 0)
 		{
 			dnumpoints = (pwadlen[w]>>2);
 			Bread(pfil,tempbuf,pwadlen[w]);
@@ -1143,12 +1143,12 @@ int main(int argc, char **argv)
 				offs += 4;
 			}
 		}
-		if (stricmp(pwadata[w],"LINEDEFS") == 0)
+		if (Bstrcasecmp(pwadata[w],"LINEDEFS") == 0)
 		{
 			dnumlines = pwadlen[w]/sizeof(linedeftype);
 			Bread(pfil,line,sizeof(linedeftype)*dnumlines);
 		}
-		if (stricmp(pwadata[w],"SIDEDEFS") == 0)
+		if (Bstrcasecmp(pwadata[w],"SIDEDEFS") == 0)
 		{
 			dnumsides = pwadlen[w]/sizeof(sidedeftype);
 			Bread(pfil,side,pwadlen[w]);
@@ -1160,7 +1160,7 @@ int main(int argc, char **argv)
 				sidetoppic[z] = -1;
 				if (picstr[0] != '-')
 					for(zx=0;zx<numtexts;zx++)
-						if (stricmp(picstr,textname[zx]) == 0)
+						if (Bstrcasecmp(picstr,textname[zx]) == 0)
 							{ sidetoppic[z] = getwadindex(pname[textpname[zx]]); break; }
 
 				for(i=0;i<8;i++) picstr[i] = side[z].lowertexture[i];
@@ -1169,7 +1169,7 @@ int main(int argc, char **argv)
 				sidebotpic[z] = -1;
 				if (picstr[0] != '-')
 					for(zx=0;zx<numtexts;zx++)
-						if (stricmp(picstr,textname[zx]) == 0)
+						if (Bstrcasecmp(picstr,textname[zx]) == 0)
 							{ sidebotpic[z] = getwadindex(pname[textpname[zx]]); break; }
 
 				for(i=0;i<8;i++) picstr[i] = side[z].middletexture[i];
@@ -1178,11 +1178,11 @@ int main(int argc, char **argv)
 				sidemidpic[z] = -1;
 				if (picstr[0] != '-')
 					for(zx=0;zx<numtexts;zx++)
-						if (stricmp(picstr,textname[zx]) == 0)
+						if (Bstrcasecmp(picstr,textname[zx]) == 0)
 							{ sidemidpic[z] = getwadindex(pname[textpname[zx]]); break; }
 			}
 		}
-		if (stricmp(pwadata[w],"SECTORS") == 0)
+		if (Bstrcasecmp(pwadata[w],"SECTORS") == 0)
 		{
 			dnumsectors = pwadlen[w]/sizeof(secttype);
 			Bread(pfil,sect,pwadlen[w]);
@@ -1197,7 +1197,7 @@ int main(int argc, char **argv)
 				sector[z].ceilingpicnum = getwadindex(picstr);
 			}
 		}
-		if (stricmp(pwadata[w],"THINGS") == 0)
+		if (Bstrcasecmp(pwadata[w],"THINGS") == 0)
 		{
 			dnumthings = pwadlen[w]/sizeof(thingtype);
 			Bread(pfil,thing,pwadlen[w]);
@@ -1290,8 +1290,8 @@ int main(int argc, char **argv)
 		//Collect sectors
 	for(z=0;z<dnumsectors;z++)
 	{
-		if (stricmp(iwadata[sector[z].ceilingpicnum],"F_SKY1") == 0) sector[z].ceilingstat |= 1;
-		if (stricmp(iwadata[sector[z].floorpicnum],"F_SKY1") == 0) sector[z].floorstat |= 1;
+		if (Bstrcasecmp(iwadata[sector[z].ceilingpicnum],"F_SKY1") == 0) sector[z].ceilingstat |= 1;
+		if (Bstrcasecmp(iwadata[sector[z].floorpicnum],"F_SKY1") == 0) sector[z].floorstat |= 1;
 		sector[z].ceilingz = -(sect[z].ceilingz<<8);
 		sector[z].floorz = -(sect[z].floorz<<8);
 

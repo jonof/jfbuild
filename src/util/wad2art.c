@@ -60,7 +60,7 @@ void convpalette(void)
 	short danumshades;
 
 	i = 0;
-	while (strnicmp(wadata[i],"PLAYPAL",7) != 0) i++;
+	while (Bstrncasecmp(wadata[i],"PLAYPAL",7) != 0) i++;
 	Blseek(fil1,wadplc[i],BSEEK_SET);
 	Bread(fil1,pal,768);
 	for(i=0;i<768;i++)
@@ -69,7 +69,7 @@ void convpalette(void)
 	}
 
 	i = 0;
-	while (strnicmp(wadata[i],"COLORMAP",8) != 0) i++;
+	while (Bstrncasecmp(wadata[i],"COLORMAP",8) != 0) i++;
 	Blseek(fil1,wadplc[i],BSEEK_SET);
 	Bread(fil1,palookup,8192);
 
@@ -143,25 +143,25 @@ void showart (char *part)
 	long i, j, z, zx, zzx, x, y, p, pend, junk, curplc;
 
 	curplc = -1;
-	if ((strnicmp(part,"L_START",7) == 0) || (strnicmp(part,"S_START",7) == 0) || (strnicmp(part,"P_START",7) == 0))
+	if ((Bstrncasecmp(part,"L_START",7) == 0) || (Bstrncasecmp(part,"S_START",7) == 0) || (Bstrncasecmp(part,"P_START",7) == 0))
 	{
-		if (strnicmp(part,"L_START",7) == 0)
+		if (Bstrncasecmp(part,"L_START",7) == 0)
 			z = 462;
 		else
 		{
 			z = 0;
-			while (strnicmp(wadata[z],part,7) != 0) z++;
+			while (Bstrncasecmp(wadata[z],part,7) != 0) z++;
 			z++;
 		}
 	 
 		do
 		{
-			if (strnicmp(wadata[z],"P1_START",8) == 0) z++;
-			if (strnicmp(wadata[z],"P1_END",6) == 0) z++;
-			if (strnicmp(wadata[z],"P2_START",8) == 0) z++;
-			if (strnicmp(wadata[z],"S_START",7) == 0) break;
-			if (strnicmp(wadata[z],"S_END",5) == 0) break;
-			if (strnicmp(wadata[z],"P_END",5) == 0) break;
+			if (Bstrncasecmp(wadata[z],"P1_START",8) == 0) z++;
+			if (Bstrncasecmp(wadata[z],"P1_END",6) == 0) z++;
+			if (Bstrncasecmp(wadata[z],"P2_START",8) == 0) z++;
+			if (Bstrncasecmp(wadata[z],"S_START",7) == 0) break;
+			if (Bstrncasecmp(wadata[z],"S_END",5) == 0) break;
+			if (Bstrncasecmp(wadata[z],"P_END",5) == 0) break;
 		  
 			if (curplc != wadplc[z]) Blseek(fil1,wadplc[z],BSEEK_SET);
 			read(fil1,&tempbuf[0],wadlen[z]);
@@ -203,14 +203,14 @@ skipit:
 	else
 	{
 		z = 0;
-		while (strnicmp(wadata[z],part,7) != 0) z++;
+		while (Bstrncasecmp(wadata[z],part,7) != 0) z++;
 		z++;
 	 
 		while (1)
 		{
-			if (strnicmp(wadata[z],"F1_START",8) == 0) z++;
-			if (strnicmp(wadata[z],"F1_END",6) == 0) z++;
-			if (strnicmp(wadata[z],"F_END",5) == 0) break;
+			if (Bstrncasecmp(wadata[z],"F1_START",8) == 0) z++;
+			if (Bstrncasecmp(wadata[z],"F1_END",6) == 0) z++;
+			if (Bstrncasecmp(wadata[z],"F_END",5) == 0) break;
 
 			if (wadlen[z] == 4096)
 			{
