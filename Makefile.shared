@@ -10,6 +10,8 @@ GLLIBWIN=-lopengl32
 GLLIBBSD=-lopengl32
 GLLIBLIN=-lGL
 
+SDLCONFIG=sdl-config
+
 # detect the platform
 uname=$(strip $(shell uname -s))
 ifeq ($(findstring Linux,$(uname)),Linux)
@@ -41,7 +43,7 @@ else
 endif
 
 ifeq ($(RENDERTYPE),SDL)
-	LIBS+= $(shell sdl-config --libs)
+	LIBS+= $(shell $(SDLCONFIG) --libs)
 
 	ifneq (No,$(shell pkg-config --exists gtk+-2.0 || echo No))
 		HAVE_GTK2=1
