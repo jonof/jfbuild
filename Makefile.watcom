@@ -1,0 +1,163 @@
+# Build Makefile for Watcom Make
+
+!ifdef OVERRIDES
+!include $(OVERRIDES)
+!endif
+
+SRC=src\
+!ifndef OBJ
+OBJ=obj.watcom\
+!endif
+INC=include\
+!ifndef CFLAGS
+CFLAGS=-dSUPERBUILD -dPOLYMOST -dUSE_OPENGL
+!endif
+
+o=obj
+res=res
+asm=wasm
+
+ENGINELIB=engine.lib
+EDITORLIB=build.lib
+
+DXROOT=c:\sdks\msc\dx7
+FMODROOT=c:\sdks\fmodapi370win32\api
+
+!ifdef __LOADDLL__
+! loaddll wcc386 wccd386
+!endif
+
+# -D these to enable certain features of the port's compile process
+# USE_WATCOM_ASSEMBLY   Use WASM and compile the A.ASM assembly code.
+#                       If this is not defined, alter the $(OBJ)a.$o in the
+#                       ENGINEOBJS declaration to be $(OBJ)a-c.$o
+# USE_WATCOM_PRAGMAS    Use Watcom inline assembly instead of C code for
+#                       the features in PRAGMAS.H
+TARGETOPTS=-dUSE_WATCOM_ASSEMBLY -dUSE_WATCOM_PRAGMAS
+
+CC=wcc386
+AS=wasm
+RC=wrc
+CFLAGS+= -5r -s -orb -fp5 $(TARGETOPTS) -d2 -i=$(INC)
+LIBS=fmodwc.lib opengl32.lib
+ASFLAGS=# -d1
+EXESUFFIX=.exe
+
+ENGINEOBJS=$(OBJ)engine.$o &
+	$(OBJ)cache1d.$o &
+	$(OBJ)a.$o &
+	$(OBJ)pragmas.$o &
+	$(OBJ)osd.$o &
+	$(OBJ)crc32.$o &
+	$(OBJ)engineinfo.$o &
+	$(OBJ)baselayer.$o &
+	$(OBJ)compat.$o &
+	$(OBJ)kplib.$o &
+	$(OBJ)scriptfile.$o &
+	$(OBJ)jmulti.$o &
+	$(OBJ)defs.$o
+
+EDITOROBJS=$(OBJ)build.$o &
+	$(OBJ)config.$o
+
+GAMEEXEOBJS=$(OBJ)game.$o &
+	$(OBJ)sound.$o &
+	$(OBJ)config.$o
+
+EDITOREXEOBJS=$(OBJ)bstub.$o
+
+PLATFORM=WINDOWS
+CFLAGS+= -i=$(DXROOT)\include -i=$(FMODROOT)\inc
+LIBS+= wsock32.lib
+!ifndef RENDERTYPE
+RENDERTYPE=WIN
+!endif
+
+ENGINEOBJS+= $(OBJ)winlayer.$o
+CFLAGS+= -dmain=app_main
+LIBS+= dxguid.lib wsock32.lib
+
+CFLAGS+= -d$(PLATFORM) -dRENDERTYPE$(RENDERTYPE)=1
+
+# RULES
+.EXTENSIONS: .wasm .res .rc
+
+.wasm:	$(SRC)
+.c:	$(SRC)
+.c:	$(SRC)tmp/
+.rc:	$(SRC)misc/
+
+.wasm.$o:
+	$(AS) $(ASFLAGS) -fo=$(OBJ).$o $[@
+
+.c.$o:
+	$(CC) $(CFLAGS) -fo=$(OBJ).$o $[@
+
+.rc.$(res):
+	$(RC) -fo=$^*.$(res) -r $[@
+
+# TARGETS
+all: game$(EXESUFFIX) build$(EXESUFFIX)	$(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB) .SYMBOLIC
+	%null
+	
+utils: kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) .SYMBOLIC
+	%null
+
+enginelib: $(OBJ)$(ENGINELIB) .SYMBOLIC
+	%null
+
+$(OBJ)$(ENGINELIB): $(ENGINEOBJS)
+	%create $(OBJ)$(ENGINELIB).tmp
+	for %i in ($(ENGINEOBJS)) do %append $(OBJ)$(ENGINELIB).tmp +%i
+	wlib -b -n $^* @$(OBJ)$(ENGINELIB).tmp
+	erase $(OBJ)$(ENGINELIB).tmp
+
+editorlib: $(OBJ)$(EDITORLIB) .SYMBOLIC
+	%null
+
+$(OBJ)$(EDITORLIB): $(EDITOROBJS)
+	%create $(OBJ)$(EDITORLIB).tmp
+	for %i in ($(EDITOROBJS)) do %append $(OBJ)$(EDITORLIB).tmp +%i
+	wlib -b -n $^* @$(OBJ)$(EDITORLIB).tmp
+	erase $(OBJ)$(EDITORLIB).tmp
+
+game$(EXESUFFIX): $(GAMEEXEOBJS) $(OBJ)gameres.$(res) $(OBJ)$(ENGINELIB)
+	wlink	NAME     $(OBJ)$@ &
+		SYSTEM   WIN95 &
+		DEBUG    ALL &
+		FILE     { $(GAMEEXEOBJS) } &
+		RESOURCE $(OBJ)gameres.$(res) &
+		LIBPATH  $(DXROOT)\lib &
+		LIBPATH  $(FMODROOT)\lib &
+		LIBPATH  $(OBJ) &
+		LIBFILE  { $(LIBS) $(ENGINELIB) }
+	copy /y $(OBJ)$@ $@
+	
+build$(EXESUFFIX): $(EDITOREXEOBJS) $(OBJ)buildres.$(res) $(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB)
+	wlink	NAME     $(OBJ)$@ &
+		SYSTEM   WIN95 &
+		DEBUG    ALL &
+		FILE     { $(EDITOREXEOBJS) } &
+		RESOURCE $(OBJ)buildres.$(res) &
+		LIBPATH  $(DXROOT)\lib &
+		LIBPATH  $(FMODROOT)\lib &
+		LIBPATH  $(OBJ) &
+		LIBFILE  { $(LIBS) $(ENGINELIB) $(EDITORLIB) }
+	copy /y $(OBJ)$@ $@
+
+# DEPENDENCIES
+!include Makefile.deps
+
+$(OBJ)engineinfo.$o: writeengineinfo $(SRC)tmp\engineinfo.c
+
+writeengineinfo: .SYMBOLIC
+	echo const char _engine_cflags[] = "$(CFLAGS:\=\\)"; > $(SRC)tmp\engineinfo.c
+	echo const char _engine_libs[] = "$(LIBS:\=\\)"; >> $(SRC)tmp\engineinfo.c
+	echo const char _engine_uname[] = "unknown"; >> $(SRC)tmp\engineinfo.c
+	echo const char _engine_compiler[] = "$(CC)"; >> $(SRC)tmp\engineinfo.c
+	echo const char _engine_date[] = __DATE__ " " __TIME__; >> $(SRC)tmp\engineinfo.c
+
+# PHONIES	
+clean: .SYMBOLIC
+	-erase /q $(OBJ)* game$(EXESUFFIX) game.sym$(EXESUFFIX) build$(EXESUFFIX) build.sym$(EXESUFFIX) *.err
+

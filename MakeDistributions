@@ -1,0 +1,35 @@
+# GNU Makefile to prepare source and binary distributions.
+#    make -f MakeDistributions [source|binary]
+
+SOURCEFILES=build.cfg buildlic.txt ChangeLog game.cfg LICENSE \
+	   Makefile Makefile.deps Makefile.msvc Makefile.watcom MakeDistributions \
+	   makegnu.bat makemsc.bat makew.bat NAMES.H README
+
+BINARYFILES=build.cfg build.exe buildlic.txt ChangeLog fmod.dll \
+           game.cfg game.exe LICENSE NAMES.H neatsong.ogg README
+
+.PHONY: source binary
+
+datenow=$(shell date +%Y%m%d)
+
+sourcedir=buildport_src_$(datenow)
+binarydir=winbuild_$(datenow)
+
+all: source binary
+
+source:
+	mkdir $(sourcedir) $(sourcedir)/obj.gnu $(sourcedir)/obj.watcom $(sourcedir)/obj.msc
+	touch $(sourcedir)/obj.gnu/keep.me $(sourcedir)/obj.watcom/keep.me $(sourcedir)/obj.msc/keep.me
+	cp $(SOURCEFILES) $(sourcedir)
+	cp -R src rsrc include $(sourcedir)
+	rm -f $(sourcedir)/src/tmp/*
+	touch $(sourcedir)/src/tmp/keep.me
+	kzip -r $(sourcedir).zip $(sourcedir)
+
+binary:
+	nmake /f Makefile.msvc
+	upx --best build.exe game.exe
+	mkdir $(binarydir)
+	cp $(BINARYFILES) $(binarydir)
+	kzip -r $(binarydir).zip $(binarydir)
+
