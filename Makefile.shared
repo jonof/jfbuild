@@ -11,6 +11,7 @@ GLLIBBSD=-lopengl32
 GLLIBLIN=-lGL
 
 SDLCONFIG=sdl-config
+#SDLCONFIG=/usr/local/bin/sdl11-config
 
 # detect the platform
 uname=$(strip $(shell uname -s))

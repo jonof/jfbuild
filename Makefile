@@ -94,6 +94,7 @@ ifeq ($(PLATFORM),LINUX)
 endif
 ifeq ($(PLATFORM),BSD)
 	ASFLAGS+= -f elf
+	override CFLAGS+= -I/usr/X11R6/include
 endif
 ifeq ($(PLATFORM),WINDOWS)
 	override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOT)/inc

@@ -95,7 +95,7 @@ extern long drawslab(long,long,long,long,long,long);
 
 #elif defined(USE_GCC_ASSEMBLY)	// USE_WATCOM_ASSEMBLY
 
-#ifdef linux
+#if defined(LINUX) || defined(BSD)
 #define __cdecl
 #endif
 

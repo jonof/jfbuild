@@ -18,7 +18,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifdef linux
+#if defined(LINUX) || defined(BSD)
 #include <unistd.h>
 #endif
 #endif

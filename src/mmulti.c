@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <netdb.h>
 #define SOCKET int
 #define INVALID_HANDLE_VALUE (-1)
