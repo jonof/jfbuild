@@ -405,7 +405,7 @@ long app_main(long argc, char *argv[])
 	Bstrcpy(boardfilename, "nukeland.map");
 	j = 0;
 	for (i=1;i<argc;i++) {
-		if ((!stricmp("-net",argv[i])) || (!stricmp("/net",argv[i]))) { j = 1; continue; }
+		if ((!Bstrcasecmp("-net",argv[i])) || (!Bstrcasecmp("/net",argv[i]))) { j = 1; continue; }
 		if (j) {
 			if (argv[i][0] == '-' || argv[i][0] == '/') {
 				if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '0')) { networkmode = 0; continue; }
