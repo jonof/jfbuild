@@ -182,6 +182,7 @@ long menuselect(void);
 long getfilenames(char *path, char kind[6]);
 void clearfilenames(void);
 
+void clearkeys(void) { memset(keystatus,0,sizeof(keystatus)); }
 
 static int osdcmd_restartvid(const osdfuncparm_t *parm)
 {
@@ -2436,6 +2437,7 @@ long gettile(long tilenum)
 					break;
 				}
 			}
+			clearkeys();
 		}
 		while (tilenum < topleft) topleft -= (xtiles<<gettilezoom);
 		while (tilenum >= topleft+(tottiles<<(gettilezoom<<1))) topleft += (xtiles<<gettilezoom);
@@ -5314,6 +5316,7 @@ void overheadeditor(void)
 					showframe(1);
 				}
 			}
+			clearkeys();
 		}
 
 		//nextpage();
@@ -5833,8 +5836,7 @@ short getnumber16(char namestart[80], short num, long maxnumber)
 			break;
 		}
 	}
-	keystatus[0x1c] = 0;
-	keystatus[0x1] = 0;
+	clearkeys();
 	return((short)oldnum);
 }
 
@@ -5877,8 +5879,7 @@ short getnumber256(char namestart[80], short num, long maxnumber, char sign)
 			danum = -danum;
 		}
 	}
-	keystatus[0x1c] = 0;
-	keystatus[0x1] = 0;
+	clearkeys();
 
 	lockclock = totalclock;  //Reset timing
 

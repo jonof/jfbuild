@@ -194,35 +194,43 @@ static inline long imod (long a, long b)
 	return(((a+1)%b)+b-1);
 }
 
-void drawline2d (float x1, float y1, float x2, float y2, char col)
+void drawline2d (float x0, float y0, float x1, float y1, char col)
 {
-	float dx, dy, fxresm1, fyresm1, f, tot;
-	long i, x, y, xi, yi, xup16, yup16;
+	float f, dx, dy, fxres, fyres;
+	long e, inc, x, y;
+	unsigned long up16;
 
-		//Always draw lines in same direction
-	if ((y2 > y1) || ((y2 == y1) && (x2 > x1))) { f = x1; x1 = x2; x2 = f; f = y1; y1 = y2; y2 = f; }
+	dx = x1-x0; dy = y1-y0; if ((dx == 0) && (dy == 0)) return;
+	fxres = (float)xdimen; fyres = (float)ydimen;
+		  if (x0 >= fxres) { if (x1 >= fxres) return; y0 += (fxres-x0)*dy/dx; x0 = fxres; }
+	else if (x0 <      0) { if (x1 <      0) return; y0 += (    0-x0)*dy/dx; x0 =     0; }
+		  if (x1 >= fxres) {                          y1 += (fxres-x1)*dy/dx; x1 = fxres; }
+	else if (x1 <      0) {                          y1 += (    0-x1)*dy/dx; x1 =     0; }
+		  if (y0 >= fyres) { if (y1 >= fyres) return; x0 += (fyres-y0)*dx/dy; y0 = fyres; }
+	else if (y0 <      0) { if (y1 <      0) return; x0 += (    0-y0)*dx/dy; y0 =     0; }
+		  if (y1 >= fyres) {                          x1 += (fyres-y1)*dx/dy; y1 = fyres; }
+	else if (y1 <      0) {                          x1 += (    0-y1)*dx/dy; y1 =     0; }
 
-	dx = x2-x1; dy = y2-y1; if ((dx == 0) && (dy == 0)) return;
-	fxresm1 = (float)xdimen-.5; fyresm1 = (float)ydimen-.5;
-		  if (x1 >= fxresm1) { if (x2 >= fxresm1) return; y1 += (fxresm1-x1)*dy/dx; x1 = fxresm1; }
-	else if (x1 <        0) { if (x2 <        0) return; y1 += (      0-x1)*dy/dx; x1 =       0; }
-		  if (x2 >= fxresm1) {                            y2 += (fxresm1-x2)*dy/dx; x2 = fxresm1; }
-	else if (x2 <        0) {                            y2 += (      0-x2)*dy/dx; x2 =       0; }
-		  if (y1 >= fyresm1) { if (y2 >= fyresm1) return; x1 += (fyresm1-y1)*dx/dy; y1 = fyresm1; }
-	else if (y1 <        0) { if (y2 <        0) return; x1 += (      0-y1)*dx/dy; y1 =       0; }
-		  if (y2 >= fyresm1) {                            x2 += (fyresm1-y2)*dx/dy; y2 = fyresm1; }
-	else if (y2 <        0) {                            x2 += (      0-y2)*dx/dy; y2 =       0; }
-
-	dx = x2-x1; dy = y2-y1;
-	i = (long)(max(fabs(dx),fabs(dy))); f = 65536.f/((float)i);
-	x = (long)(x1*65536.f)+32768; xi = (long)(dx*f); xup16 = (xdimen<<16);
-	y = (long)(y1*65536.f)+32768; yi = (long)(dy*f); yup16 = (ydimen<<16);
-	do
+	if (fabs(dx) > fabs(dy))
 	{
-		if (((unsigned long)x < (unsigned long)xup16) && ((unsigned long)y < (unsigned long)yup16))
-			*(char *)(ylookup[y>>16]+(x>>16)+frameoffset) = col;
-		x += xi; y += yi; i--;
-	} while (i >= 0);
+		if (x0 > x1) { f = x0; x0 = x1; x1 = f; f = y0; y0 = y1; y1 = f; }
+		y = (long)(y0*65536.f)+32768;
+		inc = (long)(dy/dx*65536.f+.5f);
+		x = (long)(x0+.5); if (x < 0) { y -= inc*x; x = 0; } //if for safety
+		e = (long)(x1+.5); if (e > xdimen) e = xdimen;       //if for safety
+		up16 = (ydimen<<16);
+		for(;x<e;x++,y+=inc) if ((unsigned long)y < up16) *(char *)(ylookup[y>>16]+x+frameoffset) = col;
+	}
+	else
+	{
+		if (y0 > y1) { f = x0; x0 = x1; x1 = f; f = y0; y0 = y1; y1 = f; }
+		x = (long)(x0*65536.f)+32768;
+		inc = (long)(dx/dy*65536.f+.5f);
+		y = (long)(y0+.5); if (y < 0) { x -= inc*y; y = 0; } //if for safety
+		e = (long)(y1+.5); if (e > ydimen) e = ydimen;       //if for safety
+		up16 = (xdimen<<16);
+		for(;y<e;y++,x+=inc) if ((unsigned long)x < up16) *(char *)(ylookup[y]+(x>>16)+frameoffset) = col;
+	}
 }
 
 #ifdef USE_OPENGL
