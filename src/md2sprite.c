@@ -388,7 +388,7 @@ static int daskinloader(const char *fn, long *fptr, long *bpl, long *sizx, long 
 static long md2loadskin (md2model *m, int number, int pal)
 {
 	long fptr, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
-	char *skinfile, hasalpha, fn[MAX_PATH+65];
+	char *skinfile, hasalpha, fn[BMAX_PATH+65];
 	unsigned int *texidx;
 	md2skinmap *sk, *skzero = NULL;
 
@@ -470,7 +470,7 @@ static long md2load (md2model *m, const char *filename)
 {
 	int fil;
 	md2typ head;
-	char *buf, st[MAX_PATH];
+	char *buf, st[BMAX_PATH];
 	long i;
 
 	m->scale = .01;

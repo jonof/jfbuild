@@ -18,9 +18,6 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-//#if defined(__WATCOMC__) || defined(_MSC_VER)
-#include <malloc.h>
-//#endif
 #ifdef linux
 #include <unistd.h>
 #endif

@@ -12,7 +12,7 @@
 #define WAVESFILE "WAVES.KWV"
 
 static char musistat = 0, inited = 0;
-static char songname[MAX_PATH];
+static char songname[BMAX_PATH];
 
 static struct {
 	long *posx, *posy;
