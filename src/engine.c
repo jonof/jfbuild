@@ -9137,7 +9137,7 @@ void drawcircle16(long x1, long y1, long r, char col)
 	dse = 5 - (r << 1);
 	
 	begindrawing();
-	p = ylookup[y1]+x1+frameplace;
+	p = (y1*bytesperline)+x1+frameplace;
 
 	if (drawlinepat & pow2long[(patc++)&31]) {
 		if ((unsigned long)y1 < (unsigned long)ydim16 && (unsigned long)(x1+r) < (unsigned long)xres  )
@@ -9164,8 +9164,8 @@ void drawcircle16(long x1, long y1, long r, char col)
 			yp--;
 		}
 
-		ypbpl = ylookup[yp];
-		xpbpl = ylookup[xp];
+		ypbpl = yp*bytesperline;
+		xpbpl = xp*bytesperline;
 		if (drawlinepat & pow2long[(patc++)&31]) {
 			if ((unsigned long)(x1+yp) < (unsigned long)xres && (unsigned long)(y1+xp) < (unsigned long)ydim16)
 				drawpixel((char *)(p+yp+xpbpl), col);	// 1
@@ -9605,6 +9605,8 @@ void draw2dscreen(long posxe, long posye, short ange, long zoome, short gride)
 	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16-xp1,midydim16-yp1,15);
 	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16+yp1,midydim16-xp1,15);
 	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16-yp1,midydim16+xp1,15);
+
+	drawcircle16(103,-17,343,6);
 
 	enddrawing();	//}}}
 }
