@@ -113,14 +113,14 @@ int loadsetup(const char *fn)
 
 	if (readconfig(fp, "resolution", val, VL) > 0) {
 		i = Batoi(val) & 0x0f;
-		if (i>=0 && i<=13) {
+		if ((unsigned)i<13) {
 			xdimgame = xdim2d = vesares[i][0];
 			ydimgame = ydim2d = vesares[i][1];
 		}
 	}
 	if (readconfig(fp, "2dresolution", val, VL) > 0) {
 		i = Batoi(val) & 0x0f;
-		if (i>=0 && i<=13) {
+		if ((unsigned)i<13) {
 			xdim2d = vesares[i][0];
 			ydim2d = vesares[i][1];
 		}
