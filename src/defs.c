@@ -15,6 +15,7 @@ enum {
 	T_INCLUDE = 0,
 	T_DEFINE,
 	T_DEFINETEXTURE,
+	T_DEFINESKYBOX,
 	T_DEFINETINT,
 	T_DEFINEMODEL,
 	T_DEFINEMODELFRAME,
@@ -34,6 +35,7 @@ static struct {
 	{ "define", T_DEFINE },
 	{ "#define", T_DEFINE },
 	{ "definetexture", T_DEFINETEXTURE },
+	{ "defineskybox", T_DEFINESKYBOX },
 	{ "definetint", T_DEFINETINT },
 	{ "definemodel", T_DEFINEMODEL },
 	{ "definemodelframe", T_DEFINEMODELFRAME },
@@ -181,6 +183,42 @@ static int defsparser(scriptfile *script)
 						break;
 					}
 					if (happy) hicsetsubsttex(tile,pal,fn,cx,cy,sx,sy);
+				}
+				break;
+			case T_DEFINESKYBOX:
+				{
+					int tile,pal,i;
+					char *fn[6],happy=1;
+					const char *faces[6] = {
+						"front face", "right face", "back face",
+						"left face", "top face", "bottom face"
+					};
+
+					int tilerv,palrv;
+
+					tilerv = scriptfile_getsymbol(script,&tile);
+					palrv = scriptfile_getsymbol(script,&pal);
+					if (tilerv) {
+						initprintf("Invalid symbol name or numeric constant for tile number "
+									  "on line %s:%d\n", script->filename,script->linenum);
+						numerrors++;
+						happy=0;
+					}
+					if (palrv) {
+						initprintf("Invalid symbol name or numeric constant for palette number "
+									  "on line %s:%d\n", script->filename,script->linenum);
+						numerrors++;
+						happy=0;
+					}
+					for (i=0;i<6;i++) {
+						if ((fn[i] = scriptfile_getstring(script)) == NULL) {
+							initprintf("Invalid string constant for %s filename on line %s:%d\n",
+									faces[i],script->filename,script->linenum);
+							numerrors++;
+							happy=0;
+						}
+					}
+					if (happy) hicsetskybox(tile,pal,fn);
 				}
 				break;
 			case T_DEFINETINT:
