@@ -1328,15 +1328,15 @@ static void UninitDirectInput(void)
 	AcquireInputDevices(0);
 
 	if (axisdefs) {
-		for (i=joynumaxes-1; i>=0; i--) if (axisdefs[i].name) free(axisdefs[i].name);
+		for (i=joynumaxes-1; i>=0; i--) if (axisdefs[i].name) free((void*)axisdefs[i].name);
 		free(axisdefs); axisdefs = NULL;
 	}
 	if (buttondefs) {
-		for (i=joynumbuttons-1; i>=0; i--) if (buttondefs[i].name) free(buttondefs[i].name);
+		for (i=joynumbuttons-1; i>=0; i--) if (buttondefs[i].name) free((void*)buttondefs[i].name);
 		free(buttondefs); buttondefs = NULL;
 	}
 	if (hatdefs) {
-		for (i=joynumhats-1; i>=0; i--) if (hatdefs[i].name) free(hatdefs[i].name);
+		for (i=joynumhats-1; i>=0; i--) if (hatdefs[i].name) free((void*)hatdefs[i].name);
 		free(hatdefs); hatdefs = NULL;
 	}
 	
