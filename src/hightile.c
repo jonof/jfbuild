@@ -15,7 +15,7 @@ struct hicskybox_t {
 };
 typedef struct hicreplc_t {
 	struct hicreplc_t *next;
-	long palnum, ignore;
+	char palnum, ignore, filler[2];
 	char *filename;
 	struct hicskybox_t *skybox;
 } hicreplctyp;
