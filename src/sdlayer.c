@@ -271,7 +271,7 @@ void uninitsystem(void)
 //
 unsigned int getsysmemsize(void)
 {
-	return 0xffffffffl;
+	return 0x7fffffffl;
 }
 
 
