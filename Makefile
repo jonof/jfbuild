@@ -36,9 +36,9 @@ DXROOT=c:/sdks/msc/dx61
 FMODROOT=c:/sdks/fmodapi370win32/api
 
 # debugging enabled
-#debug=-DDEBUGGINGAIDS -ggdb
+debug=-DDEBUGGINGAIDS -ggdb
 # debugging disabled
-debug=-fomit-frame-pointer
+#debug=-fomit-frame-pointer
 
 # -D these to enable certain features of the port's compile process
 # USE_GCC_ASSEMBLY   Use NASM and compile the ported A.ASM assembly code.
@@ -138,14 +138,14 @@ $(OBJ)$(EDITORLIB): $(EDITOROBJS)
 game$(EXESUFFIX): $(GAMEEXEOBJS)
 	$(CC) $(CFLAGS) -o $(OBJ)$@ $^ $(LIBS)
 	cp -f $(OBJ)$@ $@
-	cp -f $@ game.sym$(EXESUFFIX)
-	strip $@
+#	cp -f $@ game.sym$(EXESUFFIX)
+#	strip $@
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS)
 	$(CC) $(CFLAGS) -o $(OBJ)$@ $^ $(LIBS)
 	cp -f $(OBJ)$@ $@
-	cp -f $@ build.sym$(EXESUFFIX)
-	strip $@
+#	cp -f $@ build.sym$(EXESUFFIX)
+#	strip $@
 
 pragmacheck$(EXESUFFIX): $(OBJ)pragmacheck.$o $(OBJ)pragmas.$o
 	$(CC) $(subst -Dmain=app_main,,$(CFLAGS)) -o $@ $^

@@ -1,6 +1,8 @@
 //-------------------------------------  MD2 LIBRARY BEGINS ----------------------------------------
 	//This MD2 code is based on the source code from David Henry (tfc_duke(at)hotmail.com)
-	//   http://tfc.duke.free.fr/us/tutorials/models/md2.htm
+	//   Was at http://tfc.duke.free.fr/us/tutorials/models/md2.htm
+	//   Available from http://web.archive.org/web/20040215150157/http://tfc.duke.free.fr/us/tutorials/models/md2.htm
+	//   Now at http://tfc.duke.free.fr/coding/md2.html (in French)
 	//He probably wouldn't recognize it if he looked at it though :)
 typedef struct { float x, y, z; } point3d;
 

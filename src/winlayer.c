@@ -1691,6 +1691,7 @@ static int syscolouridx[NUM_SYS_COLOURS] = {
 static DWORD syscolours[NUM_SYS_COLOURS];
 static char system_colours_saved = 0, bw_colours_set = 0;
 
+static int cdsmodefreq[MAXVALIDMODES];
 
 //
 // checkvideomode() -- makes sure the video mode passed is legal
@@ -1771,11 +1772,12 @@ int setvideomode(int x, int y, int c, int fs)
 //
 // getvalidmodes() -- figure out what video modes are available
 //
-#define ADDMODE(x,y,c,f) if (validmodecnt<MAXVALIDMODES) { \
+#define ADDMODE(x,y,c,f,n) if (validmodecnt<MAXVALIDMODES) { \
 	validmodexdim[validmodecnt]=x; \
 	validmodeydim[validmodecnt]=y; \
 	validmodebpp[validmodecnt]=c; \
 	validmodefs[validmodecnt]=f; \
+	cdsmodefreq[validmodecnt]=n; \
 	validmodecnt++; \
 	initprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
 	}	
@@ -1787,16 +1789,60 @@ static HRESULT WINAPI getvalidmodes_enum(DDSURFACEDESC *ddsd, VOID *udata)
 {
 	unsigned maxx = MAXXDIM, maxy = MAXYDIM;
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
-	if (ddsd->ddpfPixelFormat.dwRGBBitCount >= 8) {
-#else
+//#if defined(USE_OPENGL) && defined(POLYMOST)
+//	if (ddsd->ddpfPixelFormat.dwRGBBitCount >= 8) {
+//#else
 	if (ddsd->ddpfPixelFormat.dwRGBBitCount == 8) {
-#endif
-		CHECK(ddsd->dwWidth, ddsd->dwHeight) ADDMODE(ddsd->dwWidth, ddsd->dwHeight, ddsd->ddpfPixelFormat.dwRGBBitCount, 1);
+//#endif
+		CHECK(ddsd->dwWidth, ddsd->dwHeight)
+			ADDMODE(ddsd->dwWidth, ddsd->dwHeight, ddsd->ddpfPixelFormat.dwRGBBitCount, 1,-1);
 	}
 
 	return(DDENUMRET_OK);
 }
+
+#if defined(USE_OPENGL) && defined(POLYMOST)
+static void cdsenummodes(void)
+{
+	DEVMODE dm;
+	int i = 0, j = 0;
+
+	struct { unsigned x,y,bpp,freq; } modes[MAXVALIDMODES];
+	int nmodes=0;
+	unsigned maxx = MAXXDIM, maxy = MAXYDIM;
+	
+
+	ZeroMemory(&dm,sizeof(DEVMODE));
+	dm.dmSize = sizeof(DEVMODE);
+	while (EnumDisplaySettings(NULL, j, &dm)) {
+		if (dm.dmBitsPerPel > 8) {
+			for (i=0;i<nmodes;i++) {
+				if (modes[i].x == dm.dmPelsWidth
+				 && modes[i].y == dm.dmPelsHeight
+				 && modes[i].bpp == dm.dmBitsPerPel)
+					break;
+			}
+			if (i==nmodes || dm.dmDisplayFrequency > modes[i].freq) {
+				if (i==nmodes) nmodes++;
+
+				modes[i].x = dm.dmPelsWidth;
+				modes[i].y = dm.dmPelsHeight;
+				modes[i].bpp = dm.dmBitsPerPel;
+				modes[i].freq = dm.dmDisplayFrequency;
+			}
+		}
+		
+		j++;
+		ZeroMemory(&dm,sizeof(DEVMODE));
+		dm.dmSize = sizeof(DEVMODE);
+	}
+
+	for (i=0;i<nmodes;i++) {
+		CHECK(modes[i].x, modes[i].y)
+			ADDMODE(modes[i].x, modes[i].y, modes[i].bpp, 1, modes[i].freq);
+	}
+}
+#endif
 
 static int modeschecked=0;
 void getvalidmodes(void)
@@ -1827,10 +1873,13 @@ void getvalidmodes(void)
 			for (j=0; j < 2; j++) {
 				if (cdepths[j] == 0) continue;
 				for (i=0; defaultres[i][0]; i++)
-					ADDMODE(defaultres[i][0],defaultres[i][1],cdepths[j],1)
+					ADDMODE(defaultres[i][0],defaultres[i][1],cdepths[j],1,-1)
 			}
 		}
 	}
+#if defined(USE_OPENGL) && defined(POLYMOST)
+	cdsenummodes();
+#endif
 
 	// windowed modes cant be bigger than the current desktop resolution
 	maxx = desktopxdim-1;
@@ -1841,7 +1890,7 @@ void getvalidmodes(void)
 		if (cdepths[j] == 0) continue;
 		for (i=0; defaultres[i][0]; i++)
 			CHECK(defaultres[i][0],defaultres[i][1])
-				ADDMODE(defaultres[i][0],defaultres[i][1],cdepths[j],0)
+				ADDMODE(defaultres[i][0],defaultres[i][1],cdepths[j],0,-1)
 	}
 
 	modeschecked=1;
@@ -2638,6 +2687,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 	bglClearColor(0,0,0,0.5); //Black Background
 	bglHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
 	bglHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+	bglHint(GL_TEXTURE_COMPRESSION_HINT, GL_NICEST);
 	bglDisable(GL_DITHER);
 	
 	{
@@ -2809,8 +2859,16 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 		}
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
-		if (glusecds && bitspp > 8) {
+		if (/*glusecds &&*/ bitspp > 8) {
 			DEVMODE dmScreenSettings;
+			int i;
+
+			for (i=0;i<validmodecnt;i++) {
+				if (validmodexdim[i] == width &&
+				    validmodeydim[i] == height &&
+				    validmodebpp[i] == bitspp &&
+				    validmodefs[i]) break;
+			}
 
 			//initprintf("Using ChangeDisplaySettings() for mode change.\n");
 			
@@ -2819,7 +2877,8 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 			dmScreenSettings.dmPelsWidth = width;
 			dmScreenSettings.dmPelsHeight = height;
 			dmScreenSettings.dmBitsPerPel = bitspp;
-			dmScreenSettings.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
+			dmScreenSettings.dmDisplayFrequency = cdsmodefreq[i];
+			dmScreenSettings.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT|DM_DISPLAYFREQUENCY;
 
 			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL) {
 				ShowErrorBox("Video mode not supported.");
