@@ -1,5 +1,7 @@
 #include "kplib.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 struct icon {
 	unsigned long width,height;
