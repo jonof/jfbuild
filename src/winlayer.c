@@ -192,51 +192,55 @@ static void SignalHandler(int signum)
 //
 // startup_dlgproc() -- dialog procedure for the initialisation dialog
 //
+#define FIELDSWIDE 366
+#define PADWIDE 5
+#define BITMAPRES 200
+#define ITEMBITMAP 100
+#define ITEMTEXT 101
+#define ITEMLIST 102
 static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	static HBITMAP hbmp = NULL;
-	RECT rdlg, rbmp, rtxt, rlst;
+	RECT rdlg, rbmp, rtxt;
 	HDC hdc;
 	int height=5;
 	
 	switch (uMsg) {
 		case WM_INITDIALOG:
 			// set the bitmap
-			hbmp = LoadBitmap(hInstance, MAKEINTRESOURCE(200));
-			SendDlgItemMessage(hwndDlg, 100, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hbmp);
+			hbmp = LoadBitmap(hInstance, MAKEINTRESOURCE(BITMAPRES));
+			SendDlgItemMessage(hwndDlg, ITEMBITMAP, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hbmp);
 
-			//SetDlgItemText(hwndDlg, 101, "Starting...");
+			// fetch the adjusted size
+			GetClientRect(GetDlgItem(hwndDlg,ITEMBITMAP), &rbmp);
+			rbmp.right++; rbmp.bottom++;
 
-			// fetch the dimensions of some items
-			GetClientRect(hwndDlg, &rdlg);
-			GetClientRect(GetDlgItem(hwndDlg,100), &rbmp);
-			GetClientRect(GetDlgItem(hwndDlg,101), &rtxt);
-			GetClientRect(GetDlgItem(hwndDlg,102), &rlst);
+			GetClientRect(GetDlgItem(hwndDlg,ITEMTEXT), &rtxt);
+			rtxt.bottom++;
 
-			// reshuffle things such that they all fit nicely
-			MoveWindow(GetDlgItem(hwndDlg,100),
-					(rdlg.right - rbmp.right) / 2,
-					height,
-					rbmp.right+1,
-					rbmp.bottom+1, TRUE);
-			height += rbmp.bottom+1 + 3;
-			MoveWindow(GetDlgItem(hwndDlg,101),
-					(rdlg.right - rtxt.right) / 2,
-					height,
-					rtxt.right+1,
-					rtxt.bottom+1, TRUE);
-			height += rtxt.bottom+1 + 3;
-			MoveWindow(GetDlgItem(hwndDlg,102),
-					(rdlg.right - rlst.right) / 2,
-					height,
-					rlst.right+1,
-					rlst.bottom+1, TRUE);
-			height += rlst.bottom+1 + 5;
+			// move the bitmap to the top of the client area
+			MoveWindow(GetDlgItem(hwndDlg,ITEMBITMAP),
+					0,0, rbmp.right,rbmp.bottom,
+					FALSE);
 
-			rdlg.right++;
-			rdlg.bottom = height+1;
+			// move the label
+			MoveWindow(GetDlgItem(hwndDlg,ITEMTEXT),
+					rbmp.right+PADWIDE,PADWIDE, FIELDSWIDE,rtxt.bottom,
+					FALSE);
+
+			// move the list box
+			MoveWindow(GetDlgItem(hwndDlg,ITEMLIST),
+					rbmp.right+PADWIDE,PADWIDE+rtxt.bottom+PADWIDE,
+					FIELDSWIDE,rbmp.bottom-(PADWIDE+rtxt.bottom+PADWIDE+PADWIDE),
+					FALSE);
+
+			rdlg.left = 0;
+			rdlg.top = 0;
+			rdlg.right = rbmp.right+PADWIDE+FIELDSWIDE+PADWIDE;
+			rdlg.bottom = rbmp.bottom;
+
 			AdjustWindowRect(&rdlg,
-					DS_MODALFRAME | DS_CENTER | WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+					GetWindowLong(hwndDlg, GWL_STYLE),
 					FALSE);
 
 			rdlg.right -= rdlg.left;
@@ -244,13 +248,13 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 
 			hdc = GetDC(NULL);
 			rdlg.left = (GetDeviceCaps(hdc, HORZRES) - rdlg.right) / 2;
-			rdlg.top = (GetDeviceCaps(hdc, VERTRES) - rdlg.top) / 2;
+			rdlg.top = (GetDeviceCaps(hdc, VERTRES) - rdlg.bottom) / 2;
 			ReleaseDC(NULL, hdc);
 
 			SetWindowPos(hwndDlg,NULL,
 					rdlg.left,rdlg.top,
 					rdlg.right,rdlg.bottom,
-					SWP_NOREPOSITION|SWP_NOMOVE);
+					SWP_NOREPOSITION);
 
 			return TRUE;
 
