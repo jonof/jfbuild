@@ -20,9 +20,7 @@ I offer this code to the community for the benefit of Jonathon Fowler's Duke3D p
 
 -Ken S.
 **************************************************************************************************/
-	//KPLIB.C is used in these dirs: voxlap,wintest,groudraw,polyspri,test,kgl,pano,ksuck
-	//kpnggetdimen,uninitkpng,kpng legacy code used by these: kpng(old),kube,kubegl
-	//Modifications to Ken's original code by Jonathon Fowler (jonof@edgenetwork.org)
+//Modifications to Ken's original code by Jonathon Fowler (jonof@edgenetwork.org)
 
 #include "compat.h"
 #include "cache1d.h"
@@ -336,7 +334,7 @@ static void suckbits (long n)
 	{
 			//NOTE: should only read bytes inside compsize, not 64K!!! :/
 		*(long *)&olinbuf[0] = *(long *)&olinbuf[sizeof(olinbuf)-4];
-		n = min(kzfs.compleng-kzfs.comptell,sizeof(olinbuf)-4);
+		n = min((unsigned)(kzfs.compleng-kzfs.comptell),sizeof(olinbuf)-4);
 		fread(&olinbuf[4],n,1,kzfs.fil);
 		kzfs.comptell += n;
 		bitpos -= ((sizeof(olinbuf)-4)<<3);
@@ -1978,8 +1976,8 @@ static long kbmprend (const char *buf, long fleng,
 		lptr = (long *)(y*dabytesperline-(daglobyoffs<<2)+daframeplace);
 		switch(cdim)
 		{
-			case  1: for(x=x0;x<x1;x++) lptr[x] = palcol[(long)((cptr[x>>3]>>(x&7^7))&1)]; break;
-			case  4: for(x=x0;x<x1;x++) lptr[x] = palcol[(long)((cptr[x>>1]>>((x&1^1)<<2))&15)]; break;
+			case  1: for(x=x0;x<x1;x++) lptr[x] = palcol[(long)((cptr[x>>3]>>((x&7)^7))&1)]; break;
+			case  4: for(x=x0;x<x1;x++) lptr[x] = palcol[(long)((cptr[x>>1]>>(((x&1)^1)<<2))&15)]; break;
 			case  8: for(x=x0;x<x1;x++) lptr[x] = palcol[(long)(cptr[x])]; break;
 			case 16: for(x=x0;x<x1;x++)
 						{
@@ -2193,66 +2191,6 @@ long kprender (const char *buf, long leng, long frameptr, long bpl,
 
 static char *skfilebuf = 0, ofilename[260] = "";
 static long skfilength;
-
-void uninitkpng ()
-{
-	if (skfilebuf) { free(skfilebuf); skfilebuf = 0; }
-	ofilename[0] = 0;
-}
-
-void kpnggetdimen (const char *filename, long *picxsiz, long *picysiz)
-{
-	long i;
-
-	(*picxsiz) = 0; (*picysiz) = 0;
-	if (strcmp(filename,ofilename))
-	{
-		strcpy(ofilename,filename);
-		i = open(filename,O_BINARY|O_RDONLY,S_IREAD); if (i == -1) return;
-		skfilength = filelength(i);
-		if (skfilength <= 0) { close(i); return; }
-		if (skfilebuf) { free(skfilebuf); skfilebuf = 0; }
-		skfilebuf = (char *)malloc(skfilength); if (!skfilebuf) { close(i); return; }
-		read(i,skfilebuf,skfilength);
-		close(i);
-	}
-	kpgetdim(skfilebuf,skfilength,picxsiz,picysiz);
-}
-
-long kpng (const char *filename, long *daframeplace, long *dabytesperline,
-	long *daxres, long *dayres, long *daglobxoffs, long *daglobyoffs,
-	long *picxsiz, long *picysiz)
-{
-	long i;
-
-	if (strcmp(filename,ofilename))
-	{
-		strcpy(ofilename,filename);
-		i = open(filename,O_BINARY|O_RDONLY,S_IREAD); if (i == -1) return(-2);
-		skfilength = filelength(i);
-		if (skfilength <= 0) { close(i); return(-2); }
-		if (skfilebuf) { free(skfilebuf); skfilebuf = 0; }
-		skfilebuf = (char *)malloc(skfilength); if (!skfilebuf) { close(i); return(-1); }
-		read(i,skfilebuf,skfilength);
-		close(i);
-	}
-
-	kpgetdim(skfilebuf,skfilength,picxsiz,picysiz);
-	if ((*daframeplace) == 0)
-	{
-		(*daxres) = (*picxsiz);
-		(*dayres) = (*picysiz);
-		(*dabytesperline) = ((*daxres)<<2);
-		(*daframeplace) = (long)malloc((*dabytesperline)*(*dayres)); if (!(*daframeplace)) return(-1);
-	}
-	if ((*daglobxoffs) == 0x7fffffff)
-	{
-		(*daglobxoffs) = ((((*daxres)-(*picxsiz))>>1)&~7);
-		(*daglobyoffs) = ((((*dayres)-(*picysiz))>>1)&~7);
-	}
-	return(kprender(skfilebuf,skfilength,*daframeplace,*dabytesperline,
-				*daxres,*dayres,*daglobxoffs,*daglobyoffs));
-}
 
 //======================= Legacy emulation code ends =========================
 
@@ -2527,7 +2465,7 @@ long kzread (void *buffer, long leng)
 			kzfs.jmpplc = 0;
 
 				//Initialize for suckbits/peekbits/getbits
-			kzfs.comptell = min(kzfs.compleng,sizeof(olinbuf));
+			kzfs.comptell = min((unsigned)kzfs.compleng,sizeof(olinbuf));
 			fread(&olinbuf[0],kzfs.comptell,1,kzfs.fil);
 				//Make it re-load when there are < 32 bits left in FIFO
 			bitpos = -(((long)sizeof(olinbuf)-4)<<3);
