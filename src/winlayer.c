@@ -101,7 +101,8 @@ static void RestoreSystemColours(void);
 static long desktopxdim=0,desktopydim=0,desktopbpp=0,modesetusing=-1;
 long xres=-1, yres=-1, fullscreen=0, bpp=0, bytesperline=0, imageSize=0;
 long frameplace=0, lockcount=0;
-static int windowposx, windowposy, curvidmode = -1, customxdim = 640, customydim = 480;
+static int windowposx, windowposy, curvidmode = -1;
+static int customxdim = 640, customydim = 480, custombpp = 8, customfs = 0;
 static unsigned modeschecked=0, maxrefreshfreq=60;
 char modechange=1, repaintneeded=0;
 char offscreenrendering=0;
@@ -1781,6 +1782,8 @@ int setvideomode(int x, int y, int c, int fs)
 	if (modenum == 0x7fffffff) {
 		customxdim = x;
 		customydim = y;
+		custombpp  = c;
+		customfs   = fs;
 	}
 
 	inp = inputacquired;
@@ -2781,12 +2784,14 @@ static BOOL CreateAppWindow(int modenum, char *wtitle)
 	if (modenum == 0x7fffffff) {
 		width = customxdim;
 		height = customydim;
+		fs = customfs;
+		bitspp = custombpp;
 	} else {
 		width = validmodexdim[modenum];
 		height = validmodeydim[modenum];
+		fs = validmodefs[modenum];
+		bitspp = validmodebpp[modenum];
 	}
-	fs = validmodefs[modenum];
-	bitspp = validmodebpp[modenum];
 
 	if (width == xres && height == yres && fs == fullscreen && bitspp == bpp && !videomodereset) return FALSE;
 

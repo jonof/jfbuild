@@ -47,7 +47,8 @@ enum {
 	T_ANGADD,
 	T_FLIPPED,
 	T_HIDE,
-	T_NOBOB
+	T_NOBOB,
+	T_VOXEL
 };
 
 typedef struct { char *text; int tokenid; } tokenlist;
@@ -67,6 +68,7 @@ static tokenlist basetokens[] = {
 	{ "definevoxel",     T_DEFINEVOXEL      },
 	{ "definevoxeltiles",T_DEFINEVOXELTILES },
 	{ "model",           T_MODEL            },
+	{ "voxel",           T_VOXEL            }
 };
 
 static tokenlist modeltokens[] = {
@@ -110,6 +112,12 @@ static tokenlist modelhudtokens[] = {
 	{ "hide",   T_HIDE   },
 	{ "nobob",  T_NOBOB  },
 	{ "flipped",T_FLIPPED},
+};
+
+static tokenlist voxeltokens[] = {
+	{ "tile",   T_TILE   },
+	{ "tile0",  T_TILE0  },
+	{ "tile1",  T_TILE1  }
 };
 
 
@@ -609,6 +617,43 @@ static int defsparser(scriptfile *script)
 					modelskin = lastmodelskin = 0;
 					seenframe = 0;
 
+				}
+				break;
+			case T_VOXEL:
+				{
+					char *fn, *modelend;
+					int tile0 = MAXTILES, tile1 = -1, tilex = -1;
+
+					if (scriptfile_getstring(script,&fn)) break; //voxel filename
+					if (nextvoxid == MAXVOXELS) { initprintf("Maximum number of voxels already defined.\n"); break; }
+					if (qloadkvx(nextvoxid, fn)) { initprintf("Failure loading voxel file \"%s\"\n",fn); break; }
+					lastvoxid = nextvoxid++;
+
+					if (scriptfile_getbraces(script,&modelend)) break;
+					while (script->textptr < modelend) {
+						switch (getatoken(script,voxeltokens,sizeof(voxeltokens)/sizeof(tokenlist))) {
+							//case T_ERROR: initprintf("Error on line %s:%d in voxel tokens\n", script->filename,script->linenum); break;
+							case T_TILE:  
+								scriptfile_getnumber(script,&tilex);
+								if ((unsigned long)tilex < MAXTILES) tiletovox[tilex] = lastvoxid;
+								else initprintf("Invalid tile number on line %s:%d\n",script->filename, script->linenum);
+								break;
+							case T_TILE0: 
+								scriptfile_getnumber(script,&tile0); break; //1st tile #
+							case T_TILE1:
+								scriptfile_getnumber(script,&tile1);
+								if (tile0 > tile1)
+								{
+									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, script->linenum);
+									tilex = tile0; tile0 = tile1; tile1 = tilex;
+								}
+								if ((tile1 < 0) || (tile0 >= MAXTILES))
+									{ initprintf("Invalid tile range on line %s:%d\n",script->filename, script->linenum); break; }
+								for(tilex=tile0;tilex<=tile1;tilex++) tiletovox[tilex] = lastvoxid;
+								break; //last tile number (inclusive)
+						}
+					}
+					lastvoxid = -1;
 				}
 				break;
 			default:
