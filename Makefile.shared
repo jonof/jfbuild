@@ -14,7 +14,7 @@ uname=$(strip $(shell uname -s))
 ifeq ($(findstring Linux,$(uname)),Linux)
 	PLATFORM=LINUX
 	RENDERTYPE=SDL
-	ifeq ($(DYNAMIC_OPENGL),1)
+	ifneq ($(DYNAMIC_OPENGL),1)
 		LIBS+= $(GLLIBLIN)
 	endif
 else
@@ -22,7 +22,7 @@ else
 		PLATFORM=WINDOWS
 		EXESUFFIX=.exe
 		LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -L$(FMODROOT)/lib -lws2_32
-		ifeq ($(DYNAMIC_OPENGL),1)
+		ifneq ($(DYNAMIC_OPENGL),1)
 			LIBS+= $(GLLIBWIN)
 		endif
 		RENDERTYPE ?= WIN
