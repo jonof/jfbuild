@@ -9,7 +9,7 @@ OBJ=obj.msc\ #
 !endif
 INC=include\ #
 !ifndef CFLAGS
-CFLAGS=/DSUPERBUILD /DPOLYMOST /DUSE_OPENGL
+CFLAGS=/DSUPERBUILD /DPOLYMOST /DUSE_OPENGL /DDYNAMIC_OPENGL
 !endif
 
 o=obj
@@ -36,16 +36,17 @@ flags_cl=/G5 /Ot /Z7
 flags_link=/DEBUG
 !else
 # release options
-flags_cl=/G6fy /Ox
+#flags_cl=/G6fy /Ox
+flags_cl=/G6 /O2
 flags_link=/RELEASE
 !endif
 
 CC=cl
 AS=ml
 RC=rc
-LINK=link /opt:nowin98 /nologo
+LINK=link /opt:nowin98 /opt:ref /nologo
 CFLAGS=$(CFLAGS) /nologo /MD /J $(flags_cl) $(TARGETOPTS) /I$(INC)
-LIBS=fmodvc.lib opengl32.lib
+LIBS=fmodvc.lib #opengl32.lib
 ASFLAGS=/nologo /coff
 EXESUFFIX=.exe
 
@@ -57,10 +58,11 @@ ENGINEOBJS=$(OBJ)engine.$o \
 	$(OBJ)crc32.$o \
 	$(OBJ)engineinfo.$o \
 	$(OBJ)baselayer.$o \
+	$(OBJ)glbuild.$o \
 	$(OBJ)compat.$o \
 	$(OBJ)kplib.$o \
 	$(OBJ)scriptfile.$o \
-	$(OBJ)jmulti.$o \
+	$(OBJ)mmulti.$o \
 	$(OBJ)defs.$o
 
 EDITOROBJS=$(OBJ)build.$o \
@@ -85,8 +87,8 @@ RENDERTYPE=WIN
 !endif
 
 ENGINEOBJS=$(ENGINEOBJS) $(OBJ)winlayer.$o
-CFLAGS=$(CFLAGS) /Dmain=app_main
-LIBS=$(LIBS) dxguid.lib wsock32.lib
+CFLAGS=$(CFLAGS)
+LIBS=$(LIBS) dxguid.lib ws2_32.lib
 
 CFLAGS=$(CFLAGS) /D$(PLATFORM) /DRENDERTYPE$(RENDERTYPE)=1
 

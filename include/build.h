@@ -9,9 +9,17 @@
 #ifndef __build_h__
 #define __build_h__
 
-#define MAXSECTORS 1024
-#define MAXWALLS 8192
-#define MAXSPRITES 4096
+#define MAXSECTORSV8 4096
+#define MAXWALLSV8 16384
+#define MAXSPRITESV8 16384
+
+#define MAXSECTORSV7 1024
+#define MAXWALLSV7 8192
+#define MAXSPRITESV7 4096
+
+#define MAXSECTORS MAXSECTORSV8
+#define MAXWALLS MAXWALLSV8
+#define MAXSPRITES MAXSPRITESV8
 
 #define MAXTILES 9216
 #define MAXVOXELS 512
@@ -34,8 +42,20 @@
 #  define EXTERN extern
 #endif
 
+#ifdef __GNUC__
+#define BPACK __attribute__ ((packed))
+#else
+#define BPACK
+#endif
 
-//#pragma pack(push,1);
+#ifdef _MSC_VER
+#pragma pack(1)
+#endif
+
+#ifdef __WATCOMC__
+#pragma pack(push,1);
+#endif
+
 
 //ceilingstat/floorstat:
 //   bit 0: 1 = parallaxing, 0 = not                                 "P"
@@ -53,7 +73,7 @@
 //   bits 9-15: reserved
 
 	//40 bytes
-typedef struct
+typedef struct BPACK
 {
 	short wallptr, wallnum;
 	long ceilingz, floorz;
@@ -82,7 +102,7 @@ typedef struct
 //   bits 10-15: reserved
 
 	//32 bytes
-typedef struct
+typedef struct BPACK
 {
 	long x, y;
 	short point2, nextwall, nextsector, cstat;
@@ -108,7 +128,7 @@ typedef struct
 //   bit 15: 1 = Invisible sprite, 0 = not invisible
 
 	//44 bytes
-typedef struct
+typedef struct BPACK
 {
 	long x, y, z;
 	short cstat, picnum;
@@ -120,6 +140,18 @@ typedef struct
 	short ang, owner, xvel, yvel, zvel;
 	short lotag, hitag, extra;
 } spritetype;
+
+#if defined(POLYMOST) && defined(USE_OPENGL)
+typedef struct BPACK {
+	unsigned long md2animtims;
+	short md2animcur;
+	unsigned char flags;
+	short angoff;
+} spriteexttype;
+#define SPREXT_NOTMD2 1
+EXTERN spriteexttype spriteext[MAXSPRITES];
+#endif
+
 
 EXTERN sectortype sector[MAXSECTORS];
 EXTERN walltype wall[MAXWALLS];
@@ -307,10 +339,11 @@ OTHER VARIABLES:
 			you call the loadboard function.
 ***************************************************************************/
 
-void   initengine(void);
+int    initengine(void);
 void   uninitengine(void);
 void   initspritelists(void);
 long   loadboard(char *filename, char fromwhere, long *daposx, long *daposy, long *daposz, short *daang, short *dacursectnum);
+long   loadmaphack(char *filename);
 long   saveboard(char *filename, long *daposx, long *daposy, long *daposz, short *daang, short *dacursectnum);
 long   loadpics(char *filename, long askedsize);
 void   loadtile(short tilenume);
@@ -417,9 +450,10 @@ void polymost_precache(long dapicnum, long dapalnum, long datype);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 extern long glanisotropy;
-extern int glusetexcompr;
+extern long glusetexcompr;
 extern long gltexfiltermode;
 extern long glredbluemode;
+void gltexapplyprops (void);
 #endif
 
 void hicinit(void);
@@ -429,9 +463,22 @@ int hicsetsubsttex(short picnum, short palnum, char *filen, short centx, short c
 
 int md2_loadmodel(const char *fn, float scale, int shadeoffs);
 int md2_tilehasmodel(int tilenume);
-int md2_defineframe(int modelid, const char *framename, int tilenume);
+int md2_defineframe(int modelid, const char *framename, int tilenume, int skinnum);
 int md2_defineanimation(int modelid, const char *framestart, const char *frameend, int fps, int flags);
+int md2_defineskin(int modelid, const char *skinfn, int palnum, int skinnum);
 
 int loaddefinitionsfile(char *fn);
+
+
+#ifdef _MSC_VER
+#pragma pack()
+#endif
+
+#ifdef __WATCOMC__
+#pragma pack(pop)
+#endif
+
+#undef BPACK
+
 
 #endif // __build_h__

@@ -400,6 +400,7 @@ int Bcorrectfilename(char *filename, int removefn)
 		if (removefn) {
 			ptr = Bstrrchr(ptr2, '/');
 			if (ptr) ptr[1] = 0;
+			else if (!grpmode) ptr2[0] = 0;
 		}
 
 		// now we have all the bits and pieces, clean it all up

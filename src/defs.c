@@ -19,6 +19,8 @@ enum {
 	T_DEFINEMODEL,
 	T_DEFINEMODELFRAME,
 	T_DEFINEMODELANIM,
+	T_DEFINEMODELSKIN,
+	T_SELECTMODELSKIN,
 	T_DEFINEVOXEL,
 	T_DEFINEVOXELTILES
 };
@@ -36,6 +38,8 @@ static struct {
 	{ "definemodel", T_DEFINEMODEL },
 	{ "definemodelframe", T_DEFINEMODELFRAME },
 	{ "definemodelanim", T_DEFINEMODELANIM },
+	{ "definemodelskin", T_DEFINEMODELSKIN },
+	{ "selectmodelskin", T_SELECTMODELSKIN },
 	{ "definevoxel", T_DEFINEVOXEL },
 	{ "definevoxeltiles", T_DEFINEVOXELTILES }
 };
@@ -50,7 +54,7 @@ static int getatoken(scriptfile *sf)
 	tok = scriptfile_gettoken(sf);
 	if (!tok) return T_EOF;
 
-	for(i=0;i<numlegaltokens;i++) {
+	for(i=0;i<(int)numlegaltokens;i++) {
 		if (!Bstrcasecmp(tok, legaltokens[i].text))
 			return legaltokens[i].tokenid;
 	}
@@ -61,7 +65,7 @@ static int getatoken(scriptfile *sf)
 
 static int numerrors = 0;
 
-static int lastmodelid = -1, lastvoxid = -1;
+static int lastmodelid = -1, lastvoxid = -1, modelskin = -1, lastmodelskin = -1, seenframe = 0;
 extern int nextvoxid;
 
 static int defsparser(scriptfile *script)
@@ -112,8 +116,8 @@ static int defsparser(scriptfile *script)
 						numerrors++;
 						break;
 					}
-					if (scriptfile_getnumber(script, &number)) {
-						initprintf("Error in numeric constant on line %s:%d\n",
+					if (scriptfile_getsymbol(script, &number)) {
+						initprintf("Invalid symbol name or numeric constant on line %s:%d\n",
 								script->filename,script->linenum);
 						numerrors++;
 						break;
@@ -246,11 +250,15 @@ static int defsparser(scriptfile *script)
 						break;
 					}
 
+#if defined(POLYMOST) && defined(USE_OPENGL)
 					lastmodelid = md2_loadmodel(modelfn, (float)scale, shadeoffs);
 					if (lastmodelid < 0) {
-						initprintf("Failure loading MD2 model %s!\n", modelfn);
+						initprintf("Failure loading MD2 model \"%s\"\n", modelfn);
 						break;
 					}
+#endif
+					modelskin = lastmodelskin = 0;
+					seenframe = 0;
 				}
 				break;
 			case T_DEFINEMODELFRAME:
@@ -289,8 +297,9 @@ static int defsparser(scriptfile *script)
 						initprintf("Warning: Ignoring frame definition.\n");
 						break;
 					}
+#if defined(POLYMOST) && defined(USE_OPENGL)
 					for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++) {
-						switch (md2_defineframe(lastmodelid, framename, tilex)) {
+						switch (md2_defineframe(lastmodelid, framename, tilex, max(0,modelskin))) {
 							case 0: break;
 							case -1: happy = 0; break; // invalid model id!?
 							case -2: initprintf("Invalid tile number on line %s:%d\n",
@@ -303,6 +312,8 @@ static int defsparser(scriptfile *script)
 								 break;
 						}
 					}
+#endif
+					seenframe = 1;
 				}
 				break;
 			case T_DEFINEMODELANIM:
@@ -342,11 +353,11 @@ static int defsparser(scriptfile *script)
 						initprintf("Warning: Ignoring animation definition.\n");
 						break;
 					}
-
+#if defined(POLYMOST) && defined(USE_OPENGL)
 					switch (md2_defineanimation(lastmodelid, startframe, endframe, (int)(dfps*(65536.0*.001)), flags)) {
 						case 0: break;
 						case -1: break; // invalid model id!?
-						case -2: initprintf("Invalid starting frame nameon line %s:%d\n",
+						case -2: initprintf("Invalid starting frame name on line %s:%d\n",
 									 script->filename, script->linenum);
 							 break;
 						case -3: initprintf("Invalid ending frame name on line %s:%d\n",
@@ -355,6 +366,68 @@ static int defsparser(scriptfile *script)
 						case -4: initprintf("Out of memory on line %s:%d\n",
 									 script->filename, script->linenum);
 							 break;
+					}
+#endif
+				}
+				break;
+			case T_DEFINEMODELSKIN:
+				{
+					int palnum, palnumer;
+					char *skinfn;
+					
+					palnumer = scriptfile_getsymbol(script,&palnum);
+					skinfn = scriptfile_getstring(script);
+					if (palnumer) {
+						initprintf("Invalid symbol name or numeric constant for palette number "
+									  "on line %s:%d\n", script->filename,script->linenum);
+						numerrors++;
+						break;
+					}
+					if (!skinfn) {
+						initprintf("Invalid string constant for skin filename on line %s:%d\n",
+								script->filename, script->linenum);
+						numerrors++;
+						break;
+					}
+
+					// if we see a sequence of definemodelskin, then a sequence of definemodelframe,
+					// and then a definemodelskin, we need to increment the skin counter.
+					//
+					// definemodel "mymodel.md2" 1 1
+					// definemodelskin 0 "normal.png"	// skin 0
+					// definemodelskin 21 "normal21.png"
+					// definemodelframe "foo" 1000 1002	// these use skin 0
+					// definemodelskin 0 "wounded.png"	// skin 1
+					// definemodelskin 21 "wounded21.png"
+					// definemodelframe "foo2" 1003 1004	// these use skin 1
+					// selectmodelskin 0			// resets to skin 0
+					// definemodelframe "foo3" 1005 1006	// these use skin 0
+					if (seenframe) { modelskin = ++lastmodelskin; }
+					seenframe = 0;
+
+#if defined(POLYMOST) && defined(USE_OPENGL)
+					switch (md2_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin))) {
+						case 0: break;
+						case -1: break; // invalid model id!?
+						case -2: initprintf("Invalid skin filename on line %s:%d\n",
+									 script->filename, script->linenum);
+							 break;
+						case -3: initprintf("Invalid palette number on line %s:%d\n",
+									 script->filename, script->linenum);
+							 break;
+						case -4: initprintf("Out of memory on line %s:%d\n",
+									 script->filename, script->linenum);
+							 break;
+					}
+#endif					
+				}
+				break;
+			case T_SELECTMODELSKIN:
+				{
+					if (scriptfile_getsymbol(script,&modelskin)) {
+						initprintf("Invalid symbol name or numeric constant for skin number "
+									  "on line %s:%d\n", script->filename,script->linenum);
+						numerrors++;
 					}
 				}
 				break;
@@ -435,7 +508,9 @@ int loaddefinitionsfile(char *fn)
 	script = scriptfile_fromfile(fn);
 	if (!script) return -1;
 
+	numerrors = 0;
 	defsparser(script);
+	initprintf("%s read with %d error(s)\n",fn,numerrors);
 
 	scriptfile_close(script);
 	scriptfile_clearsymbols();

@@ -117,8 +117,9 @@ static struct glfiltermodes {
 #define numglfiltermodes (sizeof(glfiltermodes)/sizeof(glfiltermodes[0]))
 
 long glanisotropy = 1;            // 0 = maximum supported by card
-int glusetexcompr = 1;
+long glusetexcompr = 1;
 long gltexfiltermode = 3;   // GL_LINEAR_MIPMAP_NEAREST
+long gltexmaxsize = 0;		// 0 means autodetection on first run
 extern char nofog;
 #endif
 
@@ -156,23 +157,23 @@ static inline void dtol (double d, long *a)
 static inline void ftol (float f, long *a)
 {
 	__asm__ __volatile__ (
-#if (__GNUC__ >= 3)
+#if 0 //(__GNUC__ >= 3)
 			"flds %1; fistpl %0;"
 #else
 			"flds %1; fistpl (%0);"
 #endif
-			: "=g" (a) : "m" (f) : "memory","cc");
+			: "=r" (a) : "m" (f) : "memory","cc");
 }
 
 static inline void dtol (double d, long *a)
 {
 	__asm__ __volatile__ (
-#if (__GNUC__ >= 3)
+#if 0 //(__GNUC__ >= 3)
 			"fldl %1; fistpl %0;"
 #else
 			"fldl %1; fistpl (%0);"
 #endif
-			: "=g" (a) : "m" (d) : "memory","cc");
+			: "=r" (a) : "m" (d) : "memory","cc");
 }
 
 #else
@@ -218,7 +219,7 @@ void drawline2d (float x1, float y1, float x2, float y2, char col)
 	y = (long)(y1*65536.f)+32768; yi = (long)(dy*f); yup16 = (ydimen<<16);
 	do
 	{
-		if (((unsigned long)x < xup16) && ((unsigned long)y < yup16))
+		if (((unsigned long)x < (unsigned long)xup16) && ((unsigned long)y < (unsigned long)yup16))
 			*(char *)(ylookup[y>>16]+(x>>16)+frameoffset) = col;
 		x += xi; y += yi; i--;
 	} while (i >= 0);
@@ -245,16 +246,21 @@ static long gltexcachead[GLTEXCACHEADSIZ];
 static unsigned int glpic[GLTEXMAX];
 static long gltexcacind[GLTEXMAX], gltexcacnext[GLTEXMAX], gltexcacnum = -1;
 
-void gloadtile(long,long,long,long,long,char);
-static long gltexcache (long dapicnum, long dapalnum, long darealpalnum, long dameth)
+int gloadtile_art(long,long,long,long,long);
+int gloadtile_hi(long,long,long,long,long,char);
+static long gltexcache (long dapicnum, long dapalnum, long dameth, long *substind)
 {
 	long i, j, k;
+	long si;
 
-		//Generate unique index from any combination of input parameters
-	if (hictinting[darealpalnum].f > 0)   // if we need to do effects, load a modded version of the tile
-		  i = darealpalnum;
-	else i = dapalnum;
-	i = (((dameth&4)<<6) + i)*MAXTILES + dapicnum;
+	*substind = si = -1;
+
+	si = hicfindsubst(dapicnum,dapalnum);
+	if (si == -1 && dapalnum != 0) si = hicfindsubst(dapicnum,0);
+	if (si == -1) goto tryart;
+	
+	// load a replacement
+	i = (512 + ((dameth&4)<<6) + hictinting[dapalnum].f)*MAXTILES + dapicnum;
 
 	j = (i&(GLTEXCACHEADSIZ-1));
 	for(k=gltexcachead[j];k>=0;k=gltexcacnext[k])
@@ -263,16 +269,44 @@ static long gltexcache (long dapicnum, long dapalnum, long darealpalnum, long da
 			if (gltexcacind[k] < 0)
 			{
 				gltexcacind[k] &= 0x7fffffff;
-				gloadtile(dapicnum,dapalnum,dameth,k,0,hictinting[darealpalnum].f); //reload tile (for animations)
+				if (gloadtile_hi(dapicnum,si,dameth,k,0,hictinting[dapalnum].f))	// reload tile
+					goto tryart;	// failed, so try for ART
+			}
+			*substind = si;
+			return(k);
+		}
+
+	if (gltexcacnum >= GLTEXMAX) return(0); //safe way to handle too many virtual textures
+
+	if (gloadtile_hi(dapicnum,si,dameth,gltexcacnum,1,hictinting[dapalnum].f))
+		goto tryart;	// failed, so try for ART
+	gltexcacind[gltexcacnum] = i;
+	gltexcacnext[gltexcacnum] = gltexcachead[j]; gltexcachead[j] = gltexcacnum;
+	gltexcacnum++;
+	*substind = si;
+	return(gltexcacnum-1);
+
+tryart:
+	// load from art
+	i = (((dameth&4)<<6) + dapalnum)*MAXTILES + dapicnum;
+	
+	j = (i&(GLTEXCACHEADSIZ-1));
+	for(k=gltexcachead[j];k>=0;k=gltexcacnext[k])
+		if ((gltexcacind[k]&0x7fffffff) == i)
+		{
+			if (gltexcacind[k] < 0)
+			{
+				gltexcacind[k] &= 0x7fffffff;
+				if (gloadtile_art(dapicnum,dapalnum,dameth,k,0)) return 0; //reload tile (for animations)
 			}
 			return(k);
 		}
 
 	if (gltexcacnum >= GLTEXMAX) return(0); //safe way to handle too many virtual textures
 
+	if (gloadtile_art(dapicnum,dapalnum,dameth,gltexcacnum,1)) return 0;
 	gltexcacind[gltexcacnum] = i;
 	gltexcacnext[gltexcacnum] = gltexcachead[j]; gltexcachead[j] = gltexcacnum;
-	gloadtile(dapicnum,dapalnum,dameth,gltexcacnum,1,hictinting[darealpalnum].f);
 	gltexcacnum++;
 	return(gltexcacnum-1);
 }
@@ -304,7 +338,7 @@ void gltexinvalidateall ()
 }
 
 
-void gltexapplyprops ()
+void gltexapplyprops (void)
 {
 	long i;
 	
@@ -314,26 +348,38 @@ void gltexapplyprops ()
 	}
 	
 	if (gltexfiltermode < 0) gltexfiltermode = 0;
-	else if (gltexfiltermode >= numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
+	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
 	for(i=gltexcacnum-1;i>=0;i--) {
-		glBindTexture(GL_TEXTURE_2D,glpic[i]);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+		bglBindTexture(GL_TEXTURE_2D,glpic[i]);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 		if (glinfo.maxanisotropy > 1.0)
-			glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+			bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 	}
 
 	{
 		int j;
+		md2skinmap *sk;
 
 		for (i=0;i<nextmodelid;i++) {
-			for (j=0;j<models[i].numskins;j++) {
+			for (j=0;j<models[i].numskins*(HICEFFECTMASK+1);j++) {
 				if (!models[i].texid[j]) continue;
-				glBindTexture(GL_TEXTURE_2D,models[i].texid[j]);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-				glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+				bglBindTexture(GL_TEXTURE_2D,models[i].texid[j]);
+				bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+				bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 				if (glinfo.maxanisotropy > 1.0)
-					glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+					bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+			}
+
+			for (sk = models[i].skinmap; sk; sk = sk->next) {
+				for (j=0;j<(HICEFFECTMASK+1);j++) {
+					if (!sk->texid[j]) continue;
+					bglBindTexture(GL_TEXTURE_2D,sk->texid[j]);
+					bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+					bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+					if (glinfo.maxanisotropy > 1.0)
+						bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+				}
 			}
 		}
 	}
@@ -352,7 +398,7 @@ void polymost_glreset ()
 		if (gltexcacnum < 0) gltexcacnum = 0;
 		else
 		{
-			do { gltexcacnum--; glDeleteTextures(1,&glpic[gltexcacnum]); } while (gltexcacnum > 0);
+			do { gltexcacnum--; bglDeleteTextures(1,&glpic[gltexcacnum]); } while (gltexcacnum > 0);
 			clearskins();
 		}
 	}
@@ -365,7 +411,7 @@ void resizeglcheck ()
 
 	if (glredbluemode < lastglredbluemode) {
 		glox1 = -1;
-		glColorMask(1,1,1,1);
+		bglColorMask(1,1,1,1);
 	} else if (glredbluemode != lastglredbluemode) {
 		redblueclearcnt = 0;
 	}
@@ -378,32 +424,32 @@ void resizeglcheck ()
 		glox1 = windowx1; gloy1 = windowy1;
 		glox2 = windowx2; gloy2 = windowy2;
 
-		glViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
+		bglViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
 
-		glMatrixMode(GL_PROJECTION);
+		bglMatrixMode(GL_PROJECTION);
 		memset(m,0,sizeof(m));
 		m[0][0] = (float)ydimen; m[0][2] = 1.0;
 		m[1][1] = (float)xdimen; m[1][2] = 1.0;
 		m[2][2] = 1.0; m[2][3] = (float)ydimen;
 		m[3][2] =-1.0;
-		glLoadMatrixf(&m[0][0]);
+		bglLoadMatrixf(&m[0][0]);
 
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
+		bglMatrixMode(GL_MODELVIEW);
+		bglLoadIdentity();
 
 		if (!nofog) {
-		glEnable(GL_FOG);
-		glFogi(GL_FOG_MODE,GL_EXP); //GL_EXP(default),GL_EXP2,GL_LINEAR
-		//glHint(GL_FOG_HINT,GL_NICEST);
-		glFogf(GL_FOG_DENSITY,1.0); //must be > 0, default is 1
-		glFogf(GL_FOG_START,0.0); //default is 0
-		glFogf(GL_FOG_END,1.0); //default is 1
+		bglEnable(GL_FOG);
+		bglFogi(GL_FOG_MODE,GL_EXP); //GL_EXP(default),GL_EXP2,GL_LINEAR
+		//bglHint(GL_FOG_HINT,GL_NICEST);
+		bglFogf(GL_FOG_DENSITY,1.0); //must be > 0, default is 1
+		bglFogf(GL_FOG_START,0.0); //default is 0
+		bglFogf(GL_FOG_END,1.0); //default is 1
 		col[0] = 0; col[1] = 0; col[2] = 0; col[3] = 0; //range:0 to 1
-		glFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
+		bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
 		}
 
-		glEnable(GL_TEXTURE_2D);
-		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+		bglEnable(GL_TEXTURE_2D);
+		bglBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 	}
 }
 
@@ -446,12 +492,26 @@ void fixtransparency (coltype *dapic, long daxsiz, long daysiz, long daxsiz2, lo
 static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth)
 {
 	coltype *wpptr, *rpptr;
-	long x2, y2, j, x3, y3, y, x, r, g, b, a, k;
+	long x2, y2, j, js=0, x3, y3, y, x, r, g, b, a, k;
+
+	if (gltexmaxsize <= 0) {
+		GLint i = 0;
+		bglGetIntegerv(GL_MAX_TEXTURE_SIZE, &i);
+		if (!i) gltexmaxsize = 6;	// 2^6 = 64 == default GL max texture size
+		else {
+			gltexmaxsize = 0;
+			for (; i>1; i>>=1) gltexmaxsize++;
+		}
+	}
 	
-	if (doalloc)
-		glTexImage2D(GL_TEXTURE_2D,0,intexfmt,xsiz,ysiz,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
-	else
-		glTexSubImage2D(GL_TEXTURE_2D,0,0,0,xsiz,ysiz,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
+	while ((xsiz>>js) > (1<<gltexmaxsize) || (ysiz>>js) > (1<<gltexmaxsize)) js++;
+	
+	if (js == 0) {
+		if (doalloc)
+			bglTexImage2D(GL_TEXTURE_2D,0,intexfmt,xsiz,ysiz,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
+		else
+			bglTexSubImage2D(GL_TEXTURE_2D,0,0,0,xsiz,ysiz,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
+	}
 
 #if 0
 	gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGBA8,xsiz,ysiz,texfmt,GL_UNSIGNED_BYTE,pic); //Needs C++ to link?
@@ -486,38 +546,116 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 			}
 		}
 		if (tsizx >= 0) fixtransparency(pic,(tsizx+(1<<j)-1)>>j,(tsizy+(1<<j)-1)>>j,x3,y3,dameth);
-		if (doalloc)
-			glTexImage2D(GL_TEXTURE_2D,j,intexfmt,x3,y3,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
-		else
-			glTexSubImage2D(GL_TEXTURE_2D,j,0,0,x3,y3,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
+		if (j >= js) {
+			if (doalloc)
+				bglTexImage2D(GL_TEXTURE_2D,j-js,intexfmt,x3,y3,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
+			else
+				bglTexSubImage2D(GL_TEXTURE_2D,j-js,0,0,x3,y3,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
+		}
 		x2 = x3; y2 = y3;
 	}
 #endif
 }
 
-void gloadtile (long dapic, long dapal, long dameth, long gltexind, long doalloc, char effect)
+int gloadtile_art (long dapic, long dapal, long dameth, long gltexind, long doalloc)
 {
-	coltype *pic, *wpptr, *rpptr;
-	long j, k, x, y, x2, y2, x3, y3, r, g, b, a, xsiz, ysiz, dacol, tsizx, tsizy;
+	coltype *pic, *wpptr;
+	long j, x, y, x2, y2, xsiz, ysiz, dacol, tsizx, tsizy;
 
-	char *picfil = 0, fallback = 1;
-	long picfillen, substind, texfmt = GL_RGBA, intexfmt = GL_RGBA8, filh;
+	tsizx = tilesizx[dapic]; for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
+	tsizy = tilesizy[dapic]; for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
+	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype));
+	if (!pic) return 1;
 
-	if (doalloc) glGenTextures(1,&glpic[gltexind]);  //# of textures (make OpenGL allocate structure)
-	glBindTexture(GL_TEXTURE_2D,glpic[gltexind]);
+	if (!waloff[dapic])
+	{
+			//Force invalid textures to draw something - an almost purely transparency texture
+			//This allows the Z-buffer to be updated for mirrors (which are invalidated textures)
+		pic[0].r = pic[0].g = pic[0].b = 0; pic[0].a = 1;
+		tsizx = tsizy = 1;
+	}
+	else
+	{
+		for(y=0;y<ysiz;y++)
+		{
+			if (y < tsizy) y2 = y; else y2 = y-tsizy;
+			wpptr = &pic[y*xsiz];
+			for(x=0;x<xsiz;x++,wpptr++)
+			{
+				if ((dameth&4) && ((x >= tsizx) || (y >= tsizy))) //Clamp texture
+					{ wpptr->r = wpptr->g = wpptr->b = wpptr->a = 0; continue; }
+				if (x < tsizx) x2 = x; else x2 = x-tsizx;
+				dacol = (long)(*(unsigned char *)(waloff[dapic]+x2*tsizy+y2));
+				if (dacol == 255)
+				{
+					wpptr->r = curpalette[255].r;
+					wpptr->g = curpalette[255].g;
+					wpptr->b = curpalette[255].b;
+					wpptr->a = 0;
+				}
+				else
+				{
+					j = (long)((unsigned char)palookup[dapal][dacol]);
+					wpptr->r = curpalette[j].r;
+					wpptr->g = curpalette[j].g;
+					wpptr->b = curpalette[j].b;
+					wpptr->a = 255;
+				}
+			}
+		}
+	}
 
-	// Begin main hightile hookage
-	substind = hicfindsubst(dapic,dapal);
-	//if (substind == -1 && dapal != 0) substind = hicfindsubst(dapic,0);   // try the basic palette if not found
-	if (substind == -1) goto gloadtilefallback;
-	if (!hicreplc[substind]) goto gloadtilefallback;
+	if (doalloc) bglGenTextures(1,&glpic[gltexind]);  //# of textures (make OpenGL allocate structure)
+	bglBindTexture(GL_TEXTURE_2D,glpic[gltexind]);
+
+	fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);
+	uploadtexture(doalloc,xsiz,ysiz,GL_RGBA,GL_RGBA,pic,tsizx,tsizy,dameth);
+
+	if (gltexfiltermode < 0) gltexfiltermode = 0;
+	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
+	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+
+	if (glinfo.maxanisotropy > 1.0)
+	{
+		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = glinfo.maxanisotropy;
+		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+	}
+
+	if (!(dameth&4))
+	{
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+	}
+	else
+	{     //For sprite textures, clamping looks better than wrapping
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
+	}
+
+	if (pic) free(pic);
+
+	return 0;
+}
+
+int gloadtile_hi(long dapic, long substind, long dameth, long gltexind, long doalloc, char effect)
+{
+	coltype *pic, *rpptr;
+	long j, x, y, x2, y2, xsiz, ysiz, tsizx, tsizy;
+
+	char *picfil = 0;
+	long picfillen, texfmt = GL_RGBA, intexfmt = GL_RGBA, filh;
+
+	if (substind < 0) return -1;
+	if (!hicreplc[substind]) return -1;
 
 	if ((filh = kopen4load(hicreplc[substind]->filename, 0)) < 0) {
-		OSD_Printf("WARNING: %s not found!\n", hicreplc[substind]->filename);
-		goto gloadtilefallback;
+		OSD_Printf("Hightile: %s not found!\n", hicreplc[substind]->filename);
+		hicreplc[substind]->ignore = 1;
+		return -1;
 	}
 	picfillen = kfilelength(filh);
-	picfil = (char *)malloc(picfillen); if (!picfil) { kclose(filh); goto gloadtilefallback; }
+	picfil = (char *)malloc(picfillen); if (!picfil) { kclose(filh); return 1; }
 	kread(filh, picfil, picfillen);
 	kclose(filh);
 
@@ -525,20 +663,19 @@ void gloadtile (long dapic, long dapal, long dameth, long gltexind, long doalloc
 	// xsiz/y = 2^x size of replacement
 
 	kpgetdim(picfil,picfillen,&tsizx,&tsizy);
+	if (tsizx == 0 || tsizy == 0) { free(picfil); return -1; }
 	hicreplc[substind]->sizx = tsizx;
 	hicreplc[substind]->sizy = tsizy;
 
 	for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
 	for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
-	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype));
-	if (!pic) { free(picfil); goto gloadtilefallback; }
+	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype)); if (!pic) { free(picfil); return 1; }
 	memset(pic,0,xsiz*ysiz*sizeof(coltype));
 
-	if (kprender(picfil,picfillen,(long)pic,xsiz*sizeof(coltype),xsiz,ysiz,0,0)) { free(picfil); free(pic); goto gloadtilefallback; }
+	if (kprender(picfil,picfillen,(long)pic,xsiz*sizeof(coltype),xsiz,ysiz,0,0)) { free(picfil); free(pic); return -2; }
 	for(y=0,j=0;y<tsizy;y++,j+=xsiz)
 	{
 		coltype tcol;
-		char gr;
 		char *cptr = &britable[curbrightness][0]; rpptr = &pic[j];
 
 		for(x=0;x<tsizx;x++)
@@ -590,97 +727,42 @@ void gloadtile (long dapic, long dapal, long dameth, long gltexind, long doalloc
 	hicreplc[substind]->scalex = ((double)tsizx) / ((double)tilesizx[dapic]);
 	hicreplc[substind]->scaley = ((double)tsizy) / ((double)tilesizy[dapic]);
 
-	fallback = 0;
 	if (glinfo.texcompr && glusetexcompr) intexfmt = GL_COMPRESSED_RGBA_ARB;
+	if (glinfo.bgra) texfmt = GL_BGRA;
 
-	goto gloadtilefinalise;
-	// End main hightile hookage
-
-gloadtilefallback:
-
-	tsizx = tilesizx[dapic]; for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
-	tsizy = tilesizy[dapic]; for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
-	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype));
-	if (!pic) return;
-
-	if (!waloff[dapic])
-	{
-			//Force invalid textures to draw something - an almost purely transparency texture
-			//This allows the Z-buffer to be updated for mirrors (which are invalidated textures)
-		pic[0].r = pic[0].g = pic[0].b = 0; pic[0].a = 1;
-		tsizx = tsizy = 1;
-	}
-	else
-	{
-		for(y=0;y<ysiz;y++)
-		{
-			if (y < tsizy) y2 = y; else y2 = y-tsizy;
-			wpptr = &pic[y*xsiz];
-			for(x=0;x<xsiz;x++,wpptr++)
-			{
-				if ((dameth&4) && ((x >= tsizx) || (y >= tsizy))) //Clamp texture
-					{ wpptr->r = wpptr->g = wpptr->b = wpptr->a = 0; continue; }
-				if (x < tsizx) x2 = x; else x2 = x-tsizx;
-				dacol = (long)(*(unsigned char *)(waloff[dapic]+x2*tsizy+y2));
-				if (dacol == 255)
-				{
-					wpptr->r = curpalette[255].r;
-					wpptr->g = curpalette[255].g;
-					wpptr->b = curpalette[255].b;
-					wpptr->a = 0;
-				}
-				else
-				{
-					j = (long)((unsigned char)palookup[dapal][dacol]);
-					wpptr->r = curpalette[j].r;
-					wpptr->g = curpalette[j].g;
-					wpptr->b = curpalette[j].b;
-					wpptr->a = 255;
-				}
-			}
-		}
-	}
+	if (doalloc) bglGenTextures(1,&glpic[gltexind]);  //# of textures (make OpenGL allocate structure)
+	bglBindTexture(GL_TEXTURE_2D,glpic[gltexind]);
 
 	fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);
-
-gloadtilefinalise:
-
-	if (!fallback && glinfo.bgra) texfmt = GL_BGRA;
-	//OSD_Printf("gloadtile: pic:%4d %3dx%3d (%3dx%3d) pal:%d meth:%d texf:%d tex#:%3d alloc:%d eff:%d fallb:%d err:%d->",dapic,tsizx,tsizy,xsiz,ysiz,dapal,dameth,texfmt,gltexind,doalloc,effect,fallback,glGetError());
-	
-	uploadtexture(doalloc,xsiz,ysiz,intexfmt,texfmt,pic,fallback?tsizx:-1,tsizy,dameth);
+	uploadtexture(doalloc,xsiz,ysiz,intexfmt,texfmt,pic,-1,tsizy,dameth);
 
 	if (gltexfiltermode < 0) gltexfiltermode = 0;
-	else if (gltexfiltermode >= numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
- //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-
- //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
- //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
- //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_LINEAR); //Trilinear filter
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
+	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 
 	if (glinfo.maxanisotropy > 1.0)
 	{
 		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = glinfo.maxanisotropy;
-		glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 	}
 
 	if (!(dameth&4))
 	{
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
 	}
 	else
 	{     //For sprite textures, clamping looks better than wrapping
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
-		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
 	}
 
 	if (pic) free(pic);
+
+	return 0;
 }
+
 #endif
 
 	//(dpx,dpy) specifies an n-sided polygon. The polygon must be a convex clockwise loop.
@@ -698,7 +780,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	long xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice, ymulnice, dorot;
 	char dacol, *walptr, *palptr, *vidp, *vide;
 
-	long substind = -1, theglobalpal;
+	long substind = -1;
 
 	if (n == 3)
 	{
@@ -717,15 +799,6 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	tsizx = tilesizx[globalpicnum];
 	tsizy = tilesizy[globalpicnum];
 	if (!palookup[globalpal]) globalpal = 0;
-#ifdef USE_OPENGL
-	substind = hicfindsubst(globalpicnum,globalpal);
-	theglobalpal = globalpal;
-	if (substind == -1 && globalpal != 0)
-	{
-		substind = hicfindsubst(globalpicnum,0);
-		if (substind != -1) theglobalpal = 0;
-	}
-#endif
 	if (!waloff[globalpicnum])
 	{
 		loadtile(globalpicnum);
@@ -788,14 +861,12 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		float hackscx, hackscy;
 
 		if (skyclamphack) method |= 4;
-		glBindTexture(GL_TEXTURE_2D,glpic[gltexcache(globalpicnum,theglobalpal,globalpal,method&(~3))]);
+		bglBindTexture(GL_TEXTURE_2D,glpic[gltexcache(globalpicnum,globalpal,method&(~3),&substind)]);
 
-		if ((substind >= 0) && (hicreplc[substind]))
+		if (substind >= 0)
 		{
 			hackscx = hicreplc[substind]->scalex;
 			hackscy = hicreplc[substind]->scaley;
-			//hackscx = ((double)hicreplc[substind]->sizx) / ((double)tsizx);
-			//hackscy = ((double)hicreplc[substind]->sizy) / ((double)tsizy);
 			tsizx = hicreplc[substind]->sizx;
 			tsizy = hicreplc[substind]->sizy;
 		}
@@ -804,10 +875,10 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		for(xx=1;xx<tsizx;xx+=xx); ox2 = (double)1.0/(double)xx;
 		for(yy=1;yy<tsizy;yy+=yy); oy2 = (double)1.0/(double)yy;
 
-		if (!(method&3)) glDisable(GL_BLEND); else glEnable(GL_BLEND);
+		if (!(method&3)) bglDisable(GL_BLEND); else bglEnable(GL_BLEND);
 
-		//glEnable(GL_ALPHA_TEST);
-		//glAlphaFunc(GL_GREATER,0.5);
+		//bglEnable(GL_ALPHA_TEST);
+		//bglAlphaFunc(GL_GREATER,0.5);
 
 		if (!dorot)
 		{
@@ -836,7 +907,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		pc[1] *= (float)hictinting[globalpal].g / 255.0;
 		pc[2] *= (float)hictinting[globalpal].b / 255.0;
 		}
-		glColor4f(pc[0],pc[1],pc[2],pc[3]);
+		bglColor4f(pc[0],pc[1],pc[2],pc[3]);
 		}
 
 			//Hack for walls&masked walls which use textures that are not a power of 2
@@ -945,29 +1016,29 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 				} while (i);
 				if (nn < 3) continue;
 
-				glBegin(GL_TRIANGLE_FAN);
+				bglBegin(GL_TRIANGLE_FAN);
 				for(i=0;i<nn;i++)
 				{
 					ox = uu[i]; oy = vv[i];
 					dp = ox*ngdx + oy*ngdy + ngdo;
 					up = ox*ngux + oy*nguy + nguo;
 					vp = ox*ngvx + oy*ngvy + ngvo;
-					r = 1.0/dp; glTexCoord2d((up*r-du0+uoffs)*ox2,vp*r*oy2);
-					glVertex3d((ox-ghalfx)*r*grhalfxdown10x,(ghoriz-oy)*r*grhalfxdown10,r*(1.0/1024.0));
+					r = 1.0/dp; bglTexCoord2d((up*r-du0+uoffs)*ox2,vp*r*oy2);
+					bglVertex3d((ox-ghalfx)*r*grhalfxdown10x,(ghoriz-oy)*r*grhalfxdown10,r*(1.0/1024.0));
 				}
-				glEnd();
+				bglEnd();
 			}
 		}
 		else
 		{
 			ox2 *= hackscx; oy2 *= hackscy;
-			glBegin(GL_TRIANGLE_FAN);
+			bglBegin(GL_TRIANGLE_FAN);
 			for(i=0;i<n;i++)
 			{
-				r = 1.0/dd[i]; glTexCoord2d(uu[i]*r*ox2,vv[i]*r*oy2);
-				glVertex3d((px[i]-ghalfx)*r*grhalfxdown10x,(ghoriz-py[i])*r*grhalfxdown10,r*(1.0/1024.0));
+				r = 1.0/dd[i]; bglTexCoord2d(uu[i]*r*ox2,vv[i]*r*oy2);
+				bglVertex3d((px[i]-ghalfx)*r*grhalfxdown10x,(ghoriz-py[i])*r*grhalfxdown10,r*(1.0/1024.0));
 			}
-			glEnd();
+			bglEnd();
 		}
 		return;
 	}
@@ -1285,12 +1356,12 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	}
 }
 
-	//Init viewport boundary (must be 4 point convex loop):
+	/*Init viewport boundary (must be 4 point convex loop):
 	//      (px[0],py[0]).----.(px[1],py[1])
 	//                  /      \
 	//                /          \
 	// (px[3],py[3]).--------------.(px[2],py[2])
-	//
+	*/
 void initmosts (double *px, double *py, long n)
 {
 	long i, j, k, imin;
@@ -1618,7 +1689,7 @@ static void polymost_drawalls (long bunch)
 #ifdef USE_OPENGL
 	if (!nofog) {
 	if (rendmode == 3)
-		glFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
+		bglFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
 	}
 #endif
 
@@ -1782,10 +1853,10 @@ static void polymost_drawalls (long bunch)
 			if (rendmode == 3)
 			{
 				if (!nofog) {
-				glDisable(GL_FOG);
+				bglDisable(GL_FOG);
 				//r = ((float)globalpisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE;
 				//r *= ((double)xdimscale*(double)viewingrange*gdo) / (65536.0*65536.0);
-				//glFogf(GL_FOG_DENSITY,r);
+				//bglFogf(GL_FOG_DENSITY,r);
 				}
 
 					//Use clamping for tiled sky textures
@@ -1849,8 +1920,8 @@ static void polymost_drawalls (long bunch)
 			{
 				skyclamphack = 0;
 				if (!nofog) {
-				glEnable(GL_FOG);
-				//glFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
+				bglEnable(GL_FOG);
+				//bglFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
 				}
 			}
 #endif
@@ -1963,10 +2034,10 @@ static void polymost_drawalls (long bunch)
 			if (rendmode == 3)
 			{
 				if (!nofog) {
-				glDisable(GL_FOG);
+				bglDisable(GL_FOG);
 				//r = ((float)globalpisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE;
 				//r *= ((double)xdimscale*(double)viewingrange*gdo) / (65536.0*65536.0);
-				//glFogf(GL_FOG_DENSITY,r);
+				//bglFogf(GL_FOG_DENSITY,r);
 				}
 
 					//Use clamping for tiled sky textures
@@ -1992,11 +2063,12 @@ static void polymost_drawalls (long bunch)
 				oy = -vv[0]/vv[1];
 				if ((oy < cy0) && (oy < cy1)) domost(x1,oy,x0,oy);
 				else if ((oy < cy0) != (oy < cy1))
-				{     //         cy1        cy0
+				{		/*         cy1        cy0
 						//        /             \
 						//oy----------      oy---------
 						//    /                    \
 						//  cy0                     cy1
+						*/
 					ox = (oy-cy0)*(x1-x0)/(cy1-cy0) + x0;
 					if (oy < cy0) { domost(ox,oy,x0,oy); domost(x1,cy1,ox,oy); }
 								else { domost(ox,oy,x0,cy0); domost(x1,oy,ox,oy); }
@@ -2028,8 +2100,8 @@ static void polymost_drawalls (long bunch)
 			{
 				skyclamphack = 0;
 				if (!nofog) {
-				glEnable(GL_FOG);
-				//glFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
+				bglEnable(GL_FOG);
+				//bglFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
 				}
 			}
 #endif
@@ -2335,32 +2407,32 @@ void polymost_drawrooms ()
 	{
 		resizeglcheck();
 
-		//glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-		//glEnable(GL_TEXTURE_2D);
-		//glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE); //default anyway
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_ALWAYS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		//bglClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+		//bglEnable(GL_TEXTURE_2D);
+		//bglTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE); //default anyway
+		bglEnable(GL_DEPTH_TEST);
+		bglDepthFunc(GL_ALWAYS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 
-		//glPolygonOffset(1,1); //Supposed to make sprites pasted on walls or floors not disappear
-		glDepthRange(0.00001,1.0); //<- this is more widely supported than glPolygonOffset
+		//bglPolygonOffset(1,1); //Supposed to make sprites pasted on walls or floors not disappear
+		bglDepthRange(0.00001,1.0); //<- this is more widely supported than glPolygonOffset
 
 		 //Enable this for OpenGL red-blue glasses mode :)
 		if (glredbluemode)
 		{
 			float m[4][4];
 			static int grbfcnt = 0; grbfcnt++;
-			if (redblueclearcnt < numpages) { redblueclearcnt++; glColorMask(1,1,1,1); glClear(GL_COLOR_BUFFER_BIT); }
+			if (redblueclearcnt < numpages) { redblueclearcnt++; bglColorMask(1,1,1,1); bglClear(GL_COLOR_BUFFER_BIT); }
 			if (grbfcnt&1)
 			{
-				glViewport(windowx1-16,yres-(windowy2+1),windowx2-(windowx1-16)+1,windowy2-windowy1+1);
-				glColorMask(1,0,0,1);
+				bglViewport(windowx1-16,yres-(windowy2+1),windowx2-(windowx1-16)+1,windowy2-windowy1+1);
+				bglColorMask(1,0,0,1);
 				globalposx += (float)singlobalang/1024.0;
 				globalposy -= (float)cosglobalang/1024.0;
 			}
 			else
 			{
-				glViewport(windowx1,yres-(windowy2+1),windowx2+16-windowx1+1,windowy2-windowy1+1);
-				glColorMask(0,1,1,1);
+				bglViewport(windowx1,yres-(windowy2+1),windowx2+16-windowx1+1,windowy2-windowy1+1);
+				bglColorMask(0,1,1,1);
 				globalposx -= (float)singlobalang/1024.0;
 				globalposy += (float)cosglobalang/1024.0;
 			}
@@ -2544,10 +2616,10 @@ void polymost_drawrooms ()
 #ifdef USE_OPENGL
 	if (rendmode == 3)
 	{
-		glDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		bglDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 
-		//glPolygonOffset(0,0);
-		glDepthRange(0.0,0.99999); //<- this is more widely supported than glPolygonOffset
+		//bglPolygonOffset(0,0);
+		bglDepthRange(0.0,0.99999); //<- this is more widely supported than glPolygonOffset
 	}
 #endif
 
@@ -2643,7 +2715,7 @@ void polymost_drawmaskwall (long damaskwallcnt)
 #ifdef USE_OPENGL
 	if (!nofog) {
 	if (rendmode == 3)
-		glFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
+		bglFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE);
 	}
 #endif
 
@@ -2739,7 +2811,7 @@ void polymost_drawsprite (long snum)
 #ifdef USE_OPENGL
 	if (!nofog) {
 	if (rendmode == 3)
-		glFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sector[tspr->sectnum].visibility+16)))*FOGSCALE);
+		bglFogf(GL_FOG_DENSITY,((float)globalvisibility)*((float)((unsigned char)(sector[tspr->sectnum].visibility+16)))*FOGSCALE);
 	}
 #endif
 
@@ -2747,7 +2819,8 @@ void polymost_drawsprite (long snum)
 	{
 		case 0: //Face sprite
 
-			if (rendmode == 3 && usemodels)
+#ifdef USE_OPENGL
+			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD2))
 			{
 				if (tiletomodel[tspr->picnum].modelid >= 0 &&
 				    tiletomodel[tspr->picnum].framenum >= 0) {
@@ -2755,6 +2828,7 @@ void polymost_drawsprite (long snum)
 					return;
 				}
 			}
+#endif
 			
 				//Project 3D to 2D
 			sx0 = (float)(tspr->x-globalposx);
@@ -2801,7 +2875,8 @@ void polymost_drawsprite (long snum)
 			pow2xsplit = 0; drawpoly(px,py,4,method);
 			break;
 		case 1: //Wall sprite
-			if (rendmode == 3 && usemodels)
+#ifdef USE_OPENGL
+			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD2))
 			{
 				if (tiletomodel[tspr->picnum].modelid >= 0 &&
 				    tiletomodel[tspr->picnum].framenum >= 0) {
@@ -2809,6 +2884,7 @@ void polymost_drawsprite (long snum)
 					return;
 				}
 			}
+#endif
 			
 				//Project 3D to 2D
 			if (globalorientation&4) xoff = -xoff;
@@ -2926,7 +3002,8 @@ void polymost_drawsprite (long snum)
 			break;
 		case 2: //Floor sprite
 			/*
-			if (rendmode == 3 && usemodels)
+#ifdef USE_OPENGL
+			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD2))
 			{
 				if (tiletomodel[tspr->picnum].modelid >= 0 &&
 				    tiletomodel[tspr->picnum].framenum >= 0) {
@@ -2934,6 +3011,7 @@ void polymost_drawsprite (long snum)
 					return;
 				}
 			}
+#endif
 			*/
 			
 			if ((globalorientation&64) != 0)
@@ -3071,25 +3149,25 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 		if (1) //dastat&(2+8))
 		{
 			float m[4][4];
-			glViewport(0,0,xdim,ydim); glox1 = -1; //Force fullscreen (glox1=-1 forces it to restore)
-			glMatrixMode(GL_PROJECTION);
+			bglViewport(0,0,xdim,ydim); glox1 = -1; //Force fullscreen (glox1=-1 forces it to restore)
+			bglMatrixMode(GL_PROJECTION);
 			memset(m,0,sizeof(m));
 			m[0][0] = m[2][3] = 1.0; m[1][1] = ((float)xdim)/((float)ydim); m[2][2] = 1.0001; m[3][2] = 1-m[2][2];
-			glLoadMatrixf(&m[0][0]);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
+			bglLoadMatrixf(&m[0][0]);
+			bglMatrixMode(GL_MODELVIEW);
+			bglLoadIdentity();
 		}
-		glDisable(GL_DEPTH_TEST);
+		bglDisable(GL_DEPTH_TEST);
 	}
 #endif
 
 	method = 0;
 	if (!(dastat&64))
 	{
-		method = 1;
-		if (dastat&1) { if (!(dastat&32)) method = 2; else method = 3; }
+	    method = 1;
+    	if (dastat&1) { if (!(dastat&32)) method = 2; else method = 3; }
 	}
-	method |= 4; //Use OpenGL clamping - dorotatesprite never repeats
+	method |= 4; //Use OpenGL clamping - dorotatesprite never repeats 
 
 	xsiz = tilesizx[globalpicnum]; ysiz = tilesizy[globalpicnum];
 	if (dastat&16) { xoff = 0; yoff = 0; }
@@ -3230,28 +3308,26 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 		if (xdime < ydime) scx *= xdime/ydime; else scy *= ydime/xdime;
 	}
 
-	glBindTexture(GL_TEXTURE_2D,glpic[gltexcache(wallnum,0,0,4)]);
-	//glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP); //not needed: done in polymost_drawtilescreen
-	//glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
+	bglBindTexture(GL_TEXTURE_2D,glpic[gltexcache(wallnum,0,4,&i)]);
 
-	glDisable(GL_TEXTURE_2D);
-	glBegin(GL_TRIANGLE_FAN);
-	glColor4f((float)curpalette[255].r/255.0,(float)curpalette[255].g/255.0,(float)curpalette[255].b/255.0,1);
-	glVertex2f((float)tilex    ,(float)tiley    );
-	glVertex2f((float)tilex+scx,(float)tiley    );
-	glVertex2f((float)tilex+scx,(float)tiley+scy);
-	glVertex2f((float)tilex    ,(float)tiley+scy);
-	glEnd();
+	bglDisable(GL_TEXTURE_2D);
+	bglBegin(GL_TRIANGLE_FAN);
+	bglColor4f((float)curpalette[255].r/255.0,(float)curpalette[255].g/255.0,(float)curpalette[255].b/255.0,1);
+	bglVertex2f((float)tilex    ,(float)tiley    );
+	bglVertex2f((float)tilex+scx,(float)tiley    );
+	bglVertex2f((float)tilex+scx,(float)tiley+scy);
+	bglVertex2f((float)tilex    ,(float)tiley+scy);
+	bglEnd();
 
-	glColor4f(1,1,1,1);
-	glEnable(GL_TEXTURE_2D);
-	glEnable(GL_BLEND);
-	glBegin(GL_TRIANGLE_FAN);
-	glTexCoord2f(       0,       0); glVertex2f((float)tilex    ,(float)tiley    );
-	glTexCoord2f(xdimepad,       0); glVertex2f((float)tilex+scx,(float)tiley    );
-	glTexCoord2f(xdimepad,ydimepad); glVertex2f((float)tilex+scx,(float)tiley+scy);
-	glTexCoord2f(       0,ydimepad); glVertex2f((float)tilex    ,(float)tiley+scy);
-	glEnd();
+	bglColor4f(1,1,1,1);
+	bglEnable(GL_TEXTURE_2D);
+	bglEnable(GL_BLEND);
+	bglBegin(GL_TRIANGLE_FAN);
+	bglTexCoord2f(       0,       0); bglVertex2f((float)tilex    ,(float)tiley    );
+	bglTexCoord2f(xdimepad,       0); bglVertex2f((float)tilex+scx,(float)tiley    );
+	bglTexCoord2f(xdimepad,ydimepad); bglVertex2f((float)tilex+scx,(float)tiley+scy);
+	bglTexCoord2f(       0,ydimepad); bglVertex2f((float)tilex    ,(float)tiley+scy);
+	bglEnd();
 	
 	return(0);
 #else
@@ -3269,7 +3345,7 @@ static int gltexturemode(const osdfuncparm_t *parm)
 	if (parm->numparms != 1) {
 		OSD_Printf("Current texturing mode is %s\n", glfiltermodes[gltexfiltermode].name);
 		OSD_Printf("  Vaild modes are:\n");
-		for (m = 0; m < numglfiltermodes; m++)
+		for (m = 0; m < (int)numglfiltermodes; m++)
 			OSD_Printf("     %d - %s\n",m,glfiltermodes[m].name);
 
 		return OSDCMD_OK;
@@ -3278,13 +3354,13 @@ static int gltexturemode(const osdfuncparm_t *parm)
 	m = Bstrtoul(parm->parms[0], (char **)&p, 10);
 	if (p == parm->parms[0]) {
 		// string
-		for (m = 0; m < numglfiltermodes; m++) {
+		for (m = 0; m < (int)numglfiltermodes; m++) {
 			if (!Bstrcasecmp(parm->parms[0], glfiltermodes[m].name)) break;
 		}
 		if (m == numglfiltermodes) m = gltexfiltermode;   // no change
 	} else {
 		if (m < 0) m = 0;
-		else if (m >= numglfiltermodes) m = numglfiltermodes - 1;
+		else if (m >= (int)numglfiltermodes) m = numglfiltermodes - 1;
 	}
 
 	if (m != gltexfiltermode) {
@@ -3330,6 +3406,7 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterVariable("glredbluemode", OSDVAR_INTEGER, &glredbluemode, 1, osd_internal_validate_boolean);
 	OSD_RegisterFunction("gltexturemode", 0, "gltexturemode: changes the texture filtering settings", gltexturemode);
 	OSD_RegisterFunction("gltextureanisotropy", 0, "gltextureanisotropy: changes the texture anisotropy setting", gltextureanisotropy);
+	OSD_RegisterVariable("gltexturemaxsize", OSDVAR_INTEGER, &gltexmaxsize, 1, osd_internal_validate_integer);
 #endif
 	OSD_RegisterVariable("usemodels", OSDVAR_INTEGER, &usemodels, 0, osd_internal_validate_boolean);
 }
@@ -3337,7 +3414,7 @@ void polymost_initosdfuncs(void)
 void polymost_precache(long dapicnum, long dapalnum, long datype)
 {
 #ifdef USE_OPENGL
-	long substind, theglobalpal;
+	long substind;
 	
 	// dapicnum and dapalnum are like you'd expect
 	// datype is 0 for a wall/floor/ceiling and 1 for a sprite
@@ -3347,15 +3424,11 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 	if (rendmode < 3) return;
 	
 	if (!palookup[dapalnum]) dapalnum = 0;
-	substind = hicfindsubst(dapicnum,dapalnum);
-	theglobalpal = dapalnum;
-	if (substind == -1 && dapalnum != 0)
-	{
-		substind = hicfindsubst(dapicnum,0);
-		if (substind != -1) theglobalpal = 0;
-	}
 
 	//OSD_Printf("precached %d (%d=%d) type %d\n", dapicnum, dapalnum, theglobalpal, datype);
-	gltexcache(dapicnum, theglobalpal, dapalnum, (datype & 1) << 2);
+	gltexcache(dapicnum, dapalnum, (datype & 1) << 2, &substind);
 #endif
 }
+
+// vim:ts=4:
+

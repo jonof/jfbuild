@@ -78,7 +78,7 @@ void initcache(long dacachestart, long dacachesize)
 	cac[0].lock = &zerochar;
 	cacnum = 1;
 
-	initprintf("initcache(): Initialized with %d bytes\n", dacachesize);
+	initprintf("initcache(): Initialised with %d bytes\n", dacachesize);
 }
 
 void allocache(long *newhandle, long newbytes, char *newlockptr)
@@ -89,8 +89,8 @@ void allocache(long *newhandle, long newbytes, char *newlockptr)
 
 	if ((unsigned)newbytes > (unsigned)cachesize)
 	{
-		Bprintf("Cachesize: %d\n",cachesize);
-		Bprintf("*Newhandle: 0x%x, Newbytes: %d, *Newlock: %d\n",(long)newhandle,newbytes,*newlockptr);
+		Bprintf("Cachesize: %ld\n",cachesize);
+		Bprintf("*Newhandle: 0x%lx, Newbytes: %ld, *Newlock: %d\n",(long)newhandle,newbytes,*newlockptr);
 		reportandexit("BUFFER TOO BIG TO FIT IN CACHE!");
 	}
 
@@ -208,15 +208,15 @@ static void reportandexit(char *errormessage)
 	j = 0;
 	for(i=0;i<cacnum;i++)
 	{
-		Bprintf("%d- ",i);
-		Bprintf("ptr: 0x%x, ",*cac[i].hand);
-		Bprintf("leng: %d, ",cac[i].leng);
+		Bprintf("%ld- ",i);
+		Bprintf("ptr: 0x%lx, ",*cac[i].hand);
+		Bprintf("leng: %ld, ",cac[i].leng);
 		Bprintf("lock: %d\n",*cac[i].lock);
 		j += cac[i].leng;
 	}
-	Bprintf("Cachesize = %d\n",cachesize);
-	Bprintf("Cacnum = %d\n",cacnum);
-	Bprintf("Cache length sum = %d\n",j);
+	Bprintf("Cachesize = %ld\n",cachesize);
+	Bprintf("Cacnum = %ld\n",cacnum);
+	Bprintf("Cache length sum = %ld\n",j);
 	Bprintf("ERROR: %s",errormessage);
 	exit(0);
 }
@@ -717,7 +717,7 @@ static short *lzwbuf2, *lzwbuf3;
 
 int kdfread(void *buffer, bsize_t dasizeof, bsize_t count, long fil)
 {
-	long i, j, k, kgoal;
+	unsigned long i, j, k, kgoal;
 	short leng;
 	char *ptr;
 
@@ -756,7 +756,7 @@ int kdfread(void *buffer, bsize_t dasizeof, bsize_t count, long fil)
 
 int dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 {
-	long i, j, k, kgoal;
+	unsigned long i, j, k, kgoal;
 	short leng;
 	char *ptr;
 
@@ -795,7 +795,7 @@ int dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 
 void dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 {
-	long i, j, k;
+	unsigned long i, j, k;
 	short leng;
 	char *ptr;
 

@@ -1,11 +1,17 @@
 # Build Makefile for GNU Make
 
 # Notes:
-#   Turning on any level of optimization with GCC 2.95 results in a binary
+#   Turning on any level of optimisation with GCC 2.95 results in a binary
 #   which has bugs. Example: photocopier in Pigsty of Episode 4 of Duke.
-#   Turning on any level of optimization with GCC 3.x results in a binary
+#   Turning on any level of optimisation with GCC 3.x results in a binary
 #   which instantly crashes when run.
-#   Moral: don't enable optimizations
+#   Moral: don't enable optimisations
+#
+# New notes as of 25 August 2004:
+#   Apparently GCC 2.95 now produces acceptable code if you enable -O2, and
+#   GCC 3.3.1 MinGW32 is OK with -O too, but I'm still not excited about
+#   trusting it though, so the moral is probably best still "don't enable
+#   optimisations".
 #
 # Compilation on Linux:
 #   * GCC 3 objects to something in the GCC inline pragmas, so disable
@@ -16,7 +22,11 @@
 SRC=src/
 OBJ?=obj.gnu/
 INC=include/
-CFLAGS?=-DSUPERBUILD -DPOLYMOST -DUSE_OPENGL
+CFLAGS?=-DSUPERBUILD -DPOLYMOST -DUSE_OPENGL -DDYNAMIC_OPENGL
+
+# If DYNAMIC_BUILD is absent from above, uncomment these lines
+#GLLIBWIN=-lopengl32
+#GLLIBLIN=-lGL
 
 # filename extensions
 o=o
@@ -26,11 +36,14 @@ asm=nasm
 ENGINELIB=libengine.a
 EDITORLIB=libbuild.a
 
-DXROOT=c:/sdks/mingw32/dx6
+# JBF 20040622: I've begun linking to the MS DX6.1 SDK as I'm using
+# DirectMusic in another project and MinGW is happy to use MS-format
+# libraries.
+DXROOT=c:/sdks/msc/dx61
 FMODROOT=c:/sdks/fmodapi370win32/api
 
 # debugging enabled
-debug=-DDEBUGGINGAIDS
+debug=-DDEBUGGINGAIDS -ggdb
 # debugging disabled
 #debug=-fomit-frame-pointer
 
@@ -45,10 +58,11 @@ TARGETOPTS=-DUSE_GCC_ASSEMBLY -DUSE_GCC_PRAGMAS
 CC=gcc
 AS=nasm
 RC=windres
-override CFLAGS+= -ggdb $(debug) -W -Wall -Werror-implicit-function-declaration -march=pentium \
-	-funsigned-char -DNO_GCC_BUILTINS $(TARGETOPTS) \
-	-I$(INC)
-LIBS=-lfmod -lm
+override CFLAGS+= $(debug) -W -Wall -Werror-implicit-function-declaration \
+	-Wno-char-subscripts -Wno-unused \
+	-march=pentium -funsigned-char -DNO_GCC_BUILTINS $(TARGETOPTS) \
+	-I$(INC) -I../jfaud/inc
+LIBS=-lm ../jfaud/libjfaud.a
 ASFLAGS=-s #-g
 EXESUFFIX=
 
@@ -60,17 +74,18 @@ ENGINEOBJS=$(OBJ)engine.$o \
 	$(OBJ)crc32.$o \
 	$(OBJ)engineinfo.$o \
 	$(OBJ)baselayer.$o \
+	$(OBJ)glbuild.$o \
 	$(OBJ)compat.$o \
 	$(OBJ)kplib.$o \
 	$(OBJ)scriptfile.$o \
-	$(OBJ)jmulti.$o \
+	$(OBJ)mmulti.$o \
 	$(OBJ)defs.$o
 
 EDITOROBJS=$(OBJ)build.$o \
 	$(OBJ)config.$o
 
 GAMEEXEOBJS=$(OBJ)game.$o \
-	$(OBJ)sound.$o \
+	$(OBJ)jfaud_sound.$o \
 	$(OBJ)config.$o \
 	$(OBJ)$(ENGINELIB)
 
@@ -84,13 +99,13 @@ ifeq ($(findstring Linux,$(uname)),Linux)
 	PLATFORM=LINUX
 	RENDERTYPE=SDL
 	ASFLAGS+= -f elf
-	LIBS+= -lGL
+	LIBS+= $(GLLIBLIN)
 else
 	ifeq ($(findstring MINGW32,$(uname)),MINGW32)
 		PLATFORM=WINDOWS
 		EXESUFFIX=.exe
 		override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOT)/inc
-		LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -L$(FMODROOT)/lib -lwsock32 -lopengl32
+		LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -L$(FMODROOT)/lib -lws2_32 $(GLLIBWIN)
 		ASFLAGS+= -DUNDERSCORES
 		GAMEEXEOBJS+= $(OBJ)gameres.$(res)
 		EDITOREXEOBJS+= $(OBJ)buildres.$(res)

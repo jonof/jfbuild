@@ -116,6 +116,7 @@ static void (*onshowosd)(int) = _internal_onshowosd;
 
 
 // translation table for turning scancode into ascii characters
+/*
 static char sctoasc[2][256] = {
 	{
 //      0    1    2    3    4    5    6    7    8    9    a    b    c    d    e    f
@@ -156,7 +157,7 @@ static char sctoasc[2][256] = {
 	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0    // 0xf0
 	}
 };
-
+*/
 
 
 static void _internal_drawosdchar(int x, int y, char ch, int shade, int pal)
@@ -344,7 +345,7 @@ void OSD_Cleanup(void)
 void OSD_Init(void)
 {
 	Bmemset(osdtext, 32, TEXTSIZE);
-	osdlines=0;
+	osdlines=1;
 
 	osdinited=1;
 
@@ -443,63 +444,144 @@ int OSD_HandleKey(int sc, int press)
 	if (!osdinited) return sc;
 
 	if (sc == osdkey) {
-		if (press) OSD_ShowDisplay(osdvisible ^ 1);
+		if (press) {
+			OSD_ShowDisplay(osdvisible ^ 1);
+			bflushchars();
+		}
 		return 0;//sc;
 	} else if (!osdvisible) {
 		return sc;
 	}
 
 	if (!press) {
-		if (sc == 0x2a || sc == 0x36) // shift
+		if (sc == 42 || sc == 54) // shift
 			osdeditshift = 0;
-		if (sc == 0x1d || sc == 0x9d)	// control
+		if (sc == 29 || sc == 157)	// control
 			osdeditcontrol = 0;
 		return 0;//sc;
 	}
 
 	keytime = gettime();
 
-	if (sc != 0xf) lastmatch = NULL;
+	if (sc != 15) lastmatch = NULL;		// tab
 
-	if (sc == 0xf) {		// tab
-		if (!lastmatch) {
-			for (i=osdeditcursor;i>0;i--) if (osdeditbuf[i-1] == ' ') break;
-			for (j=0;osdeditbuf[i] != ' ' && i < osdeditlen;j++,i++)
-				osdedittmp[j] = osdeditbuf[i];
-			osdedittmp[j] = 0;
+	while ( (ch = bgetchar()) ) {
+		if (ch == 1) {	// control a. jump to beginning of line
+		} else if (ch == 2) {	// control b, move one character left
+		} else if (ch == 5) {	// control e, jump to end of line
+		} else if (ch == 6) {	// control f, move one character right
+		} else if (ch == 8) {	// control h, backspace
+			if (!osdeditcursor || !osdeditlen) return 0;
+			if (!osdovertype) {
+				if (osdeditcursor < osdeditlen)
+					Bmemmove(osdeditbuf+osdeditcursor-1, osdeditbuf+osdeditcursor, osdeditlen-osdeditcursor);
+				osdeditlen--;
+			}
+			osdeditcursor--;
+			if (osdeditcursor<osdeditwinstart) osdeditwinstart--,osdeditwinend--;
+		} else if (ch == 9) {	// tab
+			if (!lastmatch) {
+				for (i=osdeditcursor;i>0;i--) if (osdeditbuf[i-1] == ' ') break;
+				for (j=0;osdeditbuf[i] != ' ' && i < osdeditlen;j++,i++)
+					osdedittmp[j] = osdeditbuf[i];
+				osdedittmp[j] = 0;
 
-			if (j > 0)
-				tabc = findsymbol(osdedittmp, NULL);
-		} else {
-			tabc = findsymbol(osdedittmp, lastmatch->next);
-			if (!tabc && lastmatch)
-				tabc = findsymbol(osdedittmp, NULL);	// wrap
-		}
+				if (j > 0)
+					tabc = findsymbol(osdedittmp, NULL);
+			} else {
+				tabc = findsymbol(osdedittmp, lastmatch->next);
+				if (!tabc && lastmatch)
+					tabc = findsymbol(osdedittmp, NULL);	// wrap
+			}
 
-		if (tabc) {
-			for (i=osdeditcursor;i>0;i--) if (osdeditbuf[i-1] == ' ') break;
-			osdeditlen = i;
-			for (j=0;tabc->name[j] && osdeditlen <= EDITLENGTH;i++,j++,osdeditlen++)
-				osdeditbuf[i] = tabc->name[j];
-			osdeditcursor = osdeditlen;
-			osdeditwinend = osdeditcursor;
-			osdeditwinstart = osdeditwinend-editlinewidth;
-			if (osdeditwinstart<0) {
-				osdeditwinstart=0;
+			if (tabc) {
+				for (i=osdeditcursor;i>0;i--) if (osdeditbuf[i-1] == ' ') break;
+				osdeditlen = i;
+				for (j=0;tabc->name[j] && osdeditlen <= EDITLENGTH;i++,j++,osdeditlen++)
+					osdeditbuf[i] = tabc->name[j];
+				osdeditcursor = osdeditlen;
+				osdeditwinend = osdeditcursor;
+				osdeditwinstart = osdeditwinend-editlinewidth;
+				if (osdeditwinstart<0) {
+					osdeditwinstart=0;
+					osdeditwinend = editlinewidth;
+				}
+			
+				lastmatch = tabc;
+			}
+		} else if (ch == 11) {	// control k, delete all to end of line
+		} else if (ch == 12) {	// control l, clear screen
+		} else if (ch == 13) {	// control m, enter
+			if (osdeditlen>0) {
+				osdeditbuf[osdeditlen] = 0;
+				Bmemmove(osdhistorybuf[1], osdhistorybuf[0], HISTORYDEPTH*(EDITLENGTH+1));
+				Bmemmove(osdhistorybuf[0], osdeditbuf, EDITLENGTH+1);
+				if (osdhistorysize < HISTORYDEPTH) osdhistorysize++;
+				if (osdexeccount == HISTORYDEPTH)
+					OSD_Printf("Command Buffer Warning: Failed queueing command "
+							"for execution. Buffer full.\n");
+				else
+					osdexeccount++;
+				osdhistorypos=-1;
+			}
+
+			osdeditlen=0;
+			osdeditcursor=0;
+			osdeditwinstart=0;
+			osdeditwinend=editlinewidth;
+		} else if (ch == 16) {	// control p, previous (ie. up arrow)
+		} else if (ch == 20) {	// control t, swap previous two chars
+		} else if (ch == 21) {	// control u, delete all to beginning
+			if (osdeditcursor>0 && osdeditlen) {
+				if (osdeditcursor<osdeditlen)
+					Bmemmove(osdeditbuf, osdeditbuf+osdeditcursor, osdeditlen-osdeditcursor);
+				osdeditlen-=osdeditcursor;
+				osdeditcursor = 0;
+				osdeditwinstart = 0;
 				osdeditwinend = editlinewidth;
 			}
-			
-			lastmatch = tabc;
+		} else if (ch == 23) {	// control w, delete one word back
+			if (osdeditcursor>0 && osdeditlen>0) {
+				i=osdeditcursor;
+				while (i>0 && osdeditbuf[i-1]==32) i--;
+				while (i>0 && osdeditbuf[i-1]!=32) i--;
+				if (osdeditcursor<osdeditlen)
+					Bmemmove(osdeditbuf+i, osdeditbuf+osdeditcursor, osdeditlen-osdeditcursor);
+				osdeditlen -= (osdeditcursor-i);
+				osdeditcursor = i;
+				if (osdeditcursor < osdeditwinstart) {
+					osdeditwinstart=osdeditcursor;
+					osdeditwinend=osdeditwinstart+editlinewidth;
+				}
+			}
+		} else if (ch >= 32) {	// text char
+			if (!osdovertype && osdeditlen == EDITLENGTH)	// buffer full, can't insert another char
+				return 0;
+
+			if (!osdovertype) {
+				if (osdeditcursor < osdeditlen) 
+					Bmemmove(osdeditbuf+osdeditcursor+1, osdeditbuf+osdeditcursor, osdeditlen-osdeditcursor);
+				osdeditlen++;
+			} else {
+				if (osdeditcursor == osdeditlen)
+					osdeditlen++;
+			}
+			osdeditbuf[osdeditcursor] = ch;
+			osdeditcursor++;
+			if (osdeditcursor>osdeditwinend) osdeditwinstart++,osdeditwinend++;
 		}
+	}
+
+	if (sc == 15) {		// tab
 	} else if (sc == 1) {		// escape
 		OSD_ShowDisplay(0);
-	} else if (sc == 0xc9) {	// page up
+	} else if (sc == 201) {	// page up
 		if (osdhead < osdlines-1)
 			osdhead++;
-	} else if (sc == 0xd1) {	// page down
+	} else if (sc == 209) {	// page down
 		if (osdhead > 0)
 			osdhead--;
-	} else if (sc == 0xc7) {	// home
+	} else if (sc == 199) {	// home
 		if (osdeditcontrol) {
 			osdhead = osdlines-1;
 		} else {
@@ -507,7 +589,7 @@ int OSD_HandleKey(int sc, int press)
 			osdeditwinstart = osdeditcursor;
 			osdeditwinend = osdeditwinstart+editlinewidth;
 		}
-	} else if (sc == 0xcf) {	// end
+	} else if (sc == 207) {	// end
 		if (osdeditcontrol) {
 			osdhead = 0;
 		} else {
@@ -519,9 +601,9 @@ int OSD_HandleKey(int sc, int press)
 				osdeditwinend = editlinewidth;
 			}
 		}
-	} else if (sc == 0xd2) {	// insert
+	} else if (sc == 210) {	// insert
 		osdovertype ^= 1;
-	} else if (sc == 0xcb) {	// left
+	} else if (sc == 203) {	// left
 		if (osdeditcursor>0) {
 			if (osdeditcontrol) {
 				while (osdeditcursor>0) {
@@ -537,7 +619,7 @@ int OSD_HandleKey(int sc, int press)
 		if (osdeditcursor<osdeditwinstart)
 			osdeditwinend-=(osdeditwinstart-osdeditcursor),
 			osdeditwinstart-=(osdeditwinstart-osdeditcursor);
-	} else if (sc == 0xcd) {	// right
+	} else if (sc == 205) {	// right
 		if (osdeditcursor<osdeditlen) {
 			if (osdeditcontrol) {
 				while (osdeditcursor<osdeditlen) {
@@ -553,7 +635,7 @@ int OSD_HandleKey(int sc, int press)
 		if (osdeditcursor>=osdeditwinend)
 			osdeditwinstart+=(osdeditcursor-osdeditwinend),
 			osdeditwinend+=(osdeditcursor-osdeditwinend);
-	} else if (sc == 0xc8) {	// up
+	} else if (sc == 200) {	// up
 		if (osdhistorypos < osdhistorysize-1) {
 			osdhistorypos++;
 			memcpy(osdeditbuf, osdhistorybuf[osdhistorypos], EDITLENGTH+1);
@@ -570,7 +652,7 @@ int OSD_HandleKey(int sc, int press)
 				osdeditwinstart+=(osdeditcursor-osdeditwinend),
 				osdeditwinend+=(osdeditcursor-osdeditwinend);
 		}
-	} else if (sc == 0xd0) {	// down
+	} else if (sc == 208) {	// down
 		if (osdhistorypos >= 0) {
 			if (osdhistorypos == 0) {
 				osdeditlen=0;
@@ -595,88 +677,18 @@ int OSD_HandleKey(int sc, int press)
 					osdeditwinend+=(osdeditcursor-osdeditwinend);
 			}
 		}
-	} else if (sc == 0x2a || sc == 0x36) {	// shift
+	} else if (sc == 42 || sc == 54) {	// shift
 		osdeditshift = 1;
-	} else if (sc == 0x1d || sc == 0x9d) {	// control
+	} else if (sc == 29 || sc == 157) {	// control
 		osdeditcontrol = 1;
-	} else if (sc == 0x3a) {	// capslock
+	} else if (sc == 58) {	// capslock
 		osdeditcaps ^= 1;
-	} else if (sc == 0x1c || sc == 0x9c) {	// enter
-		if (osdeditlen>0) {
-			osdeditbuf[osdeditlen] = 0;
-			Bmemmove(osdhistorybuf[1], osdhistorybuf[0], HISTORYDEPTH*(EDITLENGTH+1));
-			Bmemmove(osdhistorybuf[0], osdeditbuf, EDITLENGTH+1);
-			if (osdhistorysize < HISTORYDEPTH) osdhistorysize++;
-			if (osdexeccount == HISTORYDEPTH)
-				printOSD("Command Buffer Warning: Failed queueing command for execution. Buffer full.\n");
-			else
-				osdexeccount++;
-			osdhistorypos=-1;
-		}
-
-		osdeditlen=0;
-		osdeditcursor=0;
-		osdeditwinstart=0;
-		osdeditwinend=editlinewidth;
-	} else if (sc == 0xe) {		// backspace
-		if (!osdeditcursor || !osdeditlen) return 0;
-		if (!osdovertype) {
-			if (osdeditcursor < osdeditlen)
-				Bmemmove(osdeditbuf+osdeditcursor-1, osdeditbuf+osdeditcursor, osdeditlen-osdeditcursor);
-			osdeditlen--;
-		}
-		osdeditcursor--;
-		if (osdeditcursor<osdeditwinstart) osdeditwinstart--,osdeditwinend--;
-	} else if (sc == 0xd3) {	// delete
+	} else if (sc == 28 || sc == 156) {	// enter
+	} else if (sc == 14) {		// backspace
+	} else if (sc == 211) {	// delete
 		if (osdeditcursor == osdeditlen || !osdeditlen) return 0;
 		if (osdeditcursor <= osdeditlen-1) Bmemmove(osdeditbuf+osdeditcursor, osdeditbuf+osdeditcursor+1, osdeditlen-osdeditcursor-1);
 		osdeditlen--;
-	} else {
-		ch = sctoasc[osdeditshift^osdeditcaps][sc];
-		if (!ch) return 0;
-
-		if (osdeditcontrol) {
-			if (ch == 'u' || ch == 'U') {
-				if (osdeditcursor>0 && osdeditlen) {
-					if (osdeditcursor<osdeditlen)
-						Bmemmove(osdeditbuf, osdeditbuf+osdeditcursor, osdeditlen-osdeditcursor);
-					osdeditlen-=osdeditcursor;
-					osdeditcursor = 0;
-					osdeditwinstart = 0;
-					osdeditwinend = editlinewidth;
-				}
-			} else if (ch == 'w' || ch == 'W') {
-				if (osdeditcursor>0 && osdeditlen>0) {
-					i=osdeditcursor;
-					while (i>0 && osdeditbuf[i-1]==32) i--;
-					while (i>0 && osdeditbuf[i-1]!=32) i--;
-					if (osdeditcursor<osdeditlen)
-						Bmemmove(osdeditbuf+i, osdeditbuf+osdeditcursor, osdeditlen-osdeditcursor);
-					osdeditlen -= (osdeditcursor-i);
-					osdeditcursor = i;
-					if (osdeditcursor < osdeditwinstart) {
-						osdeditwinstart=osdeditcursor;
-						osdeditwinend=osdeditwinstart+editlinewidth;
-					}
-				}
-			}
-			return 0;
-		}
-
-		if (!osdovertype && osdeditlen == EDITLENGTH)	// buffer full, can't insert another char
-			return 0;
-
-		if (!osdovertype) {
-			if (osdeditcursor < osdeditlen) 
-				Bmemmove(osdeditbuf+osdeditcursor+1, osdeditbuf+osdeditcursor, osdeditlen-osdeditcursor);
-			osdeditlen++;
-		} else {
-			if (osdeditcursor == osdeditlen)
-				osdeditlen++;
-		}
-		osdeditbuf[osdeditcursor] = ch;
-		osdeditcursor++;
-		if (osdeditcursor>osdeditwinend) osdeditwinstart++,osdeditwinend++;
 	}
 	
 	return 0;
@@ -925,7 +937,7 @@ int OSD_Dispatch(const char *cmd)
 			OSD_Printf("%s\n", symb->i.func.help);
 		} else {
 			ofp.numparms = numparms;
-			ofp.parms    = parms;
+			ofp.parms    = (const char **)parms;
 			ofp.raw      = cmd;
 			switch (symb->i.func.func(&ofp)) {
 				case OSDCMD_OK: break;

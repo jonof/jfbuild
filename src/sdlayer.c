@@ -16,8 +16,7 @@
 #include "osd.h"
 
 #ifdef USE_OPENGL
-//#define GL_GLEXT_PROTOTYPES
-#include <GL/gl.h>
+#include "glbuild.h"
 #endif
 
 #define SURFACE_FLAGS	(SDL_SWSURFACE|SDL_HWPALETTE|SDL_HWACCEL)
@@ -26,7 +25,7 @@
 #define ANY_WINDOWED_SIZE
 
 int   _buildargc = 1;
-char *_buildargv[30] = { "buildapp" };
+char **_buildargv = NULL;
 extern long app_main(long argc, char *argv[]);
 
 static char gamma_saved = 0, gamma_supported = 0;
@@ -46,11 +45,14 @@ char nofog=0;
 #ifdef USE_OPENGL
 // OpenGL stuff
 struct glinfo glinfo = { "Unknown","Unknown","0.0.0","", 1.0, 0,0,0 };
+static char nogl=0;
 #endif
 
 // input
 char inputdevices=0;
 char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
+unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
+unsigned char keynames[256][24];
 short mousex=0,mousey=0,mouseb=0;
 long joyaxis[16], joyb=0;
 char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
@@ -78,7 +80,9 @@ void (*joypresscallback)(long,long) = 0;
 int main(int argc, char *argv[])
 {
 	_buildargc = argc;
-	memcpy(_buildargv, argv, sizeof(argv[0])*argc);
+	_buildargv = (char**)argc;
+	//_buildargv = (char**)malloc(argc * sizeof(char*));
+	//memcpy(_buildargv, argv, sizeof(char*)*argc);
 
 	baselayer_init();
 	return app_main(argc, argv);
@@ -97,7 +101,7 @@ int initsystem(void)
 
 	SDL_VERSION(&compiled);
 
-	initprintf("Initializing SDL system interface "
+	initprintf("Initialising SDL system interface "
 		  "(compiled with SDL version %d.%d.%d, DLL version %d.%d.%d)\n",
 		linked->major, linked->minor, linked->patch,
 		compiled.major, compiled.minor, compiled.patch);
@@ -107,7 +111,7 @@ int initsystem(void)
 			| SDL_INIT_NOPARACHUTE
 #endif
 		)) {
-		initprintf("Initialization failed! (%s)\n", SDL_GetError());
+		initprintf("Initialisation failed! (%s)\n", SDL_GetError());
 		return -1;
 	}
 
@@ -115,6 +119,13 @@ int initsystem(void)
 
 	frameplace = 0;
 	lockcount = 0;
+
+#ifdef USE_OPENGL
+	if (loadgldriver(getenv("BUILD_GLDRV"))) {
+		initprintf("Failed loading OpenGL driver. GL modes will be unavailable.\n");
+		nogl = 1;
+	}
+#endif
 
 /*
 	{
@@ -157,6 +168,19 @@ void uninitsystem(void)
 	uninittimer();
 
 	SDL_Quit();
+
+#ifdef USE_OPENGL
+	unloadgldriver();
+#endif
+}
+
+
+//
+// getsysmemsize() -- gets the amount of system memory in the machine
+//
+unsigned int getsysmemsize(void)
+{
+	return 0xffffffffl;
 }
 
 
@@ -217,6 +241,8 @@ int initinput(void)
 	inputdevices = 1|2;	// keyboard (1) and mouse (2)
 	mouseacquired = 0;
 
+	SDL_EnableUNICODE(1);	// let's hope this doesn't hit us too hard
+
 	return 0;
 }
 
@@ -227,6 +253,29 @@ void uninitinput(void)
 {
 	grabmouse(0);
 }
+
+//
+// bgetchar, bkbhit, bflushchars -- character-based input functions
+//
+unsigned char bgetchar(void)
+{
+	unsigned char c;
+	if (keyasciififoplc == keyasciififoend) return 0;
+	c = keyasciififo[keyasciififoplc];
+	keyasciififoplc = ((keyasciififoplc+1)&(KEYFIFOSIZ-1));
+	return c;
+}
+
+int bkbhit(void)
+{
+	return (keyasciififoplc != keyasciififoend);
+}
+
+void bflushchars(void)
+{
+	keyasciififoplc = keyasciififoend = 0;
+}
+
 
 //
 // set{key|mouse|joy}presscallback() -- sets a callback which gets notified when keys are pressed
@@ -242,7 +291,7 @@ int initmouse(void)
 {
 	if (moustat) return 0;
 
-	initprintf("Initializing mouse\n");
+	initprintf("Initialising mouse\n");
 
 	// grab input
 	grabmouse(1);
@@ -268,8 +317,9 @@ void uninitmouse(void)
 //
 void grabmouse(char a)
 {
+#ifndef DEBUGGINGAIDS
 	SDL_GrabMode g;
-	
+
 	if (appactive && moustat) {
 		if (a != mouseacquired) {
 			g = SDL_WM_GrabInput( a ? SDL_GRAB_ON : SDL_GRAB_OFF );
@@ -280,6 +330,7 @@ void grabmouse(char a)
 	} else {
 		mouseacquired = a;
 	}
+#endif
 }
 
 
@@ -345,13 +396,13 @@ static Uint32 timerticspersec=0;
 static void (*usertimercallback)(void) = NULL;
 
 //
-// inittimer() -- initialize timer
+// inittimer() -- initialise timer
 //
 int inittimer(int tickspersecond)
 {
 	if (timerfreq) return 0;	// already installed
 
-	initprintf("Initializing timer\n");
+	initprintf("Initialising timer\n");
 
 	timerfreq = 1000;
 	timerticspersec = tickspersecond;
@@ -459,15 +510,22 @@ void getvalidmodes(void)
 	if (modeschecked) return;
 
 	validmodecnt=0;
+	initprintf("Detecting video modes:\n");
 
 #define ADDMODE(x,y,c,f) if (validmodecnt<MAXVALIDMODES) { \
-	validmodexdim[validmodecnt]=x; \
-	validmodeydim[validmodecnt]=y; \
-	validmodebpp[validmodecnt]=c; \
-	validmodefs[validmodecnt]=f; \
-	validmodecnt++; \
-	initprintf("Adding mode %dx%d (%d-bit %s)\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
-	}	
+	int mn; \
+	for(mn=0;mn<validmodecnt;mn++) \
+		if (validmodexdim[mn]==x && validmodeydim[mn]==y && \
+		    validmodebpp[mn]==c && validmodefs[mn]==f) break; \
+	if (mn==validmodecnt) { \
+		validmodexdim[validmodecnt]=x; \
+		validmodeydim[validmodecnt]=y; \
+		validmodebpp[validmodecnt]=c; \
+		validmodefs[validmodecnt]=f; \
+		validmodecnt++; \
+		initprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
+	} \
+}	
 
 #define CHECK(w,h) if ((w < maxx) && (h < maxy))
 
@@ -527,6 +585,8 @@ int checkvideomode(long *x, long *y, int c, int fs)
 	int i, nearest=-1, dx, dy, odx=9999, ody=9999;
 
 	getvalidmodes();
+
+	if (c>8 && nogl) return -1;
 
 	// fix up the passed resolution values to be multiples of 8
 	// and at least 320x200 or at most MAXXDIMxMAXYDIM
@@ -609,8 +669,10 @@ int setvideomode(int x, int y, int c, int fs)
 #endif
 			{ SDL_GL_DOUBLEBUFFER, 1 }
 		};
+
+		if (nogl) return -1;
 		
-		for (i=0; i < sizeof(attributes)/sizeof(attributes[0]); i++)
+		for (i=0; i < (int)(sizeof(attributes)/sizeof(attributes[0])); i++)
 			SDL_GL_SetAttribute(attributes[i].attr, attributes[i].value);
 	}
 #endif
@@ -665,17 +727,17 @@ int setvideomode(int x, int y, int c, int fs)
 
 		polymost_glreset();
 		
-		glEnable(GL_TEXTURE_2D);
-		glShadeModel(GL_SMOOTH); //GL_FLAT
-		glClearColor(0,0,0,0.5); //Black Background
-		glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
-		glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
-		glDisable(GL_DITHER);
+		bglEnable(GL_TEXTURE_2D);
+		bglShadeModel(GL_SMOOTH); //GL_FLAT
+		bglClearColor(0,0,0,0.5); //Black Background
+		bglHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
+		bglHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+		bglDisable(GL_DITHER);
 	
-		glinfo.vendor     = glGetString(GL_VENDOR);
-		glinfo.renderer   = glGetString(GL_RENDERER);
-		glinfo.version    = glGetString(GL_VERSION);
-		glinfo.extensions = glGetString(GL_EXTENSIONS);
+		glinfo.vendor     = bglGetString(GL_VENDOR);
+		glinfo.renderer   = bglGetString(GL_RENDERER);
+		glinfo.version    = bglGetString(GL_VERSION);
+		glinfo.extensions = bglGetString(GL_EXTENSIONS);
 		
 		glinfo.maxanisotropy = 1.0;
 		glinfo.bgra = 0;
@@ -688,10 +750,10 @@ int setvideomode(int x, int y, int c, int fs)
 		// process the extensions string and flag stuff we recognize
 		p = Bstrdup(glinfo.extensions);
 		p3 = p;
-		while ((p2 = Bstrtoken(p3==p?p:NULL, " ", &p3, 1)) != NULL) {
+		while ((p2 = Bstrtoken(p3==p?p:NULL, " ", (char**)&p3, 1)) != NULL) {
 			if (!Bstrcmp(p2, "GL_EXT_texture_filter_anisotropic")) {
 				// supports anisotropy. get the maximum anisotropy level
-				glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glinfo.maxanisotropy);
+				bglGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glinfo.maxanisotropy);
 			} else if (!Bstrcmp(p2, "GL_EXT_texture_edge_clamp") ||
 			           !Bstrcmp(p2, "GL_SGIS_texture_edge_clamp")) {
 				// supports GL_CLAMP_TO_EDGE or GL_CLAMP_TO_EDGE_SGIS
@@ -761,7 +823,7 @@ void begindrawing(void)
 	if (offscreenrendering) return;
 	
 	if (SDL_MUSTLOCK(sdl_surface)) SDL_LockSurface(sdl_surface);
-	frameplace = sdl_surface->pixels;
+	frameplace = (long)sdl_surface->pixels;
 	
 	if (sdl_surface->pitch != bytesperline || modechange) {
 		bytesperline = sdl_surface->pitch;
@@ -807,35 +869,35 @@ void showframe(int w)
 #ifdef USE_OPENGL
 	if (bpp > 8) {
 		if (palfadedelta || palfadeclamp.f) {
-			glMatrixMode(GL_PROJECTION);
-			glPushMatrix();
-			glLoadIdentity();
-			glOrtho(0,xres,yres,0,-1,1);
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();
-			glLoadIdentity();
+			bglMatrixMode(GL_PROJECTION);
+			bglPushMatrix();
+			bglLoadIdentity();
+			bglOrtho(0,xres,yres,0,-1,1);
+			bglMatrixMode(GL_MODELVIEW);
+			bglPushMatrix();
+			bglLoadIdentity();
 
-			glDisable(GL_DEPTH_TEST);
-			glDisable(GL_TEXTURE_2D);
+			bglDisable(GL_DEPTH_TEST);
+			bglDisable(GL_TEXTURE_2D);
 
-			glEnable(GL_BLEND);
-			glColor4ub(
+			bglEnable(GL_BLEND);
+			bglColor4ub(
 				max(palfadeclamp.r,palfadergb.r),
 				max(palfadeclamp.g,palfadergb.g),
 				max(palfadeclamp.b,palfadergb.b),
 				max(palfadeclamp.f,palfadedelta));
 
-			glBegin(GL_QUADS);
-			glVertex2i(0, 0);
-			glVertex2i(xres, 0);
-			glVertex2i(xres, yres);
-			glVertex2i(0, yres);
-			glEnd();
+			bglBegin(GL_QUADS);
+			bglVertex2i(0, 0);
+			bglVertex2i(xres, 0);
+			bglVertex2i(xres, yres);
+			bglVertex2i(0, yres);
+			bglEnd();
 			
-			glMatrixMode(GL_MODELVIEW);
-			glPopMatrix();
-			glMatrixMode(GL_PROJECTION);
-			glPopMatrix();
+			bglMatrixMode(GL_MODELVIEW);
+			bglPopMatrix();
+			bglMatrixMode(GL_PROJECTION);
+			bglPopMatrix();
 		}
 
 		SDL_GL_SwapBuffers();
@@ -846,7 +908,7 @@ void showframe(int w)
 	if (offscreenrendering) return;
 
 	if (lockcount) {
-		printf("Frame still locked %d times when showframe() called.\n", lockcount);
+		printf("Frame still locked %ld times when showframe() called.\n", lockcount);
 		while (lockcount) enddrawing();
 	}
 
@@ -1032,6 +1094,13 @@ int handleevents(void)
 			case SDL_KEYDOWN:
 			case SDL_KEYUP:
 				code = keytranslation[ev.key.keysym.sym];
+
+				if (ev.key.keysym.unicode != 0 && ev.key.type == SDL_KEYDOWN &&
+				    (ev.key.keysym.unicode & 0xff80) == 0 &&
+				    ((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
+					keyasciififo[keyasciififoend] = ev.key.keysym.unicode & 0x7f;
+					keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+				}
 
 				// hook in the osd
 				if (OSD_HandleKey(code, (ev.key.type == SDL_KEYDOWN)) == 0)

@@ -8,15 +8,12 @@
 #include "compat.h"
 #include "a.h"
 #include "build.h"
+#include "editor.h"
 #include "pragmas.h"
 #include "baselayer.h"
 #include "names.h"
 #include "osd.h"
 #include "cache1d.h"
-
-//#ifdef WINDOWS
-//#include "winlayer.h"
-//#endif
 
 
 static char tempbuf[256];
@@ -77,16 +74,10 @@ long averagefps;
 static unsigned long frameval[AVERAGEFRAMES];
 static long framecnt = 0;
 
-int loadsetup(const char *fn);	// from config.c
-void editinput(void);		// from build.c
-void clearmidstatbar16(void);	// from build.c
-short getnumber16(char namestart[80], short num, long maxnumber);	// from build.c
-void printmessage16(char name[82]);	// from build.c
-
 char *defsfilename = "kenbuild.def";
 int nextvoxid = 0;
 
-void ExtInit(void)
+int ExtInit(void)
 {
 	long i, fil;
 
@@ -110,11 +101,14 @@ void ExtInit(void)
 		close(fil);
 	}
 	*/
-	if (loadsetup("build.cfg") < 0) printOSD("Configuration file not found, using defaults.\n");
+	if (loadsetup("build.cfg") < 0) initprintf("Configuration file not found, using defaults.\n");
 	Bmemcpy((void *)buildkeys,(void *)keys,NUMKEYS);   //Trick to make build use setup.dat keys
 
 	if (option[4] > 0) option[4] = 0;
-	initengine();
+	if (initengine()) {
+		initprintf("There was a problem initialising the engine.\n");
+		return -1;
+	}
 	initinput();
 	initmouse();
 	xdimgame = vesares[option[6]&15][0]; ydimgame = vesares[option[6]&15][1];
@@ -139,6 +133,7 @@ void ExtInit(void)
 #ifdef WINDOWS
 //	allowtaskswitching(0);
 #endif
+	return 0;
 }
 
 void ExtUnInit(void)
@@ -326,7 +321,7 @@ void ExtCheckKeys(void)
 		i = frameval[framecnt&(AVERAGEFRAMES-1)];
 		j = frameval[framecnt&(AVERAGEFRAMES-1)] = getticks(); framecnt++;
 		if (i != j) averagefps = ((mul3(averagefps)+((AVERAGEFRAMES*1000)/(j-i)) )>>2);
-		Bsprintf(tempbuf,"%d",averagefps);
+		Bsprintf(tempbuf,"%ld",averagefps);
 		printext256(0L,0L,31,-1,tempbuf,1);
 		
 		enddrawing();

@@ -1,4 +1,3 @@
-// "Build Engine & Tools" Copyright (c) 1993-1997 Ken Silverman
 // Ken Silverman's official web site: "http://www.advsys.net/ken"
 // See the included license file "BUILDLIC.TXT" for license info.
 //
@@ -32,6 +31,7 @@ void loadwaves(void);
 void loadsong(char *);
 void musicon(void);
 void musicoff(void);
+void refreshaudio(void);
 
 // declared in config.c
 int loadsetup(const char *);
@@ -167,10 +167,8 @@ static short revolvedoorang[MAXPLAYERS], revolvedoorrotang[MAXPLAYERS];
 static long revolvedoorx[MAXPLAYERS], revolvedoory[MAXPLAYERS];
 
 	//ENGINE CONTROLLED MULTIPLAYER VARIABLES:
-extern short numplayers, myconnectindex;
-extern short connecthead, connectpoint2[MAXPLAYERS];   //Player linked list variables (indeces, not connection numbers)
-
-static short gameoperationmode = 0;	// JBF 20031220: 0 = pregame, 1 = playing
+extern long numplayers, myconnectindex;
+extern long connecthead, connectpoint2[MAXPLAYERS];   //Player linked list variables (indeces, not connection numbers)
 
 static long nummoves;
 // Bug: NUMSTATS used to be equal to the greatest tag number,
@@ -191,6 +189,7 @@ static input baksync[MOVEFIFOSIZ][MAXPLAYERS];
 static long reccnt, recstat = 1;
 static input recsync[16384][2];
 
+//static long myminlag[MAXPLAYERS], mymaxlag, otherminlag, bufferjitter = 1;
 static signed char otherlag[MAXPLAYERS] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 static long averagelag[MAXPLAYERS] = {512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512};
 
@@ -271,6 +270,7 @@ static short slimesoundcnt[MAXPLAYERS];
 static char getmessage[162], getmessageleng;
 static long getmessagetimeoff;
 static char typemessage[162], typemessageleng = 0, typemode = 0;
+/*
 static char scantoasc[128] =
 {
 	0,0,'1','2','3','4','5','6','7','8','9','0','-','=',0,0,
@@ -293,6 +293,7 @@ static char scantoascwithshift[128] =
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 };
+*/
 
 	//These variables are for animating x, y, or z-coordinates of sectors,
 	//walls, or sprites (They are NOT to be used for changing the [].picnum's)
@@ -301,6 +302,7 @@ static char scantoascwithshift[128] =
 static long *animateptr[MAXANIMATES], animategoal[MAXANIMATES];
 static long animatevel[MAXANIMATES], animateacc[MAXANIMATES], animatecnt = 0;
 
+#if defined(POLYMOST) && defined(USE_OPENGL)
 	//These parameters are in exact order of sprite structure in BUILD.H
 #define spawnsprite(newspriteindex2,x2,y2,z2,cstat2,shade2,pal2,       \
 		clipdist2,xrepeat2,yrepeat2,xoffset2,yoffset2,picnum2,ang2,      \
@@ -322,180 +324,35 @@ static long animatevel[MAXANIMATES], animateacc[MAXANIMATES], animatecnt = 0;
 	show2dsprite[newspriteindex2>>3] &= ~(1<<(newspriteindex2&7));      \
 	if (show2dsector[sectnum2>>3]&(1<<(sectnum2&7)))                    \
 		show2dsprite[newspriteindex2>>3] |= (1<<(newspriteindex2&7));    \
-}                                                                      \
+	clearbufbyte(&spriteext[newspriteindex2], sizeof(spriteexttype), 0);	\
+}
+#else
+#define spawnsprite(newspriteindex2,x2,y2,z2,cstat2,shade2,pal2,       \
+		clipdist2,xrepeat2,yrepeat2,xoffset2,yoffset2,picnum2,ang2,      \
+		xvel2,yvel2,zvel2,owner2,sectnum2,statnum2,lotag2,hitag2,extra2) \
+{                                                                      \
+	spritetype *spr2;                                                   \
+	newspriteindex2 = insertsprite(sectnum2,statnum2);                  \
+	spr2 = &sprite[newspriteindex2];                                    \
+	spr2->x = x2; spr2->y = y2; spr2->z = z2;                           \
+	spr2->cstat = cstat2; spr2->shade = shade2;                         \
+	spr2->pal = pal2; spr2->clipdist = clipdist2;                       \
+	spr2->xrepeat = xrepeat2; spr2->yrepeat = yrepeat2;                 \
+	spr2->xoffset = xoffset2; spr2->yoffset = yoffset2;                 \
+	spr2->picnum = picnum2; spr2->ang = ang2;                           \
+	spr2->xvel = xvel2; spr2->yvel = yvel2; spr2->zvel = zvel2;         \
+	spr2->owner = owner2;                                               \
+	spr2->lotag = lotag2; spr2->hitag = hitag2; spr2->extra = extra2;   \
+	copybuf(&spr2->x,&osprite[newspriteindex2].x,3);                    \
+	show2dsprite[newspriteindex2>>3] &= ~(1<<(newspriteindex2&7));      \
+	if (show2dsector[sectnum2>>3]&(1<<(sectnum2&7)))                    \
+		show2dsprite[newspriteindex2>>3] |= (1<<(newspriteindex2&7));    \
+}
+#endif
 
 long bitsperpixel = 8;
 
 int nextvoxid = 0;
-
-int netmode = -1, nethostplayers=0;
-char netjoinhost[64]="";
-multiaddr netjoinhostaddr;
-int uniqueidtoken = 0;
-
-int processnetworkrequests(void)
-{
-	long i,j,k,l;
-	multiaddr addr,addr2;
-
-	if (netmode < 0) return -1;
-
-	if (netmode == 0) {
-		i = 255;
-		if (fetchoobmessage(&addr, tempbuf, &i)) {
-			if (tempbuf[0] == MSG_CMD_GETGAMEINFO) {
-				debugprintf("got MSG_CMD_GETGAMEINFO");
-				if (tempbuf[1] != MSGPROTOVER) {
-					tempbuf[0] = MSG_RSP_BADPROTO;
-					debugprintf("responding MSG_RSP_BADPROTO");
-					i = 1;
-				} else {
-					i = 0;
-					tempbuf[i++] = MSG_RSP_GAMEINFO;
-					Bmemcpy(&tempbuf[i], "KenBuild", 8);
-					i+=8;
-					tempbuf[i++] = nethostplayers;
-					tempbuf[i++] = Bstrlen(boardfilename);
-					Bmemcpy(&tempbuf[i], boardfilename, Bstrlen(boardfilename));
-					i+=Bstrlen(boardfilename);
-					debugprintf("responding MSG_RSP_GAMEINFO");
-				}
-				sendoobpacketto(&addr, tempbuf, i);
-			} else if (tempbuf[0] == MSG_CMD_JOINGAME) {
-				debugprintf("got MSG_CMD_JOINGAME");
-				// see if the player is already in the game
-				j = -1;
-				for (k = connecthead; k != -1; k = connectpoint2[k]) {
-					multigetpeeraddr(k, &addr2, &i);
-					if (!multicompareaddr(&addr,&addr2))
-						j = i;
-				}
-				i = 0;
-				if (j < 0) {	// not in the game
-					if (gameoperationmode == 0) {
-						if (numplayers == nethostplayers) {
-							tempbuf[0] = MSG_RSP_GAMEFULL;
-							i = 1;
-							debugprintf("responding MSG_RSP_GAMEFULL");
-						} else {
-							i = 0;
-							j = uniqueidtoken++;
-
-							// broadcast the joining of the new player to the rest of the team
-							tempbuf[0] = 6;	// some game-level message specifically used at this point for joiners
-							tempbuf[1] = j&255;
-							tempbuf[2] = (j>>8)&255;
-							sendpacket(-1,tempbuf,3);
-
-							// now add the new player to our game
-							multiaddrtostring(&addr, tempbuf, 255);
-							multiaddplayer(tempbuf, j);
-							initprintf("A player just joined.\n");
-						}
-					} else {
-						tempbuf[0] = MSG_RSP_GAMEINPROG;
-						i = 1;
-						debugprintf("responding MSG_RSP_GAMEINPROG");
-					}
-				}
-
-				if (i==0) {	// game was not full, so construct a packet to send to the joiner
-					tempbuf[i++] = MSG_RSP_JOINACCEPTED;
-					tempbuf[i++] = j & 255;
-					tempbuf[i++] = (j>>8)&255;
-					tempbuf[i++] = numplayers-2;
-					for (k=connecthead; k!=-1; k=connectpoint2[k]) {
-						multigetpeeraddr(k,0,&l);
-						if (l==myuniqueid || l==j) continue;
-						tempbuf[i++] = l & 255;
-						tempbuf[i++] = (l>>8)&255;
-					}
-					debugprintf("responding MSG_RSP_JOINACCEPTED");
-				}
-
-				sendoobpacketto(&addr, tempbuf, i);
-			}
-		}
-	} else {
-		if (gameoperationmode == 1) return 0;
-
-		if ((i=getpacket(&j,tempbuf))>0) {
-			if (tempbuf[0] == 6) {	// some game-level message specifically used at this point for joiners
-				j = tempbuf[1];
-				j |= (short)tempbuf[2] << 8;
-				multiaddplayer(0, j);
-				initprintf("A player just joined.\n");
-			}
-		}
-					
-		i = 255;
-		if (fetchoobmessage(&addr, tempbuf, &i)) {
-			if (tempbuf[0] == MSG_RSP_BADPROTO) {
-				initprintf("Host is using a different protocol version.\n");
-				return -1;
-			} else if (tempbuf[0] == MSG_RSP_NOGAME) {
-				initprintf("Host is not running a game.\n");
-				return -1;
-			} else if (tempbuf[0] == MSG_RSP_GAMEINFO) {
-				i=1;
-				if (Bmemcmp(&tempbuf[i], "KenBuild", 8)) {
-					initprintf("Host is not running a KenBuild game.\n");
-					return -1;
-				}
-				i+=8;
-							
-				nethostplayers = tempbuf[i++];
-				j = tempbuf[i++];
-				Bmemcpy(boardfilename, &tempbuf[i], j);
-				boardfilename[j] = 0;
-				netmode = 2;
-
-				initprintf("Game is a %d player game in map %s.\n", nethostplayers, boardfilename);
-						
-				lockclock = 0; totalclock = TIMERINTSPERSECOND;
-			} else if (tempbuf[0] == MSG_RSP_GAMEINPROG) {
-				initprintf("Game is in progress.\n");
-				return -1;
-			} else if (tempbuf[0] == MSG_RSP_GAMEFULL) {
-				initprintf("Game is full.\n");
-				return -1;
-			} else if (tempbuf[0] == MSG_RSP_JOINACCEPTED) {
-				initprintf("Join accepted.\n");
-				multiaddplayer(netjoinhost,0);
-				i=1;
-				myuniqueid = tempbuf[i++];
-				myuniqueid |= (short)tempbuf[i++] << 8;
-				multiaddplayer("localhost",myuniqueid);
-				j = tempbuf[i++];
-				for (; j>0; j++) {
-					k = tempbuf[i++];
-					k |= (short)tempbuf[i++];
-					multiaddplayer(0,k);
-					initprintf("A player is already waiting.\n");
-				}
-				netmode = 3;
-			}
-		}
-		if (netmode == 1) {
-			// waiting for game info
-			if (totalclock - lockclock < TIMERINTSPERSECOND) return 0;
-			lockclock = totalclock;
-
-			tempbuf[0] = MSG_CMD_GETGAMEINFO;
-			tempbuf[1] = MSGPROTOVER;
-			sendoobpacketto(&netjoinhostaddr, tempbuf, 2);
-		} else if (netmode == 2) {
-			if (totalclock - lockclock < TIMERINTSPERSECOND) return 0;
-			lockclock = totalclock;
-
-			tempbuf[0] = MSG_CMD_JOINGAME;
-			sendoobpacketto(&netjoinhostaddr, tempbuf, 1);
-		}
-	}
-
-	return 0;
-}
-
 
 static int osdcmd_restartvid(const osdfuncparm_t *parm)
 {
@@ -536,10 +393,6 @@ long app_main(long argc, char *argv[])
 {
 	long i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
 	long other, packleng;
-	char *ptr, *netparam = NULL;
-
-	char netkeyw[32],netvalu[64];
-	BFILE *fp;
 
 #ifdef USE_OPENGL
 	OSD_RegisterVariable("bpp", OSDVAR_INTEGER, &bitsperpixel, 0, osd_internal_validate_integer);
@@ -551,18 +404,14 @@ long app_main(long argc, char *argv[])
 
 	Bstrcpy(boardfilename, "nukeland.map");
 	for (i=1;i<argc;i++) {
-		if (argv[i][0] != '-' && argv[i][0] != '/') {
-			Bstrcpy(boardfilename, argv[i]);
-			if (!Bstrrchr(boardfilename,'.'))
-				Bstrcat(boardfilename,".map");
-		} else {
-			if (!Bstrcasecmp(argv[i]+1, "net")) {
-				if (i<argc-1) {
-					netparam = argv[i+1];
-					i++;
-				}
-			}
+		if (argv[i][0] == '-' || argv[i][0] == '/') {
+			if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '0')) { networkmode = 0; continue; }
+			if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '1')) { networkmode = 1; continue; }
 		}
+		if (isvalidipaddress(argv[i])) continue;
+			
+		Bstrcpy(boardfilename, argv[i]);
+		if (!Bstrrchr(boardfilename,'.')) Bstrcat(boardfilename,".map");
 	}
 
 	OSD_SetLogFile("console.txt");
@@ -575,134 +424,21 @@ long app_main(long argc, char *argv[])
 		close(fil);
 	}
 	*/
-	if (loadsetup("game.cfg") < 0) printOSD("Configuration file not found, using defaults.\n");
-	if (netparam) option[4] = 1;
+	if (loadsetup("game.cfg") < 0) initprintf("Configuration file not found, using defaults.\n");
 
 	initgroupfile("stuff.dat");
-//setrendermode(3);
-	initengine();
+	if (initengine()) {
+		initprintf("There was a problem initialising the engine.\n");
+		return -1;
+	}
 	initinput();
 	if (option[3] != 0) initmouse();
 	inittimer(TIMERINTSPERSECOND);
 
-	gameoperationmode = 0;	// pregame
-
-	if (netparam) {
-		fp = Bfopen(netparam,"rt");
-		if (fp) {
-			while (fscanf(fp,"%s",netkeyw) == 1) {
-				if (!Bstrcmp(netkeyw,"port")) {
-					fscanf(fp,"%s",netvalu);
-					ipport = Batol(netvalu);
-				} else if (!Bstrcmp(netkeyw,"host")) {
-					netmode = 0;
-				} else if (!Bstrcmp(netkeyw,"join")) {
-					netmode = 1;
-					fscanf(fp,"%s",netjoinhost);
-				} else if (!Bstrcmp(netkeyw,"players")) {
-					fscanf(fp,"%s",netvalu);
-					nethostplayers = Batol(netvalu);
-				}
-			}
-		} else
-			option[4] = 0;
-	}
-
-	if (option[4]) {
-		if (netmode < 0) {
-			initprintf("Net script error: neither 'host' or 'join' specified\n");
-			option[4] = 0;
-		} else if (netmode == 1 && netjoinhost[0] == 0) {
-			initprintf("Net script error: no host given to join\n");
-			option[4] = 0;
-		} else if (netmode == 0 && nethostplayers < 2) {
-			initprintf("Net script error: min 2 players in net game allowed\n");
-			option[4] = 0;
-		} else {
-			// all is rosy
-			networkmode = 0;	// m/s
-
-			initmultiplayers(1,TICSPERFRAME,0);
-		}
-	}
-
-	if (netmode == 0) {
-		myuniqueid = uniqueidtoken++;
-		multiaddplayer("localhost",myuniqueid);
-		initprintf("Waiting for %d players to join...\n",nethostplayers-1);
-
-		do {
-			if (handleevents()) {
-				if (quitevent) {
-						keystatus[1] = 1;
-						quitevent = 0;
-				}
-			}
-
-			if (keystatus[1]) {
-				keystatus[1] = 0;
-				option[4] = 0;
-				initprintf("Aborting multiplayer game.\n");
-				break;
-			}
-
-			switch (processnetworkrequests()) {
-				case 0:
-					break;
-				case -1:
-					option[4] = 0;
-					break;
-			}
-		} while (numplayers<nethostplayers && option[4]);
-	} else if (netmode == 1) {
-		if (multistringtoaddr(netjoinhost, &netjoinhostaddr)) {
-			initprintf("Failed resolving %s.\n",netjoinhost);
-			option[4] = 0;
-		}
-		lockclock = 0; totalclock = TIMERINTSPERSECOND;
-		while (netmode != 4 && option[4]) {
-			if (handleevents()) {
-				if (quitevent) {
-					keystatus[1] = 1;
-					quitevent = 0;
-				}
-			}
-
-			if (keystatus[1]) {
-				keystatus[1] = 0;
-				option[4] = 0;
-				initprintf("Aborting multiplayer game.\n");
-				break;
-			}
-
-			if (netmode == 3 && numplayers>=nethostplayers) { netmode = 4; continue; }
-
-			switch (processnetworkrequests()) {
-				case 0:
-					break;
-				case -1:
-					option[4] = 0;
-					break;
-			}
-		}
-	}
-	
-	gameoperationmode = 1;
-
-	if (!option[4]) {
-		initmultiplayers(0,TICSPERFRAME,0);
-	} else {
-		screenpeek = myconnectindex;
-	}
+	initmultiplayers(argc,argv,option[4],option[5],0);
+	option[4] = (numplayers >= 2);
 
 	pskyoff[0] = 0; pskyoff[1] = 0; pskybits = 1;
-
-	initsb(option[1],option[2],digihz[option[7]>>4],((option[7]&4)>0)+1,((option[7]&2)>0)+1,60,option[7]&1);
-	//if (Bstrcmp(boardfilename,"klab.map") == 0)
-	//	loadsong("klabsong.kdm");
-	//else
-		loadsong("neatsong.ogg");
-	musicon();
 
 	loadpics("tiles000.art",1048576);                      //Load artwork
 #ifdef SUPERBUILD
@@ -741,7 +477,16 @@ long app_main(long argc, char *argv[])
 	makepalookup(18,tempbuf,8,8,48,1);
 
 	prepareboard(boardfilename);                   //Load board
-	if (/*option[4] >*/ 0)
+
+	initsb(option[1],option[2],digihz[option[7]>>4],((option[7]&4)>0)+1,((option[7]&2)>0)+1,60,option[7]&1);
+	//if (Bstrcmp(boardfilename,"klab.map") == 0)
+	//	loadsong("klabsong.kdm");
+	//else
+		loadsong("neatsong.ogg");
+	musicon();
+
+	/*
+	if (option[4] > 0)
 	{
 		x1 = ((xdim-screensize)>>1);
 		x2 = x1+screensize-1;
@@ -806,21 +551,12 @@ long app_main(long argc, char *argv[])
 		getmessageleng = Bstrlen(getmessage);
 		getmessagetimeoff = totalclock+120;
 	}
+	*/
+	screenpeek = myconnectindex;
 	reccnt = 0;
 	for(i=connecthead;i>=0;i=connectpoint2[i]) initplayersprite((short)i);
 
-	// JBF 20031013: Better to just do this here
-	if (waitforeverybody()) {
-		sendlogoff();         //Signing off
-		musicoff();
-		uninitmultiplayers();
-		uninittimer();
-		uninitinput();
-		uninitengine();
-		uninitsb();
-		uninitgroupfile();
-		exit(0);
-	}
+	waitforeverybody();
 	totalclock = ototalclock = 0; gotlastpacketclock = 0; nummoves = 0;
 
 	drawscreen(screenpeek,65536L);
@@ -835,6 +571,7 @@ long app_main(long argc, char *argv[])
 			}
 		}
 
+		refreshaudio();
 		OSD_DispatchQueued();
 
 			// backslash (useful only with KDM)
@@ -844,7 +581,6 @@ long app_main(long argc, char *argv[])
 			while (fakemovefifoplc != movefifoend[myconnectindex]) fakedomovethings();
 
 		getpackets();
-		processnetworkrequests();
 
 		if (typemode == 0)           //if normal game keys active
 		{
@@ -1186,7 +922,7 @@ long changehealth(short snum, short deltahealth)
 		if ((snum == screenpeek) && (screensize <= xdim))
 		{
 			if (health[snum] > 0)
-				sprintf(tempbuf,"Health:%3d",health[snum]);
+				sprintf(tempbuf,"Health:%3ld",health[snum]);
 			else
 				sprintf(tempbuf,"YOU STINK!");
 
@@ -1248,7 +984,7 @@ void drawstatusflytime(short snum) {   // Andy did this
 		else if (nstatusflytime < 0) nstatusflytime = 0;
 		if (nstatusflytime != ostatusflytime) {
 			if (nstatusflytime > 999) sprintf(tempbuf,"FT:BIG");
-			else sprintf(tempbuf,"FT:%3d",nstatusflytime);
+			else sprintf(tempbuf,"FT:%3ld",nstatusflytime);
 			printext((xdim - 56L),(ydim - 20L),tempbuf,ALPHABET,80);
 			ostatusflytime = nstatusflytime;
 		}
@@ -1261,7 +997,7 @@ void drawstatusbar(short snum) {   // Andy did this
 	if ((snum == screenpeek) && (screensize <= xdim)) {
 		Bsprintf(tempbuf,"Deaths:%d",deaths[snum]);
 		printext((xdim>>1)-(Bstrlen(tempbuf)<<2),ydim-16,tempbuf,ALPHABET,80);
-		Bsprintf(tempbuf,"Health:%3d",health[snum]);
+		Bsprintf(tempbuf,"Health:%3ld",health[snum]);
 		printext((xdim>>1)-(Bstrlen(tempbuf)<<2),ydim-24,tempbuf,ALPHABET,80);
 
 		Bsprintf(tempbuf,"B:%3d",numbombs[snum]);
@@ -1281,7 +1017,7 @@ void drawstatusbar(short snum) {   // Andy did this
 			ostatusflytime = 999;
 		}
 		else {
-			Bsprintf(tempbuf,"FT:%3d",nstatusflytime);
+			Bsprintf(tempbuf,"FT:%3ld",nstatusflytime);
 			ostatusflytime = nstatusflytime;
 		}
 		printext((xdim - 56L),(ydim - 20L),tempbuf,ALPHABET,80);
@@ -1315,6 +1051,15 @@ void prepareboard(char *daboardfilename)
 		uninitgroupfile();
 		printf("Board not found\n");
 		exit(0);
+	} else {
+		char *f,*fp;
+		f = (char*)malloc(strlen(daboardfilename)+1+4);
+		strcpy(f,daboardfilename);
+		fp = strrchr(f,'.');
+		if (!fp) strcat(f,".mhk");
+		else { fp[1] = 'm'; fp[2] = 'h'; fp[3] = 'k'; fp[4] = 0; }
+		loadmaphack(f);
+		free(f);
 	}
 
 	setup3dscreen();
@@ -1730,6 +1475,11 @@ void prepareboard(char *daboardfilename)
 	setview(dax,day,dax2,day2);
 
 	startofdynamicinterpolations = numinterpolations;
+
+	/*
+	for(i=connecthead;i>=0;i=connectpoint2[i]) myminlag[i] = 0;
+	otherminlag = mymaxlag = 0;
+	*/
 }
 
 void checktouchsprite(short snum, short sectnum)
@@ -4273,7 +4023,7 @@ void drawscreen(short snum, long dasmoothratio)
 			if (i == screenpeek) break;
 			j++;
 		}
-		sprintf(tempbuf,"(Player %d's view)",j);
+		sprintf(tempbuf,"(Player %ld's view)",j);
 		printext256((xdim>>1)-(Bstrlen(tempbuf)<<2),0,24,-1,tempbuf,0);
 	}
 
@@ -4293,19 +4043,6 @@ void drawscreen(short snum, long dasmoothratio)
 //         printext256(0L,j,31,-1,tempbuf,1); j += 6;
 //      }
 
-#ifdef DEBUGGINGAIDS
-	if (numplayers>1) {
-		multipeerstats mps;
-		printext256(0,0,31,0,"#  Ping  Loss  RT",0);
-		for(i=connecthead;i!=-1;i=connectpoint2[i]) {
-			if (i==myconnectindex) continue;
-			multigetpeerstats(i,&mps);
-			sprintf(tempbuf,"%2d %5d %3d%%  %d",i, mps.ping, mps.loss, mps.retransmittime);
-			printext256(0,8*i+8,31,0,tempbuf,0);
-		}
-	}
-#endif
-	
 	nextpage();	// send completed frame to display
 
 	while (totalclock >= ototalclock+(TIMERINTSPERSECOND/MOVESPERSECOND))
@@ -4353,7 +4090,7 @@ void drawscreen(short snum, long dasmoothratio)
 		}
 		screensize = xdim+1;
 
-		sprintf(getmessage,"Video mode: %d x %d",xdim,ydim);
+		sprintf(getmessage,"Video mode: %ld x %ld",xdim,ydim);
 		getmessageleng = Bstrlen(getmessage);
 		getmessagetimeoff = totalclock+120*5;
 	}
@@ -4806,71 +4543,46 @@ void getinput(void)
 		{
 			keystatus[keys[18]] = 0;
 			typemode = 1;
+			bflushchars();
 			keyfifoplc = keyfifoend;      //Reset keyboard fifo
 		}
 	}
 	else
 	{
-		while (keyfifoplc != keyfifoend)
+		while ((ch = bgetchar()))
 		{
-			ch = keyfifo[keyfifoplc];
-			keystate = keyfifo[(keyfifoplc+1)&(KEYFIFOSIZ-1)];
-			keyfifoplc = ((keyfifoplc+2)&(KEYFIFOSIZ-1));
-
-			if (keystate != 0)
+			if (ch == 8)   //Backspace
 			{
-				if (ch == 0xe)   //Backspace
-				{
-					if (typemessageleng == 0) { typemode = 0; break; }
-					typemessageleng--;
-				}
-				if (ch == 0xf)
-				{
-					keystatus[0xf] = 0;
-					typemode = 0;
-					break;
-				}
-				if ((ch == 0x1c) || (ch == 0x9c))  //Either ENTER
-				{
-					keystatus[0x1c] = 0; keystatus[0x9c] = 0;
-					if (typemessageleng > 0)
-					{
-						packbuf[0] = 2;          //Sending text is message type 4
-						for(j=typemessageleng-1;j>=0;j--)
-							packbuf[j+1] = typemessage[j];
-
-						for(i=connecthead;i>=0;i=connectpoint2[i])
-							if (i != myconnectindex)
-								sendpacket(i,packbuf,typemessageleng+1);
-
-						typemessageleng = 0;
-					}
-					typemode = 0;
-					break;
-				}
-
-				if ((typemessageleng < 159) && (ch < 128))
-				{
-					if (keystatus[0x2a]|keystatus[0x36])
-						ch = scantoascwithshift[ch];
-					else
-						ch = scantoasc[ch];
-
-					if (ch != 0) typemessage[typemessageleng++] = ch;
-				}
+				if (typemessageleng == 0) { typemode = 0; break; }
+				typemessageleng--;
 			}
-		}
-			//Here's a trick of making key repeat after a 1/2 second
-		if (keystatus[0xe])
-		{
-			if (keystatus[0xe] < 30)
-				keystatus[0xe] += TICSPERFRAME;
-			else
+			else if (ch == 9)	// tab
 			{
-				if (typemessageleng == 0)
-					typemode = 0;
-				else
-					typemessageleng--;
+				keystatus[0xf] = 0;
+				typemode = 0;
+				break;
+			}
+			else if (ch == 13)  //Either ENTER
+			{
+				keystatus[0x1c] = 0; keystatus[0x9c] = 0;
+				if (typemessageleng > 0)
+				{
+					packbuf[0] = 2;          //Sending text is message type 4
+					for(j=typemessageleng-1;j>=0;j--)
+						packbuf[j+1] = typemessage[j];
+
+					for(i=connecthead;i>=0;i=connectpoint2[i])
+						if (i != myconnectindex)
+							sendpacket(i,packbuf,typemessageleng+1);
+
+					typemessageleng = 0;
+				}
+				typemode = 0;
+				break;
+			}
+			else if ((typemessageleng < 159) && (ch >= 32) && (ch < 128))
+			{
+				typemessage[typemessageleng++] = ch;
 			}
 		}
 	}
@@ -4914,6 +4626,8 @@ void playback(void)
 				quitevent = 0;
 			}
 		}
+
+		refreshaudio();
 
 		while (totalclock >= lockclock+TICSPERFRAME)
 		{
@@ -5383,7 +5097,7 @@ void checkmasterslaveswitch(void)
 			if (j == 1)
 				Bstrcpy(getmessage,"Player 1 (Master)");
 			else
-				sprintf(getmessage,"Player %d (Slave)",j);
+				sprintf(getmessage,"Player %ld (Slave)",j);
 			getmessageleng = Bstrlen(getmessage);
 			getmessagetimeoff = totalclock+120;
 
@@ -5424,10 +5138,10 @@ long loadgame(void)
 
 	if ((fil = kopen4load("save0000.gam",0)) == -1) return(-1);
 
-	kdfread(&numplayers,2,1,fil);
-	kdfread(&myconnectindex,2,1,fil);
-	kdfread(&connecthead,2,1,fil);
-	kdfread(connectpoint2,2,MAXPLAYERS,fil);
+	kdfread(&numplayers,4,1,fil);
+	kdfread(&myconnectindex,4,1,fil);
+	kdfread(&connecthead,4,1,fil);
+	kdfread(connectpoint2,4,MAXPLAYERS,fil);
 
 		//Make sure palookups get set, sprites will get overwritten later
 	for(i=connecthead;i>=0;i=connectpoint2[i]) initplayersprite((short)i);
@@ -5604,10 +5318,10 @@ long savegame(void)
 
 	if ((fil = Bfopen("save0000.gam","wb")) == 0) return(-1);
 
-	dfwrite(&numplayers,2,1,fil);
-	dfwrite(&myconnectindex,2,1,fil);
-	dfwrite(&connecthead,2,1,fil);
-	dfwrite(connectpoint2,2,MAXPLAYERS,fil);
+	dfwrite(&numplayers,4,1,fil);
+	dfwrite(&myconnectindex,4,1,fil);
+	dfwrite(&connecthead,4,1,fil);
+	dfwrite(connectpoint2,4,MAXPLAYERS,fil);
 
 	dfwrite(posx,4,MAXPLAYERS,fil);
 	dfwrite(posy,4,MAXPLAYERS,fil);
@@ -5778,6 +5492,23 @@ void faketimerhandler(void)
 	getpackets();
 	if (getoutputcirclesize() >= 16) return;
 	getinput();
+
+	/*
+	for(i=connecthead;i>=0;i=connectpoint2[i])
+		if (i != myconnectindex)
+		{
+			k = (movefifoend[myconnectindex]-1)-movefifoend[i];
+			myminlag[i] = min(myminlag[i],k);
+			mymaxlag = max(mymaxlag,k);
+		}
+
+	if (((movefifoend[myconnectindex]-1)&(TIMERUPDATESIZ-1)) == 0)
+	{
+		i = mymaxlag-bufferjitter; mymaxlag = 0;
+		if (i > 0) bufferjitter += ((2+i)>>2);
+		else if (i < 0) bufferjitter -= ((2-i)>>2);
+	}
+	*/
 
 	if (networkmode == 1)
 	{
@@ -5956,10 +5687,15 @@ void getpackets(void)
 			case 3:
 				wsay("getstuff.wav",4096L,63L,63L);
 				break;
+				/*
 			case 5:
 				playerreadyflag[other] = packbuf[1];
 				if ((other == connecthead) && (packbuf[1] == 2))
 					sendpacket(connecthead,packbuf,2);
+				break;
+				*/
+			case 250:
+				playerreadyflag[other]++;
 				break;
 			case 17:
 				j = 3; k = packbuf[2];
@@ -6289,77 +6025,47 @@ long movesprite(short spritenum, long dx, long dy, long dz, long ceildist, long 
 	return(retval);
 }
 
-long waitforeverybody(void)
+
+void waitforeverybody ()
 {
-	long i, j, oldtotalclock;
-
-	if (numplayers < 2) return 0;
-
-	if (myconnectindex == connecthead)
+	long i;
+	if (numplayers < 2) return;
+	packbuf[0] = 250;
+	for(i=connecthead;i>=0;i=connectpoint2[i])
 	{
-		for(j=1;j<=2;j++)
-		{
-			for(i=connectpoint2[connecthead];i>=0;i=connectpoint2[i])
-				playerreadyflag[i] = 0;
-			oldtotalclock = totalclock-8;
-
-			packbuf[0] = 5;
-			packbuf[1] = j;
-			for(i=connectpoint2[connecthead];i>=0;i=connectpoint2[i])
-				sendpacket(i,packbuf,2);
-			
-			do
-			{
-				getpackets();
-				/*
-				 * JBF 20031112: Since we have reliable message delivery, we don't need
-				 *    to spam every 8 ticks like this because the message will be
-				 *    retransmitted until it's acknowledged anyway. So, this logic is
-				 *    moved to outside this loop.
-				if (totalclock >= oldtotalclock+8)
-				{
-					oldtotalclock = totalclock;
-					packbuf[0] = 5;
-					packbuf[1] = j;
-					for(i=connectpoint2[connecthead];i>=0;i=connectpoint2[i])
-						if (playerreadyflag[i] != j) sendpacket(i,packbuf,2);
-				}
-				*/
-				for(i=connectpoint2[connecthead];i>=0;i=connectpoint2[i])
-					if (playerreadyflag[i] != j) break;
-
-				// JBF 20031105
-				handleevents();
-				if (keystatus[1]) {
-					keystatus[1] = 0;
-					return -1;
-				}
-			} while (i >= 0);
-		}
+		if (i != myconnectindex) sendpacket(i,packbuf,1);
+		if ((!networkmode) && (myconnectindex != connecthead)) break; //slaves in M/S mode only send to master
 	}
-	else
+	playerreadyflag[myconnectindex]++;
+	while (1)
 	{
-		playerreadyflag[connecthead] = 0;
-		while (playerreadyflag[connecthead] != 2)
+		handleevents();
+		refreshaudio();
+		
+		/*
+		if (quitevent || keystatus[1]) {
+			sendlogoff();         //Signing off
+			musicoff();
+			uninitmultiplayers();
+			uninittimer();
+			uninitinput();
+			uninitengine();
+			uninitsb();
+			uninitgroupfile();
+			exit(0);
+		}*/
+
+		getpackets();
+
+		for(i=connecthead;i>=0;i=connectpoint2[i])
 		{
-			getpackets();
-			if (playerreadyflag[connecthead] == 1)
-			{
-				playerreadyflag[connecthead] = 0;
-				sendpacket(connecthead,packbuf,2);
-			}
-
-			// JBF 20031105
-			handleevents();
-			if (keystatus[1]) {
-				keystatus[1] = 0;
-				return -1;
-			}
+			if (playerreadyflag[i] < playerreadyflag[myconnectindex]) break;
+			if ((!networkmode) && (myconnectindex != connecthead)) { i = -1; break; } //slaves in M/S mode only send to master
 		}
+		if (i < 0) return;
 	}
-
-	return 0;
 }
+
 
 void searchmap(short startsector)
 {

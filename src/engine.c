@@ -25,11 +25,7 @@
 #include <windows.h>
 #endif
 #ifdef USE_OPENGL
-#include <GL/gl.h>
-
-// get this header from http://oss.sgi.com/projects/ogl-sample/registry/
-// if you are missing it
-#include <GL/glext.h>
+#include "glbuild.h"
 #endif
 #endif
 
@@ -114,7 +110,9 @@ long pow2long[32] =
 long reciptable[2048], fpuasm;
 
 char britable[16][256];	// JBF 20040207: full 8bit precision
-char textfont[1024], smalltextfont[1024];
+//char textfont[1024], smalltextfont[1024];
+#include "textfont.c"
+#include "smalltextfont.c"
 
 static char kensmessage[128];
 
@@ -4953,7 +4951,7 @@ static void calcbritable(void)
 	}
 }
 
-static void loadtables(void)
+static int loadtables(void)
 {
 	long i, fil;
 
@@ -4968,18 +4966,20 @@ static void loadtables(void)
 			kread(fil,sintable,2048*2);
 			kread(fil,radarang,640*2);
 			for(i=0;i<640;i++) radarang[1279-i] = -radarang[i];
-			kread(fil,textfont,1024);
-			kread(fil,smalltextfont,1024);
-//			kread(fil,britable,1024);
+			//kread(fil,textfont,1024);
+			//kread(fil,smalltextfont,1024);
+			//kread(fil,britable,1024);
 			calcbritable();
 
 			kclose(fil);
 		} else {
 			initprintf("ERROR: Failed to load TABLES.DAT!\n");
-			// JBF: we should die a horrible death here
+			return 1;
 		}
 		tablesloaded = 1;
 	}
+
+	return 0;
 }
 
 
@@ -5342,7 +5342,7 @@ static long raytrace(long x3, long y3, long *x4, long *y4)
 //
 // initengine
 //
-void initengine(void)
+int initengine(void)
 {
 	long i, j;
 	char *e;
@@ -5356,7 +5356,7 @@ void initengine(void)
 		}
 	if (dommxoverlay) mmxoverlay();
 
-	loadtables();
+	if (loadtables()) return 1;
 
 	xyaspect = -1;
 
@@ -5411,6 +5411,8 @@ void initengine(void)
 	if (!hicfirstinit) hicinit();
 	if (!md2inited) md2init();
 #endif
+
+	return 0;
 }
 
 
@@ -6060,13 +6062,17 @@ long loadboard(char *filename, char fromwhere, long *daposx, long *daposy, long 
 		{ mapversion = 7L; return(-1); }
 
 	kread(fil,&mapversion,4);
-	if (mapversion != 7L) return(-1);
+	if (mapversion != 7L && mapversion != 8L) return(-1);
 
 	initspritelists();
 
-	clearbuf(&show2dsector[0],(long)((MAXSECTORS+3)>>5),0L);
-	clearbuf(&show2dsprite[0],(long)((MAXSPRITES+3)>>5),0L);
-	clearbuf(&show2dwall[0],(long)((MAXWALLS+3)>>5),0L);
+#define MYMAXSECTORS (mapversion==7l?MAXSECTORSV7:MAXSECTORSV8)
+#define MYMAXWALLS   (mapversion==7l?MAXWALLSV7:MAXWALLSV8)
+#define MYMAXSPRITES (mapversion==7l?MAXSPRITESV7:MAXSPRITESV8)
+	
+	clearbuf(&show2dsector[0],(long)((MYMAXSECTORS+3)>>5),0L);
+	clearbuf(&show2dsprite[0],(long)((MYMAXSPRITES+3)>>5),0L);
+	clearbuf(&show2dwall[0],(long)((MYMAXWALLS+3)>>5),0L);
 
 	kread(fil,daposx,4);
 	kread(fil,daposy,4);
@@ -6075,12 +6081,15 @@ long loadboard(char *filename, char fromwhere, long *daposx, long *daposy, long 
 	kread(fil,dacursectnum,2);
 
 	kread(fil,&numsectors,2);
+	if (numsectors > MYMAXSECTORS) { kclose(fil); return(-1); }	// JBF 20040629: it's nice to test these things
 	kread(fil,&sector[0],sizeof(sectortype)*numsectors);
 
 	kread(fil,&numwalls,2);
+	if (numwalls > MYMAXWALLS) { kclose(fil); return(-1); }		// JBF 20040629
 	kread(fil,&wall[0],sizeof(walltype)*numwalls);
 
 	kread(fil,&numsprites,2);
+	if (numsprites > MYMAXSPRITES) { kclose(fil); return(-1); }	// JBF 20040629
 	kread(fil,&sprite[0],sizeof(spritetype)*numsprites);
 
 	for(i=0;i<numsprites;i++) {
@@ -6092,8 +6101,100 @@ long loadboard(char *filename, char fromwhere, long *daposx, long *daposy, long 
 	updatesector(*daposx,*daposy,dacursectnum);
 
 	kclose(fil);
+
+#if defined(POLYMOST) && defined(USE_OPENGL)
+	memset(spriteext, 0, sizeof(spriteext));
+#endif
+
 	return(0);
 }
+
+
+//
+// loadmaphack
+//
+#if defined(POLYMOST) && defined(USE_OPENGL)
+#include "scriptfile.h"
+long loadmaphack(char *filename)
+{
+	static struct { char *text; int tokenid; } legaltokens[] = {
+		{ "sprite", 0 },
+		{ "angleoff", 1 },
+		{ "angoff", 1 },
+		{ "notmd2", 2 },
+		{ NULL, -1 }
+	};
+
+	scriptfile *script;
+	char *tok;
+	int i;
+	int whichsprite = -1;
+
+	script = scriptfile_fromfile(filename);
+	if (!script) return -1;
+
+	memset(spriteext, 0, sizeof(spriteext));
+
+	while (1) {
+		tok = scriptfile_gettoken(script);
+		if (!tok) break;
+		for (i=0;legaltokens[i].text;i++) if (!Bstrcasecmp(tok,legaltokens[i].text)) break;
+		switch (legaltokens[i].tokenid) {
+			case 0:		// sprite <xx>
+				if (scriptfile_getnumber(script, &whichsprite)) {
+					// failed reading number
+					initprintf("Invalid numeric constant for sprite number on line %s:%d\n",
+							script->filename, script->linenum);
+					break;
+				}
+				if (whichsprite < 0 || whichsprite >= MAXSPRITES) {
+					// sprite number out of range
+					initprintf("Sprite number out of range 0-%d on line %s:%d\n",
+							MAXSPRITES-1,script->filename, script->linenum);
+					whichsprite = -1;
+					break;
+				}
+				
+				break;
+			case 1:		// angoff <xx>
+				{
+					int ang;
+					if (scriptfile_getnumber(script, &ang)) {
+						// failed reading number
+						initprintf("Invalid numeric constant for angle offset on line %s:%d\n",
+							script->filename, script->linenum);
+						break;
+					}
+					if (whichsprite < 0) {
+						// no sprite directive preceeding
+						initprintf("Ignoring angle offset directive because of absent/invalid sprite number on line %s:%d\n",
+							script->filename, script->linenum);
+						break;
+					}
+					spriteext[whichsprite].angoff = (short)ang;
+				}
+				break;
+			case 2:		// notmd2
+				if (whichsprite < 0) {
+					// no sprite directive preceeding
+						initprintf("Ignoring not-MD2 directive because of absent/invalid sprite number on line %s:%d\n",
+							script->filename, script->linenum);
+					break;
+				}
+				spriteext[whichsprite].flags |= SPREXT_NOTMD2;
+				break;
+			default:
+				// unrecognised token
+				break;
+		}
+	}
+
+	scriptfile_close(script);
+	return 0;
+}
+#else
+long loadmaphack(char *filename) { return 0; }
+#endif
 
 
 //
@@ -6106,6 +6207,22 @@ long saveboard(char *filename, long *daposx, long *daposy, long *daposz,
 
 	if ((fil = Bopen(filename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IWRITE)) == -1)
 		return(-1);
+
+	numsprites = 0;
+	for(j=0;j<MAXSTATUS;j++)
+	{
+		i = headspritestat[j];
+		while (i != -1)
+		{
+			numsprites++;
+			i = nextspritestat[i];
+		}
+	}
+
+	if (numsectors > MAXSECTORSV7 || numwalls > MAXWALLSV7 || numsprites > MAXSPRITESV7)
+		mapversion = 8;
+	else
+		mapversion = 7;
 	Bwrite(fil,&mapversion,4);
 
 	Bwrite(fil,daposx,4);
@@ -6120,16 +6237,6 @@ long saveboard(char *filename, long *daposx, long *daposy, long *daposz,
 	Bwrite(fil,&numwalls,2);
 	Bwrite(fil,&wall[0],sizeof(walltype)*numwalls);
 
-	numsprites = 0;
-	for(j=0;j<MAXSTATUS;j++)
-	{
-		i = headspritestat[j];
-		while (i != -1)
-		{
-			numsprites++;
-			i = nextspritestat[i];
-		}
-	}
 	Bwrite(fil,&numsprites,2);
 
 	for(j=0;j<MAXSTATUS;j++)
@@ -6170,8 +6277,10 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 	j = bpp;
 	if (setvideomode(daxdim,daydim,dabpp,davidoption) < 0) return(-1);
 
+#ifdef POLYMOST
 	if (dabpp > 8) rendmode = 3;	// GL renderer
 	else if (dabpp == 8 && j > 8) rendmode = 0;	// going from GL to software activates softpolymost
+#endif
 
 	xdim = daxdim; ydim = daydim;
 
@@ -6344,7 +6453,7 @@ long loadpics(char *filename, long askedsize)
 
 	//try dpmi_DETERMINEMAXREALALLOC!
 
-	cachesize = max(artsize,askedsize);
+	cachesize = min((long)(getsysmemsize()*60/100),max(artsize,askedsize));
 	while ((pic = kkmalloc(cachesize)) == NULL)
 	{
 		cachesize -= 65536L;
@@ -8334,8 +8443,8 @@ void clearview(long dacol)
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
-		glClearColor(curpalette[dacol].r, curpalette[dacol].g, curpalette[dacol].b, 0);
-		glClear(GL_COLOR_BUFFER_BIT);
+		bglClearColor(curpalette[dacol].r, curpalette[dacol].g, curpalette[dacol].b, 0);
+		bglClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}
 #endif
@@ -8365,9 +8474,9 @@ void clearallviews(long dacol)
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
-		glViewport(0,0,xdim,ydim); glox1 = -1;
-		glClearColor(curpalette[dacol].r, curpalette[dacol].g, curpalette[dacol].b, 0);
-		glClear(GL_COLOR_BUFFER_BIT);
+		bglViewport(0,0,xdim,ydim); glox1 = -1;
+		bglClearColor(curpalette[dacol].r, curpalette[dacol].g, curpalette[dacol].b, 0);
+		bglClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}
 #endif
@@ -8391,10 +8500,10 @@ void plotpixel(long x, long y, char col)
 	if (rendmode == 3 && qsetmode == 200) {
 		setpolymost2dview();	// JBF 20040205: more efficient setup
 
-		glBegin(GL_POINTS);
-		 glColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
-		 glVertex2i(x,y);
-		glEnd();
+		bglBegin(GL_POINTS);
+		 bglColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
+		 bglVertex2i(x,y);
+		bglEnd();
 
 		return;
 	}
@@ -8784,11 +8893,11 @@ void drawline256(long x1, long y1, long x2, long y2, char col)
    {
 	setpolymost2dview();	// JBF 20040205: more efficient setup
 
-      glBegin(GL_LINES);
-      glColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
-      glVertex2f((float)x1/4096.0,(float)y1/4096.0);
-      glVertex2f((float)x2/4096.0,(float)y2/4096.0);
-      glEnd();
+      bglBegin(GL_LINES);
+      bglColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
+      bglVertex2f((float)x1/4096.0,(float)y1/4096.0);
+      bglVertex2f((float)x2/4096.0,(float)y2/4096.0);
+      bglEnd();
 
       return;
    }
@@ -9209,7 +9318,9 @@ void draw2dscreen(long posxe, long posye, short ange, long zoome, short gride)
 				if (((midydim16+yp1) >= 2) && ((midydim16+yp1) <= ydim16-3))
 				{
 					col = 2;
-					if (i == pointhighlight) { if (totalclock & 8) col += (2<<2); }	// JBF 20040116: two braces is all this needed. man I'm a fool sometimes.
+					if (i == pointhighlight) {
+						if (totalclock & 8) col += (2<<2);	// JBF 20040116: two braces is all this needed. man I'm a fool sometimes.
+					}
 					else if ((highlightcnt > 0) && (editstatus == 1))
 					{
 						if (show2dwall[i>>3]&pow2char[i&7])
@@ -9249,8 +9360,9 @@ void draw2dscreen(long posxe, long posye, short ange, long zoome, short gride)
 					if ((sprite[j].cstat&1) > 0) col = 5;
 					if (editstatus == 1)
 					{
-						if (j+16384 == pointhighlight)
+						if (j+16384 == pointhighlight) {
 							if (totalclock & 8) col += (2<<2);
+						}
 						else if ((highlightcnt > 0) && (editstatus == 1))
 						{
 							if (show2dsprite[j>>3]&pow2char[j&7])
@@ -9372,7 +9484,7 @@ void printext256(long xpos, long ypos, short col, short backcol, char *name, cha
 
 		setpolymost2dview();	// JBF 20040205: more efficient setup
 
-		glBegin(GL_POINTS);
+		bglBegin(GL_POINTS);
 		 
 		for(i=0;name[i];i++) {
 			letptr = &fontptr[name[i]<<3];
@@ -9382,14 +9494,14 @@ void printext256(long xpos, long ypos, short col, short backcol, char *name, cha
 				for(x=charxsiz-1;x>=0;x--) {
 					if (letptr[y]&pow2char[7-fontsize-x]) {
 						if (lc!=col)
-							glColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
+							bglColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
 						lc = col;
-						glVertex2i(xx+x,yy);
+						bglVertex2i(xx+x,yy);
 					} else if (backcol >= 0) {
 						if (lc!=backcol)
-							glColor4ub(curpalette[backcol].r,curpalette[backcol].g,curpalette[backcol].b,255);
+							bglColor4ub(curpalette[backcol].r,curpalette[backcol].g,curpalette[backcol].b,255);
 						lc = backcol;
-						glVertex2i(xx+x,yy);
+						bglVertex2i(xx+x,yy);
 					}
 				}
 				yy--;
@@ -9397,7 +9509,7 @@ void printext256(long xpos, long ypos, short col, short backcol, char *name, cha
 			stx += charxsiz;
 		}
 
-		glEnd();
+		bglEnd();
 
 		return;
 	}
@@ -9513,7 +9625,7 @@ long screencapture_tga(char *filename, char inverseit)
 			// 24bit
 			inversebuf = (char *)kmalloc(xdim*ydim*3);
 			if (inversebuf) {
-				glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
+				bglReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
 				j = xdim*ydim*3;
 				for (i=0; i<j; i+=3) {
 					c = inversebuf[i];
@@ -9665,7 +9777,7 @@ long screencapture_pcx(char *filename, char inverseit)
 			// 24bit
 			inversebuf = (char *)kmalloc(xdim*ydim*3);
 			if (inversebuf) {
-				glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
+				bglReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
 				for (i=ydim-1; i>=0; i--) {
 					writepcxline(inversebuf+i*xdim*3,   xdim, 3, fil);
 					writepcxline(inversebuf+i*xdim*3+1, xdim, 3, fil);
@@ -9811,19 +9923,19 @@ void setpolymost2dview(void)
 	if (rendmode < 3) return;
 	
 	if (gloy1 != -1) {
-		glViewport(0,0,xres,yres);
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity();
-		glOrtho(0,xres,yres,0,-1,1);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity();
+		bglViewport(0,0,xres,yres);
+		bglMatrixMode(GL_PROJECTION);
+		bglLoadIdentity();
+		bglOrtho(0,xres,yres,0,-1,1);
+		bglMatrixMode(GL_MODELVIEW);
+		bglLoadIdentity();
 	}
 
 	gloy1 = -1;
 	
-	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_BLEND);
+	bglDisable(GL_DEPTH_TEST);
+	bglDisable(GL_TEXTURE_2D);
+	bglDisable(GL_BLEND);
 #endif
 }
 

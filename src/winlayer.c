@@ -25,19 +25,8 @@
 #include <signal.h>
 #include <stdarg.h>
 
-#ifdef USE_OPENGL
-
-//#define GL_GLEXT_PROTOTYPES
-#include <gl/gl.h>
-
-// get this header from http://oss.sgi.com/projects/ogl-sample/registry/
-// if you are missing it
-#include <GL/glext.h>
-
-#ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
-#error You should get an updated copy of glext.h from http://oss.sgi.com/projects/ogl-sample/registry/
-#endif
-
+#if defined(USE_OPENGL) && defined(POLYMOST)
+#include "glbuild.h"
 #endif
 
 #include "compat.h"
@@ -60,6 +49,7 @@ extern long app_main(long argc, char *argv[]);
 static HINSTANCE hInstance = 0;
 static HWND hWindow = 0;
 #define WINDOW_STYLE (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX)
+#define WindowClass "buildapp"
 static BOOL window_class_registered = FALSE;
 static HWND startupdlg = NULL;
 int    backgroundidle = 1;
@@ -67,11 +57,12 @@ int    backgroundidle = 1;
 static char gamma_saved = 0, gamma_supported = 0;
 static WORD sysgamma[3*256];
 
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 // OpenGL stuff
 static HGLRC hGLRC = 0;
 struct glinfo glinfo = { "Unknown","Unknown","0.0.0","", 1.0, 0,0,0 };
 char nofog=0;
+static char nogl=0;
 #endif
 int glusecds=0;
 
@@ -89,6 +80,7 @@ static int RestoreDirectDrawMode(void);
 static void ReleaseDirectDrawSurfaces(void);
 static BOOL InitDirectInput(void);
 static void UninitDirectInput(void);
+static void GetKeyNames(void);
 static void AcquireInputDevices(char acquire);
 static void ProcessInputDevices(void);
 static int SetupDirectDraw(int width, int height);
@@ -126,6 +118,8 @@ long joyaxespresent=0;
 static char taskswitching=1;
 
 char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
+unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
+unsigned char keynames[256][24];
 static unsigned long lastKeyDown = 0;
 static unsigned long lastKeyTime = 0;
 
@@ -196,7 +190,7 @@ static void SignalHandler(int signum)
 
 
 //
-// startup_dlgproc() -- dialog procedure for the initialization dialog
+// startup_dlgproc() -- dialog procedure for the initialisation dialog
 //
 static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -367,7 +361,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			*stdout = *fp;
 		}
 
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 	// check if we should use ChangeDisplaySettings for mode changes in GL mode
 	if ((argp = Bgetenv("BUILD_USEGLCDS")) != NULL)
 		glusecds = Batol(argp);
@@ -410,7 +404,7 @@ int initsystem(void)
 {
 	DEVMODE desktopmode;
 
-	initprintf("Initializing Windows DirectX/GDI system interface\n");
+	initprintf("Initialising Windows DirectX/GDI system interface\n");
 
 	// get the desktop dimensions before anything changes them
 	ZeroMemory(&desktopmode, sizeof(DEVMODE));
@@ -432,9 +426,16 @@ int initsystem(void)
 	frameplace=0;
 	lockcount=0;
 
+#if defined(USE_OPENGL) && defined(POLYMOST)
+	if (loadgldriver(getenv("BUILD_GLDRV"))) {
+		initprintf("Failed loading OpenGL driver. GL modes will be unavailable.\n");
+		nogl = 1;
+	}
+#endif
+
 	// try and start DirectDraw
 	if (InitDirectDraw())
-		initprintf("DirectDraw initialization failed. Fullscreen modes will be unavailable.\n");
+		initprintf("DirectDraw initialisation failed. Fullscreen modes will be unavailable.\n");
 
 	return 0;
 }
@@ -445,7 +446,7 @@ int initsystem(void)
 //
 void uninitsystem(void)
 {
-	if (gamma_saved) ;//SetDeviceGammaRamp(hDC, sysgamma);
+	//if (gamma_saved) SetDeviceGammaRamp(hDC, sysgamma);
 
 	DestroyAppWindow();
 
@@ -457,6 +458,23 @@ void uninitsystem(void)
 	uninittimer();
 
 	win_allowtaskswitching(1);
+
+#if defined(USE_OPENGL) && defined(POLYMOST)
+	unloadgldriver();
+#endif
+}
+
+
+//
+// getsysmemsize() -- gets the amount of system memory in the machine
+//
+unsigned int getsysmemsize(void)
+{
+	MEMORYSTATUS memst;
+
+	GlobalMemoryStatus(&memst);
+	
+	return (unsigned int)memst.dwTotalPhys;
 }
 
 
@@ -466,7 +484,7 @@ void uninitsystem(void)
 void initprintf(const char *f, ...)
 {
 	va_list va;
-	char buf[1024],*p,*q,workbuf[1024];
+	char buf[1024],*p=NULL,*q=NULL,workbuf[1024];
 	int i;
 
 	static int newline = 1;
@@ -572,9 +590,9 @@ int handleevents(void)
 
 #ifdef DEBUGGINGAIDS
 	// break to the debugger if KP- is pressed
-	if (keystatus[0x4a]) {
+	if (IsDebuggerPresent() && keystatus[0x4a]) {
 		keystatus[0x4a] = 0;
-		if (IsDebuggerPresent()) DebugBreak();
+		DebugBreak();
 	}
 #endif
 
@@ -629,7 +647,7 @@ static struct {
 };
 static struct {
 	char *name;
-	int ofs;
+	unsigned ofs;
 } axisdefs[] = {
 	{ "X", DIJOFS_X }, { "Y", DIJOFS_Y }, { "Z", DIJOFS_Z },
 	{ "RX", DIJOFS_RX }, { "RY", DIJOFS_RY }, { "RZ", DIJOFS_RZ },
@@ -657,6 +675,7 @@ int initinput(void)
 	moustat=0;
 	memset(keystatus, 0, sizeof(keystatus));
 	keyfifoplc = keyfifoend = 0;
+	keyasciififoplc = keyasciififoend = 0;
 
 	inputdevices = 0;
 
@@ -678,6 +697,29 @@ void uninitinput(void)
 
 
 //
+// bgetchar, bkbhit, bflushchars -- character-based input functions
+//
+unsigned char bgetchar(void)
+{
+	unsigned char c;
+	if (keyasciififoplc == keyasciififoend) return 0;
+	c = keyasciififo[keyasciififoplc];
+	keyasciififoplc = ((keyasciififoplc+1)&(KEYFIFOSIZ-1));
+	return c;
+}
+
+int bkbhit(void)
+{
+	return (keyasciififoplc != keyasciififoend);
+}
+
+void bflushchars(void)
+{
+	keyasciififoplc = keyasciififoend = 0;
+}
+
+
+//
 // set{key|mouse|joy}presscallback() -- sets a callback which gets notified when keys are pressed
 //
 void setkeypresscallback(void (*callback)(long, long)) { keypresscallback = callback; }
@@ -692,7 +734,7 @@ int initmouse(void)
 {
 	if (moustat) return 0;
 
-	initprintf("Initializing mouse\n");
+	initprintf("Initialising mouse\n");
 
 	// grab input
 	grabmouse(1);
@@ -914,7 +956,7 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 
 static BOOL CALLBACK InitDirectInput_enumobjects(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef)
 {
-	int i;
+	unsigned i;
 	long *lpvref = (long*)pvRef;
 	
 	for (i=0;i<sizeof(axisdefs)/sizeof(axisdefs[0]);i++) {
@@ -947,7 +989,7 @@ static BOOL InitDirectInput(void)
 
 	if (bDInputInited) return FALSE;
 
-	initprintf("Initializing DirectInput...\n");
+	initprintf("Initialising DirectInput...\n");
 
 	// load up the DirectInput DLL
 	if (!hDInputDLL) {
@@ -1044,6 +1086,7 @@ static BOOL InitDirectInput(void)
 		}
 	}
 
+	GetKeyNames();
 	inputacquired = 0;
 
 	bDInputInited = TRUE;
@@ -1058,7 +1101,7 @@ static void UninitDirectInput(void)
 {
 	int devn;
 	
-	if (bDInputInited) initprintf("Uninitializing DirectInput...\n");
+	if (bDInputInited) initprintf("Uninitialising DirectInput...\n");
 
 	AcquireInputDevices(0);
 
@@ -1090,6 +1133,30 @@ static void UninitDirectInput(void)
 	}
 
 	bDInputInited = FALSE;
+}
+
+
+//
+// GetKeyNames() -- retrieves the names for all the keys on the keyboard
+//
+static void GetKeyNames(void)
+{
+	int i;
+	DIDEVICEOBJECTINSTANCE key;
+	HRESULT res;
+	char tbuf[MAX_PATH];
+	
+	memset(keynames,0,sizeof(keynames));
+	for (i=0;i<256;i++) {
+		ZeroMemory(&key,sizeof(key));
+		key.dwSize = sizeof(DIDEVICEOBJECTINSTANCE);
+
+		res = IDirectInputDevice_GetObjectInfo(*devicedef[KEYBOARD].did, &key, i, DIPH_BYOFFSET);
+		if (FAILED(res)) continue;
+
+		CharToOem(key.tszName, tbuf);
+		strncpy(keynames[i], tbuf, sizeof(keynames[i])-1);
+	}
 }
 
 
@@ -1157,8 +1224,8 @@ static void ProcessInputDevices(void)
 	DIDEVICEOBJECTDATA didod[INPUT_BUFFER_SIZE];
 	DWORD dwElements = INPUT_BUFFER_SIZE;
 	DWORD ev;
-	unsigned long t,u;
-	int idevnums[NUM_INPUTS], numdevs = 0;
+	unsigned t,u;
+	unsigned idevnums[NUM_INPUTS], numdevs = 0;
 	HANDLE waithnds[NUM_INPUTS];
 
 	if (!inputacquired) return;
@@ -1202,30 +1269,34 @@ static void ProcessInputDevices(void)
 	// use event objects so that we can quickly get indication of when data is ready
 	// to be read and input events processed
 	ev = MsgWaitForMultipleObjects(numdevs, waithnds, FALSE, 0, 0);
-	if ((ev >= WAIT_OBJECT_0) && (ev < (WAIT_OBJECT_0+numdevs))) {
+	if (/*(ev >= WAIT_OBJECT_0) &&*/ (ev < (WAIT_OBJECT_0+numdevs))) {
 		switch (idevnums[ev - WAIT_OBJECT_0]) {
 			case 0:		// keyboard
 				if (!lpDID[KEYBOARD]) break;
 				result = IDirectInputDevice2_GetDeviceData(lpDID[KEYBOARD], sizeof(DIDEVICEOBJECTDATA),
 						(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
 				if (result == DI_OK) {
+					DWORD k;
+					
 					// process the key events
 					t = getticks();
 					for (i=0; i<dwElements; i++) {
-						if (didod[i].dwOfs == 0xc5) continue;	// fucking pause
+						k = didod[i].dwOfs;
+						
+						if (k == 0xc5) continue;	// fucking pause
 						
 						// hook in the osd
-						if (OSD_HandleKey(didod[i].dwOfs, (didod[i].dwData & 0x80)) != 0) {
-							SetKey(didod[i].dwOfs, (didod[i].dwData & 0x80) == 0x80);
+						if (OSD_HandleKey(k, (didod[i].dwData & 0x80)) != 0) {
+							SetKey(k, (didod[i].dwData & 0x80) == 0x80);
 
 							if (keypresscallback)
-								keypresscallback(didod[i].dwOfs, (didod[i].dwData & 0x80) == 0x80);
+								keypresscallback(k, (didod[i].dwData & 0x80) == 0x80);
 						}
 
-						if (((lastKeyDown & 0x7fffffffl) == didod[i].dwOfs) && !(didod[i].dwData & 0x80))
+						if (((lastKeyDown & 0x7fffffffl) == k) && !(didod[i].dwData & 0x80))
 							lastKeyDown = 0;
 						else if (didod[i].dwData & 0x80) {
-							lastKeyDown = didod[i].dwOfs;
+							lastKeyDown = k;
 							lastKeyTime = t;
 						}
 					}
@@ -1443,7 +1514,7 @@ void (*installusertimercallback(void (*callback)(void)))(void)
 
 
 //
-// inittimer() -- initialize timer
+// inittimer() -- initialise timer
 //
 int inittimer(int tickspersecond)
 {
@@ -1451,7 +1522,7 @@ int inittimer(int tickspersecond)
 	
 	if (timerfreq) return 0;	// already installed
 
-	initprintf("Initializing timer\n");
+	initprintf("Initialising timer\n");
 
 	// OpenWatcom seems to want us to query the value into a local variable
 	// instead of the global 'timerfreq' or else it gets pissed with an
@@ -1661,7 +1732,7 @@ int setvideomode(int x, int y, int c, int fs)
 	validmodebpp[validmodecnt]=c; \
 	validmodefs[validmodecnt]=f; \
 	validmodecnt++; \
-	initprintf("Adding mode %dx%d (%d-bit %s)\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
+	initprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
 	}	
 
 #define CHECK(w,h) if ((w < maxx) && (h < maxy))
@@ -1671,7 +1742,7 @@ static HRESULT WINAPI getvalidmodes_enum(DDSURFACEDESC *ddsd, VOID *udata)
 {
 	unsigned maxx = MAXXDIM, maxy = MAXYDIM;
 
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 	if (ddsd->ddpfPixelFormat.dwRGBBitCount >= 8) {
 #else
 	if (ddsd->ddpfPixelFormat.dwRGBBitCount == 8) {
@@ -1693,16 +1764,17 @@ void getvalidmodes(void)
 	int i, j, maxx=0, maxy=0;
 	HRESULT result;
 
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 	if (desktopbpp > 8) cdepths[1] = desktopbpp;
 #endif
 
 	if (modeschecked) return;
 
 	validmodecnt=0;
+	initprintf("Detecting video modes:\n");
 
 	if (bDDrawInited) {
-		// if DirectDraw initialization didn't fail enumerate fullscreen modes
+		// if DirectDraw initialisation didn't fail enumerate fullscreen modes
 
 		result = IDirectDraw_EnumDisplayModes(lpDD, 0, NULL, 0, getvalidmodes_enum);
 		if (result != DD_OK) {
@@ -1815,41 +1887,41 @@ void showframe(int w)
 	char *p,*q;
 	int i,j;
 
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 	if (bpp > 8) {
 		if (palfadedelta || palfadeclamp.f) {
-			glMatrixMode(GL_PROJECTION);
-			glPushMatrix();
-			glLoadIdentity();
-			glOrtho(0,xres,yres,0,-1,1);
-			glMatrixMode(GL_MODELVIEW);
-			glPushMatrix();
-			glLoadIdentity();
+			bglMatrixMode(GL_PROJECTION);
+			bglPushMatrix();
+			bglLoadIdentity();
+			bglOrtho(0,xres,yres,0,-1,1);
+			bglMatrixMode(GL_MODELVIEW);
+			bglPushMatrix();
+			bglLoadIdentity();
 
-			glDisable(GL_DEPTH_TEST);
-			glDisable(GL_TEXTURE_2D);
+			bglDisable(GL_DEPTH_TEST);
+			bglDisable(GL_TEXTURE_2D);
 
-			glEnable(GL_BLEND);
-			glColor4ub(
+			bglEnable(GL_BLEND);
+			bglColor4ub(
 				max(palfadeclamp.r,palfadergb.r),
 				max(palfadeclamp.g,palfadergb.g),
 				max(palfadeclamp.b,palfadergb.b),
 				max(palfadeclamp.f,palfadedelta));
 
-			glBegin(GL_QUADS);
-			glVertex2i(0, 0);
-			glVertex2i(xres, 0);
-			glVertex2i(xres, yres);
-			glVertex2i(0, yres);
-			glEnd();
+			bglBegin(GL_QUADS);
+			bglVertex2i(0, 0);
+			bglVertex2i(xres, 0);
+			bglVertex2i(xres, yres);
+			bglVertex2i(0, yres);
+			bglEnd();
 			
-			glMatrixMode(GL_MODELVIEW);
-			glPopMatrix();
-			glMatrixMode(GL_PROJECTION);
-			glPopMatrix();
+			bglMatrixMode(GL_MODELVIEW);
+			bglPopMatrix();
+			bglMatrixMode(GL_PROJECTION);
+			bglPopMatrix();
 		}
 
-		SwapBuffers(hDC);
+		bwglSwapBuffers(hDC);
 		return;
 	}
 #endif
@@ -1859,7 +1931,7 @@ void showframe(int w)
 	if (offscreenrendering) return;
 
 	if (lockcount) {
-		printf("Frame still locked %d times when showframe() called.\n", lockcount);
+		initprintf("Frame still locked %ld times when showframe() called.\n", lockcount);
 		while (lockcount) enddrawing();
 	}
 	
@@ -2085,7 +2157,7 @@ static BOOL InitDirectDraw(void)
 
 	if (bDDrawInited) return FALSE;
 
-	initprintf("Initializing DirectDraw...\n");
+	initprintf("Initialising DirectDraw...\n");
 
 	// load up the DirectDraw DLL
 	if (!hDDrawDLL) {
@@ -2137,7 +2209,7 @@ static BOOL InitDirectDraw(void)
 //
 static void UninitDirectDraw(void)
 {
-	if (bDDrawInited) initprintf("Uninitializing DirectDraw...\n");
+	if (bDDrawInited) initprintf("Uninitialising DirectDraw...\n");
 
 	ReleaseDirectDrawSurfaces();
 
@@ -2397,28 +2469,35 @@ static int SetupDIB(int width, int height)
 	return FALSE;
 }
 
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 //
 // ReleaseOpenGL() -- cleans up OpenGL rendering stuff
 //
+
+static HWND hGLWindow = NULL;
+
 static void ReleaseOpenGL(void)
 {
 	if (hGLRC) {
 		polymost_glreset();
-		if (!wglMakeCurrent(0,0)) { }
-		if (!wglDeleteContext(hGLRC)) { }
+		if (!bwglMakeCurrent(0,0)) { }
+		if (!bwglDeleteContext(hGLRC)) { }
 		hGLRC = NULL;
 	}
+	if (hGLWindow) {
+		if (hDC) {
+			ReleaseDC(hGLWindow, hDC);
+			hDC = NULL;
+		}
 
-	if (hDC) {
-		ReleaseDC(hWindow, hDC);
-		hDC = NULL;
+		DestroyWindow(hGLWindow);
+		hGLWindow = NULL;
 	}
 }
 
 
 //
-// UninitOpenGL() -- unitializes any openGL libraries
+// UninitOpenGL() -- unitialises any openGL libraries
 //
 static void UninitOpenGL(void)
 {
@@ -2450,38 +2529,58 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		0,0,0                          //Layer Masks Ignored
 	};
 	GLuint PixelFormat;
+	int minidriver;
+	int err;
 	pfd.cColorBits = bitspp;
 
-	numpages = 2;	// KJS 20031225: tell rotatesprite that it's double buffered!
-	if (!hDC) {
-		hDC = GetDC(hWindow);
-		if (!hDC) {
-			ShowErrorBox("Error getting device context");
-			return TRUE;
-		}
+	hGLWindow = CreateWindow(
+			WindowClass,
+			"OpenGL Window",
+			WS_CHILD|WS_VISIBLE,
+			0,0,
+			width,height,
+			hWindow,
+			(HMENU)1,
+			hInstance,
+			NULL);
+	if (!hGLWindow) {
+		ShowErrorBox("Error creating OpenGL child window.");
+		return TRUE;
 	}
 
-	PixelFormat = ChoosePixelFormat(hDC,&pfd);
+	hDC = GetDC(hGLWindow);
+	if (!hDC) {
+		ReleaseOpenGL();
+		ShowErrorBox("Error getting device context");
+		return TRUE;
+	}
+
+	minidriver = Bstrcasecmp(gldriver,"opengl32.dll");
+
+	if (minidriver) PixelFormat = bwglChoosePixelFormat(hDC,&pfd);
+	else PixelFormat = ChoosePixelFormat(hDC,&pfd);
 	if (!PixelFormat) {
 		ReleaseOpenGL();
 		ShowErrorBox("Can't choose pixel format");
 		return TRUE;
 	}
 
-	if (!SetPixelFormat(hDC, PixelFormat, &pfd)) {
+	if (minidriver) err = bwglSetPixelFormat(hDC, PixelFormat, &pfd);
+	else err = SetPixelFormat(hDC, PixelFormat, &pfd);
+	if (!err) {
 		ReleaseOpenGL();
 		ShowErrorBox("Can't set pixel format");
 		return TRUE;
 	}
 
-	hGLRC = wglCreateContext(hDC);
+	hGLRC = bwglCreateContext(hDC);
 	if (!hGLRC) {
 		ReleaseOpenGL();
 		ShowErrorBox("Can't create GL RC");
 		return TRUE;
 	}
 
-	if (!wglMakeCurrent(hDC, hGLRC)) {
+	if (!bwglMakeCurrent(hDC, hGLRC)) {
 		ReleaseOpenGL();
 		ShowErrorBox("Can't activate GL RC");
 		return TRUE;
@@ -2489,21 +2588,21 @@ static int SetupOpenGL(int width, int height, int bitspp)
 
 	polymost_glreset();
 
-	glEnable(GL_TEXTURE_2D);
-	glShadeModel(GL_SMOOTH); //GL_FLAT
-	glClearColor(0,0,0,0.5); //Black Background
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
-	glHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
-	glDisable(GL_DITHER);
+	bglEnable(GL_TEXTURE_2D);
+	bglShadeModel(GL_SMOOTH); //GL_FLAT
+	bglClearColor(0,0,0,0.5); //Black Background
+	bglHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
+	bglHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+	bglDisable(GL_DITHER);
 	
 	{
 		GLubyte *p,*p2,*p3;
 		int i;
 
-		glinfo.vendor     = glGetString(GL_VENDOR);
-		glinfo.renderer   = glGetString(GL_RENDERER);
-		glinfo.version    = glGetString(GL_VERSION);
-		glinfo.extensions = glGetString(GL_EXTENSIONS);
+		glinfo.vendor     = bglGetString(GL_VENDOR);
+		glinfo.renderer   = bglGetString(GL_RENDERER);
+		glinfo.version    = bglGetString(GL_VERSION);
+		glinfo.extensions = bglGetString(GL_EXTENSIONS);
 		
 		glinfo.maxanisotropy = 1.0;
 		glinfo.bgra = 0;
@@ -2516,10 +2615,10 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		// process the extensions string and flag stuff we recognize
 		p = Bstrdup(glinfo.extensions);
 		p3 = p;
-		while ((p2 = Bstrtoken(p3==p?p:NULL, " ", &p3, 1)) != NULL) {
+		while ((p2 = Bstrtoken(p3==p?p:NULL, " ", (char**)&p3, 1)) != NULL) {
 			if (!Bstrcmp(p2, "GL_EXT_texture_filter_anisotropic")) {
 				// supports anisotropy. get the maximum anisotropy level
-				glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glinfo.maxanisotropy);
+				bglGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glinfo.maxanisotropy);
 			} else if (!Bstrcmp(p2, "GL_EXT_texture_edge_clamp") ||
 			           !Bstrcmp(p2, "GL_SGIS_texture_edge_clamp")) {
 				// supports GL_CLAMP_TO_EDGE or GL_CLAMP_TO_EDGE_SGIS
@@ -2534,6 +2633,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		}
 		Bfree(p);
 	}
+	numpages = 2;	// KJS 20031225: tell rotatesprite that it's double buffered!
 
 	return FALSE;
 }
@@ -2553,7 +2653,7 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 
 	if (hWindow) {
 		if (bpp > 8) {
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 			ReleaseOpenGL();	// release opengl
 #endif
 		} else {
@@ -2563,7 +2663,7 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 		if (!fs && fullscreen) {
 			// restore previous display mode and set to normal cooperative level
 			RestoreDirectDrawMode();
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 		} else if (fs && fullscreen) {
 			// using CDS for GL modes, so restore from DirectDraw
 			if (bpp != bitspp && glusecds) RestoreDirectDrawMode();
@@ -2636,7 +2736,7 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 	// fullscreen?
 	if (!fs) {
 		if (bitspp > 8) {
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 			// yes, start up opengl
 			if (SetupOpenGL(width,height,bitspp)) {
 				return TRUE;
@@ -2663,7 +2763,7 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 			return TRUE;
 		}
 
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 		if (glusecds && bitspp > 8) {
 			DEVMODE dmScreenSettings;
 
@@ -2708,7 +2808,7 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 		}
 		
 		if (bitspp > 8) {
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 			// we want an opengl mode
 			if (SetupOpenGL(width,height,bitspp)) {
 				return TRUE;
@@ -2749,7 +2849,7 @@ static BOOL CreateAppWindow(int width, int height, int fs, int bitspp, char *wti
 //
 static void DestroyAppWindow(void)
 {
-#ifdef USE_OPENGL
+#if defined(USE_OPENGL) && defined(POLYMOST)
 	UninitOpenGL();
 #endif
 	UninitDirectDraw();
@@ -3001,6 +3101,10 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	RECT rect;
 	POINT pt;
 	HRESULT result;
+	
+#if defined(POLYMOST) && defined(USE_OPENGL)
+	if (hWnd == hGLWindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
+#endif
 
 	switch (uMsg) {
 		case WM_SYSCOMMAND:
@@ -3091,6 +3195,13 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 		case WM_SYSKEYDOWN:
 		case WM_SYSKEYUP:
 			return 0;
+
+		case WM_CHAR:
+			if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) == keyasciififoplc) return 0;
+			keyasciififo[keyasciififoend] = (unsigned char)wParam;
+			keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+			//OSD_Printf("Char %d, %d-%d\n",wParam,keyasciififoplc,keyasciififoend);
+			return 0;
 			
 		case WM_HOTKEY:
 			return 0;
@@ -3139,7 +3250,7 @@ static BOOL RegisterWindowClass(void)
 	wcx.hCursor	= LoadCursor(hInstance, IDC_ARROW);
 	wcx.hbrBackground = (HBRUSH)COLOR_GRAYTEXT;
 	wcx.lpszMenuName = NULL;
-	wcx.lpszClassName = "buildapp";
+	wcx.lpszClassName = WindowClass;
 	wcx.hIconSm	= LoadImage(hInstance, MAKEINTRESOURCE(100), IMAGE_ICON,
 				GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
 	if (!RegisterClassEx(&wcx)) {

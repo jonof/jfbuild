@@ -936,7 +936,7 @@ void copybufreverse(void *S, void *D, long c);
 
 
 #define qinterpolatedown16(a,c,d,S) \
-	({ void *__a=(a); long __c=(c), __d=(d), __S=(S); \
+	({ void *__a=(void*)(a); long __c=(c), __d=(d), __S=(S); \
 	   __asm__ __volatile__ ("movl %%ecx, %%ebx; shrl $1, %%ecx; jz 1f; " \
 				"0: leal (%%edx,%%esi,), %%edi; sarl $16, %%edx; movl %%edx, (%%eax); " \
 				"leal (%%edi,%%esi,), %%edx; sarl $16, %%edi; movl %%edi, 4(%%eax); " \
@@ -946,7 +946,7 @@ void copybufreverse(void *S, void *D, long c);
 	 0; })
 
 #define qinterpolatedown16short(a,c,d,S) \
-	({ void *__a=(a); long __c=(c), __d=(d), __S=(S); \
+	({ void *__a=(void*)(a); long __c=(c), __d=(d), __S=(S); \
 	   __asm__ __volatile__ ("testl %%ecx, %%ecx; jz 3f; testb $2, %%al; jz 0f; movl %%edx, %%ebx; " \
 				"sarl $16, %%ebx; movw %%bx, (%%eax); addl %%esi, %%edx; addl $2, %%eax; " \
 				"decl %%ecx; jz 3f; " \

@@ -6,6 +6,7 @@
 
 #include "kplib.h"
 
+#define HICEFFECTMASK (1|2)
 static palette_t hictinting[MAXPALOOKUPS];
 
 #define HICHASHSZ 1024		// hash size
@@ -24,7 +25,7 @@ static unsigned short hicreplcnt = 0;		// number of replacements currently recor
 static char hicfirstinit = 0;
 
 static char *hicreplcnames = 0, *hicreplcnamesnext = 0;
-static long hicreplcnameslen = 0;
+static unsigned hicreplcnameslen = 0;
 
 //
 // find the index into hicreplc[] which contains the replacement tile particulars
@@ -98,7 +99,7 @@ void hicsetpalettetint(short palnum, unsigned char r, unsigned char g, unsigned 
 	hictinting[palnum].r = r;
 	hictinting[palnum].g = g;
 	hictinting[palnum].b = b;
-	hictinting[palnum].f = effect;
+	hictinting[palnum].f = effect & HICEFFECTMASK;
 }
 
 
@@ -115,8 +116,6 @@ int hicsetsubsttex(short picnum, short palnum, char *filen, short centx, short c
 	if (palnum < 0 || palnum > MAXPALOOKUPS) return -1;
 	if (!hicfirstinit) hicinit();
 
-	// check out the texture to see if it's kosher before we do anything more
-	
 	hashkey = (long)picnum + ((long)palnum * MAXTILES);	// unique hash key
 	hashslot = hashkey & (HICHASHSZ-1);		// find the pointer into the hash table to start looking
 
@@ -183,7 +182,7 @@ int hicsetsubsttex(short picnum, short palnum, char *filen, short centx, short c
 	hicreplc[i]->tsizx = tsizx;
 	hicreplc[i]->tsizy = tsizy;
 
-	printf("Replacement [%d,%d]: %s\n", picnum, palnum, hicreplc[i]->filename);
+	//printf("Replacement [%d,%d]: %s\n", picnum, palnum, hicreplc[i]->filename);
 
 	return 0;
 }

@@ -34,6 +34,8 @@ extern char inputdevices;
 // keys
 #define KEYFIFOSIZ 64
 extern char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
+extern unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
+extern unsigned char keynames[256][24];
 
 // mouse
 extern short mousex, mousey, mouseb;
@@ -47,6 +49,7 @@ extern long joyaxespresent;
 
 int initsystem(void);
 void uninitsystem(void);
+unsigned int getsysmemsize(void);
 
 void initprintf(const char *, ...);
 void debugprintf(const char *,...);
@@ -62,6 +65,10 @@ void releaseallbuttons(void);
 void setkeypresscallback(void (*callback)(long,long));
 void setmousepresscallback(void (*callback)(long,long));
 void setjoypresscallback(void (*callback)(long,long));
+
+unsigned char bgetchar(void);
+int bkbhit(void);
+void bflushchars(void);
 
 int initmouse(void);
 void uninitmouse(void);
@@ -92,7 +99,6 @@ int setpalette(int start, int num, char *dapal);
 int setgamma(float ro, float go, float bo);
 
 int switchrendermethod(int,int);	// 0 = software, 1 = opengl | bool = reinit
-
 
 
 // baselayer.c

@@ -74,7 +74,7 @@ void initsb(char dadigistat, char damusistat, long dasamplerate, char danumspeak
 
 	musicstat = damusistat;
 	
-	printOSD("Initializing FMOD...\n");
+	printOSD("Initialising FMOD...\n");
 	printOSD("  Linked version: %.02f\n", FMOD_VERSION);
 	printOSD("  DLL version: %.02f\n", FSOUND_GetVersion());
 
@@ -347,3 +347,7 @@ void musicoff(void)
 	musicplaying = 0;
 }
 #endif
+
+void refreshaudio(void)
+{
+}

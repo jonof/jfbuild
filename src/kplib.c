@@ -251,13 +251,14 @@ static _inline void cpuid (long a, long *s)
 
 #elif defined(USE_GCC_PRAGMAS)
 
-static inline unsigned long bswap (unsigned long a)
-{
-	__asm__ __volatile__ ("bswap %0" : "+r" (a) : : "cc" );
-	return a;
-}
+//static inline unsigned long bswap (unsigned long a)
+#define bswap(a) \
+({ long __a=(a); \
+	__asm__ __volatile__ ("bswap %0" : "+r" (__a) : : "cc" ); \
+	__a; \
+})
 
-static inline long bitrev (long b, long c)
+static long bitrev (long b, long c)
 {
 	long a;
 	__asm__ __volatile__ (
@@ -266,7 +267,7 @@ static inline long bitrev (long b, long c)
 	return a;
 }
 
-static inline long testflag (long c)
+static long testflag (long c)
 {
 	long a;
 	__asm__ __volatile__ (
@@ -277,7 +278,7 @@ static inline long testflag (long c)
 	return a;
 }
 
-static inline void cpuid (long a, long *s)
+static void cpuid (long a, long *s)
 {
 	__asm__ __volatile__ (
 		"cpuid\n\tmovl %%eax, (%%esi)\n\tmovl %%ebx, 4(%%esi)\n\t"
@@ -301,12 +302,12 @@ static inline long bitrev (long b, long c)
 	return k;
 }
 
-static inline long testflag (long c)
+static long testflag (long c)
 {
 	return 0;
 }
 
-static inline void cpuid(long a, long *s)
+static void cpuid(long a, long *s)
 {
 }
 
@@ -359,7 +360,7 @@ static void suckbits (long n)
 		{
 				//NOTE: should only read bytes inside compsize, not 64K!!! :/
 			*(long *)&olinbuf[0] = *(long *)&olinbuf[sizeof(olinbuf)-4];
-			n = min(kzfs.compleng-kzfs.comptell,sizeof(olinbuf)-4);
+			n = min((unsigned)(kzfs.compleng-kzfs.comptell),sizeof(olinbuf)-4);
 			fread(&olinbuf[4],n,1,kzfs.fil);
 			kzfs.comptell += n;
 			bitpos -= ((sizeof(olinbuf)-4)<<3);
@@ -394,7 +395,7 @@ static long getbits (long n)
 		{
 				//NOTE: should only read bytes inside compsize, not 64K!!! :/
 			*(long *)&olinbuf[0] = *(long *)&olinbuf[sizeof(olinbuf)-4];
-			n = min(kzfs.compleng-kzfs.comptell,sizeof(olinbuf)-4);
+			n = min((unsigned)(kzfs.compleng-kzfs.comptell),sizeof(olinbuf)-4);
 			fread(&olinbuf[4],n,1,kzfs.fil);
 			kzfs.comptell += n;
 			bitpos -= ((sizeof(olinbuf)-4)<<3);
@@ -1295,10 +1296,10 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 	long daframeplace, long dabytesperline, long daxres, long dayres,
 	long daglobxoffs, long daglobyoffs)
 {
-	long i, j, p, v, leng, xdim, ydim, index, prec, restartinterval;
+	long i, j, p, v, leng, xdim=0, ydim=0, index, prec, restartinterval;
 	long restartcnt, num, curbits, x, y, z, dctcnt, c, cc, daval, dabits;
 	long xx, yy, zz, xxx, yyy, r, g, b, t0, t1, t2, t3, t4, t5, t6, t7;
-	long yv, cr, cb, *dc, *dc2, yyyend;
+	long yv, cr=0, cb=0, *dc, *dc2, yyyend;
 	long *hqval, *hqbits, hqcnt, *quanptr;
 	char ch, marker, numbits, lnumcomponents, dcflag;
 	const char *kfileptr;
@@ -2030,12 +2031,12 @@ static long kbmprend (const char *buf, long fleng,
 		lptr = (long *)(y*dabytesperline-(daglobyoffs<<2)+daframeplace);
 		switch(cdim)
 		{
-			case  1: for(x=x0;x<x1;x++) lptr[x] = palut[(long)((cptr[x>>3]>>(x&7^7))&1)]; break;
-			case  4: for(x=x0;x<x1;x++) lptr[x] = palut[(long)((cptr[x>>1]>>((x&1^1)<<2))&15)]; break;
+			case  1: for(x=x0;x<x1;x++) lptr[x] = palut[(long)((cptr[x>>3]>>((x&7)^7))&1)]; break;
+			case  4: for(x=x0;x<x1;x++) lptr[x] = palut[(long)((cptr[x>>1]>>(((x&1)^1)<<2))&15)]; break;
 			case  8: for(x=x0;x<x1;x++) lptr[x] = palut[(long)(cptr[x])]; break;
 			case 16: for(x=x0;x<x1;x++)
 						{
-							i = ((long)(*(short *)cptr[x<<1]));
+							i = ((long)(*(short *)&cptr[x<<1]));
 							lptr[x] = (_lrotl(i,palut[0])&palut[3]) +
 										 (_lrotl(i,palut[1])&palut[4]) +
 										 (_lrotl(i,palut[2])&palut[5]) + 0xff000000;
@@ -2712,7 +2713,7 @@ long kzread (void *buffer, long leng)
 			kzfs.jmpplc = 0;
 
 				//Initialize for suckbits/peekbits/getbits
-			kzfs.comptell = min(kzfs.compleng,sizeof(olinbuf));
+			kzfs.comptell = min((unsigned)kzfs.compleng,sizeof(olinbuf));
 			fread(&olinbuf[0],kzfs.comptell,1,kzfs.fil);
 				//Make it re-load when there are < 32 bits left in FIFO
 			bitpos = -(((long)sizeof(olinbuf)-4)<<3);

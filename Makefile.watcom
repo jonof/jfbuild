@@ -10,7 +10,7 @@ OBJ=obj.watcom\
 !endif
 INC=include\
 !ifndef CFLAGS
-CFLAGS=-dSUPERBUILD -dPOLYMOST -dUSE_OPENGL
+CFLAGS=-dSUPERBUILD -dPOLYMOST -dUSE_OPENGL -dDYNAMIC_OPENGL
 !endif
 
 o=obj
@@ -39,7 +39,7 @@ CC=wcc386
 AS=wasm
 RC=wrc
 CFLAGS+= -5r -s -orb -fp5 $(TARGETOPTS) -d2 -i=$(INC)
-LIBS=fmodwc.lib opengl32.lib
+LIBS=fmodwc.lib #opengl32.lib
 ASFLAGS=# -d1
 EXESUFFIX=.exe
 
@@ -51,10 +51,11 @@ ENGINEOBJS=$(OBJ)engine.$o &
 	$(OBJ)crc32.$o &
 	$(OBJ)engineinfo.$o &
 	$(OBJ)baselayer.$o &
+	$(OBJ)glbuild.$o &
 	$(OBJ)compat.$o &
 	$(OBJ)kplib.$o &
 	$(OBJ)scriptfile.$o &
-	$(OBJ)jmulti.$o &
+	$(OBJ)mmulti.$o &
 	$(OBJ)defs.$o
 
 EDITOROBJS=$(OBJ)build.$o &
@@ -68,14 +69,12 @@ EDITOREXEOBJS=$(OBJ)bstub.$o
 
 PLATFORM=WINDOWS
 CFLAGS+= -i=$(DXROOT)\include -i=$(FMODROOT)\inc
-LIBS+= wsock32.lib
 !ifndef RENDERTYPE
 RENDERTYPE=WIN
 !endif
 
 ENGINEOBJS+= $(OBJ)winlayer.$o
-CFLAGS+= -dmain=app_main
-LIBS+= dxguid.lib wsock32.lib
+LIBS+= dxguid.lib ws2_32.lib
 
 CFLAGS+= -d$(PLATFORM) -dRENDERTYPE$(RENDERTYPE)=1
 

@@ -45,7 +45,7 @@ void	faketimerhandler(void);
 void	getpackets(void);
 void	drawoverheadmap(long cposx, long cposy, long czoom, short cang);
 long	movesprite(short spritenum, long dx, long dy, long dz, long ceildist, long flordist, long clipmask);
-long	waitforeverybody(void);
+void	waitforeverybody(void);
 void	searchmap(short startsector);
 void	setinterpolation(long *posptr);
 void	stopinterpolation(long *posptr);

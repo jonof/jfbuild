@@ -12,18 +12,18 @@
 #define ISWS(x) ((x == ' ') || (x == '\t') || (x == '\r') || (x == '\n'))
 
 static void skipoverws(scriptfile *sf) {
-	while (sf->textptr - sf->textbuf < sf->textlength) {
+	while ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength) {
 		if (ISWS(*sf->textptr)) {
 			if (*sf->textptr == '\n') sf->linenum++;
 			sf->textptr++;
 		} else if (sf->textptr[0] == '/' && sf->textptr[1] == '/') {
 			sf->textptr += 2;
-			while (*sf->textptr != '\n' && (sf->textptr - sf->textbuf < sf->textlength))
+			while (*sf->textptr != '\n' && ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength))
 				sf->textptr++;
 		} else if (sf->textptr[0] == '/' && sf->textptr[1] == '*') {
 			sf->textptr += 2;
 			while (sf->textptr[0] != '*' && sf->textptr[1] != '/' &&
-				 (sf->textptr - sf->textbuf < sf->textlength)) {
+				 ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength)) {
 				if (*sf->textptr == '\n') sf->linenum++;
 				sf->textptr++;
 			}
@@ -34,7 +34,7 @@ static void skipoverws(scriptfile *sf) {
 	}
 }
 static void skipovertoken(scriptfile *sf) {
-	while (sf->textptr - sf->textbuf < sf->textlength && !ISWS(*sf->textptr)) sf->textptr++;
+	while ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength && !ISWS(*sf->textptr)) sf->textptr++;
 }
 
 char *scriptfile_gettoken(scriptfile *sf)
@@ -42,10 +42,10 @@ char *scriptfile_gettoken(scriptfile *sf)
 	char *start;
 
 	skipoverws(sf);
-	if (sf->textptr - sf->textbuf >= sf->textlength) return NULL;   // eof
+	if ((unsigned)(sf->textptr - sf->textbuf) >= sf->textlength) return NULL;   // eof
 
 	start = sf->textptr;
-	while (sf->textptr - sf->textbuf < sf->textlength) {
+	while ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength) {
 		if (ISWS(*sf->textptr)) {
 			if (*sf->textptr == '\n') sf->linenum++;
 			break;
@@ -60,7 +60,7 @@ char *scriptfile_gettoken(scriptfile *sf)
 int scriptfile_getnumber(scriptfile *sf, int *num)
 {
 	skipoverws(sf);
-	if (sf->textptr - sf->textbuf >= sf->textlength) return -1;   // eof
+	if ((unsigned)(sf->textptr - sf->textbuf) >= sf->textlength) return -1;   // eof
 	(*num) = strtol((const char *)sf->textptr,&sf->textptr,0);
 	if (!ISWS(*sf->textptr) && *sf->textptr) { skipovertoken(sf); return -2; }
 	return 0;
@@ -69,7 +69,7 @@ int scriptfile_getnumber(scriptfile *sf, int *num)
 int scriptfile_getdouble(scriptfile *sf, double *num)
 {
 	skipoverws(sf);
-	if (sf->textptr - sf->textbuf >= sf->textlength) return -1;   // eof
+	if ((unsigned)(sf->textptr - sf->textbuf) >= sf->textlength) return -1;   // eof
 	(*num) = strtod((const char *)sf->textptr,&sf->textptr);
 	if (!ISWS(*sf->textptr) && *sf->textptr) { skipovertoken(sf); return -2; }
 	return 0;
@@ -83,7 +83,7 @@ int scriptfile_getsymbol(scriptfile *sf, int *num)
 	t = scriptfile_gettoken(sf);
 	if (!t) return -1;
 
-	v = Bstrtol(t, &e, 10);
+	v = Bstrtol(t, &e, 0);
 	if (*e) {
 		// looks like a string, so find it in the symbol table
 		if (scriptfile_getsymbolvalue(t, num)) return 0;
@@ -100,7 +100,7 @@ char *scriptfile_getstring(scriptfile *sf)
 	char insidequotes = 0, swallownext = 0;
 
 	skipoverws(sf);
-	if (sf->textptr - sf->textbuf >= sf->textlength) return NULL;   // eof
+	if ((unsigned)(sf->textptr - sf->textbuf) >= sf->textlength) return NULL;   // eof
 
 	if (sf->textptr[0] == '"') {
 		sf->textptr++;
@@ -108,7 +108,7 @@ char *scriptfile_getstring(scriptfile *sf)
 	}
 	start = gulper = sf->textptr;
 
-	while (sf->textptr - sf->textbuf < sf->textlength) {
+	while ((unsigned)(sf->textptr - sf->textbuf) < sf->textlength) {
 		if (*sf->textptr == '\n') sf->linenum++;
 		if (!insidequotes && ISWS(*sf->textptr) && !swallownext) {
 			*gulper = 0;
