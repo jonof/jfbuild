@@ -20,6 +20,7 @@
 #   
 
 SRC=src/
+RSRC=rsrc/
 OBJ?=obj.gnu/
 INC=include/
 CFLAGS?=-DSUPERBUILD -DPOLYMOST -DUSE_OPENGL -DDYNAMIC_OPENGL
@@ -101,8 +102,6 @@ ifeq ($(PLATFORM),WINDOWS)
 	override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOT)/inc
 	LIBS+= -L$(FMODROOT)/lib
 	ASFLAGS+= -DUNDERSCORES -f win32
-	GAMEEXEOBJS+= $(OBJ)gameres.$(res)
-	EDITOREXEOBJS+= $(OBJ)buildres.$(res)
 endif
 
 ifeq ($(RENDERTYPE),SDL)
@@ -112,9 +111,14 @@ ifeq ($(RENDERTYPE),SDL)
 	ifeq (1,$(HAVE_GTK2))
 		override CFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
 	endif
+
+	GAMEEXEOBJS+= $(OBJ)game_icon.$o
+	EDITOREXEOBJS+= $(OBJ)build_icon.$o
 endif
 ifeq ($(RENDERTYPE),WIN)
 	ENGINEOBJS+= $(OBJ)winlayer.$o
+	GAMEEXEOBJS+= $(OBJ)gameres.$(res)
+	EDITOREXEOBJS+= $(OBJ)buildres.$(res)
 endif
 
 
@@ -159,6 +163,8 @@ kgroup$(EXESUFFIX): $(OBJ)kgroup.$o
 	$(CC) -o $@ $^
 transpal$(EXESUFFIX): $(OBJ)transpal.$o $(OBJ)pragmas.$o
 	$(CC) -o $@ $^
+generateicon$(EXESUFFIX): $(OBJ)generateicon.$o $(OBJ)kplib.$o
+	$(CC) -o $@ $^
 
 # DEPENDENCIES
 include Makefile.deps
@@ -168,6 +174,8 @@ $(OBJ)kextract.$o: $(SRC)util/kextract.c
 $(OBJ)kgroup.$o: $(SRC)util/kgroup.c
 	$(CC) -funsigned-char -c $< -o $@
 $(OBJ)transpal.$o: $(SRC)util/transpal.c
+	$(CC) -funsigned-char -I$(INC) -c $< -o $@
+$(OBJ)generateicon.$o: $(SRC)util/generateicon.c
 	$(CC) -funsigned-char -I$(INC) -c $< -o $@
 
 .PHONY: $(OBJ)engineinfo.$o
@@ -193,6 +201,9 @@ $(OBJ)%.$o: $(SRC)misc/%.rc
 	$(RC) -i $^ -o $@
 
 $(OBJ)%.$o: $(SRC)util/%.c
+	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
+
+$(OBJ)%.$o: $(RSRC)%.c
 	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
 
 

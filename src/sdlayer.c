@@ -84,6 +84,7 @@ static unsigned char keytranslation[SDLK_LAST] = {
 };
 
 //static SDL_Surface * loadtarga(const char *fn);		// for loading the icon
+static SDL_Surface * loadappicon(void);
 
 #ifdef HAVE_GTK2
 #include <gtk/gtk.h>
@@ -228,16 +229,16 @@ int initsystem(void)
 	}
 #endif
 
-/*
 	{
 		SDL_Surface *icon;
-		icon = loadtarga("icon.tga");
+		//icon = loadtarga("icon.tga");
+		icon = loadappicon();
 		if (icon) {
 			SDL_WM_SetIcon(icon, 0);
 			SDL_FreeSurface(icon);
 		}
 	}
-*/
+
 	if (SDL_VideoDriverName(drvname, 32))
 		initprintf("Using \"%s\" video driver\n", drvname);
 
@@ -1154,6 +1155,20 @@ nogo:
 }
 */
 
+extern struct sdlappicon sdlappicon;
+static SDL_Surface * loadappicon(void)
+{
+	SDL_Surface *surf;
+
+	surf = SDL_CreateRGBSurfaceFrom((void*)sdlappicon.pixels,
+			sdlappicon.width, sdlappicon.height, 8, sdlappicon.width,
+			0,0,0,0);
+	if (!surf) return NULL;
+
+	SDL_SetPalette(surf, SDL_LOGPAL|SDL_PHYSPAL, (SDL_Color*)sdlappicon.colourmap, 0, sdlappicon.ncolours);
+
+	return surf;
+}
 
 //
 //

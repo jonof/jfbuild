@@ -31,3 +31,5 @@ $(OBJ)mmulti.$o: $(SRC)mmulti.c
 $(OBJ)gameres.$(res): $(SRC)misc/gameres.rc
 $(OBJ)buildres.$(res): $(SRC)misc/buildres.rc
 
+$(OBJ)game_icon.$o: $(RSRC)game_icon.c
+$(OBJ)build_icon.$o: $(RSRC)build_icon.c
