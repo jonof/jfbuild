@@ -91,16 +91,18 @@ include Makefile.shared
 # detect the platform
 ifeq ($(PLATFORM),LINUX)
 	ASFLAGS+= -f elf
-else
-	ifeq ($(PLATFORM),WINDOWS)
-		override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOT)/inc
-		LIBS+= -L$(FMODROOT)/lib
-		ASFLAGS+= -DUNDERSCORES -f win32
-		GAMEEXEOBJS+= $(OBJ)gameres.$(res)
-		EDITOREXEOBJS+= $(OBJ)buildres.$(res)
-	endif
 endif
-	
+ifeq ($(PLATFORM),BSD)
+	ASFLAGS+= -f elf
+endif
+ifeq ($(PLATFORM),WINDOWS)
+	override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOT)/inc
+	LIBS+= -L$(FMODROOT)/lib
+	ASFLAGS+= -DUNDERSCORES -f win32
+	GAMEEXEOBJS+= $(OBJ)gameres.$(res)
+	EDITOREXEOBJS+= $(OBJ)buildres.$(res)
+endif
+
 ifeq ($(RENDERTYPE),SDL)
 	ENGINEOBJS+= $(OBJ)sdlayer.$o
 	override CFLAGS+= $(subst -Dmain=SDL_main,,$(shell sdl-config --cflags))
@@ -108,10 +110,9 @@ ifeq ($(RENDERTYPE),SDL)
 	ifeq (1,$(HAVE_GTK2))
 		override CFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
 	endif
-else
-	ifeq ($(RENDERTYPE),WIN)
-		ENGINEOBJS+= $(OBJ)winlayer.$o
-	endif
+endif
+ifeq ($(RENDERTYPE),WIN)
+	ENGINEOBJS+= $(OBJ)winlayer.$o
 endif
 
 
