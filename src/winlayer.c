@@ -561,10 +561,11 @@ void initprintf(const char *f, ...)
 			i = SendDlgItemMessage(startupdlg,102,LB_GETCOUNT,0,0);
 			if (i>0) {
 				overwriteline = i-1;
-				p = (char *)Balloca( SendDlgItemMessage(startupdlg,102,LB_GETTEXTLEN,overwriteline,0) );
+				p = (char *)Bmalloc( SendDlgItemMessage(startupdlg,102,LB_GETTEXTLEN,overwriteline,0) );
 				i = SendDlgItemMessage(startupdlg,102,LB_GETTEXT,overwriteline,(LPARAM)p);
 				if (i>1023) i = 1023;
 				Bmemcpy(workbuf, p, i);
+				free(p);
 				q = workbuf+i;
 				buf[1023-i] = 0;	// clip what we expect to output since it'll spill over if we don't
 			}
@@ -2166,7 +2167,7 @@ int setpalette(int start, int num, char *dapal)
 
 	if (!fullscreen) {
 		if (num > 0) {
-			rgb = (RGBQUAD *)Balloca(sizeof(RGBQUAD)*num);
+			rgb = (RGBQUAD *)Bmalloc(sizeof(RGBQUAD)*num);
 			for (i=start, n=0; n<num; i++, n++) {
 				rgb[n].rgbBlue = lpal.palPalEntry[i].peBlue;
 				rgb[n].rgbGreen = lpal.palPalEntry[i].peGreen;
@@ -2175,6 +2176,7 @@ int setpalette(int start, int num, char *dapal)
 			}
 
 			SetDIBColorTable(hDCSection, start, num, rgb);
+			free(rgb);
 		}
 
 		if (desktopbpp > 8) return 0;	// only if an 8bit desktop do we do what follows

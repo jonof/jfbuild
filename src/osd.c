@@ -944,14 +944,16 @@ int OSD_Dispatch(const char *cmd)
 	} else if (symb->type == SYMBTYPE_VAR) {
 		if (numparms >= 1) {
 			switch (symb->i.var.type) {
-				case OSDVAR_STRING:
-					strvar = (char *)Balloca(symb->i.var.extra);
+				case OSDVAR_STRING: {
+					strvar = (char *)Bmalloc(symb->i.var.extra);
 					Bstrncpy(strvar, parms[0], symb->i.var.extra-1);
 					strvar[symb->i.var.extra-1] = 0;
 
 					if (symb->i.var.validator(strvar) >= 0)
 						Bmemcpy(symb->i.var.var, strvar, symb->i.var.extra);
+					free(strvar);
 					break;
+				}
 				
 				case OSDVAR_INTEGER:
 					if (symb->i.var.extra)
