@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #define MAXPLAYERS 16
-#define PACKRATE 15
+#define PACKRATE 40
 
 long myconnectindex, numplayers;
 long connecthead, connectpoint2[MAXPLAYERS];

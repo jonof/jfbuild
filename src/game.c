@@ -64,17 +64,17 @@ int loadsetup(const char *);
  sector[?].lotag = 15  A subway track.
  sector[?].lotag = 16  A true double-sliding door.
 
-   wall[?].lotag = 0   Normal wall
-   wall[?].lotag = 1   Y-panning wall
-   wall[?].lotag = 2   Switch - If you flip it, then all sectors with same hi
+	wall[?].lotag = 0   Normal wall
+	wall[?].lotag = 1   Y-panning wall
+	wall[?].lotag = 2   Switch - If you flip it, then all sectors with same hi
 			tag as this are operated.
-   wall[?].lotag = 3   Marked wall to detemine starting dir. (sector tag 12)
-   wall[?].lotag = 4   Mark on the shorter wall closest to the pivot point
+	wall[?].lotag = 3   Marked wall to detemine starting dir. (sector tag 12)
+	wall[?].lotag = 4   Mark on the shorter wall closest to the pivot point
 			of a swinging door. (sector tag 13)
-   wall[?].lotag = 5   Mark where a subway should stop. (sector tag 15)
-   wall[?].lotag = 6   Mark for true double-sliding doors (sector tag 16)
-   wall[?].lotag = 7   Water fountain
-   wall[?].lotag = 8   Bouncy wall!
+	wall[?].lotag = 5   Mark where a subway should stop. (sector tag 15)
+	wall[?].lotag = 6   Mark for true double-sliding doors (sector tag 16)
+	wall[?].lotag = 7   Water fountain
+	wall[?].lotag = 8   Bouncy wall!
 
  sprite[?].lotag = 0   Normal sprite
  sprite[?].lotag = 1   If you press space bar on an AL, and the AL is tagged
@@ -324,7 +324,7 @@ static long animatevel[MAXANIMATES], animateacc[MAXANIMATES], animatecnt = 0;
 	show2dsprite[newspriteindex2>>3] &= ~(1<<(newspriteindex2&7));      \
 	if (show2dsector[sectnum2>>3]&(1<<(sectnum2&7)))                    \
 		show2dsprite[newspriteindex2>>3] |= (1<<(newspriteindex2&7));    \
-	clearbufbyte(&spriteext[newspriteindex2], sizeof(spriteexttype), 0);	\
+	clearbufbyte(&spriteext[newspriteindex2], sizeof(spriteexttype), 0);   \
 }
 #else
 #define spawnsprite(newspriteindex2,x2,y2,z2,cstat2,shade2,pal2,       \
@@ -370,14 +370,14 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	if (parm->numparms < 1 || parm->numparms > 3) return OSDCMD_SHOWHELP;
 
 	switch (parm->numparms) {
-		case 1:	// bpp switch
+		case 1:   // bpp switch
 			newbpp = Batol(parm->parms[0]);
 			break;
 		case 2: // res switch
 			newx = Batol(parm->parms[0]);
 			newy = Batol(parm->parms[1]);
 			break;
-		case 3:	// res & bpp switch
+		case 3:   // res & bpp switch
 			newx = Batol(parm->parms[0]);
 			newy = Batol(parm->parms[1]);
 			newbpp = Batol(parm->parms[2]);
@@ -484,7 +484,7 @@ long app_main(long argc, char *argv[])
 
 	initsb(option[1],option[2],digihz[option[7]>>4],((option[7]&4)>0)+1,((option[7]&2)>0)+1,60,option[7]&1);
 	//if (Bstrcmp(boardfilename,"klab.map") == 0)
-	//	loadsong("klabsong.kdm");
+	//   loadsong("klabsong.kdm");
 	//else
 		loadsong("neatsong.ogg");
 	musicon();
@@ -579,7 +579,7 @@ long app_main(long argc, char *argv[])
 		OSD_DispatchQueued();
 
 			// backslash (useful only with KDM)
-//		if (keystatus[0x2b]) { keystatus[0x2b] = 0; preparesndbuf(); }
+//      if (keystatus[0x2b]) { keystatus[0x2b] = 0; preparesndbuf(); }
 
 		if ((networkmode == 1) || (myconnectindex != connecthead))
 			while (fakemovefifoplc != movefifoend[myconnectindex]) fakedomovethings();
@@ -1380,6 +1380,7 @@ void prepareboard(char *daboardfilename)
 		}
 		if (sector[i].floorpicnum == FLOORMIRROR)
 			floormirrorsector[mirrorcnt++] = i;
+		//if (sector[i].ceilingpicnum == FLOORMIRROR) floormirrorsector[mirrorcnt++] = i; //SOS
 	}
 
 		//Scan wall tags
@@ -3571,99 +3572,74 @@ void drawscreen(short snum, long dasmoothratio)
 
 	setears(cposx,cposy,(long)sintable[(cang+512)&2047]<<14,(long)sintable[cang&2047]<<14);
 
-	if (typemode != 0)
+	if (dimensionmode[myconnectindex] == 3)
 	{
-		charsperline = 40;
-		//if (dimensionmode[snum] == 2) charsperline = 80;
+		tempint = screensize;
 
-		for(i=0;i<=typemessageleng;i+=charsperline)
+		if (((loc.bits&32) > (screensizeflag&32)) && (screensize > 64))
 		{
-			for(j=0;j<charsperline;j++)
-				tempbuf[j] = typemessage[i+j];
-			if (typemessageleng < i+charsperline)
+			ox1 = ((xdim-screensize)>>1);
+			ox2 = ox1+screensize-1;
+			oy1 = (((ydim-32)-scale(screensize,ydim-32,xdim))>>1);
+			oy2 = oy1 + scale(screensize,ydim-32,xdim)-1;
+			screensize -= (screensize>>3);
+
+			if (tempint > xdim)
 			{
-				tempbuf[(typemessageleng-i)] = '_';
-				tempbuf[(typemessageleng-i)+1] = 0;
+				screensize = xdim;
+
+				flushperms();
+
+				rotatesprite((xdim-320)<<15,(ydim-32)<<16,65536L,0,STATUSBAR,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L);
+				i = ((xdim-320)>>1);
+				while (i >= 8) i -= 8, rotatesprite(i<<16,(ydim-32)<<16,65536L,0,STATUSBARFILL8,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L);
+				if (i >= 4) i -= 4, rotatesprite(i<<16,(ydim-32)<<16,65536L,0,STATUSBARFILL4,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L);
+				i = ((xdim-320)>>1)+320;
+				while (i <= xdim-8) rotatesprite(i<<16,(ydim-32)<<16,65536L,0,STATUSBARFILL8,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L), i += 8;
+				if (i <= xdim-4) rotatesprite(i<<16,(ydim-32)<<16,65536L,0,STATUSBARFILL4,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L), i += 4;
+
+				drawstatusbar(screenpeek);   // Andy did this
+			}
+
+			x1 = ((xdim-screensize)>>1);
+			x2 = x1+screensize-1;
+			y1 = (((ydim-32)-scale(screensize,ydim-32,xdim))>>1);
+			y2 = y1 + scale(screensize,ydim-32,xdim)-1;
+			setview(x1,y1,x2,y2);
+
+			// (ox1,oy1)ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//          ³  (x1,y1)        ³
+			//          ³     ÚÄÄÄÄÄ¿     ³
+			//          ³     ³     ³     ³
+			//          ³     ÀÄÄÄÄÄÙ     ³
+			//          ³        (x2,y2)  ³
+			//          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ(ox2,oy2)
+
+			drawtilebackground(0L,0L,BACKGROUND,8,ox1,oy1,x1-1,oy2,0);
+			drawtilebackground(0L,0L,BACKGROUND,8,x2+1,oy1,ox2,oy2,0);
+			drawtilebackground(0L,0L,BACKGROUND,8,x1,oy1,x2,y1-1,0);
+			drawtilebackground(0L,0L,BACKGROUND,8,x1,y2+1,x2,oy2,0);
+		}
+		if (((loc.bits&16) > (screensizeflag&16)) && (screensize <= xdim))
+		{
+			screensize += (screensize>>3);
+			if ((screensize > xdim) && (tempint == xdim))
+			{
+				screensize = xdim+1;
+				x1 = 0; y1 = 0;
+				x2 = xdim-1; y2 = ydim-1;
 			}
 			else
-				tempbuf[charsperline] = 0;
-			//if (dimensionmode[snum] == 3)
-				printext256(0L,(i/charsperline)<<3,183,-1,tempbuf,0);
-			//else
-			//   printext16(0L,((i/charsperline)<<3)+(pageoffset/640),10,-1,tempbuf,0);
-		}
-	}
-	else
-	{
-		if (dimensionmode[myconnectindex] == 3)
-		{
-			tempint = screensize;
-
-			if (((loc.bits&32) > (screensizeflag&32)) && (screensize > 64))
 			{
-				ox1 = ((xdim-screensize)>>1);
-				ox2 = ox1+screensize-1;
-				oy1 = (((ydim-32)-scale(screensize,ydim-32,xdim))>>1);
-				oy2 = oy1 + scale(screensize,ydim-32,xdim)-1;
-				screensize -= (screensize>>3);
-
-				if (tempint > xdim)
-				{
-					screensize = xdim;
-
-					flushperms();
-
-					rotatesprite((xdim-320)<<15,(ydim-32)<<16,65536L,0,STATUSBAR,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L);
-					i = ((xdim-320)>>1);
-					while (i >= 8) i -= 8, rotatesprite(i<<16,(ydim-32)<<16,65536L,0,STATUSBARFILL8,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L);
-					if (i >= 4) i -= 4, rotatesprite(i<<16,(ydim-32)<<16,65536L,0,STATUSBARFILL4,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L);
-					i = ((xdim-320)>>1)+320;
-					while (i <= xdim-8) rotatesprite(i<<16,(ydim-32)<<16,65536L,0,STATUSBARFILL8,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L), i += 8;
-					if (i <= xdim-4) rotatesprite(i<<16,(ydim-32)<<16,65536L,0,STATUSBARFILL4,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L), i += 4;
-
-					drawstatusbar(screenpeek);   // Andy did this
-				}
-
+				if (screensize > xdim) screensize = xdim;
 				x1 = ((xdim-screensize)>>1);
 				x2 = x1+screensize-1;
 				y1 = (((ydim-32)-scale(screensize,ydim-32,xdim))>>1);
 				y2 = y1 + scale(screensize,ydim-32,xdim)-1;
-				setview(x1,y1,x2,y2);
-
-				// (ox1,oy1)ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-				//          ³  (x1,y1)        ³
-				//          ³     ÚÄÄÄÄÄ¿     ³
-				//          ³     ³     ³     ³
-				//          ³     ÀÄÄÄÄÄÙ     ³
-				//          ³        (x2,y2)  ³
-				//          ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ(ox2,oy2)
-
-				drawtilebackground(0L,0L,BACKGROUND,8,ox1,oy1,x1-1,oy2,0);
-				drawtilebackground(0L,0L,BACKGROUND,8,x2+1,oy1,ox2,oy2,0);
-				drawtilebackground(0L,0L,BACKGROUND,8,x1,oy1,x2,y1-1,0);
-				drawtilebackground(0L,0L,BACKGROUND,8,x1,y2+1,x2,oy2,0);
 			}
-			if (((loc.bits&16) > (screensizeflag&16)) && (screensize <= xdim))
-			{
-				screensize += (screensize>>3);
-				if ((screensize > xdim) && (tempint == xdim))
-				{
-					screensize = xdim+1;
-					x1 = 0; y1 = 0;
-					x2 = xdim-1; y2 = ydim-1;
-				}
-				else
-				{
-					if (screensize > xdim) screensize = xdim;
-					x1 = ((xdim-screensize)>>1);
-					x2 = x1+screensize-1;
-					y1 = (((ydim-32)-scale(screensize,ydim-32,xdim))>>1);
-					y2 = y1 + scale(screensize,ydim-32,xdim)-1;
-				}
-				setview(x1,y1,x2,y2);
-			}
-			screensizeflag = loc.bits;
+			setview(x1,y1,x2,y2);
 		}
+		screensizeflag = loc.bits;
 	}
 
 	if (dimensionmode[snum] != 2)
@@ -3713,7 +3689,7 @@ void drawscreen(short snum, long dasmoothratio)
 			//}
 			//else
 			//{
-			//	for(i=connecthead;i>=0;i=connectpoint2[i]) frame2draw[i] = 1;
+			//   for(i=connecthead;i>=0;i=connectpoint2[i]) frame2draw[i] = 1;
 			//}
 
 			for(i=connecthead,j=0;i>=0;i=connectpoint2[i],j++)
@@ -3787,7 +3763,7 @@ void drawscreen(short snum, long dasmoothratio)
 		else
 		{
 				//Init for screen rotation
-			if (getrendermode() == 0) {	// JBF 20031220
+			if (getrendermode() == 0) {   // JBF 20031220
 				tiltlock = screentilt;
 				if ((tiltlock) || (detailmode))
 				{
@@ -3828,10 +3804,13 @@ void drawscreen(short snum, long dasmoothratio)
 					if (j < dist) dist = j, i = k;
 				}
 
+				//if (cposz > sector[floormirrorsector[i]].ceilingz) i = 1-i; //SOS
+
 				j = floormirrorsector[i];
 
 				if (cameradist < 0) sprite[playersprite[snum]].cstat |= 0x8000;
-				drawrooms(cposx,cposy,(sector[j].floorz<<1)-cposz,cang,201-choriz,j);
+				drawrooms(cposx,cposy,(sector[j].floorz<<1)-cposz,cang,201-choriz,j); //SOS
+				//drawrooms(cposx,cposy,cposz,cang,choriz,j+MAXSECTORS); //SOS
 				sprite[playersprite[snum]].cstat &= ~0x8000;
 				analyzesprites(cposx,cposy);
 				drawmasks();
@@ -3839,7 +3818,7 @@ void drawscreen(short snum, long dasmoothratio)
 					//Temp horizon
 				if (getrendermode() == 0) {
 					l = scale(choriz-100,windowx2-windowx1,320)+((windowy1+windowy2)>>1);
-					begindrawing();	//{{{
+					begindrawing();   //{{{
 					for(y1=windowy1,y2=windowy2;y1<y2;y1++,y2--)
 					{
 						ptr = (char *)(frameplace+ylookup[y1]);
@@ -3886,7 +3865,7 @@ void drawscreen(short snum, long dasmoothratio)
 			}
 
 				//WARNING!  Assuming (MIRRORLABEL&31) = 0 and MAXMIRRORS = 64
-			intptr = (long *)&gotpic[MIRRORLABEL>>3];	// CHECK!
+			intptr = (long *)&gotpic[MIRRORLABEL>>3];   // CHECK!
 			if (intptr[0]|intptr[1])
 				for(i=MAXMIRRORS-1;i>=0;i--)
 					if (gotpic[(i+MIRRORLABEL)>>3]&(1<<(i&7)))
@@ -3928,7 +3907,7 @@ void drawscreen(short snum, long dasmoothratio)
 			drawmasks();
 
 				//Finish for screen rotation
-			if (getrendermode() == 0) {		// JBF 20031220
+			if (getrendermode() == 0) {      // JBF 20031220
 				if ((tiltlock) || (detailmode))
 				{
 					setviewback();
@@ -3981,7 +3960,7 @@ void drawscreen(short snum, long dasmoothratio)
 		gotpic[SLIME>>3] &= ~(1<<(SLIME&7));
 		if (waloff[SLIME] != 0) {
 			movelava((char *)waloff[SLIME]);
-			invalidatetile(SLIME,0,1);	// JBF 20031228
+			invalidatetile(SLIME,0,1);   // JBF 20031228
 		}
 	}
 
@@ -4000,6 +3979,29 @@ void drawscreen(short snum, long dasmoothratio)
 		drawoverheadmap(cposx,cposy,i,cang);
 	}
 
+	if (typemode != 0)
+	{
+		charsperline = 40;
+		//if (dimensionmode[snum] == 2) charsperline = 80;
+
+		for(i=0;i<=typemessageleng;i+=charsperline)
+		{
+			for(j=0;j<charsperline;j++)
+				tempbuf[j] = typemessage[i+j];
+			if (typemessageleng < i+charsperline)
+			{
+				tempbuf[(typemessageleng-i)] = '_';
+				tempbuf[(typemessageleng-i)+1] = 0;
+			}
+			else
+				tempbuf[charsperline] = 0;
+			//if (dimensionmode[snum] == 3)
+				printext256(0L,(i/charsperline)<<3,31/*183*/,-1,tempbuf,0);
+			//else
+			//   printext16(0L,((i/charsperline)<<3)+(pageoffset/640),10,-1,tempbuf,0);
+		}
+	}
+
 	if (getmessageleng > 0)
 	{
 		charsperline = 40;
@@ -4014,7 +4016,7 @@ void drawscreen(short snum, long dasmoothratio)
 			else
 				tempbuf[charsperline] = 0;
 
-			printext256(0L,((i/charsperline)<<3)+(ydim-32-8)-(((getmessageleng-1)/charsperline)<<3),151,-1,tempbuf,0);
+			printext256(0L,((i/charsperline)<<3)+(ydim-32-8)-(((getmessageleng-1)/charsperline)<<3),31/*151*/,-1,tempbuf,0);
 		}
 		if (totalclock > getmessagetimeoff)
 			getmessageleng = 0;
@@ -4047,7 +4049,7 @@ void drawscreen(short snum, long dasmoothratio)
 //         printext256(0L,j,31,-1,tempbuf,1); j += 6;
 //      }
 
-	nextpage();	// send completed frame to display
+	nextpage();   // send completed frame to display
 
 	while (totalclock >= ototalclock+(TIMERINTSPERSECOND/MOVESPERSECOND))
 		faketimerhandler();
@@ -4077,7 +4079,7 @@ void drawscreen(short snum, long dasmoothratio)
 			// work out a mask to select the mode
 			for (i=0; i<validmodecnt; i++)
 				if ((validmodexdim[i] == xdim) &&
-				    (validmodeydim[i] == ydim) &&
+					 (validmodeydim[i] == ydim) &&
 					(validmodefs[i] == fullscreen) &&
 					(validmodebpp[i] == bitsperpixel))
 					{ j=i; break; }
@@ -4514,7 +4516,7 @@ void getinput(void)
 		oldmousebstatus &= ~1;     //Allow continous fire with mouse for chain gun
 	
 		//PRIVATE KEYS:
-/*	if (keystatus[0xb7])  //Printscreen
+/*   if (keystatus[0xb7])  //Printscreen
 	{
 		keystatus[0xb7] = 0;
 		printscreeninterrupt();
@@ -4560,7 +4562,7 @@ void getinput(void)
 				if (typemessageleng == 0) { typemode = 0; break; }
 				typemessageleng--;
 			}
-			else if (ch == 9)	// tab
+			else if (ch == 9)   // tab
 			{
 				keystatus[0xf] = 0;
 				typemode = 0;
@@ -5687,6 +5689,7 @@ void getpackets(void)
 				getmessageleng = packbufleng-1;
 				for(j=getmessageleng-1;j>=0;j--) getmessage[j] = packbuf[j+1];
 				getmessagetimeoff = totalclock+360+(getmessageleng<<4);
+				wsay("getstuff.wav",8192L,63L,63L); //Added 12/2004
 				break;
 			case 3:
 				wsay("getstuff.wav",4096L,63L,63L);
@@ -6213,4 +6216,3 @@ void drawtilebackground (long thex, long they, short tilenum,
 /*
  * vim:ts=4:sw=4:
  */
-
