@@ -109,7 +109,7 @@ static unsigned char qhufbit0[1<<LOGQHUFSIZ0], qhufbit1[1<<LOGQHUFSIZ1];
 
 #if defined(USE_WATCOM_PRAGMAS)
 
-static long bswap (long);
+long bswap (long);
 #pragma aux bswap =\
 	".586"\
 	"bswap eax"\
@@ -117,7 +117,7 @@ static long bswap (long);
 	modify nomemory exact [eax]\
 	value [eax]
 
-static long bitrev (long, long);
+long bitrev (long, long);
 #pragma aux bitrev =\
 	"xor eax, eax"\
 	"beg: shr ebx, 1"\
@@ -128,7 +128,7 @@ static long bitrev (long, long);
 	modify nomemory exact [eax ebx ecx]\
 	value [eax]
 
-static long testflag (long);
+long testflag (long);
 #pragma aux testflag =\
 	"pushfd"\
 	"pop eax"\
@@ -147,7 +147,7 @@ static long testflag (long);
 	modify exact [eax ebx]\
 	value [eax]
 
-static void cpuid (long, long *);
+void cpuid (long, long *);
 #pragma aux cpuid =\
 	".586"\
 	"cpuid"\
@@ -489,7 +489,7 @@ static long Paeth (long a, long b, long c)
 #if defined(USE_WATCOM_PRAGMAS)
 
 	//NOTE: cmov now has correctly ordered registers (thx to bug fix in 11.0c!)
-static long Paeth686 (long, long, long);
+long Paeth686 (long, long, long);
 #pragma aux Paeth686 =\
 	".686"\
 	"mov edx, ecx"\
@@ -508,7 +508,7 @@ static long Paeth686 (long, long, long);
 	value [ecx]
 
 	//Note: "cmove eax,?" may be faster than "jne ?:and eax,?" but who cares
-static void rgbhlineasm (long, long, long, long);
+void rgbhlineasm (long, long, long, long);
 #pragma aux rgbhlineasm =\
 	"sub ecx, edx"\
 	"jle short endit"\
@@ -535,7 +535,7 @@ static void rgbhlineasm (long, long, long, long);
 	modify exact [eax ecx edi]\
 	value
 
-static void pal8hlineasm (long, long, long, long);
+void pal8hlineasm (long, long, long, long);
 #pragma aux pal8hlineasm =\
 	"sub ecx, edx"\
 	"jle short endit"\
@@ -1098,14 +1098,14 @@ static unsigned char pow2char[8] = {1,2,4,8,16,32,64,128};
 
 #if defined(USE_WATCOM_PRAGMAS)
 
-static long mulshr24 (long, long);
+long mulshr24 (long, long);
 #pragma aux mulshr24 =\
 	"imul edx"\
 	"shrd eax, edx, 24"\
 	parm nomemory [eax][edx]\
 	modify exact [eax edx]
 
-static long mulshr32 (long, long);
+long mulshr32 (long, long);
 #pragma aux mulshr32 =\
 	"imul edx"\
 	parm nomemory [eax][edx]\
