@@ -153,6 +153,16 @@ int wm_ynbox(char *name, char *fmt, ...)
 	return 0;
 }
 
+void wm_setapptitle(char *name)
+{
+	if (name) {
+		Bstrncpy(apptitle, name, sizeof(apptitle)-1);
+		apptitle[ sizeof(apptitle)-1 ] = 0;
+	}
+
+	SDL_WM_SetCaption(apptitle, NULL);
+}
+
 
 //
 //

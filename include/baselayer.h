@@ -102,6 +102,7 @@ int switchrendermethod(int,int);	// 0 = software, 1 = opengl | bool = reinit
 
 int wm_msgbox(char *name, char *fmt, ...);
 int wm_ynbox(char *name, char *fmt, ...);
+void wm_setapptitle(char *name);
 
 // baselayer.c
 int baselayer_init();

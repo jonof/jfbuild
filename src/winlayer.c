@@ -205,6 +205,15 @@ int wm_ynbox(char *name, char *fmt, ...)
 	return 0;
 }
 
+void wm_setapptitle(char *name)
+{
+	if (name) {
+		Bstrncpy(apptitle, name, sizeof(apptitle)-1);
+		apptitle[ sizeof(apptitle)-1 ] = 0;
+	}
+
+	if (hWindow) SetWindowText(hWindow, apptitle);
+}
 
 //
 // SignalHandler() -- called when we've sprung a leak

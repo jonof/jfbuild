@@ -365,6 +365,7 @@ void OSD_SetLogFile(char *fn)
 	if (osdlog) Bfclose(osdlog);
 	osdlog = NULL;
 	if (fn) osdlog = Bfopen(fn,"w");
+	if (osdlog) setvbuf(osdlog, (char*)NULL, _IONBF, 0);
 }
 
 
@@ -999,11 +1000,11 @@ int OSD_RegisterFunction(const char *name, const char *help, int (*func)(const o
 	if (!osdinited) OSD_Init();
 
 	if (!name) {
-		printf("OSD_RegisterFunction(): may not register a function with a null name\n");
+		Bprintf("OSD_RegisterFunction(): may not register a function with a null name\n");
 		return -1;
 	}
 	if (!name[0]) {
-		printf("OSD_RegisterFunction(): may not register a function with no name\n");
+		Bprintf("OSD_RegisterFunction(): may not register a function with no name\n");
 		return -1;
 	}
 
@@ -1030,12 +1031,13 @@ int OSD_RegisterFunction(const char *name, const char *help, int (*func)(const o
 
 	symb = findexactsymbol(name);
 	if (symb) {
-		Bprintf("OSD_RegisterFunction(): \"%s\" is already defined as a ", name);
+		const char *s;
 		switch (symb->type) {
-			case SYMBTYPE_FUNC: Bprintf("function"); break;
-			case SYMBTYPE_VAR:  Bprintf("variable"); break;
+			case SYMBTYPE_FUNC: s = "function"; break;
+			case SYMBTYPE_VAR:  s = "variable"; break;
+			default: s = "?"; break;
 		}
-		Bprintf("\n");
+		Bprintf("OSD_RegisterFunction(): \"%s\" is already defined as a %s\n", name, s);
 		return -1;
 	}
 	
@@ -1065,35 +1067,35 @@ int OSD_RegisterVariable(const char *name, int type, void *var, int extra, int (
 	if (!osdinited) OSD_Init();
 
 	if (!name) {
-		Bprintf("OSD_RegisterFunction(): may not register a variable with a null name\n");
+		Bprintf("OSD_RegisterVariable(): may not register a variable with a null name\n");
 		return -1;
 	}
 	if (!name[0]) {
-		Bprintf("OSD_RegisterFunction(): may not register a variable with no name\n");
+		Bprintf("OSD_RegisterVariable(): may not register a variable with no name\n");
 		return -1;
 	}
 
 	// check for illegal characters in name
 	for (cp = name; *cp; cp++) {
 		if ((cp == name) && (*cp >= '0') && (*cp <= '9')) {
-			Bprintf("OSD_RegisterFunction(): first character of variable name \"%s\" must not be a numeral\n", name);
+			Bprintf("OSD_RegisterVariable(): first character of variable name \"%s\" must not be a numeral\n", name);
 			return -1;
 		}
 		if ((*cp < '0') ||
 		    (*cp > '9' && *cp < 'A') ||
 		    (*cp > 'Z' && *cp < 'a' && *cp != '_') ||
 		    (*cp > 'z')) {
-			Bprintf("OSD_RegisterFunction(): illegal character in variable name \"%s\"\n", name);
+			Bprintf("OSD_RegisterVariable(): illegal character in variable name \"%s\"\n", name);
 			return -1;
 		}
 	}
 
 	if (type != OSDVAR_INTEGER && type != OSDVAR_STRING) {
-		Bprintf("OSD_RegisterFunction(): unrecognised variable type for \"%s\"\n", name);
+		Bprintf("OSD_RegisterVariable(): unrecognised variable type for \"%s\"\n", name);
 		return -1;
 	}
 	if (!var) {
-		Bprintf("OSD_RegisterFunction(): may not register a null variable\n");
+		Bprintf("OSD_RegisterVariable(): may not register a null variable\n");
 		return -1;
 	}
 	if (!validator) {
@@ -1105,18 +1107,19 @@ int OSD_RegisterVariable(const char *name, int type, void *var, int extra, int (
 	
 	symb = findexactsymbol(name);
 	if (symb) {
-		Bprintf("OSD_RegisterFunction(): \"%s\" is already defined as a ", name);
+		const char *s;
 		switch (symb->type) {
-			case SYMBTYPE_FUNC: Bprintf("function"); break;
-			case SYMBTYPE_VAR:  Bprintf("variable"); break;
+			case SYMBTYPE_FUNC: s = "function"; break;
+			case SYMBTYPE_VAR:  s = "variable"; break;
+			default: s = "?"; break;
 		}
-		Bprintf("\n");
+		Bprintf("OSD_RegisterVariable(): \"%s\" is already defined as a %s\n", name, s);
 		return -1;
 	}
 	
 	symb = addnewsymbol(SYMBTYPE_VAR, name);
 	if (!symb) {
-		Bprintf("OSD_RegisterFunction(): Failed registering variable \"%s\"\n", name);
+		Bprintf("OSD_RegisterVariable(): Failed registering variable \"%s\"\n", name);
 		return -1;
 	}
 
