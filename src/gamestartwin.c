@@ -115,11 +115,14 @@ static INT_PTR CALLBACK LaunchWindowProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 	return FALSE;
 }
 
-int DoLaunchWindow(void)
+int DoLaunchWindow(int initval)
 {
 	HWND hwndStart, hwndLaunch;
 	MSG msg;
 	long saferect[4];
+
+	// only show config window if no config is loaded, or if it is, only if left control is held
+	if (initval == 0 && !GetAsyncKeyState(VK_CONTROL)) return 0;
 
 	if (win_getstartupwin((long*)&hwndStart, saferect, NULL)) return 0;
 

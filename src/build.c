@@ -50,7 +50,7 @@ extern char picsiz[MAXTILES];
 extern long startposx, startposy, startposz;
 extern short startang, startsectnum;
 extern long frameplace, ydim16, halfxdim16, midydim16;
-long xdim2d, ydim2d, xdimgame, ydimgame, bppgame;
+long xdim2d = 640, ydim2d = 480, xdimgame = 640, ydimgame = 480, bppgame = 8;
 
 extern long cachesize, artsize;
 
@@ -209,7 +209,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 }
 
 #ifdef RENDERTYPEWIN
-int DoLaunchWindow(void);	// buildstartwin.c
+int DoLaunchWindow(int initval);	// buildstartwin.c
 #endif
 
 extern char *defsfilename;	// set in bstub.c
@@ -250,9 +250,9 @@ int app_main(int argc, char **argv)
 		}*/
 	}
 
-	if (ExtInit()) return -1;
+	if ((i = ExtInit()) < 0) return -1;
 #ifdef RENDERTYPEWIN
-	if (DoLaunchWindow()) return -1;
+	if (DoLaunchWindow(i)) return -1;
 #endif
 	inittimer(TIMERINTSPERSECOND);
 	installusertimercallback(keytimerstuff);

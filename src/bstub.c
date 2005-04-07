@@ -61,7 +61,7 @@ int nextvoxid = 0;
 
 int ExtInit(void)
 {
-	long i, fil;
+	long i, fil, rv = 0;
 
 	/*printf("------------------------------------------------------------------------------\n");
 	printf("   BUILD.EXE copyright(c) 1996 by Ken Silverman.  You are granted the\n");
@@ -84,7 +84,7 @@ int ExtInit(void)
 	}
 	*/
 	bpp = 8;
-	if (loadsetup("build.cfg") < 0) initprintf("Configuration file not found, using defaults.\n");
+	if (loadsetup("build.cfg") < 0) initprintf("Configuration file not found, using defaults.\n"), rv = 1;
 	Bmemcpy((void *)buildkeys,(void *)keys,NUMBUILDKEYS);   //Trick to make build use setup.dat keys
 	if (option[4] > 0) option[4] = 0;
 	if (initengine()) {
@@ -114,7 +114,7 @@ int ExtInit(void)
 #ifdef WINDOWS
 //	allowtaskswitching(0);
 #endif
-	return 0;
+	return rv;
 }
 
 void ExtUnInit(void)
