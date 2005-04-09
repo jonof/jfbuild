@@ -174,10 +174,14 @@ static const char *skyfaces[6] = {
 
 static int defsparser(scriptfile *script)
 {
+	int tokn;
+	char *cmdtokptr;
 	while (1) {
-		switch (getatoken(script,basetokens,sizeof(basetokens)/sizeof(tokenlist))) {
+		tokn = getatoken(script,basetokens,sizeof(basetokens)/sizeof(tokenlist));
+		cmdtokptr = script->ltextptr;
+		switch (tokn) {
 			case T_ERROR:
-				initprintf("Error on line %s:%d.\n", script->filename,script->linenum);
+				initprintf("Error on line %s:%d.\n", script->filename,scriptfile_getlinum(script,cmdtokptr));
 				break;
 			case T_EOF:
 				return(0);
@@ -190,7 +194,7 @@ static int defsparser(scriptfile *script)
 						included = scriptfile_fromfile(fn);
 						if (!included) {
 							initprintf("Warning: Failed including %s on line %s:%d\n",
-									fn, script->filename,script->linenum);
+									fn, script->filename,scriptfile_getlinum(script,cmdtokptr));
 						} else {
 							defsparser(included);
 							scriptfile_close(included);
@@ -208,7 +212,7 @@ static int defsparser(scriptfile *script)
 
 					if (scriptfile_addsymbolvalue(name,number) < 0)
 						initprintf("Warning: Symbol %s was NOT redefined to %d on line %s:%d\n",
-								name,number,script->filename,script->linenum);
+								name,number,script->filename,scriptfile_getlinum(script,cmdtokptr));
 					break;
 				}
 
@@ -284,7 +288,7 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getnumber(script,&ftilenume)) break; //first tile number
 					if (scriptfile_getnumber(script,&ltilenume)) break; //last tile number (inclusive)
 					if (ltilenume < ftilenume) {
-						initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, script->linenum);
+						initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, scriptfile_getlinum(script,cmdtokptr));
 						tilex = ftilenume;
 						ftilenume = ltilenume;
 						ltilenume = tilex;
@@ -300,11 +304,11 @@ static int defsparser(scriptfile *script)
 							case 0: break;
 							case -1: happy = 0; break; // invalid model id!?
 							case -2: initprintf("Invalid tile number on line %s:%d\n",
-										 script->filename, script->linenum);
+										 script->filename, scriptfile_getlinum(script,cmdtokptr));
 								 happy = 0;
 								 break;
 							case -3: initprintf("Invalid frame name on line %s:%d\n",
-										 script->filename, script->linenum);
+										 script->filename, scriptfile_getlinum(script,cmdtokptr));
 								 happy = 0;
 								 break;
 						}
@@ -333,13 +337,13 @@ static int defsparser(scriptfile *script)
 						case 0: break;
 						case -1: break; // invalid model id!?
 						case -2: initprintf("Invalid starting frame name on line %s:%d\n",
-									 script->filename, script->linenum);
+									 script->filename, scriptfile_getlinum(script,cmdtokptr));
 							 break;
 						case -3: initprintf("Invalid ending frame name on line %s:%d\n",
-									 script->filename, script->linenum);
+									 script->filename, scriptfile_getlinum(script,cmdtokptr));
 							 break;
 						case -4: initprintf("Out of memory on line %s:%d\n",
-									 script->filename, script->linenum);
+									 script->filename, scriptfile_getlinum(script,cmdtokptr));
 							 break;
 					}
 #endif
@@ -373,13 +377,13 @@ static int defsparser(scriptfile *script)
 						case 0: break;
 						case -1: break; // invalid model id!?
 						case -2: initprintf("Invalid skin filename on line %s:%d\n",
-									 script->filename, script->linenum);
+									 script->filename, scriptfile_getlinum(script,cmdtokptr));
 							 break;
 						case -3: initprintf("Invalid palette number on line %s:%d\n",
-									 script->filename, script->linenum);
+									 script->filename, scriptfile_getlinum(script,cmdtokptr));
 							 break;
 						case -4: initprintf("Out of memory on line %s:%d\n",
-									 script->filename, script->linenum);
+									 script->filename, scriptfile_getlinum(script,cmdtokptr));
 							 break;
 					}
 #endif               
@@ -418,14 +422,14 @@ static int defsparser(scriptfile *script)
 
 					if (ltilenume < ftilenume) {
 						initprintf("Warning: backwards tile range on line %s:%d\n",
-								script->filename, script->linenum);
+								script->filename, scriptfile_getlinum(script,cmdtokptr));
 						tilex = ftilenume;
 						ftilenume = ltilenume;
 						ltilenume = tilex;
 					}
 					if (ltilenume < 0 || ftilenume >= MAXTILES) {
 						initprintf("Invalid tile range on line %s:%d\n",
-								script->filename, script->linenum);
+								script->filename, scriptfile_getlinum(script,cmdtokptr));
 						break;
 					}
 
@@ -487,6 +491,7 @@ static int defsparser(scriptfile *script)
 							case T_SHADE: scriptfile_getnumber(script,&shadeoffs); break;
 							case T_FRAME:
 							{
+								char *frametokptr = script->ltextptr;
 								char *frameend, *framename = 0, happy=1;
 								int ftilenume = -1, ltilenume = -1, tilex = 0;
 
@@ -500,12 +505,12 @@ static int defsparser(scriptfile *script)
 									}
 								}
 
-								if (ftilenume < 0) initprintf("Error: missing 'first tile number' for frame definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
-								if (ltilenume < 0) initprintf("Error: missing 'last tile number' for frame definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
+								if (ftilenume < 0) initprintf("Error: missing 'first tile number' for frame definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,frametokptr)), happy = 0;
+								if (ltilenume < 0) initprintf("Error: missing 'last tile number' for frame definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,frametokptr)), happy = 0;
 								if (!happy) break;
 
 								if (ltilenume < ftilenume) {
-									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, script->linenum);
+									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, scriptfile_getlinum(script,frametokptr));
 									tilex = ftilenume;
 									ftilenume = ltilenume;
 									ltilenume = tilex;
@@ -521,11 +526,11 @@ static int defsparser(scriptfile *script)
 										case 0: break;
 										case -1: happy = 0; break; // invalid model id!?
 										case -2: initprintf("Invalid tile number on line %s:%d\n",
-													 script->filename, script->linenum);
+													 script->filename, scriptfile_getlinum(script,frametokptr));
 											 happy = 0;
 											 break;
 										case -3: initprintf("Invalid frame name on line %s:%d\n",
-													 script->filename, script->linenum);
+													 script->filename, scriptfile_getlinum(script,frametokptr));
 											 happy = 0;
 											 break;
 									}
@@ -536,6 +541,7 @@ static int defsparser(scriptfile *script)
 								break;
 							case T_ANIM:
 							{
+								char *animtokptr = script->ltextptr;
 								char *animend, *startframe = 0, *endframe = 0, happy=1;
 								int flags = 0;
 								double dfps = 1.0;
@@ -550,8 +556,8 @@ static int defsparser(scriptfile *script)
 									}
 								}
 
-								if (!startframe) initprintf("Error: missing 'start frame' for anim definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
-								if (!endframe) initprintf("Error: missing 'end frame' for anim definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
+								if (!startframe) initprintf("Error: missing 'start frame' for anim definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,animtokptr)), happy = 0;
+								if (!endframe) initprintf("Error: missing 'end frame' for anim definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,animtokptr)), happy = 0;
 								if (!happy) break;
 								
 								if (lastmodelid < 0) {
@@ -563,19 +569,20 @@ static int defsparser(scriptfile *script)
 									case 0: break;
 									case -1: break; // invalid model id!?
 									case -2: initprintf("Invalid starting frame name on line %s:%d\n",
-												 script->filename, script->linenum);
+												 script->filename, scriptfile_getlinum(script,animtokptr));
 										 break;
 									case -3: initprintf("Invalid ending frame name on line %s:%d\n",
-												 script->filename, script->linenum);
+												 script->filename, scriptfile_getlinum(script,animtokptr));
 										 break;
 									case -4: initprintf("Out of memory on line %s:%d\n",
-												 script->filename, script->linenum);
+												 script->filename, scriptfile_getlinum(script,animtokptr));
 										 break;
 								}
 #endif
 							} break;
 							case T_SKIN:
 							{
+								char *skintokptr = script->ltextptr;
 								char *skinend, *skinfn = 0;
 								int palnum = 0;
 
@@ -588,7 +595,7 @@ static int defsparser(scriptfile *script)
 								}
 
 								if (!skinfn) {
-										initprintf("Error: missing 'skin filename' for skin definition near line %s:%d\n", script->filename, script->linenum);
+										initprintf("Error: missing 'skin filename' for skin definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,skintokptr));
 										break;
 								}
 
@@ -600,19 +607,20 @@ static int defsparser(scriptfile *script)
 									case 0: break;
 									case -1: break; // invalid model id!?
 									case -2: initprintf("Invalid skin filename on line %s:%d\n",
-												 script->filename, script->linenum);
+												 script->filename, scriptfile_getlinum(script,skintokptr));
 										 break;
 									case -3: initprintf("Invalid palette number on line %s:%d\n",
-												 script->filename, script->linenum);
+												 script->filename, scriptfile_getlinum(script,skintokptr));
 										 break;
 									case -4: initprintf("Out of memory on line %s:%d\n",
-												 script->filename, script->linenum);
+												 script->filename, scriptfile_getlinum(script,skintokptr));
 										 break;
 								}
 #endif
 							} break;
 							case T_HUD:
 							{
+								char *hudtokptr = script->ltextptr;
 								char happy=1, *frameend;
 								int ftilenume = -1, ltilenume = -1, tilex = 0, flags = 0;
 								double xadd = 0.0, yadd = 0.0, zadd = 0.0, angadd = 0.0;
@@ -634,12 +642,12 @@ static int defsparser(scriptfile *script)
 									}
 								}
 
-								if (ftilenume < 0) initprintf("Error: missing 'first tile number' for hud definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
-								if (ltilenume < 0) initprintf("Error: missing 'last tile number' for hud definition near line %s:%d\n", script->filename, script->linenum), happy = 0;
+								if (ftilenume < 0) initprintf("Error: missing 'first tile number' for hud definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,hudtokptr)), happy = 0;
+								if (ltilenume < 0) initprintf("Error: missing 'last tile number' for hud definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,hudtokptr)), happy = 0;
 								if (!happy) break;
 
 								if (ltilenume < ftilenume) {
-									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, script->linenum);
+									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, scriptfile_getlinum(script,hudtokptr));
 									tilex = ftilenume;
 									ftilenume = ltilenume;
 									ltilenume = tilex;
@@ -655,11 +663,11 @@ static int defsparser(scriptfile *script)
 										case 0: break;
 										case -1: happy = 0; break; // invalid model id!?
 										case -2: initprintf("Invalid tile number on line %s:%d\n",
-												script->filename, script->linenum);
+												script->filename, scriptfile_getlinum(script,hudtokptr));
 											happy = 0;
 											break;
 										case -3: initprintf("Invalid frame name on line %s:%d\n",
-												script->filename, script->linenum);
+												script->filename, scriptfile_getlinum(script,hudtokptr));
 											happy = 0;
 											break;
 									}
@@ -678,6 +686,7 @@ static int defsparser(scriptfile *script)
 				break;
 			case T_VOXEL:
 				{
+					char *voxeltokptr = script->ltextptr;
 					char *fn, *modelend;
 					int tile0 = MAXTILES, tile1 = -1, tilex = -1;
 
@@ -689,11 +698,11 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getbraces(script,&modelend)) break;
 					while (script->textptr < modelend) {
 						switch (getatoken(script,voxeltokens,sizeof(voxeltokens)/sizeof(tokenlist))) {
-							//case T_ERROR: initprintf("Error on line %s:%d in voxel tokens\n", script->filename,script->linenum); break;
+							//case T_ERROR: initprintf("Error on line %s:%d in voxel tokens\n", script->filename,linenum); break;
 							case T_TILE:  
 								scriptfile_getnumber(script,&tilex);
 								if ((unsigned long)tilex < MAXTILES) tiletovox[tilex] = lastvoxid;
-								else initprintf("Invalid tile number on line %s:%d\n",script->filename, script->linenum);
+								else initprintf("Invalid tile number on line %s:%d\n",script->filename, scriptfile_getlinum(script,voxeltokptr));
 								break;
 							case T_TILE0: 
 								scriptfile_getnumber(script,&tile0); break; //1st tile #
@@ -701,11 +710,11 @@ static int defsparser(scriptfile *script)
 								scriptfile_getnumber(script,&tile1);
 								if (tile0 > tile1)
 								{
-									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, script->linenum);
+									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, scriptfile_getlinum(script,voxeltokptr));
 									tilex = tile0; tile0 = tile1; tile1 = tilex;
 								}
 								if ((tile1 < 0) || (tile0 >= MAXTILES))
-									{ initprintf("Invalid tile range on line %s:%d\n",script->filename, script->linenum); break; }
+									{ initprintf("Invalid tile range on line %s:%d\n",script->filename, scriptfile_getlinum(script,voxeltokptr)); break; }
 								for(tilex=tile0;tilex<=tile1;tilex++) tiletovox[tilex] = lastvoxid;
 								break; //last tile number (inclusive)
 							case T_SCALE: {
@@ -721,13 +730,14 @@ static int defsparser(scriptfile *script)
 				break;
 			case T_SKYBOX:
 				{
+					char *skyboxtokptr = script->ltextptr;
 					char *fn[6] = {0,0,0,0,0,0}, *modelend, happy=1;
 					int i, tile = -1, pal = 0;
 
 					if (scriptfile_getbraces(script,&modelend)) break;
 					while (script->textptr < modelend) {
 						switch (getatoken(script,skyboxtokens,sizeof(skyboxtokens)/sizeof(tokenlist))) {
-							//case T_ERROR: initprintf("Error on line %s:%d in skybox tokens\n",script->filename,script->linenum); break;
+							//case T_ERROR: initprintf("Error on line %s:%d in skybox tokens\n",script->filename,linenum); break;
 							case T_TILE:  scriptfile_getnumber(script,&tile ); break;
 							case T_PAL:   scriptfile_getnumber(script,&pal  ); break;
 							case T_FRONT: scriptfile_getstring(script,&fn[0]); break;
@@ -739,9 +749,9 @@ static int defsparser(scriptfile *script)
 						}
 					}
 
-					if (tile < 0) initprintf("Error: missing 'tile number' for skybox definition near line %s:%d\n", script->filename, script->linenum), happy=0;
+					if (tile < 0) initprintf("Error: missing 'tile number' for skybox definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,skyboxtokptr)), happy=0;
 					for (i=0;i<6;i++) {
-							if (!fn[i]) initprintf("Error: missing '%s filename' for skybox definition near line %s:%d\n", skyfaces[i], script->filename, script->linenum), happy = 0;
+							if (!fn[i]) initprintf("Error: missing '%s filename' for skybox definition near line %s:%d\n", skyfaces[i], script->filename, scriptfile_getlinum(script,skyboxtokptr)), happy = 0;
 					}
 
 					if (!happy) break;
@@ -751,6 +761,7 @@ static int defsparser(scriptfile *script)
 				break;
 			case T_TINT:
 				{
+					char *tinttokptr = script->ltextptr;
 					int red=255, green=255, blue=255, pal=-1, flags=0;
 					char *tintend;
 
@@ -766,7 +777,7 @@ static int defsparser(scriptfile *script)
 					}
 
 					if (pal < 0) {
-							initprintf("Error: missing 'palette number' for tint definition near line %s:%d\n", script->filename, script->linenum);
+							initprintf("Error: missing 'palette number' for tint definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,tinttokptr));
 							break;
 					}
 

@@ -22,7 +22,7 @@ char *scriptfile_gettoken(scriptfile *sf)
 	skipoverws(sf);
 	if (sf->textptr >= sf->eof) return NULL;
 
-	start = sf->textptr;
+	start = sf->ltextptr = sf->textptr;
 	skipovertoken(sf);
 	return start;
 }
@@ -50,11 +50,12 @@ int scriptfile_getnumber(scriptfile *sf, int *num)
 	while ((sf->textptr[0] == '0') && (sf->textptr[1] >= '0') && (sf->textptr[1] <= '9'))
 		sf->textptr++; //hack to treat octal numbers like decimal
 	
+	sf->ltextptr = sf->textptr;
 	(*num) = strtol((const char *)sf->textptr,&sf->textptr,0);
 	if (!ISWS(*sf->textptr) && *sf->textptr) {
 		char *p = sf->textptr;
 		skipovertoken(sf);
-		initprintf("Error on line %s:%d: expecting int, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->textptr),p);
+		initprintf("Error on line %s:%d: expecting int, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->ltextptr),p);
 		return -2;
 	}
 	return 0;
@@ -68,11 +69,13 @@ int scriptfile_getdouble(scriptfile *sf, double *num)
 		initprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
 		return -1;
 	}
+	
+	sf->ltextptr = sf->textptr;
 	(*num) = strtod((const char *)sf->textptr,&sf->textptr);
 	if (!ISWS(*sf->textptr) && *sf->textptr) {
 		char *p = sf->textptr;
 		skipovertoken(sf);
-		initprintf("Error on line %s:%d: expecting float, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->textptr),p);
+		initprintf("Error on line %s:%d: expecting float, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->ltextptr),p);
 		return -2;
 	}
 	return 0;
@@ -90,7 +93,7 @@ int scriptfile_getsymbol(scriptfile *sf, int *num)
 	if (*e) {
 		// looks like a string, so find it in the symbol table
 		if (scriptfile_getsymbolvalue(t, num)) return 0;
-		initprintf("Error on line %s:%d: expecting symbol, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->textptr),t);
+		initprintf("Error on line %s:%d: expecting symbol, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->ltextptr),t);
 		return -2;   // not found
 	}
 

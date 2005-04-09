@@ -31,7 +31,7 @@ FMODROOT=c:\sdks\fmodapi370win32\api
 #           assembly for the features in PRAGMAS.H
 TARGETOPTS=#/DUSE_A_C #/DNOASM
 
-!if 0
+!ifdef DEBUG
 # debugging options
 flags_cl=/G6 /Ot /Z7
 flags_link=/DEBUG

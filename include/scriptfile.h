@@ -1,6 +1,7 @@
 typedef struct {
 	char *textbuf;
 	unsigned int textlength;
+	char *ltextptr;		// pointer to start of the last token fetched (use this for line numbers)
 	char *textptr;
 	char *eof;
 	char *filename;
