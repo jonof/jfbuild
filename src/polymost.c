@@ -3611,9 +3611,9 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 
 				if (dastat&16)
 				{
-					xsiz = tilesizx[globalpicnum]; ysiz = tilesizy[globalpicnum];
-					xoff = (long)((signed char)((picanm[globalpicnum]>>8)&255))+(xsiz>>1);
-					yoff = (long)((signed char)((picanm[globalpicnum]>>16)&255))+(ysiz>>1);
+					xsiz = tilesizx[picnum]; ysiz = tilesizy[picnum];
+					xoff = (long)((signed char)((picanm[picnum]>>8)&255))+(xsiz>>1);
+					yoff = (long)((signed char)((picanm[picnum]>>16)&255))+(ysiz>>1);
 
 					d = (double)z/(65536.0*16384.0);
 					cosang2 = cosang = (double)sintable[(a+512)&2047]*d;

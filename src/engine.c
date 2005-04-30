@@ -8064,7 +8064,7 @@ void rotatepoint(long xpivot, long ypivot, long x, long y, short daang, long *x2
 //
 // getmousevalues
 //
-void getmousevalues(short *mousx, short *mousy, short *bstatus)
+void getmousevalues(long *mousx, long *mousy, long *bstatus)
 {
 	if (moustat == 0) { *mousx = 0; *mousy = 0; *bstatus = 0; return; }
 	readmousexy(mousx,mousy);

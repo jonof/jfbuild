@@ -38,7 +38,7 @@ extern unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
 extern unsigned char keynames[256][24];
 
 // mouse
-extern short mousex, mousey, mouseb;
+extern long mousex, mousey, mouseb;
 
 // joystick
 extern long *joyaxis, *joyhat, joyb;
@@ -75,8 +75,8 @@ void bflushchars(void);
 int initmouse(void);
 void uninitmouse(void);
 void grabmouse(char a);
-void readmousexy(short *x, short *y);
-void readmousebstatus(short *b);
+void readmousexy(long *x, long *y);
+void readmousebstatus(long *b);
 void setjoydeadzone(int axis, unsigned short dead, unsigned short satur);
 void getjoydeadzone(int axis, unsigned short *dead, unsigned short *satur);
 

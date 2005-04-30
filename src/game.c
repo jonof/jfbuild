@@ -4435,7 +4435,7 @@ void getinput(void)
 {
 	char ch, keystate, *ptr;
 	long i, j, k;
-	short mousx, mousy, bstatus;
+	long mousx, mousy, bstatus;
 
 	if (typemode == 0)           //if normal game keys active
 	{
@@ -4893,7 +4893,12 @@ void initlava(void)
 	lavanumframes = 0;
 }
 
-#if defined(USE_WATCOM_PRAGMAS)
+#if defined(NOASM)
+inline long addlava(long b)
+{
+	return 0;
+}
+#elif defined(__WATCOMC__)
 #pragma aux addlava =\
 	"mov al, byte ptr [ebx-133]",\
 	"mov dl, byte ptr [ebx-1]",\
@@ -4905,7 +4910,7 @@ void initlava(void)
 	"add al, dl",\
 	parm [ebx]\
 	modify exact [eax edx]
-#elif defined(USE_MSC_PRAGMAS)
+#elif defined(_MSC_VER)
 inline long addlava(long b)
 {
 	_asm {
@@ -4920,7 +4925,7 @@ inline long addlava(long b)
 	add al, dl
 	}
 }
-#elif defined(USE_GCC_PRAGMAS)
+#elif defined(__GNUC__) && defined(__i386__)
 inline long addlava(long b)
 {
 	long r;
@@ -4939,10 +4944,7 @@ inline long addlava(long b)
 	return r;
 }
 #else
-inline long addlava(long b)
-{
-	return 0;
-}
+#error Unsupported compiler or architecture
 #endif
 
 void movelava(char *dapic)

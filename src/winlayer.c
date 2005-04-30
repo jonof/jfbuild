@@ -117,7 +117,7 @@ char videomodereset = 0;
 // input and events
 char inputdevices=0;
 char quitevent=0, appactive=1, mousegrab=1;
-short mousex=0, mousey=0, mouseb=0,mouseba[2];
+long mousex=0, mousey=0, mouseb=0,mouseba[2];
 long *joyaxis = NULL, joyb=0, *joyhat = NULL;
 char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
 
@@ -933,7 +933,7 @@ void grabmouse(char a)
 //
 // readmousexy() -- return mouse motion information
 //
-void readmousexy(short *x, short *y)
+void readmousexy(long *x, long *y)
 {
 	if (!inputacquired || !mousegrab) { *x = *y = 0; return; }
 	*x = mousex;
@@ -946,7 +946,7 @@ void readmousexy(short *x, short *y)
 //
 // readmousebstatus() -- return mouse button information
 //
-void readmousebstatus(short *b)
+void readmousebstatus(long *b)
 {
 	if (!inputacquired || !mousegrab) *b = 0;
 	else *b = mouseb;
@@ -1682,12 +1682,12 @@ static void ProcessInputDevices(void)
 		u = (1000 + t - lastKeyTime)%1000;
 		if ((u >= 250) && !(lastKeyDown&0x80000000l)) {
 			if (OSD_HandleKey(lastKeyDown, 1) != 0)
-				SetKey(lastKeyDown, 1);
+				;//SetKey(lastKeyDown, 1);
 			lastKeyDown |= 0x80000000l;
 			lastKeyTime = t;
 		} else if ((u >= 30) && (lastKeyDown&0x80000000l)) {
 			if (OSD_HandleKey(lastKeyDown&(0x7fffffffl), 1) != 0)
-				SetKey(lastKeyDown&(0x7fffffffl), 1);
+				;//SetKey(lastKeyDown&(0x7fffffffl), 1);
 			lastKeyTime = t;
 		}
 	}

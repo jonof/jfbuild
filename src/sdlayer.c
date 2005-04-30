@@ -53,7 +53,7 @@ char inputdevices=0;
 char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
 unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
 static unsigned char keynames[256][24];
-short mousex=0,mousey=0,mouseb=0;
+long mousex=0,mousey=0,mouseb=0;
 long *joyaxis = NULL, joyb=0, *joyhat = NULL;
 char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
 long joyaxespresent=0;
@@ -476,7 +476,7 @@ void grabmouse(char a)
 //
 // readmousexy() -- return mouse motion information
 //
-void readmousexy(short *x, short *y)
+void readmousexy(long *x, long *y)
 {
 	if (!mouseacquired) { *x = *y = 0; return; }
 	*x = mousex;
@@ -487,7 +487,7 @@ void readmousexy(short *x, short *y)
 //
 // readmousebstatus() -- return mouse button information
 //
-void readmousebstatus(short *b)
+void readmousebstatus(long *b)
 {
 	if (!mouseacquired) *b = 0;
 	else *b = mouseb;

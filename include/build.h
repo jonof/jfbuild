@@ -397,7 +397,7 @@ long   inside(long x, long y, short sectnum);
 void   dragpoint(short pointhighlight, long dax, long day);
 void   setfirstwall(short sectnum, short newfirstwall);
 
-void   getmousevalues(short *mousx, short *mousy, short *bstatus);
+void   getmousevalues(long *mousx, long *mousy, long *bstatus);
 long    krand(void);
 long   ksqrt(long num);
 long   getangle(long xvect, long yvect);
