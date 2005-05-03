@@ -70,7 +70,7 @@ static char nogl=0;
 #endif
 int glusecds=0;
 
-static const LPTSTR GetWindowsErrorMsg(DWORD code);
+static LPTSTR GetWindowsErrorMsg(DWORD code);
 static const char * GetDDrawError(HRESULT code);
 static const char * GetDInputError(HRESULT code);
 static void ShowErrorBox(const char *m);
@@ -894,8 +894,8 @@ int initmouse(void)
 	initprintf("Initialising mouse\n");
 
 	// grab input
-	grabmouse(1);
 	moustat=1;
+	grabmouse(1);
 
 	return 0;
 }
@@ -1105,7 +1105,7 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 			COPYGUID(guidDevs[JOYSTICK],lpddi->guidInstance);
 
 			thisjoydef = NULL;
-			for (i=0; i<sizeof(joyfeatures)/sizeof(joyfeatures[0]); i++) {
+			for (i=0; i<(int)(sizeof(joyfeatures)/sizeof(joyfeatures[0])); i++) {
 				if (lpddi->guidProduct.Data1 == joyfeatures[i].devid) {
 					thisjoydef = &joyfeatures[i];
 					break;
@@ -1137,7 +1137,7 @@ static const char *joyfindnameforofs(int ofs)
 	int i;
 	if (!thisjoydef) return NULL;
 	for (i=0;i<thisjoydef->nfeatures;i++) {
-		if (ofs == thisjoydef->features[i].ofs)
+		if (ofs == (int)thisjoydef->features[i].ofs)
 			return Bstrdup(thisjoydef->features[i].name);
 	}
 	return NULL;
@@ -1537,7 +1537,7 @@ static void ProcessInputDevices(void)
 	ev = MsgWaitForMultipleObjects(numdevs, waithnds, FALSE, 0, 0);
 	if (/*(ev >= WAIT_OBJECT_0) &&*/ (ev < (WAIT_OBJECT_0+numdevs))) {
 		switch (idevnums[ev - WAIT_OBJECT_0]) {
-			case 0:		// keyboard
+			case KEYBOARD:		// keyboard
 				if (!lpDID[KEYBOARD]) break;
 				result = IDirectInputDevice2_GetDeviceData(lpDID[KEYBOARD], sizeof(DIDEVICEOBJECTDATA),
 						(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
@@ -1569,7 +1569,7 @@ static void ProcessInputDevices(void)
 				}
 				break;
 				
-			case 1:		// mouse
+			case MOUSE:		// mouse
 				if (!lpDID[MOUSE]) break;
 				result = IDirectInputDevice2_GetDeviceData(lpDID[MOUSE], sizeof(DIDEVICEOBJECTDATA),
 						(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
@@ -1628,7 +1628,7 @@ static void ProcessInputDevices(void)
 					}
 				}
 				break;
-			case 2:		// joystick
+			case JOYSTICK:		// joystick
 				if (!lpDID[JOYSTICK]) break;
 				result = IDirectInputDevice2_GetDeviceData(lpDID[JOYSTICK], sizeof(DIDEVICEOBJECTDATA),
 						(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
@@ -1682,12 +1682,12 @@ static void ProcessInputDevices(void)
 		u = (1000 + t - lastKeyTime)%1000;
 		if ((u >= 250) && !(lastKeyDown&0x80000000l)) {
 			if (OSD_HandleKey(lastKeyDown, 1) != 0)
-				;//SetKey(lastKeyDown, 1);
+				SetKey(lastKeyDown, 1);
 			lastKeyDown |= 0x80000000l;
 			lastKeyTime = t;
 		} else if ((u >= 30) && (lastKeyDown&0x80000000l)) {
 			if (OSD_HandleKey(lastKeyDown&(0x7fffffffl), 1) != 0)
-				;//SetKey(lastKeyDown&(0x7fffffffl), 1);
+				SetKey(lastKeyDown&(0x7fffffffl), 1);
 			lastKeyTime = t;
 		}
 	}
@@ -3618,7 +3618,7 @@ static BOOL RegisterWindowClass(void)
 //
 // GetWindowsErrorMsg() -- gives a pointer to a static buffer containing the Windows error message
 //
-static const LPTSTR GetWindowsErrorMsg(DWORD code)
+static LPTSTR GetWindowsErrorMsg(DWORD code)
 {
 	static TCHAR lpMsgBuf[1024];
 

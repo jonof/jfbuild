@@ -4,7 +4,7 @@ $(OBJ)game.$o: $(SRC)game.c $(INC)compat.h $(INC)build.h $(INC)names.h $(INC)pra
 $(OBJ)build.$o: $(SRC)build.c $(INC)build.h $(INC)pragmas.h $(INC)compat.h $(INC)baselayer.h $(INC)editor.h
 $(OBJ)bstub.$o: $(SRC)bstub.c $(INC)compat.h $(INC)a.h $(INC)build.h $(INC)pragmas.h $(INC)baselayer.h $(INC)names.h $(INC)osd.h $(INC)cache1d.h $(INC)editor.h
 $(OBJ)cache1d.$o: $(SRC)cache1d.c $(INC)compat.h $(INC)cache1d.h $(INC)pragmas.h $(INC)baselayer.h
-$(OBJ)engine.$o: $(SRC)engine.c $(SRC)polymost.c $(INC)kplib.h $(SRC)hightile.c $(SRC)md2sprite.c $(INC)compat.h $(INC)build.h $(INC)pragmas.h $(INC)cache1d.h $(INC)a.h $(INC)osd.h $(INC)baselayer.h
+$(OBJ)engine.$o: $(SRC)engine.c $(SRC)polymost.c $(INC)kplib.h $(SRC)hightile.c $(SRC)mdsprite.c $(INC)compat.h $(INC)build.h $(INC)pragmas.h $(INC)cache1d.h $(INC)a.h $(INC)osd.h $(INC)baselayer.h
 $(OBJ)a.$o: $(SRC)a.$(asm)
 $(OBJ)a-c.$o: $(SRC)a-c.c $(INC)a.h
 $(OBJ)sdlayer.$o: $(SRC)sdlayer.c $(INC)compat.h $(INC)sdlayer.h $(INC)baselayer.h $(INC)cache1d.h $(INC)pragmas.h $(INC)a.h $(INC)build.h $(INC)osd.h $(INC)glbuild.h

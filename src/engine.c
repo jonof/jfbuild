@@ -3096,7 +3096,7 @@ static void drawsprite(long snum)
 	if (((cstat&48)==48) && (bpp==8)) vtilenum = tilenum;	// if the game wants voxels, it gets voxels
 	else if (((cstat&48)!=48) && (bpp == 8) && (usevoxels) && (tiletovox[tilenum] != -1)
 #if defined(POLYMOST) && defined(USE_OPENGL)
-	    && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD2))
+		 && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD))
 #endif
 	   ) {
 		vtilenum = tiletovox[tilenum];
@@ -5455,7 +5455,7 @@ int initengine(void)
 	getvalidmodes();
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (!hicfirstinit) hicinit();
-	if (!md2inited) md2init();
+	if (!mdinited) mdinit();
 #endif
 
 	return 0;
@@ -6204,7 +6204,11 @@ long loadmaphack(char *filename)
 		{ "angleoff", 1 },
 		{ "angoff", 1 },
 		{ "notmd2", 2 },
+		{ "notmd3", 2 },
+		{ "notmd", 2 },
 		{ "nomd2anim", 3 },
+		{ "nomd3anim", 3 },
+		{ "nomdanim", 3 },
 		{ NULL, -1 }
 	};
 
@@ -6249,23 +6253,23 @@ long loadmaphack(char *filename)
 					spriteext[whichsprite].angoff = (short)ang;
 				}
 				break;
-			case 2:		// notmd2
+			case 2:      // notmd
 				if (whichsprite < 0) {
 					// no sprite directive preceeding
-					initprintf("Ignoring not-MD2 directive because of absent/invalid sprite number on line %s:%d\n",
+					initprintf("Ignoring not-MD2/MD3 directive because of absent/invalid sprite number on line %s:%d\n",
 							script->filename, script->linenum);
 					break;
 				}
-				spriteext[whichsprite].flags |= SPREXT_NOTMD2;
+				spriteext[whichsprite].flags |= SPREXT_NOTMD;
 				break;
-			case 3:		// nomd2anim
+			case 3:      // nomdanim
 				if (whichsprite < 0) {
 					// no sprite directive preceeding
-					initprintf("Ignoring no-MD2-anim directive because of absent/invalid sprite number on line %s:%d\n",
+					initprintf("Ignoring no-MD2/MD3-anim directive because of absent/invalid sprite number on line %s:%d\n",
 							script->filename, script->linenum);
 					break;
 				}
-				spriteext[whichsprite].flags |= SPREXT_NOMD2ANIM;
+				spriteext[whichsprite].flags |= SPREXT_NOMDANIM;
 				break;
 			default:
 				// unrecognised token
@@ -6472,8 +6476,8 @@ void nextpage(void)
 		{ lastageclock = totalclock; agecache(); }
 
 #ifdef USE_OPENGL
-	omd2tims = md2tims; md2tims = getticks();
-	if (((unsigned long)(md2tims-omd2tims)) > 10000) omd2tims = md2tims;
+	omdtims = mdtims; mdtims = getticks();
+	if (((unsigned long)(mdtims-omdtims)) > 10000) omdtims = mdtims;
 #endif
 
 	beforedrawrooms = 1;

@@ -268,12 +268,12 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getnumber(script,&shadeoffs)) break;
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-					lastmodelid = md2_loadmodel(modelfn);
+					lastmodelid = md_loadmodel(modelfn);
 					if (lastmodelid < 0) {
-						initprintf("Failure loading MD2 model \"%s\"\n", modelfn);
+						initprintf("Failure loading MD2/MD3 model \"%s\"\n", modelfn);
 						break;
 					}
-					md2_setmisc(lastmodelid,(float)scale, shadeoffs);
+					md_setmisc(lastmodelid,(float)scale, shadeoffs);
 #endif
 					modelskin = lastmodelskin = 0;
 					seenframe = 0;
@@ -300,7 +300,7 @@ static int defsparser(scriptfile *script)
 					}
 #if defined(POLYMOST) && defined(USE_OPENGL)
 					for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++) {
-						switch (md2_defineframe(lastmodelid, framename, tilex, max(0,modelskin))) {
+						switch (md_defineframe(lastmodelid, framename, tilex, max(0,modelskin))) {
 							case 0: break;
 							case -1: happy = 0; break; // invalid model id!?
 							case -2: initprintf("Invalid tile number on line %s:%d\n",
@@ -333,7 +333,7 @@ static int defsparser(scriptfile *script)
 						break;
 					}
 #if defined(POLYMOST) && defined(USE_OPENGL)
-					switch (md2_defineanimation(lastmodelid, startframe, endframe, (int)(dfps*(65536.0*.001)), flags)) {
+					switch (md_defineanimation(lastmodelid, startframe, endframe, (int)(dfps*(65536.0*.001)), flags)) {
 						case 0: break;
 						case -1: break; // invalid model id!?
 						case -2: initprintf("Invalid starting frame name on line %s:%d\n",
@@ -373,7 +373,7 @@ static int defsparser(scriptfile *script)
 					seenframe = 0;
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-					switch (md2_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin))) {
+					switch (md_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin))) {
 						case 0: break;
 						case -1: break; // invalid model id!?
 						case -2: initprintf("Invalid skin filename on line %s:%d\n",
@@ -446,27 +446,6 @@ static int defsparser(scriptfile *script)
 				// NEW (ENCOURAGED) DEFINITION SYNTAX
 			case T_MODEL:
 				{
-#if 0
-					Old method:
-
-					 definemodel "models/pig.md2" 17 0
-					 definemodelskin 0 "normal.png"
-					 definemodelskin 21 "normal21.png"
-					 definemodelanim "stand00" "stand01"
-					 definemodelanim "stand00" "stand00"
-					 definemodelframe "walk1" 2000 2019
-
-					New method:
-
-					 model "models/pig.md2" {
-					  scale 17 //shade 0
-					  skin { pal 0 file "normal.png" }
-					  skin { file "normal21.png" pal 21}
-					  anim { name "ATROOPSTAND" frame0 "stand00" frame1 "stand01" }
-					  anim { name "ATROOPFROZEN" frame0 "stand00" frame1 "stand00" skin { pal 1 file "frozen.png" } }
-					  frame { name "walk1" tile0 2000 tile1 2019 }
-					 }
-#endif
 					char *modelend, *modelfn;
 					double scale=1.0;
 					int shadeoffs=0;
@@ -477,9 +456,9 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getstring(script,&modelfn)) break;
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-					lastmodelid = md2_loadmodel(modelfn);
+					lastmodelid = md_loadmodel(modelfn);
 					if (lastmodelid < 0) {
-						initprintf("Failure loading MD2 model \"%s\"\n", modelfn);
+						initprintf("Failure loading MD2/MD3 model \"%s\"\n", modelfn);
 						break;
 					}
 #endif
@@ -522,7 +501,7 @@ static int defsparser(scriptfile *script)
 								}
 #if defined(POLYMOST) && defined(USE_OPENGL)
 								for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++) {
-									switch (md2_defineframe(lastmodelid, framename, tilex, max(0,modelskin))) {
+									switch (md_defineframe(lastmodelid, framename, tilex, max(0,modelskin))) {
 										case 0: break;
 										case -1: happy = 0; break; // invalid model id!?
 										case -2: initprintf("Invalid tile number on line %s:%d\n",
@@ -565,7 +544,7 @@ static int defsparser(scriptfile *script)
 									break;
 								}
 #if defined(POLYMOST) && defined(USE_OPENGL)
-								switch (md2_defineanimation(lastmodelid, startframe, endframe, (int)(dfps*(65536.0*.001)), flags)) {
+								switch (md_defineanimation(lastmodelid, startframe, endframe, (int)(dfps*(65536.0*.001)), flags)) {
 									case 0: break;
 									case -1: break; // invalid model id!?
 									case -2: initprintf("Invalid starting frame name on line %s:%d\n",
@@ -603,7 +582,7 @@ static int defsparser(scriptfile *script)
 								seenframe = 0;
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-								switch (md2_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin))) {
+								switch (md_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin))) {
 									case 0: break;
 									case -1: break; // invalid model id!?
 									case -2: initprintf("Invalid skin filename on line %s:%d\n",
@@ -659,7 +638,7 @@ static int defsparser(scriptfile *script)
 								}
 #if defined(POLYMOST) && defined(USE_OPENGL)
 								for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++) {
-									switch (md2_definehud(lastmodelid, tilex, xadd, yadd, zadd, angadd, flags)) {
+									switch (md_definehud(lastmodelid, tilex, xadd, yadd, zadd, angadd, flags)) {
 										case 0: break;
 										case -1: happy = 0; break; // invalid model id!?
 										case -2: initprintf("Invalid tile number on line %s:%d\n",
@@ -677,7 +656,7 @@ static int defsparser(scriptfile *script)
 						}
 					}
 
-					md2_setmisc(lastmodelid,(float)scale, shadeoffs);
+					md_setmisc(lastmodelid,(float)scale, shadeoffs);
 
 					modelskin = lastmodelskin = 0;
 					seenframe = 0;

@@ -142,13 +142,13 @@ typedef struct BPACK
 } spritetype;
 
 typedef struct BPACK {
-	unsigned long md2animtims;
-	short md2animcur;
+	unsigned long mdanimtims;
+	short mdanimcur;
 	unsigned char flags;
 	short angoff;
 } spriteexttype;
-#define SPREXT_NOTMD2 1
-#define SPREXT_NOMD2ANIM 2
+#define SPREXT_NOTMD 1
+#define SPREXT_NOMDANIM 2
 EXTERN spriteexttype spriteext[MAXSPRITES];
 
 
@@ -468,13 +468,13 @@ void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned c
 int hicsetsubsttex(long picnum, long palnum, char *filen, long centx, long centy, long tsizx, long tsizy);
 int hicsetskybox(long picnum, long palnum, char *faces[6]);
 
-int md2_loadmodel(const char *fn);
-int md2_setmisc(int modelid, float scale, int shadeoff);
-int md2_tilehasmodel(int tilenume);
-int md2_defineframe(int modelid, const char *framename, int tilenume, int skinnum);
-int md2_defineanimation(int modelid, const char *framestart, const char *frameend, int fps, int flags);
-int md2_defineskin(int modelid, const char *skinfn, int palnum, int skinnum);
-int md2_definehud (int modelid, int tilex, double xadd, double yadd, double zadd, double angadd, int flags);
+int md_loadmodel(const char *fn);
+int md_setmisc(int modelid, float scale, int shadeoff);
+int md_tilehasmodel(int tilenume);
+int md_defineframe(int modelid, const char *framename, int tilenume, int skinnum);
+int md_defineanimation(int modelid, const char *framestart, const char *frameend, int fps, int flags);
+int md_defineskin(int modelid, const char *skinfn, int palnum, int skinnum);
+int md_definehud (int modelid, int tilex, double xadd, double yadd, double zadd, double angadd, int flags);
 
 int loaddefinitionsfile(char *fn);
 

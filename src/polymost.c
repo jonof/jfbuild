@@ -236,8 +236,8 @@ typedef struct { unsigned char r, g, b, a; } coltype;
 
 static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth);
 
-static long md2tims, omd2tims;
-#include "md2sprite.c"
+static long mdtims, omdtims;
+#include "mdsprite.c"
 
 
 //--------------------------------------------------------------------------------------------------
@@ -416,20 +416,25 @@ void gltexapplyprops (void)
 
 	{
 		int j;
-		md2skinmap *sk;
+		mdskinmap_t *sk;
+		md2model *m;
 
-		for (i=0;i<nextmodelid;i++) {
-			for (j=0;j<models[i].numskins*(HICEFFECTMASK+1);j++) {
-				if (!models[i].texid[j]) continue;
-				bglBindTexture(GL_TEXTURE_2D,models[i].texid[j]);
+		for (i=0;i<nextmodelid;i++)
+		{
+			m = (md2model *)models[i];
+			for (j=0;j<m->numskins*(HICEFFECTMASK+1);j++)
+			{
+				if (!m->texid[j]) continue;
+				bglBindTexture(GL_TEXTURE_2D,m->texid[j]);
 				bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 				bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 				if (glinfo.maxanisotropy > 1.0)
 					bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 			}
 
-			for (sk = models[i].skinmap; sk; sk = sk->next) {
-				for (j=0;j<(HICEFFECTMASK+1);j++) {
+			for (sk=m->skinmap;sk;sk=sk->next)
+				for (j=0;j<(HICEFFECTMASK+1);j++)
+				{
 					if (!sk->texid[j]) continue;
 					bglBindTexture(GL_TEXTURE_2D,sk->texid[j]);
 					bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
@@ -439,7 +444,6 @@ void gltexapplyprops (void)
 				}
 			}
 		}
-	}
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -3273,11 +3277,11 @@ void polymost_drawsprite (long snum)
 		case 0: //Face sprite
 
 #ifdef USE_OPENGL
-			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD2))
+			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
 			{
-				if (tiletomodel[tspr->picnum].modelid >= 0 &&
-					 tiletomodel[tspr->picnum].framenum >= 0) {
-					md2draw(0,tspr);
+				if (tile2model[tspr->picnum].modelid >= 0 &&
+					 tile2model[tspr->picnum].framenum >= 0) {
+					mddraw(tspr);
 					return;
 				}
 			}
@@ -3329,11 +3333,11 @@ void polymost_drawsprite (long snum)
 			break;
 		case 1: //Wall sprite
 #ifdef USE_OPENGL
-			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD2))
+			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
 			{
-				if (tiletomodel[tspr->picnum].modelid >= 0 &&
-					 tiletomodel[tspr->picnum].framenum >= 0) {
-					md2draw(0,tspr);
+				if (tile2model[tspr->picnum].modelid >= 0 &&
+					 tile2model[tspr->picnum].framenum >= 0) {
+					mddraw(tspr);
 					return;
 				}
 			}
@@ -3456,11 +3460,11 @@ void polymost_drawsprite (long snum)
 		case 2: //Floor sprite
 			/*
 #ifdef USE_OPENGL
-			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD2))
+			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
 			{
-				if (tiletomodel[tspr->picnum].modelid >= 0 &&
-					 tiletomodel[tspr->picnum].framenum >= 0) {
-					md2draw(0,tspr);
+				if (tile2model[tspr->picnum].modelid >= 0 &&
+					 tile2model[tspr->picnum].framenum >= 0) {
+					mddraw(tspr);
 					return;
 				}
 			}
@@ -3585,7 +3589,7 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 #ifdef USE_OPENGL
 	if (rendmode == 3 && usemodels && hudmem[(dastat&4)>>2][picnum].angadd)
 	{
-		if ((tiletomodel[picnum].modelid >= 0) && (tiletomodel[picnum].framenum >= 0))
+		if ((tile2model[picnum].modelid >= 0) && (tile2model[picnum].framenum >= 0))
 		{
 			spritetype tspr;
 			memset(&tspr,0,sizeof(spritetype));
@@ -3675,7 +3679,7 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 				}
 			}
 
-			md2draw(0,&tspr);
+			mddraw(&tspr);
 
 			viewingrange = oldviewingrange;
 			gxyaspect = ogxyaspect;
