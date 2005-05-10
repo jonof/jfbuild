@@ -332,14 +332,14 @@ void debugprintf(const char *f, ...)
 
 static char mouseacquired=1;
 static long joyblast=0;
-
+static SDL_Joystick *joydev = NULL;
 
 //
 // initinput() -- init input system
 //
 int initinput(void)
 {
-	int i;
+	int i,j;
 	
 	if (SDL_EnableKeyRepeat(250, 30)) initprintf("Error enabling keyboard repeat.\n");
 	inputdevices = 1|2;	// keyboard (1) and mouse (2)
@@ -353,6 +353,25 @@ int initinput(void)
 		strncpy(keynames[ keytranslation[i] ], SDL_GetKeyName(i), sizeof(keynames[i])-1);
 	}
 
+	if (!SDL_InitSubSystem(SDL_INIT_JOYSTICK)) {
+		i = SDL_NumJoysticks();
+		initprintf("%d joystick(s) found\n");
+		for (j=0;j<i;j++) initprintf("  %d. %s\n", j+1, SDL_JoystickName(j));
+		joydev = SDL_JoystickOpen(0);
+		if (joydev) {
+			SDL_JoystickEventState(SDL_ENABLE);
+
+			joynumaxes    = SDL_JoystickNumAxes(joydev);
+			joynumbuttons = min(32,SDL_JoystickNumButtons(joydev));
+			joynumhats    = SDL_JoystickNumHats(joydev);
+			initprintf("Joystick 1 has %d axes, %d buttons, and %d hat(s).\n",
+				joynumaxes,joynumbuttons,joynumhats);
+
+			joyaxis = (long *)Bcalloc(joynumaxes, sizeof(long));
+			joyhat = (long *)Bcalloc(joynumhats, sizeof(long));
+		}
+	}
+
 	return 0;
 }
 
@@ -362,6 +381,11 @@ int initinput(void)
 void uninitinput(void)
 {
 	grabmouse(0);
+
+	if (joydev) {
+		SDL_JoystickClose(joydev);
+		joydev = NULL;
+	}
 }
 
 const unsigned char *getkeyname(int num)
@@ -372,25 +396,27 @@ const unsigned char *getkeyname(int num)
 
 const unsigned char *getjoyname(int what, int num)
 {
-	return NULL;
-	/*
+	static char tmp[64];
+
 	switch (what) {
 		case 0:	// axis
 			if ((unsigned)num > (unsigned)joynumaxes) return NULL;
-			return axisdefs[num].name;
+			sprintf(tmp,"Axis %d",num);
+			return tmp;
 
 		case 1: // button
 			if ((unsigned)num > (unsigned)joynumbuttons) return NULL;
-			return buttondefs[num].name;
+			sprintf(tmp,"Button %d",num);
+			return tmp;
 
 		case 2: // hat
 			if ((unsigned)num > (unsigned)joynumhats) return NULL;
-			return hatdefs[num].name;
+			sprintf(tmp,"Hat %d",num);
+			return tmp;
 
 		default:
 			return NULL;
 	}
-	*/
 }
 
 //
@@ -1297,6 +1323,45 @@ int handleevents(void)
 				if (appactive) {
 					mousex += ev.motion.xrel;
 					mousey += ev.motion.yrel;
+				}
+				break;
+
+			case SDL_JOYAXISMOTION:
+				if (appactive && ev.jaxis.axis < joynumaxes)
+					joyaxis[ ev.jaxis.axis ] = ev.jaxis.value * 10000 / 32767;
+				break;
+
+			case SDL_JOYHATMOTION: {
+				int hatvals[16] = {
+					-1,	// centre
+					0, 	// up 1
+					9000,	// right 2
+					4500,	// up+right 3
+					18000,	// down 4
+					-1,	// down+up!! 5
+					13500,	// down+right 6
+					-1,	// down+right+up!! 7
+					27000,	// left 8
+					27500,	// left+up 9
+					-1,	// left+right!! 10
+					-1,	// left+right+up!! 11
+					22500,	// left+down 12
+					-1,	// left+down+up!! 13
+					-1,	// left+down+right!! 14
+					-1,	// left+down+right+up!! 15
+				};
+				if (appactive && ev.jhat.hat < joynumhats)
+					joyhat[ ev.jhat.hat ] = hatvals[ ev.jhat.value & 15 ];
+				break;
+			}
+
+			case SDL_JOYBUTTONDOWN:
+			case SDL_JOYBUTTONUP:
+				if (appactive && ev.jbutton.button < joynumbuttons) {
+					if (ev.jbutton.state == SDL_PRESSED)
+						joyb |= 1 << ev.jbutton.button;
+					else
+						joyb &= ~(1 << ev.jbutton.button);
 				}
 				break;
 
