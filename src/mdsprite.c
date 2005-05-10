@@ -805,7 +805,7 @@ static void md2draw (md2model *m, spritetype *tspr)
 
 static md3model *md3load (int fil)
 {
-	char *buf, st[MAX_PATH+2], bst[MAX_PATH+2];
+	char *buf, st[BMAX_PATH+2], bst[BMAX_PATH+2];
 	long i, j, surfi, ofsurf, bsc, offs[4], leng[4];
 	short szmin, szmax;
 	md3model *m;
