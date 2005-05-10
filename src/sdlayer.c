@@ -355,7 +355,7 @@ int initinput(void)
 
 	if (!SDL_InitSubSystem(SDL_INIT_JOYSTICK)) {
 		i = SDL_NumJoysticks();
-		initprintf("%d joystick(s) found\n");
+		initprintf("%d joystick(s) found\n",i);
 		for (j=0;j<i;j++) initprintf("  %d. %s\n", j+1, SDL_JoystickName(j));
 		joydev = SDL_JoystickOpen(0);
 		if (joydev) {
