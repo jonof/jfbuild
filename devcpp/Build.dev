@@ -1,7 +1,7 @@
 [Project]
 FileName=Build.dev
 Name=KenBuild Editor
-UnitCount=3
+UnitCount=2
 Type=0
 Ver=1
 ObjFiles=
@@ -46,16 +46,6 @@ OriginalFilename=
 ProductName=
 ProductVersion=
 AutoIncBuildNr=0
-
-[Unit3]
-FileName=..\src\buildstartwin.c
-CompileCpp=0
-Folder=KenBuild Editor
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
 
 [Unit1]
 FileName=..\src\bstub.c
