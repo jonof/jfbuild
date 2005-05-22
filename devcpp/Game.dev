@@ -1,7 +1,7 @@
 [Project]
 FileName=Game.dev
 Name=KenBuild Game
-UnitCount=4
+UnitCount=5
 Type=0
 Ver=1
 ObjFiles=
@@ -28,66 +28,6 @@ IncludeVersionInfo=0
 SupportXPThemes=0
 CompilerSet=0
 CompilerSettings=000000000000001000000
-
-[Unit8]
-FileName=..\src\defs.c
-CompileCpp=0
-Folder=Engine
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit10]
-FileName=..\src\baselayer.c
-CompileCpp=0
-Folder=Engine
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit11]
-FileName=..\src\glbuild.c
-CompileCpp=0
-Folder=Engine
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit12]
-FileName=..\src\kplib.c
-CompileCpp=0
-Folder=Engine
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit13]
-FileName=..\src\mmulti.c
-CompileCpp=0
-Folder=Engine
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
-
-[Unit14]
-FileName=..\src\scriptfile.c
-CompileCpp=0
-Folder=Engine
-Compile=1
-Link=1
-Priority=1000
-OverrideBuildCmd=0
-BuildCmd=
 
 [VersionInfo]
 Major=0
@@ -118,8 +58,8 @@ OverrideBuildCmd=0
 BuildCmd=
 
 [Unit4]
-FileName=..\src\devcpp\gameres.rc
-Folder=KenBuild Editor
+FileName=..\src\misc\gameres.rc
+Folder=KenBuild Game
 Compile=1
 Link=0
 Priority=1000
@@ -140,6 +80,16 @@ BuildCmd=
 FileName=..\src\game.c
 CompileCpp=0
 Folder=KenBuild Editor
+Compile=1
+Link=1
+Priority=1000
+OverrideBuildCmd=0
+BuildCmd=
+
+[Unit5]
+FileName=..\src\gamestartwin.c
+CompileCpp=0
+Folder=KenBuild Game
 Compile=1
 Link=1
 Priority=1000
