@@ -153,9 +153,6 @@ int baselayer_init(void)
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	OSD_RegisterFunction("glinfo","glinfo: shows OpenGL information about the current OpenGL mode",osdcmd_glinfo);
 #endif
-#if defined(RENDERTYPEWIN)
-	OSD_RegisterVariable("glusecds", OSDVAR_INTEGER, &glusecds, 0, osd_internal_validate_boolean);
-#endif
 	
 	return 0;
 }

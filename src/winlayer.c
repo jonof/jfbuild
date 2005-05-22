@@ -68,7 +68,6 @@ struct glinfo glinfo = { "Unknown","Unknown","0.0.0","", 1.0, 0,0,0 };
 char nofog=0;
 static char nogl=0;
 #endif
-int glusecds=0;
 
 static LPTSTR GetWindowsErrorMsg(DWORD code);
 static const char * GetDDrawError(HRESULT code);
@@ -449,9 +448,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 		}
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
-	// check if we should use ChangeDisplaySettings for mode changes in GL mode
-	if ((argp = Bgetenv("BUILD_USEGLCDS")) != NULL)
-		glusecds = Batol(argp);
 	if ((argp = Bgetenv("BUILD_NOFOG")) != NULL)
 		nofog = Batol(argp);
 #endif
@@ -3013,7 +3009,7 @@ static BOOL CreateAppWindow(int modenum, char *wtitle)
 #if defined(USE_OPENGL) && defined(POLYMOST)
 		} else if (fs && fullscreen) {
 			// using CDS for GL modes, so restore from DirectDraw
-			if (bpp != bitspp && glusecds) RestoreDirectDrawMode();
+			if (bpp != bitspp) RestoreDirectDrawMode();
 #endif
 		}
 			
@@ -3111,7 +3107,7 @@ static BOOL CreateAppWindow(int modenum, char *wtitle)
 		}
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
-		if (/*glusecds &&*/ bitspp > 8) {
+		if (bitspp > 8) {
 			DEVMODE dmScreenSettings;
 
 			//initprintf("Using ChangeDisplaySettings() for mode change.\n");
