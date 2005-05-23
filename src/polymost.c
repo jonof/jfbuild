@@ -3576,7 +3576,7 @@ void polymost_drawsprite (long snum)
 	//dastat&128  1:draw all pages (permanent)
 	//cx1,...     clip window (actual screen coords)
 void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
-	signed char dashade, char dapalnum, char dastat, long cx1, long cy1, long cx2, long cy2)
+	signed char dashade, char dapalnum, char dastat, long cx1, long cy1, long cx2, long cy2, long uniqid)
 {
 	static long onumframes = 0;
 	long i, n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
@@ -3649,6 +3649,7 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 			tspr.picnum = picnum;
 			tspr.shade = dashade;
 			tspr.pal = dapalnum;
+			tspr.owner = uniqid+MAXSPRITES;
 			globalorientation = (dastat&1)+((dastat&32)<<4)+((dastat&4)<<1);
 
 			if ((dastat&10) == 2) bglViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);

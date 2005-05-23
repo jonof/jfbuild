@@ -30,6 +30,7 @@
 #define MAXPALOOKUPS 256
 #define MAXPSKYTILES 256
 #define MAXSPRITESONSCREEN 1024
+#define MAXUNIQHUDID 256
 
 #define CLIPMASK0 (((1L)<<16)+1L)
 #define CLIPMASK1 (((256L)<<16)+64L)
@@ -149,8 +150,8 @@ typedef struct BPACK {
 } spriteexttype;
 #define SPREXT_NOTMD 1
 #define SPREXT_NOMDANIM 2
-EXTERN spriteexttype spriteext[MAXSPRITES];
-
+EXTERN spriteexttype spriteext[MAXSPRITES+MAXUNIQHUDID];
+EXTERN long guniqhudid;
 
 EXTERN sectortype sector[MAXSECTORS];
 EXTERN walltype wall[MAXWALLS];

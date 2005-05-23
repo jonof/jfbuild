@@ -642,6 +642,7 @@ typedef struct
 	signed char dashade;
 	char dapalnum, dastat, pagesleft;
 	long cx1, cy1, cx2, cy2;
+	long uniqid;	//JF extension
 } permfifotype;
 static permfifotype permfifo[MAXPERMS];
 static long permhead = 0, permtail = 0;
@@ -4461,7 +4462,7 @@ static long clippoly4(long cx1, long cy1, long cx2, long cy2)
 // dorotatesprite (internal)
 //
 	//JBF 20031206: Thanks to Ken's hunting, s/(rx1|ry1|rx2|ry2)/n\1/ in this function
-static void dorotatesprite(long sx, long sy, long z, short a, short picnum, signed char dashade, char dapalnum, char dastat, long cx1, long cy1, long cx2, long cy2)
+static void dorotatesprite(long sx, long sy, long z, short a, short picnum, signed char dashade, char dapalnum, char dastat, long cx1, long cy1, long cx2, long cy2, long uniqid)
 {
 	long cosang, sinang, v, nextv, dax1, dax2, oy, bx, by, ny1, ny2;
 	long i, x, y, x1, y1, x2, y2, gx1, gy1, p, bufplc, palookupoffs;
@@ -4471,7 +4472,7 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
 
 	//============================================================================= //POLYMOST BEGINS
 #ifdef POLYMOST
-	if (rendmode) { polymost_dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2); return; }
+	if (rendmode) { polymost_dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2,uniqid); return; }
 #endif
 	//============================================================================= //POLYMOST ENDS
 	
@@ -6187,6 +6188,7 @@ long loadboard(char *filename, char fromwhere, long *daposx, long *daposy, long 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	memset(spriteext, 0, sizeof(spriteext));
 #endif
+	guniqhudid = 0;
 
 	return(0);
 }
@@ -6213,7 +6215,7 @@ long loadmaphack(char *filename)
 	};
 
 	scriptfile *script;
-	char *tok;
+	char *tok, *cmdtokptr;
 	int i;
 	int whichsprite = -1;
 
@@ -6226,14 +6228,15 @@ long loadmaphack(char *filename)
 		tok = scriptfile_gettoken(script);
 		if (!tok) break;
 		for (i=0;legaltokens[i].text;i++) if (!Bstrcasecmp(tok,legaltokens[i].text)) break;
+		cmdtokptr = script->ltextptr;
 		switch (legaltokens[i].tokenid) {
 			case 0:		// sprite <xx>
 				if (scriptfile_getnumber(script, &whichsprite)) break;
 
-				if (whichsprite < 0 || whichsprite >= MAXSPRITES) {
+				if ((unsigned)whichsprite >= (unsigned)MAXSPRITES) {
 					// sprite number out of range
 					initprintf("Sprite number out of range 0-%d on line %s:%d\n",
-							MAXSPRITES-1,script->filename, script->linenum);
+							MAXSPRITES-1,script->filename, scriptfile_getlinum(script,cmdtokptr));
 					whichsprite = -1;
 					break;
 				}
@@ -6247,7 +6250,7 @@ long loadmaphack(char *filename)
 					if (whichsprite < 0) {
 						// no sprite directive preceeding
 						initprintf("Ignoring angle offset directive because of absent/invalid sprite number on line %s:%d\n",
-							script->filename, script->linenum);
+							script->filename, scriptfile_getlinum(script,cmdtokptr));
 						break;
 					}
 					spriteext[whichsprite].angoff = (short)ang;
@@ -6257,7 +6260,7 @@ long loadmaphack(char *filename)
 				if (whichsprite < 0) {
 					// no sprite directive preceeding
 					initprintf("Ignoring not-MD2/MD3 directive because of absent/invalid sprite number on line %s:%d\n",
-							script->filename, script->linenum);
+							script->filename, scriptfile_getlinum(script,cmdtokptr));
 					break;
 				}
 				spriteext[whichsprite].flags |= SPREXT_NOTMD;
@@ -6266,7 +6269,7 @@ long loadmaphack(char *filename)
 				if (whichsprite < 0) {
 					// no sprite directive preceeding
 					initprintf("Ignoring no-MD2/MD3-anim directive because of absent/invalid sprite number on line %s:%d\n",
-							script->filename, script->linenum);
+							script->filename, scriptfile_getlinum(script,cmdtokptr));
 					break;
 				}
 				spriteext[whichsprite].flags |= SPREXT_NOMDANIM;
@@ -6443,7 +6446,7 @@ void nextpage(void)
 				if ((per->pagesleft > 0) && (per->pagesleft <= numpages))
 					dorotatesprite(per->sx,per->sy,per->z,per->a,per->picnum,
 							per->dashade,per->dapalnum,per->dastat,
-							per->cx1,per->cy1,per->cx2,per->cy2);
+							per->cx1,per->cy1,per->cx2,per->cy2,per->uniqid);
 			}
 			enddrawing();	//}}}
 
@@ -6457,7 +6460,7 @@ void nextpage(void)
 				if (per->pagesleft >= 130)
 					dorotatesprite(per->sx,per->sy,per->z,per->a,per->picnum,
 										per->dashade,per->dapalnum,per->dastat,
-										per->cx1,per->cy1,per->cx2,per->cy2);
+										per->cx1,per->cy1,per->cx2,per->cy2,per->uniqid);
 
 				if (per->pagesleft&127) per->pagesleft--;
 				if (((per->pagesleft&127) == 0) && (i == permtail))
@@ -8354,7 +8357,7 @@ void rotatesprite(long sx, long sy, long z, short a, short picnum, signed char d
 
 	if (((dastat&128) == 0) || (numpages < 2) || (beforedrawrooms != 0)) {
 		begindrawing();	//{{{
-		dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2);
+		dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2,guniqhudid);
 		enddrawing();	//}}}
 	}
 
@@ -8372,6 +8375,7 @@ void rotatesprite(long sx, long sy, long z, short a, short picnum, signed char d
 		per->dastat = dastat;
 		per->pagesleft = numpages+((beforedrawrooms&1)<<7);
 		per->cx1 = cx1; per->cy1 = cy1; per->cx2 = cx2; per->cy2 = cy2;
+		per->uniqid = guniqhudid;	//JF extension
 
 			//Would be better to optimize out true bounding boxes
 		if (dastat&64)  //If non-masking write, checking for overlapping cases
