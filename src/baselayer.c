@@ -119,7 +119,6 @@ static int osdcmd_glinfo(const osdfuncparm_t *parm)
 		Bfree(s);
 	}
 	
-	if (s) Bfree(s);
 	return OSDCMD_OK;
 }
 

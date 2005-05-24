@@ -67,7 +67,7 @@ Low priority:
 
 static long animateoffs(short tilenum, short fakevar);
 long rendmode = 0;
-long usemodels=1, usehightile=1;
+long usemodels=1, usehightile=1, usegoodalpha=0;
 static GLuint polymosttext = 0;
 
 #include <math.h> //<-important!
@@ -1001,7 +1001,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		} else {
 			bglEnable(GL_BLEND);
 			bglEnable(GL_ALPHA_TEST);
-			bglAlphaFunc(GL_GREATER,0.32);
+			bglAlphaFunc(GL_GREATER,usegoodalpha?0.0:0.32);
 		}
 
 		if (!dorot)
@@ -4072,6 +4072,7 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("gltexturemode", "gltexturemode: changes the texture filtering settings", gltexturemode);
 	OSD_RegisterFunction("gltextureanisotropy", "gltextureanisotropy: changes the texture anisotropy setting", gltextureanisotropy);
 	OSD_RegisterVariable("gltexturemaxsize", OSDVAR_INTEGER, &gltexmaxsize, 1, osd_internal_validate_integer);
+	OSD_RegisterVariable("usegoodalpha", OSDVAR_INTEGER, &usegoodalpha, 0, osd_internal_validate_boolean);
 #endif
 	OSD_RegisterVariable("usemodels", OSDVAR_INTEGER, &usemodels, 0, osd_internal_validate_boolean);
 	OSD_RegisterVariable("usehightile", OSDVAR_INTEGER, &usehightile, 0, osd_internal_validate_boolean);
