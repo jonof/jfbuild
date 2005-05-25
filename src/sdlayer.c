@@ -243,6 +243,7 @@ int initsystem(void)
 		initprintf("Using \"%s\" video driver\n", drvname);
 
 	// dump a quick summary of the graphics hardware
+#ifdef DEBUGGINGAIDS
 	vid = SDL_GetVideoInfo();
 	initprintf("Video device information:\n");
 	initprintf("  Can create hardware surfaces?          %s\n", (vid->hw_available)?"Yes":"No");
@@ -255,6 +256,7 @@ int initsystem(void)
 	initprintf("  Accelerated software alpha blits?      %s\n", (vid->blit_sw_A)?"Yes":"No");
 	initprintf("  Accelerated colour fills?              %s\n", (vid->blit_fill)?"Yes":"No");
 	initprintf("  Total video memory:                    %dKB\n", vid->video_mem);
+#endif
 
 	return 0;
 }
