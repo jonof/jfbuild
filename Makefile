@@ -30,14 +30,11 @@ o=o
 res=o
 asm=nasm
 
-# JBF 20040622: I've begun linking to the MS DX6.1 SDK as I'm using
-# DirectMusic in another project and MinGW is happy to use MS-format
-# libraries.
 DXROOT=c:/sdks/msc/dx61
 FMODROOT=c:/sdks/fmodapi370win32/api
 
 # debugging enabled
-debug=-DDEBUGGINGAIDS -ggdb
+debug=-ggdb #-DDEBUGGINGAIDS
 # debugging disabled
 #debug=-fomit-frame-pointer
 
