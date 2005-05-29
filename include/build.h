@@ -30,7 +30,7 @@
 #define MAXPALOOKUPS 256
 #define MAXPSKYTILES 256
 #define MAXSPRITESONSCREEN 1024
-#define MAXUNIQHUDID 256
+#define MAXUNIQHUDID 256 //Extra slots so HUD models can store animation state without messing game sprites
 
 #define CLIPMASK0 (((1L)<<16)+1L)
 #define CLIPMASK1 (((256L)<<16)+64L)
@@ -470,7 +470,7 @@ int hicsetsubsttex(long picnum, long palnum, char *filen, long centx, long centy
 int hicsetskybox(long picnum, long palnum, char *faces[6]);
 
 int md_loadmodel(const char *fn);
-int md_setmisc(int modelid, float scale, int shadeoff);
+int md_setmisc(int modelid, float scale, int shadeoff, float zadd);
 int md_tilehasmodel(int tilenume);
 int md_defineframe(int modelid, const char *framename, int tilenume, int skinnum);
 int md_defineanimation(int modelid, const char *framestart, const char *frameend, int fps, int flags);

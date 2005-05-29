@@ -713,11 +713,6 @@ int handleevents(void)
 
 	sampletimer();
 
-	if (repaintneeded) {
-		showframe(0);
-		repaintneeded=0;
-	}
-
 	return rv;
 }
 

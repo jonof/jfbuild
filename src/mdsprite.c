@@ -11,7 +11,7 @@ typedef struct _mdanim_t
 
 typedef struct _mdskinmap_t
 {
-	unsigned char palette;   // Build palette number
+	unsigned char palette, filler[3]; // Build palette number
 	int skinnum;   // Skin identifier
 	char *fn;   // Skin filename
 	unsigned int texid[HICEFFECTMASK+1];   // OpenGL texture numbers for effect variations
@@ -46,7 +46,7 @@ typedef struct
 		//WARNING: This top block is a union between md2model&md3model: Make sure it matches!
 	long mdnum; //MD2=2, MD3=3. NOTE: must be first in structure!
 	long numframes, cframe, nframe, fpssc, usesalpha, shadeoff;
-	float oldtime, curtime, interpol, scale, bscale;
+	float oldtime, curtime, interpol, scale, bscale, zadd;
 	mdanim_t *animations;
 	mdskinmap_t *skinmap;
 	long numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
@@ -108,7 +108,7 @@ typedef struct
 		//WARNING: This top block is a union between md2model&md3model: Make sure it matches!
 	long mdnum; //MD2=2, MD3=3. NOTE: must be first in structure!
 	long numframes, cframe, nframe, fpssc, usesalpha, shadeoff;
-	float oldtime, curtime, interpol, scale, bscale;
+	float oldtime, curtime, interpol, scale, bscale, zadd;
 	mdanim_t *animations;
 	mdskinmap_t *skinmap;
 	long numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
@@ -215,7 +215,7 @@ int md_loadmodel (const char *fn)
 	return(nextmodelid-1);
 }
 
-int md_setmisc (int modelid, float scale, int shadeoff)
+int md_setmisc (int modelid, float scale, int shadeoff, float zadd)
 {
 	md2model *m;
 
@@ -225,6 +225,7 @@ int md_setmisc (int modelid, float scale, int shadeoff)
 	m = (md2model *)models[modelid];
 	m->bscale = scale;
 	m->shadeoff = shadeoff;
+	m->zadd = zadd;
 
 	return 0;
 }
@@ -674,7 +675,7 @@ static void md2draw (md2model *m, spritetype *tspr)
 	m0.z = f0->mul.z*m->scale*g; m1.z = f1->mul.z*m->scale*f;
 	a0.x = f0->add.x*m->scale; a0.x = (f1->add.x*m->scale-a0.x)*f+a0.x;
 	a0.y = f0->add.y*m->scale; a0.y = (f1->add.y*m->scale-a0.y)*f+a0.y;
-	a0.z = f0->add.z*m->scale; a0.z = (f1->add.z*m->scale-a0.z)*f+a0.z;
+	a0.z = f0->add.z*m->scale; a0.z = (f1->add.z*m->scale-a0.z)*f+a0.z + m->zadd*m->scale;
 	c0 = &f0->verts[0].v[0]; c1 = &f1->verts[0].v[0];
 
 	if (globalorientation&8) //y-flipping
@@ -914,9 +915,7 @@ static void md3draw (md3model *m, spritetype *tspr)
 	m0.x = (1.0/64.0)*m->scale*g; m1.x = (1.0/64.0)*m->scale*f;
 	m0.y = (1.0/64.0)*m->scale*g; m1.y = (1.0/64.0)*m->scale*f;
 	m0.z = (1.0/64.0)*m->scale*g; m1.z = (1.0/64.0)*m->scale*f;
-	a0.x = f0->cen.x*m->scale; a0.x = (f1->cen.x*m->scale-a0.x)*f+a0.x;
-	a0.y = f0->cen.y*m->scale; a0.y = (f1->cen.y*m->scale-a0.y)*f+a0.y;
-	a0.z = m->zmax  *m->scale; a0.z = (m->zmax  *m->scale-a0.z)*f+a0.z; //zmax is pre-calculated height extent
+	a0.x = a0.y = 0; a0.z = m->zadd*m->scale;
 
 	if (globalorientation&8) //y-flipping
 	{
@@ -1039,6 +1038,7 @@ static void md3draw (md3model *m, spritetype *tspr)
 #endif
 
 		i = mdloadskin((md2model *)m,tile2model[tspr->picnum].skinnum,globalpal); if (!i) continue;
+		//i = mdloadskin((md2model *)m,tile2model[tspr->picnum].skinnum,surfi); //hack for testing multiple surfaces per MD3
 		bglBindTexture(GL_TEXTURE_2D, i);
 
 		bglBegin(GL_TRIANGLES);

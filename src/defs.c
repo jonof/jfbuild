@@ -80,10 +80,11 @@ static tokenlist basetokens[] = {
 static tokenlist modeltokens[] = {
 	{ "scale",  T_SCALE  },
 	{ "shade",  T_SHADE  },
+	{ "zadd",   T_ZADD   },
 	{ "frame",  T_FRAME  },
 	{ "anim",   T_ANIM   },
 	{ "skin",   T_SKIN   },
-	{ "hud",    T_HUD    }
+	{ "hud",    T_HUD    },
 };
 
 static tokenlist modelframetokens[] = {
@@ -273,7 +274,7 @@ static int defsparser(scriptfile *script)
 						initprintf("Failure loading MD2/MD3 model \"%s\"\n", modelfn);
 						break;
 					}
-					md_setmisc(lastmodelid,(float)scale, shadeoffs);
+					md_setmisc(lastmodelid,(float)scale, shadeoffs,0.0);
 #endif
 					modelskin = lastmodelskin = 0;
 					seenframe = 0;
@@ -447,7 +448,7 @@ static int defsparser(scriptfile *script)
 			case T_MODEL:
 				{
 					char *modelend, *modelfn;
-					double scale=1.0;
+					double scale=1.0, mzadd=0.0;
 					int shadeoffs=0;
 
 					modelskin = lastmodelskin = 0;
@@ -468,6 +469,7 @@ static int defsparser(scriptfile *script)
 							//case T_ERROR: initprintf("Error on line %s:%d in model tokens\n", script->filename,script->linenum); break;
 							case T_SCALE: scriptfile_getdouble(script,&scale); break;
 							case T_SHADE: scriptfile_getnumber(script,&shadeoffs); break;
+							case T_ZADD:  scriptfile_getdouble(script,&mzadd); break;
 							case T_FRAME:
 							{
 								char *frametokptr = script->ltextptr;
@@ -656,7 +658,7 @@ static int defsparser(scriptfile *script)
 						}
 					}
 
-					md_setmisc(lastmodelid,(float)scale, shadeoffs);
+					md_setmisc(lastmodelid,(float)scale,shadeoffs,(float)mzadd);
 
 					modelskin = lastmodelskin = 0;
 					seenframe = 0;
