@@ -31,7 +31,7 @@ res=o
 asm=nasm
 
 DXROOT=c:/sdks/msc/dx61
-FMODROOT=c:/sdks/fmodapi370win32/api
+FMODROOT=c:/sdks/fmodapi374win/api
 
 # debugging enabled
 debug=-ggdb #-DDEBUGGINGAIDS

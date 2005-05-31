@@ -20,7 +20,7 @@ ENGINELIB=engine.lib
 EDITORLIB=build.lib
 
 DXROOT=c:\sdks\msc\dx7
-FMODROOT=c:\sdks\fmodapi370win32\api
+FMODROOT=c:\sdks\fmodapi374win\api
 
 # /D these to enable certain features of the port's compile process
 # USE_A_C   This uses a C version of the classic renderer code rather
