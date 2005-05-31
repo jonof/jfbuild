@@ -3094,8 +3094,8 @@ static void drawsprite(long snum)
 	cstat = tspr->cstat;
 
 #ifdef SUPERBUILD
-	if (((cstat&48)==48) && (bpp==8)) vtilenum = tilenum;	// if the game wants voxels, it gets voxels
-	else if (((cstat&48)!=48) && (bpp == 8) && (usevoxels) && (tiletovox[tilenum] != -1)
+	if ((cstat&48)==48) vtilenum = tilenum;	// if the game wants voxels, it gets voxels
+	else if ((cstat&48)!=48 && (usevoxels) && (tiletovox[tilenum] != -1)
 #if defined(POLYMOST) && defined(USE_OPENGL)
 		 && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD))
 #endif
@@ -3103,7 +3103,6 @@ static void drawsprite(long snum)
 		vtilenum = tiletovox[tilenum];
 		cstat |= 48;
 	}
-	if ((cstat&48)==48 && bpp != 8) cstat &= ~48;	// no voxels in polymost
 #endif
 
 	if ((cstat&48) != 48)
