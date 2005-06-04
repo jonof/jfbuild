@@ -8702,7 +8702,7 @@ void setviewtotile(short tilenume, long xsiz, long ysiz)
 		bakrendmode = rendmode;
 		baktile = tilenume;
 	}
-	rendmode = 0;
+	rendmode = 0;//2;
 #endif
 	copybufbyte(&startumost[windowx1],&bakumost[windowx1],(windowx2-windowx1+1)*sizeof(bakumost[0]));
 	copybufbyte(&startdmost[windowx1],&bakdmost[windowx1],(windowx2-windowx1+1)*sizeof(bakdmost[0]));
