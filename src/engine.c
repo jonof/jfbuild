@@ -213,7 +213,8 @@ inline long getkensmessagecrc(long b)
 	"mov ax, word ptr sqrtable[eax*2]",\
 	"shr eax, cl",\
 	parm nomemory [eax]\
-	modify exact [eax ebx ecx]\
+	modify exact [eax ebx ecx]
+unsigned long nsqrtasm(unsigned long);
 
 #pragma aux msqrtasm =\
 	"mov eax, 0x40000000",\
@@ -230,7 +231,8 @@ inline long getkensmessagecrc(long b)
 	"sbb eax, -1",\
 	"shr eax, 1",\
 	parm nomemory [ecx]\
-	modify exact [eax ebx ecx]\
+	modify exact [eax ebx ecx]
+long msqrtasm(unsigned long);
 
 	//0x007ff000 is (11<<13), 0x3f800000 is (127<<23)
 #pragma aux krecipasm =\
@@ -249,7 +251,8 @@ inline long getkensmessagecrc(long b)
 	"sar eax, cl",\
 	"xor eax, ebx",\
 	parm [eax]\
-	modify exact [eax ebx ecx]\
+	modify exact [eax ebx ecx]
+long krecipasm(long);
 
 #pragma aux setgotpic =\
 	"mov ebx, eax",\
@@ -263,7 +266,8 @@ inline long getkensmessagecrc(long b)
 	"or dl, bl",\
 	"mov byte ptr gotpic[eax], dl",\
 	parm [eax]\
-	modify exact [eax ebx ecx edx]\
+	modify exact [eax ebx ecx edx]
+void setgotpic(long);
 
 #pragma aux getclipmask =\
 	"sar eax, 31",\
@@ -278,7 +282,8 @@ inline long getkensmessagecrc(long b)
 	"or al, 0xf0",\
 	"xor eax, ebx",\
 	parm [eax][ebx][ecx][edx]\
-	modify exact [eax ebx ecx edx]\
+	modify exact [eax ebx ecx edx]
+long getclipmask(long,long,long,long);
 
 #pragma aux getkensmessagecrc =\
 	"xor eax, eax",\
@@ -290,6 +295,7 @@ inline long getkensmessagecrc(long b)
 	"loop short beg",\
 	parm [ebx]\
 	modify exact [eax ebx ecx edx]
+long getkensmessagecrc(long);
 
 #elif defined(_MSC_VER)	// __WATCOMC__
 

@@ -20,6 +20,8 @@
 #include <sys/stat.h>
 #if defined(LINUX) || defined(BSD)
 #include <unistd.h>
+#else
+#include <io.h>
 #endif
 #endif
 

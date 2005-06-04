@@ -4910,6 +4910,7 @@ inline long addlava(long b)
 	"add al, dl",\
 	parm [ebx]\
 	modify exact [eax edx]
+long addlava(long);
 #elif defined(_MSC_VER)
 inline long addlava(long b)
 {
