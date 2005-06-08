@@ -116,7 +116,9 @@ char videomodereset = 0;
 // input and events
 char inputdevices=0;
 char quitevent=0, appactive=1, mousegrab=1;
-long mousex=0, mousey=0, mouseb=0,mouseba[2];
+long mousex=0, mousey=0, mouseb=0;
+static unsigned long mousewheel[2] = { 0,0 };
+#define MouseWheelFakePressTime (100)	// getticks() is a 1000Hz timer, and the button press is faked for 100ms
 long *joyaxis = NULL, joyb=0, *joyhat = NULL;
 char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
 
@@ -1041,11 +1043,10 @@ void releaseallbuttons(void)
 		if (mouseb & 2) mousepresscallback(2, 0);
 		if (mouseb & 4) mousepresscallback(3, 0);
 		if (mouseb & 8) mousepresscallback(4, 0);
-		if (mouseba[0]>0) mousepresscallback(5,0);
-		if (mouseba[1]>0) mousepresscallback(6,0);
+		if (mousewheel[0]>0) mousepresscallback(5,0);
+		if (mousewheel[1]>0) mousepresscallback(6,0);
 	}
-	mouseba[0]=0;
-	mouseba[1]=0;
+	mousewheel[0]=mousewheel[1]=0;
 	mouseb = 0;
 
 	if (joypresscallback) {
@@ -1507,19 +1508,13 @@ static void ProcessInputDevices(void)
 
 	// do this here because we only want the wheel to signal once, but hold the state for a moment
 	if (mousegrab) {
-		if (mouseba[0]>0) {
-			if (mouseba[0]<16) mouseba[0]++;
-			else {
-				if (mousepresscallback) mousepresscallback(5,0);
-				mouseba[0]=0; mouseb &= ~16;
-			}
+		if (mousewheel[0] > 0 && getticks() - mousewheel[0] > MouseWheelFakePressTime) {
+			if (mousepresscallback) mousepresscallback(5,0);
+			mousewheel[0] = 0; mouseb &= ~16;
 		}
-		if (mouseba[1]>0) {
-			if (mouseba[1]<16) mouseba[1]++;
-			else {
-				if (mousepresscallback) mousepresscallback(6,0);
-				mouseba[1]=0; mouseb &= ~32;
-			}
+		if (mousewheel[1] > 0 && getticks() - mousewheel[1] > MouseWheelFakePressTime) {
+			if (mousepresscallback) mousepresscallback(6,0);
+			mousewheel[1] = 0; mouseb &= ~32;
 		}
 	}
 
@@ -1603,16 +1598,14 @@ static void ProcessInputDevices(void)
 								mousey = (short)didod[i].dwData; break;
 							case DIMOFS_Z:
 								if ((int)didod[i].dwData > 0) {		// wheel up
-									mouseb |= 32;
-									mouseba[1] = 1;
-									if (mousepresscallback)
-										mousepresscallback(6, 1);
+									if (mousewheel[1] > 0 && mousepresscallback) mousepresscallback(6,0);
+									mousewheel[1] = getticks();
+									mouseb |= 32; if (mousepresscallback) mousepresscallback(6, 1);
 								}
 								else if ((int)didod[i].dwData < 0) {	// wheel down
-									mouseb |= 16;
-									mouseba[0] = 1;
-									if (mousepresscallback)
-										mousepresscallback(5, 1);
+									if (mousewheel[1] > 0 && mousepresscallback) mousepresscallback(6,0);
+									mousewheel[0] = getticks();
+									mouseb |= 16; if (mousepresscallback) mousepresscallback(5, 1);
 								}
 								break;
 						}

@@ -25,7 +25,7 @@ else
 	ifeq ($(findstring MINGW,$(uname)),MINGW)
 		PLATFORM=WINDOWS
 		EXESUFFIX=.exe
-		LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -lws2_32
+		LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -lwsock32
 		ifneq ($(DYNAMIC_OPENGL),1)
 			LIBS+= $(GLLIBWIN)
 		endif

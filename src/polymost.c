@@ -485,6 +485,22 @@ void polymost_glreset ()
 	glox1 = -1;
 }
 
+// one-time initialisation of OpenGL for polymost
+void polymost_glinit()
+{
+	GLfloat col[4];
+	
+	bglFogi(GL_FOG_MODE,GL_EXP); //GL_EXP(default),GL_EXP2,GL_LINEAR
+	//bglHint(GL_FOG_HINT,GL_NICEST);
+	bglFogf(GL_FOG_DENSITY,1.0); //must be > 0, default is 1
+	bglFogf(GL_FOG_START,0.0); //default is 0
+	bglFogf(GL_FOG_END,1.0); //default is 1
+	col[0] = 0; col[1] = 0; col[2] = 0; col[3] = 0; //range:0 to 1
+	bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
+
+	bglBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+}
+
 void resizeglcheck ()
 {
 	float m[4][4];
@@ -499,8 +515,6 @@ void resizeglcheck ()
 
 	if ((glox1 != windowx1) || (gloy1 != windowy1) || (glox2 != windowx2) || (gloy2 != windowy2))
 	{
-		float col[4];
-
 		glox1 = windowx1; gloy1 = windowy1;
 		glox2 = windowx2; gloy2 = windowy2;
 
@@ -517,19 +531,9 @@ void resizeglcheck ()
 		bglMatrixMode(GL_MODELVIEW);
 		bglLoadIdentity();
 
-		if (!nofog) {
-			bglEnable(GL_FOG);
-			bglFogi(GL_FOG_MODE,GL_EXP); //GL_EXP(default),GL_EXP2,GL_LINEAR
-			//bglHint(GL_FOG_HINT,GL_NICEST);
-			bglFogf(GL_FOG_DENSITY,1.0); //must be > 0, default is 1
-			bglFogf(GL_FOG_START,0.0); //default is 0
-			bglFogf(GL_FOG_END,1.0); //default is 1
-			col[0] = 0; col[1] = 0; col[2] = 0; col[3] = 0; //range:0 to 1
-			bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
-		}
+		if (!nofog) bglEnable(GL_FOG);
 
 		//bglEnable(GL_TEXTURE_2D);
-		bglBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 	}
 }
 
@@ -1321,7 +1325,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 											vidp[0] = ((d0>>16)&255);
 #endif
 											d0 += d1; u0 += u1; v0 += v1; vidp++;
-										} while (vidp < vide);
+										}
 									}
 								}
 								else
@@ -1343,7 +1347,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 											vidp[0] = ((d0>>16)&255);
 #endif
 											d0 += d1; u0 += u1; v0 += v1; vidp++;
-										} while (vidp < vide);
+										}
 									}
 								}
 								break;
@@ -1373,7 +1377,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 											if ((dacol != 255) && (vidp[0] > (d0>>16))) vidp[0] = ((d0>>16)&255);
 #endif
 											d0 += d1; u0 += u1; v0 += v1; vidp++;
-										} while (vidp < vide);
+										}
 									}
 								}
 								else
@@ -1401,7 +1405,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 											if ((dacol != 255) && (vidp[0] > (d0>>16))) vidp[0] = ((d0>>16)&255);
 #endif
 											d0 += d1; u0 += u1; v0 += v1; vidp++;
-										} while (vidp < vide);
+										}
 									}
 								}
 								break;
@@ -1431,7 +1435,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 										if ((dacol != 255) && (vidp[0] > (d0>>16))) vidp[0] = ((d0>>16)&255);
 #endif
 										d0 += d1; u0 += u1; v0 += v1; vidp++;
-									} while (vidp < vide);
+									}
 								}
 								break;
 							case 3: //Transluscence #2
@@ -1460,7 +1464,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 										if ((dacol != 255) && (vidp[0] > (d0>>16))) vidp[0] = ((d0>>16)&255);
 #endif
 										d0 += d1; u0 += u1; v0 += v1; vidp++;
-									} while (vidp < vide);
+									}
 								}
 								break;
 						}
@@ -3653,7 +3657,8 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 			globalorientation = (dastat&1)+((dastat&32)<<4)+((dastat&4)<<1);
 
 			if ((dastat&10) == 2) bglViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
-								else { bglViewport(0,0,xdim,ydim); glox1 = -1; } //Force fullscreen (glox1=-1 forces it to restore)
+			else { bglViewport(0,0,xdim,ydim); glox1 = -1; } //Force fullscreen (glox1=-1 forces it to restore)
+
 			bglMatrixMode(GL_PROJECTION);
 			memset(m,0,sizeof(m));
 			if ((dastat&10) == 2)

@@ -6413,7 +6413,10 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 	if (searchx < 0) { searchx = halfxdimen; searchy = (ydimen>>1); }
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-	if (rendmode == 3) polymost_glreset();
+	if (rendmode == 3) {
+		polymost_glinit();
+		polymost_glreset();
+	}
 #endif
 	qsetmode = 200;
 	return(0);
