@@ -13,35 +13,51 @@ GLLIBLIN=-lGL
 SDLCONFIG=sdl-config
 #SDLCONFIG=/usr/local/bin/sdl11-config
 
-# detect the platform
-uname=$(strip $(shell uname -s))
-ifeq ($(findstring Linux,$(uname)),Linux)
-	PLATFORM=LINUX
+# Detect the platform if it wasn't explicitly given to us from
+# the outside world. This allows cross-compilation by overriding
+# CC and giving us PLATFORM specifically.
+ifndef PLATFORM
+	uname=$(strip $(shell uname -s))
+	PLATFORM=UNKNOWN
+	ifeq ($(findstring Linux,$(uname)),Linux)
+		PLATFORM=LINUX
+	endif
+	ifeq ($(findstring BSD,$(uname)),BSD)
+		PLATFORM=BSD
+	endif
+	ifeq ($(findstring MINGW,$(uname)),MINGW)
+		PLATFORM=WINDOWS
+	endif
+	ifeq ($(findstring Darwin,$(uname)),Darwin)
+		PLATFORM=DARWIN
+	endif
+endif
+
+
+ifeq ($(PLATFORM),LINUX)
 	RENDERTYPE=SDL
 	ifneq ($(DYNAMIC_OPENGL),1)
 		LIBS+= $(GLLIBLIN)
 	endif
-else
-	ifeq ($(findstring MINGW,$(uname)),MINGW)
-		PLATFORM=WINDOWS
-		EXESUFFIX=.exe
-		LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -lwsock32
-		ifneq ($(DYNAMIC_OPENGL),1)
-			LIBS+= $(GLLIBWIN)
-		endif
-		RENDERTYPE ?= WIN
-	else
-		ifeq ($(findstring BSD,$(uname)),BSD)
-			PLATFORM=BSD
-			RENDERTYPE=SDL
-			ifneq ($(DYNAMIC_OPENGL),1)
-				LIBS+= $(GLLIBBSD)
-			endif
-		else
-			PLATFORM=UNKNOWN
-		endif
+endif
+ifeq ($(PLATFORM),WINDOWS)
+	RENDERTYPE ?= WIN
+	EXESUFFIX=.exe
+	LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -lwsock32
+	ifneq ($(DYNAMIC_OPENGL),1)
+		LIBS+= $(GLLIBWIN)
 	endif
 endif
+ifeq ($(PLATFORM),BSD)
+	RENDERTYPE=SDL
+	ifneq ($(DYNAMIC_OPENGL),1)
+		LIBS+= $(GLLIBBSD)
+	endif
+endif
+ifeq ($(PLATFORM),DARWIN)
+	RENDERTYPE=SDL
+endif
+
 
 ifeq ($(RENDERTYPE),SDL)
 	LIBS+= $(shell $(SDLCONFIG) --libs)
