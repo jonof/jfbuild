@@ -21,7 +21,7 @@
 
 #ifdef POLYMOST
 #define WIN32_LEAN_AND_MEAN
-#ifdef WINDOWS
+#ifdef PLATFORMWINDOWS
 #include <windows.h>
 #endif
 #ifdef USE_OPENGL

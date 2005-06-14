@@ -3,12 +3,20 @@
 #include <windows.h>
 #endif
 
-#include <GL/gl.h>
+#if defined(__APPLE__)
+# include <OpenGL/gl.h>
+#else
+# include <GL/gl.h>
+#endif
 
 // get this header from http://oss.sgi.com/projects/ogl-sample/registry/
 // if you are missing it
 //#include <GL/glext.h>
-#include "glext.h"
+#if defined(__APPLE__)
+# include <OpenGL/glext.h>
+#else
+# include "glext.h"
+#endif
 
 #ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
 #error You should get an updated copy of glext.h from http://oss.sgi.com/projects/ogl-sample/registry/
