@@ -104,7 +104,7 @@ int loadgldriver(const char *driver)
 #endif
 
 	if (!driver) {
-#ifdef WINDOWS
+#ifdef PLATFORMWINDOWS
 		driver = "OPENGL32.DLL";
 #else
 		driver = "libGL.so";
@@ -119,7 +119,7 @@ int loadgldriver(const char *driver)
 		(t = (void*)SDL_GL_GetProcAddress(s)); \
 		if (!t) { initprintf("Failed to find " s " in %s\n",driver); err = 1; }
 #else
-#	ifdef WINDOWS
+#	ifdef PLATFORMWINDOWS
 		hGLDLL = LoadLibrary(driver);
 		if (!hGLDLL) return -1;
 #		define GETPROC(s) \
@@ -310,7 +310,7 @@ int unloadgldriver(void)
 
 #else
 
-#ifdef WINDOWS
+#ifdef PLATFORMWINDOWS
 char *gldriver = "opengl32.dll";
 #else
 char *gldriver = "libgl.so";
