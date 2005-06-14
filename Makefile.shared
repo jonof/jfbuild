@@ -29,7 +29,7 @@ ifndef PLATFORM
 		PLATFORM=WINDOWS
 	endif
 	ifeq ($(findstring Darwin,$(uname)),Darwin)
-		PLATFORM=DARWIN
+		PLATFORM=OSX	# DARWIN appears to be reserved
 	endif
 endif
 
@@ -54,7 +54,7 @@ ifeq ($(PLATFORM),BSD)
 		LIBS+= $(GLLIBBSD)
 	endif
 endif
-ifeq ($(PLATFORM),DARWIN)
+ifeq ($(PLATFORM),OSX)
 	RENDERTYPE=SDL
 endif
 
