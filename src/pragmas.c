@@ -18,67 +18,6 @@ long dmval;
 // Generic C version
 //
 
-#define qw(x)	((int64)(x))		// quadword cast
-#define dw(x)	((long)(x))		// doubleword cast
-#define wo(x)	((short)(x))		// word cast
-#define by(x)	((char)(x))		// byte cast
-
-#define _scaler(a) \
-long mulscale##a(long eax, long edx) \
-{ \
-	return dw((qw(eax) * qw(edx)) >> a); \
-} \
-\
-long divscale##a(long eax, long ebx) \
-{ \
-	return dw((qw(eax) << a) / qw(ebx)); \
-} \
-\
-long dmulscale##a(long eax, long edx, long esi, long edi) \
-{ \
-	return dw(((qw(eax) * qw(edx)) + (qw(esi) * qw(edi))) >> a); \
-} \
-\
-long tmulscale##a(long eax, long edx, long ebx, long ecx, long esi, long edi) \
-{ \
-	return dw(((qw(eax) * qw(edx)) + (qw(ebx) * qw(ecx)) + (qw(esi) * qw(edi))) >> a); \
-} \
-
-
-long sqr(long eax)
-{
-	return (eax) * (eax);
-}
-
-long scale(long eax, long edx, long ecx)
-{
-	return dw((qw(eax) * qw(edx)) / qw(ecx));
-}
-
-long mulscale(long eax, long edx, long ecx)
-{
-	return dw((qw(eax) * qw(edx)) >> by(ecx));
-}
-
-long divscale(long eax, long ebx, long ecx)
-{
-	return dw((qw(eax) << by(ecx)) / qw(ebx));
-}
-
-long dmulscale(long eax, long edx, long esi, long edi, long ecx)
-{
-	return dw(((qw(eax) * qw(edx)) + (qw(esi) * qw(edi))) >> by(ecx));
-}
-
-long boundmulscale(long a, long d, long c)
-{ // courtesy of Ken
-    int64 p;
-    p = (((int64)a)*((int64)d))>>c;
-    if (p >= longlong(2147483647)) p = longlong(2147483647);
-    if (p < longlong(-2147483648)) p = longlong(-2147483648);
-    return((long)p);
-}
-
 void qinterpolatedown16(long bufptr, long num, long val, long add)
 { // gee, I wonder who could have provided this...
     long i, *lptr = (long *)bufptr;
@@ -90,32 +29,6 @@ void qinterpolatedown16short(long bufptr, long num, long val, long add)
     long i; short *sptr = (short *)bufptr;
     for(i=0;i<num;i++) { sptr[i] = (short)(val>>16); val += add; }
 }
-
-char readpixel(void* s)    { return (*((char*)(s))); }
-void drawpixel(void* s, char a)    { *((char*)(s)) = a; }
-void drawpixels(void* s, short a)  { *((short*)(s)) = a; }
-void drawpixelses(void* s, long a) { *((long*)(s)) = a; }
-
-long mul3(long a) { return (a<<1)+a; }
-long mul5(long a) { return (a<<2)+a; }
-long mul9(long a) { return (a<<3)+a; }
-
-long divmod(long a, long b) { dmval = a%b; return a/b; }
-long moddiv(long a, long b) { dmval = a/b; return a%b; }
-
-long klabs(long a) { if (a < 0) return -a; return a; }
-long ksgn(long a)  { if (a > 0) return 1; if (a < 0) return -1; return 0; }
-
-long umin(long a, long b) { if ((unsigned long)a < (unsigned long)b) return a; return b; }
-long umax(long a, long b) { if ((unsigned long)a < (unsigned long)b) return b; return a; }
-long kmin(long a, long b) { if ((signed long)a < (signed long)b) return a; return b; }
-long kmax(long a, long b) { if ((signed long)a < (signed long)b) return b; return a; }
-
-void swapchar(void* a, void* b)  { char t = *((char*)b); *((char*)b) = *((char*)a); *((char*)a) = t; }
-void swapchar2(void* a, void* b, long s) { swapchar(a,b); swapchar((char*)a+1,(char*)b+s); }
-void swapshort(void* a, void* b) { short t = *((short*)b); *((short*)b) = *((short*)a); *((short*)a) = t; }
-void swaplong(void* a, void* b)  { long t = *((long*)b); *((long*)b) = *((long*)a); *((long*)a) = t; }
-void swap64bit(void* a, void* b) { int64 t = *((int64*)b); *((int64*)b) = *((int64*)a); *((int64*)a) = t; }
 
 void clearbuf(void *d, long c, long a)
 {
@@ -164,17 +77,6 @@ void copybufreverse(void *S, void *D, long c)
 	char *p = (char*)S, *q = (char*)D;
 	while((c--) > 0) *(q--) = *(p++);
 }
-
-
-// define the scale functions
-_scaler(1)	_scaler(2)	_scaler(3)	_scaler(4)
-_scaler(5)	_scaler(6)	_scaler(7)	_scaler(8)
-_scaler(9)	_scaler(10)	_scaler(11)	_scaler(12)
-_scaler(13)	_scaler(14)	_scaler(15)	_scaler(16)
-_scaler(17)	_scaler(18)	_scaler(19)	_scaler(20)
-_scaler(21)	_scaler(22)	_scaler(23)	_scaler(24)
-_scaler(25)	_scaler(26)	_scaler(27)	_scaler(28)
-_scaler(29)	_scaler(30)	_scaler(31)	_scaler(32)
 
 #elif defined(__GNUC__) && defined(__i386__)	// NOASM
 
