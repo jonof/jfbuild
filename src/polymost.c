@@ -70,6 +70,7 @@ long rendmode = 0;
 long usemodels=1, usehightile=1, usegoodalpha=0;
 static GLuint polymosttext = 0;
 
+
 #include <math.h> //<-important!
 typedef struct { float x, cy[2], fy[2]; long n, p, tag, ctag, ftag; } vsptyp;
 #define VSPMAX 4096 //<- careful!
@@ -238,6 +239,8 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 
 static long mdtims, omdtims;
 #include "mdsprite.c"
+
+static voxmodel *voxmodels[MAXVOXELS];
 
 
 //--------------------------------------------------------------------------------------------------
@@ -3274,6 +3277,13 @@ void polymost_drawsprite (long snum)
 			bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16))));
 		}
 	}
+
+	if ((tspr->cstat&48)!=48 && usevoxels && tiletovox[tspr->picnum] != -1
+		 && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD))
+	   ) {
+		globalpicnum = tiletovox[tspr->picnum];
+		globalorientation |= 48;
+	}
 #endif
 
 	switch((globalorientation>>4)&3)
@@ -3562,8 +3572,12 @@ void polymost_drawsprite (long snum)
 			pow2xsplit = 0; drawpoly(px,py,npoints,method);
 			break;
 
-		//case 3: //Voxel sprite
-		//   break;
+		case 3: //Voxel sprite
+#ifdef USE_OPENGL
+			if (rendmode == 3 && voxmodels[globalpicnum])
+				voxdraw(voxmodels[globalpicnum], tspr);
+#endif
+		    break;
 	}
 }
 

@@ -6726,6 +6726,14 @@ long qloadkvx(long voxindex, char *filename)
 		if (lengcnt >= lengtot-768) break;
 	}
 	kclose(fil);
+
+#if defined POLYMOST
+	if (voxmodels[voxindex]) {
+		voxfree(voxmodels[voxindex]);
+		voxmodels[voxindex] = NULL;
+	}
+	voxmodels[voxindex] = voxload(filename);
+#endif
 	return 0;
 }
 #endif
