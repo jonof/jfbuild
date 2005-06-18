@@ -140,7 +140,7 @@ typedef struct { unsigned char x, y, z, u, v; } vert_t;
 #else
 typedef struct { unsigned short x, y, z, u, v; } vert_t;
 #endif
-typedef struct { vert_t v[4]; } quad_t;
+typedef struct { vert_t v[4]; } voxrect_t;
 typedef struct
 {
 		//WARNING: This top block is a union of md2model,md3model,voxmodel: Make sure it matches!
@@ -150,7 +150,7 @@ typedef struct
 	unsigned int *texid;	// skins for palettes
 
 		//VOX specific stuff:
-	quad_t *quad; long qcnt, qfacind[7];
+	voxrect_t *quad; long qcnt, qfacind[7];
 	long *mytex, mytexx, mytexy;
 	long xsiz, ysiz, zsiz;
 	float xpiv, ypiv, zpiv;
@@ -1331,7 +1331,7 @@ static void cntquad (long x0, long y0, long z0, long x1, long y1, long z1, long 
 static void addquad (long x0, long y0, long z0, long x1, long y1, long z1, long x2, long y2, long z2, long face)
 {
 	long i, j, x, y, z, xx, yy, nx, ny, nz, *lptr;
-	quad_t *qptr;
+	voxrect_t *qptr;
 
 	x = labs(x2-x0); y = labs(y2-y0); z = labs(z2-z0);
 	if (!x) { x = y; y = z; i = 0; } else if (!y) { y = z; i = 1; } else i = 2;
@@ -1543,7 +1543,7 @@ skindidntfit:;
 				shp[z].x = x0; shp[z].y = y0; //Overwrite size with top-left location
 			}
 
-			gvox->quad = (quad_t *)malloc(gvox->qcnt*sizeof(quad_t));
+			gvox->quad = (voxrect_t *)malloc(gvox->qcnt*sizeof(voxrect_t));
 			if (!gvox->quad) { free(zbit); free(shp); free(bx0); free(gvox); return(0); }
 
 			gvox->mytex = (long *)malloc(gvox->mytexx*gvox->mytexy*sizeof(long));
@@ -1785,10 +1785,10 @@ static voxmodel *voxload (const char *filnam)
 	voxmodel *vm;
 
 	i = strlen(filnam)-4; if (i < 0) return(0);
-		  if (!stricmp(&filnam[i],".vox")) { ret = loadvox(filnam); is8bit = 1; }
-	else if (!stricmp(&filnam[i],".kvx")) { ret = loadkvx(filnam); is8bit = 1; }
-	else if (!stricmp(&filnam[i],".kv6")) { ret = loadkv6(filnam); is8bit = 0; }
- //else if (!stricmp(&filnam[i],".vxl")) { ret = loadvxl(filnam); is8bit = 0; }
+		  if (!Bstrcasecmp(&filnam[i],".vox")) { ret = loadvox(filnam); is8bit = 1; }
+	else if (!Bstrcasecmp(&filnam[i],".kvx")) { ret = loadkvx(filnam); is8bit = 1; }
+	else if (!Bstrcasecmp(&filnam[i],".kv6")) { ret = loadkv6(filnam); is8bit = 0; }
+ //else if (!Bstrcasecmp(&filnam[i],".vxl")) { ret = loadvxl(filnam); is8bit = 0; }
 	else return(0);
 	if (ret >= 0) vm = vox2poly(); else vm = 0;
 	if (vm)

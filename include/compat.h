@@ -28,14 +28,17 @@
 #if defined(__WATCOMC__)
 # define inline __inline
 # define int64 __int64
+# define uint64 unsigned __int64
 # define longlong(x) x##i64
 #elif defined(_MSC_VER)
 # define inline __inline
 # define int64 __int64
+# define uint64 unsigned __int64
 # define longlong(x) x##i64
 #else
 # define longlong(x) x##ll
 typedef long long int64;
+typedef unsigned long long uint64;
 #endif
 
 #ifndef NULL
@@ -96,8 +99,7 @@ typedef long long int64;
 #elif defined B_ENDIAN_C_INLINE
 static inline unsigned short B_SWAP16(unsigned short s) { return (s>>8)|(s<<8); }
 static inline unsigned long  B_SWAP32(unsigned long  l) { return ((l>>8)&0xff00)|((l&0xff00)<<8)|(l<<24)|(l>>24); }
-static inline unsigned int64 B_SWAP64(unsigned int64 l)
- { return (l>>56)|((l>>40)&0xff00)|((l>>24)&0xff0000)|((l>>8)&0xff000000)|((l&255)<<56)|((l&0xff00)<<40)|((l&0xff0000)<<24)|((l&0xff000000)<<8); }
+static inline uint64 B_SWAP64(uint64 l) { return (l>>56)|((l>>40)&0xff00)|((l>>24)&0xff0000)|((l>>8)&0xff000000)|((l&255)<<56)|((l&0xff00)<<40)|((l&0xff0000)<<24)|((l&0xff000000)<<8); }
 #endif
 
 #if B_LITTLE_ENDIAN == 1
