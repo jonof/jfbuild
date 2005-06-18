@@ -240,9 +240,6 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 static long mdtims, omdtims;
 #include "mdsprite.c"
 
-static voxmodel *voxmodels[MAXVOXELS];
-
-
 //--------------------------------------------------------------------------------------------------
 //TEXTURE MANAGEMENT: treats same texture with different .PAL as a separate texture. This makes the
 //   max number of virtual textures very large (MAXTILES*256). Instead of allocating a handle for
@@ -3278,11 +3275,23 @@ void polymost_drawsprite (long snum)
 		}
 	}
 
-	if ((tspr->cstat&48)!=48 && usevoxels && tiletovox[tspr->picnum] != -1
-		 && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD))
-	   ) {
-		globalpicnum = tiletovox[tspr->picnum];
-		globalorientation |= 48;
+	if (/*usevoxels &&*/ (((tspr->cstat&48)!=48 && tiletovox[tspr->picnum] != -1 && usevoxels) ||
+							((tspr->cstat&48)==48 && (globalpicnum >= 0)))
+					  && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD)))
+	{
+		if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD) && ((tspr->cstat&48) != 48))
+		{
+			if (tile2model[tspr->picnum].modelid >= 0 &&
+				 tile2model[tspr->picnum].framenum >= 0) {
+				mddraw(tspr);
+				return;
+			}
+		}
+
+		if ((tspr->cstat&48)!=48) { globalpicnum = tiletovox[tspr->picnum]; globalorientation |= 48; }
+		if (rendmode == 3 && voxmodels[globalpicnum])
+			voxdraw(voxmodels[globalpicnum], tspr);
+		return;
 	}
 #endif
 
@@ -3574,8 +3583,14 @@ void polymost_drawsprite (long snum)
 
 		case 3: //Voxel sprite
 #ifdef USE_OPENGL
-			if (rendmode == 3 && voxmodels[globalpicnum])
-				voxdraw(voxmodels[globalpicnum], tspr);
+			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
+			{
+				if (tile2model[tspr->picnum].modelid >= 0 &&
+					 tile2model[tspr->picnum].framenum >= 0) {
+					mddraw(tspr);
+					return;
+				}
+			}
 #endif
 		    break;
 	}

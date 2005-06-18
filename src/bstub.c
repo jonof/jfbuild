@@ -217,7 +217,8 @@ void ExtAnalyzeSprites(void)
 
 	for(i=0,tspr=&tsprite[0];i<spritesortcnt;i++,tspr++)
 	{
-		if (usevoxels && tiletovox[tspr->picnum] >= 0 && bpp == 8)
+		if (usevoxels && tiletovox[tspr->picnum] >= 0)
+		{
 		switch(tspr->picnum)
 		{
 			case PLAYER:
@@ -227,11 +228,10 @@ void ExtAnalyzeSprites(void)
 						break;
 					}
 				}
-				//tspr->cstat |= 48;
+				//tspr->cstat |= 48; tspr->picnum = tiletovox[tspr->picnum];
 				longptr = (long *)voxoff[ tiletovox[PLAYER] ][0];
 				tspr->xrepeat = scale(tspr->xrepeat,56,longptr[2]);
 				tspr->yrepeat = scale(tspr->yrepeat,56,longptr[2]);
-				//tspr->picnum = 0;
 				tspr->shade -= 6;
 				break;
 			case BROWNMONSTER:
@@ -241,9 +241,9 @@ void ExtAnalyzeSprites(void)
 						break;
 					}
 				}
-				//tspr->cstat |= 48;
-				//tspr->picnum = 1;
+				//tspr->cstat |= 48; tspr->picnum = tiletovox[tspr->picnum];
 				break;
+		}
 		}
 
 		tspr->shade += 6;

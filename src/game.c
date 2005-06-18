@@ -1851,7 +1851,7 @@ void analyzesprites(long dax, long day)
 	for(i=0,tspr=&tsprite[0];i<spritesortcnt;i++,tspr++)
 	{
 #ifdef SUPERBUILD
-		if (usevoxels && tiletovox[tspr->picnum] >= 0 && bpp == 8)
+		if (usevoxels && tiletovox[tspr->picnum] >= 0)
 		switch(tspr->picnum)
 		{
 			case PLAYER:
@@ -1873,17 +1873,15 @@ void analyzesprites(long dax, long day)
 
 				if ((tspr->cstat&2) == 0)
 				{
-					//tspr->cstat |= 48;
+					//tspr->cstat |= 48; tspr->picnum = tiletovox[tspr->picnum];
 					intptr = (long *)voxoff[ tiletovox[PLAYER] ][0];
 					tspr->xrepeat = scale(tspr->xrepeat,56,intptr[2]);
 					tspr->yrepeat = scale(tspr->yrepeat,56,intptr[2]);
-					//tspr->picnum = 0;
 					tspr->shade -= 6;
 				}
 				break;
 			case BROWNMONSTER:
-				//tspr->cstat |= 48;
-				//tspr->picnum = 1;
+				//tspr->cstat |= 48; tspr->picnum = tiletovox[tspr->picnum];
 				break;
 		}
 #endif

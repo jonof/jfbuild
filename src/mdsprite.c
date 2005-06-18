@@ -154,7 +154,9 @@ typedef struct
 	long *mytex, mytexx, mytexy;
 	long xsiz, ysiz, zsiz;
 	float xpiv, ypiv, zpiv;
+	long is8bit;
 } voxmodel;
+static voxmodel *voxmodels[MAXVOXELS];
 
 typedef struct
 { // maps build tiles to particular animation frames of a model
@@ -232,6 +234,15 @@ static void clearskins ()
 					if (sk->texid[j]) bglDeleteTextures(1,&sk->texid[j]);
 					sk->texid[j] = 0;
 				}
+		}
+	}
+
+	for(i=0;i<MAXVOXELS;i++)
+	{
+		voxmodel *v = (voxmodel*)voxmodels[i]; if (!v) continue;
+		for(j=0;j<MAXPALOOKUPS;j++) {
+			if (v->texid[j]) bglDeleteTextures(1,&v->texid[j]);
+			v->texid[j] = 0;
 		}
 	}
 }
@@ -1164,7 +1175,7 @@ static void md3free (md3model *m)
 
 	//For loading/conversion only
 static long xsiz, ysiz, zsiz, yzsiz, *vbit = 0; //vbit: 1 bit per voxel: 0=air,1=solid
-static float xpiv, ypiv, zpiv; //FUK: use more complex names!
+static float xpiv, ypiv, zpiv; //Might want to use more complex/unique names!
 static long *vcolhashead = 0, vcolhashsizm1;
 typedef struct { long p, c, n; } voxcol_t;
 static voxcol_t *vcol = 0; long vnum = 0, vmax = 0;
@@ -1175,7 +1186,7 @@ static long mytexo5, *zbit, gmaxx, gmaxy, garea, pow2m1[33];
 static voxmodel *gvox;
 
 	//pitch must equal xsiz*4
-unsigned gloadtex (long *picbuf, long xsiz, long ysiz)
+unsigned gloadtex (long *picbuf, long xsiz, long ysiz, long is8bit, long dapal)
 {
 	unsigned rtexid;
 	coltype *pic, *pic2;
@@ -1184,14 +1195,28 @@ unsigned gloadtex (long *picbuf, long xsiz, long ysiz)
 
 	pic = (coltype *)picbuf; //Correct for GL's RGB order; also apply gamma here..
 	pic2 = (coltype *)malloc(xsiz*ysiz*sizeof(long)); if (!pic2) return(-1);
-	cptr = &britable[curbrightness][0]; //FUKFUK
+	cptr = &britable[curbrightness][0];
+	if (!is8bit)
+	{
 	for(i=xsiz*ysiz-1;i>=0;i--)
 	{
 		pic2[i].b = cptr[pic[i].r];
 		pic2[i].g = cptr[pic[i].g];
 		pic2[i].r = cptr[pic[i].b];
 		pic2[i].a = 255;
-	} //FUKFUK
+		}
+	}
+	else
+	{
+		if (palookup[dapal] == 0) dapal = 0;
+		for(i=xsiz*ysiz-1;i>=0;i--)
+		{
+			pic2[i].b = cptr[palette[(long)palookup[dapal][pic[i].a]*3+2]*4];
+			pic2[i].g = cptr[palette[(long)palookup[dapal][pic[i].a]*3+1]*4];
+			pic2[i].r = cptr[palette[(long)palookup[dapal][pic[i].a]*3+0]*4];
+			pic2[i].a = 255;
+		}
+	}
 
 	bglGenTextures(1,&rtexid);
 	bglBindTexture(GL_TEXTURE_2D,rtexid);
@@ -1544,7 +1569,7 @@ static long loadvox (const char *filnam)
 
 	klseek(fil,-768,SEEK_END);
 	for(i=0;i<256;i++)
-		{ kread(fil,c,3); pal[i] = (((long)c[0])<<18)+(((long)c[1])<<10)+(((long)c[2])<<2); }
+		{ kread(fil,c,3); pal[i] = (((long)c[0])<<18)+(((long)c[1])<<10)+(((long)c[2])<<2)+(i<<24); }
 	pal[255] = -1;
 
 	vcolhashsizm1 = 8192-1;
@@ -1612,7 +1637,7 @@ static long loadkvx (const char *filnam)
 
 	klseek(fil,-768,SEEK_END);
 	for(i=0;i<256;i++)
-		{ kread(fil,c,3); pal[i] = (((long)c[0])<<18)+(((long)c[1])<<10)+(((long)c[2])<<2); }
+		{ kread(fil,c,3); pal[i] = (((long)c[0])<<18)+(((long)c[1])<<10)+(((long)c[2])<<2)+(i<<24); }
 
 	yzsiz = ysiz*zsiz; i = ((xsiz*yzsiz+31)>>3);
 	vbit = (long *)malloc(i); if (!vbit) { free(xyoffs); kclose(fil); return(-1); }
@@ -1747,6 +1772,7 @@ static long loadvxl (const char *filnam)
 
 static void voxfree (voxmodel *m)
 {
+	if (!m) return;
 	if (m->mytex) free(m->mytex);
 	if (m->quad) free(m->quad);
 	if (m->texid) free(m->texid);
@@ -1755,14 +1781,14 @@ static void voxfree (voxmodel *m)
 
 static voxmodel *voxload (const char *filnam)
 {
-	long i, ret;
+	long i, is8bit, ret;
 	voxmodel *vm;
 
 	i = strlen(filnam)-4; if (i < 0) return(0);
-		  if (!stricmp(&filnam[i],".vox")) ret = loadvox(filnam);
-	else if (!stricmp(&filnam[i],".kvx")) ret = loadkvx(filnam);
-	else if (!stricmp(&filnam[i],".kv6")) ret = loadkv6(filnam);
- //else if (!stricmp(&filnam[i],".vxl")) ret = loadvxl(filnam);
+		  if (!stricmp(&filnam[i],".vox")) { ret = loadvox(filnam); is8bit = 1; }
+	else if (!stricmp(&filnam[i],".kvx")) { ret = loadkvx(filnam); is8bit = 1; }
+	else if (!stricmp(&filnam[i],".kv6")) { ret = loadkv6(filnam); is8bit = 0; }
+ //else if (!stricmp(&filnam[i],".vxl")) { ret = loadvxl(filnam); is8bit = 0; }
 	else return(0);
 	if (ret >= 0) vm = vox2poly(); else vm = 0;
 	if (vm)
@@ -1771,6 +1797,7 @@ static voxmodel *voxload (const char *filnam)
 		vm->scale = vm->bscale = 1.0;
 		vm->xsiz = xsiz; vm->ysiz = ysiz; vm->zsiz = zsiz;
 		vm->xpiv = xpiv; vm->ypiv = ypiv; vm->zpiv = zpiv;
+		vm->is8bit = is8bit;
 
 		vm->texid = (unsigned int *)calloc(MAXPALOOKUPS,sizeof(unsigned int));
 		if (!vm->texid) { voxfree(vm); vm = 0; }
@@ -1787,7 +1814,7 @@ static void voxdraw (voxmodel *m, spritetype *tspr)
 {
 	point3d fp, m0, a0;
 	long i, j, k, fi, *lptr, xx, yy, zz;
-	float ru, rv, uhack[2], vhack[2], phack[2], clut[6] = {1,1,1,1,1,1}; //FUKFUK1.02,1.02,0.94,1.06,0.98,0.98};
+	float ru, rv, uhack[2], vhack[2], phack[2], clut[6] = {1,1,1,1,1,1}; //1.02,1.02,0.94,1.06,0.98,0.98};
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], omat[16], pc[4];
 	vert_t *vptr;
 
@@ -1798,15 +1825,15 @@ static void voxdraw (voxmodel *m, spritetype *tspr)
 	m0.z = m->scale;
 	a0.x = a0.y = 0; a0.z = m->zadd*m->scale;
 
-	if (globalorientation&8) //y-flipping
-	{
-		m0.z = -m0.z; a0.z = -a0.z;
-			//Add height of 1st frame (use same frame to prevent animation bounce)
-		a0.z += m->zsiz*m->scale;
-	}
-	if (globalorientation&4) { m0.y = -m0.y; a0.y = -a0.y; } //x-flipping
+	//if (globalorientation&8) //y-flipping
+	//{
+	//   m0.z = -m0.z; a0.z = -a0.z;
+	//      //Add height of 1st frame (use same frame to prevent animation bounce)
+	//   a0.z += m->zsiz*m->scale;
+	//}
+	//if (globalorientation&4) { m0.y = -m0.y; a0.y = -a0.y; } //x-flipping
 
-	f = ((float)tspr->xrepeat)/64.0*m->bscale;
+	f = ((float)tspr->xrepeat)*(256.0/320.0)/64.0*m->bscale;
 	m0.x *= f; a0.x *= f; f = -f;
 	m0.y *= f; a0.y *= f;
 	f = ((float)tspr->yrepeat)/64.0*m->bscale;
@@ -1852,7 +1879,7 @@ static void voxdraw (voxmodel *m, spritetype *tspr)
 		bglDepthRange(0.0,0.9999);
 	}
 	bglPushAttrib(GL_POLYGON_BIT);
-	if ((grhalfxdown10x >= 0) ^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)) bglFrontFace(GL_CW); else bglFrontFace(GL_CCW);
+	if ((grhalfxdown10x >= 0) /*^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)*/) bglFrontFace(GL_CW); else bglFrontFace(GL_CCW);
 	bglEnable(GL_CULL_FACE);
 	bglCullFace(GL_BACK);
 
@@ -1878,7 +1905,6 @@ static void voxdraw (voxmodel *m, spritetype *tspr)
 	bglMatrixMode(GL_MODELVIEW); //Let OpenGL (and perhaps hardware :) handle the matrix rotation
 	mat[3] = mat[7] = mat[11] = 0.f; mat[15] = 1.f;
 
-	//f = 1.f/1024.f; for(i=0;i<16;i++) mat[i] *= f; //FUKFUK
 	bglLoadMatrixf(mat);
 
 	ru = 1.f/((float)m->mytexx);
@@ -1887,10 +1913,9 @@ static void voxdraw (voxmodel *m, spritetype *tspr)
 	uhack[0] = ru*.125; uhack[1] = -uhack[0];
 	vhack[0] = rv*.125; vhack[1] = -vhack[0];
 #endif
-	//phack[0] = .0625; phack[1] = -phack[0];
 	phack[0] = 0; phack[1] = 1.f/256.f;
 
-	if (!m->texid[globalpal]) m->texid[globalpal] = gloadtex(m->mytex,m->mytexx,m->mytexy);
+	if (!m->texid[globalpal]) m->texid[globalpal] = gloadtex(m->mytex,m->mytexx,m->mytexy,m->is8bit,globalpal);
 					 else bglBindTexture(GL_TEXTURE_2D,m->texid[globalpal]);
 	bglBegin(GL_QUADS);
 	for(i=0,fi=0;i<m->qcnt;i++)
