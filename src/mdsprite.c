@@ -1268,7 +1268,7 @@ static void setzrange1 (long *lptr, long z0, long z1)
 static long isrectfree (long x0, long y0, long dx, long dy)
 {
 #if 0
-	long i, j;
+	long i, j, x;
 	i = y0*gvox->mytexx + x0;
 	for(dy=0;dy;dy--,i+=gvox->mytexx)
 		for(x=0;x<dx;x++) { j = i+x; if (zbit[j>>5]&(1<<j)) return(0); }
@@ -1512,11 +1512,11 @@ skindidntfit:;
 				do
 				{
 #if (VOXUSECHAR != 0)
-					x0 = ((rand()*(min(gvox->mytexx,255)-dx))>>15);
-					y0 = ((rand()*(min(gvox->mytexy,255)-dy))>>15);
+					x0 = (((rand()&32767)*(min(gvox->mytexx,255)-dx))>>15);
+					y0 = (((rand()&32767)*(min(gvox->mytexy,255)-dy))>>15);
 #else
-					x0 = ((rand()*(gvox->mytexx+1-dx))>>15);
-					y0 = ((rand()*(gvox->mytexy+1-dy))>>15);
+					x0 = (((rand()&32767)*(gvox->mytexx+1-dx))>>15);
+					y0 = (((rand()&32767)*(gvox->mytexy+1-dy))>>15);
 #endif
 					i--;
 					if (i < 0) //Time-out! Very slow if this happens... but at least it still works :P
