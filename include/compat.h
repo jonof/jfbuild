@@ -51,10 +51,7 @@ typedef long long int64;
 #  define B_LITTLE_ENDIAN 0
 #  define B_BIG_ENDIAN    1
 # endif
-# include <linux/byteorder/swab.h>
-# define B_SWAP64(x) __swab64(x)
-# define B_SWAP32(x) __swab32(x)
-# define B_SWAP16(x) __swab16(x)
+# define B_ENDIAN_C_INLINE 1
 #elif defined(PLATFORMBSD)
 # include <sys/endian.h>
 # if _BYTE_ORDER == _LITTLE_ENDIAN
@@ -82,18 +79,25 @@ typedef long long int64;
 #elif defined(PLATFORMWINDOWS)
 # define B_LITTLE_ENDIAN 1
 # define B_BIG_ENDIAN    0
-# if defined(NOASM)
-	// C inline version
-# elif defined(_MSC_VER)
+# define B_ENDIAN_C_INLINE 1
+#endif
+#if !defined(B_LITTLE_ENDIAN) || !defined(B_BIG_ENDIAN)
+# error Unknown endianness
+#endif
+
+#if defined B_ENDIAN_X86_INLINE
+# if defined(_MSC_VER)
 	// inline asm using bswap/xchg
 # elif defined(__GNUC__)
 	// inline asm using bswap/xchg
 # elif defined(__WATCOMC__)
 	// inline asm using bswap/xchg
 # endif
-#endif
-#if !defined(B_LITTLE_ENDIAN) || !defined(B_BIG_ENDIAN)
-# error Unknown endianness
+#elif defined B_ENDIAN_C_INLINE
+static inline unsigned short B_SWAP16(unsigned short s) { return (s>>8)|(s<<8); }
+static inline unsigned long  B_SWAP32(unsigned long  l) { return ((l>>8)&0xff00)|((l&0xff00)<<8)|(l<<24)|(l>>24); }
+static inline unsigned int64 B_SWAP64(unsigned int64 l)
+ { return (l>>56)|((l>>40)&0xff00)|((l>>24)&0xff0000)|((l>>8)&0xff000000)|((l&255)<<56)|((l&0xff00)<<40)|((l&0xff0000)<<24)|((l&0xff000000)<<8); }
 #endif
 
 #if B_LITTLE_ENDIAN == 1
