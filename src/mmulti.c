@@ -33,6 +33,11 @@ static long GetTickCount(void)
 }
 #endif
 
+#ifdef KSFORBUILD
+# include "baselayer.h"
+# define printf initprintf
+#endif
+
 #ifndef min
 #define min(a,b) ((a)<(b)?(a):(b))
 #endif
@@ -98,7 +103,10 @@ long netinit (long portnum)
 		myport = portnum;
 		if (gethostname(hostnam,sizeof(hostnam)) != SOCKET_ERROR)
 			if ((lpHostEnt = gethostbyname(hostnam)))
-				{ myip = ip.sin_addr.s_addr = *(long *)lpHostEnt->h_addr; }
+			{
+				myip = ip.sin_addr.s_addr = *(long *)lpHostEnt->h_addr;
+				printf("mmulti: This machine's IP is %s\n", inet_ntoa(ip.sin_addr));
+			}
 		return(1);
 	}
 	return(0);
@@ -256,6 +264,8 @@ long initmultiplayersparms(long argc, char **argv)
 			char *p;
 			j = strtol(argv[i]+2, &p, 10);
 			if (!(*p) && j > 0 && j<65535) portnum = j;
+
+			printf("mmulti: Using port %d\n", portnum);
 		}
 	}
 
@@ -271,7 +281,7 @@ long initmultiplayersparms(long argc, char **argv)
 		//   { foundnet = 1; continue; }
 		//if (!foundnet) continue;
 
-		if ((argv[i][0] == '-') || (argv[i][0] == '/'))
+		if ((argv[i][0] == '-') || (argv[i][0] == '/')) {
 			if ((argv[i][1] == 'N') || (argv[i][1] == 'n') || (argv[i][1] == 'I') || (argv[i][1] == 'i'))
 			{
 				numplayers = 2;
@@ -282,15 +292,20 @@ long initmultiplayersparms(long argc, char **argv)
 					{
 						numplayers = (argv[i][4]-'0');
 						if ((argv[i][5] >= '0') && (argv[i][5] <= '9')) numplayers = numplayers*10+(argv[i][5]-'0');
+						printf("mmulti: %d-player game\n", numplayers);
 					}
+					printf("mmulti: Master-slave mode\n");
 				}
 				else if (argv[i][2] == '1')
 				{
 					danetmode = 1;
 					myconnectindex = daindex; daindex++;
+					printf("mmulti: Peer-to-peer mode\n");
 				}
 				continue;
 			}
+			else if ((argv[i][1] == 'P') || (argv[i][1] == 'p')) continue;
+		}
 
 		if (isvalidipaddress(argv[i]))
 		{
@@ -299,6 +314,7 @@ long initmultiplayersparms(long argc, char **argv)
 				if (argv[i][j] == ':')
 					{ otherport[daindex] = htons((unsigned short)atol(&argv[i][j+1])); break; }
 			otherip[daindex] = inet_addr(argv[i]);
+			printf("mmulti: Player %d at %s:%d\n",daindex,argv[i],ntohs(otherport[daindex]));
 			daindex++;
 			continue;
 		}
@@ -316,8 +332,10 @@ long initmultiplayersparms(long argc, char **argv)
 				if ((danetmode == 1) && (daindex == myconnectindex)) daindex++;
 				otherip[daindex] = *(long *)lph->h_addr;
 				otherport[daindex] = pt;
+				printf("mmulti: Player %d at %s:%d (%s)\n",daindex,
+						inet_ntoa(*(struct in_addr *)lph->h_addr),ntohs(pt),argv[i]);
 				daindex++;
-			} else printf("Failed resolving %s\n",argv[i]);
+			} else printf("mmulti: Failed resolving %s\n",argv[i]);
 			free(st);
 			continue;
 		}

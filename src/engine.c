@@ -20,13 +20,13 @@
 #include "baselayer.h"
 
 #ifdef POLYMOST
-#define WIN32_LEAN_AND_MEAN
-#ifdef PLATFORMWINDOWS
-#include <windows.h>
-#endif
-#ifdef USE_OPENGL
-#include "glbuild.h"
-#endif
+# ifdef PLATFORMWINDOWS
+#  define WIN32_LEAN_AND_MEAN
+#  include <windows.h>
+# endif
+# ifdef USE_OPENGL
+#  include "glbuild.h"
+# endif
 #endif
 
 #include <math.h>
