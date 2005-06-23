@@ -340,7 +340,7 @@ char *Bgetcwd(char *buf, bsize_t size);
 char *Bgetenv(const char *name);
 #endif
 
-int Bgethomedir(char *,unsigned);
+char *Bgethomedir(void);
 int Bcorrectfilename(char *filename, int removefn);
 char *Bgetsystemdrives(void);
 bsize_t Bfilelength(int fd);

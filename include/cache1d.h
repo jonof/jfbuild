@@ -8,6 +8,10 @@ void	allocache(long *newhandle, long newbytes, char *newlockptr);
 void	suckcache(long *suckptr);
 void	agecache(void);
 
+int     addsearchpath(const char *p);
+int     openfrompath(const char *fn, int flags, int mode);
+BFILE  *fopenfrompath(const char *fn, const char *mode);
+
 long	initgroupfile(char *filename);
 void	uninitsinglegroupfile(long grphandle);
 void	uninitgroupfile(void);

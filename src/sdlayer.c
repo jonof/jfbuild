@@ -44,7 +44,6 @@ char nofog=0;
 
 #ifdef USE_OPENGL
 // OpenGL stuff
-struct glinfo glinfo = { "Unknown","Unknown","0.0.0","", 1.0, 0,0,0 };
 static char nogl=0;
 #endif
 
@@ -935,6 +934,9 @@ int setvideomode(int x, int y, int c, int fs)
 			} else if (!Bstrcmp(p2, "GL_ARB_texture_compression")) {
 				// support texture compression
 				glinfo.texcompr = 1;
+			} else if (!Bstrcmp(p2, "GL_ARB_texture_non_power_of_two")) {
+				// support non-power-of-two texture sizes
+				glinfo.texnpot = 1;
 			}
 		}
 		Bfree(p);

@@ -8,6 +8,21 @@
 #include "winlayer.h"
 #endif
 
+#ifdef USE_OPENGL
+struct glinfo glinfo = {
+	"Unknown",	// vendor
+	"Unknown",	// renderer
+	"0.0.0",	// version
+	"",		// extensions
+	
+	1.0,		// max anisotropy
+	0,		// brga texture format
+	0,		// clamp-to-edge support
+	0,		// texture compression
+	0,		// non-power-of-two textures
+};
+#endif
+
 static int osdfunc_dumpbuildinfo(const osdfuncparm_t *parm)
 {
 	OSD_Printf(
@@ -88,6 +103,7 @@ static int osdcmd_glinfo(const osdfuncparm_t *parm)
 		   " Renderer: %s\n"
 		   " Maximum anisotropy:  %.1f%s\n"
 		   " BGRA textures:       %s\n"
+		   " Non-x^2 textures:    %s\n"
 		   " Texure compression:  %s\n"
 		   " Clamp-to-edge:       %s\n"
 		   " Extensions:\n",
@@ -96,6 +112,7 @@ static int osdcmd_glinfo(const osdfuncparm_t *parm)
 			glinfo.renderer,
 			glinfo.maxanisotropy, glinfo.maxanisotropy>1.0?"":" (no anisotropic filtering)",
 			glinfo.bgra ? "supported": "not supported",
+			glinfo.texnpot ? "supported": "not supported",
 			glinfo.texcompr ? "supported": "not supported",
 			glinfo.clamptoedge ? "supported": "not supported"
 		);

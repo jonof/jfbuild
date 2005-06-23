@@ -15,6 +15,7 @@
 #ifdef PLATFORMWINDOWS
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#include <shlobj.h>
 #endif
 
 #include <stdio.h>
@@ -320,23 +321,19 @@ char *Bgetcwd(char *buf, bsize_t size)
 // Stuff which must be a function
 //
 
-int Bgethomedir(char *b, unsigned l)
+char *Bgethomedir(void)
 {
 #ifdef PLATFORMWINDOWS
-	char *e = getenv("USERPROFILE");
-	char cwd[256]=".";
-	if (!e) {
-		// probably Windows9x
-		if (getcwd(cwd,256))
-			e=cwd;
-	}
+	TCHAR appdata[MAX_PATH];
+
+	if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, appdata)))
+		return strdup(appdata);
+	return NULL;
 #else
 	char *e = getenv("HOME");
-	if (!e) return -1;
+	if (!e) return NULL;
+	return strdup(e);
 #endif
-	if ((strlen(e)+1) > l) return -2;
-	strcpy(b,e);
-	return strlen(e);
 }
 
 

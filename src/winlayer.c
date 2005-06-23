@@ -64,7 +64,6 @@ static WORD sysgamma[3*256];
 #if defined(USE_OPENGL) && defined(POLYMOST)
 // OpenGL stuff
 static HGLRC hGLRC = 0;
-struct glinfo glinfo = { "Unknown","Unknown","0.0.0","", 1.0, 0,0,0 };
 char nofog=0;
 static char nogl=0;
 #endif
@@ -2947,6 +2946,9 @@ static int SetupOpenGL(int width, int height, int bitspp)
 			} else if (!Bstrcmp(p2, "GL_ARB_texture_compression")) {
 				// support texture compression
 				glinfo.texcompr = 1;
+			} else if (!Bstrcmp(p2, "GL_ARB_texture_non_power_of_two")) {
+				// support non-power-of-two texture sizes
+				glinfo.texnpot = 1;
 			}
 		}
 		Bfree(p);

@@ -46,7 +46,7 @@ CC=cl
 AS=ml
 RC=rc
 LINK=link /opt:nowin98 /opt:ref /nologo
-CFLAGS=$(CFLAGS) /nologo /MD /J $(flags_cl) $(TARGETOPTS) /I$(INC)
+CFLAGS=$(CFLAGS) /nologo /MD /J $(flags_cl) $(TARGETOPTS) /I$(INC) /I$(DXROOT)\include /I$(FMODROOT)\inc
 LIBS=fmodvc.lib #opengl32.lib
 ASFLAGS=/nologo /coff
 EXESUFFIX=.exe
@@ -64,7 +64,8 @@ ENGINEOBJS=$(OBJ)engine.$o \
 	$(OBJ)kplib.$o \
 	$(OBJ)scriptfile.$o \
 	$(OBJ)mmulti.$o \
-	$(OBJ)defs.$o
+	$(OBJ)defs.$o \
+	$(OBJ)winlayer.$o
 
 EDITOROBJS=$(OBJ)build.$o \
 	$(OBJ)config.$o \
@@ -83,16 +84,8 @@ EDITOREXEOBJS=$(OBJ)bstub.$o \
 	$(OBJ)$(ENGINELIB)
 	
 PLATFORM=WINDOWS
-CFLAGS=$(CFLAGS) /I$(DXROOT)\include /I$(FMODROOT)\inc
-LIBS=$(LIBS) user32.lib gdi32.lib
-!ifndef RENDERTYPE
 RENDERTYPE=WIN
-!endif
-
-ENGINEOBJS=$(ENGINEOBJS) $(OBJ)winlayer.$o
-CFLAGS=$(CFLAGS)
-LIBS=$(LIBS) dxguid.lib wsock32.lib
-
+LIBS=$(LIBS) shfolder.lib user32.lib gdi32.lib dxguid.lib wsock32.lib
 CFLAGS=$(CFLAGS) /DPLATFORM$(PLATFORM)=1 /DRENDERTYPE$(RENDERTYPE)=1
 
 # RULES

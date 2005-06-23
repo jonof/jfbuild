@@ -24,7 +24,7 @@ struct glinfo {
 	const char *extensions;
 
 	float maxanisotropy;
-	char bgra, clamptoedge, texcompr;
+	char bgra, clamptoedge, texcompr, texnpot;
 };
 extern struct glinfo glinfo;
 #endif

@@ -39,7 +39,7 @@ TARGETOPTS=#-dUSE_A_C #-dNOASM
 CC=wcc386
 AS=wasm
 RC=wrc
-CFLAGS+= -5r -s -orb -fp5 $(TARGETOPTS) -d2 -i=$(INC)
+CFLAGS+= -5r -s -orb -fp5 $(TARGETOPTS) -d2 -i=$(INC) -i=$(DXROOT)\include -i=$(FMODROOT)\inc
 LIBS=fmodwc.lib #opengl32.lib
 ASFLAGS=# -d1
 EXESUFFIX=.exe
@@ -57,7 +57,8 @@ ENGINEOBJS=$(OBJ)engine.$o &
 	$(OBJ)kplib.$o &
 	$(OBJ)scriptfile.$o &
 	$(OBJ)mmulti.$o &
-	$(OBJ)defs.$o
+	$(OBJ)defs.$o &
+	$(OBJ)winlayer.$o
 
 EDITOROBJS=$(OBJ)build.$o &
 	$(OBJ)config.$o &
@@ -71,14 +72,8 @@ GAMEEXEOBJS=$(OBJ)game.$o &
 EDITOREXEOBJS=$(OBJ)bstub.$o
 
 PLATFORM=WINDOWS
-CFLAGS+= -i=$(DXROOT)\include -i=$(FMODROOT)\inc
-!ifndef RENDERTYPE
 RENDERTYPE=WIN
-!endif
-
-ENGINEOBJS+= $(OBJ)winlayer.$o
-LIBS+= dxguid.lib wsock32.lib
-
+LIBS+= shfolder.lib dxguid.lib wsock32.lib
 CFLAGS+= -dPLATFORM$(PLATFORM)=1 -dRENDERTYPE$(RENDERTYPE)=1
 
 # RULES

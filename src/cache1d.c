@@ -238,6 +238,115 @@ static void reportandexit(char *errormessage)
 	exit(0);
 }
 
+#include <errno.h>
+
+typedef struct _searchpath {
+	struct _searchpath *next;
+	char *path;
+	size_t pathlen;		// to save repeated calls to strlen()
+} searchpath_t;
+static searchpath_t *searchpathhead = NULL;
+static size_t maxsearchpathlen = 0;
+
+int addsearchpath(const char *p)
+{
+	struct stat st;
+	char *s;
+	searchpath_t *srch;
+	int i;
+
+	if (stat(p, &st) < 0) {
+		if (errno == ENOENT) return -2;
+		return -1;
+	}
+	if (!(st.st_mode & BS_IFDIR)) return -1;
+
+	srch = (searchpath_t*)malloc(sizeof(searchpath_t));
+	if (!srch) return -1;
+
+	srch->next    = searchpathhead;
+	srch->pathlen = strlen(p)+1;
+	srch->path    = (char*)malloc(srch->pathlen + 1);
+	if (!srch->path) {
+		free(srch);
+		return -1;
+	}
+	strcpy(srch->path, p);
+	strcat(srch->path, "/");
+
+	searchpathhead = srch;
+	if (srch->pathlen > maxsearchpathlen) maxsearchpathlen = srch->pathlen;
+	initprintf("addsearchpath(): Added %s\n", srch->path);
+
+	return 0;
+}
+
+int openfrompath(const char *fn, int flags, int mode)
+{
+	searchpath_t *sp;
+	char *pfn;
+	int h = -1;
+
+	// test local directory first
+	if ((h = open(fn, flags, mode)) >= 0)
+		return h;
+
+#ifdef _WIN32
+	// if a UNC or drive letter is at the beginning, don't search path
+	if ((fn[0] == '\\' && fn[1] == '\\') || fn[1] == ':') return -1;
+	if (fn[0] == '\\') return -1;
+#endif
+	if (fn[0] == '/') return -1;
+
+	pfn = NULL;
+	for (sp = searchpathhead; sp && h < 0; sp = sp->next) {
+		if (!pfn) {
+			pfn = malloc(strlen(fn) + maxsearchpathlen + 1);
+			if (!pfn) return -1;
+		}
+
+		strcpy(pfn, sp->path);
+		strcat(pfn, fn);
+		//initprintf("Trying %s\n", pfn);
+		h = open(pfn, flags, mode);
+	}
+	if (pfn) free(pfn);
+
+	return h;
+}
+
+BFILE* fopenfrompath(const char *fn, const char *mode)
+{
+	searchpath_t *sp;
+	char *pfn;
+	BFILE *h = NULL;
+
+	// test local directory first
+	if ((h = Bfopen(fn, mode)) != NULL)
+		return h;
+
+#ifdef _WIN32
+	// if a UNC or drive letter is at the beginning, don't search path
+	if ((fn[0] == '\\' && fn[1] == '\\') || fn[1] == ':') return -1;
+	if (fn[0] == '\\') return -1;
+#endif
+	if (fn[0] == '/') return -1;
+
+	pfn = NULL;
+	for (sp = searchpathhead; sp && !h; sp = sp->next) {
+		if (!pfn) {
+			pfn = malloc(strlen(fn) + maxsearchpathlen + 1);
+			if (!pfn) return -1;
+		}
+
+		strcpy(pfn, sp->path);
+		strcat(pfn, fn);
+		h = Bfopen(pfn, mode);
+	}
+	if (pfn) free(pfn);
+
+	return h;
+}
 
 
 #define MAXGROUPFILES 4     //Warning: Fix groupfil if this is changed
@@ -294,7 +403,7 @@ long initgroupfile(char *filename)
 
 #ifdef WITHKPLIB
 	// JBF 20040130: check to see if the file passed is a ZIP and pass it on to kplib if it is
-	i = Bopen(filename,BO_BINARY|BO_RDONLY,BS_IREAD);
+	i = openfrompath(filename,BO_BINARY|BO_RDONLY,BS_IREAD);
 	if (i < 0) return -1;
 
 	Bread(i, buf, 4);
@@ -438,7 +547,7 @@ long kopen4load(char *filename, char searchfirst)
 	}
 
 	if (searchfirst == 0)
-		if ((fil = Bopen(filename,BO_BINARY|BO_RDONLY)) >= 0)
+		if ((fil = openfrompath(filename,BO_BINARY|BO_RDONLY,S_IREAD)) >= 0)
 		{
 			filegrp[newhandle] = 255;
 			filehan[newhandle] = fil;
