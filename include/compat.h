@@ -259,6 +259,9 @@ typedef signed   long bssize_t;
 # if defined(PLATFORMWINDOWS)
 #  define Bstrlwr strlwr
 #  define Bstrupr strupr
+#  define Bmkdir(s,x) mkdir(s)
+# else
+#  define Bmkdir mkdir
 # endif
 # define Bstrcat strcat
 # define Bstrncat strncat
