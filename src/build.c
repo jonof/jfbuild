@@ -88,7 +88,7 @@ short temppicnum, tempcstat, templotag, temphitag, tempextra;
 char tempshade, temppal, tempvis, tempxrepeat, tempyrepeat;
 char somethingintab = 255;
 
-static char boardfilename[256], selectedboardfilename[256];
+static char boardfilename[BMAX_PATH], selectedboardfilename[BMAX_PATH];
 static struct _directoryitem {
 	struct _directoryitem *next, *prev;
 	char name[64];
@@ -205,6 +205,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 
 	if (setgamemode(newfullscreen,newx,newy,newbpp))
 		OSD_Printf("vidmode: Mode change failed!\n");
+	xdimgame = newx; ydimgame = newy; bppgame = newbpp; fullscreen = newfullscreen;
 	return OSDCMD_OK;
 }
 
@@ -254,6 +255,7 @@ int app_main(int argc, char **argv)
 #ifdef RENDERTYPEWIN
 	if (DoLaunchWindow(i)) return -1;
 #endif
+	OSD_SetLogFile("build.log");
 	inittimer(TIMERINTSPERSECOND);
 	installusertimercallback(keytimerstuff);
 
@@ -6069,7 +6071,7 @@ void sortfilenames(void)
 long menuselect(void)
 {
 	long i, j, topplc;
-	char ch, buffer[72], *sb;
+	char ch, buffer[78], *sb;
 	struct _directoryitem *dir, *head;
 
 	Bstrcpy(selectedboardfilename, boardfilename);
@@ -6091,7 +6093,8 @@ long menuselect(void)
 	do {
 		begindrawing();
 		clearbuf((char *)frameplace, (bytesperline*ydim16) >> 2, 0l);
-		Bsnprintf(buffer,72,"(%d dirs, %d files) %s",numdirs-1,numfiles,selectedboardfilename);
+		Bsnprintf(buffer,78,"(%d dirs, %d files) %s",numdirs-1,numfiles,selectedboardfilename);
+		buffer[sizeof(buffer)-1] = 0;
 		printext16(1,ydim16-8-1,8,0,buffer,0);
 
 		dir = dirhighlight;

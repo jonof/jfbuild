@@ -615,7 +615,8 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 	x2 = xsiz; y2 = ysiz;
 	for(j=1;(x2 > 1) || (y2 > 1);j++)
 	{
-		x3 = ((x2+1)>>1); y3 = ((y2+1)>>1);
+		//x3 = ((x2+1)>>1); y3 = ((y2+1)>>1);
+		x3 = max(1, x2 >> 1); y3 = max(1, y2 >> 1);		// this came from the GL_ARB_texture_non_power_of_two spec
 		for(y=0;y<y3;y++)
 		{
 			wpptr = &pic[y*x3]; rpptr = &pic[(y<<1)*x2];
@@ -659,8 +660,16 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 	long j, x, y, x2, y2, xsiz, ysiz, dacol, tsizx, tsizy;
 	char hasalpha = 0;
 
-	tsizx = tilesizx[dapic]; for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
-	tsizy = tilesizy[dapic]; for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
+	tsizx = tilesizx[dapic];
+	tsizy = tilesizy[dapic];
+	if (!glinfo.texnpot) {
+		for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
+		for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
+	} else {
+		xsiz = tsizx;
+		ysiz = tsizy;
+	}
+
 	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype));
 	if (!pic) return 1;
 
@@ -761,7 +770,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 	}
 
 	if ((filh = kopen4load(fn, 0)) < 0) {
-		OSD_Printf("Hightile: %s not found!\n", fn);
+		initprintf("hightile: %s (pic %d) not found\n", fn, dapic);
 		if (facen > 0)
 			hicr->skybox->ignore = 1;
 		else
@@ -781,8 +790,13 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 	pth->sizx = tsizx;
 	pth->sizy = tsizy;
 
-	for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
-	for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
+	if (!glinfo.texnpot) {
+		for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
+		for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
+	} else {
+		xsiz = tsizx;
+		ysiz = tsizy;
+	}
 	pic = (coltype *)calloc(xsiz,ysiz*sizeof(coltype)); if (!pic) { free(picfil); return 1; }
 
 	if (kprender(picfil,picfillen,(long)pic,xsiz*sizeof(coltype),xsiz,ysiz,0,0)) { free(picfil); free(pic); return -2; }
@@ -996,8 +1010,13 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		}
 		else { hackscx = 1.0; hackscy = 1.0; }
 
-		for(xx=1;xx<tsizx;xx+=xx); ox2 = (double)1.0/(double)xx;
-		for(yy=1;yy<tsizy;yy+=yy); oy2 = (double)1.0/(double)yy;
+		if (!glinfo.texnpot) {
+			for(xx=1;xx<tsizx;xx+=xx); ox2 = (double)1.0/(double)xx;
+			for(yy=1;yy<tsizy;yy+=yy); oy2 = (double)1.0/(double)yy;
+		} else {
+			xx = tsizx; ox2 = (double)1.0/(double)xx;
+			yy = tsizy; oy2 = (double)1.0/(double)yy;
+		}
 
 		if (!(method&3)) {
 			bglDisable(GL_BLEND);
@@ -3892,8 +3911,13 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
-	i = (1<<(picsiz[wallnum]&15)); if (i < tilesizx[wallnum]) i += i; xdimepad = (float)i;
-	i = (1<<(picsiz[wallnum]>>4)); if (i < tilesizy[wallnum]) i += i; ydimepad = (float)i;
+	if (!glinfo.texnpot) {
+		i = (1<<(picsiz[wallnum]&15)); if (i < tilesizx[wallnum]) i += i; xdimepad = (float)i;
+		i = (1<<(picsiz[wallnum]>>4)); if (i < tilesizy[wallnum]) i += i; ydimepad = (float)i;
+	} else {
+		xdimepad = (float)tilesizx[wallnum];
+		ydimepad = (float)tilesizy[wallnum];
+	}
 	xdime = (float)tilesizx[wallnum]; xdimepad = xdime/xdimepad;
 	ydime = (float)tilesizy[wallnum]; ydimepad = ydime/ydimepad;
 
