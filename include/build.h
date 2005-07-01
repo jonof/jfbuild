@@ -165,10 +165,12 @@ EXTERN long yxaspect, viewingrange;
 
 #define MAXVALIDMODES 256
 EXTERN long validmodecnt;
-EXTERN short validmode[MAXVALIDMODES];
-EXTERN long validmodexdim[MAXVALIDMODES], validmodeydim[MAXVALIDMODES];
-EXTERN char validmodebpp[MAXVALIDMODES];
-EXTERN char validmodefs[MAXVALIDMODES];   // bit 0 = fullscreen flag
+struct validmode_t {
+	long xdim,ydim;
+	char bpp;
+	char fs;	// bit 0 = fullscreen flag
+};
+EXTERN struct validmode_t validmode[MAXVALIDMODES];
 
 EXTERN short numsectors, numwalls;
 EXTERN /*volatile*/ long totalclock;

@@ -23,12 +23,12 @@ static void PopulateVideoModeLists(int fs, HWND list3d)
 
 	ComboBox_ResetContent(list3d);
 	for (i=0; i<validmodecnt; i++) {
-		if (validmodefs[i] != fs) continue;
+		if (validmode[i].fs != fs) continue;
 
-		Bsprintf(buf, "%dx%d %dbpp", validmodexdim[i], validmodeydim[i], validmodebpp[i]);
+		Bsprintf(buf, "%dx%d %dbpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
 		j = ComboBox_AddString(list3d, buf);
 		ComboBox_SetItemData(list3d, j, i);
-		if (xdimgame == validmodexdim[i] && ydimgame == validmodeydim[i] && bppgame == validmodebpp[i])
+		if (xdimgame == validmode[i].xdim && ydimgame == validmode[i].ydim && bppgame == validmode[i].bpp)
 			ComboBox_SetCurSel(list3d, j);
 	}
 }
@@ -96,9 +96,9 @@ static INT_PTR CALLBACK LaunchWindowProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 						i = ComboBox_GetCurSel((HWND)lParam);
 						if (i != CB_ERR) i = ComboBox_GetItemData((HWND)lParam, i);
 						if (i != CB_ERR) {
-							xdimgame = validmodexdim[i];
-							ydimgame = validmodeydim[i];
-							bppgame  = validmodebpp[i];
+							xdimgame = validmode[i].xdim;
+							ydimgame = validmode[i].ydim;
+							bppgame  = validmode[i].bpp;
 						}
 					}
 					break;

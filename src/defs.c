@@ -781,9 +781,7 @@ int loaddefinitionsfile(char *fn)
 	script = scriptfile_fromfile(fn);
 	if (!script) return -1;
 
-	//numerrors = 0;
 	defsparser(script);
-	//initprintf("%s read with %d error(s)\n",fn,numerrors);
 
 	scriptfile_close(script);
 	scriptfile_clearsymbols();

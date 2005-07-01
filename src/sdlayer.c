@@ -656,6 +656,17 @@ void (*installusertimercallback(void (*callback)(void)))(void)
 //
 // getvalidmodes() -- figure out what video modes are available
 //
+static int sortmodes(const struct validmode_t *a, const struct validmode_t *b)
+{
+	int x;
+
+	if ((x = a->fs   - b->fs)   != 0) return x;
+	if ((x = a->bpp  - b->bpp)  != 0) return x;
+	if ((x = a->xdim - b->xdim) != 0) return x;
+	if ((x = a->ydim - b->ydim) != 0) return x;
+
+	return 0;
+}
 static char modeschecked=0;
 void getvalidmodes(void)
 {
@@ -681,13 +692,13 @@ void getvalidmodes(void)
 #define ADDMODE(x,y,c,f) if (validmodecnt<MAXVALIDMODES) { \
 	int mn; \
 	for(mn=0;mn<validmodecnt;mn++) \
-		if (validmodexdim[mn]==x && validmodeydim[mn]==y && \
-		    validmodebpp[mn]==c && validmodefs[mn]==f) break; \
+		if (validmode[mn].xdim==x && validmode[mn].ydim==y && \
+		    validmode[mn].bpp==c  && validmode[mn].fs==f) break; \
 	if (mn==validmodecnt) { \
-		validmodexdim[validmodecnt]=x; \
-		validmodeydim[validmodecnt]=y; \
-		validmodebpp[validmodecnt]=c; \
-		validmodefs[validmodecnt]=f; \
+		validmode[validmodecnt].xdim=x; \
+		validmode[validmodecnt].ydim=y; \
+		validmode[validmodecnt].bpp=c; \
+		validmode[validmodecnt].fs=f; \
 		validmodecnt++; \
 		initprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
 	} \
@@ -739,6 +750,8 @@ void getvalidmodes(void)
 #undef CHECK
 #undef ADDMODE
 
+	qsort((void*)validmode, validmodecnt, sizeof(struct validmode_t), (int(*)(const void*,const void*))sortmodes);
+
 	modeschecked=1;
 }
 
@@ -763,10 +776,10 @@ int checkvideomode(int *x, int *y, int c, int fs)
 	*x &= 0xfffffff8l;
 
 	for (i=0; i<validmodecnt; i++) {
-		if (validmodebpp[i] != c) continue;
-		if (validmodefs[i] != fs) continue;
-		dx = klabs(validmodexdim[i] - *x);
-		dy = klabs(validmodeydim[i] - *y);
+		if (validmode[i].bpp != c) continue;
+		if (validmode[i].fs != fs) continue;
+		dx = klabs(validmode[i].xdim - *x);
+		dy = klabs(validmode[i].ydim - *y);
 		if (!(dx | dy)) { 	// perfect match
 			nearest = i;
 			break;
@@ -778,7 +791,7 @@ int checkvideomode(int *x, int *y, int c, int fs)
 	}
 		
 #ifdef ANY_WINDOWED_SIZE
-	if ((fs&1) == 0 && (nearest < 0 || (validmodexdim[nearest]!=*x || validmodeydim[nearest]!=*y)))
+	if ((fs&1) == 0 && (nearest < 0 || (validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)))
 		return 0x7fffffffl;
 #endif
 
@@ -787,8 +800,8 @@ int checkvideomode(int *x, int *y, int c, int fs)
 		return -1;
 	}
 
-	*x = validmodexdim[nearest];
-	*y = validmodeydim[nearest];
+	*x = validmode[nearest].xdim;
+	*y = validmode[nearest].ydim;
 
 	return nearest;		// JBF 20031206: Returns the mode number
 }

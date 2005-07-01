@@ -1915,10 +1915,10 @@ int checkvideomode(int *x, int *y, int c, int fs)
 	*x &= 0xfffffff8l;
 
 	for (i=0; i<validmodecnt; i++) {
-		if (validmodebpp[i] != c) continue;
-		if (validmodefs[i] != fs) continue;
-		dx = klabs(validmodexdim[i] - *x);
-		dy = klabs(validmodeydim[i] - *y);
+		if (validmode[i].bpp != c) continue;
+		if (validmode[i].fs != fs) continue;
+		dx = klabs(validmode[i].xdim - *x);
+		dy = klabs(validmode[i].ydim - *y);
 		if (!(dx | dy)) { 	// perfect match
 			nearest = i;
 			break;
@@ -1930,10 +1930,10 @@ int checkvideomode(int *x, int *y, int c, int fs)
 	}
 		
 #ifdef ANY_WINDOWED_SIZE
-	if ((fs&1) == 0 && (nearest < 0 || validmodexdim[nearest]!=*x || validmodeydim[nearest]!=*y)) {
+	if ((fs&1) == 0 && (nearest < 0 || validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)) {
 		// check the colour depth is recognised at the very least
 		for (i=0;i<validmodecnt;i++)
-			if (validmodebpp[i] == c)
+			if (validmode[i].bpp == c)
 				return 0x7fffffffl;
 		return -1;	// strange colour depth
 	}
@@ -1944,8 +1944,8 @@ int checkvideomode(int *x, int *y, int c, int fs)
 		return -1;
 	}
 
-	*x = validmodexdim[nearest];
-	*y = validmodeydim[nearest];
+	*x = validmode[nearest].xdim;
+	*y = validmode[nearest].ydim;
 
 	return nearest;		// JBF 20031206: Returns the mode number
 }
@@ -1992,10 +1992,10 @@ int setvideomode(int x, int y, int c, int fs)
 // getvalidmodes() -- figure out what video modes are available
 //
 #define ADDMODE(x,y,c,f,n) if (validmodecnt<MAXVALIDMODES) { \
-	validmodexdim[validmodecnt]=x; \
-	validmodeydim[validmodecnt]=y; \
-	validmodebpp[validmodecnt]=c; \
-	validmodefs[validmodecnt]=f; \
+	validmode[validmodecnt].xdim=x; \
+	validmode[validmodecnt].ydim=y; \
+	validmode[validmodecnt].bpp=c; \
+	validmode[validmodecnt].fs=f; \
 	cdsmodefreq[validmodecnt]=n; \
 	validmodecnt++; \
 	initprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
@@ -2065,6 +2065,17 @@ static void cdsenummodes(void)
 }
 #endif
 
+static int sortmodes(const struct validmode_t *a, const struct validmode_t *b)
+{
+	int x;
+
+	if ((x = a->fs   - b->fs)   != 0) return x;
+	if ((x = a->bpp  - b->bpp)  != 0) return x;
+	if ((x = a->xdim - b->xdim) != 0) return x;
+	if ((x = a->ydim - b->ydim) != 0) return x;
+
+	return 0;
+}
 void getvalidmodes(void)
 {
 	static int defaultres[][2] = {
@@ -2112,6 +2123,8 @@ void getvalidmodes(void)
 			CHECK(defaultres[i][0],defaultres[i][1])
 				ADDMODE(defaultres[i][0],defaultres[i][1],cdepths[j],0,-1)
 	}
+
+	qsort((void*)validmode, validmodecnt, sizeof(struct validmode_t), (int(*)(const void*,const void*))sortmodes);
 
 	modeschecked=1;
 }
@@ -2976,10 +2989,10 @@ static BOOL CreateAppWindow(int modenum, char *wtitle)
 		fs = customfs;
 		bitspp = custombpp;
 	} else {
-		width = validmodexdim[modenum];
-		height = validmodeydim[modenum];
-		fs = validmodefs[modenum];
-		bitspp = validmodebpp[modenum];
+		width = validmode[modenum].xdim;
+		height = validmode[modenum].ydim;
+		fs = validmode[modenum].fs;
+		bitspp = validmode[modenum].bpp;
 	}
 
 	if (width == xres && height == yres && fs == fullscreen && bitspp == bpp && !videomodereset) return FALSE;

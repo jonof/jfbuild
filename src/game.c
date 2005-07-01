@@ -448,6 +448,7 @@ long app_main(long argc, char *argv[])
 
 	//initmultiplayers(argc-netparm,&argv[netparm],option[4],option[5],0);
 	if (initmultiplayersparms(argc-netparm,&argv[netparm])) {
+		initprintf("Waiting for players...\n");
 		while (initmultiplayerscycle()) {
 			handleevents();
 			if (quitevent) {
@@ -4101,21 +4102,21 @@ void drawscreen(short snum, long dasmoothratio)
 
 			// work out a mask to select the mode
 			for (i=0; i<validmodecnt; i++)
-				if ((validmodexdim[i] == xdim) &&
-					 (validmodeydim[i] == ydim) &&
-					(validmodefs[i] == fullscreen) &&
-					(validmodebpp[i] == bpp))
+				if ((validmode[i].xdim == xdim) &&
+					 (validmode[i].ydim == ydim) &&
+					(validmode[i].fs == fullscreen) &&
+					(validmode[i].bpp == bpp))
 					{ j=i; break; }
 
 			for (k=0; k<validmodecnt; k++)
-				if (validmodefs[k] == fullscreen && validmodebpp[k] == bpp) break;
+				if (validmode[k].fs == fullscreen && validmode[k].bpp == bpp) break;
 
 			if (j==-1) j=k;
 			else {
 				j++;
 				if (j==validmodecnt) j=k;
 			}
-			setgamemode(fullscreen,validmodexdim[j],validmodeydim[j],bpp);
+			setgamemode(fullscreen,validmode[j].xdim,validmode[j].ydim,bpp);
 		}
 		screensize = xdim+1;
 
