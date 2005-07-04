@@ -169,6 +169,8 @@ struct validmode_t {
 	long xdim,ydim;
 	char bpp;
 	char fs;	// bit 0 = fullscreen flag
+	char filler[2];
+	long extra;	// internal use
 };
 EXTERN struct validmode_t validmode[MAXVALIDMODES];
 

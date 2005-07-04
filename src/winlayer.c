@@ -1895,8 +1895,6 @@ static int syscolouridx[NUM_SYS_COLOURS] = {
 static DWORD syscolours[NUM_SYS_COLOURS];
 static char system_colours_saved = 0, bw_colours_set = 0;
 
-static int cdsmodefreq[MAXVALIDMODES];
-
 //
 // checkvideomode() -- makes sure the video mode passed is legal
 //
@@ -1996,7 +1994,7 @@ int setvideomode(int x, int y, int c, int fs)
 	validmode[validmodecnt].ydim=y; \
 	validmode[validmodecnt].bpp=c; \
 	validmode[validmodecnt].fs=f; \
-	cdsmodefreq[validmodecnt]=n; \
+	validmode[validmodecnt].extra=n; \
 	validmodecnt++; \
 	initprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
 	}
@@ -3113,8 +3111,6 @@ static BOOL CreateAppWindow(int modenum, char *wtitle)
 		if (bitspp > 8) {
 			DEVMODE dmScreenSettings;
 
-			//initprintf("Using ChangeDisplaySettings() for mode change.\n");
-			
 			ZeroMemory(&dmScreenSettings, sizeof(DEVMODE));
 			dmScreenSettings.dmSize = sizeof(DEVMODE);
 			dmScreenSettings.dmPelsWidth = width;
@@ -3122,12 +3118,12 @@ static BOOL CreateAppWindow(int modenum, char *wtitle)
 			dmScreenSettings.dmBitsPerPel = bitspp;
 			dmScreenSettings.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
 			if (modenum != 0x7fffffff) {
-				dmScreenSettings.dmDisplayFrequency = cdsmodefreq[modenum];
+				dmScreenSettings.dmDisplayFrequency = validmode[modenum].extra;
 				dmScreenSettings.dmFields |= DM_DISPLAYFREQUENCY;
 			}
 
 			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL) {
-				ShowErrorBox("Video mode not supported.");
+				ShowErrorBox("Video mode not supported");
 				return TRUE;
 			}
 
