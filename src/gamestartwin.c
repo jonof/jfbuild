@@ -25,7 +25,7 @@ static void PopulateVideoModeLists(int fs, HWND list3d)
 	for (i=0; i<validmodecnt; i++) {
 		if (validmode[i].fs != fs) continue;
 
-		Bsprintf(buf, "%dx%d %dbpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
+		Bsprintf(buf, "%ldx%ld %dbpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
 		j = ComboBox_AddString(list3d, buf);
 		ComboBox_SetItemData(list3d, j, i);
 		if (xdimgame == validmode[i].xdim && ydimgame == validmode[i].ydim && bppgame == validmode[i].bpp)

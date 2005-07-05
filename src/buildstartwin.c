@@ -28,7 +28,7 @@ static void PopulateVideoModeLists(int fs, HWND list2d, HWND list3d)
 		if (validmode[i].fs != fs) continue;
 
 		// all modes get added to the 3D mode list
-		Bsprintf(buf, "%dx%d %dbpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
+		Bsprintf(buf, "%ldx%ld %dbpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
 		j = ComboBox_AddString(list3d, buf);
 		ComboBox_SetItemData(list3d, j, i);
 		if (xdimgame == validmode[i].xdim && ydimgame == validmode[i].ydim && bppgame == validmode[i].bpp)
@@ -36,7 +36,7 @@ static void PopulateVideoModeLists(int fs, HWND list2d, HWND list3d)
 
 		// only 8-bit modes get used for 2D
 		if (validmode[i].bpp != 8) continue;
-		Bsprintf(buf, "%dx%d", validmode[i].xdim, validmode[i].ydim);
+		Bsprintf(buf, "%ldx%ld", validmode[i].xdim, validmode[i].ydim);
 		j = ComboBox_AddString(list2d, buf);
 		ComboBox_SetItemData(list2d, j, i);
 		if (xdim2d == validmode[i].xdim && ydim2d == validmode[i].ydim && 8 == validmode[i].bpp)

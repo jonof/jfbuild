@@ -156,7 +156,8 @@ void wsayfollow(char *dafilename, long dafreq, long davol, long *daxplc, long *d
 		1 = position follows an object
 */
 	unsigned char ch1, ch2;
-	long i, wavnum, bad, oldest=0, oldestpos=0, free=-1, ox, oy, x, y, vo;
+	long i, wavnum, bad, oldest=0, free=-1, ox, oy, x, y, vo;
+	unsigned int oldestpos=0;
 	int chan;
 
 	if (fmod_inited == 0) return;
@@ -208,7 +209,8 @@ void wsayfollow(char *dafilename, long dafreq, long davol, long *daxplc, long *d
 void wsay(char *dafilename, long dafreq, long volume1, long volume2)
 {
 	unsigned char ch1, ch2;
-	long i, j, bad, free=-1, oldest=0, oldestpos=0;
+	long i, j, bad, free=-1, oldest=0;
+	unsigned int oldestpos=0;
 	int chan;
 
 	if (fmod_inited == 0) return;

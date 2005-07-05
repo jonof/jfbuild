@@ -478,7 +478,7 @@ void dosendpackets (long other)
 	*(unsigned short *)&pakbuf[k] = getcrc16(pakbuf,k); k += 2;
 
 	//printf("Send: "); for(i=0;i<k;i++) printf("%02x ",pakbuf[i]); printf("\n");
-	if (netsend(other,pakbuf,k)) ;
+	netsend(other,pakbuf,k);
 }
 
 void sendpacket (long other, char *bufptr, long messleng)

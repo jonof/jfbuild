@@ -6089,18 +6089,18 @@ void waitforeverybody ()
 					//slaves in M/S mode only wait for master
 				if ((!networkmode) && (myconnectindex != connecthead) && (i != connecthead))
 				{
-					Bsprintf(tempbuf,"Player %d",i);
+					Bsprintf(tempbuf,"Player %ld",i);
 					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,15,0,tempbuf,0);
 				}
 				else
 				{
-					Bsprintf(tempbuf,"Player %d NOT ready",i);
+					Bsprintf(tempbuf,"Player %ld NOT ready",i);
 					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,127,0,tempbuf,0);
 				}
 			}
 			else
 			{
-				Bsprintf(tempbuf,"Player %d ready",i);
+				Bsprintf(tempbuf,"Player %ld ready",i);
 				printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,31,0,tempbuf,0);
 			}
 			if (i == myconnectindex)

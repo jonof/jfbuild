@@ -50,7 +50,7 @@ TARGETOPTS=#-DUSE_A_C #-DNOASM
 CC=gcc
 AS=nasm
 RC=windres
-override CFLAGS+= $(debug) -W -Wall -Werror-implicit-function-declaration \
+override CFLAGS+= $(debug) -W -Wall -Wimplicit \
 	-Wno-char-subscripts -Wno-unused \
 	-march=pentium -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
 	-I$(INC) -I../jfaud/inc

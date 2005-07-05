@@ -19,7 +19,7 @@
 	//Doing this tells kzopen to load the file only if inside a .ZIP file
 static long kzipopen(char *filnam)
 {
-	long i;
+	unsigned int i;
 	char newst[BMAX_PATH+4];
 
 	newst[0] = '|';
@@ -327,16 +327,16 @@ BFILE* fopenfrompath(const char *fn, const char *mode)
 
 #ifdef _WIN32
 	// if a UNC or drive letter is at the beginning, don't search path
-	if ((fn[0] == '\\' && fn[1] == '\\') || fn[1] == ':') return -1;
-	if (fn[0] == '\\') return -1;
+	if ((fn[0] == '\\' && fn[1] == '\\') || fn[1] == ':') return NULL;
+	if (fn[0] == '\\') return NULL;
 #endif
-	if (fn[0] == '/') return -1;
+	if (fn[0] == '/') return NULL;
 
 	pfn = NULL;
 	for (sp = searchpathhead; sp && !h; sp = sp->next) {
 		if (!pfn) {
 			pfn = malloc(strlen(fn) + maxsearchpathlen + 1);
-			if (!pfn) return -1;
+			if (!pfn) return NULL;
 		}
 
 		strcpy(pfn, sp->path);
