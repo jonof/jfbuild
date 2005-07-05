@@ -910,12 +910,13 @@ static long pow2xsplit = 0, skyclamphack = 0;
 void drawpoly (double *dpx, double *dpy, long n, long method)
 {
 	#define PI 3.14159265358979323
-	double ngdx, ngdy, ngdo, ngux, nguy, nguo, ngvx, ngvy, ngvo, dp, up, vp, rdp, du0, du1, dui, duj;
+	double ngdx = 0.0, ngdy = 0.0, ngdo = 0.0, ngux = 0.0, nguy = 0.0, nguo = 0.0;
+	double ngvx = 0.0, ngvy = 0.0, ngvo = 0.0, dp, up, vp, rdp, du0 = 0.0, du1 = 0.0, dui, duj;
 	double ngdx2, ngux2, ngvx2;
 	double f, r, ox, oy, oz, ox2, oy2, oz2, dd[16], uu[16], vv[16], px[16], py[16], uoffs;
-	long i, j, k, x, y, z, nn, ix0, ix1, mini, maxi, tsizx, tsizy, tsizxm1, tsizym1, ltsizy;
-	long xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice, ymulnice, dorot;
-	char dacol, *walptr, *palptr, *vidp, *vide;
+	long i, j, k, x, y, z, nn, ix0, ix1, mini, maxi, tsizx, tsizy, tsizxm1 = 0.0, tsizym1 = 0.0, ltsizy = 0.0;
+	long xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0.0, ymulnice = 0.0, dorot;
+	char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
 
 	pthtyp *pth;
 
@@ -1643,7 +1644,7 @@ void domost (float x0, float y0, float x1, float y1)
 	double dpx[4], dpy[4];
 	float d, f, n, t, slop, dx, dx0, dx1, nx, nx0, ny0, nx1, ny1;
 	float spx[4], spy[4], cy[2], cv[2];
-	long i, j, k, z, ni, vcnt, scnt, newi, dir, spt[4];
+	long i, j, k, z, ni, vcnt = 0, scnt, newi, dir, spt[4];
 	
 	if (x0 < x1)
 	{

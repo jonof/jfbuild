@@ -265,7 +265,7 @@ long initmultiplayersparms(long argc, char **argv)
 			j = strtol(argv[i]+2, &p, 10);
 			if (!(*p) && j > 0 && j<65535) portnum = j;
 
-			printf("mmulti: Using port %d\n", portnum);
+			printf("mmulti: Using port %ld\n", portnum);
 		}
 	}
 
@@ -292,7 +292,7 @@ long initmultiplayersparms(long argc, char **argv)
 					{
 						numplayers = (argv[i][4]-'0');
 						if ((argv[i][5] >= '0') && (argv[i][5] <= '9')) numplayers = numplayers*10+(argv[i][5]-'0');
-						printf("mmulti: %d-player game\n", numplayers);
+						printf("mmulti: %ld-player game\n", numplayers);
 					}
 					printf("mmulti: Master-slave mode\n");
 				}
@@ -314,7 +314,7 @@ long initmultiplayersparms(long argc, char **argv)
 				if (argv[i][j] == ':')
 					{ otherport[daindex] = htons((unsigned short)atol(&argv[i][j+1])); break; }
 			otherip[daindex] = inet_addr(argv[i]);
-			printf("mmulti: Player %d at %s:%d\n",daindex,argv[i],ntohs(otherport[daindex]));
+			printf("mmulti: Player %ld at %s:%d\n",daindex,argv[i],ntohs(otherport[daindex]));
 			daindex++;
 			continue;
 		}
@@ -332,7 +332,7 @@ long initmultiplayersparms(long argc, char **argv)
 				if ((danetmode == 1) && (daindex == myconnectindex)) daindex++;
 				otherip[daindex] = *(long *)lph->h_addr;
 				otherport[daindex] = pt;
-				printf("mmulti: Player %d at %s:%d (%s)\n",daindex,
+				printf("mmulti: Player %ld at %s:%d (%s)\n",daindex,
 						inet_ntoa(*(struct in_addr *)lph->h_addr),ntohs(pt),argv[i]);
 				daindex++;
 			} else printf("mmulti: Failed resolving %s\n",argv[i]);
@@ -467,7 +467,7 @@ void dosendpackets (long other)
 	for(i=ocnt0[other];i<ocnt1[other];i++)
 	{
 		j = *(short *)&pakmem[opak[other][i&(FIFSIZ-1)]]; if (!j) continue; //packet already acked
-		if (k+6+j+4 > sizeof(pakbuf)) break;
+		if (k+6+j+4 > (long)sizeof(pakbuf)) break;
 
 		*(unsigned short *)&pakbuf[k] = (unsigned short)j; k += 2;
 		*(long *)&pakbuf[k] = i; k += 4;
@@ -487,7 +487,7 @@ void sendpacket (long other, char *bufptr, long messleng)
 
 	if (numplayers < 2) return;
 
-	if (pakmemi+messleng+2 > sizeof(pakmem)) pakmemi = 1;
+	if (pakmemi+messleng+2 > (long)sizeof(pakmem)) pakmemi = 1;
 	opak[other][ocnt1[other]&(FIFSIZ-1)] = pakmemi;
 	*(short *)&pakmem[pakmemi] = messleng;
 	memcpy(&pakmem[pakmemi+2],bufptr,messleng); pakmemi += messleng+2;
@@ -532,7 +532,7 @@ long getpacket (long *retother, char *bufptr)
 
 		//printf("Recv: "); for(i=0;i<crc16ofs+2;i++) printf("%02x ",pakbuf[i]); printf("\n");
 
-		if ((crc16ofs+2 <= sizeof(pakbuf)) && (getcrc16(pakbuf,crc16ofs) == (*(unsigned short *)&pakbuf[crc16ofs])))
+		if ((crc16ofs+2 <= (long)sizeof(pakbuf)) && (getcrc16(pakbuf,crc16ofs) == (*(unsigned short *)&pakbuf[crc16ofs])))
 		{
 			ic0 = *(long *)&pakbuf[k]; k += 4;
 			if (ic0 == -1)
@@ -595,7 +595,7 @@ long getpacket (long *retother, char *bufptr)
 					j = *(long *)&pakbuf[k]; k += 4;
 					if ((j >= icnt0[other]) && (!ipak[other][j&(FIFSIZ-1)]))
 					{
-						if (pakmemi+messleng+2 > sizeof(pakmem)) pakmemi = 1;
+						if (pakmemi+messleng+2 > (long)sizeof(pakmem)) pakmemi = 1;
 						ipak[other][j&(FIFSIZ-1)] = pakmemi;
 						*(short *)&pakmem[pakmemi] = messleng;
 						memcpy(&pakmem[pakmemi+2],&pakbuf[k],messleng); pakmemi += messleng+2;

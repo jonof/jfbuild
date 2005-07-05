@@ -595,7 +595,7 @@ void initprintf(const char *f, ...)
 {
 	va_list va;
 	char buf[1024],*p=NULL,*q=NULL,workbuf[1024];
-	int i;
+	int i = 0;
 
 	static int newline = 1;
 	int overwriteline = -1;

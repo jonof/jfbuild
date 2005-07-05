@@ -1330,7 +1330,7 @@ static void cntquad (long x0, long y0, long z0, long x1, long y1, long z1, long 
 
 static void addquad (long x0, long y0, long z0, long x1, long y1, long z1, long x2, long y2, long z2, long face)
 {
-	long i, j, x, y, z, xx, yy, nx, ny, nz, *lptr;
+	long i, j, x, y, z, xx, yy, nx = 0, ny = 0, nz = 0, *lptr;
 	voxrect_t *qptr;
 
 	x = labs(x2-x0); y = labs(y2-y0); z = labs(z2-z0);
@@ -1414,7 +1414,7 @@ static long isolid (long x, long y, long z)
 
 static voxmodel *vox2poly ()
 {
-	long i, j, x, y, z, v, ov, oz, cnt, sc, x0, y0, dx, dy, i0, i1, *bx0, *by0;
+	long i, j, x, y, z, v, ov, oz = 0, cnt, sc, x0, y0, dx, dy, i0, i1, *bx0, *by0;
 	void (*daquad)(long, long, long, long, long, long, long, long, long, long);
 	coltype *pic;
 	unsigned char *cptr, ch;

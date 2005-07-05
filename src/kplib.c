@@ -297,7 +297,7 @@ static inline unsigned long bswap (unsigned long a)
 
 static inline long bitrev (long b, long c)
 {
-	long a;
+	long a = 0;
 	__asm__ __volatile__ (
 		"xorl %%eax, %%eax\n\t0:\n\tshrl $1, %%ebx\n\tadcl %%eax, %%eax\n\tsubl $1, %%ecx\n\tjnz 0b"
 		: "+a" (a), "+b" (b), "+c" (c) : : "cc");
@@ -1313,10 +1313,10 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 	long daframeplace, long dabytesperline, long daxres, long dayres,
 	long daglobxoffs, long daglobyoffs)
 {
-	long i, j, p, v, leng, xdim, ydim, index, prec, restartinterval;
+	long i, j, p, v, leng, xdim = 0, ydim = 0, index, prec, restartinterval;
 	long restartcnt, num, curbits, x, y, z, dctcnt, c, cc, daval, dabits;
 	long xx, yy, zz, xxx, yyy, r, g, b, t0, t1, t2, t3, t4, t5, t6, t7;
-	long yv, cr, cb, *dc, *dc2, xxxend, yyyend;
+	long yv, cr = 0, cb = 0, *dc, *dc2, xxxend, yyyend;
 	long *hqval, *hqbits, hqcnt, *quanptr;
 	unsigned char ch, marker, numbits, lnumcomponents, dcflag;
 	const unsigned char *kfileptr;
@@ -1711,7 +1711,7 @@ static long kgifrend (const char *kfilebuf, long kfilelength,
 	long i, x, y, xsiz, ysiz, yinc, xend, xspan, yspan, currstr, numbitgoal;
 	long lzcols, dat, blocklen, bitcnt, xoff, yoff, transcol, backcol, *lptr;
 	char numbits, startnumbits, chunkind, ilacefirst;
-	const char *ptr, *cptr;
+	const char *ptr, *cptr = NULL;
 
 	coltype = 3; bitdepth = 8; //For PNGOUT
 
@@ -1886,8 +1886,8 @@ static long ktgarend (const char *header, long fleng,
 	long daframeplace, long dabytesperline, long daxres, long dayres,
 	long daglobxoffs, long daglobyoffs)
 {
-	long i, p, x, y, pi, xi, yi, x0, x1, y0, y1, xsiz, ysiz, rlestat, colbyte, pixbyte;
-	const char *fptr, *cptr, *nptr;
+	long i = 0, p, x, y, pi, xi, yi, x0, x1, y0, y1, xsiz, ysiz, rlestat, colbyte, pixbyte;
+	const char *fptr, *cptr = NULL, *nptr;
 
 		//Ugly and unreliable identification for .TGA!
 	if ((fleng < 20) || (header[1]&0xfe)) return(-1);

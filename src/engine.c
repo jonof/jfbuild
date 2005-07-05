@@ -3082,7 +3082,7 @@ static void drawsprite(long snum)
 	long xv, yv, top, topinc, bot, botinc, hplc, hinc;
 	long cosang, sinang, dax, day, lpoint, lmax, rpoint, rmax, dax1, dax2, y;
 	long npoints, npoints2, zz, t, zsgn, zzsgn, *longptr;
-	long tilenum, vtilenum, spritenum;
+	long tilenum, vtilenum = 0, spritenum;
 	char swapped, daclip;
 
 	//============================================================================= //POLYMOST BEGINS
