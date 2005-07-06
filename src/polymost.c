@@ -666,8 +666,12 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 		for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
 		for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
 	} else {
-		xsiz = tsizx;
-		ysiz = tsizy;
+		if ((tsizx|tsizy) == 0) {
+			xsiz = ysiz = 1;
+		} else {
+			xsiz = tsizx;
+			ysiz = tsizy;
+		}
 	}
 
 	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype));

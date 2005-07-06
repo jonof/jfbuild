@@ -47,14 +47,10 @@ debug=-ggdb #-DDEBUGGINGAIDS
 #           assembly for the features in PRAGMAS.H
 TARGETOPTS=#-DUSE_A_C #-DNOASM
 
-# This is the list of flags -O1 enables, but actually enabling -O1 causes breakage
-OPTIMISE=-fdefer-pop -fmerge-constants -fthread-jumps -floop-optimize -fcrossjumping \
-	-fif-conversion -fif-conversion2 -fguess-branch-probability -fcprop-registers
-
 CC=gcc
 AS=nasm
 RC=windres
-override CFLAGS+= $(debug) -W -Wall -Wimplicit $(OPTIMISE) \
+override CFLAGS+= $(debug) -W -Wall -Wimplicit -O2 \
 	-Wno-char-subscripts -Wno-unused \
 	-march=pentium -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
 	-I$(INC) -I../jfaud/inc

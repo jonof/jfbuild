@@ -440,77 +440,65 @@ static inline long getkensmessagecrc(void *b)
 // GCC "Inline" Assembly Routines
 //
 
-static inline long nsqrtasm(long a)
-{
-	long r;
-	
-	__asm__ __volatile__ (
-		"testl $0xff000000, %%eax\n\t"
-		"movl %%eax, %%ebx\n\t"
-		"jnz 0f\n\t"
-		"shrl $12, %%ebx\n\t"
-		"movw "ASMSYM("shlookup")"(,%%ebx,2), %%cx\n\t"
-		"jmp 1f\n\t"
-		"0:\n\t"
-		"shrl $24, %%ebx\n\t"
-		"movw ("ASMSYM("shlookup")"+8192)(,%%ebx,2), %%cx\n\t"
-		"1:\n\t"
-		"shrl %%cl, %%eax\n\t"
-		"movb %%ch, %%cl\n\t"
-		"movw "ASMSYM("sqrtable")"(,%%eax,2), %%ax\n\t"
-		"shrl %%cl, %%eax"
-		: "=a" (r)
-		: "a" (a)
-		: "ebx", "ecx", "cc"
-	);
-	return r;
-}
+#define nsqrtasm(a) \
+	({ long __r, __a=(a); \
+	   __asm__ __volatile__ ( \
+		"testl $0xff000000, %%eax\n\t" \
+		"movl %%eax, %%ebx\n\t" \
+		"jnz 0f\n\t" \
+		"shrl $12, %%ebx\n\t" \
+		"movw "ASMSYM("shlookup")"(,%%ebx,2), %%cx\n\t" \
+		"jmp 1f\n\t" \
+		"0:\n\t" \
+		"shrl $24, %%ebx\n\t" \
+		"movw ("ASMSYM("shlookup")"+8192)(,%%ebx,2), %%cx\n\t" \
+		"1:\n\t" \
+		"shrl %%cl, %%eax\n\t" \
+		"movb %%ch, %%cl\n\t" \
+		"movw "ASMSYM("sqrtable")"(,%%eax,2), %%ax\n\t" \
+		"shrl %%cl, %%eax" \
+		: "=a" (__r) : "a" (__a) : "ebx", "ecx", "cc"); \
+	 __r; })
 
-static inline long msqrtasm(long c)
-{
-	long r;
+	// edx is blown by this code somehow?!
+#define msqrtasm(c) \
+	({ long __r, __c=(c); \
+	   __asm__ __volatile__ ( \
+		"movl $0x40000000, %%eax\n\t" \
+		"movl $0x20000000, %%ebx\n\t" \
+		"0:\n\t" \
+		"cmpl %%eax, %%ecx\n\t" \
+		"jl 1f\n\t" \
+		"subl %%eax, %%ecx\n\t" \
+		"leal (%%eax,%%ebx,4), %%eax\n\t" \
+		"1:\n\t" \
+		"subl %%ebx, %%eax\n\t" \
+		"shrl $1, %%eax\n\t" \
+		"shrl $2, %%ebx\n\t" \
+		"jnz 0b\n\t" \
+		"cmpl %%eax, %%ecx\n\t" \
+		"sbbl $-1, %%eax\n\t" \
+		"shrl $1, %%eax" \
+		: "=a" (__r) : "c" (__c) : "edx","ebx", "cc"); \
+	 __r; })
 
-	__asm__ __volatile__ (
-		"movl $0x40000000, %%eax\n\t"
-		"movl $0x20000000, %%ebx\n\t"
-		"0:\n\t"
-		"cmpl %%eax, %%ecx\n\t"
-		"jl 1f\n\t"
-		"subl %%eax, %%ecx\n\t"
-		"leal (%%eax,%%ebx,4), %%eax\n\t"
-		"1:\n\t"
-		"subl %%ebx, %%eax\n\t"
-		"shrl $1, %%eax\n\t"
-		"shrl $2, %%ebx\n\t"
-		"jnz 0b\n\t"
-		"cmpl %%eax, %%ecx\n\t"
-		"sbbl $-1, %%eax\n\t"
-		"shrl $1, %%eax"
-		: "=a" (r)
-		: "c" (c)
-		: "ebx", "cc"
-	);
-	return r;
-}
-
-static inline void setgotpic(long a)
-{
-	__asm__ __volatile__ (
-		"movl %%eax, %%ebx\n\t"
-		"cmpb $200, "ASMSYM("walock")"(%%eax)\n\t"
-		"jae 0f\n\t"
-		"movb $199, "ASMSYM("walock")"(%%eax)\n\t"
-		"0:\n\t"
-		"shrl $3, %%eax\n\t"
-		"andl $7, %%ebx\n\t"
-		"movb "ASMSYM("gotpic")"(%%eax), %%dl\n\t"
-		"movb "ASMSYM("pow2char")"(%%ebx), %%bl\n\t"
-		"orb %%bl, %%dl\n\t"
-		"movb %%dl, "ASMSYM("gotpic")"(%%eax)"
-		: : "a" (a)
-		: "ebx", "edx", "memory", "cc"
-	);
-}
+#define setgotpic(a) \
+	({ long __a=(a); \
+	   __asm__ __volatile__ ( \
+		"movl %%eax, %%ebx\n\t" \
+		"cmpb $200, "ASMSYM("walock")"(%%eax)\n\t" \
+		"jae 0f\n\t" \
+		"movb $199, "ASMSYM("walock")"(%%eax)\n\t" \
+		"0:\n\t" \
+		"shrl $3, %%eax\n\t" \
+		"andl $7, %%ebx\n\t" \
+		"movb "ASMSYM("gotpic")"(%%eax), %%dl\n\t" \
+		"movb "ASMSYM("pow2char")"(%%ebx), %%bl\n\t" \
+		"orb %%bl, %%dl\n\t" \
+		"movb %%dl, "ASMSYM("gotpic")"(%%eax)" \
+		: "=a" (__a) : "a" (__a) \
+		: "ebx", "edx", "memory", "cc"); \
+	 __a; })
 
 #define krecipasm(a) \
 	({ long __a=(a); \
@@ -521,7 +509,7 @@ static inline void setgotpic(long a)
 			"andl $0x007ff000, %%eax; shrl $10, %%eax; subl $0x3f800000, %%ecx; " \
 			"shrl $23, %%ecx; movl "ASMSYM("reciptable")"(%%eax), %%eax; " \
 			"sarl %%cl, %%eax; xorl %%ebx, %%eax" \
-		: "+a" (__a) : : "ebx", "ecx", "memory", "cc"); \
+		: "=a" (__a) : "a" (__a) : "ebx", "ecx", "memory", "cc"); \
 	 __a; })
 
 #define getclipmask(a,b,c,d) \
@@ -530,27 +518,24 @@ static inline void setgotpic(long a)
 				"addl %%ecx, %%ecx; adcl %%eax, %%eax; addl %%edx, %%edx; " \
 				"adcl %%eax, %%eax; movl %%eax, %%ebx; shl $4, %%ebx; " \
 				"orb $0xf0, %%al; xorl %%ebx, %%eax" \
-		: "+a" (__a), "+b" (__b), "+c" (__c), "+d" (__d) : : "cc"); \
+		: "=a" (__a), "=b" (__b), "=c" (__c), "=d" (__d) \
+		: "a" (__a), "b" (__b), "c" (__c), "d" (__d) : "cc"); \
 	 __a; })
 
-inline long getkensmessagecrc(long b)
-{
-	long a;
-	__asm__ __volatile__ (
-		"xorl %%eax, %%eax\n\t"
-		"movl $32, %%ecx\n\t"
-		"0:\n\t"
-		"movl -4(%%ebx,%%ecx,4), %%edx\n\t"
-		"rorl %%cl, %%edx\n\t"
-		"adcl %%edx, %%eax\n\t"
-		"bswapl %%eax\n\t"
-		"loop 0b"
-		: "=a" (a)
-		: "b" (b)
-		: "ecx", "edx"
-	);
-	return a;
-}
+
+#define getkensmessagecrc(b) \
+	({ long __a, __b=(b); \
+	   __asm__ __volatile__ ( \
+		"xorl %%eax, %%eax\n\t" \
+		"movl $32, %%ecx\n\t" \
+		"0:\n\t" \
+		"movl -4(%%ebx,%%ecx,4), %%edx\n\t" \
+		"rorl %%cl, %%edx\n\t" \
+		"adcl %%edx, %%eax\n\t" \
+		"bswapl %%eax\n\t" \
+		"loop 0b" \
+		: "=a" (__a) : "b" (__b) : "ecx", "edx" \
+	 __a; })
 
 #else	// __GNUC__ && __i386__
 
@@ -4871,13 +4856,13 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
 	if ((dastat&1) == 0)
 	{
 		if (dastat&64)
-			setupspritevline(palookupoffs,xv,yv,ysiz,0l,0l);	// JBF 20030909: 0's added to pad declaration
+			setupspritevline(palookupoffs,xv,yv,ysiz);
 		else
-			msetupspritevline(palookupoffs,xv,yv,ysiz,0l,0l);	// JBF 20030909: 0's added to pad declaration
+			msetupspritevline(palookupoffs,xv,yv,ysiz);
 	}
 	else
 	{
-		tsetupspritevline(palookupoffs,xv,yv,ysiz,0l,0l);		// JBF 20030909: 0's added to pad declaration
+		tsetupspritevline(palookupoffs,xv,yv,ysiz);
 		if (dastat&32) settransreverse(); else settransnormal();
 	}
 	for(x=x1;x<x2;x++)
@@ -4905,14 +4890,14 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
 		if ((dastat&1) == 0)
 		{
 			if (dastat&64)
-				spritevline(bx&65535,by&65535,y2-y1+1,(bx>>16)*ysiz+(by>>16)+bufplc,p,0l);	// JBF 20030909: 0 added to pad declaration
+				spritevline(bx&65535,by&65535,y2-y1+1,(bx>>16)*ysiz+(by>>16)+bufplc,p);
 			else
-				mspritevline(bx&65535,by&65535,y2-y1+1,(bx>>16)*ysiz+(by>>16)+bufplc,p,0l);	// JBF 20030909: 0 added to pad declaration
+				mspritevline(bx&65535,by&65535,y2-y1+1,(bx>>16)*ysiz+(by>>16)+bufplc,p);
 		}
 		else
 		{
-			tspritevline(bx&65535,by&65535,y2-y1+1,(bx>>16)*ysiz+(by>>16)+bufplc,p,0l);	// JBF 20030909: 0 added to pad declaration
-			//transarea += (y2-y1);	// JBF 20030909: Transparency buffering switching unused these days
+			tspritevline(bx&65535,by&65535,y2-y1+1,(bx>>16)*ysiz+(by>>16)+bufplc,p);
+			//transarea += (y2-y1);
 		}
 		faketimerhandler();
 	}

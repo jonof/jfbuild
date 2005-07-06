@@ -187,14 +187,14 @@ void thline(long bufplc, unsigned long bx, long cntup16, long junk, unsigned lon
 
 
 	//Rotatesprite vertical line functions
-void setupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2)
+void setupspritevline(long paloffs, long bxinc, long byinc, long ysiz)
 {
 	gpal = (char *)paloffs;
 	gbxinc = bxinc;
 	gbyinc = byinc;
 	glogy = ysiz;
 }
-void spritevline(long bx, long by, long cnt, long bufplc, long p, long reserved)
+void spritevline(long bx, long by, long cnt, long bufplc, long p)
 {
 	gbuf = (char *)bufplc;
 	for(;cnt>1;cnt--)
@@ -207,14 +207,14 @@ void spritevline(long bx, long by, long cnt, long bufplc, long p, long reserved)
 }
 
 	//Rotatesprite vertical line functions
-void msetupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2)
+void msetupspritevline(long paloffs, long bxinc, long byinc, long ysiz)
 {
 	gpal = (char *)paloffs;
 	gbxinc = bxinc;
 	gbyinc = byinc;
 	glogy = ysiz;
 }
-void mspritevline(long bx, long by, long cnt, long bufplc, long p, long reserved)
+void mspritevline(long bx, long by, long cnt, long bufplc, long p)
 {
 	char ch;
 
@@ -229,14 +229,14 @@ void mspritevline(long bx, long by, long cnt, long bufplc, long p, long reserved
 	}
 }
 
-void tsetupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2)
+void tsetupspritevline(long paloffs, long bxinc, long byinc, long ysiz)
 {
 	gpal = (char *)paloffs;
 	gbxinc = bxinc;
 	gbyinc = byinc;
 	glogy = ysiz;
 }
-void tspritevline(long bx, long by, long cnt, long bufplc, long p, long reserved)
+void tspritevline(long bx, long by, long cnt, long bufplc, long p)
 {
 	char ch;
 

@@ -38,14 +38,14 @@ void mhline(long bufplc, unsigned long bx, long cntup16, long junk, unsigned lon
 void tsethlineshift(long logx, long logy);
 void thline(long bufplc, unsigned long bx, long cntup16, long junk, unsigned long by, long p);
 
-void setupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2);
-void spritevline(long bx, long by, long cnt, long bufplc, long p, long reserved);
+void setupspritevline(long paloffs, long bxinc, long byinc, long ysiz);
+void spritevline(long bx, long by, long cnt, long bufplc, long p);
 
-void msetupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2);
-void mspritevline(long bx, long by, long cnt, long bufplc, long p, long reserved);
+void msetupspritevline(long paloffs, long bxinc, long byinc, long ysiz);
+void mspritevline(long bx, long by, long cnt, long bufplc, long p);
 
-void tsetupspritevline(long paloffs, long bxinc, long byinc, long ysiz, long tmp1, long tmp2);
-void tspritevline(long bx, long by, long cnt, long bufplc, long p, long reserved);
+void tsetupspritevline(long paloffs, long bxinc, long byinc, long ysiz);
+void tspritevline(long bx, long by, long cnt, long bufplc, long p);
 
 void setupdrawslab (long dabpl, long pal);
 void drawslab (long dx, long v, long dy, long vi, long vptr, long p);
