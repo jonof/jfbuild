@@ -1,22 +1,9 @@
 # Build Makefile for GNU Make
 
 # Notes:
-#   Turning on any level of optimisation with GCC 2.95 results in a binary
-#   which has bugs. Example: photocopier in Pigsty of Episode 4 of Duke.
-#   Turning on any level of optimisation with GCC 3.x results in a binary
-#   which instantly crashes when run.
-#   Moral: don't enable optimisations
-#
-# New notes as of 25 August 2004:
-#   Apparently GCC 2.95 now produces acceptable code if you enable -O2, and
-#   GCC 3.3.1 MinGW32 is OK with -O too, but I'm still not excited about
-#   trusting it though, so the moral is probably best still "don't enable
-#   optimisations".
-#
-# Compilation on Linux:
-#   * GCC 3 objects to something in the GCC inline pragmas, so disable
-#     USE_GCC_PRAGMAS. GCC also didn't like to link to NASM objects
-#     compiled with the -g switch, so remove -g from ASFLAGS.
+#  As of 6 July 2005, the engine should handle optimisations being enabled.
+#  If things seem to be going wrong, lower or disable optimisations, then
+#  try again. If things are still going wrong, call me.
 #   
 
 SRC=src/
@@ -34,9 +21,9 @@ DXROOT=c:/sdks/msc/dx61
 FMODROOT=c:/sdks/fmodapi374win/api
 
 # debugging enabled
-debug=-ggdb #-DDEBUGGINGAIDS
+debug=-ggdb -O0 #-DDEBUGGINGAIDS
 # debugging disabled
-#debug=-fomit-frame-pointer
+#debug=-fomit-frame-pointer -O2
 
 # -D these to enable certain features of the port's compile process
 # USE_A_C   This uses a C version of the classic renderer code rather
@@ -50,28 +37,27 @@ TARGETOPTS=#-DUSE_A_C #-DNOASM
 CC=gcc
 AS=nasm
 RC=windres
-override CFLAGS+= $(debug) -W -Wall -Wimplicit -O2 \
-	-Wno-char-subscripts -Wno-unused \
+override CFLAGS+= $(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-march=pentium -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
 	-I$(INC) -I../jfaud/inc
 LIBS=-lm -lfmod # ../jfaud/jfaud.a
 ASFLAGS=-s #-g
 EXESUFFIX=
 
-ENGINEOBJS=$(OBJ)engine.$o \
-	$(OBJ)cache1d.$o \
-	$(OBJ)a.$o \
-	$(OBJ)pragmas.$o \
-	$(OBJ)osd.$o \
-	$(OBJ)crc32.$o \
-	$(OBJ)engineinfo.$o \
+ENGINEOBJS=$(OBJ)a.$o \
 	$(OBJ)baselayer.$o \
-	$(OBJ)glbuild.$o \
+	$(OBJ)cache1d.$o \
 	$(OBJ)compat.$o \
+	$(OBJ)crc32.$o \
+	$(OBJ)defs.$o \
+	$(OBJ)engine.$o \
+	$(OBJ)engineinfo.$o \
+	$(OBJ)glbuild.$o \
 	$(OBJ)kplib.$o \
-	$(OBJ)scriptfile.$o \
 	$(OBJ)mmulti.$o \
-	$(OBJ)defs.$o
+	$(OBJ)osd.$o \
+	$(OBJ)pragmas.$o \
+	$(OBJ)scriptfile.$o
 
 EDITOROBJS=$(OBJ)build.$o \
 	$(OBJ)config.$o
