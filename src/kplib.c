@@ -29,7 +29,9 @@ I offer this code to the community for the benefit of Jonathon Fowler's Duke3D p
 
 #if !defined(_WIN32) && !defined(__DOS__)
 #include <unistd.h>
+#if !defined(__INTEL_COMPILER)
 typedef long long __int64;
+#endif
 static __inline long _lrotl (long i, int sh)
 	{ return((i>>(-sh))|(i<<sh)); }
 static __inline long filelength (int h)
