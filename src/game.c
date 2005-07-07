@@ -391,6 +391,8 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 int DoLaunchWindow(void);	// gamestartwin.c
 #endif
 
+char *startwin_labeltext = "Starting KenBuild...";
+
 long app_main(long argc, char *argv[])
 {
 	long i, j, k, l, fil, waitplayers, x1, y1, x2, y2;

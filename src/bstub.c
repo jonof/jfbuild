@@ -57,6 +57,7 @@ static unsigned long frameval[AVERAGEFRAMES];
 static long framecnt = 0;
 
 char *defsfilename = "kenbuild.def";
+char *startwin_labeltext = "Starting Build Editor...";
 int nextvoxid = 0;
 
 int ExtInit(void)

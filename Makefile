@@ -93,6 +93,9 @@ ifeq ($(RENDERTYPE),SDL)
 
 	ifeq (1,$(HAVE_GTK2))
 		override CFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
+		ENGINEOBJS+= $(OBJ)gtkstartwin.$o
+		GAMEEXEOBJS+= $(OBJ)game_banner.$o
+		EDITOREXEOBJS+= $(OBJ)editor_banner.$o
 	endif
 
 	GAMEEXEOBJS+= $(OBJ)game_icon.$o
@@ -185,6 +188,14 @@ $(OBJ)%.$o: $(SRC)util/%.c
 $(OBJ)%.$o: $(RSRC)%.c
 	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
 
+$(OBJ)game_banner.$o: $(RSRC)game_banner.c
+$(OBJ)editor_banner.$o: $(RSRC)editor_banner.c
+$(RSRC)game_banner.c: $(RSRC)game.bmp
+	 echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
+	 gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
+$(RSRC)editor_banner.c: $(RSRC)build.bmp
+	 echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
+	 gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
 
 # PHONIES	
 clean:

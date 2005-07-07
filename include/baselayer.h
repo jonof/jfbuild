@@ -10,6 +10,8 @@ extern char **_buildargv;
 
 extern char quitevent, appactive;
 
+extern char *startwin_labeltext;
+
 // video
 extern long xres, yres, bpp, fullscreen, bytesperline, imageSize, frameplace;
 extern char offscreenrendering;
