@@ -87,6 +87,7 @@ static SDL_Surface * loadappicon(void);
 
 #ifdef HAVE_GTK2
 #include <gtk/gtk.h>
+static int gtkenabled = 0;
 #endif
 
 int wm_msgbox(char *name, char *fmt, ...)
@@ -99,7 +100,7 @@ int wm_msgbox(char *name, char *fmt, ...)
 	va_end(va);
 
 #ifdef HAVE_GTK2
-	{
+	if (gtkenabled) {
 		GtkWidget *dialog;
 
 		dialog = gtk_message_dialog_new(NULL,
@@ -129,7 +130,7 @@ int wm_ynbox(char *name, char *fmt, ...)
 	va_end(va);
 
 #ifdef HAVE_GTK2
-	{
+	if (gtkenabled) {
 		GtkWidget *dialog;
 
 		dialog = gtk_message_dialog_new(NULL,
@@ -176,8 +177,13 @@ void wm_setapptitle(char *name)
 
 int main(int argc, char *argv[])
 {
+	int r;
+	
 #ifdef HAVE_GTK2
-	gtk_init(&argc, &argv);
+	if (getenv("DISPLAY") != NULL) {
+		gtk_init(&argc, &argv);
+		gtkenabled = 1;
+	}
 #endif
 
 	_buildargc = argc;
@@ -186,7 +192,12 @@ int main(int argc, char *argv[])
 	//memcpy(_buildargv, argv, sizeof(char*)*argc);
 
 	baselayer_init();
-	return app_main(argc, argv);
+	r = app_main(argc, argv);
+
+#ifdef HAVE_GTK2
+	if (gtkenabled) gtk_exit(r);
+#endif
+	return r;
 }
 
 
@@ -486,9 +497,11 @@ void grabmouse(char a)
 #ifndef DEBUGGINGAIDS
 	SDL_GrabMode g;
 
+	initprintf("a=%d appactive=%d moustat=%d mouseacquired=%d\n", a,appactive,moustat,mouseacquired);
 	if (appactive && moustat) {
 		if (a != mouseacquired) {
 			g = SDL_WM_GrabInput( a ? SDL_GRAB_ON : SDL_GRAB_OFF );
+			initprintf("Grab=%d\n",g);
 			mouseacquired = (g == SDL_GRAB_ON);
 
 			SDL_ShowCursor(mouseacquired ? SDL_DISABLE : SDL_ENABLE);
@@ -972,6 +985,11 @@ int setvideomode(int x, int y, int c, int fs)
 	if (c==8) setpalette(0,256,0);
 	//baselayer_onvideomodechange(c>8);
 	
+	if (mouseacquired) {
+		SDL_WM_GrabInput(SDL_GRAB_ON);
+		SDL_ShowCursor(SDL_DISABLE);
+	}
+
 	return 0;
 }
 
