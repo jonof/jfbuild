@@ -640,7 +640,7 @@ char *Bstrtoken(char *s, char *delim, char **ptrptr, int chop)
 	//Brute-force case-insensitive, slash-insensitive, * and ? wildcard matcher
 	//Given: string i and string j. string j can have wildcards
 	//Returns: 1:matches, 0:doesn't match
-long wildmatch (const char *i, const char *j)
+long Bwildmatch (const char *i, const char *j)
 {
 	const char *k;
 	char c0, c1;
@@ -650,7 +650,7 @@ long wildmatch (const char *i, const char *j)
 	{
 		if (*j == '*')
 		{
-			for(k=i,j++;*k;k++) if (wildmatch(k,j)) return(1);
+			for(k=i,j++;*k;k++) if (Bwildmatch(k,j)) return(1);
 			continue;
 		}
 		if (!*i) return(0);

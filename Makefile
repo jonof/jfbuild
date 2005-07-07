@@ -10,7 +10,7 @@ SRC=src/
 RSRC=rsrc/
 OBJ?=obj.gnu/
 INC=include/
-CFLAGS?=-DSUPERBUILD -DPOLYMOST -DUSE_OPENGL -DDYNAMIC_OPENGL -DKSFORBUILD
+CFLAGS?=-DSUPERBUILD -DPOLYMOST -DUSE_OPENGL -DDYNAMIC_OPENGL
 
 # filename extensions
 o=o
@@ -39,7 +39,7 @@ AS=nasm
 RC=windres
 override CFLAGS+= $(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-march=pentium -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
-	-I$(INC) -I../jfaud/inc
+	-DKSFORBUILD -I$(INC) -I../jfaud/inc
 LIBS=-lm -lfmod # ../jfaud/jfaud.a
 ASFLAGS=-s #-g
 EXESUFFIX=

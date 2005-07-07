@@ -26,7 +26,7 @@ void findfiles(const char *dafilespec)
 		memcpy(t,filelist[i],12);
 		t[12] = 0;
 		
-		if (wildmatch(t,dafilespec)) {
+		if (Bwildmatch(t,dafilespec)) {
 			marked4extraction[i] = 1;
 			anyfiles4extraction = 1;
 		}

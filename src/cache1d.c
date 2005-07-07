@@ -420,7 +420,7 @@ long initgroupfile(char *filename)
 	Blseek(i,0,BSEEK_SET);
 	groupfil[numgroupfiles] = i;
 #else
-	groupfil[numgroupfiles] = Bopen(filename,BO_BINARY|BO_RDONLY,BS_IREAD);
+	groupfil[numgroupfiles] = openfrompath(filename,BO_BINARY|BO_RDONLY,BS_IREAD);
 	if (groupfil[numgroupfiles] != -1)
 #endif
 	{
@@ -774,7 +774,7 @@ int beginsearchgroup(char *ext)
 		for(j=gnumfiles[i]-1;j>=0;j--)
 		{
 			Bmemcpy(workspace,&gfilelist[i][j<<4],12);
-			if (wildmatch(workspace,ext))
+			if (Bwildmatch(workspace,ext))
 				searchgroupflags[i][j>>3] |= 1<<(j&7);
 		}
 	}

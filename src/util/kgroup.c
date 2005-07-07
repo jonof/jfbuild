@@ -25,7 +25,7 @@ int checkmatch(const struct Bdirent *a)
 {
 	if (a->mode & BS_IFDIR) return 0;	// is a directory
 	if (a->namlen > 12) return 0;	// name too long
-	return wildmatch(a->name, matchstr);
+	return Bwildmatch(a->name, matchstr);
 }
 
 long filesize(const char *path, const char *name)

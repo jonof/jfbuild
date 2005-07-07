@@ -52,7 +52,8 @@ enum {
 	T_VOXEL,
 	T_SKYBOX,
 	T_FRONT,T_RIGHT,T_BACK,T_LEFT,T_TOP,T_BOTTOM,
-	T_TINT,T_RED,T_GREEN,T_BLUE
+	T_TINT,T_RED,T_GREEN,T_BLUE,
+	T_TEXTURE
 };
 
 typedef struct { char *text; int tokenid; } tokenlist;
@@ -74,7 +75,8 @@ static tokenlist basetokens[] = {
 	{ "model",           T_MODEL            },
 	{ "voxel",           T_VOXEL            },
 	{ "skybox",          T_SKYBOX           },
-	{ "tint",            T_TINT             }
+	{ "tint",            T_TINT             },
+	{ "texture",         T_TEXTURE          },
 };
 
 static tokenlist modeltokens[] = {
@@ -145,6 +147,12 @@ static tokenlist tinttokens[] = {
 	{ "green", T_GREEN },{ "g", T_GREEN },
 	{ "blue",  T_BLUE  },{ "b", T_BLUE },
 	{ "flags", T_FLAGS }
+};
+
+static tokenlist texturetokens[] = {
+	{ "tile",  T_TILE },
+	{ "pal",   T_PAL  },
+	{ "file",  T_FILE },{ "name", T_FILE },
 };
 
 
@@ -220,17 +228,17 @@ static int defsparser(scriptfile *script)
 				// OLD (DEPRECATED) DEFINITION SYNTAX
 			case T_DEFINETEXTURE:
 				{
-					int tile,pal,cx,cy,sx,sy;
+					int tile,pal,fnoo;
 					char *fn;
 
 					if (scriptfile_getsymbol(script,&tile)) break;
-					if (scriptfile_getsymbol(script,&pal)) break;
-					if (scriptfile_getnumber(script,&cx)) break; //x-center
-					if (scriptfile_getnumber(script,&cy)) break; //y-center
-					if (scriptfile_getnumber(script,&sx)) break; //x-size
-					if (scriptfile_getnumber(script,&sy)) break; //y-size
-					if (scriptfile_getstring(script,&fn)) break;
-					hicsetsubsttex(tile,pal,fn,cx,cy,sx,sy);
+					if (scriptfile_getsymbol(script,&pal))  break;
+					if (scriptfile_getnumber(script,&fnoo)) break; //x-center
+					if (scriptfile_getnumber(script,&fnoo)) break; //y-center
+					if (scriptfile_getnumber(script,&fnoo)) break; //x-size
+					if (scriptfile_getnumber(script,&fnoo)) break; //y-size
+					if (scriptfile_getstring(script,&fn))  break;
+					hicsetsubsttex(tile,pal,fn);
 				}
 				break;
 			case T_DEFINESKYBOX:
@@ -763,6 +771,37 @@ static int defsparser(scriptfile *script)
 					}
 
 					hicsetpalettetint(pal,red,green,blue,flags);
+				}
+				break;
+			case T_TEXTURE:
+				{
+					char *texturetokptr = script->ltextptr, *textureend;
+					int tile=-1, pal=-1;
+					char *fn = NULL;
+
+					if (scriptfile_getbraces(script,&textureend)) break;
+					while (script->textptr < textureend) {
+						switch (getatoken(script,texturetokens,sizeof(texturetokens)/sizeof(tokenlist))) {
+							case T_TILE: scriptfile_getnumber(script,&tile); break;
+							case T_PAL:  scriptfile_getnumber(script,&pal);  break;
+							case T_FILE: scriptfile_getstring(script,&fn);   break;
+							default: break;
+						}
+					}
+					
+					if ((unsigned)tile > (unsigned)MAXTILES) {
+							initprintf("Error: missing or invalid 'tile number' for texture definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,texturetokptr));
+							break;
+					}
+					if ((unsigned)pal > (unsigned)MAXPALOOKUPS) {
+							initprintf("Error: missing or invalid 'palette number' for texture definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,texturetokptr));
+							break;
+					}
+					if (!fn) {
+							initprintf("Error: missing 'file name' for texture definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,texturetokptr));
+							break;
+					}
+					hicsetsubsttex(tile,pal,fn);
 				}
 				break;
 			

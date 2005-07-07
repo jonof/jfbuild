@@ -352,7 +352,7 @@ int Bcorrectfilename(char *filename, int removefn);
 char *Bgetsystemdrives(void);
 bsize_t Bfilelength(int fd);
 char *Bstrtoken(char *s, char *delim, char **ptrptr, int chop);
-long wildmatch (const char *i, const char *j);
+long Bwildmatch (const char *i, const char *j);
 
 #if !defined(PLATFORMWINDOWS)
 char *Bstrlwr(char *);

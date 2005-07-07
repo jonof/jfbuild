@@ -112,7 +112,7 @@ void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned c
 // hicsetsubsttex(picnum,pal,filen,sizx,sizy)
 //   Specifies a replacement graphic file for an ART tile.
 //
-int hicsetsubsttex(long picnum, long palnum, char *filen, long centx, long centy, long tsizx, long tsizy)
+int hicsetsubsttex(long picnum, long palnum, char *filen)
 {
 	hicreplctyp *hr, *hrn;
 
