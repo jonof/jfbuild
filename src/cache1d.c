@@ -402,15 +402,35 @@ long initgroupfile(char *filename)
 	long i, j, k;
 
 #ifdef WITHKPLIB
-	// JBF 20040130: check to see if the file passed is a ZIP and pass it on to kplib if it is
-	i = openfrompath(filename,BO_BINARY|BO_RDONLY,BS_IREAD);
-	if (i < 0) return -1;
+	char *zfn;
+	searchpath_t *sp = NULL;
 
-	Bread(i, buf, 4);
-	if (buf[0] == 0x50 && buf[1] == 0x4B && buf[2] == 0x03 && buf[3] == 0x04) {
-		Bclose(i);
-		return kzaddstack(filename);
-	}
+	zfn = malloc(strlen(filename) + maxsearchpathlen + 1);
+	do {
+		if (sp == NULL) {
+			zfn[0] = 0;
+			sp = searchpathhead;
+		} else {
+			strcpy(zfn, sp->path);
+			sp = sp->next;
+		}
+		strcat(zfn, filename);
+
+		// check to see if the file passed is a ZIP and pass it on to kplib if it is
+		i = Bopen(zfn,BO_BINARY|BO_RDONLY,BS_IREAD);
+		if (i < 0) continue;
+
+		Bread(i, buf, 4);
+		if (buf[0] == 0x50 && buf[1] == 0x4B && buf[2] == 0x03 && buf[3] == 0x04) {
+			Bclose(i);
+			j = kzaddstack(zfn);
+			if (j >= 0) {
+				free(zfn);
+				return j;
+			}
+		}
+	} while (sp);
+	free(zfn);
 
 	if (numgroupfiles >= MAXGROUPFILES) {
 		if (i >= 0) Bclose(i);

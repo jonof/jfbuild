@@ -27,11 +27,6 @@ I offer this code to the community for the benefit of Jonathon Fowler's Duke3D p
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef KSFORBUILD
-# include "compat.h"
-# include "cache1d.h"
-#endif
-
 #if !defined(_WIN32) && !defined(__DOS__)
 #include <unistd.h>
 #if !defined(__INTEL_COMPILER)
@@ -2410,12 +2405,7 @@ long kzaddstack (const char *zipnam)
 	long i, j, hashind, zipnamoffs, numfiles;
 	char tempbuf[260+46];
 
-#ifdef KSFORBUILD
-	fil = fopenfrompath(zipnam,"rb");
-#else
-	fil = fopen(zipnam,"rb");
-#endif
-	if (!fil) return(-1);
+	fil = fopen(zipnam,"rb"); if (!fil) return(-1);
 
 		//Write ZIP filename to hash
 	i = strlen(zipnam)+1; if (!kzcheckhashsiz(i)) { fclose(fil); return(-1); }
@@ -2493,12 +2483,7 @@ long kzopen (const char *filnam)
 	}
 	if (kzcheckhash(filnam,&zipnam,&zipseek))
 	{
-#ifdef KSFORBUILD
-		fil = fopenfrompath(zipnam,"rb");
-#else
-		fil = fopen(zipnam,"rb");
-#endif
-		if (!fil) return(0);
+		fil = fopen(zipnam,"rb"); if (!fil) return(0);
 		fseek(fil,zipseek,SEEK_SET);
 		fread(tempbuf,30,1,fil);
 		if (*(long *)&tempbuf[0] != 0x04034b50) { fclose(fil); return(0); }
@@ -2848,7 +2833,7 @@ kzreadplc2:;      bfinal = kzfs.bfinal;
 				else j = hufgetsym(ibuf1,nbuf1);
 
 				j = getbits(hxbit[j][0]) + hxbit[j][1];
-				for(;i;i--) slidebuf[(gslidew++)&32767] = slidebuf[(gslidew-j)&32767];
+				for(;i;i--,gslidew++) slidebuf[gslidew&32767] = slidebuf[(gslidew-j)&32767];
 			}
 		} while (!bfinal);
 
