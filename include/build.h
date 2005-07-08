@@ -470,7 +470,7 @@ void gltexapplyprops (void);
 void hicinit(void);
 // effect bitset: 1 = greyscale, 2 = invert
 void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect);
-int hicsetsubsttex(long picnum, long palnum, char *filen);
+int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut);
 int hicsetskybox(long picnum, long palnum, char *faces[6]);
 
 int md_loadmodel(const char *fn);

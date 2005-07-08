@@ -53,7 +53,7 @@ enum {
 	T_SKYBOX,
 	T_FRONT,T_RIGHT,T_BACK,T_LEFT,T_TOP,T_BOTTOM,
 	T_TINT,T_RED,T_GREEN,T_BLUE,
-	T_TEXTURE
+	T_TEXTURE,T_ALPHACUT,
 };
 
 typedef struct { char *text; int tokenid; } tokenlist;
@@ -77,6 +77,7 @@ static tokenlist basetokens[] = {
 	{ "skybox",          T_SKYBOX           },
 	{ "tint",            T_TINT             },
 	{ "texture",         T_TEXTURE          },
+	{ "tile",            T_TEXTURE          },
 };
 
 static tokenlist modeltokens[] = {
@@ -150,9 +151,11 @@ static tokenlist tinttokens[] = {
 };
 
 static tokenlist texturetokens[] = {
-	{ "tile",  T_TILE },
 	{ "pal",   T_PAL  },
-	{ "file",  T_FILE },{ "name", T_FILE },
+};
+static tokenlist texturetokens_pal[] = {
+	{ "file",     T_FILE },{ "name", T_FILE },
+	{ "alphacut", T_ALPHACUT },
 };
 
 
@@ -238,7 +241,7 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getnumber(script,&fnoo)) break; //x-size
 					if (scriptfile_getnumber(script,&fnoo)) break; //y-size
 					if (scriptfile_getstring(script,&fn))  break;
-					hicsetsubsttex(tile,pal,fn);
+					hicsetsubsttex(tile,pal,fn,-1.0);
 				}
 				break;
 			case T_DEFINESKYBOX:
@@ -776,32 +779,50 @@ static int defsparser(scriptfile *script)
 			case T_TEXTURE:
 				{
 					char *texturetokptr = script->ltextptr, *textureend;
-					int tile=-1, pal=-1;
-					char *fn = NULL;
+					int tile=-1;
 
+					if (scriptfile_getnumber(script,&tile)) break;
 					if (scriptfile_getbraces(script,&textureend)) break;
 					while (script->textptr < textureend) {
 						switch (getatoken(script,texturetokens,sizeof(texturetokens)/sizeof(tokenlist))) {
-							case T_TILE: scriptfile_getnumber(script,&tile); break;
-							case T_PAL:  scriptfile_getnumber(script,&pal);  break;
-							case T_FILE: scriptfile_getstring(script,&fn);   break;
+							case T_PAL: {
+								char *paltokptr = script->ltextptr, *palend;
+								int pal=-1;
+								char *fn = NULL;
+								double alphacut = -1.0;
+
+								if (scriptfile_getnumber(script,&pal)) break;
+								if (scriptfile_getbraces(script,&palend)) break;
+								while (script->textptr < palend) {
+									switch (getatoken(script,texturetokens_pal,sizeof(texturetokens_pal)/sizeof(tokenlist))) {
+										case T_FILE:     scriptfile_getstring(script,&fn); break;
+										case T_ALPHACUT: scriptfile_getdouble(script,&alphacut); break;
+										default: break;
+									}
+								}
+
+								if ((unsigned)tile > (unsigned)MAXTILES) break;	// message is printed later
+								if ((unsigned)pal > (unsigned)MAXPALOOKUPS) {
+									initprintf("Error: missing or invalid 'palette number' for texture definition near "
+												"line %s:%d\n", script->filename, scriptfile_getlinum(script,paltokptr));
+									break;
+								}
+								if (!fn) {
+									initprintf("Error: missing 'file name' for texture definition near line %s:%d\n",
+												script->filename, scriptfile_getlinum(script,paltokptr));
+									break;
+								}
+								hicsetsubsttex(tile,pal,fn,alphacut);
+							} break;
 							default: break;
 						}
 					}
 					
 					if ((unsigned)tile > (unsigned)MAXTILES) {
-							initprintf("Error: missing or invalid 'tile number' for texture definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,texturetokptr));
-							break;
+						initprintf("Error: missing or invalid 'tile number' for texture definition near line %s:%d\n",
+									script->filename, scriptfile_getlinum(script,texturetokptr));
+						break;
 					}
-					if ((unsigned)pal > (unsigned)MAXPALOOKUPS) {
-							initprintf("Error: missing or invalid 'palette number' for texture definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,texturetokptr));
-							break;
-					}
-					if (!fn) {
-							initprintf("Error: missing 'file name' for texture definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,texturetokptr));
-							break;
-					}
-					hicsetsubsttex(tile,pal,fn);
 				}
 				break;
 			

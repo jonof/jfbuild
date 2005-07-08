@@ -1027,9 +1027,12 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 			bglDisable(GL_BLEND);
 			bglDisable(GL_ALPHA_TEST);
 		} else {
+			float al = 0.32;
+			if (pth && pth->hicr && pth->hicr->alphacut >= 0.0) al = pth->hicr->alphacut;
+			if (usegoodalpha) al = 0.0;
 			bglEnable(GL_BLEND);
 			bglEnable(GL_ALPHA_TEST);
-			bglAlphaFunc(GL_GREATER,usegoodalpha?0.0:0.32);
+			bglAlphaFunc(GL_GREATER,al);
 		}
 
 		if (!dorot)
