@@ -457,8 +457,13 @@ static int daskinloader (const char *fn, long *fptr, long *bpl, long *sizx, long
 	kpgetdim(picfil,picfillen,&tsizx,&tsizy);
 	if (tsizx == 0 || tsizy == 0) { free(picfil); return -1; }
 
-	for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
-	for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
+	if (!glinfo.texnpot) {
+		for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
+		for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
+	} else {
+		xsiz = tsizx;
+		ysiz = tsizy;
+	}
 	*osizx = tsizx; *osizy = tsizy;
 	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype));
 	if (!pic) { free(picfil); return -1; }
@@ -570,16 +575,34 @@ static long mdloadskin (md2model *m, int number, int pal)
 	{
 		if (xsiz != osizx || ysiz != osizy)
 		{
-			long i, *lptr;
 			float fx, fy;
 			fx = ((float)osizx)/((float)xsiz);
 			fy = ((float)osizy)/((float)ysiz);
-			for(lptr=m->glcmds;(i=*lptr++);)
-				for(i=labs(i);i>0;i--,lptr+=3)
+			if (m->mdnum == 2)
+			{
+				long *lptr;
+				for(lptr=m->glcmds;(i=*lptr++);)
+					for(i=labs(i);i>0;i--,lptr+=3)
+					{
+						((float *)lptr)[0] *= fx;
+						((float *)lptr)[1] *= fy;
+					}
+			}
+			else if (m->mdnum == 3)
+			{
+				md3model *m3 = (md3model *)m;
+				md3surf_t *s;
+				long surfi;
+				for (surfi=0;surfi<m3->head.numsurfs;surfi++)
 				{
-					((float *)lptr)[0] *= fx;
-					((float *)lptr)[1] *= fy;
+					s = &m3->head.surfs[surfi];
+					for(i=s->numverts-1;i>=0;i--)
+					{
+						s->uv[i].u *= fx;
+						s->uv[i].v *= fy;
+					}
 				}
+			}
 		}
 		m->skinloaded = 1+number;
 	}
