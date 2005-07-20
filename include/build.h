@@ -472,6 +472,7 @@ void hicinit(void);
 void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect);
 int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut);
 int hicsetskybox(long picnum, long palnum, char *faces[6]);
+int hicclearsubst(long picnum, long palnum);
 
 int md_loadmodel(const char *fn);
 int md_setmisc(int modelid, float scale, int shadeoff, float zadd);
@@ -480,6 +481,8 @@ int md_defineframe(int modelid, const char *framename, int tilenume, int skinnum
 int md_defineanimation(int modelid, const char *framestart, const char *frameend, int fps, int flags);
 int md_defineskin(int modelid, const char *skinfn, int palnum, int skinnum);
 int md_definehud (int modelid, int tilex, double xadd, double yadd, double zadd, double angadd, int flags);
+int md_undefinetile(int tile);
+int md_undefinemodel(int modelid);
 
 int loaddefinitionsfile(char *fn);
 
