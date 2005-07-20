@@ -54,6 +54,7 @@ enum {
 	T_FRONT,T_RIGHT,T_BACK,T_LEFT,T_TOP,T_BOTTOM,
 	T_TINT,T_RED,T_GREEN,T_BLUE,
 	T_TEXTURE,T_ALPHACUT,
+	T_UNDEFMODEL,T_UNDEFMODELRANGE,T_UNDEFMODELOF,T_UNDEFTEXTURE,
 };
 
 typedef struct { char *text; int tokenid; } tokenlist;
@@ -62,6 +63,8 @@ static tokenlist basetokens[] = {
 	{ "#include",        T_INCLUDE          },
 	{ "define",          T_DEFINE           },
 	{ "#define",         T_DEFINE           },
+
+	// deprecated style
 	{ "definetexture",   T_DEFINETEXTURE    },
 	{ "defineskybox",    T_DEFINESKYBOX     },
 	{ "definetint",      T_DEFINETINT       },
@@ -72,12 +75,18 @@ static tokenlist basetokens[] = {
 	{ "selectmodelskin", T_SELECTMODELSKIN  },
 	{ "definevoxel",     T_DEFINEVOXEL      },
 	{ "definevoxeltiles",T_DEFINEVOXELTILES },
+
+	// new style
 	{ "model",           T_MODEL            },
 	{ "voxel",           T_VOXEL            },
 	{ "skybox",          T_SKYBOX           },
 	{ "tint",            T_TINT             },
 	{ "texture",         T_TEXTURE          },
 	{ "tile",            T_TEXTURE          },
+	{ "undefmodel",      T_UNDEFMODEL       },
+	{ "undefmodelrange", T_UNDEFMODELRANGE  },
+	{ "undefmodelof",    T_UNDEFMODELOF     },
+	{ "undeftexture",    T_UNDEFTEXTURE     },
 };
 
 static tokenlist modeltokens[] = {
@@ -818,11 +827,72 @@ static int defsparser(scriptfile *script)
 						}
 					}
 					
-					if ((unsigned)tile > (unsigned)MAXTILES) {
+					if ((unsigned)tile >= (unsigned)MAXTILES) {
 						initprintf("Error: missing or invalid 'tile number' for texture definition near line %s:%d\n",
 									script->filename, scriptfile_getlinum(script,texturetokptr));
 						break;
 					}
+				}
+				break;
+
+			case T_UNDEFMODEL:
+			case T_UNDEFMODELRANGE:
+				{
+					int r0,r1;
+						
+					if (scriptfile_getnumber(script,&r0)) break;
+					if (tokn == T_UNDEFMODELRANGE) {
+						if (scriptfile_getnumber(script,&r1)) break;
+						if (r1 < r0) {
+							int t = r1;
+							r1 = r0;
+							r0 = t;
+							initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, scriptfile_getlinum(script,cmdtokptr));
+						}
+						if (r0 < 0 || r1 >= MAXTILES) {
+							initprintf("Error: invalid tile range on line %s:%d\n", script->filename, scriptfile_getlinum(script,cmdtokptr));
+							break;
+						}
+					} else {
+						r1 = r0;
+						if ((unsigned)r0 >= (unsigned)MAXTILES) {
+							initprintf("Error: invalid tile number on line %s:%d\n", script->filename, scriptfile_getlinum(script,cmdtokptr));
+							break;
+						}
+					}
+					for (; r0 <= r1; r0++) md_undefinetile(r0);
+				}
+				break;
+
+			case T_UNDEFMODELOF:
+				{
+					int mid,r0;
+
+					if (scriptfile_getnumber(script,&r0)) break;
+					if ((unsigned)r0 >= (unsigned)MAXTILES) {
+						initprintf("Error: invalid tile number on line %s:%d\n", script->filename, scriptfile_getlinum(script,cmdtokptr));
+						break;
+					}
+
+					mid = md_tilehasmodel(r0);
+					if (mid < 0) break;
+
+					md_undefinemodel(mid);
+				}
+				break;
+
+			case T_UNDEFTEXTURE:
+				{
+					int r0,i;
+
+					if (scriptfile_getnumber(script,&r0)) break;
+					if ((unsigned)r0 >= (unsigned)MAXTILES) {
+						initprintf("Error: invalid tile number on line %s:%d\n", script->filename, scriptfile_getlinum(script,cmdtokptr));
+						break;
+					}
+
+					for (i=MAXPALOOKUPS-1; i>=0; i--)
+						hicclearsubst(r0,i);
 				}
 				break;
 			

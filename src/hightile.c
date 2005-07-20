@@ -217,3 +217,40 @@ int hicsetskybox(long picnum, long palnum, char *faces[6])
 }
 
 
+//
+// hicclearsubst(picnum,pal)
+//   Clears a replacement for an ART tile, including skybox faces.
+//
+int hicclearsubst(long picnum, long palnum)
+{
+	hicreplctyp *hr, *hrn = NULL;
+
+	if ((unsigned long)picnum >= (unsigned long)MAXTILES) return -1;
+	if ((unsigned long)palnum >= (unsigned long)MAXPALOOKUPS) return -1;
+	if (!hicfirstinit) return 0;
+
+	for (hr = hicreplc[picnum]; hr; hrn = hr, hr = hr->next) {
+		if (hr->palnum == palnum)
+			break;
+	}
+
+	if (!hr) return 0;
+
+	if (hr->filename) free(hr->filename);
+	if (hr->skybox) {
+		int i;
+		for (i=5;i>=0;i--)
+			if (hr->skybox->face[i])
+				free(hr->skybox->face[i]);
+		free(hr->skybox);
+	}
+
+	if (hrn) hrn->next = hr->next;
+	else hicreplc[picnum] = hr->next;
+	free(hr);
+
+	return 0;
+}
+
+
+

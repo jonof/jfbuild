@@ -288,7 +288,8 @@ int md_setmisc (int modelid, float scale, int shadeoff, float zadd)
 
 int md_tilehasmodel (int tilenume)
 {
-	return (tile2model[tilenume].modelid != -1);
+	if (!mdinited) return -1;
+	return tile2model[tilenume].modelid;
 }
 
 static long framename2index (mdmodel *vm, const char *nam)
@@ -431,6 +432,33 @@ int md_definehud (int modelid, int tilex, double xadd, double yadd, double zadd,
 	hudmem[(flags>>2)&1][tilex].zadd = zadd;
 	hudmem[(flags>>2)&1][tilex].angadd = ((short)angadd)|2048;
 	hudmem[(flags>>2)&1][tilex].flags = (short)flags;
+
+	return 0;
+}
+
+int md_undefinetile(int tile)
+{
+	if (!mdinited) return 0;
+	if ((unsigned)tile >= (unsigned)MAXTILES) return -1;
+
+	tile2model[tile].modelid = -1;
+	return 0;
+}
+
+int md_undefinemodel(int modelid)
+{
+	int i;
+	if (!mdinited) return 0;
+	if ((unsigned long)modelid >= (unsigned long)nextmodelid) return -1;
+
+	for (i=MAXTILES-1; i>=0; i--)
+		if (tile2model[i].modelid == modelid)
+			tile2model[i].modelid = -1;
+
+	if (models) {
+		mdfree(models[modelid]);
+		models[modelid] = NULL;
+	}
 
 	return 0;
 }
