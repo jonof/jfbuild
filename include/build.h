@@ -145,8 +145,9 @@ typedef struct BPACK
 typedef struct BPACK {
 	unsigned long mdanimtims;
 	short mdanimcur;
-	unsigned char flags;
 	short angoff;
+	unsigned char flags;
+	char filler[3];
 } spriteexttype;
 #define SPREXT_NOTMD 1
 #define SPREXT_NOMDANIM 2

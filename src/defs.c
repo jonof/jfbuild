@@ -500,9 +500,9 @@ static int defsparser(scriptfile *script)
 								while (script->textptr < frameend) {
 									switch(getatoken(script,modelframetokens,sizeof(modelframetokens)/sizeof(tokenlist))) {
 										case T_FRAME: scriptfile_getstring(script,&framename); break;
-										case T_TILE:  scriptfile_getnumber(script,&ftilenume); ltilenume = ftilenume; break;
-										case T_TILE0: scriptfile_getnumber(script,&ftilenume); break; //first tile number
-										case T_TILE1: scriptfile_getnumber(script,&ltilenume); break; //last tile number (inclusive)
+										case T_TILE:  scriptfile_getsymbol(script,&ftilenume); ltilenume = ftilenume; break;
+										case T_TILE0: scriptfile_getsymbol(script,&ftilenume); break; //first tile number
+										case T_TILE1: scriptfile_getsymbol(script,&ltilenume); break; //last tile number (inclusive)
 									}
 								}
 
@@ -553,7 +553,7 @@ static int defsparser(scriptfile *script)
 										case T_FRAME0: scriptfile_getstring(script,&startframe); break;
 										case T_FRAME1: scriptfile_getstring(script,&endframe); break;
 										case T_FPS: scriptfile_getdouble(script,&dfps); break; //animation frame rate
-										case T_FLAGS: scriptfile_getnumber(script,&flags); break;
+										case T_FLAGS: scriptfile_getsymbol(script,&flags); break;
 									}
 								}
 
@@ -629,9 +629,9 @@ static int defsparser(scriptfile *script)
 								if (scriptfile_getbraces(script,&frameend)) break;
 								while (script->textptr < frameend) {
 									switch(getatoken(script,modelhudtokens,sizeof(modelhudtokens)/sizeof(tokenlist))) {
-										case T_TILE:  scriptfile_getnumber(script,&ftilenume); ltilenume = ftilenume; break;
-										case T_TILE0: scriptfile_getnumber(script,&ftilenume); break; //first tile number
-										case T_TILE1: scriptfile_getnumber(script,&ltilenume); break; //last tile number (inclusive)
+										case T_TILE:  scriptfile_getsymbol(script,&ftilenume); ltilenume = ftilenume; break;
+										case T_TILE0: scriptfile_getsymbol(script,&ftilenume); break; //first tile number
+										case T_TILE1: scriptfile_getsymbol(script,&ltilenume); break; //last tile number (inclusive)
 										case T_XADD:  scriptfile_getdouble(script,&xadd); break;
 										case T_YADD:  scriptfile_getdouble(script,&yadd); break;
 										case T_ZADD:  scriptfile_getdouble(script,&zadd); break;
@@ -701,14 +701,14 @@ static int defsparser(scriptfile *script)
 						switch (getatoken(script,voxeltokens,sizeof(voxeltokens)/sizeof(tokenlist))) {
 							//case T_ERROR: initprintf("Error on line %s:%d in voxel tokens\n", script->filename,linenum); break;
 							case T_TILE:  
-								scriptfile_getnumber(script,&tilex);
+								scriptfile_getsymbol(script,&tilex);
 								if ((unsigned long)tilex < MAXTILES) tiletovox[tilex] = lastvoxid;
 								else initprintf("Invalid tile number on line %s:%d\n",script->filename, scriptfile_getlinum(script,voxeltokptr));
 								break;
 							case T_TILE0: 
-								scriptfile_getnumber(script,&tile0); break; //1st tile #
+								scriptfile_getsymbol(script,&tile0); break; //1st tile #
 							case T_TILE1:
-								scriptfile_getnumber(script,&tile1);
+								scriptfile_getsymbol(script,&tile1);
 								if (tile0 > tile1)
 								{
 									initprintf("Warning: backwards tile range on line %s:%d\n", script->filename, scriptfile_getlinum(script,voxeltokptr));
@@ -739,8 +739,8 @@ static int defsparser(scriptfile *script)
 					while (script->textptr < modelend) {
 						switch (getatoken(script,skyboxtokens,sizeof(skyboxtokens)/sizeof(tokenlist))) {
 							//case T_ERROR: initprintf("Error on line %s:%d in skybox tokens\n",script->filename,linenum); break;
-							case T_TILE:  scriptfile_getnumber(script,&tile ); break;
-							case T_PAL:   scriptfile_getnumber(script,&pal  ); break;
+							case T_TILE:  scriptfile_getsymbol(script,&tile ); break;
+							case T_PAL:   scriptfile_getsymbol(script,&pal  ); break;
 							case T_FRONT: scriptfile_getstring(script,&fn[0]); break;
 							case T_RIGHT: scriptfile_getstring(script,&fn[1]); break;
 							case T_BACK:  scriptfile_getstring(script,&fn[2]); break;
@@ -769,11 +769,11 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getbraces(script,&tintend)) break;
 					while (script->textptr < tintend) {
 						switch (getatoken(script,tinttokens,sizeof(tinttokens)/sizeof(tokenlist))) {
-							case T_PAL:   scriptfile_getnumber(script,&pal);   break;
+							case T_PAL:   scriptfile_getsymbol(script,&pal);   break;
 							case T_RED:   scriptfile_getnumber(script,&red);   red   = min(255,max(0,red));   break;
 							case T_GREEN: scriptfile_getnumber(script,&green); green = min(255,max(0,green)); break;
 							case T_BLUE:  scriptfile_getnumber(script,&blue);  blue  = min(255,max(0,blue));  break;
-							case T_FLAGS: scriptfile_getnumber(script,&flags); break;
+							case T_FLAGS: scriptfile_getsymbol(script,&flags); break;
 						}
 					}
 
@@ -790,7 +790,7 @@ static int defsparser(scriptfile *script)
 					char *texturetokptr = script->ltextptr, *textureend;
 					int tile=-1;
 
-					if (scriptfile_getnumber(script,&tile)) break;
+					if (scriptfile_getsymbol(script,&tile)) break;
 					if (scriptfile_getbraces(script,&textureend)) break;
 					while (script->textptr < textureend) {
 						switch (getatoken(script,texturetokens,sizeof(texturetokens)/sizeof(tokenlist))) {
@@ -800,7 +800,7 @@ static int defsparser(scriptfile *script)
 								char *fn = NULL;
 								double alphacut = -1.0;
 
-								if (scriptfile_getnumber(script,&pal)) break;
+								if (scriptfile_getsymbol(script,&pal)) break;
 								if (scriptfile_getbraces(script,&palend)) break;
 								while (script->textptr < palend) {
 									switch (getatoken(script,texturetokens_pal,sizeof(texturetokens_pal)/sizeof(tokenlist))) {
@@ -840,9 +840,9 @@ static int defsparser(scriptfile *script)
 				{
 					int r0,r1;
 						
-					if (scriptfile_getnumber(script,&r0)) break;
+					if (scriptfile_getsymbol(script,&r0)) break;
 					if (tokn == T_UNDEFMODELRANGE) {
-						if (scriptfile_getnumber(script,&r1)) break;
+						if (scriptfile_getsymbol(script,&r1)) break;
 						if (r1 < r0) {
 							int t = r1;
 							r1 = r0;
@@ -868,7 +868,7 @@ static int defsparser(scriptfile *script)
 				{
 					int mid,r0;
 
-					if (scriptfile_getnumber(script,&r0)) break;
+					if (scriptfile_getsymbol(script,&r0)) break;
 					if ((unsigned)r0 >= (unsigned)MAXTILES) {
 						initprintf("Error: invalid tile number on line %s:%d\n", script->filename, scriptfile_getlinum(script,cmdtokptr));
 						break;
@@ -885,7 +885,7 @@ static int defsparser(scriptfile *script)
 				{
 					int r0,i;
 
-					if (scriptfile_getnumber(script,&r0)) break;
+					if (scriptfile_getsymbol(script,&r0)) break;
 					if ((unsigned)r0 >= (unsigned)MAXTILES) {
 						initprintf("Error: invalid tile number on line %s:%d\n", script->filename, scriptfile_getlinum(script,cmdtokptr));
 						break;

@@ -5076,8 +5076,12 @@ void overheadeditor(void)
 
 													//HACK - THESE 2 buffers back up .sectnum and .statnum
 													//for initspritelists() inside the loadboard call
-												tsprite[m].picnum = MAXSECTORS-highlightsectorcnt+j;
-												tsprite[m].owner = sprite[i].statnum;
+												//tsprite[m].picnum = MAXSECTORS-highlightsectorcnt+j;
+												//tsprite[m].owner = sprite[i].statnum;
+
+												// JBF: I see your hack and raise you another
+												spriteext[m].mdanimcur = MAXSECTORS-highlightsectorcnt+j;
+												spriteext[m].angoff = sprite[i].statnum;
 
 												break;
 											}
@@ -5131,8 +5135,14 @@ void overheadeditor(void)
 
 										j = insertsprite(tsprite[m].picnum+(numsectors-MAXSECTORS),tsprite[m].owner);
 										Bmemcpy(&sprite[j],&sprite[m],sizeof(spritetype));
-										sprite[j].sectnum = tsprite[m].picnum+(numsectors-MAXSECTORS);
-										sprite[j].statnum = tsprite[m].owner;
+										//sprite[j].sectnum = tsprite[m].picnum+(numsectors-MAXSECTORS);
+										//sprite[j].statnum = tsprite[m].owner;
+
+										// JBF: I see your hack and raise you another
+										sprite[j].sectnum = spriteext[m].mdanimcur+(numsectors-MAXSECTORS);
+										sprite[j].statnum = spriteext[m].angoff;
+										spriteext[m].mdanimcur = spriteext[m].angoff = 0;
+
 										m++;
 									}
 
