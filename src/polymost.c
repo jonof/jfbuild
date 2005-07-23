@@ -268,6 +268,7 @@ static long drawingskybox = 0;
 
 int gloadtile_art(long,long,long,pthtyp*,long);
 int gloadtile_hi(long,long,hicreplctyp*,long,pthtyp*,long,char);
+static int hicprecacheing = 0;
 static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 {
 	long i, j;
@@ -287,7 +288,7 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 	 *    no effects are applied to the texture
 	 * else if palette > 0 && no replacement found
 	 *    effects are applied to the palette 0 texture if it exists
-	  */
+	 */
 
 	// load a replacement
 	for(pth=gltexcachead[j]; pth; pth=pth->next) {
@@ -325,6 +326,8 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 	return(pth);
 
 tryart:
+	if (hicprecacheing) return NULL;
+
 	// load from art
 	for(pth=gltexcachead[j]; pth; pth=pth->next)
 		if (pth->picnum == dapicnum &&
@@ -4154,10 +4157,12 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 
 	if (rendmode < 3) return;
 	
-	if (!palookup[dapalnum]) dapalnum = 0;
+	if (!palookup[dapalnum]) return;//dapalnum = 0;
 
-	//OSD_Printf("precached %d (%d=%d) type %d\n", dapicnum, dapalnum, theglobalpal, datype);
+	//OSD_Printf("precached %d %d type %d\n", dapicnum, dapalnum, datype);
+	hicprecacheing = 1;
 	gltexcache(dapicnum, dapalnum, (datype & 1) << 2);
+	hicprecacheing = 0;
 #endif
 }
 
