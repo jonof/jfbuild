@@ -191,11 +191,11 @@ $(OBJ)%.$o: $(RSRC)%.c
 $(OBJ)game_banner.$o: $(RSRC)game_banner.c
 $(OBJ)editor_banner.$o: $(RSRC)editor_banner.c
 $(RSRC)game_banner.c: $(RSRC)game.bmp
-	 echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
-	 gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
+	echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
+	gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
 $(RSRC)editor_banner.c: $(RSRC)build.bmp
-	 echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
-	 gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
+	echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
+	gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
 
 # PHONIES	
 clean:
