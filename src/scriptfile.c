@@ -327,11 +327,15 @@ int scriptfile_addsymbolvalue(char *name, int val)
 	char *sp;
 	//if (scriptfile_getsymbolvalue(name, &x)) return -1;   // already exists
 
-	char *scanner = symbtab;
-	while (scanner - symbtab < symbtablength) {
-		if (!Bstrcasecmp(name, scanner)) {
-			*(int*)(scanner + strlen(scanner) + 1) = val;
-			return 1;
+	if (symbtab) {
+		char *scanner = symbtab;
+		while (scanner - symbtab < symbtablength) {
+			if (!Bstrcasecmp(name, scanner)) {
+				*(int*)(scanner + strlen(scanner) + 1) = val;
+				return 1;
+			}
+
+			scanner += strlen(scanner) + 1 + sizeof(int);
 		}
 	}
 	
