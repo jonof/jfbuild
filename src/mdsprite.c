@@ -20,7 +20,7 @@ typedef struct _mdanim_t
 typedef struct _mdskinmap_t
 {
 	unsigned char palette, filler[3]; // Build palette number
-	int skinnum;   // Skin identifier
+	int skinnum, surfnum;   // Skin identifier, surface number
 	char *fn;   // Skin filename
 	unsigned int texid[HICEFFECTMASK+1];   // OpenGL texture numbers for effect variations
 	struct _mdskinmap_t *next;
@@ -386,7 +386,7 @@ int md_defineanimation (int modelid, const char *framestart, const char *frameen
 	return(0);
 }
 
-int md_defineskin (int modelid, const char *skinfn, int palnum, int skinnum)
+int md_defineskin (int modelid, const char *skinfn, int palnum, int skinnum, int surfnum)
 {
 	mdskinmap_t *sk, *skl;
 	md2model *m;
@@ -399,10 +399,11 @@ int md_defineskin (int modelid, const char *skinfn, int palnum, int skinnum)
 
 	m = (md2model *)models[modelid];
 	if (m->mdnum < 2) return 0;
+	if (m->mdnum == 2) surfnum = 0;
 
 	skl = NULL;
 	for (sk = m->skinmap; sk; skl = sk, sk = sk->next)
-		if (sk->palette == (unsigned char)palnum && skinnum == sk->skinnum) break;
+		if (sk->palette == (unsigned char)palnum && skinnum == sk->skinnum && surfnum == sk->surfnum) break;
 	if (!sk) {
 		sk = (mdskinmap_t *)calloc(1,sizeof(mdskinmap_t));
 		if (!sk) return -4;
@@ -413,6 +414,7 @@ int md_defineskin (int modelid, const char *skinfn, int palnum, int skinnum)
 
 	sk->palette = (unsigned char)palnum;
 	sk->skinnum = skinnum;
+	sk->surfnum = surfnum;
 	sk->fn = (char *)malloc(strlen(skinfn)+1);
 	if (!sk->fn) return(-4);
 	strcpy(sk->fn, skinfn);
@@ -545,18 +547,20 @@ static int daskinloader (const char *fn, long *fptr, long *bpl, long *sizx, long
 }
 
 	//Note: even though it says md2model, it works for both md2model&md3model
-static long mdloadskin (md2model *m, int number, int pal)
+static long mdloadskin (md2model *m, int number, int pal, int surf)
 {
 	long i, fptr, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
 	char *skinfile, hasalpha, fn[BMAX_PATH+65];
 	unsigned int *texidx;
 	mdskinmap_t *sk, *skzero = NULL;
 
+	if (m->mdnum == 2) surf = 0;
+
 	if ((unsigned)pal >= (unsigned)MAXPALOOKUPS) return 0;
 	i = -1;
 	for (sk = m->skinmap; sk; sk = sk->next)
 	{
-		if ((int)sk->palette == pal && sk->skinnum == number)
+		if ((int)sk->palette == pal && sk->skinnum == number && sk->surfnum == surf)
 		{
 			skinfile = sk->fn;
 			texidx = &sk->texid[ hictinting[pal].f ];
@@ -864,7 +868,7 @@ static void md2draw (md2model *m, spritetype *tspr)
 	mat[3] = mat[7] = mat[11] = 0.f; mat[15] = 1.f; bglLoadMatrixf(mat);
 #endif
 
-	i = mdloadskin(m,tile2model[tspr->picnum].skinnum,globalpal); if (!i) return;
+	i = mdloadskin(m,tile2model[tspr->picnum].skinnum,globalpal,0); if (!i) return;
 
 	//bit 10 is an ugly hack in game.c\animatesprites telling MD2SPRITE
 	//to use Z-buffer hacks to hide overdraw problems with the shadows
@@ -1156,7 +1160,7 @@ static void md3draw (md3model *m, spritetype *tspr)
 	z = sinlut256[mv->nlng];
 #endif
 
-		i = mdloadskin((md2model *)m,tile2model[tspr->picnum].skinnum,globalpal); if (!i) continue;
+		i = mdloadskin((md2model *)m,tile2model[tspr->picnum].skinnum,globalpal,surfi); if (!i) continue;
 		//i = mdloadskin((md2model *)m,tile2model[tspr->picnum].skinnum,surfi); //hack for testing multiple surfaces per MD3
 		bglBindTexture(GL_TEXTURE_2D, i);
 

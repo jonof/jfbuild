@@ -89,10 +89,12 @@ static INT_PTR CALLBACK LaunchWindowProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 			PopulateVideoModeLists(fullscreen, GetDlgItem(hwndDlg, IDC2DVMODE), GetDlgItem(hwndDlg, IDC3DVMODE));
 
 			ShowWindow(hwndDlg, SW_SHOW);
+			/*
 			if (GetDlgCtrlID((HWND)wParam) != IDOK) { 
 				SetFocus(GetDlgItem(hwndDlg, IDOK)); 
 				return FALSE; 
-			} 
+			}
+			*/
 			return TRUE;
 		}
 		case WM_COMMAND:
@@ -143,6 +145,7 @@ int DoLaunchWindow(int initval)
 	HWND hwndStart, hwndLaunch;
 	MSG msg;
 	long saferect[4];
+	int x;
 
 	// only show config window if no config is loaded, or if it is, only if left control is held
 	if (initval == 0 && !GetAsyncKeyState(VK_CONTROL)) return 0;
@@ -152,6 +155,7 @@ int DoLaunchWindow(int initval)
 	hwndLaunch = CreateDialogParam((HINSTANCE)win_gethinstance(), MAKEINTRESOURCE(2000), hwndStart, LaunchWindowProc, (LPARAM)saferect);
 	if (hwndLaunch) {
 		EnableWindow(GetDlgItem(hwndStart,WIN_STARTWIN_ITEMLIST),FALSE);
+#if 0
 		while (GetMessage(&msg, NULL, 0, 0) > 0) {
 			if (!IsWindow(hwndLaunch) || quitevent) break;
 			if (IsDialogMessage(hwndStart, &msg) /*|| IsDialogMessage(hwndLaunch, &msg)*/) continue;
@@ -159,6 +163,13 @@ int DoLaunchWindow(int initval)
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
+#else
+		while (IsWindow(hwndLaunch) && !quitevent) {
+			x = win_getstartupcommand();
+			if (x != 0) LaunchWindowProc(hwndLaunch, WM_COMMAND, x, 0);
+			handleevents();
+		}
+#endif
 		EnableWindow(GetDlgItem(hwndStart,WIN_STARTWIN_ITEMLIST),TRUE);
 	}
 	if (quitevent) return 1;

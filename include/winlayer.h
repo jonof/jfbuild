@@ -25,6 +25,7 @@ long win_gethinstance(void);
 	// onclose    - called before the startup window closes
 	//  returns 0 if successful, 1 if the window isn't open
 int win_getstartupwin(long *hwnd, long saferect[4], void (*onclose)(void));
+int win_getstartupcommand(void);
 
 void win_allowtaskswitching(int onf);
 int win_checkinstance(void);

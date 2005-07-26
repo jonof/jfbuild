@@ -55,6 +55,7 @@ static HANDLE instanceflag = NULL;
 
 static HWND startupdlg = NULL;
 static long startupdlgsaferect[4] = { -1,-1,-1,-1 };
+static int  startupdlgcommand = 0;
 static void (*startupdlgonclose)(void) = NULL;
 int    backgroundidle = 1;
 
@@ -340,6 +341,12 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 
 			startupdlg = NULL;
 			return TRUE;
+
+		case WM_COMMAND:
+			startupdlgcommand = LOWORD(wParam);
+			return FALSE;
+
+		default: break;
 	}
 
 	return FALSE;
@@ -355,6 +362,13 @@ int win_getstartupwin(long *hwnd, long saferect[4], void (*onclose)(void))
 	startupdlgonclose = onclose;
 
 	return 0;
+}
+
+int win_getstartupcommand(void)
+{
+	int t = startupdlgcommand;
+	startupdlgcommand = 0;
+	return t;
 }
 
 
@@ -1828,6 +1842,7 @@ void sampletimer(void)
 unsigned long getticks(void)
 {
 	int64 i;
+	if (timerfreq == 0) return 0;
 	QueryPerformanceCounter((LARGE_INTEGER*)&i);
 	return (unsigned long)(i*longlong(1000)/timerfreq);
 }

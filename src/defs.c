@@ -32,6 +32,7 @@ enum {
 	T_FRAME,
 	T_ANIM,
 	T_SKIN,
+	T_SURF,
 	T_TILE,
 	T_TILE0,
 	T_TILE1,
@@ -117,6 +118,8 @@ static tokenlist modelanimtokens[] = {
 static tokenlist modelskintokens[] = {
 	{ "pal",    T_PAL    },
 	{ "file",   T_FILE   },
+	{ "surf",   T_SURF   },
+	{ "surface",T_SURF   },
 };
 
 static tokenlist modelhudtokens[] = {
@@ -394,7 +397,7 @@ static int defsparser(scriptfile *script)
 					seenframe = 0;
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-					switch (md_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin))) {
+					switch (md_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin), 0)) {
 						case 0: break;
 						case -1: break; // invalid model id!?
 						case -2: initprintf("Invalid skin filename on line %s:%d\n",
@@ -585,13 +588,14 @@ static int defsparser(scriptfile *script)
 							{
 								char *skintokptr = script->ltextptr;
 								char *skinend, *skinfn = 0;
-								int palnum = 0;
+								int palnum = 0, surfnum = 0;
 
 								if (scriptfile_getbraces(script,&skinend)) break;
 								while (script->textptr < skinend) {
 									switch(getatoken(script,modelskintokens,sizeof(modelskintokens)/sizeof(tokenlist))) {
 										case T_PAL: scriptfile_getsymbol(script,&palnum); break;
 										case T_FILE: scriptfile_getstring(script,&skinfn); break; //skin filename
+										case T_SURF: scriptfile_getnumber(script,&surfnum); break;
 									}
 								}
 
@@ -604,7 +608,7 @@ static int defsparser(scriptfile *script)
 								seenframe = 0;
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-								switch (md_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin))) {
+								switch (md_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin), surfnum)) {
 									case 0: break;
 									case -1: break; // invalid model id!?
 									case -2: initprintf("Invalid skin filename on line %s:%d\n",
