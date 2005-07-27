@@ -183,24 +183,19 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 
 	if (qsetmode != 200) return OSDCMD_OK;
 
-	if (parm->numparms < 1 || parm->numparms > 4) return OSDCMD_SHOWHELP;
-
 	switch (parm->numparms) {
 		case 1:	// bpp switch
 			newbpp = Batol(parm->parms[0]);
 			break;
+		case 4:	// fs, res, bpp switch
+			newfullscreen = (Batol(parm->parms[3]) != 0);
+		case 3:	// res & bpp switch
+			newbpp = Batol(parm->parms[2]);
 		case 2: // res switch
 			newx = Batol(parm->parms[0]);
 			newy = Batol(parm->parms[1]);
 			break;
-		case 3:	// res & bpp switch
-		case 4:
-			newx = Batol(parm->parms[0]);
-			newy = Batol(parm->parms[1]);
-			newbpp = Batol(parm->parms[2]);
-			if (parm->numparms == 4)
-				newfullscreen = (Batol(parm->parms[3]) != 0);
-			break;
+		default: return OSDCMD_SHOWHELP;
 	}
 
 	if (setgamemode(newfullscreen,newx,newy,newbpp))
@@ -1499,7 +1494,7 @@ void editinput(void)
 				asksave = 1;
 				repeatcountx = max(1,repeatcountx);
 			}
-			repeatcountx += synctics;
+			repeatcountx += (synctics>>1);
 		}
 		else
 			repeatcountx = 0;
@@ -1535,7 +1530,7 @@ void editinput(void)
 				asksave = 1;
 				repeatcounty = max(1,repeatcounty);
 			}
-			repeatcounty += synctics;
+			repeatcounty += (synctics>>1);
 			//}
 		}
 		else
