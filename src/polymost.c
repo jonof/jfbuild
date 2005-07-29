@@ -4154,6 +4154,7 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 	// datype is 0 for a wall/floor/ceiling and 1 for a sprite
 	//    basically this just means walls are repeating
 	//    while sprites are clamped
+	int mid;
 
 	if (rendmode < 3) return;
 	
@@ -4163,6 +4164,21 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 	hicprecacheing = 1;
 	gltexcache(dapicnum, dapalnum, (datype & 1) << 2);
 	hicprecacheing = 0;
+
+	if (datype == 0) return;
+
+	mid = md_tilehasmodel(dapicnum);
+	if (mid < 0 || models[mid]->mdnum < 2) return;
+
+	{
+		int i,j=0;
+
+		if (models[mid]->mdnum == 3)
+			j = ((md3model *)models[mid])->head.numsurfs;
+
+		for (i=0;i<=j;i++)
+			mdloadskin((md2model*)models[mid], 0, dapalnum, i);
+	}
 #endif
 }
 
