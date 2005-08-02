@@ -119,6 +119,8 @@ long glanisotropy = 1;            // 0 = maximum supported by card
 long glusetexcompr = 1;
 long gltexfiltermode = 3;   // GL_LINEAR_MIPMAP_NEAREST
 long gltexmaxsize = 0;      // 0 means autodetection on first run
+static long lastglpolygonmode = 0; //FUK
+long glpolygonmode = 0;     // 0:GL_FILL,1:GL_LINE,2:GL_POINT //FUK
 extern char nofog;
 #endif
 
@@ -515,6 +517,25 @@ void resizeglcheck ()
 		redblueclearcnt = 0;
 	}
 	lastglredbluemode = glredbluemode;
+
+		//FUK
+	if (lastglpolygonmode != glpolygonmode)
+	{
+		lastglpolygonmode = glpolygonmode;
+		switch(glpolygonmode)
+		{
+			default:
+			case 0: bglPolygonMode(GL_FRONT_AND_BACK,GL_FILL); break;
+			case 1: bglPolygonMode(GL_FRONT_AND_BACK,GL_LINE); break;
+			case 2: bglPolygonMode(GL_FRONT_AND_BACK,GL_POINT); break;
+		}
+	}
+	if (glpolygonmode) //FUK
+	{
+		bglClearColor(1.0,1.0,1.0,0.0);
+		bglClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+		bglDisable(GL_TEXTURE_2D);
+	}
 
 	if ((glox1 != windowx1) || (gloy1 != windowy1) || (glox2 != windowx2) || (gloy2 != windowy2))
 	{
@@ -921,8 +942,8 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	double ngvx = 0.0, ngvy = 0.0, ngvo = 0.0, dp, up, vp, rdp, du0 = 0.0, du1 = 0.0, dui, duj;
 	double ngdx2, ngux2, ngvx2;
 	double f, r, ox, oy, oz, ox2, oy2, oz2, dd[16], uu[16], vv[16], px[16], py[16], uoffs;
-	long i, j, k, x, y, z, nn, ix0, ix1, mini, maxi, tsizx, tsizy, tsizxm1 = 0.0, tsizym1 = 0.0, ltsizy = 0.0;
-	long xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0.0, ymulnice = 0.0, dorot;
+	long i, j, k, x, y, z, nn, ix0, ix1, mini, maxi, tsizx, tsizy, tsizxm1 = 0, tsizym1 = 0, ltsizy = 0;
+	long xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0, ymulnice = 0, dorot;
 	char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
 
 	pthtyp *pth;
@@ -3781,7 +3802,7 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 		bglMatrixMode(GL_PROJECTION);
 		memset(m,0,sizeof(m));
 		m[0][0] = m[2][3] = 1.0; m[1][1] = ((float)xdim)/((float)ydim); m[2][2] = 1.0001; m[3][2] = 1-m[2][2];
-		bglLoadMatrixf(&m[0][0]);
+		bglPushMatrix(); bglLoadMatrixf(&m[0][0]);
 		bglMatrixMode(GL_MODELVIEW);
 		bglLoadIdentity();
 
@@ -3897,6 +3918,8 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 		pow2xsplit = 0; drawpoly(px,py,n,method);
 	}
 
+	bglMatrixMode(GL_PROJECTION); bglPopMatrix();
+
 	globalpicnum = ogpicnum;
 	globalshade  = ogshade;
 	globalpal    = ogpal;
@@ -3911,6 +3934,199 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 	gshang = ogshang;
 	gctang = ogctang;
 	gstang = ogstang;
+}
+
+static float trapextx[2];
+static void drawtrap (float x0, float x1, float y0, float x2, float x3, float y1)
+{
+	float px[4], py[4];
+	long i, n;
+
+	if (y0 == y1) return;
+	px[0] = x0; py[0] = y0;  py[2] = y1;
+		  if (x0 == x1) { px[1] = x3; py[1] = y1; px[2] = x2; n = 3; }
+	else if (x2 == x3) { px[1] = x1; py[1] = y0; px[2] = x3; n = 3; }
+	else               { px[1] = x1; py[1] = y0; px[2] = x3; px[3] = x2; py[3] = y1; n = 4; }
+
+	bglBegin(GL_TRIANGLE_FAN);
+	for(i=0;i<n;i++)
+	{
+		px[i] = min(max(px[i],trapextx[0]),trapextx[1]);
+		bglTexCoord2f(px[i]*gux + py[i]*guy + guo,
+						  px[i]*gvx + py[i]*gvy + gvo);
+		bglVertex2f(px[i],py[i]);
+	}
+	bglEnd();
+}
+
+static void tessectrap (float *px, float *py, long *point2, long numpoints)
+{
+	float x0, x1, m0, m1;
+	long i, j, k, z, i0, i1, i2, i3, npoints, gap, numrst;
+
+	static long allocpoints = 0, *slist = 0, *npoint2 = 0;
+	typedef struct { float x, y, xi; long i; } raster;
+	static raster *rst = 0;
+	if (numpoints+16 > allocpoints) //16 for safety
+	{
+		allocpoints = numpoints+16;
+		rst = realloc(rst,allocpoints*sizeof(raster));
+		slist = realloc(slist,allocpoints*sizeof(long));
+		npoint2 = realloc(npoint2,allocpoints*sizeof(long));
+	}
+
+		//Remove unnecessary collinear points:
+	for(i=0;i<numpoints;i++) npoint2[i] = point2[i];
+	npoints = numpoints; z = 0;
+	for(i=0;i<numpoints;i++)
+	{
+		j = npoint2[i]; if ((point2[i] < i) && (i < numpoints-1)) z = 3;
+		if (j < 0) continue;
+		k = npoint2[j];
+		m0 = (px[j]-px[i])*(py[k]-py[j]);
+		m1 = (py[j]-py[i])*(px[k]-px[j]);
+		if (m0 < m1) { z |= 1; continue; }
+		if (m0 > m1) { z |= 2; continue; }
+		npoint2[i] = k; npoint2[j] = -1; npoints--; i--; //collinear
+	}
+	if (!z) return;
+	trapextx[0] = trapextx[1] = px[0];
+	for(i=j=0;i<numpoints;i++)
+	{
+		if (npoint2[i] < 0) continue;
+		if (px[i] < trapextx[0]) trapextx[0] = px[i];
+		if (px[i] > trapextx[1]) trapextx[1] = px[i];
+		slist[j++] = i;
+	}
+	if (z != 3) //Simple polygon... early out
+	{
+		bglBegin(GL_TRIANGLE_FAN);
+		for(i=0;i<npoints;i++)
+		{
+			j = slist[i];
+			bglTexCoord2f(px[j]*gux + py[j]*guy + guo,
+							  px[j]*gvx + py[j]*gvy + gvo);
+			bglVertex2f(px[j],py[j]);
+		}
+		bglEnd();
+		return;
+	}
+
+		//Sort points by y's
+	for(gap=(npoints>>1);gap;gap>>=1)
+		for(i=0;i<npoints-gap;i++)
+			for(j=i;j>=0;j-=gap)
+			{
+				if (py[npoint2[slist[j]]] <= py[npoint2[slist[j+gap]]]) break;
+				k = slist[j]; slist[j] = slist[j+gap]; slist[j+gap] = k;
+			}
+
+	numrst = 0;
+	for(z=0;z<npoints;z++)
+	{
+		i0 = slist[z]; i1 = npoint2[i0]; if (py[i0] == py[i1]) continue;
+		i2 = i1; i3 = npoint2[i1];
+		if (py[i1] == py[i3]) { i2 = i3; i3 = npoint2[i3]; }
+
+			//i0        i3
+			//  \      /
+			//   i1--i2
+			//  /      \  
+			//i0        i3
+
+		if ((py[i1] < py[i0]) && (py[i2] < py[i3])) //Insert raster
+		{
+			for(i=numrst;i>0;i--)
+			{
+				if (rst[i-1].xi*(py[i1]-rst[i-1].y) + rst[i-1].x < px[i1]) break;
+				rst[i+1] = rst[i-1];
+			}
+			numrst += 2;
+
+			if (i&1) //split inside area
+			{
+				j = i-1;
+
+				x0 = (py[i1] - rst[j  ].y)*rst[j  ].xi + rst[j  ].x;
+				x1 = (py[i1] - rst[j+1].y)*rst[j+1].xi + rst[j+1].x;
+				drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1]);
+				rst[j  ].x = x0; rst[j  ].y = py[i1];
+				rst[j+3].x = x1; rst[j+3].y = py[i1];
+			}
+
+			m0 = (px[i0]-px[i1]) / (py[i0]-py[i1]);
+			m1 = (px[i3]-px[i2]) / (py[i3]-py[i2]);
+			j = ((px[i1] > px[i2]) || ((i1 == i2) && (m0 >= m1))) + i;
+			k = (i<<1)+1 - j;
+			rst[j].i = i0; rst[j].xi = m0; rst[j].x = px[i1]; rst[j].y = py[i1];
+			rst[k].i = i3; rst[k].xi = m1; rst[k].x = px[i2]; rst[k].y = py[i2];
+		}
+		else
+		{                  //NOTE:don't count backwards!
+			if (i1 == i2) { for(i=0;i<numrst;i++) if (rst[i].i == i1) break; }
+						else { for(i=0;i<numrst;i++) if ((rst[i].i == i1) || (rst[i].i == i2)) break; }
+			j = i&~1;
+
+			if ((py[i1] > py[i0]) && (py[i2] > py[i3])) //Delete raster
+			{
+				for(;j<=i+1;j+=2)
+				{
+					x0 = (py[i1] - rst[j  ].y)*rst[j  ].xi + rst[j  ].x;
+					if ((i == j) && (i1 == i2)) x1 = x0; else x1 = (py[i1] - rst[j+1].y)*rst[j+1].xi + rst[j+1].x;
+					drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1]);
+					rst[j  ].x = x0; rst[j  ].y = py[i1];
+					rst[j+1].x = x1; rst[j+1].y = py[i1];
+				}
+				numrst -= 2; for(;i<numrst;i++) rst[i] = rst[i+2];
+			}
+			else
+			{
+				x0 = (py[i1] - rst[j  ].y)*rst[j  ].xi + rst[j  ].x;
+				x1 = (py[i1] - rst[j+1].y)*rst[j+1].xi + rst[j+1].x;
+				drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1]);
+				rst[j  ].x = x0; rst[j  ].y = py[i1];
+				rst[j+1].x = x1; rst[j+1].y = py[i1];
+
+				if (py[i0] < py[i3]) { rst[i].x = px[i2]; rst[i].y = py[i2]; rst[i].i = i3; }
+									 else { rst[i].x = px[i1]; rst[i].y = py[i1]; rst[i].i = i0; }
+				rst[i].xi = (px[rst[i].i] - rst[i].x) / (py[rst[i].i] - py[i1]);
+			}
+		}
+	}
+}
+
+void polymost_fillpolygon (long npoints)
+{
+	pthtyp *pth;
+	float f;
+	long i, j, k;
+
+	globalx1 = mulscale16(globalx1,xyaspect);
+	globaly2 = mulscale16(globaly2,xyaspect);
+	gux = ((double)asm1)*(1.0/4294967296.0);
+	gvx = ((double)asm2)*(1.0/4294967296.0);
+	guy = ((double)globalx1)*(1.0/4294967296.0);
+	gvy = ((double)globaly2)*(-1.0/4294967296.0);
+	guo = (((double)xdim)*gux + ((double)ydim)*guy)*-.5 + ((double)globalposx)*(1.0/4294967296.0);
+	gvo = (((double)xdim)*gvx + ((double)ydim)*gvy)*-.5 - ((double)globalposy)*(1.0/4294967296.0);
+
+		//Convert long to float (in-place)
+	for(i=npoints-1;i>=0;i--)
+	{
+		((float *)rx1)[i] = ((float)rx1[i])/4096.0;
+		((float *)ry1)[i] = ((float)ry1[i])/4096.0;
+	}
+
+	if (gloy1 != -1) setpolymost2dview(); //disables blending, texturing, and depth testing
+	bglEnable(GL_ALPHA_TEST);
+	bglEnable(GL_TEXTURE_2D);
+	pth = gltexcache(globalpicnum,globalpal,0);
+	bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic : 0);
+
+	f = ((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
+	bglColor4f(f,f,f,1.0);
+
+	tessectrap((float *)rx1,(float *)ry1,xb1,npoints);
 }
 
 long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
@@ -4142,6 +4358,7 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("gltextureanisotropy", "gltextureanisotropy: changes the texture anisotropy setting", gltextureanisotropy);
 	OSD_RegisterVariable("gltexturemaxsize", OSDVAR_INTEGER, &gltexmaxsize, 1, osd_internal_validate_integer);
 	OSD_RegisterVariable("usegoodalpha", OSDVAR_INTEGER, &usegoodalpha, 0, osd_internal_validate_boolean);
+	OSD_RegisterVariable("glpolygonmode", OSDVAR_INTEGER, &glpolygonmode, 0, osd_internal_validate_integer); //FUK
 #endif
 	OSD_RegisterVariable("usemodels", OSDVAR_INTEGER, &usemodels, 0, osd_internal_validate_boolean);
 	OSD_RegisterVariable("usehightile", OSDVAR_INTEGER, &usehightile, 0, osd_internal_validate_boolean);

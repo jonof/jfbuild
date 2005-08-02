@@ -17,6 +17,9 @@
 #include <windows.h>
 #include <ddraw.h>
 #include <dinput.h>
+#ifndef DIK_PAUSE
+# define DIK_PAUSE 0xC5
+#endif
 #include <math.h>
 
 #include "dxdidf.h"	// comment this out if c_dfDI* is being reported as multiply defined
@@ -1541,14 +1544,76 @@ static void ProcessInputDevices(void)
 				result = IDirectInputDevice2_GetDeviceData(lpDID[KEYBOARD], sizeof(DIDEVICEOBJECTDATA),
 						(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
 				if (result == DI_OK) {
-					DWORD k;
+					DWORD k, numlockon = FALSE;
+					static DWORD shiftkey = 0, shiftkeycount = 0;
+					
+					numlockon = (GetKeyState(VK_NUMLOCK) & 1);
 					
 					// process the key events
 					t = getticks();
 					for (i=0; i<dwElements; i++) {
 						k = didod[i].dwOfs;
+
+						// When NumLock is on, the shift keys interact differently with the
+						// numeric keypad, so we cook things a little bit to work around
+						// the quirks.
+						if (numlockon) {
+#define NUMPAD 1
+#define SHIFT 2
+#define UP 0
+#define DOWN 4
+							DWORD j, thiskey = 0, nextkey = 0;
+							for (j=i; j<=min(i+1,dwElements-1); j++) {
+								switch (didod[j].dwOfs) {
+									case DIK_NUMPAD1: case DIK_NUMPAD2: case DIK_NUMPAD3:
+									case DIK_NUMPAD4: case DIK_NUMPAD5: case DIK_NUMPAD6:
+									case DIK_NUMPAD7: case DIK_NUMPAD8: case DIK_NUMPAD9:
+									case DIK_NUMPAD0: case DIK_PERIOD:
+										if (j==i) thiskey = NUMPAD | ((didod[j].dwData&128)?DOWN:UP);
+										else nextkey = NUMPAD | ((didod[j].dwData&128)?DOWN:UP);
+										break;
+									case DIK_LSHIFT: case DIK_RSHIFT:
+										if (j==i) thiskey = SHIFT | ((didod[j].dwData&128)?DOWN:UP);
+										else nextkey = SHIFT | ((didod[j].dwData&128)?DOWN:UP);
+										break;
+									default: break;
+								}
+							}
+							if (!shiftkey) {
+								if (thiskey == (SHIFT|DOWN)) {
+									shiftkey = 1, shiftkeycount = 0;
+									initprintf("shift is down --> shiftkey=1, shiftkeycount=0\n");
+								}
+							} else {
+								if ((thiskey == (SHIFT|UP)) && (nextkey == (NUMPAD|DOWN))) {
+									shiftkeycount--;
+									initprintf("shift is up and next key is numpad and down, shiftkeycount=%d\n",
+											shiftkeycount);
+									continue;
+								} else if (thiskey & SHIFT) {
+									if (thiskey & DOWN) {
+										shiftkeycount++;
+										initprintf("shift key down, shiftkeycount=%d\n", shiftkeycount);
+										continue;
+									} else {
+										if (shiftkeycount == 0) {
+											shiftkey = 0;
+											initprintf("shift key up and shiftkeycount == 0, shiftkey=0\n");
+										} else {
+											shiftkeycount--;
+											initprintf("shift key up and shiftkeycount=%d\n",shiftkeycount);
+											continue;
+										}
+									}
+								}
+							}
+#undef NUMPAD
+#undef SHIFT
+#undef UP
+#undef DOWN
+						}
 						
-						if (k == 0xc5) continue;	// fucking pause
+						if (k == DIK_PAUSE) continue;	// fucking pause
 						
 						// hook in the osd
 						if (OSD_HandleKey(k, (didod[i].dwData & 0x80)) != 0) {

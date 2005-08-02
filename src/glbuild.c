@@ -18,6 +18,7 @@ void (APIENTRY * bglBlendFunc)( GLenum sfactor, GLenum dfactor );
 void (APIENTRY * bglCullFace)( GLenum mode );
 void (APIENTRY * bglFrontFace)( GLenum mode );
 void (APIENTRY * bglPolygonOffset)( GLfloat factor, GLfloat units );
+void (APIENTRY * bglPolygonMode)( GLenum face, GLenum mode );
 void (APIENTRY * bglEnable)( GLenum cap );
 void (APIENTRY * bglDisable)( GLenum cap );
 void (APIENTRY * bglGetFloatv)( GLenum pname, GLfloat *params );
@@ -139,6 +140,7 @@ int loadgldriver(const char *driver)
 	bglCullFace		= GETPROC("glCullFace");
 	bglFrontFace		= GETPROC("glFrontFace");
 	bglPolygonOffset	= GETPROC("glPolygonOffset");
+	bglPolygonMode   = GETPROC("glPolygonMode");
 	bglEnable		= GETPROC("glEnable");
 	bglDisable		= GETPROC("glDisable");
 	bglGetFloatv		= GETPROC("glGetFloatv");
@@ -235,6 +237,7 @@ int unloadgldriver(void)
 	bglCullFace		= NULL;
 	bglFrontFace		= NULL;
 	bglPolygonOffset	= NULL;
+	bglPolygonMode   = NULL;
 	bglEnable		= NULL;
 	bglDisable		= NULL;
 	bglGetFloatv		= NULL;

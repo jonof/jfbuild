@@ -4089,6 +4089,10 @@ static void fillpolygon(long npoints)
 	long ox, oy, bx, by, p, day1, day2;
 	short *ptr, *ptr2;
 
+#ifdef POLYMOST
+	if (rendmode == 3) { polymost_fillpolygon(npoints); return; }
+#endif
+
 	miny = 0x7fffffff; maxy = 0x80000000;
 	for(z=npoints-1;z>=0;z--)
 		{ y = ry1[z]; miny = min(miny,y); maxy = max(maxy,y); }
@@ -5867,7 +5871,7 @@ void drawmapview(long dax, long day, long zoome, short ang)
 	long xvect, yvect, xvect2, yvect2, daslope;
 
 #ifdef POLYMOST
-	if (rendmode == 3) return;
+	//if (rendmode == 3) return;
 #endif
 
 	beforedrawrooms = 0;
@@ -5893,6 +5897,7 @@ void drawmapview(long dax, long day, long zoome, short ang)
 		{
 			npoints = 0; i = 0;
 			startwall = sec->wallptr;
+#if 0
 			for(w=sec->wallnum,wal=&wall[startwall];w>0;w--,wal++)
 			{
 				ox = wal->x - dax; oy = wal->y - day;
@@ -5904,6 +5909,26 @@ void drawmapview(long dax, long day, long zoome, short ang)
 				xb1[npoints] = wal->point2 - startwall;
 				npoints++;
 			}
+#else
+			j = startwall; l = 0;
+			for(w=sec->wallnum,wal=&wall[startwall];w>0;w--,wal++,j++)
+			{
+				k = lastwall(j);
+				if ((k > j) && (npoints > 0)) { xb1[npoints-1] = l; l = npoints; } //overwrite point2
+					//wall[k].x wal->x wall[wal->point2].x
+					//wall[k].y wal->y wall[wal->point2].y
+				if (!dmulscale1(wal->x-wall[k].x,wall[wal->point2].y-wal->y,-(wal->y-wall[k].y),wall[wal->point2].x-wal->x)) continue;
+				ox = wal->x - dax; oy = wal->y - day;
+				x = dmulscale16(ox,xvect,-oy,yvect) + (xdim<<11);
+				y = dmulscale16(oy,xvect2,ox,yvect2) + (ydim<<11);
+				i |= getclipmask(x-cx1,cx2-x,y-cy1,cy2-y);
+				rx1[npoints] = x;
+				ry1[npoints] = y;
+				xb1[npoints] = npoints+1;
+				npoints++;
+			}
+			if (npoints > 0) xb1[npoints-1] = l; //overwrite point2
+#endif
 			if ((i&0xf0) != 0xf0) continue;
 			bakx1 = rx1[0]; baky1 = mulscale16(ry1[0]-(ydim<<11),xyaspect)+(ydim<<11);
 			if (i&0x0f)
@@ -8594,7 +8619,9 @@ void clearview(long dacol)
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
-		bglClearColor(curpalette[dacol].r, curpalette[dacol].g, curpalette[dacol].b, 0);
+		bglClearColor(((float)curpalette[dacol].r)/255.0,
+						  ((float)curpalette[dacol].g)/255.0,
+						  ((float)curpalette[dacol].b)/255.0, 0);
 		bglClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}
@@ -8626,7 +8653,9 @@ void clearallviews(long dacol)
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
 		bglViewport(0,0,xdim,ydim); glox1 = -1;
-		bglClearColor(curpalette[dacol].r, curpalette[dacol].g, curpalette[dacol].b, 0);
+		bglClearColor(((float)curpalette[dacol].r)/255.0,
+						  ((float)curpalette[dacol].g)/255.0,
+						  ((float)curpalette[dacol].b)/255.0, 0);
 		bglClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}

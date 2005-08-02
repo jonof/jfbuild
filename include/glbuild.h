@@ -32,6 +32,7 @@ extern void (APIENTRY * bglBlendFunc)( GLenum sfactor, GLenum dfactor );
 extern void (APIENTRY * bglCullFace)( GLenum mode );
 extern void (APIENTRY * bglFrontFace)( GLenum mode );
 extern void (APIENTRY * bglPolygonOffset)( GLfloat factor, GLfloat units );
+extern void (APIENTRY * bglPolygonMode)( GLenum face, GLenum mode );
 extern void (APIENTRY * bglEnable)( GLenum cap );
 extern void (APIENTRY * bglDisable)( GLenum cap );
 extern void (APIENTRY * bglGetFloatv)( GLenum pname, GLfloat *params );
@@ -113,6 +114,7 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 #define bglCullFace		glCullFace
 #define bglFrontFace		glFrontFace
 #define bglPolygonOffset	glPolygonOffset
+#define bglPolygonMode    glPolygonMode
 #define bglEnable		glEnable
 #define bglDisable		glDisable
 #define bglGetFloatv		glGetFloatv
