@@ -270,7 +270,7 @@ static long drawingskybox = 0;
 
 int gloadtile_art(long,long,long,pthtyp*,long);
 int gloadtile_hi(long,long,hicreplctyp*,long,pthtyp*,long,char);
-static int hicprecacheing = 0;
+static int hicprecaching = 0;
 static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 {
 	long i, j;
@@ -328,7 +328,7 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 	return(pth);
 
 tryart:
-	if (hicprecacheing) return NULL;
+	if (hicprecaching) return NULL;
 
 	// load from art
 	for(pth=gltexcachead[j]; pth; pth=pth->next)
@@ -4378,9 +4378,9 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 	if (!palookup[dapalnum]) return;//dapalnum = 0;
 
 	//OSD_Printf("precached %d %d type %d\n", dapicnum, dapalnum, datype);
-	hicprecacheing = 1;
+	hicprecaching = 1;
 	gltexcache(dapicnum, dapalnum, (datype & 1) << 2);
-	hicprecacheing = 0;
+	hicprecaching = 0;
 
 	if (datype == 0) return;
 

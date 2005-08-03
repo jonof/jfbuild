@@ -331,7 +331,7 @@ char *Bgethomedir(void)
 # elif defined SHGetSpecialFolderPath
 	if (SUCCEEDED(SHGetSpecialFolderPathA(NULL, appdata, CSIDL_APPDATA, FALSE)))
 # else
-#  error Can't find SHGetFolderPath or SHGetSpecialFolderPath. Perhaps your shlobj.h is ancient?
+#  error Cannot find SHGetFolderPath or SHGetSpecialFolderPath. Perhaps your shlobj.h is ancient?
 # endif
 		return strdup(appdata);
 	return NULL;
