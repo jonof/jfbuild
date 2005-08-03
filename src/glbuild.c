@@ -314,7 +314,7 @@ int unloadgldriver(void)
 #ifdef PLATFORMWINDOWS
 char *gldriver = "opengl32.dll";
 #else
-char *gldriver = "libgl.so";
+char *gldriver = "libGL.so";
 #endif
 
 int loadgldriver(const char *a) { return 0; }

@@ -326,7 +326,13 @@ char *Bgethomedir(void)
 #ifdef PLATFORMWINDOWS
 	TCHAR appdata[MAX_PATH];
 
-	if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, appdata)))
+# if defined SHGetFolderPath
+	if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, appdata)))
+# elif defined SHGetSpecialFolderPath
+	if (SUCCEEDED(SHGetSpecialFolderPathA(NULL, appdata, CSIDL_APPDATA, FALSE)))
+# else
+#  error Can't find SHGetFolderPath or SHGetSpecialFolderPath. Perhaps your shlobj.h is ancient?
+# endif
 		return strdup(appdata);
 	return NULL;
 #else
