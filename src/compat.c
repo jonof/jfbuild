@@ -569,7 +569,7 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	} else {
 		dirr->status++;
 	}
-# if defined(__WATCOMC__) || defined(PLATFORMLINUX)
+# if defined(__WATCOMC__) || defined(PLATFORMLINUX) || defined(PLATFORMBEOS)
 	dirr->info.namlen = strlen(de->d_name);
 # else
 	dirr->info.namlen = de->d_namlen;

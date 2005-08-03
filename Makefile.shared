@@ -31,6 +31,9 @@ ifndef PLATFORM
 	ifeq ($(findstring Darwin,$(uname)),Darwin)
 		PLATFORM=DARWIN
 	endif
+	ifeq ($(findstring BeOS,$(uname)),BeOS)
+		PLATFORM=BEOS
+	endif
 endif
 
 
@@ -55,6 +58,9 @@ ifeq ($(PLATFORM),BSD)
 	endif
 endif
 ifeq ($(PLATFORM),DARWIN)
+	RENDERTYPE=SDL
+endif
+ifeq ($(PLATFORM),BEOS)
 	RENDERTYPE=SDL
 endif
 

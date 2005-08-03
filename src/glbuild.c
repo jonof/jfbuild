@@ -116,9 +116,7 @@ int loadgldriver(const char *driver)
 
 #ifdef RENDERTYPESDL
 	if (SDL_GL_LoadLibrary(driver)) return -1;
-#	define GETPROC(s) \
-		(t = (void*)SDL_GL_GetProcAddress(s)); \
-		if (!t) { initprintf("Failed to find " s " in %s\n",driver); err = 1; }
+#	define GETPROC(s) (t = (void*)SDL_GL_GetProcAddress(s)); if (!t) { initprintf("Failed to find " s " in %s\n",driver); err = 1; }
 #else
 #	ifdef PLATFORMWINDOWS
 		hGLDLL = LoadLibrary(driver);

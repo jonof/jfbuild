@@ -18,7 +18,7 @@
 # include <ctype.h>
 # include <sys/types.h>
 # include <sys/stat.h>
-# if defined(PLATFORMLINUX) || defined(PLATFORMBSD) || defined(PLATFORMDARWIN)
+# if defined(PLATFORMLINUX) || defined(PLATFORMBSD) || defined(PLATFORMDARWIN) || defined(PLATFORMBEOS)
 #  include <unistd.h>
 # else
 #  include <io.h>
@@ -79,6 +79,16 @@ typedef unsigned long long uint64;
 # define B_SWAP64(x) OSSwapConstInt64(x)
 # define B_SWAP32(x) OSSwapConstInt32(x)
 # define B_SWAP16(x) OSSwapConstInt16(x)
+#elif defined(PLATFORMBEOS)
+# include <posix/endian.h>
+# if LITTLE_ENDIAN != 0
+#  define B_LITTLE_ENDIAN 1
+#  define B_BIG_ENDIAN    0
+# elif BIG_ENDIAN != 0
+#  define B_LITTLE_ENDIAN 0
+#  define B_BIG_ENDIAN    1
+# endif
+# define B_ENDIAN_C_INLINE 1
 #elif defined(PLATFORMWINDOWS)
 # define B_LITTLE_ENDIAN 1
 # define B_BIG_ENDIAN    0

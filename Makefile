@@ -40,7 +40,7 @@ RC=windres
 override CFLAGS+= $(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-march=pentium -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
 	-DKSFORBUILD -I$(INC) -I../jfaud/inc
-LIBS=-lm -lfmod # ../jfaud/jfaud.a
+LIBS=-lfmod # ../jfaud/jfaud.a
 ASFLAGS=-s #-g
 EXESUFFIX=
 
@@ -76,15 +76,21 @@ include Makefile.shared
 # detect the platform
 ifeq ($(PLATFORM),LINUX)
 	ASFLAGS+= -f elf
+	LIBS+= -lm
 endif
 ifeq ($(PLATFORM),BSD)
 	ASFLAGS+= -f elf
 	override CFLAGS+= -I/usr/X11R6/include
+	LIBS+= -lm
 endif
 ifeq ($(PLATFORM),WINDOWS)
 	override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOT)/inc
-	LIBS+= -L$(FMODROOT)/lib
+	LIBS+= -lm -L$(FMODROOT)/lib
 	ASFLAGS+= -DUNDERSCORES -f win32
+endif
+ifeq ($(PLATFORM),BEOS)
+	ASFLAGS+= -f elf
+	TARGETOPTS+= -DNOASM
 endif
 
 ifeq ($(RENDERTYPE),SDL)
