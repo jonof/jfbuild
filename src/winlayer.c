@@ -2038,7 +2038,10 @@ int setvideomode(int x, int y, int c, int fs)
 	int modenum;
 	
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
-		!videomodereset) return 0;
+		!videomodereset) {
+		OSD_ResizeDisplay(xres,yres);
+		return 0;
+	}
 
 	modenum = checkvideomode(&x,&y,c,fs);
 	if (modenum < 0) return -1;

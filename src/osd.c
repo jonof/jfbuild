@@ -171,7 +171,7 @@ static void _internal_drawosdchar(int x, int y, char ch, int shade, int pal)
 		k=0;
 		for(i=0;i<256;i++)
 		{
-			j = ((int)palette[i*3])+((int)palette[i*3+1])+((int)palette[i*3+2]);
+			j = ((int)curpalette[i].r)+((int)curpalette[i].g)+((int)curpalette[i].b);
 			if (j > k) { k = j; white = i; }
 		}
 	}
@@ -193,7 +193,7 @@ static void _internal_drawosdstr(int x, int y, char *ch, int len, int shade, int
 		k=0;
 		for(i=0;i<256;i++)
 		{
-			j = ((int)palette[i*3])+((int)palette[i*3+1])+((int)palette[i*3+2]);
+			j = ((int)curpalette[i].r)+((int)curpalette[i].g)+((int)curpalette[i].b);
 			if (j > k) { k = j; white = i; }
 		}
 	}
@@ -729,6 +729,7 @@ void OSD_ResizeDisplay(int w, int h)
 	osdhead = 0;
 	osdeditwinstart = 0;
 	osdeditwinend = editlinewidth;
+	white = -1;
 }
 
 

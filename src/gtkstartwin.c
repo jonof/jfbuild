@@ -118,11 +118,22 @@ void puts_startwin(const char *str)
 			case '\b':
 				if (bptr > aptr)
 					gtk_text_buffer_insert(textbuffer, &enditer, (const gchar *)aptr, (gint)(bptr-aptr)-1);
+#if GTK_CHECK_VERSION(2,6,0)
 				gtk_text_buffer_backspace(textbuffer, &enditer, FALSE, TRUE);
+#else
+				{
+				GtkTextIter iter2 = enditer;
+				gtk_text_iter_backward_cursor_position(&iter2);
+				//FIXME: this seems be deleting one too many chars somewhere!
+				if (!gtk_text_iter_equal(&iter2, &enditer))
+					gtk_text_buffer_delete_interactive(textbuffer, &iter2, &enditer, TRUE);
+				}
+#endif
 				aptr = ++bptr;
 				break;
 			case 0:
-				gtk_text_buffer_insert(textbuffer, &enditer, (const gchar *)aptr, (gint)(bptr-aptr));
+				if (bptr > aptr)
+					gtk_text_buffer_insert(textbuffer, &enditer, (const gchar *)aptr, (gint)(bptr-aptr));
 				aptr = bptr;
 				break;
 			case '\r':	// FIXME
