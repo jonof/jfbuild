@@ -119,6 +119,7 @@ long glanisotropy = 1;            // 0 = maximum supported by card
 long glusetexcompr = 1;
 long gltexfiltermode = 3;   // GL_LINEAR_MIPMAP_NEAREST
 long gltexmaxsize = 0;      // 0 means autodetection on first run
+long gltexmiplevel = 0;		// discards this many mipmap levels
 static long lastglpolygonmode = 0; //FUK
 long glpolygonmode = 0;     // 0:GL_FILL,1:GL_LINE,2:GL_POINT //FUK
 extern char nofog;
@@ -612,6 +613,8 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 		}
 	}
 	
+	js = max(0,min(gltexmaxsize-1,gltexmiplevel));
+	gltexmiplevel = js;
 	while ((xsiz>>js) > (1<<gltexmaxsize) || (ysiz>>js) > (1<<gltexmaxsize)) js++;
 
 	/*
@@ -1054,6 +1057,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 			float al = 0.32;
 			if (pth && pth->hicr && pth->hicr->alphacut >= 0.0) al = pth->hicr->alphacut;
 			if (usegoodalpha) al = 0.0;
+			if (!waloff[globalpicnum]) al = 0.0;	// invalid textures ignore the alpha cutoff settings
 			bglEnable(GL_BLEND);
 			bglEnable(GL_ALPHA_TEST);
 			bglAlphaFunc(GL_GREATER,al);
@@ -4357,6 +4361,7 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("gltexturemode", "gltexturemode: changes the texture filtering settings", gltexturemode);
 	OSD_RegisterFunction("gltextureanisotropy", "gltextureanisotropy: changes the texture anisotropy setting", gltextureanisotropy);
 	OSD_RegisterVariable("gltexturemaxsize", OSDVAR_INTEGER, &gltexmaxsize, 1, osd_internal_validate_integer);
+	OSD_RegisterVariable("gltexturemiplevel", OSDVAR_INTEGER, &gltexmiplevel, 1, osd_internal_validate_integer);
 	OSD_RegisterVariable("usegoodalpha", OSDVAR_INTEGER, &usegoodalpha, 0, osd_internal_validate_boolean);
 	OSD_RegisterVariable("glpolygonmode", OSDVAR_INTEGER, &glpolygonmode, 0, osd_internal_validate_integer); //FUK
 #endif

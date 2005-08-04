@@ -1554,6 +1554,7 @@ static void ProcessInputDevices(void)
 					for (i=0; i<dwElements; i++) {
 						k = didod[i].dwOfs;
 
+#if 0
 						// When NumLock is on, the shift keys interact differently with the
 						// numeric keypad, so we cook things a little bit to work around
 						// the quirks.
@@ -1612,6 +1613,7 @@ static void ProcessInputDevices(void)
 #undef UP
 #undef DOWN
 						}
+#endif
 						
 						if (k == DIK_PAUSE) continue;	// fucking pause
 						
