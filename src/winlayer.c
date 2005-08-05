@@ -2943,6 +2943,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 	GLuint PixelFormat;
 	int minidriver;
 	int err;
+	static int warnonce = 0;
 	pfd.cColorBits = bitspp;
 
 	hGLWindow = CreateWindow(
@@ -3021,10 +3022,6 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		glinfo.bgra = 0;
 		glinfo.texcompr = 0;
 
-		// 3Dfx's hate fog (bleh)
-		//if (Bstrstr(glinfo.renderer, "3Dfx") != NULL)
-		//	nofog = 1;
-
 		// process the extensions string and flag stuff we recognize
 		p = Bstrdup(glinfo.extensions);
 		p3 = p;
@@ -3045,6 +3042,11 @@ static int SetupOpenGL(int width, int height, int bitspp)
 			} else if (!Bstrcmp(p2, "GL_ARB_texture_non_power_of_two")) {
 				// support non-power-of-two texture sizes
 				glinfo.texnpot = 1;
+			} else if (!Bstrcmp(p2, "WGL_3DFX_gamma_control")) {
+				// 3dfx cards have issues with fog
+				nofog = 1;
+				if (!(warnonce&1)) initprintf("3dfx card detected: OpenGL fog disabled\n");
+				warnonce |= 1;
 			}
 		}
 		Bfree(p);

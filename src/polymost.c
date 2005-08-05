@@ -3922,7 +3922,11 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 		pow2xsplit = 0; drawpoly(px,py,n,method);
 	}
 
-	bglMatrixMode(GL_PROJECTION); bglPopMatrix();
+#ifdef USE_OPENGL
+	if (rendmode == 3) {
+		bglMatrixMode(GL_PROJECTION); bglPopMatrix();
+	}
+#endif
 
 	globalpicnum = ogpicnum;
 	globalshade  = ogshade;
