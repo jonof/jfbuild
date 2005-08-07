@@ -6131,13 +6131,16 @@ void drawmapview(long dax, long day, long zoome, short ang)
 
 			if ((spr->cstat&2) == 0)
 				msethlineshift(ox,oy);
-			else
+			else {
+				if (spr->cstat&512) settransreverse(); else settransnormal();
 				tsethlineshift(ox,oy);
+			}
 
 			if ((spr->cstat&0x4) > 0) globalx1 = -globalx1, globaly1 = -globaly1, globalposx = -globalposx;
 			asm1 = (globaly1<<2); globalx1 <<= 2; globalposx <<= (20+2);
 			asm2 = (globalx2<<2); globaly2 <<= 2; globalposy <<= (20+2);
 
+			globalorientation = ((spr->cstat&2)<<7) | ((spr->cstat&512)>>2);	// so polymost can get the translucency. ignored in software mode.
 			fillpolygon(npoints);
 		}
 	}
