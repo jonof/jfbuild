@@ -1,0 +1,519 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 39;
+	objects = {
+		080E96DDFE201D6D7F000001 = {
+			children = (
+				F5A47A9D01A0482F01D3D55B,
+				F5A47A9E01A0483001D3D55B,
+			);
+			isa = PBXGroup;
+			name = Classes;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		089C165CFE840E0CC02AAC07 = {
+			children = (
+				089C165DFE840E0CC02AAC07,
+			);
+			isa = PBXVariantGroup;
+			name = InfoPlist.strings;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		089C165DFE840E0CC02AAC07 = {
+			fileEncoding = 10;
+			isa = PBXFileReference;
+			lastKnownFileType = text.plist.strings;
+			name = English;
+			path = English.lproj/InfoPlist.strings;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		089C165EFE840E0CC02AAC07 = {
+			fileRef = 089C165CFE840E0CC02AAC07;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+//080
+//081
+//082
+//083
+//084
+//100
+//101
+//102
+//103
+//104
+		1058C7A0FEA54F0111CA2CBB = {
+			children = (
+				1058C7A1FEA54F0111CA2CBB,
+				B2F67ED704C74A3F00A80002,
+			);
+			isa = PBXGroup;
+			name = "Linked Frameworks";
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		1058C7A1FEA54F0111CA2CBB = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = Cocoa.framework;
+			path = /System/Library/Frameworks/Cocoa.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		1058C7A2FEA54F0111CA2CBB = {
+			children = (
+				29B97325FDCFA39411CA2CEA,
+				29B97324FDCFA39411CA2CEA,
+			);
+			isa = PBXGroup;
+			name = "Other Frameworks";
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		1058C7A3FEA54F0111CA2CBB = {
+			fileRef = 1058C7A1FEA54F0111CA2CBB;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+//100
+//101
+//102
+//103
+//104
+//170
+//171
+//172
+//173
+//174
+		17587328FF379C6511CA2CBB = {
+			explicitFileType = wrapper.application;
+			isa = PBXFileReference;
+			path = game.app;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+//170
+//171
+//172
+//173
+//174
+//190
+//191
+//192
+//193
+//194
+		19C28FACFE9D520D11CA2CBB = {
+			children = (
+				17587328FF379C6511CA2CBB,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+//190
+//191
+//192
+//193
+//194
+//290
+//291
+//292
+//293
+//294
+		29B97313FDCFA39411CA2CEA = {
+			buildSettings = {
+			};
+			buildStyles = (
+				4A9504CCFFE6A4B311CA0CBA,
+				4A9504CDFFE6A4B311CA0CBA,
+			);
+			hasScannedForEncodings = 1;
+			isa = PBXProject;
+			mainGroup = 29B97314FDCFA39411CA2CEA;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = AB9DB356085EEA8D009D4FDA;
+					ProjectRef = AB9DB354085EEA8C009D4FDA;
+				},
+			);
+			targets = (
+				29B97326FDCFA39411CA2CEA,
+			);
+		};
+		29B97314FDCFA39411CA2CEA = {
+			children = (
+				AB9DB354085EEA8C009D4FDA,
+				080E96DDFE201D6D7F000001,
+				29B97315FDCFA39411CA2CEA,
+				29B97317FDCFA39411CA2CEA,
+				29B97323FDCFA39411CA2CEA,
+				19C28FACFE9D520D11CA2CBB,
+			);
+			isa = PBXGroup;
+			name = game;
+			path = "";
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		29B97315FDCFA39411CA2CEA = {
+			children = (
+				AB4C5D0A08600CE1007FC9AA,
+				AB9DB2FD085EE8D5009D4FDA,
+				AB9DB2FE085EE8D5009D4FDA,
+				AB9DB2FF085EE8D5009D4FDA,
+			);
+			isa = PBXGroup;
+			name = Sources;
+			path = "";
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		29B97317FDCFA39411CA2CEA = {
+			children = (
+				089C165CFE840E0CC02AAC07,
+			);
+			isa = PBXGroup;
+			name = Resources;
+			path = "";
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		29B97323FDCFA39411CA2CEA = {
+			children = (
+				1058C7A0FEA54F0111CA2CBB,
+				1058C7A2FEA54F0111CA2CBB,
+			);
+			isa = PBXGroup;
+			name = Frameworks;
+			path = "";
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		29B97324FDCFA39411CA2CEA = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = AppKit.framework;
+			path = /System/Library/Frameworks/AppKit.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		29B97325FDCFA39411CA2CEA = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = Foundation.framework;
+			path = /System/Library/Frameworks/Foundation.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		29B97326FDCFA39411CA2CEA = {
+			buildPhases = (
+				29B97328FDCFA39411CA2CEA,
+				29B9732BFDCFA39411CA2CEA,
+				29B9732DFDCFA39411CA2CEA,
+			);
+			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = "\"/Library/Frameworks\"";
+				HEADER_SEARCH_PATHS = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/fmodapi3741mac/api/inc\" ../../include /Library/Frameworks/SDL.framework/Headers";
+				LIBRARY_SEARCH_PATHS = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/fmodapi3741mac/api/lib\"";
+				OPTIMIZATION_CFLAGS = "-O0";
+				OTHER_CFLAGS = "-DPLATFORMDARWIN=1 -DRENDERTYPESDL=1 -DNOASM -DSUPERBUILD -DPOLYMOST -DUSE_OPENGL";
+				OTHER_LDFLAGS = "-framework SDL -lfmod -framework Carbon";
+				PRODUCT_NAME = game;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
+				WRAPPER_EXTENSION = app;
+			};
+			dependencies = (
+			);
+			isa = PBXApplicationTarget;
+			name = game;
+			productName = game;
+			productReference = 17587328FF379C6511CA2CBB;
+			productSettingsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+<!DOCTYPE plist PUBLIC \"-//Apple Computer//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+<plist version=\"1.0\">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>game</string>
+	<key>CFBundleIconFile</key>
+	<string></string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>0.1</string>
+	<key>NSMainNibFile</key>
+	<string>MainMenu</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+</dict>
+</plist>
+";
+		};
+		29B97328FDCFA39411CA2CEA = {
+			buildActionMask = 2147483647;
+			files = (
+				089C165EFE840E0CC02AAC07,
+			);
+			isa = PBXResourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		29B9732BFDCFA39411CA2CEA = {
+			buildActionMask = 2147483647;
+			files = (
+				F5A47AA101A0483001D3D55B,
+				F5A47AA301A0483001D3D55B,
+				AB9DB300085EE8D5009D4FDA,
+				AB9DB301085EE8D5009D4FDA,
+				AB9DB302085EE8D5009D4FDA,
+				AB4C5D0B08600CE1007FC9AA,
+			);
+			isa = PBXSourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		29B9732DFDCFA39411CA2CEA = {
+			buildActionMask = 2147483647;
+			files = (
+				AB9DB359085EEA96009D4FDA,
+				1058C7A3FEA54F0111CA2CBB,
+				B2F67ED804C74A3F00A80002,
+			);
+			isa = PBXFrameworksBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+//290
+//291
+//292
+//293
+//294
+//4A0
+//4A1
+//4A2
+//4A3
+//4A4
+		4A9504CCFFE6A4B311CA0CBA = {
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_FIX_AND_CONTINUE = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OPTIMIZATION_CFLAGS = "-O0";
+				ZERO_LINK = YES;
+			};
+			isa = PBXBuildStyle;
+			name = Development;
+		};
+		4A9504CDFFE6A4B311CA0CBA = {
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				ZERO_LINK = NO;
+			};
+			isa = PBXBuildStyle;
+			name = Deployment;
+		};
+//4A0
+//4A1
+//4A2
+//4A3
+//4A4
+//AB0
+//AB1
+//AB2
+//AB3
+//AB4
+		AB4C5D0A08600CE1007FC9AA = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = game_icon.c;
+			path = ../../rsrc/game_icon.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB4C5D0B08600CE1007FC9AA = {
+			fileRef = AB4C5D0A08600CE1007FC9AA;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB9DB2FD085EE8D5009D4FDA = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = config.c;
+			path = /Users/jonof/ports/build/src/config.c;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		AB9DB2FE085EE8D5009D4FDA = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = game.c;
+			path = /Users/jonof/ports/build/src/game.c;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		AB9DB2FF085EE8D5009D4FDA = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = sound.c;
+			path = /Users/jonof/ports/build/src/sound.c;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		AB9DB300085EE8D5009D4FDA = {
+			fileRef = AB9DB2FD085EE8D5009D4FDA;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB9DB301085EE8D5009D4FDA = {
+			fileRef = AB9DB2FE085EE8D5009D4FDA;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB9DB302085EE8D5009D4FDA = {
+			fileRef = AB9DB2FF085EE8D5009D4FDA;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB9DB354085EEA8C009D4FDA = {
+			isa = PBXFileReference;
+			lastKnownFileType = "wrapper.pb-project";
+			name = engine.xcode;
+			path = ../engine/engine.xcode;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB9DB356085EEA8D009D4FDA = {
+			children = (
+				AB9DB357085EEA8D009D4FDA,
+				AB9DB358085EEA8D009D4FDA,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		AB9DB357085EEA8D009D4FDA = {
+			fileType = archive.ar;
+			isa = PBXReferenceProxy;
+			path = libengine.a;
+			refType = 3;
+			remoteRef = AB9DB35A085EEA9A009D4FDA;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AB9DB358085EEA8D009D4FDA = {
+			fileType = archive.ar;
+			isa = PBXReferenceProxy;
+			path = libeditor.a;
+			refType = 3;
+			remoteRef = AB9DB35B085EEA9A009D4FDA;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AB9DB359085EEA96009D4FDA = {
+			fileRef = AB9DB357085EEA8D009D4FDA;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB9DB35A085EEA9A009D4FDA = {
+			containerPortal = AB9DB354085EEA8C009D4FDA;
+			isa = PBXContainerItemProxy;
+			proxyType = 2;
+			remoteGlobalIDString = D2AAC046055464E500DB518D;
+			remoteInfo = engine;
+		};
+		AB9DB35B085EEA9A009D4FDA = {
+			containerPortal = AB9DB354085EEA8C009D4FDA;
+			isa = PBXContainerItemProxy;
+			proxyType = 2;
+			remoteGlobalIDString = AB9DB2C3085EE49A009D4FDA;
+			remoteInfo = editor;
+		};
+//AB0
+//AB1
+//AB2
+//AB3
+//AB4
+//B20
+//B21
+//B22
+//B23
+//B24
+		B2F67ED704C74A3F00A80002 = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = OpenGL.framework;
+			path = /System/Library/Frameworks/OpenGL.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		B2F67ED804C74A3F00A80002 = {
+			fileRef = B2F67ED704C74A3F00A80002;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+//B20
+//B21
+//B22
+//B23
+//B24
+//F50
+//F51
+//F52
+//F53
+//F54
+		F5A47A9D01A0482F01D3D55B = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			path = game.SDLMain.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		F5A47A9E01A0483001D3D55B = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.objc;
+			path = game.SDLMain.m;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		F5A47AA101A0483001D3D55B = {
+			fileRef = F5A47A9D01A0482F01D3D55B;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		F5A47AA301A0483001D3D55B = {
+			fileRef = F5A47A9E01A0483001D3D55B;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+	};
+	rootObject = 29B97313FDCFA39411CA2CEA;
+}
