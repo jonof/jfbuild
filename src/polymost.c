@@ -428,6 +428,7 @@ void gltexapplyprops (void)
 		for (i=0;i<nextmodelid;i++)
 		{
 			m = (md2model *)models[i];
+			if (m->mdnum < 2) continue;
 			for (j=0;j<m->numskins*(HICEFFECTMASK+1);j++)
 			{
 				if (!m->texid[j]) continue;
@@ -497,7 +498,7 @@ void polymost_glinit()
 	GLfloat col[4];
 	
 	bglFogi(GL_FOG_MODE,GL_EXP); //GL_EXP(default),GL_EXP2,GL_LINEAR
-	//bglHint(GL_FOG_HINT,GL_NICEST);
+	bglHint(GL_FOG_HINT,GL_NICEST);
 	bglFogf(GL_FOG_DENSITY,1.0); //must be > 0, default is 1
 	bglFogf(GL_FOG_START,0.0); //default is 0
 	bglFogf(GL_FOG_END,1.0); //default is 1
@@ -4133,8 +4134,8 @@ void polymost_fillpolygon (long npoints)
 
 	f = ((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 	switch ((globalorientation>>7)&3) {
-		case 0: a = 1.0; break;
-		case 1: a = 1.0; break;
+		case 0:
+		case 1: a = 1.0; bglDisable(GL_BLEND); break;
 		case 2: a = 0.66; bglEnable(GL_BLEND); break;
 		case 3: a = 0.33; bglEnable(GL_BLEND); break;
 	}

@@ -37,6 +37,7 @@ void (APIENTRY * bglDepthRange)( GLclampd near_val, GLclampd far_val );
 // Matrix
 void (APIENTRY * bglMatrixMode)( GLenum mode );
 void (APIENTRY * bglOrtho)( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val );
+void (APIENTRY * bglFrustum)( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val );
 void (APIENTRY * bglViewport)( GLint x, GLint y, GLsizei width, GLsizei height );
 void (APIENTRY * bglPushMatrix)( void );
 void (APIENTRY * bglPopMatrix)( void );
@@ -138,7 +139,7 @@ int loadgldriver(const char *driver)
 	bglCullFace		= GETPROC("glCullFace");
 	bglFrontFace		= GETPROC("glFrontFace");
 	bglPolygonOffset	= GETPROC("glPolygonOffset");
-	bglPolygonMode   = GETPROC("glPolygonMode");
+	bglPolygonMode		= GETPROC("glPolygonMode");
 	bglEnable		= GETPROC("glEnable");
 	bglDisable		= GETPROC("glDisable");
 	bglGetFloatv		= GETPROC("glGetFloatv");
@@ -157,6 +158,7 @@ int loadgldriver(const char *driver)
 	// Matrix
 	bglMatrixMode		= GETPROC("glMatrixMode");
 	bglOrtho		= GETPROC("glOrtho");
+	bglFrustum		= GETPROC("glFrustum");
 	bglViewport		= GETPROC("glViewport");
 	bglPushMatrix		= GETPROC("glPushMatrix");
 	bglPopMatrix		= GETPROC("glPopMatrix");
@@ -254,6 +256,7 @@ int unloadgldriver(void)
 	// Matrix
 	bglMatrixMode		= NULL;
 	bglOrtho		= NULL;
+	bglFrustum		= NULL;
 	bglViewport		= NULL;
 	bglPushMatrix		= NULL;
 	bglPopMatrix		= NULL;

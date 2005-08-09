@@ -1107,7 +1107,6 @@ void showframe(int w)
 			bglMatrixMode(GL_PROJECTION);
 			bglPushMatrix();
 			bglLoadIdentity();
-			bglOrtho(0,xres,yres,0,-1,1);
 			bglMatrixMode(GL_MODELVIEW);
 			bglPushMatrix();
 			bglLoadIdentity();
@@ -1124,10 +1123,10 @@ void showframe(int w)
 				max(palfadeclamp.f,palfadedelta));
 
 			bglBegin(GL_QUADS);
-			bglVertex2i(0, 0);
-			bglVertex2i(xres, 0);
-			bglVertex2i(xres, yres);
-			bglVertex2i(0, yres);
+			bglVertex2i(-1, -1);
+			bglVertex2i(1, -1);
+			bglVertex2i(1, 1);
+			bglVertex2i(-1, 1);
 			bglEnd();
 			
 			bglMatrixMode(GL_MODELVIEW);

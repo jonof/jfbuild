@@ -51,6 +51,7 @@ extern void (APIENTRY * bglDepthRange)( GLclampd near_val, GLclampd far_val );
 // Matrix
 extern void (APIENTRY * bglMatrixMode)( GLenum mode );
 extern void (APIENTRY * bglOrtho)( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val );
+extern void (APIENTRY * bglFrustum)( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val );
 extern void (APIENTRY * bglViewport)( GLint x, GLint y, GLsizei width, GLsizei height );
 extern void (APIENTRY * bglPushMatrix)( void );
 extern void (APIENTRY * bglPopMatrix)( void );
@@ -133,6 +134,7 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 // Matrix
 #define bglMatrixMode		glMatrixMode
 #define bglOrtho		glOrtho
+#define bglFrustum		glFrustum
 #define bglViewport		glViewport
 #define bglPushMatrix		glPushMatrix
 #define bglPopMatrix		glPopMatrix
