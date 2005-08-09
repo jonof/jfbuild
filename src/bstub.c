@@ -62,7 +62,7 @@ int nextvoxid = 0;
 
 int ExtInit(void)
 {
-	long i, fil, rv = 0;
+	long i, rv = 0;
 
 	/*printf("------------------------------------------------------------------------------\n");
 	printf("   BUILD.EXE copyright(c) 1996 by Ken Silverman.  You are granted the\n");
@@ -75,15 +75,6 @@ int ExtInit(void)
 	*/
 
 	initgroupfile("stuff.dat");
-	/*
-	if ((fil = open("setup.dat",O_BINARY|O_RDWR,S_IREAD)) != -1)
-	{
-		read(fil,&option[0],NUMOPTIONS);
-		read(fil,&keys[0],NUMKEYS);
-		memcpy((void *)buildkeys,(void *)keys,NUMKEYS);   //Trick to make build use setup.dat keys
-		close(fil);
-	}
-	*/
 	bpp = 8;
 	if (loadsetup("build.cfg") < 0) initprintf("Configuration file not found, using defaults.\n"), rv = 1;
 	Bmemcpy((void *)buildkeys,(void *)keys,NUMBUILDKEYS);   //Trick to make build use setup.dat keys
@@ -124,10 +115,10 @@ void ExtUnInit(void)
 	writesetup("build.cfg");
 }
 
-static long daviewingrange, daaspect, horizval1, horizval2;
+//static long daviewingrange, daaspect, horizval1, horizval2;
 void ExtPreCheckKeys(void)
 {
-	long cosang, sinang, dx, dy, mindx, i, j, k;
+	long /*cosang, sinang, dx, dy, mindx,*/ i, j, k;
 
 	if (keystatus[0x3e])  //F4 - screen re-size
 	{
@@ -258,7 +249,7 @@ void ExtAnalyzeSprites(void)
 
 void ExtCheckKeys(void)
 {
-	long i, p, y, dx, dy, cosang, sinang, bufplc, tsizy, tsizyup15;
+	long i;//, p, y, dx, dy, cosang, sinang, bufplc, tsizy, tsizyup15;
 	long j;
 
 	if (qsetmode == 200)    //In 3D mode
