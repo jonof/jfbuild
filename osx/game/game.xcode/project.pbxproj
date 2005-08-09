@@ -204,7 +204,6 @@
 				FRAMEWORK_SEARCH_PATHS = "\"/Library/Frameworks\"";
 				HEADER_SEARCH_PATHS = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/fmodapi3741mac/api/inc\" ../../include /Library/Frameworks/SDL.framework/Headers";
 				LIBRARY_SEARCH_PATHS = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/fmodapi3741mac/api/lib\"";
-				OPTIMIZATION_CFLAGS = "-O0";
 				OTHER_CFLAGS = "-DPLATFORMDARWIN=1 -DRENDERTYPESDL=1 -DNOASM -DUSE_A_C -DSUPERBUILD -DPOLYMOST -DUSE_OPENGL";
 				OTHER_LDFLAGS = "-framework SDL -lfmod -framework Carbon";
 				PRODUCT_NAME = game;
@@ -306,6 +305,8 @@
 			buildSettings = {
 				COPY_PHASE_STRIP = YES;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				GCC_OPTIMIZATION_LEVEL = 2;
+				OPTIMIZATION_CFLAGS = "-O2";
 				ZERO_LINK = NO;
 			};
 			isa = PBXBuildStyle;
@@ -374,7 +375,6 @@
 			buildSettings = {
 				FRAMEWORK_SEARCH_PATHS = "\"/Library/Frameworks\"";
 				HEADER_SEARCH_PATHS = "../../include /Library/Frameworks/SDL.framework/Headers";
-				OPTIMIZATION_CFLAGS = "-O0";
 				OTHER_CFLAGS = "-DPLATFORMDARWIN=1 -DRENDERTYPESDL=1 -DNOASM -DUSE_A_C -DSUPERBUILD -DPOLYMOST -DUSE_OPENGL";
 				OTHER_LDFLAGS = "-framework SDL";
 				OTHER_REZFLAGS = "";
@@ -467,9 +467,9 @@
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.c;
 			name = bstub.c;
-			path = /Users/jonof/ports/build/src/bstub.c;
-			refType = 0;
-			sourceTree = "<absolute>";
+			path = ../../src/bstub.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
 		AB6A5E5608A8134100A213E8 = {
 			fileRef = AB6A5E5508A8134100A213E8;
@@ -482,9 +482,9 @@
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.c;
 			name = build_icon.c;
-			path = /Users/jonof/ports/build/rsrc/build_icon.c;
-			refType = 0;
-			sourceTree = "<absolute>";
+			path = ../../rsrc/build_icon.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
 		AB6A5E6808A816CD00A213E8 = {
 			fileRef = AB6A5E6708A816CD00A213E8;
