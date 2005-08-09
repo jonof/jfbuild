@@ -2881,8 +2881,8 @@ static void drawvox(long dasprx, long daspry, long dasprz, long dasprang,
 	dayscalerecip = (1<<30)/dayscale;
 
 	longptr = (long *)davoxptr;
-	daxsiz = longptr[0]; daysiz = longptr[1]; dazsiz = longptr[2];
-	daxpivot = longptr[3]; daypivot = longptr[4]; dazpivot = longptr[5];
+	daxsiz = B_LITTLE32(longptr[0]); daysiz = B_LITTLE32(longptr[1]); dazsiz = B_LITTLE32(longptr[2]);
+	daxpivot = B_LITTLE32(longptr[3]); daypivot = B_LITTLE32(longptr[4]); dazpivot = B_LITTLE32(longptr[5]);
 	davoxptr += (6<<2);
 
 	x = mulscale16(globalposx-dasprx,daxscalerecip);
@@ -2982,7 +2982,7 @@ static void drawvox(long dasprx, long daspry, long dasprz, long dasprang,
 
 		for(x=xs;x!=xe;x+=xi)
 		{
-			slabxoffs = (long)&davoxptr[longptr[x]];
+			slabxoffs = (long)&davoxptr[B_LITTLE32(longptr[x])];
 			shortptr = (short *)&davoxptr[((x*(daysiz+1))<<1)+xyvoxoffs];
 
 			nx = mulscale16(ggxstart+ggxinc[x],viewingrangerecip)+x1;
@@ -2990,8 +2990,8 @@ static void drawvox(long dasprx, long daspry, long dasprz, long dasprang,
 			for(y=ys;y!=ye;y+=yi,nx+=dagyinc,ny-=dagxinc)
 			{
 				if ((ny <= nytooclose) || (ny >= nytoofar)) continue;
-				voxptr = (char *)(shortptr[y]+slabxoffs);
-				voxend = (char *)(shortptr[y+1]+slabxoffs);
+				voxptr = (char *)(B_LITTLE16(shortptr[y])+slabxoffs);
+				voxend = (char *)(B_LITTLE16(shortptr[y+1])+slabxoffs);
 				if (voxptr == voxend) continue;
 
 				lx = mulscale32(nx>>3,distrecip[(ny+y1)>>14])+halfxdimen;
@@ -3911,7 +3911,7 @@ static void drawsprite(long snum)
 			nyrepeat = ((long)tspr->yrepeat)*voxscale[vtilenum];
 		}
 
-		if (!(cstat&128)) tspr->z -= mulscale22(longptr[5],nyrepeat);
+		if (!(cstat&128)) tspr->z -= mulscale22(B_LITTLE32(longptr[5]),nyrepeat);
 		yoff = (long)((signed char)((picanm[sprite[tspr->owner].picnum]>>16)&255))+((long)tspr->yoffset);
 		tspr->z -= mulscale14(yoff,nyrepeat);
 
@@ -3924,8 +3924,8 @@ static void drawsprite(long snum)
 
 			xv = mulscale16(nxrepeat,xyaspect);
 
-			xspan = ((longptr[0]+longptr[1])>>1);
-			yspan = longptr[2];
+			xspan = ((B_LITTLE32(longptr[0])+B_LITTLE32(longptr[1]))>>1);
+			yspan = B_LITTLE32(longptr[2]);
 			xsiz = mulscale30(siz,xv*xspan);
 			ysiz = mulscale30(siz,nyrepeat*yspan);
 
@@ -5001,8 +5001,8 @@ static int loadtables(void)
 
 		if ((fil = kopen4load("tables.dat",0)) != -1)
 		{
-			kread(fil,sintable,2048*2);
-			kread(fil,radarang,640*2);
+			kread(fil,sintable,2048*2); for (i=2048-1; i>=0; i--) sintable[i] = B_LITTLE16(sintable[i]);
+			kread(fil,radarang,640*2);  for (i=640-1;  i>=0; i--) radarang[i] = B_LITTLE16(radarang[i]);
 			for(i=0;i<640;i++) radarang[1279-i] = -radarang[i];
 			//kread(fil,textfont,1024);
 			//kread(fil,smalltextfont,1024);
@@ -6162,7 +6162,7 @@ long loadboard(char *filename, char fromwhere, long *daposx, long *daposy, long 
 	if ((fil = kopen4load(filename,fromwhere)) == -1)
 		{ mapversion = 7L; return(-1); }
 
-	kread(fil,&mapversion,4);
+	kread(fil,&mapversion,4); mapversion = B_LITTLE32(mapversion);
 	if (mapversion != 7L && mapversion != 8L) return(-1);
 
 	initspritelists();
@@ -6175,23 +6175,68 @@ long loadboard(char *filename, char fromwhere, long *daposx, long *daposy, long 
 	clearbuf(&show2dsprite[0],(long)((MYMAXSPRITES+3)>>5),0L);
 	clearbuf(&show2dwall[0],(long)((MYMAXWALLS+3)>>5),0L);
 
-	kread(fil,daposx,4);
-	kread(fil,daposy,4);
-	kread(fil,daposz,4);
-	kread(fil,daang,2);
-	kread(fil,dacursectnum,2);
+	kread(fil,daposx,4); *daposx = B_LITTLE32(*daposx);
+	kread(fil,daposy,4); *daposy = B_LITTLE32(*daposy);
+	kread(fil,daposz,4); *daposz = B_LITTLE32(*daposz);
+	kread(fil,daang,2);  *daang  = B_LITTLE16(*daang);
+	kread(fil,dacursectnum,2); *dacursectnum = B_LITTLE16(*dacursectnum);
 
-	kread(fil,&numsectors,2);
-	if (numsectors > MYMAXSECTORS) { kclose(fil); return(-1); }	// JBF 20040629: it's nice to test these things
+	kread(fil,&numsectors,2); numsectors = B_LITTLE16(numsectors);
+	if (numsectors > MYMAXSECTORS) { kclose(fil); return(-1); }
 	kread(fil,&sector[0],sizeof(sectortype)*numsectors);
+	for (i=numsectors-1; i>=0; i--) {
+		sector[i].wallptr       = B_LITTLE16(sector[i].wallptr);
+		sector[i].wallnum       = B_LITTLE16(sector[i].wallnum);
+		sector[i].ceilingz      = B_LITTLE32(sector[i].ceilingz);
+		sector[i].floorz        = B_LITTLE32(sector[i].floorz);
+		sector[i].ceilingstat   = B_LITTLE16(sector[i].ceilingstat);
+		sector[i].floorstat     = B_LITTLE16(sector[i].floorstat);
+		sector[i].ceilingpicnum = B_LITTLE16(sector[i].ceilingpicnum);
+		sector[i].ceilingheinum = B_LITTLE16(sector[i].ceilingheinum);
+		sector[i].floorpicnum   = B_LITTLE16(sector[i].floorpicnum);
+		sector[i].floorheinum   = B_LITTLE16(sector[i].floorheinum);
+		sector[i].lotag         = B_LITTLE16(sector[i].lotag);
+		sector[i].hitag         = B_LITTLE16(sector[i].hitag);
+		sector[i].extra         = B_LITTLE16(sector[i].extra);
+	}
 
-	kread(fil,&numwalls,2);
-	if (numwalls > MYMAXWALLS) { kclose(fil); return(-1); }		// JBF 20040629
+	kread(fil,&numwalls,2); numwalls = B_LITTLE16(numwalls);
+	if (numwalls > MYMAXWALLS) { kclose(fil); return(-1); }
 	kread(fil,&wall[0],sizeof(walltype)*numwalls);
+	for (i=numwalls-1; i>=0; i--) {
+		wall[i].x          = B_LITTLE32(wall[i].x);
+		wall[i].y          = B_LITTLE32(wall[i].y);
+		wall[i].point2     = B_LITTLE16(wall[i].point2);
+		wall[i].nextwall   = B_LITTLE16(wall[i].nextwall);
+		wall[i].nextsector = B_LITTLE16(wall[i].nextsector);
+		wall[i].cstat      = B_LITTLE16(wall[i].cstat);
+		wall[i].picnum     = B_LITTLE16(wall[i].picnum);
+		wall[i].overpicnum = B_LITTLE16(wall[i].overpicnum);
+		wall[i].lotag      = B_LITTLE16(wall[i].lotag);
+		wall[i].hitag      = B_LITTLE16(wall[i].hitag);
+		wall[i].extra      = B_LITTLE16(wall[i].extra);
+	}
 
-	kread(fil,&numsprites,2);
-	if (numsprites > MYMAXSPRITES) { kclose(fil); return(-1); }	// JBF 20040629
+	kread(fil,&numsprites,2); numsprites = B_LITTLE16(numsprites);
+	if (numsprites > MYMAXSPRITES) { kclose(fil); return(-1); }
 	kread(fil,&sprite[0],sizeof(spritetype)*numsprites);
+	for (i=numsprites-1; i>=0; i--) {
+		sprite[i].x       = B_LITTLE32(sprite[i].x);
+		sprite[i].y       = B_LITTLE32(sprite[i].y);
+		sprite[i].z       = B_LITTLE32(sprite[i].z);
+		sprite[i].cstat   = B_LITTLE16(sprite[i].cstat);
+		sprite[i].picnum  = B_LITTLE16(sprite[i].picnum);
+		sprite[i].sectnum = B_LITTLE16(sprite[i].sectnum);
+		sprite[i].statnum = B_LITTLE16(sprite[i].statnum);
+		sprite[i].ang     = B_LITTLE16(sprite[i].ang);
+		sprite[i].owner   = B_LITTLE16(sprite[i].owner);
+		sprite[i].xvel    = B_LITTLE16(sprite[i].xvel);
+		sprite[i].yvel    = B_LITTLE16(sprite[i].yvel);
+		sprite[i].zvel    = B_LITTLE16(sprite[i].zvel);
+		sprite[i].lotag   = B_LITTLE16(sprite[i].lotag);
+		sprite[i].hitag   = B_LITTLE16(sprite[i].hitag);
+		sprite[i].extra   = B_LITTLE16(sprite[i].extra);
+	}
 
 	for(i=0;i<numsprites;i++) {
 		if ((sprite[i].cstat & 48) == 48) sprite[i].cstat &= ~48;
@@ -6312,7 +6357,11 @@ long loadmaphack(char *filename) { return -1; }
 long saveboard(char *filename, long *daposx, long *daposy, long *daposz,
 			 short *daang, short *dacursectnum)
 {
-	short fil, i, j, numsprites;
+	short fil, i, j, numsprites, ts;
+	long tl;
+	sectortype tsect;
+	walltype   twall;
+	spritetype tspri;
 
 	if ((fil = Bopen(filename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IWRITE)) == -1)
 		return(-1);
@@ -6332,28 +6381,74 @@ long saveboard(char *filename, long *daposx, long *daposy, long *daposz,
 		mapversion = 8;
 	else
 		mapversion = 7;
-	Bwrite(fil,&mapversion,4);
+	tl = B_LITTLE32(mapversion);    Bwrite(fil,&tl,4);
 
-	Bwrite(fil,daposx,4);
-	Bwrite(fil,daposy,4);
-	Bwrite(fil,daposz,4);
-	Bwrite(fil,daang,2);
-	Bwrite(fil,dacursectnum,2);
+	tl = B_LITTLE32(*daposx);       Bwrite(fil,&tl,4);
+	tl = B_LITTLE32(*daposy);       Bwrite(fil,&tl,4);
+	tl = B_LITTLE32(*daposz);       Bwrite(fil,&tl,4);
+	ts = B_LITTLE16(*daang);        Bwrite(fil,&ts,2);
+	ts = B_LITTLE16(*dacursectnum); Bwrite(fil,&ts,2);
 
-	Bwrite(fil,&numsectors,2);
-	Bwrite(fil,&sector[0],sizeof(sectortype)*numsectors);
+	ts = B_LITTLE16(numsectors);    Bwrite(fil,&ts,2);
+	for (i=0; i<numsectors; i++) {
+		tsect = sector[i];
+		tsect.wallptr       = B_LITTLE16(tsect.wallptr);
+		tsect.wallnum       = B_LITTLE16(tsect.wallnum);
+		tsect.ceilingz      = B_LITTLE32(tsect.ceilingz);
+		tsect.floorz        = B_LITTLE32(tsect.floorz);
+		tsect.ceilingstat   = B_LITTLE16(tsect.ceilingstat);
+		tsect.floorstat     = B_LITTLE16(tsect.floorstat);
+		tsect.ceilingpicnum = B_LITTLE16(tsect.ceilingpicnum);
+		tsect.ceilingheinum = B_LITTLE16(tsect.ceilingheinum);
+		tsect.floorpicnum   = B_LITTLE16(tsect.floorpicnum);
+		tsect.floorheinum   = B_LITTLE16(tsect.floorheinum);
+		tsect.lotag         = B_LITTLE16(tsect.lotag);
+		tsect.hitag         = B_LITTLE16(tsect.hitag);
+		tsect.extra         = B_LITTLE16(tsect.extra);
+		Bwrite(fil,&tsect,sizeof(sectortype));
+	}
 
-	Bwrite(fil,&numwalls,2);
-	Bwrite(fil,&wall[0],sizeof(walltype)*numwalls);
+	ts = B_LITTLE16(numwalls);      Bwrite(fil,&ts,2);
+	for (i=0; i<numwalls; i++) {
+		twall = wall[i];
+		twall.x          = B_LITTLE32(twall.x);
+		twall.y          = B_LITTLE32(twall.y);
+		twall.point2     = B_LITTLE16(twall.point2);
+		twall.nextwall   = B_LITTLE16(twall.nextwall);
+		twall.nextsector = B_LITTLE16(twall.nextsector);
+		twall.cstat      = B_LITTLE16(twall.cstat);
+		twall.picnum     = B_LITTLE16(twall.picnum);
+		twall.overpicnum = B_LITTLE16(twall.overpicnum);
+		twall.lotag      = B_LITTLE16(twall.lotag);
+		twall.hitag      = B_LITTLE16(twall.hitag);
+		twall.extra      = B_LITTLE16(twall.extra);
+		Bwrite(fil,&twall,sizeof(walltype));
+	}
 
-	Bwrite(fil,&numsprites,2);
+	ts = B_LITTLE16(numsprites);    Bwrite(fil,&ts,2);
 
 	for(j=0;j<MAXSTATUS;j++)
 	{
 		i = headspritestat[j];
 		while (i != -1)
 		{
-			Bwrite(fil,&sprite[i],sizeof(spritetype));
+			tspri = sprite[i];
+			tspri.x       = B_LITTLE32(tspri.x);
+			tspri.y       = B_LITTLE32(tspri.y);
+			tspri.z       = B_LITTLE32(tspri.z);
+			tspri.cstat   = B_LITTLE16(tspri.cstat);
+			tspri.picnum  = B_LITTLE16(tspri.picnum);
+			tspri.sectnum = B_LITTLE16(tspri.sectnum);
+			tspri.statnum = B_LITTLE16(tspri.statnum);
+			tspri.ang     = B_LITTLE16(tspri.ang);
+			tspri.owner   = B_LITTLE16(tspri.owner);
+			tspri.xvel    = B_LITTLE16(tspri.xvel);
+			tspri.yvel    = B_LITTLE16(tspri.yvel);
+			tspri.zvel    = B_LITTLE16(tspri.zvel);
+			tspri.lotag   = B_LITTLE16(tspri.lotag);
+			tspri.hitag   = B_LITTLE16(tspri.hitag);
+			tspri.extra   = B_LITTLE16(tspri.extra);
+			Bwrite(fil,&tspri,sizeof(spritetype));
 			i = nextspritestat[i];
 		}
 	}
@@ -6538,17 +6633,22 @@ long loadpics(char *filename, long askedsize)
 		artfilename[5] = ((k/100)%10)+48;
 		if ((fil = kopen4load(artfilename,0)) != -1)
 		{
-			kread(fil,&artversion,4);
+			kread(fil,&artversion,4); artversion = B_LITTLE32(artversion);
 			if (artversion != 1) {
 				Bprintf("loadpics(): Invalid art file version in %s\n", artfilename);
 				return(-1);
 			}
-			kread(fil,&numtiles,4);
-			kread(fil,&localtilestart,4);
-			kread(fil,&localtileend,4);
+			kread(fil,&numtiles,4);       numtiles       = B_LITTLE32(numtiles);
+			kread(fil,&localtilestart,4); localtilestart = B_LITTLE32(localtilestart);
+			kread(fil,&localtileend,4);   localtileend   = B_LITTLE32(localtileend);
 			kread(fil,&tilesizx[localtilestart],(localtileend-localtilestart+1)<<1);
 			kread(fil,&tilesizy[localtilestart],(localtileend-localtilestart+1)<<1);
 			kread(fil,&picanm[localtilestart],(localtileend-localtilestart+1)<<2);
+			for (i=localtilestart; i<=localtileend; i++) {
+				tilesizx[i] = B_LITTLE16(tilesizx[i]);
+				tilesizy[i] = B_LITTLE16(tilesizy[i]);
+				picanm[i]   = B_LITTLE32(picanm[i]);
+			}
 
 			offscount = 4+4+4+4+((localtileend-localtilestart+1)<<3);
 			for(i=localtilestart;i<=localtileend;i++)
@@ -6728,7 +6828,7 @@ long qloadkvx(long voxindex, char *filename)
 
 	for(i=0;i<MAXVOXMIPS;i++)
 	{
-		kread(fil,&dasiz,4);
+		kread(fil,&dasiz,4); dasiz = B_LITTLE32(dasiz);
 			//Must store filenames to use cacheing system :(
 		voxlock[voxindex][i] = 200;
 		allocache(&voxoff[voxindex][i],dasiz,&voxlock[voxindex][i]);

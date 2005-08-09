@@ -476,7 +476,7 @@ void polymost_glreset ()
 		for (i=GLTEXCACHEADSIZ-1; i>=0; i--) {
 			for (pth=gltexcachead[i]; pth;) {
 				next = pth->next;
-				bglDeleteTextures(1,&pth->glpic);
+				bglDeleteTextures(1,(GLuint*)&pth->glpic);
 				free(pth);
 				pth = next;
 			}
@@ -742,7 +742,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 		}
 	}
 
-	if (doalloc) bglGenTextures(1,&pth->glpic);  //# of textures (make OpenGL allocate structure)
+	if (doalloc) bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
 	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
 
 	fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);
@@ -892,7 +892,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 		intexfmt = (hasalpha == 255) ? GL_COMPRESSED_RGB_ARB : GL_COMPRESSED_RGBA_ARB;
 	else if (hasalpha == 255) intexfmt = GL_RGB;
 
-	if (doalloc) bglGenTextures(1,&pth->glpic);  //# of textures (make OpenGL allocate structure)
+	if (doalloc) bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
 	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
 
 	fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);

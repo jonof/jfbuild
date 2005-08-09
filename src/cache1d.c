@@ -455,7 +455,7 @@ long initgroupfile(char *filename)
 			groupfil[numgroupfiles] = -1;
 			return(-1);
 		}
-		gnumfiles[numgroupfiles] = *((long *)&buf[12]);
+		gnumfiles[numgroupfiles] = B_LITTLE32(*((long *)&buf[12]));
 
 		if ((gfilelist[numgroupfiles] = (char *)kmalloc(gnumfiles[numgroupfiles]<<4)) == 0)
 			{ Bprintf("Not enough memory for file grouping system\n"); exit(0); }
@@ -467,7 +467,7 @@ long initgroupfile(char *filename)
 		j = 0;
 		for(i=0;i<gnumfiles[numgroupfiles];i++)
 		{
-			k = *((long *)&gfilelist[numgroupfiles][(i<<4)+12]);
+			k = B_LITTLE32(*((long *)&gfilelist[numgroupfiles][(i<<4)+12]));
 			gfilelist[numgroupfiles][(i<<4)+12] = 0;
 			gfileoffs[numgroupfiles][i] = j;
 			j += k;
@@ -877,7 +877,7 @@ int kdfread(void *buffer, bsize_t dasizeof, bsize_t count, long fil)
 	if (dasizeof > LZWSIZE) { count *= dasizeof; dasizeof = 1; }
 	ptr = (char *)buffer;
 
-	if (kread(fil,&leng,2) != 2) return -1;
+	if (kread(fil,&leng,2) != 2) return -1; leng = B_LITTLE16(leng);
 	if (kread(fil,lzwbuf5,(long)leng) != leng) return -1;
 	k = 0; kgoal = lzwuncompress(lzwbuf5,(long)leng,lzwbuf4);
 
@@ -888,7 +888,7 @@ int kdfread(void *buffer, bsize_t dasizeof, bsize_t count, long fil)
 	{
 		if (k >= kgoal)
 		{
-			if (kread(fil,&leng,2) != 2) return -1;
+			if (kread(fil,&leng,2) != 2) return -1; leng = B_LITTLE16(leng);
 			if (kread(fil,lzwbuf5,(long)leng) != leng) return -1;
 			k = 0; kgoal = lzwuncompress(lzwbuf5,(long)leng,lzwbuf4);
 		}
@@ -916,7 +916,7 @@ int dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 	if (dasizeof > LZWSIZE) { count *= dasizeof; dasizeof = 1; }
 	ptr = (char *)buffer;
 
-	if (Bfread(&leng,2,1,fil) != 1) return -1;
+	if (Bfread(&leng,2,1,fil) != 1) return -1; leng = B_LITTLE16(leng);
 	if (Bfread(lzwbuf5,(long)leng,1,fil) != 1) return -1;
 	k = 0; kgoal = lzwuncompress(lzwbuf5,(long)leng,lzwbuf4);
 
@@ -927,7 +927,7 @@ int dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 	{
 		if (k >= kgoal)
 		{
-			if (Bfread(&leng,2,1,fil) != 1) return -1;
+			if (Bfread(&leng,2,1,fil) != 1) return -1; leng = B_LITTLE16(leng);
 			if (Bfread(lzwbuf5,(long)leng,1,fil) != 1) return -1;
 			k = 0; kgoal = lzwuncompress(lzwbuf5,(long)leng,lzwbuf4);
 		}
@@ -942,7 +942,7 @@ int dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 void dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 {
 	unsigned long i, j, k;
-	short leng;
+	short leng, swleng;
 	char *ptr;
 
 	lzwbuflock[0] = lzwbuflock[1] = lzwbuflock[2] = lzwbuflock[3] = lzwbuflock[4] = 200;
@@ -960,8 +960,8 @@ void dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 
 	if (k > LZWSIZE-dasizeof)
 	{
-		leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); k = 0;
-		Bfwrite(&leng,2,1,fil); Bfwrite(lzwbuf5,(long)leng,1,fil);
+		leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); k = 0; swleng = B_LITTLE16(leng);
+		Bfwrite(&swleng,2,1,fil); Bfwrite(lzwbuf5,(long)leng,1,fil);
 	}
 
 	for(i=1;i<count;i++)
@@ -970,15 +970,15 @@ void dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 		k += dasizeof;
 		if (k > LZWSIZE-dasizeof)
 		{
-			leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); k = 0;
-			Bfwrite(&leng,2,1,fil); Bfwrite(lzwbuf5,(long)leng,1,fil);
+			leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); k = 0; swleng = B_LITTLE16(leng);
+			Bfwrite(&swleng,2,1,fil); Bfwrite(lzwbuf5,(long)leng,1,fil);
 		}
 		ptr += dasizeof;
 	}
 	if (k > 0)
 	{
-		leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5);
-		Bfwrite(&leng,2,1,fil); Bfwrite(lzwbuf5,(long)leng,1,fil);
+		leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); swleng = B_LITTLE16(leng);
+		Bfwrite(&swleng,2,1,fil); Bfwrite(lzwbuf5,(long)leng,1,fil);
 	}
 	lzwbuflock[0] = lzwbuflock[1] = lzwbuflock[2] = lzwbuflock[3] = lzwbuflock[4] = 1;
 }
@@ -1018,7 +1018,7 @@ long lzwcompress(char *lzwinbuf, long uncompleng, char *lzwoutbuf)
 		lzwbuf3[addrcnt] = -1;
 
 		intptr = (long *)&lzwoutbuf[bitcnt>>3];
-		intptr[0] |= (addr<<(bitcnt&7));
+		intptr[0] |= B_LITTLE32(addr<<(bitcnt&7));
 		bitcnt += numbits;
 		if ((addr&((oneupnumbits>>1)-1)) > ((addrcnt-1)&((oneupnumbits>>1)-1)))
 			bitcnt--;
@@ -1028,13 +1028,13 @@ long lzwcompress(char *lzwinbuf, long uncompleng, char *lzwoutbuf)
 	} while ((bytecnt1 < uncompleng) && (bitcnt < (uncompleng<<3)));
 
 	intptr = (long *)&lzwoutbuf[bitcnt>>3];
-	intptr[0] |= (addr<<(bitcnt&7));
+	intptr[0] |= B_LITTLE32(addr<<(bitcnt&7));
 	bitcnt += numbits;
 	if ((addr&((oneupnumbits>>1)-1)) > ((addrcnt-1)&((oneupnumbits>>1)-1)))
 		bitcnt--;
 
 	shortptr = (short *)lzwoutbuf;
-	shortptr[0] = (short)uncompleng;
+	shortptr[0] = B_LITTLE16((short)uncompleng);
 	if (((bitcnt+7)>>3) < uncompleng)
 	{
 		shortptr[1] = (short)addrcnt;
@@ -1052,11 +1052,11 @@ long lzwuncompress(char *lzwinbuf, long compleng, char *lzwoutbuf)
 	short *shortptr;
 
 	shortptr = (short *)lzwinbuf;
-	strtot = (long)shortptr[1];
+	strtot = (long)B_LITTLE16(shortptr[1]);
 	if (strtot == 0)
 	{
 		copybuf(lzwinbuf+4,lzwoutbuf,((compleng-4)+3)>>2);
-		return((long)shortptr[0]); //uncompleng
+		return((long)B_LITTLE16(shortptr[0])); //uncompleng
 	}
 	for(i=255;i>=0;i--) { lzwbuf2[i] = i; lzwbuf3[i] = i; }
 	currstr = 256; bitcnt = (4<<3); outbytecnt = 0;
@@ -1064,7 +1064,7 @@ long lzwuncompress(char *lzwinbuf, long compleng, char *lzwoutbuf)
 	do
 	{
 		intptr = (long *)&lzwinbuf[bitcnt>>3];
-		dat = ((intptr[0]>>(bitcnt&7)) & (oneupnumbits-1));
+		dat = ((B_LITTLE32(intptr[0])>>(bitcnt&7)) & (oneupnumbits-1));
 		bitcnt += numbits;
 		if ((dat&((oneupnumbits>>1)-1)) > ((currstr-1)&((oneupnumbits>>1)-1)))
 			{ dat &= ((oneupnumbits>>1)-1); bitcnt--; }
@@ -1081,7 +1081,7 @@ long lzwuncompress(char *lzwinbuf, long compleng, char *lzwoutbuf)
 		currstr++;
 		if (currstr > oneupnumbits) { numbits++; oneupnumbits <<= 1; }
 	} while (currstr < strtot);
-	return((long)shortptr[0]); //uncompleng
+	return((long)B_LITTLE16(shortptr[0])); //uncompleng
 }
 
 /*

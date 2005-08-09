@@ -216,7 +216,7 @@ static void clearskins ()
 		if (m->mdnum == 1) {
 			voxmodel *v = (voxmodel*)m;
 			for(j=0;j<MAXPALOOKUPS;j++) {
-				if (v->texid[j]) bglDeleteTextures(1,&v->texid[j]);
+				if (v->texid[j]) bglDeleteTextures(1,(GLuint*)&v->texid[j]);
 				v->texid[j] = 0;
 			}
 		} else if (m->mdnum == 2 || m->mdnum == 3) {
@@ -224,14 +224,14 @@ static void clearskins ()
 			mdskinmap_t *sk;
 			for(j=0;j<m2->numskins*(HICEFFECTMASK+1);j++)
 			{
-				if (m2->texid[j]) bglDeleteTextures(1,&m2->texid[j]);
+				if (m2->texid[j]) bglDeleteTextures(1,(GLuint*)&m2->texid[j]);
 				m2->texid[j] = 0;
 			}
 
 			for(sk=m2->skinmap;sk;sk=sk->next)
 				for(j=0;j<(HICEFFECTMASK+1);j++)
 				{
-					if (sk->texid[j]) bglDeleteTextures(1,&sk->texid[j]);
+					if (sk->texid[j]) bglDeleteTextures(1,(GLuint*)&sk->texid[j]);
 					sk->texid[j] = 0;
 				}
 		}
@@ -241,7 +241,7 @@ static void clearskins ()
 	{
 		voxmodel *v = (voxmodel*)voxmodels[i]; if (!v) continue;
 		for(j=0;j<MAXPALOOKUPS;j++) {
-			if (v->texid[j]) bglDeleteTextures(1,&v->texid[j]);
+			if (v->texid[j]) bglDeleteTextures(1,(GLuint*)&v->texid[j]);
 			v->texid[j] = 0;
 		}
 	}
@@ -639,7 +639,7 @@ static long mdloadskin (md2model *m, int number, int pal, int surf)
 		m->skinloaded = 1+number;
 	}
 
-	bglGenTextures(1,texidx);
+	bglGenTextures(1,(GLuint*)texidx);
 	bglBindTexture(GL_TEXTURE_2D,*texidx);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
@@ -1273,7 +1273,7 @@ unsigned gloadtex (long *picbuf, long xsiz, long ysiz, long is8bit, long dapal)
 		}
 	}
 
-	bglGenTextures(1,&rtexid);
+	bglGenTextures(1,(GLuint*)&rtexid);
 	bglBindTexture(GL_TEXTURE_2D,rtexid);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
@@ -1615,9 +1615,9 @@ static long loadvox (const char *filnam)
 	unsigned char c[3], *tbuf;
 
 	fil = kopen4load((char *)filnam,0); if (fil < 0) return(-1);
-	kread(fil,&xsiz,4);
-	kread(fil,&ysiz,4);
-	kread(fil,&zsiz,4);
+	kread(fil,&xsiz,4); xsiz = B_LITTLE32(xsiz);
+	kread(fil,&ysiz,4); ysiz = B_LITTLE32(ysiz);
+	kread(fil,&zsiz,4); zsiz = B_LITTLE32(zsiz);
 	xpiv = ((float)xsiz)*.5;
 	ypiv = ((float)ysiz)*.5;
 	zpiv = ((float)zsiz)*.5;
@@ -1677,22 +1677,22 @@ static long loadkvx (const char *filnam)
 	unsigned char c[3], *tbuf, *cptr;
 
 	fil = kopen4load((char *)filnam,0); if (fil < 0) return(-1);
-	kread(fil,&mip1leng,4);
-	kread(fil,&xsiz,4);
-	kread(fil,&ysiz,4);
-	kread(fil,&zsiz,4);
-	kread(fil,&i,4); xpiv = ((float)i)/256.0;
-	kread(fil,&i,4); ypiv = ((float)i)/256.0;
-	kread(fil,&i,4); zpiv = ((float)i)/256.0;
+	kread(fil,&mip1leng,4); mip1leng = B_LITTLE32(mip1leng);
+	kread(fil,&xsiz,4);     xsiz = B_LITTLE32(xsiz);
+	kread(fil,&ysiz,4);     ysiz = B_LITTLE32(ysiz);
+	kread(fil,&zsiz,4);     zsiz = B_LITTLE32(zsiz);
+	kread(fil,&i,4); xpiv = ((float)B_LITTLE32(i))/256.0;
+	kread(fil,&i,4); ypiv = ((float)B_LITTLE32(i))/256.0;
+	kread(fil,&i,4); zpiv = ((float)B_LITTLE32(i))/256.0;
 	klseek(fil,(xsiz+1)<<2,SEEK_CUR);
 	ysizp1 = ysiz+1;
 	i = xsiz*ysizp1*sizeof(short);
 	xyoffs = (unsigned short *)malloc(i); if (!xyoffs) { kclose(fil); return(-1); }
-	kread(fil,xyoffs,i);
+	kread(fil,xyoffs,i); for (i=i/sizeof(short)-1; i>=0; i--) xyoffs[i] = B_LITTLE16(xyoffs[i]);
 
 	klseek(fil,-768,SEEK_END);
 	for(i=0;i<256;i++)
-		{ kread(fil,c,3); pal[i] = (((long)c[0])<<18)+(((long)c[1])<<10)+(((long)c[2])<<2)+(i<<24); }
+		{ kread(fil,c,3); pal[i] = B_LITTLE32((((long)c[0])<<18)+(((long)c[1])<<10)+(((long)c[2])<<2)+(i<<24)); }
 
 	yzsiz = ysiz*zsiz; i = ((xsiz*yzsiz+31)>>3);
 	vbit = (long *)malloc(i); if (!vbit) { free(xyoffs); kclose(fil); return(-1); }
@@ -1734,20 +1734,20 @@ static long loadkv6 (const char *filnam)
 	unsigned char c[8];
 
 	fil = kopen4load((char *)filnam,0); if (fil < 0) return(-1);
-	kread(fil,&i,4); if (i != 0x6c78764b) { kclose(fil); return(-1); } //Kvxl
-	kread(fil,&xsiz,4);
-	kread(fil,&ysiz,4);
-	kread(fil,&zsiz,4);
-	kread(fil,&xpiv,4);
-	kread(fil,&ypiv,4);
-	kread(fil,&zpiv,4);
-	kread(fil,&numvoxs,4);
+	kread(fil,&i,4); if (B_LITTLE32(i) != 0x6c78764b) { kclose(fil); return(-1); } //Kvxl
+	kread(fil,&xsiz,4);    xsiz = B_LITTLE32(xsiz);
+	kread(fil,&ysiz,4);    ysiz = B_LITTLE32(ysiz);
+	kread(fil,&zsiz,4);    zsiz = B_LITTLE32(zsiz);
+	kread(fil,&xpiv,4);    xpiv = B_LITTLE32(xpiv);
+	kread(fil,&ypiv,4);    ypiv = B_LITTLE32(ypiv);
+	kread(fil,&zpiv,4);    zpiv = B_LITTLE32(zpiv);
+	kread(fil,&numvoxs,4); numvoxs = B_LITTLE32(numvoxs);
 
 	ylen = (unsigned short *)malloc(xsiz*ysiz*sizeof(short));
 	if (!ylen) { kclose(fil); return(-1); }
 
 	klseek(fil,32+(numvoxs<<3)+(xsiz<<2),SEEK_SET);
-	kread(fil,ylen,xsiz*ysiz*sizeof(short));
+	kread(fil,ylen,xsiz*ysiz*sizeof(short)); for (i=xsiz*ysiz-1; i>=0; i--) ylen[i] = B_LITTLE16(ylen[i]);
 	klseek(fil,32,SEEK_SET);
 
 	yzsiz = ysiz*zsiz; i = ((xsiz*yzsiz+31)>>3);
@@ -1768,7 +1768,7 @@ static long loadkv6 (const char *filnam)
 				z0 = *(unsigned short *)&c[4];
 				if (!(c[6]&16)) setzrange1(vbit,j+z1,j+z0);
 				vbit[(j+z0)>>5] |= (1<<(j+z0));
-				putvox(x,y,z0,(*(long *)&c[0])&0xffffff);
+				putvox(x,y,z0,B_LITTLE32(*(long *)&c[0])&0xffffff);
 				z1 = z0+1;
 			}
 		}
