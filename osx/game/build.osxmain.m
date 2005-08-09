@@ -93,7 +93,8 @@ static BOOL   gFinderLaunch;
     [self setupWorkingDirectory:gFinderLaunch];
 
     /* Set the main menu to contain the real app name instead of "SDL App" */
-    [self fixMenu:[NSApp mainMenu] withAppName:[[NSProcessInfo processInfo] processName]];
+    //[self fixMenu:[NSApp mainMenu] withAppName:[[NSProcessInfo processInfo] processName]];
+	[self fixMenu:[NSApp mainMenu] withAppName:[[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleName"]];
 
     /* Hand off to main application code */
     status = SDL_main (gArgc, gArgv);
