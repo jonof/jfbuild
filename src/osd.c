@@ -471,7 +471,7 @@ int OSD_HandleKey(int sc, int press)
 		} else if (ch == 2) {	// control b, move one character left
 		} else if (ch == 5) {	// control e, jump to end of line
 		} else if (ch == 6) {	// control f, move one character right
-		} else if (ch == 8) {	// control h, backspace
+		} else if (ch == 8 || ch == 127) {	// control h, backspace
 			if (!osdeditcursor || !osdeditlen) return 0;
 			if (!osdovertype) {
 				if (osdeditcursor < osdeditlen)

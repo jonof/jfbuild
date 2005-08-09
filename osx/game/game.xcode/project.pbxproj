@@ -7,37 +7,13 @@
 	objects = {
 		080E96DDFE201D6D7F000001 = {
 			children = (
-				F5A47A9D01A0482F01D3D55B,
+				AB6A5E7008A8177C00A213E8,
 				F5A47A9E01A0483001D3D55B,
 			);
 			isa = PBXGroup;
 			name = Classes;
 			refType = 4;
 			sourceTree = "<group>";
-		};
-		089C165CFE840E0CC02AAC07 = {
-			children = (
-				089C165DFE840E0CC02AAC07,
-			);
-			isa = PBXVariantGroup;
-			name = InfoPlist.strings;
-			refType = 4;
-			sourceTree = "<group>";
-		};
-		089C165DFE840E0CC02AAC07 = {
-			fileEncoding = 10;
-			isa = PBXFileReference;
-			lastKnownFileType = text.plist.strings;
-			name = English;
-			path = English.lproj/InfoPlist.strings;
-			refType = 4;
-			sourceTree = "<group>";
-		};
-		089C165EFE840E0CC02AAC07 = {
-			fileRef = 089C165CFE840E0CC02AAC07;
-			isa = PBXBuildFile;
-			settings = {
-			};
 		};
 //080
 //081
@@ -154,12 +130,10 @@
 		};
 		29B97314FDCFA39411CA2CEA = {
 			children = (
-				AB6A5E7008A8177C00A213E8,
-				AB6A5E6708A816CD00A213E8,
-				AB6A5E5508A8134100A213E8,
 				AB9DB354085EEA8C009D4FDA,
 				080E96DDFE201D6D7F000001,
 				29B97315FDCFA39411CA2CEA,
+				ABBD0F7608A897D10062C038,
 				29B97317FDCFA39411CA2CEA,
 				29B97323FDCFA39411CA2CEA,
 				19C28FACFE9D520D11CA2CBB,
@@ -178,14 +152,14 @@
 				AB9DB2FF085EE8D5009D4FDA,
 			);
 			isa = PBXGroup;
-			name = Sources;
+			name = "Game Sources";
 			path = "";
 			refType = 4;
 			sourceTree = "<group>";
 		};
 		29B97317FDCFA39411CA2CEA = {
 			children = (
-				089C165CFE840E0CC02AAC07,
+				ABBD0F3D08A884370062C038,
 			);
 			isa = PBXGroup;
 			name = Resources;
@@ -254,8 +228,12 @@
 	<string>game</string>
 	<key>CFBundleIconFile</key>
 	<string></string>
+	<key>CFBundleIdentifier</key>
+	<string>au.id.jonof.kenbuild</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>KenBuild</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
@@ -263,7 +241,7 @@
 	<key>CFBundleVersion</key>
 	<string>0.1</string>
 	<key>NSMainNibFile</key>
-	<string>MainMenu</string>
+	<string>osxmain</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>
@@ -273,7 +251,7 @@
 		29B97328FDCFA39411CA2CEA = {
 			buildActionMask = 2147483647;
 			files = (
-				089C165EFE840E0CC02AAC07,
+				ABBD0F3F08A884370062C038,
 			);
 			isa = PBXResourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -281,7 +259,6 @@
 		29B9732BFDCFA39411CA2CEA = {
 			buildActionMask = 2147483647;
 			files = (
-				F5A47AA101A0483001D3D55B,
 				F5A47AA301A0483001D3D55B,
 				AB9DB300085EE8D5009D4FDA,
 				AB9DB301085EE8D5009D4FDA,
@@ -359,16 +336,10 @@
 			settings = {
 			};
 		};
-		AB6A5E3708A8124200A213E8 = {
-			buildActionMask = 2147483647;
-			files = (
-			);
-			isa = PBXHeadersBuildPhase;
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AB6A5E3808A8124200A213E8 = {
 			buildActionMask = 2147483647;
 			files = (
+				ABBD0F3E08A884370062C038,
 			);
 			isa = PBXResourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -394,20 +365,11 @@
 			isa = PBXFrameworksBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AB6A5E3B08A8124200A213E8 = {
-			buildActionMask = 2147483647;
-			files = (
-			);
-			isa = PBXRezBuildPhase;
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AB6A5E3C08A8124200A213E8 = {
 			buildPhases = (
-				AB6A5E3708A8124200A213E8,
 				AB6A5E3808A8124200A213E8,
 				AB6A5E3908A8124200A213E8,
 				AB6A5E3A08A8124200A213E8,
-				AB6A5E3B08A8124200A213E8,
 			);
 			buildSettings = {
 				FRAMEWORK_SEARCH_PATHS = "\"/Library/Frameworks\"";
@@ -435,17 +397,17 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleExecutable</key>
-	<string></string>
+	<string>editor</string>
 	<key>CFBundleGetInfoString</key>
 	<string></string>
 	<key>CFBundleIconFile</key>
 	<string></string>
 	<key>CFBundleIdentifier</key>
-	<string></string>
+	<string>au.id.jonof.build</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string></string>
+	<string>Build Editor</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -453,9 +415,9 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>0.0.1d1</string>
+	<string>0</string>
 	<key>NSMainNibFile</key>
-	<string>SDLMain.nib</string>
+	<string>osxmain</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>
@@ -505,9 +467,9 @@
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.c;
 			name = bstub.c;
-			path = ../../src/bstub.c;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
+			path = /Users/jonof/ports/build/src/bstub.c;
+			refType = 0;
+			sourceTree = "<absolute>";
 		};
 		AB6A5E5608A8134100A213E8 = {
 			fileRef = AB6A5E5508A8134100A213E8;
@@ -520,9 +482,9 @@
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.c;
 			name = build_icon.c;
-			path = ../../rsrc/build_icon.c;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
+			path = /Users/jonof/ports/build/rsrc/build_icon.c;
+			refType = 0;
+			sourceTree = "<absolute>";
 		};
 		AB6A5E6808A816CD00A213E8 = {
 			fileRef = AB6A5E6708A816CD00A213E8;
@@ -534,7 +496,7 @@
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.objc;
-			path = build.SDLmain.m;
+			path = build.osxmain.m;
 			refType = 2;
 			sourceTree = SOURCE_ROOT;
 		};
@@ -549,27 +511,27 @@
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.c;
 			name = config.c;
-			path = /Users/jonof/ports/build/src/config.c;
-			refType = 0;
-			sourceTree = "<absolute>";
+			path = ../../src/config.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
 		AB9DB2FE085EE8D5009D4FDA = {
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.c;
 			name = game.c;
-			path = /Users/jonof/ports/build/src/game.c;
-			refType = 0;
-			sourceTree = "<absolute>";
+			path = ../../src/game.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
 		AB9DB2FF085EE8D5009D4FDA = {
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.c;
 			name = sound.c;
-			path = /Users/jonof/ports/build/src/sound.c;
-			refType = 0;
-			sourceTree = "<absolute>";
+			path = ../../src/sound.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
 		AB9DB300085EE8D5009D4FDA = {
 			fileRef = AB9DB2FD085EE8D5009D4FDA;
@@ -643,6 +605,35 @@
 			remoteGlobalIDString = AB9DB2C3085EE49A009D4FDA;
 			remoteInfo = editor;
 		};
+		ABBD0F3D08A884370062C038 = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.nib;
+			path = osxmain.nib;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		ABBD0F3E08A884370062C038 = {
+			fileRef = ABBD0F3D08A884370062C038;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		ABBD0F3F08A884370062C038 = {
+			fileRef = ABBD0F3D08A884370062C038;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		ABBD0F7608A897D10062C038 = {
+			children = (
+				AB6A5E6708A816CD00A213E8,
+				AB6A5E5508A8134100A213E8,
+			);
+			isa = PBXGroup;
+			name = "Editor Sources";
+			refType = 4;
+			sourceTree = "<group>";
+		};
 //AB0
 //AB1
 //AB2
@@ -677,27 +668,13 @@
 //F52
 //F53
 //F54
-		F5A47A9D01A0482F01D3D55B = {
-			fileEncoding = 30;
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.c.h;
-			path = game.SDLMain.h;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
-		};
 		F5A47A9E01A0483001D3D55B = {
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.objc;
-			path = game.SDLMain.m;
+			path = game.osxmain.m;
 			refType = 2;
 			sourceTree = SOURCE_ROOT;
-		};
-		F5A47AA101A0483001D3D55B = {
-			fileRef = F5A47A9D01A0482F01D3D55B;
-			isa = PBXBuildFile;
-			settings = {
-			};
 		};
 		F5A47AA301A0483001D3D55B = {
 			fileRef = F5A47A9E01A0483001D3D55B;

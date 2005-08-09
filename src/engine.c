@@ -5074,7 +5074,7 @@ static void loadpalette(void)
 	if ((fil = kopen4load("palette.dat",0)) == -1) return;
 
 	kread(fil,palette,768);
-	kread(fil,&numpalookups,2);
+	kread(fil,&numpalookups,2); numpalookups = B_LITTLE16(numpalookups);
 
 	if ((palookup[0] = (char *)kkmalloc(numpalookups<<8)) == NULL)
 		allocache((long*)&palookup[0],numpalookups<<8,&permanentlock);

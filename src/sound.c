@@ -274,16 +274,16 @@ void loadwaves(void)
 	fil = kopen4load("WAVES.KWV", 0);
 
 	if (fil != -1) {
-		kread(fil, &dawaversionum, 4);
+		kread(fil, &dawaversionum, 4); dawaversionum = B_LITTLE32(dawaversionum);
 		if (dawaversionum != 0) { kclose(fil); return; }
 
-		kread(fil, &numwaves, 4);
+		kread(fil, &numwaves, 4); numwaves = B_LITTLE32(numwaves);
 		for (i=0; i<numwaves; i++) {
 			kread(fil, &instname[i][0], 16);
-			kread(fil, &wavleng[i], 4);
-			kread(fil, &repstart[i], 4);
-			kread(fil, &repleng[i], 4);
-			kread(fil, &finetune[i], 4);
+			kread(fil, &wavleng[i], 4);  wavleng[i]  = B_LITTLE32(wavleng[i]);
+			kread(fil, &repstart[i], 4); repstart[i] = B_LITTLE32(repstart[i]);
+			kread(fil, &repleng[i], 4);  repleng[i]  = B_LITTLE32(repleng[i]);
+			kread(fil, &finetune[i], 4); finetune[i] = B_LITTLE32(finetune[i]);
 		}
 	} else {
 		dawaversionum = 0;
