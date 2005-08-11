@@ -20,10 +20,13 @@ asm=nasm
 DXROOT=c:/sdks/msc/dx61
 FMODROOT=c:/sdks/fmodapi374win/api
 
+ifneq ($(RELEASE),0)
+# debugging disabled
+debug=-fomit-frame-pointer -O2
+else
 # debugging enabled
 debug=-ggdb -O0 #-DDEBUGGINGAIDS
-# debugging disabled
-#debug=-fomit-frame-pointer -O2
+endif
 
 # -D these to enable certain features of the port's compile process
 # USE_A_C   This uses a C version of the classic renderer code rather
@@ -39,7 +42,7 @@ AS=nasm
 RC=windres
 override CFLAGS+= $(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-march=pentium -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
-	-DKSFORBUILD -I$(INC) -I../jfaud/inc
+	-DKSFORBUILD -I$(INC:/=) -I../jfaud/inc
 LIBS=-lfmod # ../jfaud/jfaud.a
 ASFLAGS=-s #-g
 EXESUFFIX=

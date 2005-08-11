@@ -4107,7 +4107,7 @@ static void tessectrap (float *px, float *py, long *point2, long numpoints)
 void polymost_fillpolygon (long npoints)
 {
 	pthtyp *pth;
-	float f,a;
+	float f,a=0.0;
 	long i, j, k;
 
 	globalx1 = mulscale16(globalx1,xyaspect);
