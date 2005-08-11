@@ -87,7 +87,7 @@ static void ReleaseDirectDrawSurfaces(void);
 static BOOL InitDirectInput(void);
 static void UninitDirectInput(void);
 static void GetKeyNames(void);
-static void AcquireInputDevices(char acquire);
+static void AcquireInputDevices(char acquire, signed char device);
 static void ProcessInputDevices(void);
 static int SetupDirectDraw(int width, int height);
 static void UninitDIB(void);
@@ -118,7 +118,7 @@ char videomodereset = 0;
 
 // input and events
 char inputdevices=0;
-char quitevent=0, appactive=1, mousegrab=1;
+char quitevent=0, appactive=1;
 long mousex=0, mousey=0, mouseb=0;
 static unsigned long mousewheel[2] = { 0,0 };
 #define MouseWheelFakePressTime (100)	// getticks() is a 1000Hz timer, and the button press is faked for 100ms
@@ -756,11 +756,10 @@ static BOOL                  bDInputInited = FALSE;
 #define INPUT_BUFFER_SIZE	32
 static GUID                  guidDevs[NUM_INPUTS];
 
-static char inputacquired = 1, devacquired[NUM_INPUTS] = { 0,0,0 };
+static char devacquired[NUM_INPUTS] = { 0,0,0 };
 static HANDLE inputevt[NUM_INPUTS] = {0,0,0};
 static long joyblast=0;
-
-extern char moustat;
+static char moustat = 0, mousegrab = 0;
 
 static struct {
 	char *name;
@@ -918,7 +917,7 @@ void uninitmouse(void)
 	if (!moustat) return;
 
 	grabmouse(0);
-	moustat=0;
+	moustat=mousegrab=0;
 }
 
 
@@ -929,9 +928,8 @@ void grabmouse(char a)
 {
 	if (!moustat) return;
 
-	AcquireInputDevices(128|a);	// only release or grab the mouse
-
 	mousegrab = a;
+	AcquireInputDevices(a,MOUSE);	// only release or grab the mouse
 
 	mousex = 0;
 	mousey = 0;
@@ -944,7 +942,7 @@ void grabmouse(char a)
 //
 void readmousexy(long *x, long *y)
 {
-	if (!inputacquired || !mousegrab) { *x = *y = 0; return; }
+	if (!moustat || !devacquired[MOUSE] || !mousegrab) { *x = *y = 0; return; }
 	*x = mousex;
 	*y = mousey;
 	mousex = 0;
@@ -957,7 +955,7 @@ void readmousexy(long *x, long *y)
 //
 void readmousebstatus(long *b)
 {
-	if (!inputacquired || !mousegrab) *b = 0;
+	if (!moustat || !devacquired[MOUSE] || !mousegrab) *b = 0;
 	else *b = mouseb;
 }
 
@@ -1317,7 +1315,7 @@ static BOOL InitDirectInput(void)
 	}
 
 	GetKeyNames();
-	inputacquired = 0;
+	memset(devacquired, 0, sizeof(devacquired));
 
 	bDInputInited = TRUE;
 	return FALSE;
@@ -1334,7 +1332,7 @@ static void UninitDirectInput(void)
 	
 	if (bDInputInited) initprintf("Uninitialising DirectInput...\n");
 
-	AcquireInputDevices(0);
+	AcquireInputDevices(0,-1);
 
 	if (axisdefs) {
 		for (i=joynumaxes-1; i>=0; i--) if (axisdefs[i].name) free((void*)axisdefs[i].name);
@@ -1432,7 +1430,7 @@ const unsigned char *getjoyname(int what, int num)
 //
 // AcquireInputDevices() -- (un)acquires the input devices
 //
-static void AcquireInputDevices(char acquire)
+static void AcquireInputDevices(char acquire, signed char device)
 {
 	DWORD flags;
 	HRESULT result;
@@ -1441,14 +1439,12 @@ static void AcquireInputDevices(char acquire)
 	if (!bDInputInited) return;
 	if (!hWindow) return;
 
-	inputacquired = acquire;
-
-	if (acquire&127) {
+	if (acquire) {
 		if (!appactive) return;		// why acquire when inactive?
 		for (i=0; i<NUM_INPUTS; i++) {
 			if (! *devicedef[i].did) continue;
-			if ((acquire & 128) && i != MOUSE) continue;	// don't touch other devices if only the mouse is wanted
-			else if (!(acquire&128) && !mousegrab && i == MOUSE) continue;	// don't grab the mouse if we don't want it grabbed
+			if (device != -1 && i != device) continue;	// don't touch other devices if only the mouse is wanted
+			else if (!mousegrab && i == MOUSE) continue;	// don't grab the mouse if we don't want it grabbed
 			
 			IDirectInputDevice2_Unacquire(*devicedef[i].did);
 
@@ -1456,7 +1452,7 @@ static void AcquireInputDevices(char acquire)
 			else flags = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE;
 			
 			result = IDirectInputDevice2_SetCooperativeLevel(*devicedef[i].did, hWindow, flags);
-			if (result != DD_OK)
+			if (FAILED(result))
 				initprintf("IDirectInputDevice2_SetCooperativeLevel(%s): %s\n",
 						devicedef[i].name, GetDInputError(result));
 
@@ -1470,12 +1466,12 @@ static void AcquireInputDevices(char acquire)
 		
 		for (i=0; i<NUM_INPUTS; i++) {
 			if (! *devicedef[i].did) continue;
-			if ((acquire & 128) && i != MOUSE) continue;	// don't touch other devices if only the mouse is wanted
+			if (device != -1 && i != device) continue;	// don't touch other devices if only the mouse is wanted
 			
 			IDirectInputDevice2_Unacquire(*devicedef[i].did);
 			
 			result = IDirectInputDevice2_SetCooperativeLevel(*devicedef[i].did, hWindow, DISCL_FOREGROUND|DISCL_NONEXCLUSIVE);
-			if (result != DD_OK)
+			if (FAILED(result))
 				initprintf("IDirectInputDevice2_SetCooperativeLevel(%s): %s\n",
 						devicedef[i].name, GetDInputError(result));
 
@@ -1500,8 +1496,6 @@ static void ProcessInputDevices(void)
 	unsigned idevnums[NUM_INPUTS], numdevs = 0;
 	HANDLE waithnds[NUM_INPUTS];
 
-	if (!inputacquired) return;
-
 	for (t = 0; t < NUM_INPUTS; t++ ) {
 		if (*devicedef[t].did) {
 			result = IDirectInputDevice2_Poll(*devicedef[t].did);
@@ -1521,18 +1515,22 @@ static void ProcessInputDevices(void)
 			}
 		}
 	}
+	
+	t = getticks();
 
 	// do this here because we only want the wheel to signal once, but hold the state for a moment
 	if (mousegrab) {
-		if (mousewheel[0] > 0 && getticks() - mousewheel[0] > MouseWheelFakePressTime) {
+		if (mousewheel[0] > 0 && t - mousewheel[0] > MouseWheelFakePressTime) {
 			if (mousepresscallback) mousepresscallback(5,0);
 			mousewheel[0] = 0; mouseb &= ~16;
 		}
-		if (mousewheel[1] > 0 && getticks() - mousewheel[1] > MouseWheelFakePressTime) {
+		if (mousewheel[1] > 0 && t - mousewheel[1] > MouseWheelFakePressTime) {
 			if (mousepresscallback) mousepresscallback(6,0);
 			mousewheel[1] = 0; mouseb &= ~32;
 		}
 	}
+
+	if (numdevs == 0) return;	// nothing to do
 
 	// use event objects so that we can quickly get indication of when data is ready
 	// to be read and input events processed
@@ -1550,7 +1548,6 @@ static void ProcessInputDevices(void)
 					numlockon = (GetKeyState(VK_NUMLOCK) & 1);
 					
 					// process the key events
-					t = getticks();
 					for (i=0; i<dwElements; i++) {
 						k = didod[i].dwOfs;
 
@@ -1679,12 +1676,12 @@ static void ProcessInputDevices(void)
 							case DIMOFS_Z:
 								if ((int)didod[i].dwData > 0) {		// wheel up
 									if (mousewheel[1] > 0 && mousepresscallback) mousepresscallback(6,0);
-									mousewheel[1] = getticks();
+									mousewheel[1] = t;
 									mouseb |= 32; if (mousepresscallback) mousepresscallback(6, 1);
 								}
 								else if ((int)didod[i].dwData < 0) {	// wheel down
 									if (mousewheel[1] > 0 && mousepresscallback) mousepresscallback(6,0);
-									mousewheel[0] = getticks();
+									mousewheel[0] = t;
 									mouseb |= 16; if (mousepresscallback) mousepresscallback(5, 1);
 								}
 								break;
@@ -1742,7 +1739,6 @@ static void ProcessInputDevices(void)
 	// key repeat
 	// this is like this because the period of t is 1000ms
 	if (lastKeyDown > 0) {
-		t = getticks();
 		u = (1000 + t - lastKeyTime)%1000;
 		if ((u >= 250) && !(lastKeyDown&0x80000000l)) {
 			if (OSD_HandleKey(lastKeyDown, 1) != 0)
@@ -2036,7 +2032,7 @@ int checkvideomode(int *x, int *y, int c, int fs)
 //
 int setvideomode(int x, int y, int c, int fs)
 {
-	int inp;
+	char i,inp[NUM_INPUTS];
 	int modenum;
 	
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
@@ -2054,15 +2050,15 @@ int setvideomode(int x, int y, int c, int fs)
 		customfs   = fs;
 	}
 
-	inp = inputacquired;
-	AcquireInputDevices(0);
+	for (i=0;i<NUM_INPUTS;i++) inp[i] = devacquired[i];
+	AcquireInputDevices(0,-1);
 
 	initprintf("Setting video mode %dx%d (%d-bit %s)\n",
 			x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
 
 	if (CreateAppWindow(modenum, apptitle)) return -1;
 
-	if (inp) AcquireInputDevices(1);
+	for (i=0;i<NUM_INPUTS;i++) if (inp[i]) AcquireInputDevices(1,i);
 	modechange=1;
 	videomodereset = 0;
 	//baselayer_onvideomodechange(c>8);
@@ -3568,13 +3564,13 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 				}
 			}
 
-			AcquireInputDevices(appactive);
+			AcquireInputDevices(appactive,-1);
 			break;
 
 		case WM_SIZE:
 			if (wParam == SIZE_MAXHIDE || wParam == SIZE_MINIMIZED) appactive = 0;
 			else appactive = 1;
-			AcquireInputDevices(appactive);
+			AcquireInputDevices(appactive,-1);
 			break;
 			
 		case WM_PALETTECHANGED:
@@ -3640,11 +3636,11 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 
 		case WM_ENTERMENULOOP:
 		case WM_ENTERSIZEMOVE:
-			AcquireInputDevices(0);
+			AcquireInputDevices(0,-1);
 			return 0;
 		case WM_EXITMENULOOP:
 		case WM_EXITSIZEMOVE:
-			AcquireInputDevices(1);
+			AcquireInputDevices(1,-1);
 			return 0;
 
 		case WM_DESTROY:

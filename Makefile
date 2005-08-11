@@ -20,6 +20,9 @@ asm=nasm
 DXROOT=c:/sdks/msc/dx61
 FMODROOT=c:/sdks/fmodapi374win/api
 
+ifndef RELEASE
+RELEASE=0
+endif
 ifneq ($(RELEASE),0)
 # debugging disabled
 debug=-fomit-frame-pointer -O2

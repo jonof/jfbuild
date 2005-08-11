@@ -56,7 +56,6 @@ long mousex=0,mousey=0,mouseb=0;
 long *joyaxis = NULL, joyb=0, *joyhat = NULL;
 char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
 long joyaxespresent=0;
-extern char moustat;
 
 
 void (*keypresscallback)(long,long) = 0;
@@ -366,7 +365,8 @@ void debugprintf(const char *f, ...)
 //
 //
 
-static char mouseacquired=1;
+static char mouseacquired=0;
+static char moustat = 0;
 static long joyblast=0;
 static SDL_Joystick *joydev = NULL;
 
@@ -509,7 +509,7 @@ void uninitmouse(void)
 	if (!moustat) return;
 
 	grabmouse(0);
-	moustat=0;
+	moustat=mouseacquired=0;
 }
 
 
@@ -521,7 +521,8 @@ void grabmouse(char a)
 #ifndef DEBUGGINGAIDS
 	SDL_GrabMode g;
 
-	if (appactive && moustat) {
+	if (!moustat) return;
+	if (appactive) {
 		if (a != mouseacquired) {
 			g = SDL_WM_GrabInput( a ? SDL_GRAB_ON : SDL_GRAB_OFF );
 			mouseacquired = (g == SDL_GRAB_ON);
@@ -540,7 +541,7 @@ void grabmouse(char a)
 //
 void readmousexy(long *x, long *y)
 {
-	if (!mouseacquired) { *x = *y = 0; return; }
+	if (!moustat || !mouseacquired) { *x = *y = 0; return; }
 	*x = mousex;
 	*y = mousey;
 	mousex = mousey = 0;
@@ -551,7 +552,7 @@ void readmousexy(long *x, long *y)
 //
 void readmousebstatus(long *b)
 {
-	if (!mouseacquired) *b = 0;
+	if (!moustat || !mouseacquired) *b = 0;
 	else *b = mouseb;
 }
 

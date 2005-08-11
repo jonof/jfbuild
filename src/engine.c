@@ -67,8 +67,6 @@ static long lowrecip[1024], nytooclose, nytoofar;
 static unsigned long distrecip[65536];
 #endif
 
-char moustat = 0;		// used to be static
-
 static long *lookups = NULL;
 static char lookupsalloctype = 255;
 long beforedrawrooms = 1;
@@ -8202,7 +8200,6 @@ void rotatepoint(long xpivot, long ypivot, long x, long y, short daang, long *x2
 //
 void getmousevalues(long *mousx, long *mousy, long *bstatus)
 {
-	if (moustat == 0) { *mousx = 0; *mousy = 0; *bstatus = 0; return; }
 	readmousexy(mousx,mousy);
 	readmousebstatus(bstatus);
 }
