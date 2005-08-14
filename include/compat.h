@@ -1,10 +1,14 @@
 // Compatibility declarations for things which might not be present in
-// certain build environments
+// certain build environments. It also levels the playing field caused
+// by different platforms.
 
 #ifndef __compat_h__
 #define __compat_h__
 
-// define to rewrite all 'B' versions to library functions
+// Define this to rewrite all 'B' versions to library functions. This
+// is for platforms which give us a standard sort of C library so we
+// link directly. Platforms like PalmOS which don't have a standard C
+// library will need to wrap these functions with suitable emulations.
 #define __compat_h_macrodef__
 
 #include <stdarg.h>
@@ -18,10 +22,10 @@
 # include <ctype.h>
 # include <sys/types.h>
 # include <sys/stat.h>
-# if defined(PLATFORMLINUX) || defined(PLATFORMBSD) || defined(PLATFORMDARWIN) || defined(PLATFORMBEOS)
-#  include <unistd.h>
-# else
+# if defined(PLATFORMWINDOWS)
 #  include <io.h>
+# else
+#  include <unistd.h>
 # endif
 #endif
 
@@ -55,6 +59,7 @@ typedef unsigned long long uint64;
 #  define B_BIG_ENDIAN    1
 # endif
 # define B_ENDIAN_C_INLINE 1
+
 #elif defined(PLATFORMBSD)
 # include <sys/endian.h>
 # if _BYTE_ORDER == _LITTLE_ENDIAN
@@ -67,6 +72,7 @@ typedef unsigned long long uint64;
 # define B_SWAP64(x) __bswap64(x)
 # define B_SWAP32(x) __bswap32(x)
 # define B_SWAP16(x) __bswap16(x)
+
 #elif defined(PLATFORMDARWIN)
 # if defined(__LITTLE_ENDIAN__)
 #  define B_LITTLE_ENDIAN 1
@@ -79,6 +85,7 @@ typedef unsigned long long uint64;
 # define B_SWAP64(x) OSSwapConstInt64(x)
 # define B_SWAP32(x) OSSwapConstInt32(x)
 # define B_SWAP16(x) OSSwapConstInt16(x)
+
 #elif defined(PLATFORMBEOS)
 # include <posix/endian.h>
 # if LITTLE_ENDIAN != 0
@@ -89,11 +96,13 @@ typedef unsigned long long uint64;
 #  define B_BIG_ENDIAN    1
 # endif
 # define B_ENDIAN_C_INLINE 1
+
 #elif defined(PLATFORMWINDOWS)
 # define B_LITTLE_ENDIAN 1
 # define B_BIG_ENDIAN    0
 # define B_ENDIAN_C_INLINE 1
 #endif
+
 #if !defined(B_LITTLE_ENDIAN) || !defined(B_BIG_ENDIAN)
 # error Unknown endianness
 #endif
