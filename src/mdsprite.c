@@ -950,12 +950,15 @@ static md3model *md3load (int fil)
 	m->head.frames = (md3frame_t *)malloc(i); if (!m->head.frames) { free(m); return(0); }
 	kread(fil,m->head.frames,i);
 
-	klseek(fil,(long)m->head.tags,SEEK_SET); i = m->head.numtags*sizeof(md3tag_t);
-	m->head.tags = (md3tag_t *)malloc(i); if (!m->head.tags) { free(m->head.frames); free(m); return(0); }
-	kread(fil,m->head.tags,i);
+	if (m->head.numtags == 0) m->head.tags = NULL;
+	else {
+		klseek(fil,(long)m->head.tags,SEEK_SET); i = m->head.numtags*sizeof(md3tag_t);
+		m->head.tags = (md3tag_t *)malloc(i); if (!m->head.tags) { free(m->head.frames); free(m); return(0); }
+		kread(fil,m->head.tags,i);
+	}
 
 	klseek(fil,(long)m->head.surfs,SEEK_SET); i = m->head.numsurfs*sizeof(md3surf_t);
-	m->head.surfs = (md3surf_t *)malloc(i); if (!m->head.surfs) { free(m->head.tags); free(m->head.frames); free(m); return(0); }
+	m->head.surfs = (md3surf_t *)malloc(i); if (!m->head.surfs) { if (m->head.tags) free(m->head.tags); free(m->head.frames); free(m); return(0); }
 
 	szmin = 32767; szmax = -32768;
 	for(surfi=0;surfi<m->head.numsurfs;surfi++)
@@ -972,7 +975,7 @@ static md3model *md3load (int fil)
 		if (!s->tris)
 		{
 			for(surfi--;surfi>=0;surfi--) free(m->head.surfs[surfi].tris);
-			free(m->head.tags); free(m->head.frames); free(m); return(0);
+			if (m->head.tags) free(m->head.tags); free(m->head.frames); free(m); return(0);
 		}
 		s->shaders = (md3shader_t *)(((long)s->tris   )+leng[0]);
 		s->uv      = (md3uv_t     *)(((long)s->shaders)+leng[1]);
