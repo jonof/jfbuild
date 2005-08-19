@@ -37,7 +37,6 @@ extern char inputdevices;
 #define KEYFIFOSIZ 64
 extern char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
 extern unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
-extern unsigned char keynames[256][24];
 
 // mouse
 extern long mousex, mousey, mouseb;
@@ -51,7 +50,6 @@ extern long joyaxespresent;
 
 int initsystem(void);
 void uninitsystem(void);
-unsigned int getsysmemsize(void);
 
 void initprintf(const char *, ...);
 void debugprintf(const char *,...);

@@ -593,19 +593,6 @@ void uninitsystem(void)
 
 
 //
-// getsysmemsize() -- gets the amount of system memory in the machine
-//
-unsigned int getsysmemsize(void)
-{
-	MEMORYSTATUS memst;
-
-	GlobalMemoryStatus(&memst);
-	
-	return (unsigned int)memst.dwTotalPhys;
-}
-
-
-//
 // initprintf() -- prints a string to the intitialization window
 //
 void initprintf(const char *f, ...)

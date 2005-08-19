@@ -691,3 +691,37 @@ char *Bstrupr(char *s)
 }
 #endif
 
+
+//
+// getsysmemsize() -- gets the amount of system memory in the machine
+//
+unsigned int Bgetsysmemsize(void)
+{
+#ifdef _WIN32
+	MEMORYSTATUS memst;
+	GlobalMemoryStatus(&memst);
+	return (unsigned int)memst.dwTotalPhys;
+#elif (defined(_SC_PAGE_SIZE) || defined(_SC_PAGESIZE)) && defined(_SC_PHYS_PAGES)
+	unsigned int siz = 0x7fffffff;
+	long scpagesiz, scphyspages;
+
+#ifdef _SC_PAGE_SIZE
+	scpagesiz = sysconf(_SC_PAGE_SIZE);
+#else
+	scpagesiz = sysconf(_SC_PAGESIZE);
+#endif
+	scphyspages = sysconf(_SC_PHYS_PAGES);
+	if (scpagesiz >= 0 && scphyspages >= 0)
+		siz = (unsigned int)min(longlong(0x7fffffff), (int64)scpagesiz * (int64)scphyspages);
+
+	//initprintf("Bgetsysmemsize(): %d pages of %d bytes, %d bytes of system memory\n",
+	//		scphyspages, scpagesiz, siz);
+
+	return siz;
+#else
+	return 0x7fffffff;
+#endif
+}
+
+
+

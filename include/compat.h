@@ -367,6 +367,7 @@ char *Bgetenv(const char *name);
 #endif
 
 char *Bgethomedir(void);
+unsigned int Bgetsysmemsize(void);
 int Bcorrectfilename(char *filename, int removefn);
 char *Bgetsystemdrives(void);
 bsize_t Bfilelength(int fd);
