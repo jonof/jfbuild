@@ -103,7 +103,7 @@ int ExtInit(void)
 	tiletovox[BROWNMONSTER] = nextvoxid++;
 #endif
 	
-#ifdef PLATFORMWINDOWS
+#ifdef _WIN32
 //	allowtaskswitching(0);
 #endif
 	return rv;

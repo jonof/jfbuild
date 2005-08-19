@@ -80,5 +80,5 @@ else
 	endif
 endif
 
-override CFLAGS+= -DPLATFORM$(PLATFORM)=1 -DRENDERTYPE$(RENDERTYPE)=1
+override CFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
 

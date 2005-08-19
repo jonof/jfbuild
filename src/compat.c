@@ -12,7 +12,7 @@
  *    names.
  */
 
-#ifdef PLATFORMWINDOWS
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <shlobj.h>
@@ -323,7 +323,7 @@ char *Bgetcwd(char *buf, bsize_t size)
 
 char *Bgethomedir(void)
 {
-#ifdef PLATFORMWINDOWS
+#ifdef _WIN32
 	TCHAR appdata[MAX_PATH];
 
 # if defined SHGetFolderPath
@@ -345,7 +345,7 @@ char *Bgethomedir(void)
 
 int Bcorrectfilename(char *filename, int removefn)
 {
-#ifdef PLATFORMWINDOWS
+#ifdef _WIN32
 	int r, trailslash=0;
 #endif
 	char path[256]="", fn[64]="", scratch[256], *ptr, *ptr2, ch;
@@ -359,7 +359,7 @@ int Bcorrectfilename(char *filename, int removefn)
 		grpmode = 1;
 		for (ptr=filename; *ptr; ptr++) if (*ptr == '\\') *ptr = '/';
 	}
-#ifdef PLATFORMWINDOWS
+#ifdef _WIN32
 	if (!grpmode) {
 		// Windows uses backslashes so translate all unix-like forwardslashes
 		for (ptr=filename; *ptr; ptr++) if (*ptr == '/') *ptr = '\\';
@@ -380,7 +380,7 @@ int Bcorrectfilename(char *filename, int removefn)
 	} else {
 #endif
 	
-#ifndef PLATFORMWINDOWS
+#ifndef _WIN32
 		if (!grpmode) {
 			Bgetcwd(cwd, 256);
 			Bstrcat(cwd, "/");
@@ -388,7 +388,7 @@ int Bcorrectfilename(char *filename, int removefn)
 #endif
 		cwd[0] = '/';
 		cwd[1] = 0;
-#ifndef PLATFORMWINDOWS
+#ifndef _WIN32
 		}
 #endif
 
@@ -440,7 +440,7 @@ int Bcorrectfilename(char *filename, int removefn)
 		if (removefn) if (*(ptr2-1) != '/') *(ptr2++) = '/';
 		*(ptr2) = 0;
 
-#ifdef PLATFORMWINDOWS
+#ifdef _WIN32
 	}
 #endif
 
@@ -450,7 +450,7 @@ int Bcorrectfilename(char *filename, int removefn)
 
 char *Bgetsystemdrives(void)
 {
-#ifdef PLATFORMWINDOWS
+#ifdef _WIN32
 	char *str, *p;
 	DWORD drv, mask;
 	int number=0;
@@ -575,7 +575,7 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	} else {
 		dirr->status++;
 	}
-# if defined(__WATCOMC__) || defined(PLATFORMLINUX) || defined(PLATFORMBEOS)
+# if defined(__WATCOMC__) || defined(__linux) || defined(__BEOS__)
 	dirr->info.namlen = strlen(de->d_name);
 # else
 	dirr->info.namlen = de->d_namlen;
@@ -663,7 +663,7 @@ long Bwildmatch (const char *i, const char *j)
 		if (*j == '?') { i++; j++; continue; }
 		c0 = *i; if ((c0 >= 'a') && (c0 <= 'z')) c0 -= 32;
 		c1 = *j; if ((c1 >= 'a') && (c1 <= 'z')) c1 -= 32;
-#ifdef PLATFORMWINDOWS
+#ifdef _WIN32
 		if (c0 == '/') c0 = '\\';
 		if (c1 == '/') c1 = '\\';
 #endif
@@ -673,7 +673,7 @@ long Bwildmatch (const char *i, const char *j)
 	return(!*i);
 }
 
-#if !defined(PLATFORMWINDOWS)
+#if !defined(_WIN32)
 char *Bstrlwr(char *s)
 {
 	char *t = s;

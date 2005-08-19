@@ -22,7 +22,7 @@
 # include <ctype.h>
 # include <sys/types.h>
 # include <sys/stat.h>
-# if defined(PLATFORMWINDOWS)
+# if defined(_WIN32)
 #  include <io.h>
 # else
 #  include <unistd.h>
@@ -49,7 +49,7 @@ typedef unsigned long long uint64;
 # define NULL ((void *)0)
 #endif
 
-#if defined(PLATFORMLINUX)
+#if defined(__linux)
 # include <endian.h>
 # if __BYTE_ORDER == __LITTLE_ENDIAN
 #  define B_LITTLE_ENDIAN 1
@@ -60,7 +60,7 @@ typedef unsigned long long uint64;
 # endif
 # define B_ENDIAN_C_INLINE 1
 
-#elif defined(PLATFORMBSD)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
 # include <sys/endian.h>
 # if _BYTE_ORDER == _LITTLE_ENDIAN
 #  define B_LITTLE_ENDIAN 1
@@ -73,7 +73,7 @@ typedef unsigned long long uint64;
 # define B_SWAP32(x) __bswap32(x)
 # define B_SWAP16(x) __bswap16(x)
 
-#elif defined(PLATFORMDARWIN)
+#elif defined(__APPLE__)
 # if defined(__LITTLE_ENDIAN__)
 #  define B_LITTLE_ENDIAN 1
 #  define B_BIG_ENDIAN    0
@@ -86,7 +86,7 @@ typedef unsigned long long uint64;
 # define B_SWAP32(x) OSSwapConstInt32(x)
 # define B_SWAP16(x) OSSwapConstInt16(x)
 
-#elif defined(PLATFORMBEOS)
+#elif defined(__BEOS__)
 # include <posix/endian.h>
 # if LITTLE_ENDIAN != 0
 #  define B_LITTLE_ENDIAN 1
@@ -97,7 +97,7 @@ typedef unsigned long long uint64;
 # endif
 # define B_ENDIAN_C_INLINE 1
 
-#elif defined(PLATFORMWINDOWS)
+#elif defined(_WIN32)
 # define B_LITTLE_ENDIAN 1
 # define B_BIG_ENDIAN    0
 # define B_ENDIAN_C_INLINE 1
@@ -279,7 +279,7 @@ typedef signed   long bssize_t;
 #  define Bstrcasecmp strcasecmp
 #  define Bstrncasecmp strncasecmp
 # endif
-# if defined(PLATFORMWINDOWS)
+# if defined(_WIN32)
 #  define Bstrlwr strlwr
 #  define Bstrupr strupr
 #  define Bmkdir(s,x) mkdir(s)
@@ -374,7 +374,7 @@ bsize_t Bfilelength(int fd);
 char *Bstrtoken(char *s, char *delim, char **ptrptr, int chop);
 long Bwildmatch (const char *i, const char *j);
 
-#if !defined(PLATFORMWINDOWS)
+#if !defined(_WIN32)
 char *Bstrlwr(char *);
 char *Bstrupr(char *);
 #endif
