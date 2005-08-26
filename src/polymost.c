@@ -252,7 +252,7 @@ static long mdtims, omdtims;
 typedef struct pthtyp_t
 {
 	struct pthtyp_t *next;
-	unsigned int glpic;
+	GLuint glpic;
 	short picnum;
 	char palnum;
 	char effects;
@@ -477,10 +477,11 @@ void polymost_glreset ()
 		for (i=GLTEXCACHEADSIZ-1; i>=0; i--) {
 			for (pth=gltexcachead[i]; pth;) {
 				next = pth->next;
-				bglDeleteTextures(1,(GLuint*)&pth->glpic);
+				bglDeleteTextures(1,&pth->glpic);
 				free(pth);
 				pth = next;
 			}
+			gltexcachead[i] = NULL;
 		}
 		clearskins();
 	}

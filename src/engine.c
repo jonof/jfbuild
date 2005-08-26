@@ -5464,6 +5464,12 @@ void uninitengine(void)
 	
 	//OSD_Printf("cacheresets = %d, cacheinvalidates = %d\n", cacheresets, cacheinvalidates);
 
+#if defined(POLYMOST) && defined(USE_OPENGL)
+	polymost_glreset();
+	hicinit();
+	freeallmodels();
+#endif
+
 	uninitsystem();
 	if (artfil != -1) kclose(artfil);
 
@@ -5477,11 +5483,6 @@ void uninitengine(void)
 	}
 	for(i=0;i<MAXPALOOKUPS;i++)
 		if (palookup[i] != NULL) { kkfree(palookup[i]); palookup[i] = NULL; }
-
-#if defined(POLYMOST) && defined(USE_OPENGL)
-	hicinit();
-	freeallmodels();
-#endif
 }
 
 

@@ -23,6 +23,7 @@ FMODROOT=c:/sdks/fmodapi374win/api
 ifndef RELEASE
 RELEASE=0
 endif
+EFENCE=0
 ifneq ($(RELEASE),0)
 # debugging disabled
 debug=-fomit-frame-pointer -O2
@@ -120,6 +121,10 @@ ifeq ($(RENDERTYPE),WIN)
 	EDITOREXEOBJS+= $(OBJ)buildres.$(res)
 endif
 
+ifeq (1,$(EFENCE))
+	LIBS+= -lefence
+	override CFLAGS+= -DEFENCE
+endif
 
 ifeq ($(DYNAMIC_OPENGL),1)
 	override CFLAGS+= -DDYNAMIC_OPENGL

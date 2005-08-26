@@ -68,11 +68,15 @@ endif
 ifeq ($(RENDERTYPE),SDL)
 	LIBS+= $(shell $(SDLCONFIG) --libs)
 
-	ifneq (No,$(shell pkg-config --exists gtk+-2.0 || echo No))
-		HAVE_GTK2=1
-		LIBS+= $(shell pkg-config --libs gtk+-2.0)
-	else
+	ifeq (1,$(WITHOUT_GTK))
 		HAVE_GTK2=0
+	else
+		ifneq (No,$(shell pkg-config --exists gtk+-2.0 || echo No))
+			HAVE_GTK2=1
+			LIBS+= $(shell pkg-config --libs gtk+-2.0)
+		else
+			HAVE_GTK2=0
+		endif
 	endif
 else
 	ifeq ($(RENDERTYPE),WIN)

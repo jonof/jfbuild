@@ -29,6 +29,10 @@
 # endif
 #endif
 
+#ifdef EFENCE
+# include <efence.h>
+#endif
+
 #if defined(__WATCOMC__)
 # define inline __inline
 # define int64 __int64
