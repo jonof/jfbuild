@@ -7,11 +7,11 @@
 	objects = {
 		080E96DDFE201D6D7F000001 = {
 			children = (
-				AB6A5E7008A8177C00A213E8,
 				F5A47A9E01A0483001D3D55B,
 			);
 			isa = PBXGroup;
 			name = Classes;
+			path = "";
 			refType = 4;
 			sourceTree = "<group>";
 		};
@@ -124,6 +124,7 @@
 				},
 			);
 			targets = (
+				AB0184D108C0A4160042AD7E,
 				29B97326FDCFA39411CA2CEA,
 				AB6A5E3C08A8124200A213E8,
 			);
@@ -131,9 +132,8 @@
 		29B97314FDCFA39411CA2CEA = {
 			children = (
 				AB9DB354085EEA8C009D4FDA,
-				080E96DDFE201D6D7F000001,
-				29B97315FDCFA39411CA2CEA,
-				ABBD0F7608A897D10062C038,
+				AB0184CF08C0A3B90042AD7E,
+				AB0184CE08C0A3A90042AD7E,
 				29B97317FDCFA39411CA2CEA,
 				29B97323FDCFA39411CA2CEA,
 				19C28FACFE9D520D11CA2CBB,
@@ -152,7 +152,7 @@
 				AB9DB2FF085EE8D5009D4FDA,
 			);
 			isa = PBXGroup;
-			name = "Game Sources";
+			name = Sources;
 			path = "";
 			refType = 4;
 			sourceTree = "<group>";
@@ -212,6 +212,7 @@
 				WRAPPER_EXTENSION = app;
 			};
 			dependencies = (
+				AB0184DB08C0A6FF0042AD7E,
 			);
 			isa = PBXApplicationTarget;
 			name = game;
@@ -273,7 +274,6 @@
 				AB9DB359085EEA96009D4FDA,
 				1058C7A3FEA54F0111CA2CBB,
 				B2F67ED804C74A3F00A80002,
-				AB6A5E5308A812FE00A213E8,
 			);
 			isa = PBXFrameworksBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -322,6 +322,114 @@
 //AB2
 //AB3
 //AB4
+		AB0184CE08C0A3A90042AD7E = {
+			children = (
+				080E96DDFE201D6D7F000001,
+				29B97315FDCFA39411CA2CEA,
+			);
+			isa = PBXGroup;
+			name = Game;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		AB0184CF08C0A3B90042AD7E = {
+			children = (
+				AB0184D008C0A3EC0042AD7E,
+				ABBD0F7608A897D10062C038,
+			);
+			isa = PBXGroup;
+			name = Editor;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		AB0184D008C0A3EC0042AD7E = {
+			children = (
+				AB6A5E7008A8177C00A213E8,
+			);
+			isa = PBXGroup;
+			name = Classes;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		AB0184D108C0A4160042AD7E = {
+			buildPhases = (
+			);
+			buildSettings = {
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = All;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
+			};
+			dependencies = (
+				AB0184D308C0A4210042AD7E,
+				AB0184D508C0A4210042AD7E,
+			);
+			isa = PBXAggregateTarget;
+			name = All;
+			productName = All;
+		};
+		AB0184D208C0A4210042AD7E = {
+			containerPortal = 29B97313FDCFA39411CA2CEA;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = 29B97326FDCFA39411CA2CEA;
+			remoteInfo = game;
+		};
+		AB0184D308C0A4210042AD7E = {
+			isa = PBXTargetDependency;
+			target = 29B97326FDCFA39411CA2CEA;
+			targetProxy = AB0184D208C0A4210042AD7E;
+		};
+		AB0184D408C0A4210042AD7E = {
+			containerPortal = 29B97313FDCFA39411CA2CEA;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = AB6A5E3C08A8124200A213E8;
+			remoteInfo = editor;
+		};
+		AB0184D508C0A4210042AD7E = {
+			isa = PBXTargetDependency;
+			target = AB6A5E3C08A8124200A213E8;
+			targetProxy = AB0184D408C0A4210042AD7E;
+		};
+		AB0184DA08C0A6FF0042AD7E = {
+			containerPortal = AB9DB354085EEA8C009D4FDA;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
+			remoteInfo = engine;
+		};
+		AB0184DB08C0A6FF0042AD7E = {
+			isa = PBXTargetDependency;
+			name = "engine (from engine.xcode)";
+			targetProxy = AB0184DA08C0A6FF0042AD7E;
+		};
+		AB0184DC08C0A70B0042AD7E = {
+			containerPortal = AB9DB354085EEA8C009D4FDA;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
+			remoteInfo = engine;
+		};
+		AB0184DD08C0A70B0042AD7E = {
+			isa = PBXTargetDependency;
+			name = "engine (from engine.xcode)";
+			targetProxy = AB0184DC08C0A70B0042AD7E;
+		};
+		AB0184DE08C0A70B0042AD7E = {
+			containerPortal = AB9DB354085EEA8C009D4FDA;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = AB9DB2C2085EE49A009D4FDA;
+			remoteInfo = editor;
+		};
+		AB0184DF08C0A70B0042AD7E = {
+			isa = PBXTargetDependency;
+			name = "editor (from engine.xcode)";
+			targetProxy = AB0184DE08C0A70B0042AD7E;
+		};
 		AB4C5D0A08600CE1007FC9AA = {
 			fileEncoding = 30;
 			isa = PBXFileReference;
@@ -384,6 +492,8 @@
 				WRAPPER_EXTENSION = app;
 			};
 			dependencies = (
+				AB0184DD08C0A70B0042AD7E,
+				AB0184DF08C0A70B0042AD7E,
 			);
 			isa = PBXApplicationTarget;
 			name = editor;
@@ -446,12 +556,6 @@
 		};
 		AB6A5E4108A8128800A213E8 = {
 			fileRef = B2F67ED704C74A3F00A80002;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB6A5E5308A812FE00A213E8 = {
-			fileRef = AB9DB358085EEA8D009D4FDA;
 			isa = PBXBuildFile;
 			settings = {
 			};
@@ -630,7 +734,8 @@
 				AB6A5E5508A8134100A213E8,
 			);
 			isa = PBXGroup;
-			name = "Editor Sources";
+			name = Sources;
+			path = "";
 			refType = 4;
 			sourceTree = "<group>";
 		};

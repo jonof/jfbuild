@@ -4540,7 +4540,7 @@ void getinput(void)
 	oldmousebstatus = bstatus;
 	if (((loc.bits&2048) > 0) && (locselectedgun == 0))
 		oldmousebstatus &= ~1;     //Allow continous fire with mouse for chain gun
-	
+
 		//PRIVATE KEYS:
 /*   if (keystatus[0xb7])  //Printscreen
 	{

@@ -24,6 +24,10 @@
 
 #ifdef DYNAMIC_OPENGL
 
+#ifndef APIENTRY
+# define APIENTRY
+#endif
+
 extern void (APIENTRY * bglClearColor)( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha );
 extern void (APIENTRY * bglClear)( GLbitfield mask );
 extern void (APIENTRY * bglColorMask)( GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha );

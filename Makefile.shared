@@ -36,7 +36,6 @@ ifndef PLATFORM
 	endif
 endif
 
-
 ifeq ($(PLATFORM),LINUX)
 	RENDERTYPE=SDL
 	ifneq ($(DYNAMIC_OPENGL),1)
@@ -57,13 +56,9 @@ ifeq ($(PLATFORM),BSD)
 		LIBS+= $(GLLIBBSD)
 	endif
 endif
-ifeq ($(PLATFORM),DARWIN)
-	RENDERTYPE=SDL
-endif
 ifeq ($(PLATFORM),BEOS)
 	RENDERTYPE=SDL
 endif
-
 
 ifeq ($(RENDERTYPE),SDL)
 	LIBS+= $(shell $(SDLCONFIG) --libs)

@@ -49,6 +49,7 @@
 			mainGroup = 08FB7794FE84155DC02AAC07;
 			projectDirPath = "";
 			targets = (
+				AB0184E008C0A71C0042AD7E,
 				D2AAC045055464E500DB518D,
 				AB9DB2C2085EE49A009D4FDA,
 			);
@@ -118,6 +119,50 @@
 //AB2
 //AB3
 //AB4
+		AB0184E008C0A71C0042AD7E = {
+			buildPhases = (
+			);
+			buildSettings = {
+				OPTIMIZATION_CFLAGS = "";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = All;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
+			};
+			dependencies = (
+				AB0184E208C0A7210042AD7E,
+				AB0184E408C0A7210042AD7E,
+			);
+			isa = PBXAggregateTarget;
+			name = All;
+			productName = All;
+		};
+		AB0184E108C0A7210042AD7E = {
+			containerPortal = 08FB7793FE84155DC02AAC07;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = D2AAC045055464E500DB518D;
+			remoteInfo = engine;
+		};
+		AB0184E208C0A7210042AD7E = {
+			isa = PBXTargetDependency;
+			target = D2AAC045055464E500DB518D;
+			targetProxy = AB0184E108C0A7210042AD7E;
+		};
+		AB0184E308C0A7210042AD7E = {
+			containerPortal = 08FB7793FE84155DC02AAC07;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = AB9DB2C2085EE49A009D4FDA;
+			remoteInfo = editor;
+		};
+		AB0184E408C0A7210042AD7E = {
+			isa = PBXTargetDependency;
+			target = AB9DB2C2085EE49A009D4FDA;
+			targetProxy = AB0184E308C0A7210042AD7E;
+		};
 		AB9DB2A0085EE3E4009D4FDA = {
 			fileEncoding = 30;
 			isa = PBXFileReference;

@@ -18,7 +18,7 @@ res=o
 asm=nasm
 
 DXROOT=c:/sdks/msc/dx61
-FMODROOT=c:/sdks/fmodapi374win/api
+FMODROOTWIN=c:/sdks/fmodapi374win/api
 
 ifndef RELEASE
 RELEASE=0
@@ -44,13 +44,16 @@ TARGETOPTS=#-DUSE_A_C #-DNOASM
 CC=gcc
 AS=nasm
 RC=windres
-override CFLAGS+= $(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
-	-march=pentium -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
+override CFLAGS+= $(debug) -march=pentium \
+	-W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
+	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
 	-DKSFORBUILD -I$(INC:/=) -I../jfaud/inc
 LIBS=
 GAMELIBS=-lfmod # ../jfaud/jfaud.a
 ASFLAGS=-s #-g
 EXESUFFIX=
+
+include Makefile.shared
 
 ENGINEOBJS=$(OBJ)a.$o \
 	$(OBJ)baselayer.$o \
@@ -79,8 +82,6 @@ EDITOREXEOBJS=$(OBJ)bstub.$o \
 	$(OBJ)$(EDITORLIB) \
 	$(OBJ)$(ENGINELIB)
 
-include Makefile.shared
-
 # detect the platform
 ifeq ($(PLATFORM),LINUX)
 	ASFLAGS+= -f elf
@@ -92,9 +93,9 @@ ifeq ($(PLATFORM),BSD)
 	LIBS+= -lm
 endif
 ifeq ($(PLATFORM),WINDOWS)
-	override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOT)/inc
+	override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOTWIN)/inc
 	LIBS+= -lm
-	GAMELIBS+= -L$(FMODROOT)/lib
+	GAMELIBS+= -L$(FMODROOTWIN)/lib
 	ASFLAGS+= -DUNDERSCORES -f win32
 endif
 ifeq ($(PLATFORM),BEOS)
@@ -105,7 +106,7 @@ endif
 ifeq ($(RENDERTYPE),SDL)
 	ENGINEOBJS+= $(OBJ)sdlayer.$o
 	override CFLAGS+= $(subst -Dmain=SDL_main,,$(shell $(SDLCONFIG) --cflags))
-
+	
 	ifeq (1,$(HAVE_GTK2))
 		override CFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
 		ENGINEOBJS+= $(OBJ)gtkstartwin.$o
@@ -135,6 +136,20 @@ endif
 .PHONY: clean veryclean all utils writeengineinfo enginelib editorlib
 
 # TARGETS
+
+# Invoking Make from the terminal in OSX just chains the build on to xcode
+ifeq ($(PLATFORM),DARWIN)
+ifeq ($(RELEASE),0)
+style=Development
+else
+style=Deployment
+endif
+.PHONY: alldarwin
+alldarwin:
+	cd osx/engine && xcodebuild -target All -buildstyle $(style)
+	cd osx/game && xcodebuild -target All -buildstyle $(style)
+endif
+
 all: game$(EXESUFFIX) build$(EXESUFFIX) $(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB)
 utils: kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX)
 
@@ -194,7 +209,7 @@ $(OBJ)%.$o: $(SRC)%.nasm
 
 $(OBJ)%.$o: $(SRC)%.c
 	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
-	
+
 $(OBJ)%.$o: $(SRC)tmp/%.c
 	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
 
