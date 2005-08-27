@@ -18,6 +18,16 @@ long isvalidipaddress (char *st)
 	return 0;
 }
 
+long initmultiplayersparms(long argc, char **argv)
+{
+	return 0;
+}
+
+long initmultiplayerscycle(void)
+{
+	return 0;
+}
+
 void initmultiplayers(long argc, char **argv, char damultioption, char dacomrateoption, char dapriority)
 {
 	numplayers = 1; myconnectindex = 0;

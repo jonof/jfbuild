@@ -47,7 +47,8 @@ RC=windres
 override CFLAGS+= $(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-march=pentium -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
 	-DKSFORBUILD -I$(INC:/=) -I../jfaud/inc
-LIBS=-lfmod # ../jfaud/jfaud.a
+LIBS=
+GAMELIBS=-lfmod # ../jfaud/jfaud.a
 ASFLAGS=-s #-g
 EXESUFFIX=
 
@@ -92,7 +93,8 @@ ifeq ($(PLATFORM),BSD)
 endif
 ifeq ($(PLATFORM),WINDOWS)
 	override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOT)/inc
-	LIBS+= -lm -L$(FMODROOT)/lib
+	LIBS+= -lm
+	GAMELIBS+= -L$(FMODROOT)/lib
 	ASFLAGS+= -DUNDERSCORES -f win32
 endif
 ifeq ($(PLATFORM),BEOS)
@@ -130,7 +132,7 @@ ifeq ($(DYNAMIC_OPENGL),1)
 	override CFLAGS+= -DDYNAMIC_OPENGL
 endif
 
-.PHONY: clean all utils writeengineinfo enginelib editorlib
+.PHONY: clean veryclean all utils writeengineinfo enginelib editorlib
 
 # TARGETS
 all: game$(EXESUFFIX) build$(EXESUFFIX) $(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB)
@@ -147,7 +149,7 @@ $(OBJ)$(EDITORLIB): $(EDITOROBJS)
 	ranlib $@
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(CC) $(CFLAGS) -o $(OBJ)$@ $^ $(LIBS)
+	$(CC) $(CFLAGS) -o $(OBJ)$@ $^ $(LIBS) $(GAMELIBS)
 	cp -f $(OBJ)$@ $@
 #	cp -f $@ game.sym$(EXESUFFIX)
 #	strip $@
@@ -216,5 +218,7 @@ $(RSRC)editor_banner.c: $(RSRC)build.bmp
 
 # PHONIES	
 clean:
-	-rm -f $(ENGINEOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS) game$(EXESUFFIX) game.sym$(EXESUFFIX) build$(EXESUFFIX) build.sym$(EXESUFFIX) core*
+	-rm -f $(OBJ)*
 
+veryclean: clean
+	-rm -f $(ENGINELIB) $(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX)
