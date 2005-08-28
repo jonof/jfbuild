@@ -429,12 +429,14 @@ static int defsparser(scriptfile *script)
 						break;
 					}
 
+#ifdef SUPERBUILD
 					if (qloadkvx(nextvoxid, fn)) {
 						initprintf("Failure loading voxel file \"%s\"\n",fn);
 						break;
 					}
 
 					lastvoxid = nextvoxid++;
+#endif
 				}
 				break;
 			case T_DEFINEVOXELTILES:
@@ -461,9 +463,11 @@ static int defsparser(scriptfile *script)
 						initprintf("Warning: Ignoring voxel tiles definition.\n");
 						break;
 					}
+#ifdef SUPERBUILD
 					for (tilex = ftilenume; tilex <= ltilenume; tilex++) {
 						tiletovox[tilex] = lastvoxid;
 					}
+#endif
 				}
 				break;
 
@@ -682,7 +686,9 @@ static int defsparser(scriptfile *script)
 						}
 					}
 
+#if defined(POLYMOST) && defined(USE_OPENGL)
 					md_setmisc(lastmodelid,(float)scale,shadeoffs,(float)mzadd);
+#endif
 
 					modelskin = lastmodelskin = 0;
 					seenframe = 0;
@@ -697,8 +703,10 @@ static int defsparser(scriptfile *script)
 
 					if (scriptfile_getstring(script,&fn)) break; //voxel filename
 					if (nextvoxid == MAXVOXELS) { initprintf("Maximum number of voxels already defined.\n"); break; }
+#ifdef SUPERBUILD
 					if (qloadkvx(nextvoxid, fn)) { initprintf("Failure loading voxel file \"%s\"\n",fn); break; }
 					lastvoxid = nextvoxid++;
+#endif
 
 					if (scriptfile_getbraces(script,&modelend)) break;
 					while (script->textptr < modelend) {
@@ -706,8 +714,10 @@ static int defsparser(scriptfile *script)
 							//case T_ERROR: initprintf("Error on line %s:%d in voxel tokens\n", script->filename,linenum); break;
 							case T_TILE:  
 								scriptfile_getsymbol(script,&tilex);
+#ifdef SUPERBUILD
 								if ((unsigned long)tilex < MAXTILES) tiletovox[tilex] = lastvoxid;
 								else initprintf("Invalid tile number on line %s:%d\n",script->filename, scriptfile_getlinum(script,voxeltokptr));
+#endif
 								break;
 							case T_TILE0: 
 								scriptfile_getsymbol(script,&tile0); break; //1st tile #
@@ -720,12 +730,16 @@ static int defsparser(scriptfile *script)
 								}
 								if ((tile1 < 0) || (tile0 >= MAXTILES))
 									{ initprintf("Invalid tile range on line %s:%d\n",script->filename, scriptfile_getlinum(script,voxeltokptr)); break; }
+#ifdef SUPERBUILD
 								for(tilex=tile0;tilex<=tile1;tilex++) tiletovox[tilex] = lastvoxid;
+#endif
 								break; //last tile number (inclusive)
 							case T_SCALE: {
 								double scale=1.0;
 								scriptfile_getdouble(script,&scale);
+#ifdef SUPERBUILD
 								voxscale[lastvoxid] = 65536*scale;
+#endif
 								break;
 							}
 						}
@@ -864,7 +878,9 @@ static int defsparser(scriptfile *script)
 							break;
 						}
 					}
+#if defined(POLYMOST) && defined(USE_OPENGL)
 					for (; r0 <= r1; r0++) md_undefinetile(r0);
+#endif
 				}
 				break;
 
@@ -878,10 +894,12 @@ static int defsparser(scriptfile *script)
 						break;
 					}
 
+#if defined(POLYMOST) && defined(USE_OPENGL)
 					mid = md_tilehasmodel(r0);
 					if (mid < 0) break;
 
 					md_undefinemodel(mid);
+#endif
 				}
 				break;
 

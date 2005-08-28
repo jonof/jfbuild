@@ -52,7 +52,7 @@ long tiletovox[MAXTILES];
 long usevoxels = 1;
 #define kloadvoxel loadvoxel
 
-long dommxoverlay = 1, novoxmips = 0;
+long novoxmips = 0;
 
 	//These variables need to be copied into BUILD
 #define MAXXSIZ 256
@@ -69,7 +69,7 @@ static unsigned long distrecip[65536];
 
 static long *lookups = NULL;
 static char lookupsalloctype = 255;
-long beforedrawrooms = 1;
+long dommxoverlay = 1, beforedrawrooms = 1;
 
 static long oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
 
@@ -687,8 +687,10 @@ static void scansector(short sectnum);
 #include "hightile.c"
 #include "polymost.c"
 #else
-void hicsetpalettetint(short palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect) { }
-int hicsetsubsttex(short picnum, short palnum, char *filen, short centx, short centy, short tsizx, short tsizy) { return 0; }
+void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect) { }
+int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut) { return 0; }
+int hicsetskybox(long picnum, long palnum, char *faces[6]) { return 0; }
+int hicclearsubst(long picnum, long palnum) { return 0; }
 long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen) { return -1; }
 #endif
 //============================================================================= //POLYMOST ENDS

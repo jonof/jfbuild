@@ -6,48 +6,61 @@
 #  try again. If things are still going wrong, call me.
 #   
 
+# Engine options - these may be overridden by game makefiles
+#  SUPERBUILD     - enables voxels
+#  POLYMOST       - enables Polymost renderer
+#  USE_OPENGL     - enables OpenGL support in Polymost
+#  DYNAMIC_OPENGL - enables run-time loading of OpenGL library
+#  USE_A_C        - enables use of C version of classic renderer
+#  NOASM          - disables the use of inline assembly pragmas
+#
+#  SETSPRITEZ     - set to 1 for Shadow Warrior
+SUPERBUILD ?= 1
+POLYMOST ?= 1		
+USE_OPENGL ?= 1
+DYNAMIC_OPENGL ?= 1
+USE_A_C ?= 0
+NOASM ?= 0
+
+SETSPRITEZ ?= 0
+
+# Debugging options
+#  RELEASE - 1 = no debugging
+#  EFENCE  - 1 = compile with Electric Fence for malloc() debugging
+RELEASE?=0
+EFENCE?=0
+
+# SDK locations - adjust to match your setup
+DXROOT=c:/sdks/msc/dx61
+FMODROOTWIN=c:/sdks/fmodapi374win/api
+
+# build locations - OBJ gets overridden to the game-specific objects dir
+OBJ?=obj.gnu/
 SRC=src/
 RSRC=rsrc/
-OBJ?=obj.gnu/
 INC=include/
-CFLAGS?=-DSUPERBUILD -DPOLYMOST -DUSE_OPENGL -DDYNAMIC_OPENGL
 
-# filename extensions
+# filename extensions - these won't need to change
 o=o
 res=o
 asm=nasm
 
-DXROOT=c:/sdks/msc/dx61
-FMODROOTWIN=c:/sdks/fmodapi374win/api
-
-ifndef RELEASE
-RELEASE=0
-endif
-EFENCE=0
+# debugging and release
 ifneq ($(RELEASE),0)
-# debugging disabled
-debug=-fomit-frame-pointer -O2
+  # debugging disabled
+  debug=-fomit-frame-pointer -O2
 else
-# debugging enabled
-debug=-ggdb -O0 #-DDEBUGGINGAIDS
+  # debugging enabled
+  debug=-ggdb -O0 #-DDEBUGGINGAIDS
 endif
-
-# -D these to enable certain features of the port's compile process
-# USE_A_C   This uses a C version of the classic renderer code rather
-#           than the assembly version in A.ASM.
-#           If this is defined, alter the $(OBJ)a.$o in the
-#           ENGINEOBJS declaration to be $(OBJ)a-c.$o
-# NOASM     When defined, uses C code instead of GCC inline
-#           assembly for the features in PRAGMAS.H
-TARGETOPTS=#-DUSE_A_C #-DNOASM
 
 CC=gcc
 AS=nasm
 RC=windres
-override CFLAGS+= $(debug) -march=pentium \
-	-W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
-	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS $(TARGETOPTS) \
-	-DKSFORBUILD -I$(INC:/=) -I../jfaud/inc
+CFLAGS=-march=pentium $(debug)
+override CFLAGS+= -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
+	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
+	-DKSFORBUILD -I$(INC:/=) #-I../jfaud/inc
 LIBS=
 GAMELIBS=-lfmod # ../jfaud/jfaud.a
 ASFLAGS=-s #-g
@@ -55,7 +68,13 @@ EXESUFFIX=
 
 include Makefile.shared
 
-ENGINEOBJS=$(OBJ)a.$o \
+ifneq (0,$(USE_A_C))
+  ENGINEOBJS=$(OBJ)a-c.$o
+else
+  ENGINEOBJS=$(OBJ)a.$o
+endif
+
+ENGINEOBJS+= \
 	$(OBJ)baselayer.$o \
 	$(OBJ)cache1d.$o \
 	$(OBJ)compat.$o \
@@ -124,13 +143,9 @@ ifeq ($(RENDERTYPE),WIN)
 	EDITOREXEOBJS+= $(OBJ)buildres.$(res)
 endif
 
-ifeq (1,$(EFENCE))
+ifneq (0,$(EFENCE))
 	LIBS+= -lefence
 	override CFLAGS+= -DEFENCE
-endif
-
-ifeq ($(DYNAMIC_OPENGL),1)
-	override CFLAGS+= -DDYNAMIC_OPENGL
 endif
 
 .PHONY: clean veryclean all utils writeengineinfo enginelib editorlib
@@ -150,8 +165,10 @@ alldarwin:
 	cd osx/game && xcodebuild -target All -buildstyle $(style)
 endif
 
+UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX)
+
 all: game$(EXESUFFIX) build$(EXESUFFIX) $(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB)
-utils: kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX)
+utils: $(UTILS)
 
 enginelib: $(OBJ)$(ENGINELIB)
 $(OBJ)$(ENGINELIB): $(ENGINEOBJS)
@@ -164,16 +181,10 @@ $(OBJ)$(EDITORLIB): $(EDITOROBJS)
 	ranlib $@
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(CC) $(CFLAGS) -o $(OBJ)$@ $^ $(LIBS) $(GAMELIBS)
-	cp -f $(OBJ)$@ $@
-#	cp -f $@ game.sym$(EXESUFFIX)
-#	strip $@
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(GAMELIBS)
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS)
-	$(CC) $(CFLAGS) -o $(OBJ)$@ $^ $(LIBS)
-	cp -f $(OBJ)$@ $@
-#	cp -f $@ build.sym$(EXESUFFIX)
-#	strip $@
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 pragmacheck$(EXESUFFIX): $(OBJ)pragmacheck.$o $(OBJ)pragmas.$o
 	$(CC) $(subst -Dmain=app_main,,$(CFLAGS)) -o $@ $^
@@ -236,4 +247,4 @@ clean:
 	-rm -f $(OBJ)*
 
 veryclean: clean
-	-rm -f $(ENGINELIB) $(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX)
+	-rm -f $(ENGINELIB) $(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS)

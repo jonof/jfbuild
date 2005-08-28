@@ -39,8 +39,9 @@ TARGETOPTS=#-dUSE_A_C #-dNOASM
 CC=wcc386
 AS=wasm
 RC=wrc
-CFLAGS+= -5r -s -orb -fp5 $(TARGETOPTS) -d2 -i=$(INC) -i=$(DXROOT)\include -i=$(FMODROOT)\inc
-LIBS=fmodwc.lib #opengl32.lib
+CFLAGS+= -5r -s -orb -fp5 $(TARGETOPTS) -d2 -dRENDERTYPEWIN=1 &
+	-i=$(INC) -i=$(DXROOT)\include -i=$(FMODROOT)\inc
+LIBS=shfolder.lib dxguid.lib wsock32.lib fmodwc.lib #opengl32.lib
 ASFLAGS=# -d1
 EXESUFFIX=.exe
 
@@ -71,10 +72,6 @@ GAMEEXEOBJS=$(OBJ)game.$o &
 
 EDITOREXEOBJS=$(OBJ)bstub.$o
 
-RENDERTYPE=WIN
-LIBS+= shfolder.lib dxguid.lib wsock32.lib
-CFLAGS+= -dRENDERTYPE$(RENDERTYPE)=1
-
 # RULES
 .EXTENSIONS: .wasm .res .rc
 
@@ -94,10 +91,12 @@ CFLAGS+= -dRENDERTYPE$(RENDERTYPE)=1
 	$(RC) -fo=$^*.$(res) -r $[@
 
 # TARGETS
+UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX)
+
 all: game$(EXESUFFIX) build$(EXESUFFIX)	$(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB) .SYMBOLIC
 	%null
-	
-utils: kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) .SYMBOLIC
+
+utils: $(UTILS) .SYMBOLIC
 	%null
 
 enginelib: $(OBJ)$(ENGINELIB) .SYMBOLIC
@@ -119,7 +118,7 @@ $(OBJ)$(EDITORLIB): $(EDITOROBJS)
 	erase $(OBJ)$(EDITORLIB).tmp
 
 game$(EXESUFFIX): $(GAMEEXEOBJS) $(OBJ)gameres.$(res) $(OBJ)$(ENGINELIB)
-	wlink	NAME     $(OBJ)$@ &
+	wlink	NAME     $@ &
 		SYSTEM   WIN95 &
 		DEBUG    ALL &
 		OPTION   MAP &
@@ -129,10 +128,9 @@ game$(EXESUFFIX): $(GAMEEXEOBJS) $(OBJ)gameres.$(res) $(OBJ)$(ENGINELIB)
 		LIBPATH  $(FMODROOT)\lib &
 		LIBPATH  $(OBJ) &
 		LIBFILE  { $(LIBS) $(ENGINELIB) }
-	copy /y $(OBJ)$@ $@
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS) $(OBJ)buildres.$(res) $(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB)
-	wlink	NAME     $(OBJ)$@ &
+	wlink	NAME     $@ &
 		SYSTEM   WIN95 &
 		DEBUG    ALL &
 		OPTION   MAP &
@@ -142,23 +140,17 @@ build$(EXESUFFIX): $(EDITOREXEOBJS) $(OBJ)buildres.$(res) $(OBJ)$(ENGINELIB) $(O
 		LIBPATH  $(FMODROOT)\lib &
 		LIBPATH  $(OBJ) &
 		LIBFILE  { $(LIBS) $(ENGINELIB) $(EDITORLIB) }
-	copy /y $(OBJ)$@ $@
 
 kextract$(EXESUFFIX): $(OBJ)kextract.$o $(OBJ)compat.$o
-	wlink	NAME $(OBJ)$@  SYSTEM 386  DEBUG ALL  FILE { $< }
-	copy /y $(OBJ)$@ $@
+	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
 kgroup$(EXESUFFIX): $(OBJ)kgroup.$o $(OBJ)compat.$o
-	wlink	NAME $(OBJ)$@  SYSTEM 386  DEBUG ALL  FILE { $< }
-	copy /y $(OBJ)$@ $@
+	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
 transpal$(EXESUFFIX): $(OBJ)transpal.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
-	wlink	NAME $(OBJ)$@  SYSTEM 386  DEBUG ALL  FILE { $< }
-	copy /y $(OBJ)$@ $@
+	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
 wad2art$(EXESUFFIX): $(OBJ)wad2art.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
-	wlink	NAME $(OBJ)$@  SYSTEM 386  DEBUG ALL  FILE { $< }
-	copy /y $(OBJ)$@ $@
+	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
 wad2map$(EXESUFFIX): $(OBJ)wad2map.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
-	wlink	NAME $(OBJ)$@  SYSTEM 386  DEBUG ALL  FILE { $< }
-	copy /y $(OBJ)$@ $@
+	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
 
 # DEPENDENCIES
 !include Makefile.deps
@@ -174,5 +166,5 @@ writeengineinfo: .SYMBOLIC
 
 # PHONIES	
 clean: .SYMBOLIC
-	-erase /q $(OBJ)* game$(EXESUFFIX) game.sym$(EXESUFFIX) build$(EXESUFFIX) build.sym$(EXESUFFIX) *.err
+	-erase /q $(OBJ)* game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS) *.err
 

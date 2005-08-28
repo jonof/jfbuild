@@ -3,8 +3,6 @@
 ENGINELIB=libengine.a
 EDITORLIB=libbuild.a
 
-DYNAMIC_OPENGL=1
-
 # These are used when DYNAMIC_OPENGL is false
 GLLIBWIN=-lopengl32
 GLLIBBSD=-lopengl32
@@ -80,4 +78,27 @@ else
 endif
 
 override CFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
+
+ifneq (0,$(SUPERBUILD))
+  override CFLAGS+= -DSUPERBUILD
+endif
+ifneq (0,$(POLYMOST))
+  override CFLAGS+= -DPOLYMOST
+endif
+ifneq (0,$(USE_OPENGL))
+  override CFLAGS+= -DUSE_OPENGL
+  ifneq (0,$(DYNAMIC_OPENGL))
+    override CFLAGS+= -DDYNAMIC_OPENGL
+  endif
+endif
+ifneq (0,$(USE_A_C))
+  override CFLAGS+= -DUSE_A_C
+endif
+ifneq (0,$(NOASM))
+  override CFLAGS+= -DNOASM
+endif
+ifneq (0,$(SETSPRITEZ))
+  override CFLAGS+= -DSETSPRITEZ
+endif
+
 

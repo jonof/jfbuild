@@ -106,8 +106,10 @@ CFLAGS=$(CFLAGS) /DRENDERTYPE$(RENDERTYPE)=1
 	$(CC) /c $(CFLAGS) /Fo$@ $<
 
 # TARGETS
+UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2map$(EXESUFFIX) wad2map$(EXESUFFIX)
+ 
 all: game$(EXESUFFIX) build$(EXESUFFIX) $(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB) ;
-utils: kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) ;
+utils: $(UTILS) ;
 
 enginelib: $(OBJ)$(ENGINELIB) ;
 $(OBJ)$(ENGINELIB): $(ENGINEOBJS)
@@ -119,33 +121,26 @@ $(OBJ)$(EDITORLIB): $(EDITOROBJS)
 
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:WINDOWS /LIBPATH:$(DXROOT)\lib /LIBPATH:$(FMODROOT)\lib $(flags_link) /MAP $** $(LIBS) msvcrt.lib
-	copy /y $(OBJ)$@ $@
+	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS /LIBPATH:$(DXROOT)\lib /LIBPATH:$(FMODROOT)\lib $(flags_link) /MAP $** $(LIBS) msvcrt.lib
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS)
-	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:WINDOWS /LIBPATH:$(DXROOT)\lib /LIBPATH:$(FMODROOT)\lib $(flags_link) /MAP $** $(LIBS) msvcrt.lib
-	copy /y $(OBJ)$@ $@
+	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS /LIBPATH:$(DXROOT)\lib /LIBPATH:$(FMODROOT)\lib $(flags_link) /MAP $** $(LIBS) msvcrt.lib
 
 # the tools
 kextract$(EXESUFFIX): $(OBJ)kextract.$o $(OBJ)compat.$o
-	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
-	copy /y $(OBJ)$@ $@
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 
 kgroup$(EXESUFFIX): $(OBJ)kgroup.$o $(OBJ)compat.$o
-	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
-	copy /y $(OBJ)$@ $@
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 
 transpal$(EXESUFFIX): $(OBJ)transpal.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
-	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
-	copy /y $(OBJ)$@ $@
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 
 wad2map$(EXESUFFIX): $(OBJ)wad2map.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
-	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
-	copy /y $(OBJ)$@ $@
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 
 wad2art$(EXESUFFIX): $(OBJ)wad2art.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
-	$(LINK) /OUT:$(OBJ)$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
-	copy /y $(OBJ)$@ $@
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 
 # DEPENDENCIES
 !include Makefile.deps
@@ -161,5 +156,7 @@ writeengineinfo:
 
 # PHONIES	
 clean:
-	-del $(ENGINEOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS) game$(EXESUFFIX) game.sym$(EXESUFFIX) build$(EXESUFFIX) build.sym$(EXESUFFIX)
+	-del $(ENGINEOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS)
+veryclean: clean
+	-del $(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS)
 
