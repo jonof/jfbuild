@@ -260,6 +260,7 @@ typedef signed   long bssize_t;
 # else
 #  define Btell tell
 # endif
+# define Bstat stat
 # define Bfopen fopen
 # define Bfclose fclose
 # define Bfeof feof

@@ -255,7 +255,7 @@ int addsearchpath(const char *p)
 	searchpath_t *srch;
 	int i;
 
-	if (stat(p, &st) < 0) {
+	if (Bstat(p, &st) < 0) {
 		if (errno == ENOENT) return -2;
 		return -1;
 	}

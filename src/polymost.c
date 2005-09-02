@@ -3304,51 +3304,44 @@ void polymost_drawsprite (long snum)
 	spritetype *tspr;
 
 	tspr = tspriteptr[snum];
-	if (tspr->owner < 0) return;
+	if (tspr->owner < 0 || tspr->picnum < 0) return;
 
 	globalpicnum      = tspr->picnum;
 	globalshade       = tspr->shade;
 	globalpal         = tspr->pal;
 	globalorientation = tspr->cstat;
 	spritenum         = tspr->owner;
-	if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum,spritenum+32768);
 
-	xoff = (long)((signed char)((picanm[globalpicnum]>>8)&255))+((long)tspr->xoffset);
-	yoff = (long)((signed char)((picanm[globalpicnum]>>16)&255))+((long)tspr->yoffset);
+	if ((globalorientation&48) != 48) {	// only non-voxel sprites should do this
+		if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum,spritenum+32768);
+
+		xoff = (long)((signed char)((picanm[globalpicnum]>>8)&255))+((long)tspr->xoffset);
+		yoff = (long)((signed char)((picanm[globalpicnum]>>16)&255))+((long)tspr->yoffset);
+	}
 
 	method = 1+4;
 	if (tspr->cstat&2) { if (!(tspr->cstat&512)) method = 2+4; else method = 3+4; }
 
 #ifdef USE_OPENGL
-	if (!nofog) {
-		if (rendmode == 3) {
-			float col[4];
-			col[0] = (float)palookupfog[sector[tspr->sectnum].floorpal].r / 63.f;
-			col[1] = (float)palookupfog[sector[tspr->sectnum].floorpal].g / 63.f;
-			col[2] = (float)palookupfog[sector[tspr->sectnum].floorpal].b / 63.f;
-			col[3] = 0;
-			bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
-			bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16))));
-		}
+	if (!nofog && rendmode == 3) {
+		float col[4];
+		col[0] = (float)palookupfog[sector[tspr->sectnum].floorpal].r / 63.f;
+		col[1] = (float)palookupfog[sector[tspr->sectnum].floorpal].g / 63.f;
+		col[2] = (float)palookupfog[sector[tspr->sectnum].floorpal].b / 63.f;
+		col[3] = 0;
+		bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
+		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16))));
 	}
 
-	if (/*usevoxels &&*/ (((tspr->cstat&48)!=48 && tiletovox[tspr->picnum] != -1 && usevoxels) ||
-							((tspr->cstat&48)==48 && (globalpicnum >= 0)))
-					  && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD)))
-	{
-		if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD) && ((tspr->cstat&48) != 48))
-		{
-			if (tile2model[tspr->picnum].modelid >= 0 &&
-				 tile2model[tspr->picnum].framenum >= 0) {
-				mddraw(tspr);
-				return;
-			}
+	if (rendmode == 3 && !(spriteext[tspr->owner].flags&SPREXT_NOTMD)) {
+		if (usemodels && tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
+			mddraw(tspr);
+			return;
 		}
-
-		if ((tspr->cstat&48)!=48) { globalpicnum = tiletovox[tspr->picnum]; globalorientation |= 48; }
-		if (rendmode == 3 && voxmodels[globalpicnum])
-			voxdraw(voxmodels[globalpicnum], tspr);
-		return;
+		if (usevoxels && (tspr->cstat&48)!=48 && tiletovox[tspr->picnum] >= 0 && voxmodels[ tiletovox[tspr->picnum] ]) {
+			voxdraw(voxmodels[ tiletovox[tspr->picnum] ], tspr);
+			return;
+		}
 	}
 #endif
 
@@ -3359,14 +3352,13 @@ void polymost_drawsprite (long snum)
 #ifdef USE_OPENGL
 			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
 			{
-				if (tile2model[tspr->picnum].modelid >= 0 &&
-					 tile2model[tspr->picnum].framenum >= 0) {
+				if (tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
 					mddraw(tspr);
 					return;
 				}
 			}
 #endif
-			
+
 				//Project 3D to 2D
 			sx0 = (float)(tspr->x-globalposx);
 			sy0 = (float)(tspr->y-globalposy);
@@ -3415,8 +3407,7 @@ void polymost_drawsprite (long snum)
 #ifdef USE_OPENGL
 			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
 			{
-				if (tile2model[tspr->picnum].modelid >= 0 &&
-					 tile2model[tspr->picnum].framenum >= 0) {
+				if (tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
 					mddraw(tspr);
 					return;
 				}
@@ -3542,8 +3533,7 @@ void polymost_drawsprite (long snum)
 #ifdef USE_OPENGL
 			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
 			{
-				if (tile2model[tspr->picnum].modelid >= 0 &&
-					 tile2model[tspr->picnum].framenum >= 0) {
+				if (tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
 					mddraw(tspr);
 					return;
 				}
@@ -3640,14 +3630,8 @@ void polymost_drawsprite (long snum)
 
 		case 3: //Voxel sprite
 #ifdef USE_OPENGL
-			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
-			{
-				if (tile2model[tspr->picnum].modelid >= 0 &&
-					 tile2model[tspr->picnum].framenum >= 0) {
-					mddraw(tspr);
-					return;
-				}
-			}
+			if (rendmode == 3 && voxmodels[globalpicnum])
+				voxdraw(voxmodels[globalpicnum], tspr);
 #endif
 		    break;
 	}
