@@ -41,7 +41,7 @@ AS=wasm
 RC=wrc
 CFLAGS+= -5r -s -orb -fp5 $(TARGETOPTS) -d2 -dRENDERTYPEWIN=1 &
 	-i=$(INC) -i=$(DXROOT)\include -i=$(FMODROOT)\inc
-LIBS=shfolder.lib dxguid.lib wsock32.lib fmodwc.lib #opengl32.lib
+LIBS=dxguid.lib wsock32.lib fmodwc.lib #opengl32.lib
 ASFLAGS=# -d1
 EXESUFFIX=.exe
 
@@ -127,7 +127,8 @@ game$(EXESUFFIX): $(GAMEEXEOBJS) $(OBJ)gameres.$(res) $(OBJ)$(ENGINELIB)
 		LIBPATH  $(DXROOT)\lib &
 		LIBPATH  $(FMODROOT)\lib &
 		LIBPATH  $(OBJ) &
-		LIBFILE  { $(LIBS) $(ENGINELIB) }
+		LIBFILE  shfolder.lib &
+		LIBRARY  { $(ENGINELIB) $(LIBS) }
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS) $(OBJ)buildres.$(res) $(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB)
 	wlink	NAME     $@ &
@@ -139,7 +140,8 @@ build$(EXESUFFIX): $(EDITOREXEOBJS) $(OBJ)buildres.$(res) $(OBJ)$(ENGINELIB) $(O
 		LIBPATH  $(DXROOT)\lib &
 		LIBPATH  $(FMODROOT)\lib &
 		LIBPATH  $(OBJ) &
-		LIBFILE  { $(LIBS) $(ENGINELIB) $(EDITORLIB) }
+		LIBFILE  shfolder.lib &
+		LIBRARY  { $(ENGINELIB) $(EDITORLIB) $(LIBS) }
 
 kextract$(EXESUFFIX): $(OBJ)kextract.$o $(OBJ)compat.$o
 	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
