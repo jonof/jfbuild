@@ -51,7 +51,7 @@ ifneq ($(RELEASE),0)
   debug=-fomit-frame-pointer -O2
 else
   # debugging enabled
-  debug=-ggdb -O0 #-DDEBUGGINGAIDS
+  debug=-ggdb -O0 -DDEBUGGINGAIDS
 endif
 
 CC=gcc
