@@ -551,7 +551,7 @@ static long mdloadskin (md2model *m, int number, int pal, int surf)
 {
 	long i, fptr, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
 	char *skinfile, hasalpha, fn[BMAX_PATH+65];
-	unsigned int *texidx;
+	unsigned int *texidx = NULL;
 	mdskinmap_t *sk, *skzero = NULL;
 
 	if (m->mdnum == 2) surf = 0;
@@ -565,10 +565,13 @@ static long mdloadskin (md2model *m, int number, int pal, int surf)
 			skinfile = sk->fn;
 			texidx = &sk->texid[ hictinting[pal].f ];
 			strcpy(fn,skinfile);
-			//OSD_Printf("Using def skin (%d,%d) %s\n",pal,number,skinfile);
+			//OSD_Printf("Using exact match skin (pal=%d,skinnum=%d,surfnum=%d) %s\n",pal,number,surf,skinfile);
 			break;
 		}
 			//If no match, give highest priority to number, then pal.. (Parkar's request, 02/27/2005)
+		else if (((int)sk->palette ==   0) && (sk->skinnum == number) && (sk->surfnum == surf) && (i < 5)) { i = 5; skzero = sk; }
+		else if (((int)sk->palette == pal) && (sk->skinnum ==      0) && (sk->surfnum == surf) && (i < 4)) { i = 4; skzero = sk; }
+		else if (((int)sk->palette ==   0) && (sk->skinnum ==      0) && (sk->surfnum == surf) && (i < 3)) { i = 3; skzero = sk; }
 		else if (((int)sk->palette ==   0) && (sk->skinnum == number) && (i < 2)) { i = 2; skzero = sk; }
 		else if (((int)sk->palette == pal) && (sk->skinnum ==      0) && (i < 1)) { i = 1; skzero = sk; }
 		else if (((int)sk->palette ==   0) && (sk->skinnum ==      0) && (i < 0)) { i = 0; skzero = sk; }
