@@ -6166,6 +6166,10 @@ long loadboard(char *filename, char fromwhere, long *daposx, long *daposy, long 
 	kread(fil,&mapversion,4); mapversion = B_LITTLE32(mapversion);
 	if (mapversion != 7L && mapversion != 8L) return(-1);
 
+	clearbufbyte(&wall,   sizeof(wall),   0);
+	clearbufbyte(&sector, sizeof(sector), 0);
+	clearbufbyte(&sprite, sizeof(sprite), 0);
+
 	initspritelists();
 
 #define MYMAXSECTORS (mapversion==7l?MAXSECTORSV7:MAXSECTORSV8)
@@ -6175,9 +6179,6 @@ long loadboard(char *filename, char fromwhere, long *daposx, long *daposy, long 
 	clearbuf(&show2dsector[0],(long)((MYMAXSECTORS+3)>>5),0L);
 	clearbuf(&show2dsprite[0],(long)((MYMAXSPRITES+3)>>5),0L);
 	clearbuf(&show2dwall[0],(long)((MYMAXWALLS+3)>>5),0L);
-	clearbufbyte(&wall,   sizeof(wall),   0);
-	clearbufbyte(&sector, sizeof(sector), 0);
-	clearbufbyte(&sprite, sizeof(sprite), 0);
 
 	kread(fil,daposx,4); *daposx = B_LITTLE32(*daposx);
 	kread(fil,daposy,4); *daposy = B_LITTLE32(*daposy);
