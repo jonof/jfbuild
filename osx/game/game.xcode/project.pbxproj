@@ -5,219 +5,237 @@
 	};
 	objectVersion = 39;
 	objects = {
-		080E96DDFE201D6D7F000001 = {
-			children = (
-				F5A47A9E01A0483001D3D55B,
-			);
-			isa = PBXGroup;
-			name = Classes;
-			path = "";
-			refType = 4;
-			sourceTree = "<group>";
-		};
-//080
-//081
-//082
-//083
-//084
-//100
-//101
-//102
-//103
-//104
-		1058C7A0FEA54F0111CA2CBB = {
-			children = (
-				1058C7A1FEA54F0111CA2CBB,
-				B2F67ED704C74A3F00A80002,
-			);
-			isa = PBXGroup;
-			name = "Linked Frameworks";
-			refType = 4;
-			sourceTree = "<group>";
-		};
-		1058C7A1FEA54F0111CA2CBB = {
-			isa = PBXFileReference;
-			lastKnownFileType = wrapper.framework;
-			name = Cocoa.framework;
-			path = /System/Library/Frameworks/Cocoa.framework;
-			refType = 0;
-			sourceTree = "<absolute>";
-		};
-		1058C7A2FEA54F0111CA2CBB = {
-			children = (
-				29B97325FDCFA39411CA2CEA,
-				29B97324FDCFA39411CA2CEA,
-			);
-			isa = PBXGroup;
-			name = "Other Frameworks";
-			refType = 4;
-			sourceTree = "<group>";
-		};
-		1058C7A3FEA54F0111CA2CBB = {
-			fileRef = 1058C7A1FEA54F0111CA2CBB;
+		AB3A002208DF064900C0AA42 = {
+			fileRef = AB3AFABF08DF035400C0AA42;
 			isa = PBXBuildFile;
 			settings = {
 			};
 		};
-//100
-//101
-//102
-//103
-//104
-//170
-//171
-//172
-//173
-//174
-		17587328FF379C6511CA2CBB = {
-			explicitFileType = wrapper.application;
-			isa = PBXFileReference;
-			path = game.app;
-			refType = 3;
-			sourceTree = BUILT_PRODUCTS_DIR;
+		AB3A002408DF064900C0AA42 = {
+			fileRef = AB3AFA6F08DEE50200C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
 		};
-//170
-//171
-//172
-//173
-//174
-//190
-//191
-//192
-//193
-//194
-		19C28FACFE9D520D11CA2CBB = {
+		AB3A002508DF064900C0AA42 = {
+			fileRef = AB3AFA7308DEE53C00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3A002608DF066200C0AA42 = {
+			isa = PBXFileReference;
+			lastKnownFileType = archive.ar;
+			name = libeditor.a;
+			path = ../engine/build/libeditor.a;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB3A002708DF066200C0AA42 = {
+			fileRef = AB3A002608DF066200C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3AF9E408DEE39200C0AA42 = {
 			children = (
-				17587328FF379C6511CA2CBB,
-				AB6A5E3D08A8124200A213E8,
+				AB3A002608DF066200C0AA42,
+				AB3AFABD08DF030B00C0AA42,
+				AB3AFA5F08DEE45000C0AA42,
+				AB3AF9EE08DEE3A100C0AA42,
+				AB3AF9EC08DEE39A00C0AA42,
+				AB3AFA7908DEFECF00C0AA42,
+				AB3AF9F908DEE3EE00C0AA42,
 			);
 			isa = PBXGroup;
-			name = Products;
 			refType = 4;
 			sourceTree = "<group>";
 		};
-//190
-//191
-//192
-//193
-//194
-//290
-//291
-//292
-//293
-//294
-		29B97313FDCFA39411CA2CEA = {
+		AB3AF9E608DEE39200C0AA42 = {
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+			};
+			isa = PBXBuildStyle;
+			name = Development;
+		};
+		AB3AF9E708DEE39200C0AA42 = {
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEPLOYMENT_POSTPROCESSING = YES;
+				GCC_OPTIMIZATION_LEVEL = 2;
+			};
+			isa = PBXBuildStyle;
+			name = Deployment;
+		};
+		AB3AF9E808DEE39200C0AA42 = {
 			buildSettings = {
 			};
 			buildStyles = (
-				4A9504CCFFE6A4B311CA0CBA,
-				4A9504CDFFE6A4B311CA0CBA,
+				AB3AF9E608DEE39200C0AA42,
+				AB3AF9E708DEE39200C0AA42,
 			);
-			hasScannedForEncodings = 1;
+			hasScannedForEncodings = 0;
 			isa = PBXProject;
-			mainGroup = 29B97314FDCFA39411CA2CEA;
+			mainGroup = AB3AF9E408DEE39200C0AA42;
+			productRefGroup = AB3AF9F908DEE3EE00C0AA42;
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = AB9DB356085EEA8D009D4FDA;
-					ProjectRef = AB9DB354085EEA8C009D4FDA;
+					ProductGroup = AB3AFA6208DEE45200C0AA42;
+					ProjectRef = AB3AFA5F08DEE45000C0AA42;
 				},
 			);
 			targets = (
-				AB0184D108C0A4160042AD7E,
-				29B97326FDCFA39411CA2CEA,
-				AB6A5E3C08A8124200A213E8,
+				AB3AFBF108DF03C900C0AA42,
+				AB3AF9F708DEE3EE00C0AA42,
+				AB3AFEC008DF04E300C0AA42,
 			);
 		};
-		29B97314FDCFA39411CA2CEA = {
+		AB3AF9EC08DEE39A00C0AA42 = {
 			children = (
-				AB9DB354085EEA8C009D4FDA,
-				AB0184CF08C0A3B90042AD7E,
-				AB0184CE08C0A3A90042AD7E,
-				29B97317FDCFA39411CA2CEA,
-				29B97323FDCFA39411CA2CEA,
-				19C28FACFE9D520D11CA2CBB,
+				AB3AF9ED08DEE39E00C0AA42,
+				AB3AFA7708DEFEC100C0AA42,
+				AB3AF9FB08DEE3EE00C0AA42,
 			);
 			isa = PBXGroup;
-			name = game;
-			path = "";
+			name = Game;
 			refType = 4;
 			sourceTree = "<group>";
 		};
-		29B97315FDCFA39411CA2CEA = {
+		AB3AF9ED08DEE39E00C0AA42 = {
 			children = (
-				AB4C5D0A08600CE1007FC9AA,
-				AB9DB2FD085EE8D5009D4FDA,
-				AB9DB2FE085EE8D5009D4FDA,
-				AB9DB2FF085EE8D5009D4FDA,
+				AB3AFA6D08DEE4D700C0AA42,
+				AB3AFAB308DEFF1B00C0AA42,
+				AB3AF9F108DEE3DA00C0AA42,
+				AB3AF9F208DEE3DA00C0AA42,
+				AB3AF9F308DEE3DA00C0AA42,
 			);
 			isa = PBXGroup;
 			name = Sources;
-			path = "";
 			refType = 4;
 			sourceTree = "<group>";
 		};
-		29B97317FDCFA39411CA2CEA = {
+		AB3AF9EE08DEE3A100C0AA42 = {
 			children = (
-				ABBD0F3D08A884370062C038,
+				AB3AF9EF08DEE3AB00C0AA42,
+				AB3AFEC308DF04E300C0AA42,
 			);
 			isa = PBXGroup;
-			name = Resources;
-			path = "";
+			name = Editor;
 			refType = 4;
 			sourceTree = "<group>";
 		};
-		29B97323FDCFA39411CA2CEA = {
+		AB3AF9EF08DEE3AB00C0AA42 = {
 			children = (
-				1058C7A0FEA54F0111CA2CBB,
-				1058C7A2FEA54F0111CA2CBB,
+				AB3AFECC08DF059E00C0AA42,
+				AB3AFAB108DEFF0000C0AA42,
+				AB3AF9F008DEE3C100C0AA42,
 			);
 			isa = PBXGroup;
-			name = Frameworks;
-			path = "";
+			name = Sources;
 			refType = 4;
 			sourceTree = "<group>";
 		};
-		29B97324FDCFA39411CA2CEA = {
+		AB3AF9F008DEE3C100C0AA42 = {
+			fileEncoding = 30;
 			isa = PBXFileReference;
-			lastKnownFileType = wrapper.framework;
-			name = AppKit.framework;
-			path = /System/Library/Frameworks/AppKit.framework;
-			refType = 0;
-			sourceTree = "<absolute>";
+			lastKnownFileType = sourcecode.c.c;
+			name = bstub.c;
+			path = ../../src/bstub.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
-		29B97325FDCFA39411CA2CEA = {
+		AB3AF9F108DEE3DA00C0AA42 = {
+			fileEncoding = 30;
 			isa = PBXFileReference;
-			lastKnownFileType = wrapper.framework;
-			name = Foundation.framework;
-			path = /System/Library/Frameworks/Foundation.framework;
-			refType = 0;
-			sourceTree = "<absolute>";
+			lastKnownFileType = sourcecode.c.c;
+			name = config.c;
+			path = ../../src/config.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
-		29B97326FDCFA39411CA2CEA = {
+		AB3AF9F208DEE3DA00C0AA42 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = game.c;
+			path = ../../src/game.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB3AF9F308DEE3DA00C0AA42 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = sound.c;
+			path = ../../src/sound.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB3AF9F408DEE3EE00C0AA42 = {
+			buildActionMask = 2147483647;
+			files = (
+				AB3AFA7808DEFEC200C0AA42,
+			);
+			isa = PBXResourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB3AF9F508DEE3EE00C0AA42 = {
+			buildActionMask = 2147483647;
+			files = (
+				AB3AFA5C08DEE43500C0AA42,
+				AB3AFA5D08DEE43500C0AA42,
+				AB3AFA5E08DEE43600C0AA42,
+				AB3AFA6E08DEE4D700C0AA42,
+				AB3AFAB408DEFF1B00C0AA42,
+			);
+			isa = PBXSourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB3AF9F608DEE3EE00C0AA42 = {
+			buildActionMask = 2147483647;
+			files = (
+				AB3AFAC008DF035400C0AA42,
+				AB3AFB5708DF037500C0AA42,
+				AB3AFABE08DF030B00C0AA42,
+				AB3AFA7008DEE50200C0AA42,
+				AB3AFA7408DEE53C00C0AA42,
+			);
+			isa = PBXFrameworksBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB3AF9F708DEE3EE00C0AA42 = {
 			buildPhases = (
-				29B97328FDCFA39411CA2CEA,
-				29B9732BFDCFA39411CA2CEA,
-				29B9732DFDCFA39411CA2CEA,
+				AB3AF9F408DEE3EE00C0AA42,
+				AB3AF9F508DEE3EE00C0AA42,
+				AB3AF9F608DEE3EE00C0AA42,
+			);
+			buildRules = (
 			);
 			buildSettings = {
-				FRAMEWORK_SEARCH_PATHS = "\"/Library/Frameworks\"";
-				HEADER_SEARCH_PATHS = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/fmodapi3741mac/api/inc\" ../../include /Library/Frameworks/SDL.framework/Headers";
-				LIBRARY_SEARCH_PATHS = "\"$(SYSTEM_DEVELOPER_DIR)/SDKs/fmodapi3741mac/api/lib\"";
-				OTHER_CFLAGS = "-DPLATFORMDARWIN=1 -DRENDERTYPESDL=1 -DNOASM -DUSE_A_C -DSUPERBUILD -DPOLYMOST -DUSE_OPENGL";
-				OTHER_LDFLAGS = "-framework SDL -lfmod -framework Carbon";
+				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
+				GCC_ENABLE_CPP_EXCEPTIONS = NO;
+				GCC_ENABLE_CPP_RTTI = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = "SUPERBUILD POLYMOST USE_OPENGL NOASM RENDERTYPESDL=1";
+				HEADER_SEARCH_PATHS = "/Library/Frameworks/SDL.framework/Headers /Developer/SDKs/fmodapi3741mac/api/inc ../../include";
+				INFOPLIST_FILE = "game-Info.plist";
+				INSTALL_PATH = "$(USER_APPS_DIR)";
+				LIBRARY_SEARCH_PATHS = "/Developer/SDKs/fmodapi3741mac/api/lib ../engine/build";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "-lfmod";
+				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = game;
 				SECTORDER_FLAGS = "";
-				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
-				WRAPPER_EXTENSION = app;
+				WARNING_CFLAGS = "-Wno-four-char-constants -Wno-unknown-pragmas";
 			};
 			dependencies = (
-				AB0184DB08C0A6FF0042AD7E,
+				AB3AFAB608DF00A400C0AA42,
 			);
-			isa = PBXApplicationTarget;
+			isa = PBXNativeTarget;
 			name = game;
 			productName = game;
-			productReference = 17587328FF379C6511CA2CBB;
+			productReference = AB3AF9F808DEE3EE00C0AA42;
 			productSettingsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE plist PUBLIC \"-//Apple Computer//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
 <plist version=\"1.0\">
@@ -226,132 +244,263 @@
 	<string>English</string>
 	<key>CFBundleExecutable</key>
 	<string>game</string>
-	<key>CFBundleIconFile</key>
-	<string></string>
 	<key>CFBundleIdentifier</key>
-	<string>au.id.jonof.kenbuild</string>
+	<string>com.yourcompany.game</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>KenBuild</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>0.1</string>
+	<string>1.0</string>
 	<key>NSMainNibFile</key>
-	<string>osxmain</string>
+	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>
 </plist>
 ";
+			productType = "com.apple.product-type.application";
 		};
-		29B97328FDCFA39411CA2CEA = {
-			buildActionMask = 2147483647;
-			files = (
-				ABBD0F3F08A884370062C038,
+		AB3AF9F808DEE3EE00C0AA42 = {
+			explicitFileType = wrapper.application;
+			includeInIndex = 0;
+			isa = PBXFileReference;
+			path = game.app;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AB3AF9F908DEE3EE00C0AA42 = {
+			children = (
+				AB3AF9F808DEE3EE00C0AA42,
+				AB3AFEC108DF04E300C0AA42,
 			);
-			isa = PBXResourcesBuildPhase;
-			runOnlyForDeploymentPostprocessing = 0;
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
 		};
-		29B9732BFDCFA39411CA2CEA = {
-			buildActionMask = 2147483647;
-			files = (
-				F5A47AA301A0483001D3D55B,
-				AB9DB300085EE8D5009D4FDA,
-				AB9DB301085EE8D5009D4FDA,
-				AB9DB302085EE8D5009D4FDA,
-				AB4C5D0B08600CE1007FC9AA,
-			);
-			isa = PBXSourcesBuildPhase;
-			runOnlyForDeploymentPostprocessing = 0;
+		AB3AF9FB08DEE3EE00C0AA42 = {
+			isa = PBXFileReference;
+			lastKnownFileType = text.xml;
+			path = "game-Info.plist";
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
-		29B9732DFDCFA39411CA2CEA = {
-			buildActionMask = 2147483647;
-			files = (
-				AB9DB359085EEA96009D4FDA,
-				1058C7A3FEA54F0111CA2CBB,
-				B2F67ED804C74A3F00A80002,
-			);
-			isa = PBXFrameworksBuildPhase;
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-//290
-//291
-//292
-//293
-//294
-//4A0
-//4A1
-//4A2
-//4A3
-//4A4
-		4A9504CCFFE6A4B311CA0CBA = {
-			buildSettings = {
-				COPY_PHASE_STRIP = NO;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_FIX_AND_CONTINUE = YES;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				OPTIMIZATION_CFLAGS = "-O0";
-				ZERO_LINK = YES;
+		AB3AFA5C08DEE43500C0AA42 = {
+			fileRef = AB3AF9F108DEE3DA00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
 			};
-			isa = PBXBuildStyle;
-			name = Development;
 		};
-		4A9504CDFFE6A4B311CA0CBA = {
-			buildSettings = {
-				COPY_PHASE_STRIP = YES;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
-				GCC_OPTIMIZATION_LEVEL = 2;
-				OPTIMIZATION_CFLAGS = "-O2";
-				ZERO_LINK = NO;
+		AB3AFA5D08DEE43500C0AA42 = {
+			fileRef = AB3AF9F208DEE3DA00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
 			};
-			isa = PBXBuildStyle;
-			name = Deployment;
 		};
-//4A0
-//4A1
-//4A2
-//4A3
-//4A4
-//AB0
-//AB1
-//AB2
-//AB3
-//AB4
-		AB0184CE08C0A3A90042AD7E = {
+		AB3AFA5E08DEE43600C0AA42 = {
+			fileRef = AB3AF9F308DEE3DA00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3AFA5F08DEE45000C0AA42 = {
+			isa = PBXFileReference;
+			lastKnownFileType = "wrapper.pb-project";
+			name = engine.xcode;
+			path = ../engine/engine.xcode;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB3AFA6208DEE45200C0AA42 = {
 			children = (
-				080E96DDFE201D6D7F000001,
-				29B97315FDCFA39411CA2CEA,
+				AB3AFA6308DEE45200C0AA42,
+				AB3AFA6408DEE45200C0AA42,
 			);
 			isa = PBXGroup;
-			name = Game;
+			name = Products;
 			refType = 4;
 			sourceTree = "<group>";
 		};
-		AB0184CF08C0A3B90042AD7E = {
+		AB3AFA6308DEE45200C0AA42 = {
+			fileType = archive.ar;
+			isa = PBXReferenceProxy;
+			path = libengine.a;
+			refType = 3;
+			remoteRef = AB3AFA6708DEE46200C0AA42;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AB3AFA6408DEE45200C0AA42 = {
+			fileType = archive.ar;
+			isa = PBXReferenceProxy;
+			path = libeditor.a;
+			refType = 3;
+			remoteRef = AB3AFA6808DEE46200C0AA42;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AB3AFA6708DEE46200C0AA42 = {
+			containerPortal = AB3AFA5F08DEE45000C0AA42;
+			isa = PBXContainerItemProxy;
+			proxyType = 2;
+			remoteGlobalIDString = AB3AF5F508DEDABE00C0AA42;
+			remoteInfo = engine;
+		};
+		AB3AFA6808DEE46200C0AA42 = {
+			containerPortal = AB3AFA5F08DEE45000C0AA42;
+			isa = PBXContainerItemProxy;
+			proxyType = 2;
+			remoteGlobalIDString = AB3AF9DE08DEE2CF00C0AA42;
+			remoteInfo = editor;
+		};
+		AB3AFA6D08DEE4D700C0AA42 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.objc;
+			path = game.osxmain.m;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB3AFA6E08DEE4D700C0AA42 = {
+			fileRef = AB3AFA6D08DEE4D700C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3AFA6F08DEE50200C0AA42 = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = OpenGL.framework;
+			path = /System/Library/Frameworks/OpenGL.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		AB3AFA7008DEE50200C0AA42 = {
+			fileRef = AB3AFA6F08DEE50200C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3AFA7308DEE53C00C0AA42 = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = SDL.framework;
+			path = /Library/Frameworks/SDL.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		AB3AFA7408DEE53C00C0AA42 = {
+			fileRef = AB3AFA7308DEE53C00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3AFA7708DEFEC100C0AA42 = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.nib;
+			path = osxmain.nib;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB3AFA7808DEFEC200C0AA42 = {
+			fileRef = AB3AFA7708DEFEC100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3AFA7908DEFECF00C0AA42 = {
 			children = (
-				AB0184D008C0A3EC0042AD7E,
-				ABBD0F7608A897D10062C038,
+				AB3AFABF08DF035400C0AA42,
+				AB3AFB5608DF037500C0AA42,
+				AB3AFA6F08DEE50200C0AA42,
+				AB3AFA7308DEE53C00C0AA42,
 			);
 			isa = PBXGroup;
-			name = Editor;
+			name = Frameworks;
 			refType = 4;
 			sourceTree = "<group>";
 		};
-		AB0184D008C0A3EC0042AD7E = {
-			children = (
-				AB6A5E7008A8177C00A213E8,
-			);
-			isa = PBXGroup;
-			name = Classes;
-			refType = 4;
-			sourceTree = "<group>";
+		AB3AFAB108DEFF0000C0AA42 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = build_icon.c;
+			path = ../../rsrc/build_icon.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
 		};
-		AB0184D108C0A4160042AD7E = {
+		AB3AFAB308DEFF1B00C0AA42 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = game_icon.c;
+			path = ../../rsrc/game_icon.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB3AFAB408DEFF1B00C0AA42 = {
+			fileRef = AB3AFAB308DEFF1B00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3AFAB508DF00A400C0AA42 = {
+			containerPortal = AB3AFA5F08DEE45000C0AA42;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = AB3AF5F408DEDABE00C0AA42;
+			remoteInfo = engine;
+		};
+		AB3AFAB608DF00A400C0AA42 = {
+			isa = PBXTargetDependency;
+			name = "engine (from engine.xcode)";
+			targetProxy = AB3AFAB508DF00A400C0AA42;
+		};
+		AB3AFABD08DF030B00C0AA42 = {
+			isa = PBXFileReference;
+			lastKnownFileType = archive.ar;
+			name = libengine.a;
+			path = ../engine/build/libengine.a;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB3AFABE08DF030B00C0AA42 = {
+			fileRef = AB3AFABD08DF030B00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3AFABF08DF035400C0AA42 = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = AppKit.framework;
+			path = /System/Library/Frameworks/AppKit.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		AB3AFAC008DF035400C0AA42 = {
+			fileRef = AB3AFABF08DF035400C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3AFB5608DF037500C0AA42 = {
+			comments = "Needed for fmod to link.";
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = Carbon.framework;
+			path = /System/Library/Frameworks/Carbon.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		AB3AFB5708DF037500C0AA42 = {
+			fileRef = AB3AFB5608DF037500C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB3AFBF108DF03C900C0AA42 = {
 			buildPhases = (
 			);
 			buildSettings = {
@@ -363,143 +512,86 @@
 				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
 			};
 			dependencies = (
-				AB0184D308C0A4210042AD7E,
-				AB0184D508C0A4210042AD7E,
+				AB3AFBF308DF03D200C0AA42,
 			);
 			isa = PBXAggregateTarget;
 			name = All;
 			productName = All;
 		};
-		AB0184D208C0A4210042AD7E = {
-			containerPortal = 29B97313FDCFA39411CA2CEA;
+		AB3AFBF208DF03D200C0AA42 = {
+			containerPortal = AB3AF9E808DEE39200C0AA42;
 			isa = PBXContainerItemProxy;
 			proxyType = 1;
-			remoteGlobalIDString = 29B97326FDCFA39411CA2CEA;
+			remoteGlobalIDString = AB3AF9F708DEE3EE00C0AA42;
 			remoteInfo = game;
 		};
-		AB0184D308C0A4210042AD7E = {
+		AB3AFBF308DF03D200C0AA42 = {
 			isa = PBXTargetDependency;
-			target = 29B97326FDCFA39411CA2CEA;
-			targetProxy = AB0184D208C0A4210042AD7E;
+			target = AB3AF9F708DEE3EE00C0AA42;
+			targetProxy = AB3AFBF208DF03D200C0AA42;
 		};
-		AB0184D408C0A4210042AD7E = {
-			containerPortal = 29B97313FDCFA39411CA2CEA;
-			isa = PBXContainerItemProxy;
-			proxyType = 1;
-			remoteGlobalIDString = AB6A5E3C08A8124200A213E8;
-			remoteInfo = editor;
-		};
-		AB0184D508C0A4210042AD7E = {
-			isa = PBXTargetDependency;
-			target = AB6A5E3C08A8124200A213E8;
-			targetProxy = AB0184D408C0A4210042AD7E;
-		};
-		AB0184DA08C0A6FF0042AD7E = {
-			containerPortal = AB9DB354085EEA8C009D4FDA;
-			isa = PBXContainerItemProxy;
-			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D;
-			remoteInfo = engine;
-		};
-		AB0184DB08C0A6FF0042AD7E = {
-			isa = PBXTargetDependency;
-			name = "engine (from engine.xcode)";
-			targetProxy = AB0184DA08C0A6FF0042AD7E;
-		};
-		AB0184DC08C0A70B0042AD7E = {
-			containerPortal = AB9DB354085EEA8C009D4FDA;
-			isa = PBXContainerItemProxy;
-			proxyType = 1;
-			remoteGlobalIDString = D2AAC045055464E500DB518D;
-			remoteInfo = engine;
-		};
-		AB0184DD08C0A70B0042AD7E = {
-			isa = PBXTargetDependency;
-			name = "engine (from engine.xcode)";
-			targetProxy = AB0184DC08C0A70B0042AD7E;
-		};
-		AB0184DE08C0A70B0042AD7E = {
-			containerPortal = AB9DB354085EEA8C009D4FDA;
-			isa = PBXContainerItemProxy;
-			proxyType = 1;
-			remoteGlobalIDString = AB9DB2C2085EE49A009D4FDA;
-			remoteInfo = editor;
-		};
-		AB0184DF08C0A70B0042AD7E = {
-			isa = PBXTargetDependency;
-			name = "editor (from engine.xcode)";
-			targetProxy = AB0184DE08C0A70B0042AD7E;
-		};
-		AB4C5D0A08600CE1007FC9AA = {
-			fileEncoding = 30;
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.c.c;
-			name = game_icon.c;
-			path = ../../rsrc/game_icon.c;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
-		};
-		AB4C5D0B08600CE1007FC9AA = {
-			fileRef = AB4C5D0A08600CE1007FC9AA;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB6A5E3808A8124200A213E8 = {
+		AB3AFEBD08DF04E300C0AA42 = {
 			buildActionMask = 2147483647;
 			files = (
-				ABBD0F3E08A884370062C038,
+				AB3AFECE08DF05AE00C0AA42,
 			);
 			isa = PBXResourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AB6A5E3908A8124200A213E8 = {
+		AB3AFEBE08DF04E300C0AA42 = {
 			buildActionMask = 2147483647;
 			files = (
-				AB6A5E5608A8134100A213E8,
-				AB6A5E6808A816CD00A213E8,
-				AB6A5E7108A8177C00A213E8,
+				AB3AFECA08DF058D00C0AA42,
+				AB3AFECB08DF058D00C0AA42,
+				AB3AFECD08DF059E00C0AA42,
 			);
 			isa = PBXSourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AB6A5E3A08A8124200A213E8 = {
+		AB3AFEBF08DF04E300C0AA42 = {
 			buildActionMask = 2147483647;
 			files = (
-				AB6A5E5408A8130C00A213E8,
-				AB6A5E3F08A8128800A213E8,
-				AB6A5E4008A8128800A213E8,
-				AB6A5E4108A8128800A213E8,
+				AB3A002208DF064900C0AA42,
+				AB3A002708DF066200C0AA42,
+				AB3AFECF08DF063D00C0AA42,
+				AB3A002408DF064900C0AA42,
+				AB3A002508DF064900C0AA42,
 			);
 			isa = PBXFrameworksBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AB6A5E3C08A8124200A213E8 = {
+		AB3AFEC008DF04E300C0AA42 = {
 			buildPhases = (
-				AB6A5E3808A8124200A213E8,
-				AB6A5E3908A8124200A213E8,
-				AB6A5E3A08A8124200A213E8,
+				AB3AFEBD08DF04E300C0AA42,
+				AB3AFEBE08DF04E300C0AA42,
+				AB3AFEBF08DF04E300C0AA42,
+			);
+			buildRules = (
 			);
 			buildSettings = {
-				FRAMEWORK_SEARCH_PATHS = "\"/Library/Frameworks\"";
-				HEADER_SEARCH_PATHS = "../../include /Library/Frameworks/SDL.framework/Headers";
-				OTHER_CFLAGS = "-DPLATFORMDARWIN=1 -DRENDERTYPESDL=1 -DNOASM -DUSE_A_C -DSUPERBUILD -DPOLYMOST -DUSE_OPENGL";
-				OTHER_LDFLAGS = "-framework SDL";
+				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
+				GCC_ENABLE_CPP_EXCEPTIONS = NO;
+				GCC_ENABLE_CPP_RTTI = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = "SUPERBUILD POLYMOST USE_OPENGL NOASM USE_A_C RENDERTYPESDL=1";
+				HEADER_SEARCH_PATHS = "/Library/Frameworks/SDL.framework/Headers ../../include";
+				INFOPLIST_FILE = "editor-Info.plist";
+				INSTALL_PATH = "$(USER_APPS_DIR)";
+				LIBRARY_SEARCH_PATHS = "../engine/build /Users/jonof/ports/x/build/osx/engine/build";
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
 				OTHER_REZFLAGS = "";
-				PRODUCT_NAME = editor;
+				PRODUCT_NAME = build;
 				SECTORDER_FLAGS = "";
-				WARNING_CFLAGS = "-Wmost -Wno-four-char-constants -Wno-unknown-pragmas";
-				WRAPPER_EXTENSION = app;
+				WARNING_CFLAGS = "-Wno-four-char-constants -Wno-unknown-pragmas";
 			};
 			dependencies = (
-				AB0184DD08C0A70B0042AD7E,
-				AB0184DF08C0A70B0042AD7E,
+				AB3AFEC508DF04EB00C0AA42,
+				AB3AFEC708DF04EB00C0AA42,
 			);
-			isa = PBXApplicationTarget;
+			isa = PBXNativeTarget;
 			name = editor;
-			productInstallPath = "$(USER_APPS_DIR)";
 			productName = editor;
-			productReference = AB6A5E3D08A8124200A213E8;
+			productReference = AB3AFEC108DF04E300C0AA42;
 			productSettingsXML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <!DOCTYPE plist PUBLIC \"-//Apple Computer//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
 <plist version=\"1.0\">
@@ -508,95 +600,77 @@
 	<string>English</string>
 	<key>CFBundleExecutable</key>
 	<string>editor</string>
-	<key>CFBundleGetInfoString</key>
-	<string></string>
-	<key>CFBundleIconFile</key>
-	<string></string>
 	<key>CFBundleIdentifier</key>
-	<string>au.id.jonof.build</string>
+	<string>com.yourcompany.editor</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>Build Editor</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string></string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>0</string>
+	<string>1.0</string>
 	<key>NSMainNibFile</key>
-	<string>osxmain</string>
+	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>
 </plist>
 ";
+			productType = "com.apple.product-type.application";
 		};
-		AB6A5E3D08A8124200A213E8 = {
+		AB3AFEC108DF04E300C0AA42 = {
 			explicitFileType = wrapper.application;
 			includeInIndex = 0;
 			isa = PBXFileReference;
-			path = editor.app;
+			path = build.app;
 			refType = 3;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AB6A5E3F08A8128800A213E8 = {
-			fileRef = 1058C7A1FEA54F0111CA2CBB;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB6A5E4008A8128800A213E8 = {
-			fileRef = AB9DB357085EEA8D009D4FDA;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB6A5E4108A8128800A213E8 = {
-			fileRef = B2F67ED704C74A3F00A80002;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB6A5E5408A8130C00A213E8 = {
-			fileRef = AB9DB358085EEA8D009D4FDA;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB6A5E5508A8134100A213E8 = {
-			fileEncoding = 30;
+		AB3AFEC308DF04E300C0AA42 = {
 			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.c.c;
-			name = bstub.c;
-			path = ../../src/bstub.c;
+			lastKnownFileType = text.xml;
+			path = "editor-Info.plist";
 			refType = 2;
 			sourceTree = SOURCE_ROOT;
 		};
-		AB6A5E5608A8134100A213E8 = {
-			fileRef = AB6A5E5508A8134100A213E8;
+		AB3AFEC408DF04EB00C0AA42 = {
+			containerPortal = AB3AFA5F08DEE45000C0AA42;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = AB3AF5F408DEDABE00C0AA42;
+			remoteInfo = engine;
+		};
+		AB3AFEC508DF04EB00C0AA42 = {
+			isa = PBXTargetDependency;
+			name = "engine (from engine.xcode)";
+			targetProxy = AB3AFEC408DF04EB00C0AA42;
+		};
+		AB3AFEC608DF04EB00C0AA42 = {
+			containerPortal = AB3AFA5F08DEE45000C0AA42;
+			isa = PBXContainerItemProxy;
+			proxyType = 1;
+			remoteGlobalIDString = AB3AF9DD08DEE2CF00C0AA42;
+			remoteInfo = editor;
+		};
+		AB3AFEC708DF04EB00C0AA42 = {
+			isa = PBXTargetDependency;
+			name = "editor (from engine.xcode)";
+			targetProxy = AB3AFEC608DF04EB00C0AA42;
+		};
+		AB3AFECA08DF058D00C0AA42 = {
+			fileRef = AB3AF9F008DEE3C100C0AA42;
 			isa = PBXBuildFile;
 			settings = {
 			};
 		};
-		AB6A5E6708A816CD00A213E8 = {
-			fileEncoding = 30;
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.c.c;
-			name = build_icon.c;
-			path = ../../rsrc/build_icon.c;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
-		};
-		AB6A5E6808A816CD00A213E8 = {
-			fileRef = AB6A5E6708A816CD00A213E8;
+		AB3AFECB08DF058D00C0AA42 = {
+			fileRef = AB3AFAB108DEFF0000C0AA42;
 			isa = PBXBuildFile;
 			settings = {
 			};
 		};
-		AB6A5E7008A8177C00A213E8 = {
+		AB3AFECC08DF059E00C0AA42 = {
 			fileEncoding = 30;
 			isa = PBXFileReference;
 			lastKnownFileType = sourcecode.c.objc;
@@ -604,189 +678,24 @@
 			refType = 2;
 			sourceTree = SOURCE_ROOT;
 		};
-		AB6A5E7108A8177C00A213E8 = {
-			fileRef = AB6A5E7008A8177C00A213E8;
+		AB3AFECD08DF059E00C0AA42 = {
+			fileRef = AB3AFECC08DF059E00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
 			};
 		};
-		AB9DB2FD085EE8D5009D4FDA = {
-			fileEncoding = 30;
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.c.c;
-			name = config.c;
-			path = ../../src/config.c;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
-		};
-		AB9DB2FE085EE8D5009D4FDA = {
-			fileEncoding = 30;
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.c.c;
-			name = game.c;
-			path = ../../src/game.c;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
-		};
-		AB9DB2FF085EE8D5009D4FDA = {
-			fileEncoding = 30;
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.c.c;
-			name = sound.c;
-			path = ../../src/sound.c;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
-		};
-		AB9DB300085EE8D5009D4FDA = {
-			fileRef = AB9DB2FD085EE8D5009D4FDA;
+		AB3AFECE08DF05AE00C0AA42 = {
+			fileRef = AB3AFA7708DEFEC100C0AA42;
 			isa = PBXBuildFile;
 			settings = {
 			};
 		};
-		AB9DB301085EE8D5009D4FDA = {
-			fileRef = AB9DB2FE085EE8D5009D4FDA;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB9DB302085EE8D5009D4FDA = {
-			fileRef = AB9DB2FF085EE8D5009D4FDA;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB9DB354085EEA8C009D4FDA = {
-			isa = PBXFileReference;
-			lastKnownFileType = "wrapper.pb-project";
-			name = engine.xcode;
-			path = ../engine/engine.xcode;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
-		};
-		AB9DB356085EEA8D009D4FDA = {
-			children = (
-				AB9DB357085EEA8D009D4FDA,
-				AB9DB358085EEA8D009D4FDA,
-			);
-			isa = PBXGroup;
-			name = Products;
-			refType = 4;
-			sourceTree = "<group>";
-		};
-		AB9DB357085EEA8D009D4FDA = {
-			fileType = archive.ar;
-			isa = PBXReferenceProxy;
-			path = libengine.a;
-			refType = 3;
-			remoteRef = AB9DB35A085EEA9A009D4FDA;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		AB9DB358085EEA8D009D4FDA = {
-			fileType = archive.ar;
-			isa = PBXReferenceProxy;
-			path = libeditor.a;
-			refType = 3;
-			remoteRef = AB9DB35B085EEA9A009D4FDA;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		AB9DB359085EEA96009D4FDA = {
-			fileRef = AB9DB357085EEA8D009D4FDA;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB9DB35A085EEA9A009D4FDA = {
-			containerPortal = AB9DB354085EEA8C009D4FDA;
-			isa = PBXContainerItemProxy;
-			proxyType = 2;
-			remoteGlobalIDString = D2AAC046055464E500DB518D;
-			remoteInfo = engine;
-		};
-		AB9DB35B085EEA9A009D4FDA = {
-			containerPortal = AB9DB354085EEA8C009D4FDA;
-			isa = PBXContainerItemProxy;
-			proxyType = 2;
-			remoteGlobalIDString = AB9DB2C3085EE49A009D4FDA;
-			remoteInfo = editor;
-		};
-		ABBD0F3D08A884370062C038 = {
-			isa = PBXFileReference;
-			lastKnownFileType = wrapper.nib;
-			path = osxmain.nib;
-			refType = 4;
-			sourceTree = "<group>";
-		};
-		ABBD0F3E08A884370062C038 = {
-			fileRef = ABBD0F3D08A884370062C038;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		ABBD0F3F08A884370062C038 = {
-			fileRef = ABBD0F3D08A884370062C038;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		ABBD0F7608A897D10062C038 = {
-			children = (
-				AB6A5E6708A816CD00A213E8,
-				AB6A5E5508A8134100A213E8,
-			);
-			isa = PBXGroup;
-			name = Sources;
-			path = "";
-			refType = 4;
-			sourceTree = "<group>";
-		};
-//AB0
-//AB1
-//AB2
-//AB3
-//AB4
-//B20
-//B21
-//B22
-//B23
-//B24
-		B2F67ED704C74A3F00A80002 = {
-			isa = PBXFileReference;
-			lastKnownFileType = wrapper.framework;
-			name = OpenGL.framework;
-			path = /System/Library/Frameworks/OpenGL.framework;
-			refType = 0;
-			sourceTree = "<absolute>";
-		};
-		B2F67ED804C74A3F00A80002 = {
-			fileRef = B2F67ED704C74A3F00A80002;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-//B20
-//B21
-//B22
-//B23
-//B24
-//F50
-//F51
-//F52
-//F53
-//F54
-		F5A47A9E01A0483001D3D55B = {
-			fileEncoding = 30;
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.c.objc;
-			path = game.osxmain.m;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
-		};
-		F5A47AA301A0483001D3D55B = {
-			fileRef = F5A47A9E01A0483001D3D55B;
+		AB3AFECF08DF063D00C0AA42 = {
+			fileRef = AB3AFABD08DF030B00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
 			};
 		};
 	};
-	rootObject = 29B97313FDCFA39411CA2CEA;
+	rootObject = AB3AF9E808DEE39200C0AA42;
 }
