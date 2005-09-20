@@ -14,6 +14,7 @@
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
+#define _WIN32_IE 0x0400
 #include <windows.h>
 #include <shlobj.h>
 #endif
@@ -326,13 +327,13 @@ char *Bgethomedir(void)
 #ifdef _WIN32
 	TCHAR appdata[MAX_PATH];
 
-# if defined SHGetFolderPath
-	if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, appdata)))
-# elif defined SHGetSpecialFolderPath
+//# if defined SHGetFolderPath
+//	if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, appdata)))
+//# if defined SHGetSpecialFolderPath
 	if (SUCCEEDED(SHGetSpecialFolderPathA(NULL, appdata, CSIDL_APPDATA, FALSE)))
-# else
-#  error Cannot find SHGetFolderPath or SHGetSpecialFolderPath. Perhaps your shlobj.h is ancient?
-# endif
+//# else
+//#  error Cannot find SHGetFolderPath or SHGetSpecialFolderPath. Perhaps your shlobj.h is ancient?
+//# endif
 		return strdup(appdata);
 	return NULL;
 #else

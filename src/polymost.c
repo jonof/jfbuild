@@ -499,7 +499,7 @@ void polymost_glinit()
 	GLfloat col[4];
 	
 	bglFogi(GL_FOG_MODE,GL_EXP); //GL_EXP(default),GL_EXP2,GL_LINEAR
-	bglHint(GL_FOG_HINT,GL_NICEST);
+	//bglHint(GL_FOG_HINT,GL_NICEST);
 	bglFogf(GL_FOG_DENSITY,1.0); //must be > 0, default is 1
 	bglFogf(GL_FOG_START,0.0); //default is 0
 	bglFogf(GL_FOG_END,1.0); //default is 1

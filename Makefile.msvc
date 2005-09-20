@@ -84,7 +84,7 @@ EDITOREXEOBJS=$(OBJ)bstub.$o \
 	$(OBJ)$(ENGINELIB)
 	
 RENDERTYPE=WIN
-LIBS=$(LIBS) shfolder.lib user32.lib gdi32.lib dxguid.lib wsock32.lib
+LIBS=$(LIBS) user32.lib gdi32.lib shell32.lib dxguid.lib wsock32.lib
 CFLAGS=$(CFLAGS) /DRENDERTYPE$(RENDERTYPE)=1
 
 # RULES

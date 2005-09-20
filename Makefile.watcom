@@ -127,7 +127,6 @@ game$(EXESUFFIX): $(GAMEEXEOBJS) $(OBJ)gameres.$(res) $(OBJ)$(ENGINELIB)
 		LIBPATH  $(DXROOT)\lib &
 		LIBPATH  $(FMODROOT)\lib &
 		LIBPATH  $(OBJ) &
-		LIBFILE  shfolder.lib &
 		LIBRARY  { $(ENGINELIB) $(LIBS) }
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS) $(OBJ)buildres.$(res) $(OBJ)$(ENGINELIB) $(OBJ)$(EDITORLIB)
@@ -140,7 +139,6 @@ build$(EXESUFFIX): $(EDITOREXEOBJS) $(OBJ)buildres.$(res) $(OBJ)$(ENGINELIB) $(O
 		LIBPATH  $(DXROOT)\lib &
 		LIBPATH  $(FMODROOT)\lib &
 		LIBPATH  $(OBJ) &
-		LIBFILE  shfolder.lib &
 		LIBRARY  { $(ENGINELIB) $(EDITORLIB) $(LIBS) }
 
 kextract$(EXESUFFIX): $(OBJ)kextract.$o $(OBJ)compat.$o
