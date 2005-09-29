@@ -359,6 +359,14 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 			startupdlgcommand = LOWORD(wParam);
 			return FALSE;
 
+		case WM_CTLCOLORSTATIC:
+			switch (GetDlgCtrlID((HWND)lParam)) {
+				case WIN_STARTWIN_ITEMLIST:
+					return (BOOL)GetSysColorBrush(COLOR_WINDOW);
+				default: break;
+			}
+			break;
+
 		default: break;
 	}
 
@@ -611,7 +619,7 @@ void initprintf(const char *f, ...)
 	char buf[1024],*p=NULL,*q=NULL,workbuf[1024];
 	//int i = 0;
 
-//	static int newline = 1;
+	static int newline = 0;//1;
 //	int overwriteline = -1;
 	
 	va_start(va, f);
@@ -675,7 +683,6 @@ void initprintf(const char *f, ...)
 	{
 	int curlen, linesbefore, linesafter;
 	HWND edctl;
-	char *p;
 
 	edctl = GetDlgItem(startupdlg,102);
 	if (!edctl) return;
@@ -686,13 +693,22 @@ void initprintf(const char *f, ...)
 	linesbefore = SendMessage(edctl, EM_GETLINECOUNT, 0,0);
 	p = buf;
 	while (*p) {
+		if (newline) {
+			SendMessage(edctl, EM_REPLACESEL, 0, (LPARAM)"\r\n");
+			newline = 0;
+		}
 		q = p;
 		while (*q && *q != '\n') q++;
 		memcpy(workbuf, p, q-p);
 		if (*q == '\n') {
-			workbuf[q-p] = '\r';
-			workbuf[q-p+1] = '\n';
-			workbuf[q-p+2] = 0;
+			if (!q[1]) {
+				newline = 1;
+				workbuf[q-p] = 0;
+			} else {
+				workbuf[q-p] = '\r';
+				workbuf[q-p+1] = '\n';
+				workbuf[q-p+2] = 0;
+			}
 			p = q+1;
 		} else {
 			workbuf[q-p] = 0;
