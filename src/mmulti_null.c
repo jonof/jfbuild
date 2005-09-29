@@ -63,7 +63,7 @@ void sendpacket(long other, char *bufptr, long messleng)
 {
 }
 
-short getpacket (long *other, char *bufptr)
+long getpacket (long *other, char *bufptr)
 {
 	return 0;
 }

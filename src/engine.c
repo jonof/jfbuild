@@ -6166,9 +6166,12 @@ long loadboard(char *filename, char fromwhere, long *daposx, long *daposy, long 
 	kread(fil,&mapversion,4); mapversion = B_LITTLE32(mapversion);
 	if (mapversion != 7L && mapversion != 8L) return(-1);
 
+	/*
+	// Enable this for doing map checksum tests
 	clearbufbyte(&wall,   sizeof(wall),   0);
 	clearbufbyte(&sector, sizeof(sector), 0);
 	clearbufbyte(&sprite, sizeof(sprite), 0);
+	*/
 
 	initspritelists();
 

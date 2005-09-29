@@ -300,6 +300,16 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 					FIELDSWIDE,rbmp.bottom-(PADWIDE+rtxt.bottom+PADWIDE+PADWIDE),
 					FALSE);
 
+			SendDlgItemMessage(hwndDlg,WIN_STARTWIN_ITEMLIST, EM_LIMITTEXT, 0,0);
+			{
+				RECT rg;
+				GetWindowRect(GetDlgItem(hwndDlg,WIN_STARTWIN_ITEMLIST),&rg);
+				rg.right -= rg.left + GetSystemMetrics(SM_CXVSCROLL)+4;
+				rg.bottom -= rg.top;
+				rg.left = rg.top = 0;
+				SendDlgItemMessage(hwndDlg,WIN_STARTWIN_ITEMLIST, EM_SETRECTNP,0,(LPARAM)&rg);
+			}
+
 			rdlg.left = 0;
 			rdlg.top = 0;
 			rdlg.right = rbmp.right+PADWIDE+FIELDSWIDE+PADWIDE;
@@ -599,67 +609,102 @@ void initprintf(const char *f, ...)
 {
 	va_list va;
 	char buf[1024],*p=NULL,*q=NULL,workbuf[1024];
-	int i = 0;
+	//int i = 0;
 
-	static int newline = 1;
-	int overwriteline = -1;
+//	static int newline = 1;
+//	int overwriteline = -1;
 	
 	va_start(va, f);
 	Bvsnprintf(buf, 1024, f, va);
 	va_end(va);
 	OSD_Printf(buf);
-	if (startupdlg) {
-		Bmemset(workbuf,0,1024);
-		if (!newline) {
-			i = SendDlgItemMessage(startupdlg,102,LB_GETCOUNT,0,0);
-			if (i>0) {
-				overwriteline = i-1;
-				p = (char *)Bmalloc( SendDlgItemMessage(startupdlg,102,LB_GETTEXTLEN,overwriteline,0)+1 );
-				i = SendDlgItemMessage(startupdlg,102,LB_GETTEXT,overwriteline,(LPARAM)p);
-				if (i>1023) i = 1023;
-				Bmemcpy(workbuf, p, i);
-				free(p);
-				q = workbuf+i;
-				buf[1023-i] = 0;	// clip what we expect to output since it'll spill over if we don't
-			}
-		} else {
+	if (!startupdlg) return;
+
+	/*
+	Bmemset(workbuf,0,1024);
+	if (!newline) {
+		i = SendDlgItemMessage(startupdlg,102,LB_GETCOUNT,0,0);
+		if (i>0) {
+			overwriteline = i-1;
+			p = (char *)Bmalloc( SendDlgItemMessage(startupdlg,102,LB_GETTEXTLEN,overwriteline,0)+1 );
+			i = SendDlgItemMessage(startupdlg,102,LB_GETTEXT,overwriteline,(LPARAM)p);
+			if (i>1023) i = 1023;
+			Bmemcpy(workbuf, p, i);
+			free(p);
+			q = workbuf+i;
+			buf[1023-i] = 0;	// clip what we expect to output since it'll spill over if we don't
+		}
+	} else {
+		q = workbuf;
+		overwriteline = -1;
+	}
+	p = buf;
+	while (*p) {
+		if (*p == '\r') {
 			q = workbuf;
-			overwriteline = -1;
-		}
-		p = buf;
-		while (*p) {
-			if (*p == '\r') {
-				q = workbuf;
-				p++;
-				continue;
-			} else if (*p == '\n') {
-				newline = 1;
-				p++;
+			p++;
+			continue;
+		} else if (*p == '\n') {
+			newline = 1;
+			p++;
 
-				if (overwriteline >= 0)
-					SendDlgItemMessage(startupdlg,102,LB_DELETESTRING,overwriteline,0);
-				i = SendDlgItemMessage(startupdlg,102,LB_INSERTSTRING,overwriteline,(LPARAM)workbuf);
-			
-				overwriteline = -1;
-				q = workbuf;
-				Bmemset(workbuf,0,1024);
-			} else {
-				*(q++) = *(p++);
-				newline = 0;
-				continue;
-			}
-		}
-
-		if (!newline) {
 			if (overwriteline >= 0)
 				SendDlgItemMessage(startupdlg,102,LB_DELETESTRING,overwriteline,0);
 			i = SendDlgItemMessage(startupdlg,102,LB_INSERTSTRING,overwriteline,(LPARAM)workbuf);
-		}
 		
-		if (i!=LB_ERRSPACE && i!=LB_ERR) SendDlgItemMessage(startupdlg,102,LB_SETCURSEL,i,0);
-		//UpdateWindow(GetDlgItem(startupdlg,102));
-		handleevents();
+			overwriteline = -1;
+			q = workbuf;
+			Bmemset(workbuf,0,1024);
+		} else {
+			*(q++) = *(p++);
+			newline = 0;
+			continue;
+		}
 	}
+
+	if (!newline) {
+		if (overwriteline >= 0)
+			SendDlgItemMessage(startupdlg,102,LB_DELETESTRING,overwriteline,0);
+		i = SendDlgItemMessage(startupdlg,102,LB_INSERTSTRING,overwriteline,(LPARAM)workbuf);
+	}
+	
+	if (i!=LB_ERRSPACE && i!=LB_ERR) SendDlgItemMessage(startupdlg,102,LB_SETCURSEL,i,0);
+	//UpdateWindow(GetDlgItem(startupdlg,102));
+	*/
+
+	{
+	int curlen, linesbefore, linesafter;
+	HWND edctl;
+	char *p;
+
+	edctl = GetDlgItem(startupdlg,102);
+	if (!edctl) return;
+
+	SendMessage(edctl, WM_SETREDRAW, FALSE,0);
+	curlen = SendMessage(edctl, WM_GETTEXTLENGTH, 0,0);
+	SendMessage(edctl, EM_SETSEL, (WPARAM)curlen, (LPARAM)curlen);
+	linesbefore = SendMessage(edctl, EM_GETLINECOUNT, 0,0);
+	p = buf;
+	while (*p) {
+		q = p;
+		while (*q && *q != '\n') q++;
+		memcpy(workbuf, p, q-p);
+		if (*q == '\n') {
+			workbuf[q-p] = '\r';
+			workbuf[q-p+1] = '\n';
+			workbuf[q-p+2] = 0;
+			p = q+1;
+		} else {
+			workbuf[q-p] = 0;
+			p = q;
+		}
+		SendMessage(edctl, EM_REPLACESEL, 0, (LPARAM)workbuf);
+	}
+	linesafter = SendMessage(edctl, EM_GETLINECOUNT, 0,0);
+	SendMessage(edctl, EM_LINESCROLL, 0, linesafter-linesbefore);
+	SendMessage(edctl, WM_SETREDRAW, TRUE,0);
+	}
+	handleevents();
 }
 
 

@@ -371,7 +371,10 @@ long initmultiplayerscycle(void)
 	{
 		for(i=numplayers-1;i>0;i--)
 			if (!otherip[i]) break;
-		if (!i) return 0;
+		if (!i) {
+			netready = 1;
+			return 0;
+		}
 	}
 	else
 	{

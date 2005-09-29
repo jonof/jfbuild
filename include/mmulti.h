@@ -20,7 +20,7 @@ void sendlogoff(void);
 long getoutputcirclesize(void);
 void setsocket(short newsocket);
 void sendpacket(long other, char *bufptr, long messleng);
-short getpacket(long *other, char *bufptr);
+long getpacket(long *other, char *bufptr);
 void flushpackets(void);
 void genericmultifunction(long other, char *bufptr, long messleng, long command);
 long isvalidipaddress(char *st);
