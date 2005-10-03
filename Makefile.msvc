@@ -51,31 +51,31 @@ LIBS=fmodvc.lib #opengl32.lib
 ASFLAGS=/nologo /coff
 EXESUFFIX=.exe
 
-ENGINEOBJS=$(OBJ)engine.$o \
-	$(OBJ)cache1d.$o \
-	$(OBJ)a.$o \
-	$(OBJ)pragmas.$o \
-	$(OBJ)osd.$o \
-	$(OBJ)crc32.$o \
-	$(OBJ)engineinfo.$o \
+ENGINEOBJS=$(OBJ)a.$o \
 	$(OBJ)baselayer.$o \
-	$(OBJ)glbuild.$o \
+	$(OBJ)cache1d.$o \
 	$(OBJ)compat.$o \
-	$(OBJ)kplib.$o \
-	$(OBJ)scriptfile.$o \
-	$(OBJ)mmulti.$o \
+	$(OBJ)crc32.$o \
 	$(OBJ)defs.$o \
+	$(OBJ)engine.$o \
+	$(OBJ)engineinfo.$o \
+	$(OBJ)glbuild.$o \
+	$(OBJ)kplib.$o \
+	$(OBJ)mmulti.$o \
+	$(OBJ)osd.$o \
+	$(OBJ)pragmas.$o \
+	$(OBJ)scriptfile.$o \
 	$(OBJ)winlayer.$o
 
 EDITOROBJS=$(OBJ)build.$o \
-	$(OBJ)config.$o \
-	$(OBJ)buildstartwin.$o
+	$(OBJ)buildstartwin.$o \
+	$(OBJ)config.$o
 
-GAMEEXEOBJS=$(OBJ)game.$o \
-	$(OBJ)sound.$o \
-	$(OBJ)config.$o \
+GAMEEXEOBJS=$(OBJ)config.$o \
+	$(OBJ)game.$o \
 	$(OBJ)gameres.$(res) \
 	$(OBJ)gamestartwin.$o \
+	$(OBJ)sound.$o \
 	$(OBJ)$(ENGINELIB)
 
 EDITOREXEOBJS=$(OBJ)bstub.$o \

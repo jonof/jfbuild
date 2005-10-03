@@ -10,7 +10,7 @@ Libs=
 PrivateResource=
 ResourceIncludes=
 MakeIncludes=
-Compiler=-DWINDOWS=1_@@_-DRENDERTYPEWIN=1_@@_-DSUPERBUILD_@@_-DPOLYMOST_@@_-DUSE_OPENGL_@@_-DDYNAMIC_OPENGL_@@_-DNO_GCC_BUILTINS_@@_-DUNDERSCORES_@@_-funsigned-char_@@_-march=pentium_@@_
+Compiler=-DRENDERTYPEWIN=1_@@_-DSUPERBUILD_@@_-DPOLYMOST_@@_-DUSE_OPENGL_@@_-DDYNAMIC_OPENGL_@@_-DNO_GCC_BUILTINS_@@_-DUNDERSCORES_@@_-DKSFORBUILD_@@_-funsigned-char_@@_
 CppCompiler=
 Linker=
 IsCpp=0
@@ -27,7 +27,7 @@ CustomMakefile=
 IncludeVersionInfo=0
 SupportXPThemes=0
 CompilerSet=0
-CompilerSettings=000000000000001000000
+CompilerSettings=0000000000100010000d0
 
 [Unit1]
 FileName=..\src\cache1d.c
@@ -89,7 +89,7 @@ OverrideBuildCmd=1
 BuildCmd=nasm -s -DUNDERSCORES -f win32 ../src/a.nasm -o ../devcpp/a.o
 
 [Unit7]
-FileName=..\devcpp\engineinfo.c
+FileName=engineinfo.c
 CompileCpp=0
 Folder=Engine
 Compile=1
