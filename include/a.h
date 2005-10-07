@@ -142,7 +142,7 @@ extern long drawslab(long,long,long,long,long,long);
 
 #elif defined(__GNUC__) && defined(__i386__)	// __WATCOMC__
 
-#if defined(__linux) || defined(__FreeBSD__)
+#if defined(__linux) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
 #define __cdecl
 #endif
 
