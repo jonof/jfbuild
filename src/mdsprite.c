@@ -776,7 +776,7 @@ static md2model *md2load (int fil, const char *filnam)
 
 	maxmodelverts = max(maxmodelverts, head.numverts);
 
-	return((void *)m);
+	return(m);
 }
 
 static void md2draw (md2model *m, spritetype *tspr)
@@ -1023,7 +1023,7 @@ static md3model *md3load (int fil)
 	if (!mdloadskin(&m->texid,&m->usesalpha,bst)) ;//bad!
 #endif
 
-	return((void *)m);
+	return(m);
 }
 
 static void md3draw (md3model *m, spritetype *tspr)
@@ -1255,8 +1255,8 @@ unsigned gloadtex (long *picbuf, long xsiz, long ysiz, long is8bit, long dapal)
 	long i;
 
 	pic = (coltype *)picbuf; //Correct for GL's RGB order; also apply gamma here..
-	pic2 = (coltype *)malloc(xsiz*ysiz*sizeof(long)); if (!pic2) return(-1);
-	cptr = &britable[curbrightness][0];
+	pic2 = (coltype *)malloc(xsiz*ysiz*sizeof(long)); if (!pic2) return((unsigned)-1);
+	cptr = (unsigned char*)&britable[curbrightness][0];
 	if (!is8bit)
 	{
 	for(i=xsiz*ysiz-1;i>=0;i--)
@@ -1711,7 +1711,7 @@ static long loadkvx (const char *filnam)
 	klseek(fil,28+((xsiz+1)<<2)+((ysizp1*xsiz)<<1),SEEK_SET);
 
 	i = kfilelength(fil)-ktell(fil);
-	tbuf = (char *)malloc(i); if (!tbuf) { free(xyoffs); kclose(fil); return(-1); }
+	tbuf = (unsigned char *)malloc(i); if (!tbuf) { free(xyoffs); kclose(fil); return(-1); }
 	kread(fil,tbuf,i); kclose(fil);
 
 	cptr = tbuf;

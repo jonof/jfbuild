@@ -301,7 +301,7 @@ int openfrompath(const char *fn, int flags, int mode)
 	pfn = NULL;
 	for (sp = searchpathhead; sp && h < 0; sp = sp->next) {
 		if (!pfn) {
-			pfn = malloc(strlen(fn) + maxsearchpathlen + 1);
+			pfn = (char*)malloc(strlen(fn) + maxsearchpathlen + 1);
 			if (!pfn) return -1;
 		}
 
@@ -335,7 +335,7 @@ BFILE* fopenfrompath(const char *fn, const char *mode)
 	pfn = NULL;
 	for (sp = searchpathhead; sp && !h; sp = sp->next) {
 		if (!pfn) {
-			pfn = malloc(strlen(fn) + maxsearchpathlen + 1);
+			pfn = (char*)malloc(strlen(fn) + maxsearchpathlen + 1);
 			if (!pfn) return NULL;
 		}
 
@@ -405,7 +405,7 @@ long initgroupfile(char *filename)
 	char *zfn;
 	searchpath_t *sp = NULL;
 
-	zfn = malloc(strlen(filename) + maxsearchpathlen + 1);
+	zfn = (char*)malloc(strlen(filename) + maxsearchpathlen + 1);
 	do {
 		if (sp == NULL) {
 			zfn[0] = 0;

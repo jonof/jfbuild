@@ -405,7 +405,7 @@ void gltexapplyprops (void)
 	
 	if (glinfo.maxanisotropy > 1.0)
 	{
-		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = glinfo.maxanisotropy;
+		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = (long)glinfo.maxanisotropy;
 	}
 	
 	if (gltexfiltermode < 0) gltexfiltermode = 0;
@@ -757,7 +757,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 
 	if (glinfo.maxanisotropy > 1.0)
 	{
-		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = glinfo.maxanisotropy;
+		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = (long)glinfo.maxanisotropy;
 		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 	}
 
@@ -907,7 +907,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 
 	if (glinfo.maxanisotropy > 1.0)
 	{
-		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = glinfo.maxanisotropy;
+		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = (long)glinfo.maxanisotropy;
 		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 	}
 
@@ -1934,10 +1934,10 @@ static void polymost_drawalls (long bunch)
 
 		ryp0 *= gyxscale; ryp1 *= gyxscale;
 
-		getzsofslope(sectnum,nx0,ny0,&cz,&fz);
+		getzsofslope(sectnum,(long)nx0,(long)ny0,&cz,&fz);
 		cy0 = ((float)(cz-globalposz))*ryp0 + ghoriz;
 		fy0 = ((float)(fz-globalposz))*ryp0 + ghoriz;
-		getzsofslope(sectnum,nx1,ny1,&cz,&fz);
+		getzsofslope(sectnum,(long)nx1,(long)ny1,&cz,&fz);
 		cy1 = ((float)(cz-globalposz))*ryp1 + ghoriz;
 		fy1 = ((float)(fz-globalposz))*ryp1 + ghoriz;
 
@@ -2020,7 +2020,7 @@ static void polymost_drawalls (long bunch)
 
 				py[0] = fy0;
 				py[1] = fy1;
-				py[2] = (getflorzofslope(sectnum,ox,oy)-globalposz)*oy2 + ghoriz;
+				py[2] = (getflorzofslope(sectnum,(long)ox,(long)oy)-globalposz)*oy2 + ghoriz;
 
 				ox = py[1]-py[2]; oy = py[2]-py[0]; oz = py[0]-py[1];
 				r = 1.0 / (ox*px[0] + oy*px[1] + oz*px[2]);
@@ -2364,7 +2364,7 @@ static void polymost_drawalls (long bunch)
 
 				py[0] = cy0;
 				py[1] = cy1;
-				py[2] = (getceilzofslope(sectnum,ox,oy)-globalposz)*oy2 + ghoriz;
+				py[2] = (getceilzofslope(sectnum,(long)ox,(long)oy)-globalposz)*oy2 + ghoriz;
 
 				ox = py[1]-py[2]; oy = py[2]-py[0]; oz = py[0]-py[1];
 				r = 1.0 / (ox*px[0] + oy*px[1] + oz*px[2]);
@@ -2672,10 +2672,10 @@ static void polymost_drawalls (long bunch)
 
 		if (nextsectnum >= 0)
 		{
-			getzsofslope(nextsectnum,nx0,ny0,&cz,&fz);
+			getzsofslope(nextsectnum,(long)nx0,(long)ny0,&cz,&fz);
 			ocy0 = ((float)(cz-globalposz))*ryp0 + ghoriz;
 			ofy0 = ((float)(fz-globalposz))*ryp0 + ghoriz;
-			getzsofslope(nextsectnum,nx1,ny1,&cz,&fz);
+			getzsofslope(nextsectnum,(long)nx1,(long)ny1,&cz,&fz);
 			ocy1 = ((float)(cz-globalposz))*ryp1 + ghoriz;
 			ofy1 = ((float)(fz-globalposz))*ryp1 + ghoriz;
 
@@ -2926,15 +2926,15 @@ void polymost_drawrooms ()
 			{
 				bglViewport(windowx1-16,yres-(windowy2+1),windowx2-(windowx1-16)+1,windowy2-windowy1+1);
 				bglColorMask(1,0,0,1);
-				globalposx += (float)singlobalang/1024.0;
-				globalposy -= (float)cosglobalang/1024.0;
+				globalposx += singlobalang/1024;
+				globalposy -= cosglobalang/1024;
 			}
 			else
 			{
 				bglViewport(windowx1,yres-(windowy2+1),windowx2+16-windowx1+1,windowy2-windowy1+1);
 				bglColorMask(0,1,1,1);
-				globalposx -= (float)singlobalang/1024.0;
-				globalposy += (float)cosglobalang/1024.0;
+				globalposx -= singlobalang/1024;
+				globalposy += cosglobalang/1024;
 			}
 		}
 	}
@@ -3028,9 +3028,9 @@ void polymost_drawrooms ()
 		oz2 = oy*gchang + oz*gshang;
 
 			//Standard Left/right rotation
-		vx = ox2*((float)cosglobalang) - oy2*((float)singlobalang);
-		vy = ox2*((float)singlobalang) + oy2*((float)cosglobalang);
-		vz = oz2*16384.0;
+		vx = (long)(ox2*((float)cosglobalang) - oy2*((float)singlobalang));
+		vy = (long)(ox2*((float)singlobalang) + oy2*((float)cosglobalang));
+		vz = (long)(oz2*16384.0);
 
 		hitallsprites = 1;
 		hitscan(globalposx,globalposy,globalposz,globalcursectnum, //Start position
@@ -3165,10 +3165,10 @@ void polymost_drawmaskwall (long damaskwallcnt)
 	if (yp1 < SCISDIST) { t1 = (SCISDIST-oyp0)/(yp1-oyp0); xp1 = (xp1-oxp0)*t1+oxp0; yp1 = SCISDIST; }
 						else { t1 = 1.f; }
 
-	getzsofslope(sectnum,(wal2->x-wal->x)*t0+wal->x,(wal2->y-wal->y)*t0+wal->y,&cz[0],&fz[0]);
-	getzsofslope(wal->nextsector,(wal2->x-wal->x)*t0+wal->x,(wal2->y-wal->y)*t0+wal->y,&cz[1],&fz[1]);
-	getzsofslope(sectnum,(wal2->x-wal->x)*t1+wal->x,(wal2->y-wal->y)*t1+wal->y,&cz[2],&fz[2]);
-	getzsofslope(wal->nextsector,(wal2->x-wal->x)*t1+wal->x,(wal2->y-wal->y)*t1+wal->y,&cz[3],&fz[3]);
+	getzsofslope(sectnum,(long)((wal2->x-wal->x)*t0+wal->x),(long)((wal2->y-wal->y)*t0+wal->y),&cz[0],&fz[0]);
+	getzsofslope(wal->nextsector,(long)((wal2->x-wal->x)*t0+wal->x),(long)((wal2->y-wal->y)*t0+wal->y),&cz[1],&fz[1]);
+	getzsofslope(sectnum,(long)((wal2->x-wal->x)*t1+wal->x),(long)((wal2->y-wal->y)*t1+wal->y),&cz[2],&fz[2]);
+	getzsofslope(wal->nextsector,(long)((wal2->x-wal->x)*t1+wal->x),(long)((wal2->y-wal->y)*t1+wal->y),&cz[3],&fz[3]);
 
 	ryp0 = 1.f/yp0; ryp1 = 1.f/yp1;
 
@@ -3654,7 +3654,8 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 {
 	static long onumframes = 0;
 	long i, n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
-	long ogpicnum, ogshade, ogpal, ofoffset, oxdimen, oydimen, ogxyaspect, oldviewingrange;
+	long ogpicnum, ogshade, ogpal, ofoffset, oxdimen, oydimen, oldviewingrange;
+	double ogxyaspect;
 	double ogchang, ogshang, ogctang, ogstang, oghalfx, oghoriz, fx, fy, x1, y1, z1, x2, y2;
 	double ogrhalfxdown10, ogrhalfxdown10x;
 	double d, cosang, sinang, cosang2, sinang2, px[8], py[8], px2[8], py2[8];
@@ -3717,9 +3718,9 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 			tspr.xrepeat = tspr.yrepeat = 32;
 
 			if (dastat&4) { x1 = -x1; y1 = -y1; }
-			tspr.x = ((double)gcosang*z1 - (double)gsinang*x1)*16384.0 + globalposx;
-			tspr.y = ((double)gsinang*z1 + (double)gcosang*x1)*16384.0 + globalposy;
-			tspr.z = globalposz + y1*16384.0*0.8;
+			tspr.x = (long)(((double)gcosang*z1 - (double)gsinang*x1)*16384.0 + globalposx);
+			tspr.y = (long)(((double)gsinang*z1 + (double)gcosang*x1)*16384.0 + globalposy);
+			tspr.z = (long)(globalposz + y1*16384.0*0.8);
 			tspr.picnum = picnum;
 			tspr.shade = dashade;
 			tspr.pal = dapalnum;
@@ -3964,9 +3965,9 @@ static void tessectrap (float *px, float *py, long *point2, long numpoints)
 	if (numpoints+16 > allocpoints) //16 for safety
 	{
 		allocpoints = numpoints+16;
-		rst = realloc(rst,allocpoints*sizeof(raster));
-		slist = realloc(slist,allocpoints*sizeof(long));
-		npoint2 = realloc(npoint2,allocpoints*sizeof(long));
+		rst = (raster*)realloc(rst,allocpoints*sizeof(raster));
+		slist = (long*)realloc(slist,allocpoints*sizeof(long));
+		npoint2 = (long*)realloc(npoint2,allocpoints*sizeof(long));
 	}
 
 		//Remove unnecessary collinear points:
@@ -4215,7 +4216,7 @@ long polymost_printext256(long xpos, long ypos, short col, short backcol, char *
 		}
 		Bmemset(tbuf, 0, 256*128);
 
-		cptr = textfont;
+		cptr = (unsigned char*)textfont;
 		for (h=0;h<256;h++) {
 			tptr = tbuf + (h%32)*8 + (h/32)*256*8;
 			for (i=0;i<8;i++) {
@@ -4226,7 +4227,7 @@ long polymost_printext256(long xpos, long ypos, short col, short backcol, char *
 			}
 		}
 		
-		cptr = smalltextfont;
+		cptr = (unsigned char*)smalltextfont;
 		for (h=0;h<256;h++) {
 			tptr = tbuf + 256*64 + (h%32)*8 + (h/32)*256*8;
 			for (i=1;i<7;i++) {

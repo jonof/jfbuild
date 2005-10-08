@@ -55,14 +55,15 @@ else
 endif
 
 CC=gcc
+CXX=gcc
 AS=nasm
 RC=windres
 CFLAGS=-march=pentium $(debug)
 override CFLAGS+= -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
-	-DKSFORBUILD -I$(INC:/=) #-I../jfaud/inc
+	-DKSFORBUILD -I$(INC:/=) #-I../jfaud/src
 LIBS=
-GAMELIBS=-lfmod # ../jfaud/jfaud.a
+GAMELIBS=-lfmod #../jfaud/libjfaud.a ../jfaud/mpadec/libmpadec/libmpadec.a -lwinmm
 ASFLAGS=-s #-g
 EXESUFFIX=
 
@@ -181,7 +182,7 @@ $(OBJ)$(EDITORLIB): $(EDITOROBJS)
 	ranlib $@
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(GAMELIBS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(GAMELIBS) -lsupc++
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
@@ -220,6 +221,9 @@ $(OBJ)%.$o: $(SRC)%.nasm
 
 $(OBJ)%.$o: $(SRC)%.c
 	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
+
+$(OBJ)%.$o: $(SRC)%.cpp
+	$(CXX) $(CFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)%.$o: $(SRC)tmp/%.c
 	$(CC) $(CFLAGS) -c $< -o $@ 2>&1

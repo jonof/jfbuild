@@ -484,11 +484,11 @@ char *Bgetsystemdrives(void)
 }
 
 
-bsize_t Bfilelength(int fd)
+long Bfilelength(int fd)
 {
 	struct stat st;
 	if (fstat(fd, &st) < 0) return -1;
-	return(st.st_size);
+	return(long)(st.st_size);
 }
 
 
@@ -587,7 +587,7 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	dirr->info.size = 0;
 	dirr->info.mtime = 0;
 
-	fn = malloc(strlen(dirr->name) + 1 + dirr->info.namlen + 1);
+	fn = (char *)malloc(strlen(dirr->name) + 1 + dirr->info.namlen + 1);
 	if (fn) {
 		sprintf(fn,"%s/%s",dirr->name,dirr->info.name);
 		if (!stat(fn, &st)) {

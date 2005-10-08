@@ -11,14 +11,25 @@
 // library will need to wrap these functions with suitable emulations.
 #define __compat_h_macrodef__
 
-#include <stdarg.h>
+#ifdef __cplusplus
+# include <cstdarg>
+#else
+# include <stdarg.h>
+#endif
 
 #ifdef __compat_h_macrodef__
-# include <stdio.h>
-# include <string.h>
-# include <stdlib.h>
+# ifdef __cplusplus
+#  include <cstdio>
+#  include <cstring>
+#  include <cstdlib>
+#  include <ctime>
+# else
+#  include <stdio.h>
+#  include <string.h>
+#  include <stdlib.h>
+#  include <time.h>
+# endif
 # include <fcntl.h>
-# include <time.h>
 # include <ctype.h>
 # include <sys/types.h>
 # include <sys/stat.h>
@@ -109,6 +120,10 @@ typedef unsigned long long uint64;
 
 #if !defined(B_LITTLE_ENDIAN) || !defined(B_BIG_ENDIAN)
 # error Unknown endianness
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 #if defined B_ENDIAN_X86_INLINE
@@ -375,13 +390,17 @@ char *Bgethomedir(void);
 unsigned int Bgetsysmemsize(void);
 int Bcorrectfilename(char *filename, int removefn);
 char *Bgetsystemdrives(void);
-bsize_t Bfilelength(int fd);
+long Bfilelength(int fd);
 char *Bstrtoken(char *s, char *delim, char **ptrptr, int chop);
 long Bwildmatch (const char *i, const char *j);
 
 #if !defined(_WIN32)
 char *Bstrlwr(char *);
 char *Bstrupr(char *);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif // __compat_h__

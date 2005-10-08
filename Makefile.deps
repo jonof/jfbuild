@@ -14,6 +14,7 @@ $(OBJ)glbuild.$o: $(SRC)glbuild.c $(INC)glbuild.h $(INC)baselayer.h
 $(OBJ)osd.$o: $(SRC)osd.c $(INC)build.h $(INC)osd.h $(INC)compat.h $(INC)engineinfo.h $(INC)baselayer.h
 $(OBJ)pragmas.$o: $(SRC)pragmas.c $(INC)compat.h
 $(OBJ)sound.$o: $(SRC)sound.c $(INC)osd.h $(INC)compat.h $(INC)cache1d.h
+$(OBJ)jfaud_sound.$o: $(SRC)jfaud_sound.cpp $(INC)osd.h $(INC)compat.h $(INC)cache1d.h
 $(OBJ)config.$o: $(SRC)config.c $(INC)compat.h $(INC)osd.h $(INC)editor.h
 $(OBJ)crc32.$o: $(SRC)crc32.c $(INC)crc32.h
 $(OBJ)compat.$o: $(SRC)compat.c $(INC)compat.h
@@ -24,9 +25,6 @@ $(OBJ)defs.$o: $(SRC)defs.c $(INC)build.h $(INC)baselayer.h $(INC)scriptfile.h $
 #$(OBJ)kdmasm.$o: $(SRC)kdmasm.asm
 $(OBJ)mmulti_null.$o: $(SRC)mmulti_null.c $(INC)mmulti.h
 $(OBJ)mmulti.$o: $(SRC)mmulti.c
-
-#$(OBJ)readvoc.$o: $(SRC)readvoc.c $(INC)cache1d.h $(INC)compat.h $(INC)buildsound.h
-#$(OBJ)readwav.$o: $(SRC)readwav.c $(INC)cache1d.h $(INC)compat.h $(INC)buildsound.h
 
 $(OBJ)gameres.$(res): $(SRC)misc/gameres.rc
 $(OBJ)buildres.$(res): $(SRC)misc/buildres.rc

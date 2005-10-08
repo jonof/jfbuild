@@ -8660,7 +8660,7 @@ void setbrightness(char dabrightness, char *dapal, char noapply)
 
 	copybufbyte(curpalette, curpalettefaded, sizeof(curpalette));
 	if ((noapply&1) == 0)
-		setpalette(0,256,tempbuf);
+		setpalette(0,256,(char*)tempbuf);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
@@ -8699,7 +8699,7 @@ void setpalettefade(char r, char g, char b, char offset)
 		tempbuf[k++] = curpalettefaded[i].f = 0;
     	}
 
-	setpalette(0,256,tempbuf);
+	setpalette(0,256,(char*)tempbuf);
 }
 
 
@@ -10102,7 +10102,7 @@ static int writepcxbyte(char colour, unsigned char count, BFILE *fp)
 
 static void writepcxline(char *buf, long bytes, long step, BFILE *fp)
 {
-	char this, last;
+	char ths, last;
 	int srcIndex, i;
 	unsigned char runCount;
 
@@ -10111,8 +10111,8 @@ static void writepcxline(char *buf, long bytes, long step, BFILE *fp)
 
 	for (srcIndex=1; srcIndex<bytes; srcIndex++) {
 		buf += step;
-		this = *buf;
-		if (this == last) {
+		ths = *buf;
+		if (ths == last) {
 			runCount++;
 			if (runCount == 63) {
 				writepcxbyte(last, runCount, fp);
@@ -10122,7 +10122,7 @@ static void writepcxline(char *buf, long bytes, long step, BFILE *fp)
 			if (runCount)
 				writepcxbyte(last, runCount, fp);
 
-                	last = this;
+                	last = ths;
 			runCount = 1;
                 }
         }

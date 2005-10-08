@@ -1082,14 +1082,14 @@ void prepareboard(char *daboardfilename)
 		printf("Board not found\n");
 		exit(0);
 	} else {
-		char *f,*fp;
-		f = (char*)malloc(strlen(daboardfilename)+1+4);
-		strcpy(f,daboardfilename);
-		fp = strrchr(f,'.');
-		if (!fp) strcat(f,".mhk");
-		else { fp[1] = 'm'; fp[2] = 'h'; fp[3] = 'k'; fp[4] = 0; }
-		loadmaphack(f);
-		free(f);
+		char *fp;
+
+		strcpy(tempbuf, daboardfilename);
+		fp = strrchr(tempbuf,'.');
+		if (fp) *fp = 0;
+		strcat(tempbuf,".mhk");
+
+		loadmaphack(tempbuf);
 	}
 
 	setup3dscreen();
