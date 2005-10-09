@@ -9,6 +9,10 @@
 #ifndef __build_h__
 #define __build_h__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAXSECTORSV8 4096
 #define MAXWALLSV8 16384
 #define MAXSPRITESV8 16384
@@ -498,5 +502,8 @@ int loaddefinitionsfile(char *fn);
 
 #undef BPACK
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __build_h__

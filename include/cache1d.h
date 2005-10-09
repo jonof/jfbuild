@@ -3,6 +3,10 @@
 #ifndef __cache1d_h__
 #define __cache1d_h__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void	initcache(long dacachestart, long dacachesize);
 void	allocache(long *newhandle, long newbytes, char *newlockptr);
 void	suckcache(long *suckptr);
@@ -31,6 +35,10 @@ void	dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil);
 
 long	lzwcompress(char *lzwinbuf, long uncompleng, char *lzwoutbuf);
 long	lzwuncompress(char *lzwinbuf, long compleng, char *lzwoutbuf);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __cache1d_h__
 

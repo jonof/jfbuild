@@ -5,7 +5,7 @@ ReadMe Information
 
 
 First Source Release: 9 March 2003
-This Release:         31 May 2005
+This Release:         9 October 2005
 
 
 
@@ -55,7 +55,7 @@ Building the Source
 	 - http://www.libsdl.org/extras/win32/mingw32/README.txt
 	 - http://www.spacejack.org/games/mingw/
 
-	The engine compiles under 32-bit Linux and FreeBSD with minimal/no
+	The engine compiles under Linux, FreeBSD, and NetBSD with minimal/no
 modification.
 
 	Building the source involves just typing "make" in the directory

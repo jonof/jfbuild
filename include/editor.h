@@ -5,6 +5,10 @@
 #ifndef __editor_h__
 #define __editor_h__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define NUMBUILDKEYS 20
 
 extern long qsetmode;
@@ -56,5 +60,9 @@ void printmessage16(char name[82]);
 
 void getpoint(long searchxe, long searchye, long *x, long *y);
 long getpointhighlight(long xplc, long yplc);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

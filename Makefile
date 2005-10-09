@@ -62,6 +62,7 @@ CFLAGS=-march=pentium $(debug)
 override CFLAGS+= -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
 	-DKSFORBUILD -I$(INC:/=) #-I../jfaud/src
+CXXFLAGS=-fno-exceptions -fno-rtti
 LIBS=
 GAMELIBS=-lfmod #../jfaud/libjfaud.a ../jfaud/mpadec/libmpadec/libmpadec.a -lwinmm
 ASFLAGS=-s #-g
@@ -149,6 +150,8 @@ ifneq (0,$(EFENCE))
 	override CFLAGS+= -DEFENCE
 endif
 
+CXXFLAGS+= $(CFLAGS)
+
 .PHONY: clean veryclean all utils writeengineinfo enginelib editorlib
 
 # TARGETS
@@ -223,7 +226,7 @@ $(OBJ)%.$o: $(SRC)%.c
 	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)%.$o: $(SRC)%.cpp
-	$(CXX) $(CFLAGS) -c $< -o $@ 2>&1
+	$(CXX) $(CXXFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)%.$o: $(SRC)tmp/%.c
 	$(CC) $(CFLAGS) -c $< -o $@ 2>&1

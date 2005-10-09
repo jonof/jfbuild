@@ -5,6 +5,10 @@
 #ifndef __baselayer_h__
 #define __baselayer_h__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern int _buildargc;
 extern char **_buildargv;
 
@@ -108,6 +112,10 @@ void wm_setapptitle(char *name);
 
 // baselayer.c
 int baselayer_init();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __baselayer_h__
 

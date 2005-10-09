@@ -3,9 +3,10 @@
 #include <ctype.h>
 
 #include "compat.h"
-extern "C" {
 #include "baselayer.h"
 #include "cache1d.h"
+
+extern "C" {
 void initsb(char,char,long,char,char,char,char);
 void uninitsb(void);
 void setears(long,long,long,long);
