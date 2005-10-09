@@ -23,7 +23,7 @@ source:
 	mkdir $(sourcedir) $(sourcedir)/obj.gnu $(sourcedir)/obj.watcom $(sourcedir)/obj.msc
 	touch $(sourcedir)/obj.gnu/keep.me $(sourcedir)/obj.watcom/keep.me $(sourcedir)/obj.msc/keep.me
 	cp $(SOURCEFILES) $(sourcedir)
-	cp -R src rsrc include $(sourcedir)
+	cp -R src rsrc include devcpp osx $(sourcedir)
 	rm -f $(sourcedir)/src/tmp/*
 	touch $(sourcedir)/src/tmp/keep.me
 	kzip -r $(sourcedir).zip $(sourcedir)
