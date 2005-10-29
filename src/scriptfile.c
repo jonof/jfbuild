@@ -61,6 +61,33 @@ int scriptfile_getnumber(scriptfile *sf, int *num)
 	return 0;
 }
 
+static double parsedouble(char *ptr, char **end)
+{
+	int beforedecimal = 1, negative = 0, dig;
+	double num = 0.0, decpl = 0.1;
+	char *p;
+	
+	p = ptr;
+	if (*p == '-') negative = 1, p++;
+	else if (*p == '+') p++;
+	for (;; p++) {
+		if (*p >= '0' && *p <= '9') {
+			dig = *p - '0';
+			if (beforedecimal) num = num * 10.0 + dig;
+			else {
+				num += (double)dig * decpl;
+				decpl /= 10.0;
+			}
+		} else if (*p == '.') {
+			if (beforedecimal) beforedecimal = 0;
+			else break;
+		} else break;
+	}
+	
+	if (end) *end = p;
+	return negative ? -num : num;
+}
+
 int scriptfile_getdouble(scriptfile *sf, double *num)
 {
 	skipoverws(sf);
@@ -72,8 +99,9 @@ int scriptfile_getdouble(scriptfile *sf, double *num)
 	
 	sf->ltextptr = sf->textptr;
 
-	// FIXME On Linux, locale settings interfere with interpreting x.y format numbers
-	(*num) = strtod((const char *)sf->textptr,&sf->textptr);
+	// On Linux, locale settings interfere with interpreting x.y format numbers
+	//(*num) = strtod((const char *)sf->textptr,&sf->textptr);
+	(*num) = parsedouble(sf->textptr, &sf->textptr);
 	
 	if (!ISWS(*sf->textptr) && *sf->textptr) {
 		char *p = sf->textptr;
