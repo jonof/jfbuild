@@ -259,6 +259,7 @@ static void initmultiplayers_reset(void)
 long initmultiplayersparms(long argc, char **argv)
 {
 	long i, j, daindex, portnum = NETPORT;
+	char *st;
 
 	initmultiplayers_reset();
 	danetmode = 255; daindex = 0;
@@ -313,22 +314,22 @@ long initmultiplayersparms(long argc, char **argv)
 			else if ((argv[i][1] == 'P') || (argv[i][1] == 'p')) continue;
 		}
 
-		if (isvalidipaddress(argv[i]))
+		st = strdup(argv[i]); if (!st) break;
+		if (isvalidipaddress(st))
 		{
 			if ((danetmode == 1) && (daindex == myconnectindex)) daindex++;
-			for(j=0;argv[i][j];j++)
-				if (argv[i][j] == ':')
-					{ otherport[daindex] = htons((unsigned short)atol(&argv[i][j+1])); break; }
-			otherip[daindex] = inet_addr(argv[i]);
-			printf("mmulti: Player %ld at %s:%d\n",daindex,argv[i],ntohs(otherport[daindex]));
+			for(j=0;st[j];j++) {
+				if (st[j] == ':')
+					{ otherport[daindex] = htons((unsigned short)atol(&st[j+1])); st[j] = 0; break; }
+			}
+			otherip[daindex] = inet_addr(st);
+			printf("mmulti: Player %ld at %s:%d\n",daindex,st,ntohs(otherport[daindex]));
 			daindex++;
-			continue;
 		}
 		else
 		{
 			LPHOSTENT lph;
 			unsigned short pt = htons(NETPORT);
-			char *st = strdup(argv[i]); if (!st) continue;
 
 			for(j=0;st[j];j++)
 				if (st[j] == ':')
@@ -342,9 +343,8 @@ long initmultiplayersparms(long argc, char **argv)
 						inet_ntoa(*(struct in_addr *)lph->h_addr),ntohs(pt),argv[i]);
 				daindex++;
 			} else printf("mmulti: Failed resolving %s\n",argv[i]);
-			free(st);
-			continue;
 		}
+		free(st);
 	}
 	if ((danetmode == 255) && (daindex)) { numplayers = 2; danetmode = 0; } //an IP w/o /n# defaults to /n0
 	if ((numplayers >= 2) && (daindex) && (!danetmode)) myconnectindex = 1;

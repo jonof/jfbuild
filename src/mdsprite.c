@@ -180,7 +180,7 @@ static long maxmodelverts = 0, allocmodelverts = 0;
 static point3d *vertlist = NULL; //temp array to store interpolated vertices for drawing
 
 mdmodel *mdload (const char *);
-void mddraw (spritetype *);
+int mddraw (spritetype *);
 void mdfree (mdmodel *);
 
 static void freeallmodels ()
@@ -779,13 +779,15 @@ static md2model *md2load (int fil, const char *filnam)
 	return(m);
 }
 
-static void md2draw (md2model *m, spritetype *tspr)
+static int md2draw (md2model *m, spritetype *tspr)
 {
 	point3d fp, m0, m1, a0, a1;
 	md2frame_t *f0, *f1;
 	unsigned char *c0, *c1;
 	long i, *lptr;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
+
+	if ((tspr->cstat&48) == 32) return 0;
 
 	updateanimation(m,tspr);
 
@@ -871,7 +873,7 @@ static void md2draw (md2model *m, spritetype *tspr)
 	mat[3] = mat[7] = mat[11] = 0.f; mat[15] = 1.f; bglLoadMatrixf(mat);
 #endif
 
-	i = mdloadskin(m,tile2model[tspr->picnum].skinnum,globalpal,0); if (!i) return;
+	i = mdloadskin(m,tile2model[tspr->picnum].skinnum,globalpal,0); if (!i) return 0;
 
 	//bit 10 is an ugly hack in game.c\animatesprites telling MD2SPRITE
 	//to use Z-buffer hacks to hide overdraw problems with the shadows
@@ -925,6 +927,8 @@ static void md2draw (md2model *m, spritetype *tspr)
 		bglDepthRange(0.0,0.99999);
 	}
 	bglLoadIdentity();
+
+	return 1;
 }
 
 //---------------------------------------- MD2 LIBRARY ENDS ----------------------------------------
@@ -1026,7 +1030,7 @@ static md3model *md3load (int fil)
 	return(m);
 }
 
-static void md3draw (md3model *m, spritetype *tspr)
+static int md3draw (md3model *m, spritetype *tspr)
 {
 	point3d fp, m0, m1, a0, a1;
 	md3frame_t *f0, *f1;
@@ -1034,6 +1038,8 @@ static void md3draw (md3model *m, spritetype *tspr)
 	long i, j, k, surfi, *lptr;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
 	md3surf_t *s;
+
+	if ((tspr->cstat&48) == 32) return 0;
 
 	updateanimation((md2model *)m,tspr);
 
@@ -1191,6 +1197,8 @@ static void md3draw (md3model *m, spritetype *tspr)
 		bglDepthRange(0.0,0.99999);
 	}
 	bglLoadIdentity();
+
+	return 1;
 }
 
 static void md3free (md3model *m)
@@ -1871,7 +1879,7 @@ static voxmodel *voxload (const char *filnam)
 }
 
 	//Draw voxel model as perfect cubes
-static void voxdraw (voxmodel *m, spritetype *tspr)
+static int voxdraw (voxmodel *m, spritetype *tspr)
 {
 	point3d fp, m0, a0;
 	long i, j, k, fi, *lptr, xx, yy, zz;
@@ -1880,6 +1888,7 @@ static void voxdraw (voxmodel *m, spritetype *tspr)
 	vert_t *vptr;
 
 	//updateanimation((md2model *)m,tspr);
+	if ((tspr->cstat&48)==32) return 0;
 
 	m0.x = m->scale;
 	m0.y = m->scale;
@@ -2013,6 +2022,7 @@ static void voxdraw (voxmodel *m, spritetype *tspr)
 		bglDepthRange(0.0,0.99999);
 	}
 	bglLoadIdentity();
+	return 1;
 }
 
 //---------------------------------------- VOX LIBRARY ENDS ----------------------------------------
@@ -2038,7 +2048,7 @@ mdmodel *mdload (const char *filnam)
 	return(vm);
 }
 
-void mddraw (spritetype *tspr)
+int mddraw (spritetype *tspr)
 {
 	mdanim_t *anim;
 	mdmodel *vm;
@@ -2046,14 +2056,15 @@ void mddraw (spritetype *tspr)
 	if (maxmodelverts > allocmodelverts)
 	{
 		point3d *vl = (point3d *)realloc(vertlist,sizeof(point3d)*maxmodelverts);
-		if (!vl) { OSD_Printf("ERROR: Not enough memory to allocate %d vertices!\n",maxmodelverts); return; }
+		if (!vl) { OSD_Printf("ERROR: Not enough memory to allocate %d vertices!\n",maxmodelverts); return 0; }
 		vertlist = vl; allocmodelverts = maxmodelverts;
 	}
 
 	vm = models[tile2model[tspr->picnum].modelid];
-	if (vm->mdnum == 1) { voxdraw((voxmodel *)vm,tspr); return; }
-	if (vm->mdnum == 2) { md2draw((md2model *)vm,tspr); return; }
-	if (vm->mdnum == 3) { md3draw((md3model *)vm,tspr); return; }
+	if (vm->mdnum == 1) { return voxdraw((voxmodel *)vm,tspr); }
+	if (vm->mdnum == 2) { return md2draw((md2model *)vm,tspr); }
+	if (vm->mdnum == 3) { return md3draw((md3model *)vm,tspr); }
+	return 0;
 }
 
 void mdfree (mdmodel *vm)

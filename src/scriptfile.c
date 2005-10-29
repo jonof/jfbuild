@@ -71,7 +71,10 @@ int scriptfile_getdouble(scriptfile *sf, double *num)
 	}
 	
 	sf->ltextptr = sf->textptr;
+
+	// FIXME On Linux, locale settings interfere with interpreting x.y format numbers
 	(*num) = strtod((const char *)sf->textptr,&sf->textptr);
+	
 	if (!ISWS(*sf->textptr) && *sf->textptr) {
 		char *p = sf->textptr;
 		skipovertoken(sf);

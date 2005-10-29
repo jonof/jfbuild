@@ -3333,31 +3333,22 @@ void polymost_drawsprite (long snum)
 		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16))));
 	}
 
-	if (rendmode == 3 && !(spriteext[tspr->owner].flags&SPREXT_NOTMD)) {
+	while (rendmode == 3 && !(spriteext[tspr->owner].flags&SPREXT_NOTMD)) {
 		if (usemodels && tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
-			mddraw(tspr);
-			return;
+			if (mddraw(tspr)) return;
+			break;	// else, render as flat sprite
 		}
 		if (usevoxels && (tspr->cstat&48)!=48 && tiletovox[tspr->picnum] >= 0 && voxmodels[ tiletovox[tspr->picnum] ]) {
-			voxdraw(voxmodels[ tiletovox[tspr->picnum] ], tspr);
-			return;
+			if (voxdraw(voxmodels[ tiletovox[tspr->picnum] ], tspr)) return;
+			break;	// else, render as flat sprite
 		}
+		break;
 	}
 #endif
 
 	switch((globalorientation>>4)&3)
 	{
 		case 0: //Face sprite
-
-#ifdef USE_OPENGL
-			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
-			{
-				if (tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
-					mddraw(tspr);
-					return;
-				}
-			}
-#endif
 
 				//Project 3D to 2D
 			sx0 = (float)(tspr->x-globalposx);
@@ -3404,15 +3395,6 @@ void polymost_drawsprite (long snum)
 			pow2xsplit = 0; drawpoly(px,py,4,method);
 			break;
 		case 1: //Wall sprite
-#ifdef USE_OPENGL
-			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
-			{
-				if (tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
-					mddraw(tspr);
-					return;
-				}
-			}
-#endif
 			
 				//Project 3D to 2D
 			if (globalorientation&4) xoff = -xoff;
@@ -3529,17 +3511,6 @@ void polymost_drawsprite (long snum)
 			pow2xsplit = 0; drawpoly(px,py,4,method);
 			break;
 		case 2: //Floor sprite
-			/*
-#ifdef USE_OPENGL
-			if (rendmode == 3 && usemodels && !(spriteext[tspr->owner].flags&SPREXT_NOTMD))
-			{
-				if (tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
-					mddraw(tspr);
-					return;
-				}
-			}
-#endif
-			*/
 			
 			if ((globalorientation&64) != 0)
 				if ((globalposz > tspr->z) == (!(globalorientation&8)))
@@ -3629,10 +3600,6 @@ void polymost_drawsprite (long snum)
 			break;
 
 		case 3: //Voxel sprite
-#ifdef USE_OPENGL
-			if (rendmode == 3 && (unsigned)globalpicnum < (unsigned)MAXVOXELS && voxmodels[globalpicnum])
-				voxdraw(voxmodels[globalpicnum], tspr);
-#endif
 		    break;
 	}
 }
