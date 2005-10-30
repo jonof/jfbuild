@@ -5160,10 +5160,8 @@ void overheadeditor(void)
 								}
 							}
 
-							if (mapversion < 7) {
-									sprintf(tempbuf,"Map loaded successfully and autoconverted to V7!");
-									printmessage16(tempbuf);
-							} else printmessage16("Map loaded successfully.");
+							if (mapversion < 7) printmessage16("Map loaded successfully and autoconverted to V7!");
+							else printmessage16("Map loaded successfully.");
 						}
 						updatenumsprites();
 						startposx = posx;      //this is same
