@@ -283,7 +283,9 @@ int app_main(int argc, char **argv)
 	for(i=0;i<MAXSPRITES;i++) sprite[i].extra = -1;
 
 	ExtPreLoadMap();
-	if (loadboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum) == -1)
+	i = loadboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum);
+	if (i == -2) i = loadoldboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum);
+	if (i < 0)
 	{
 		initspritelists();
 		posx = 32768;
@@ -5096,7 +5098,9 @@ void overheadeditor(void)
 						for(i=0;i<MAXSPRITES;i++) sprite[i].extra = -1;
 
 						ExtPreLoadMap();
-						if (loadboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum) == -1)
+						i = loadboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum);
+						if (i == -2) i = loadoldboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum);
+						if (i < 0)
 						{
 							printmessage16("Invalid map format.");
 						}
@@ -5156,7 +5160,10 @@ void overheadeditor(void)
 								}
 							}
 
-							printmessage16("Map loaded successfully.");
+							if (mapversion < 7) {
+									sprintf(tempbuf,"Map loaded successfully and autoconverted to V7!");
+									printmessage16(tempbuf);
+							} else printmessage16("Map loaded successfully.");
 						}
 						updatenumsprites();
 						startposx = posx;      //this is same
