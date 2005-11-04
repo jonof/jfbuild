@@ -211,7 +211,7 @@ int DoLaunchWindow(int initval);	// buildstartwin.c
 extern char *defsfilename;	// set in bstub.c
 int app_main(int argc, char **argv)
 {
-	char ch, quitflag;
+	char ch, quitflag, forcesetup = 0;
 	long i, j, k;
 
 #ifdef USE_OPENGL
@@ -226,29 +226,38 @@ int app_main(int argc, char **argv)
 #endif
 
 	editstatus = 1;
-	if (argc >= 2) {
-		if (Bstrchr(argv[1],'.') == 0)
-			Bsnprintf(boardfilename, 256, "%s.map", argv[1]);
-		else {
-			Bstrncpy(boardfilename, argv[1], 255);
-			boardfilename[255] = 0;
+	boardfilename[0] = 0;
+	for (i=1; i<argc; i++) {
+		if (argv[i][0] == '-') {
+			if (!strcmp(argv[i], "-setup")) forcesetup = 1;
+			else if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-?")) {
+				wm_msgbox("BUILD by Ken Silverman", "BUILD by Ken Silverman\n"
+#ifdef RENDERTYPEWIN
+					"Syntax: build [options] mapname\n"
+					"Options:\n"
+					"      -setup    Displays the configuration dialogue box before entering the editor.\n"
+#else
+					"Syntax: build mapname\n"
+#endif
+						 );
+				return 0;
+			}
+			continue;
 		}
-
-		/*if (Bcorrectfilename(boardfilename,0)) {
-			printf("Map name invalid.\n");
-			exit(0);
-		}*/
-	} else {
+		if (!boardfilename[0]) {
+			strncpy(boardfilename, argv[i], BMAX_PATH-4-1);
+			boardfilename[i-BMAX_PATH] = 0;
+		}
+	}
+	if (boardfilename[0] == 0) {
 		Bstrcpy(boardfilename,"newboard.map");
-		/*if (Bcorrectfilename(boardfilename,0)) {
-			printf("Error in Bcorrectfilename()\n");
-			exit(0);
-		}*/
+	} else if (Bstrchr(boardfilename,'.') == 0) {
+		Bstrcat(boardfilename, ".map");
 	}
 
 	if ((i = ExtInit()) < 0) return -1;
 #ifdef RENDERTYPEWIN
-	if (DoLaunchWindow(i)) return -1;
+	if (DoLaunchWindow(i|forcesetup)) return -1;
 #endif
 	OSD_SetLogFile("build.log");
 	inittimer(TIMERINTSPERSECOND);

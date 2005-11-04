@@ -951,6 +951,8 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	long xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0, ymulnice = 0, dorot;
 	char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
 
+	if (method == -1) return;
+
 	pthtyp *pth;
 
 	if (n == 3)
@@ -2044,6 +2046,7 @@ static void polymost_drawalls (long bunch)
 				}
 			}
 			domostpolymethod = (globalorientation>>7)&3;
+			if (globalposz >= getflorzofslope(sectnum,globalposx,globalposy)) domostpolymethod = -1; //Back-face culling
 			pow2xsplit = 0; domost(x0,fy0,x1,fy1); //flor
 			domostpolymethod = 0;
 		}
@@ -2388,6 +2391,7 @@ static void polymost_drawalls (long bunch)
 				}
 			}
 			domostpolymethod = (globalorientation>>7)&3;
+			if (globalposz <= getceilzofslope(sectnum,globalposx,globalposy)) domostpolymethod = -1; //Back-face culling
 			pow2xsplit = 0; domost(x1,cy1,x0,cy0); //ceil
 			domostpolymethod = 0;
 		}

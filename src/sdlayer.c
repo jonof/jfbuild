@@ -120,6 +120,7 @@ int wm_msgbox(char *name, char *fmt, ...)
 #endif
 	{
 		puts(buf);
+		puts("   (press Return or Enter to continue)");
 		getchar();
 	}
 	return 0;
@@ -153,6 +154,7 @@ int wm_ynbox(char *name, char *fmt, ...)
 	{
 		char c;
 		puts(buf);
+		puts("   (type 'Y' or 'N', and press Return or Enter to continue)");
 		do c = getchar(); while (c != 'Y' && c != 'y' && c != 'N' && c != 'n');
 		if (c == 'Y' || c == 'y') return 1;
 	}

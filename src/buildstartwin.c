@@ -148,7 +148,7 @@ int DoLaunchWindow(int initval)
 	int x;
 
 	// only show config window if no config is loaded, or if it is, only if left control is held
-	if (initval == 0 && !GetAsyncKeyState(VK_CONTROL)) return 0;
+	if (initval == 0 /*&& !GetAsyncKeyState(VK_CONTROL)*/) return 0;
 
 	if (win_getstartupwin((long*)&hwndStart, saferect, NULL)) return 0;
 
