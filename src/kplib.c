@@ -27,11 +27,26 @@ I offer this code to the community for the benefit of Jonathon Fowler's Duke3D p
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(__POWERPC__)
+#define BIGENDIAN 1
+#endif
+
+#ifdef BIGENDIAN
+static unsigned long LSWAPIB (unsigned long a) { return(((a>>8)&0xff00)+((a&0xff00)<<8)+(a<<24)+(a>>24)); }
+static unsigned short SSWAPIB (unsigned short a) { return((a>>8)+(a<<8)); }
+#define LSWAPIL(a) (a)
+#define SSWAPIL(a) (a)
+#else
+#define LSWAPIB(a) (a)
+#define SSWAPIB(a) (a)
+static unsigned long LSWAPIL (unsigned long a) { return(((a>>8)&0xff00)+((a&0xff00)<<8)+(a<<24)+(a>>24)); }
+static unsigned short SSWAPIL (unsigned short a) { return((a>>8)+(a<<8)); }
+#endif
+
 #if !defined(_WIN32) && !defined(__DOS__)
 #include <unistd.h>
-#if !defined(__INTEL_COMPILER)
+#include <dirent.h>
 typedef long long __int64;
-#endif
 static __inline long _lrotl (long i, int sh)
 	{ return((i>>(-sh))|(i<<sh)); }
 static __inline long filelength (int h)
@@ -45,14 +60,12 @@ static __inline long filelength (int h)
 #include <io.h>
 #endif
 
-#ifndef NOKPLIBZIP
 #if defined(__DOS__)
 #include <dos.h>
 #elif defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #endif
-#endif //NOKPLIBZIP
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -299,7 +312,7 @@ static inline unsigned long bswap (unsigned long a)
 
 static inline long bitrev (long b, long c)
 {
-	long a = 0;
+	long a;
 	__asm__ __volatile__ (
 		"xorl %%eax, %%eax\n\t0:\n\tshrl $1, %%ebx\n\tadcl %%eax, %%eax\n\tsubl $1, %%ecx\n\tjnz 0b"
 		: "+a" (a), "+b" (b), "+c" (c) : : "cc");
@@ -364,10 +377,10 @@ static void suckbitsnextblock ()
 				//        \  fakebuf: /
 				//          |===|===|
 				//----x     O---x     O--------
-			nbitpos = bswap(*(long *)&filptr[8]);
+			nbitpos = LSWAPIL(*(long *)&filptr[8]);
 			nfilptr = (unsigned char *)&filptr[nbitpos+12];
 			*(long *)&fakebuf[0] = *(long *)&filptr[0]; //Copy last dword of IDAT chunk
-			if (*(long *)&filptr[12] == 0x54414449) //Copy 1st dword of next IDAT chunk
+			if (*(long *)&filptr[12] == LSWAPIB(0x54414449)) //Copy 1st dword of next IDAT chunk
 				*(long *)&fakebuf[4] = *(long *)&filptr[16];
 			filptr = &fakebuf[4]; bitpos -= 32;
 		}
@@ -389,7 +402,7 @@ static void suckbitsnextblock ()
 	}
 }
 
-static _inline long peekbits (long n) { return(((*(long *)&filptr[bitpos>>3])>>(bitpos&7))&pow2mask[n]); }
+static _inline long peekbits (long n) { return((LSWAPIB(*(long *)&filptr[bitpos>>3])>>(bitpos&7))&pow2mask[n]); }
 static _inline void suckbits (long n) { bitpos += n; if (bitpos >= 0) suckbitsnextblock(); }
 static _inline long getbits (long n) { long i = peekbits(n); suckbits(n); return(i); }
 
@@ -425,7 +438,7 @@ static void qhufgencode (long *hitab, long *hbmax, long *qhval, unsigned char *q
 				r = bitrev(i,numbits);
 				qhval[r] = hitab[k];
 				qhbit[r] = (char)n;
-		}
+			}
 	for(j=pow2mask[numbits];i<=j;i++)
 	{
 		r = bitrev(i,numbits);
@@ -556,13 +569,13 @@ static inline void rgbhlineasm (long x, long xr1, long p, long ixstp)
 	long i;
 	if (!trnsrgb)
 	{
-		for(;x>xr1;p+=ixstp,x-=3) *(long *)p = (*(long *)&olinbuf[x])|0xff000000;
+		for(;x>xr1;p+=ixstp,x-=3) *(long *)p = (*(long *)&olinbuf[x])|LSWAPIB(0xff000000);
 		return;
 	}
 	for(;x>xr1;p+=ixstp,x-=3)
 	{
-		i = (*(long *)&olinbuf[x])|0xff000000;
-		if (i == trnsrgb) i &= 0xffffff;
+		i = (*(long *)&olinbuf[x])|LSWAPIB(0xff000000);
+		if (i == trnsrgb) i &= LSWAPIB(0xffffff);
 		*(long *)p = i;
 	}
 }
@@ -839,11 +852,10 @@ static void putbuf (const unsigned char *buf, long leng)
 						if (olinbuf[x-1] == 255) { *(long *)p = palcol[olinbuf[x]]; continue; }
 						if (!olinbuf[x-1]) { *(long *)p = bakcol; continue; }
 							//I do >>8, but theoretically should be: /255
-						*(char *)(p) = *(char *)(p+1) = *(char *)(p+2) =
+						*(char *)(p) = *(char *)(p+1) = *(char *)(p+2) = *(char *)(p+3) =
 							(((((long)olinbuf[x])-bakr)*(long)olinbuf[x-1])>>8) + bakr;
 #else
-						*(long *)p = palcol[olinbuf[x]];
-						*(char *)(p+3) = olinbuf[x-1]; //A
+						*(long *)p = (palcol[olinbuf[x]]&LSWAPIB(0xffffff))|LSWAPIL((long)olinbuf[x-1]);
 #endif
 					}
 					break;
@@ -926,7 +938,7 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 
 	if (!pnginited) { pnginited = 1; initpngtables(); }
 
-	if ((*(long *)&kfilebuf[0] != 0x474e5089) || (*(long *)&kfilebuf[4] != 0x0a1a0a0d))
+	if ((*(long *)&kfilebuf[0] != LSWAPIB(0x474e5089)) || (*(long *)&kfilebuf[4] != LSWAPIB(0x0a1a0a0d)))
 		return(-1); //"Invalid PNG file signature"
 	filptr = (unsigned char *)&kfilebuf[8];
 
@@ -934,13 +946,13 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 
 	while (1)
 	{
-		leng = bswap(*(long *)&filptr[0]); i = *(long *)&filptr[4];
+		leng = LSWAPIL(*(long *)&filptr[0]); i = *(long *)&filptr[4];
 		filptr = &filptr[8];
 
-		if (i == 0x52444849) //IHDR (must be first)
+		if (i == LSWAPIB(0x52444849)) //IHDR (must be first)
 		{
-			xsiz = bswap(*(long *)&filptr[0]); if (xsiz <= 0) return(-1);
-			ysiz = bswap(*(long *)&filptr[4]); if (ysiz <= 0) return(-1);
+			xsiz = LSWAPIL(*(long *)&filptr[0]); if (xsiz <= 0) return(-1);
+			ysiz = LSWAPIL(*(long *)&filptr[4]); if (ysiz <= 0) return(-1);
 			bitdepth = filptr[8]; if (!((1<<bitdepth)&0x116)) return(-1); //"Bit depth not supported"
 			coltype = filptr[9]; if (!((1<<coltype)&0x5d)) return(-1); //"Color type not supported"
 			if (filptr[10]) return(-1); //"Only *flate is supported"
@@ -953,15 +965,15 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 			{
 				j = 0xff000000; k = (255 / ((1<<bitdepth)-1))*0x10101;
 				paleng = (1<<bitdepth);
-				for(i=0;i<paleng;i++,j+=k) palcol[i] = j;
+				for(i=0;i<paleng;i++,j+=k) palcol[i] = LSWAPIB(j);
 			}
 		}
-		else if (i == 0x45544c50) //PLTE (must be before IDAT)
+		else if (i == LSWAPIB(0x45544c50)) //PLTE (must be before IDAT)
 		{
 			paleng = leng/3;
-			for(i=paleng-1;i>=0;i--) palcol[i] = ((bswap(*(long *)&filptr[i*3])>>8)|0xff000000);
+			for(i=paleng-1;i>=0;i--) palcol[i] = LSWAPIB((LSWAPIL(*(long *)&filptr[i*3])>>8)|0xff000000);
 		}
-		else if (i == 0x44474b62) //bKGD (must be after PLTE and before IDAT)
+		else if (i == LSWAPIB(0x44474b62)) //bKGD (must be after PLTE and before IDAT)
 		{
 			switch(coltype)
 			{
@@ -983,31 +995,32 @@ static long kpngrend (const char *kfilebuf, long kfilength,
 			bakr = ((bakcol>>16)&255);
 			bakg = ((bakcol>>8)&255);
 			bakb = (bakcol&255);
+			bakcol = LSWAPIB(bakcol);
 		}
-		else if (i == 0x534e5274) //tRNS (must be after PLTE and before IDAT)
+		else if (i == LSWAPIB(0x534e5274)) //tRNS (must be after PLTE and before IDAT)
 		{
 			switch(coltype)
 			{
 				case 0:
 					if (bitdepth <= 8)
-						palcol[(long)filptr[1]] &= 0xffffff;
+						palcol[(long)filptr[1]] &= LSWAPIB(0xffffff);
 					//else {} // /c0 /d16 not yet supported
 					break;
 				case 2:
 					if (bitdepth == 8)
-						{ trnsrgb = (((long)filptr[1])<<16)+(((long)filptr[3])<<8)+((long)filptr[5])+0xff000000; }
+						{ trnsrgb = LSWAPIB((((long)filptr[1])<<16)+(((long)filptr[3])<<8)+((long)filptr[5])+0xff000000); }
 					//else {} //WARNING: PNG docs say: MUST compare all 48 bits :(
 					break;
 				case 3:
 					for(i=min(leng,paleng)-1;i>=0;i--)
-						palcol[i] &= ((((long)filptr[i])<<24)|0xffffff);
+						palcol[i] &= LSWAPIB((((long)filptr[i])<<24)|0xffffff);
 					break;
 				default:;
 			}
 		}
-		else if (i == 0x54414449) { break; }  //IDAT
+		else if (i == LSWAPIB(0x54414449)) { break; }  //IDAT
 
-		filptr = &filptr[leng+4]; //crc = bswap(*(long *)&filptr[-4]);
+		filptr = &filptr[leng+4]; //crc = LSWAPIL(*(long *)&filptr[-4]);
 	}
 
 		//Initialize this for the getbits() function
@@ -1276,6 +1289,14 @@ static void initkpeg ()
 		colclipup8[i] = (colclip[i]<<8);
 		colclipup16[i] = (colclip[i]<<16)+0xff000000; //Hack: set alphas to 255
 	}
+#if defined(BIGENDIAN)
+	for(i=0;i<1024;i++)
+	{
+		colclip[i] = bswap(colclip[i]);
+		colclipup8[i] = bswap(colclipup8[i]);
+		colclipup16[i] = bswap(colclipup16[i]);
+	}
+#endif
 
 	for(i=0;i<2048;i++)
 	{
@@ -1315,10 +1336,10 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 	long daframeplace, long dabytesperline, long daxres, long dayres,
 	long daglobxoffs, long daglobyoffs)
 {
-	long i, j, p, v, leng, xdim = 0, ydim = 0, index, prec, restartinterval;
+	long i, j, p, v, leng, xdim, ydim, index, prec, restartinterval;
 	long restartcnt, num, curbits, x, y, z, dctcnt, c, cc, daval, dabits;
 	long xx, yy, zz, xxx, yyy, r, g, b, t0, t1, t2, t3, t4, t5, t6, t7;
-	long yv, cr = 0, cb = 0, *dc, *dc2, xxxend, yyyend;
+	long yv, cr, cb, *dc, *dc2, xxxend, yyyend;
 	long *hqval, *hqbits, hqcnt, *quanptr;
 	unsigned char ch, marker, numbits, lnumcomponents, dcflag;
 	const unsigned char *kfileptr;
@@ -1327,7 +1348,7 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 
 	kfileptr = (unsigned char *)kfilebuf;
 
-	if (*(unsigned short *)kfileptr == 0xd8ff) kfileptr += 2;
+	if (*(unsigned short *)kfileptr == SSWAPIB(0xd8ff)) kfileptr += 2;
 	else return(-1); //"%s is not a JPEG file\n",filename
 
 	restartinterval = 0;
@@ -1347,8 +1368,8 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 					//processit!
 				numbits = *kfileptr++;
 
-				ydim = ((long)kfileptr[0]<<8)+(long)kfileptr[1];
-				xdim = ((long)kfileptr[2]<<8)+(long)kfileptr[3];
+				ydim = SSWAPIL(*(unsigned short *)&kfileptr[0]);
+				xdim = SSWAPIL(*(unsigned short *)&kfileptr[2]);
 				//printf("%s: %ld / %ld = %ld\n",filename,xdim*ydim*3,kfilength,(xdim*ydim*3)/kfilength);
 
 				frameplace = daframeplace;
@@ -1422,7 +1443,7 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 				} while (leng > 0);
 				break;
 			case 0xdd:
-				restartinterval = (((long)kfileptr[0])<<8)+((long)kfileptr[1]);
+				restartinterval = SSWAPIL(*(unsigned short *)&kfileptr[0]);
 				kfileptr += leng;
 				break;
 			case 0xda: case 0xd9:
@@ -1703,7 +1724,7 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 //==============================  KPEGILIB ends ==============================
 //================================ GIF begins ================================
 
-static char suffix[4100], filbuffer[768], tempstack[4096];
+static unsigned char suffix[4100], filbuffer[768], tempstack[4096];
 static long prefix[4100];
 
 static long kgifrend (const char *kfilebuf, long kfilelength,
@@ -1713,14 +1734,14 @@ static long kgifrend (const char *kfilebuf, long kfilelength,
 	long i, x, y, xsiz, ysiz, yinc, xend, xspan, yspan, currstr, numbitgoal;
 	long lzcols, dat, blocklen, bitcnt, xoff, yoff, transcol, backcol, *lptr;
 	char numbits, startnumbits, chunkind, ilacefirst;
-	const char *ptr, *cptr = NULL;
+	const unsigned char *ptr, *cptr;
 
 	coltype = 3; bitdepth = 8; //For PNGOUT
 
 	if ((kfilebuf[0] != 'G') || (kfilebuf[1] != 'I') ||
 		 (kfilebuf[2] != 'F') || (kfilebuf[12])) return(-1);
 	paleng = (1<<((kfilebuf[10]&7)+1));
-	ptr = &kfilebuf[13];
+	ptr = (unsigned char *)&kfilebuf[13];
 	if (kfilebuf[10]&128) { cptr = ptr; ptr += paleng*3; }
 	transcol = -1;
 	while ((chunkind = *ptr++) == '!')
@@ -1731,8 +1752,10 @@ static long kgifrend (const char *kfilebuf, long kfilelength,
 	}
 	if (chunkind != ',') return(-1);
 
-	xoff = *(unsigned short *)&ptr[0]; yoff = *(unsigned short *)&ptr[2];
-	xspan = *(unsigned short *)&ptr[4]; yspan = *(unsigned short *)&ptr[6]; ptr += 9;
+	xoff = SSWAPIB(*(unsigned short *)&ptr[0]);
+	yoff = SSWAPIB(*(unsigned short *)&ptr[2]);
+	xspan = SSWAPIB(*(unsigned short *)&ptr[4]);
+	yspan = SSWAPIB(*(unsigned short *)&ptr[6]); ptr += 9;
 	if (ptr[-1]&64) { yinc = 8; ilacefirst = 1; }
 				  else { yinc = 1; ilacefirst = 0; }
 	if (ptr[-1]&128)
@@ -1742,16 +1765,17 @@ static long kgifrend (const char *kfilebuf, long kfilelength,
 	}
 
 	for(i=0;i<paleng;i++)
-		palcol[i] = (((long)cptr[i*3])<<16) + (((long)cptr[i*3+1])<<8) + ((long)cptr[i*3+2]) + 0xff000000;
-	for(;i<256;i++) palcol[i] = 0xff000000;
-	if (transcol >= 0) palcol[transcol] &= (~0xff000000);
+		palcol[i] = LSWAPIB((((long)cptr[i*3])<<16) + (((long)cptr[i*3+1])<<8) + ((long)cptr[i*3+2]) + 0xff000000);
+	for(;i<256;i++) palcol[i] = LSWAPIB(0xff000000);
+	if (transcol >= 0) palcol[transcol] &= LSWAPIB(~0xff000000);
 
 		//Handle GIF files with different logical&image sizes or non-0 offsets (added 05/15/2004)
-	xsiz = *(unsigned short *)&kfilebuf[6]; ysiz = *(unsigned short *)&kfilebuf[8];
+	xsiz = SSWAPIB(*(unsigned short *)&kfilebuf[6]);
+	ysiz = SSWAPIB(*(unsigned short *)&kfilebuf[8]);
 	if ((xoff != 0) || (yoff != 0) || (xsiz != xspan) || (ysiz != yspan))
 	{
 		long xx[4], yy[4];
-		if (kfilebuf[10]&128) backcol = palcol[kfilebuf[11]]; else backcol = 0;
+		if (kfilebuf[10]&128) backcol = palcol[(unsigned char)kfilebuf[11]]; else backcol = 0;
 
 			//Fill border to backcol
 		xx[0] = max(daglobxoffs           ,     0); yy[0] = max(daglobyoffs           ,     0);
@@ -1789,7 +1813,7 @@ static long kgifrend (const char *kfilebuf, long kfilelength,
 	bitcnt = 0;
 	while (1)
 	{
-		dat = ((*(long *)&filbuffer[bitcnt>>3])>>(bitcnt&7)) & (numbitgoal-1);
+		dat = (LSWAPIB(*(long *)&filbuffer[bitcnt>>3])>>(bitcnt&7)) & (numbitgoal-1);
 		bitcnt += numbits;
 		if ((bitcnt>>3) > blocklen-3)
 		{
@@ -1857,15 +1881,15 @@ static long kcelrend (const char *buf, long fleng,
 
 	coltype = 3; bitdepth = 8; paleng = 256; //For PNGOUT
 
-	xsiz = (long)(*(unsigned short *)&buf[2]); if (xsiz <= 0) return(-1);
-	ysiz = (long)(*(unsigned short *)&buf[4]); if (ysiz <= 0) return(-1);
+	xsiz = (long)SSWAPIB(*(unsigned short *)&buf[2]); if (xsiz <= 0) return(-1);
+	ysiz = (long)SSWAPIB(*(unsigned short *)&buf[4]); if (ysiz <= 0) return(-1);
 
 	cptr = &buf[32];
 	for(i=0;i<256;i++)
 	{
 		palcol[i] = (((long)cptr[0])<<18) +
 						(((long)cptr[1])<<10) +
-						(((long)cptr[2])<< 2) + 0xff000000;
+						(((long)cptr[2])<< 2) + LSWAPIB(0xff000000);
 		cptr += 3;
 	}
 
@@ -1888,8 +1912,8 @@ static long ktgarend (const char *header, long fleng,
 	long daframeplace, long dabytesperline, long daxres, long dayres,
 	long daglobxoffs, long daglobyoffs)
 {
-	long i = 0, p, x, y, pi, xi, yi, x0, x1, y0, y1, xsiz, ysiz, rlestat, colbyte, pixbyte;
-	const char *fptr, *cptr = NULL, *nptr;
+	long i, p, x, y, pi, xi, yi, x0, x1, y0, y1, xsiz, ysiz, rlestat, colbyte, pixbyte;
+	const unsigned char *fptr, *cptr, *nptr;
 
 		//Ugly and unreliable identification for .TGA!
 	if ((fleng < 20) || (header[1]&0xfe)) return(-1);
@@ -1897,22 +1921,22 @@ static long ktgarend (const char *header, long fleng,
 	if ((header[16]&7) || (header[16] == 0) || (header[16] > 32)) return(-1);
 	if (header[17]&0xc0) return(-1);
 
-	fptr = &header[header[0]+18];
-	xsiz = (long)(*(unsigned short *)&header[12]); if (xsiz <= 0) return(-1);
-	ysiz = (long)(*(unsigned short *)&header[14]); if (ysiz <= 0) return(-1);
+	fptr = (unsigned char *)&header[header[0]+18];
+	xsiz = (long)SSWAPIB(*(unsigned short *)&header[12]); if (xsiz <= 0) return(-1);
+	ysiz = (long)SSWAPIB(*(unsigned short *)&header[14]); if (ysiz <= 0) return(-1);
 	colbyte = ((((long)header[16])+7)>>3);
 
 	if (header[1] == 1)
 	{
 		pixbyte = ((((long)header[7])+7)>>3);
-		cptr = &fptr[-(*(unsigned short *)&header[3])*pixbyte];
-		fptr += (*(unsigned short *)&header[5])*pixbyte;
+		cptr = &fptr[-SSWAPIB(*(unsigned short *)&header[3])*pixbyte];
+		fptr += SSWAPIB(*(unsigned short *)&header[5])*pixbyte;
 	} else pixbyte = colbyte;
 
 	switch(pixbyte) //For PNGOUT
 	{
-		case 1: coltype = 0; bitdepth = 8; palcol[0] = 0xff000000;
-				  for(i=1;i<256;i++) palcol[i] = palcol[i-1]+0x10101; break;
+		case 1: coltype = 0; bitdepth = 8; palcol[0] = LSWAPIB(0xff000000);
+				  for(i=1;i<256;i++) palcol[i] = palcol[i-1]+LSWAPIB(0x10101); break;
 		case 2: case 3: coltype = 2; break;
 		case 4: coltype = 6; break;
 	}
@@ -1935,17 +1959,17 @@ static long ktgarend (const char *header, long fleng,
 				if (header[1] == 1)
 				{
 					if (colbyte == 1) i = fptr[0];
-									 else i = (long)(*(unsigned short *)&fptr[0]);
+									 else i = (long)SSWAPIB(*(unsigned short *)&fptr[0]);
 					nptr = &cptr[i*pixbyte];
 				} else nptr = fptr;
 
 				switch(pixbyte)
 				{
 					case 1: i = palcol[(long)nptr[0]]; break;
-					case 2: i = (long)(*(unsigned short *)&nptr[0]);
-						i = ((i&0x7c00)<<9) + ((i&0x03e0)<<6) + ((i&0x001f)<<3) + 0xff000000;
+					case 2: i = (long)SSWAPIB(*(unsigned short *)&nptr[0]);
+						i = LSWAPIB(((i&0x7c00)<<9) + ((i&0x03e0)<<6) + ((i&0x001f)<<3) + 0xff000000);
 						break;
-					case 3: i = (*(long *)&nptr[0]) | 0xff000000; break;
+					case 3: i = (*(long *)&nptr[0]) | LSWAPIB(0xff000000); break;
 					case 4: i = (*(long *)&nptr[0]); break;
 				}
 				fptr += colbyte;
@@ -1986,35 +2010,35 @@ static long kbmprend (const char *buf, long fleng,
 	const char *cptr;
 
 	headsiz = *(long *)&buf[14];
-	if (headsiz == 12) //OS/2 1.x (old format)
+	if (headsiz == LSWAPIB(12)) //OS/2 1.x (old format)
 	{
-		if (*(short *)(&buf[22]) != 1) return(-1);
-		xsiz = (long)(*(unsigned short *)&buf[18]);
-		ysiz = (long)(*(unsigned short *)&buf[20]);
-		cdim = (long)(*(unsigned short *)&buf[24]);
+		if (*(short *)(&buf[22]) != SSWAPIB(1)) return(-1);
+		xsiz = (long)SSWAPIB(*(unsigned short *)&buf[18]);
+		ysiz = (long)SSWAPIB(*(unsigned short *)&buf[20]);
+		cdim = (long)SSWAPIB(*(unsigned short *)&buf[24]);
 		comp = 0;
 	}
 	else //All newer formats...
 	{
-		if (*(short *)(&buf[26]) != 1) return(-1);
-		xsiz = *(long *)&buf[18];
-		ysiz = *(long *)&buf[22];
-		cdim = (long)(*(unsigned short *)&buf[28]);
-		comp = *(long *)&buf[30];
+		if (*(short *)(&buf[26]) != SSWAPIB(1)) return(-1);
+		xsiz = LSWAPIB(*(long *)&buf[18]);
+		ysiz = LSWAPIB(*(long *)&buf[22]);
+		cdim = (long)SSWAPIB(*(unsigned short *)&buf[28]);
+		comp = LSWAPIB(*(long *)&buf[30]);
 	}
 	if ((xsiz <= 0) || (!ysiz)) return(-1);
 		//cdim must be: (1,4,8,16,24,32)
 	if (((unsigned long)(cdim-1) >= (unsigned long)32) || (!((1<<cdim)&0x1010113))) return(-1);
 	if ((comp != 0) && (comp != 3)) return(-1);
 
-	rastoff = *(long *)&buf[10];
+	rastoff = LSWAPIB(*(long *)&buf[10]);
 
 	if (cdim < 16)
 	{
-		if (cdim == 2) { palcol[0] = 0xffffffff; palcol[1] = 0xff000000; }
-		if (headsiz == 12) j = 3; else j = 4;
+		if (cdim == 2) { palcol[0] = 0xffffffff; palcol[1] = LSWAPIB(0xff000000); }
+		if (headsiz == LSWAPIB(12)) j = 3; else j = 4;
 		for(i=0,cptr=&buf[headsiz+14];cptr<&buf[rastoff];i++,cptr+=j)
-			palcol[i] = ((*(long *)&cptr[0])|0xff000000);
+			palcol[i] = ((*(long *)&cptr[0])|LSWAPIB(0xff000000));
 		coltype = 3; bitdepth = cdim; paleng = i; //For PNGOUT
 	}
 	else if (!(cdim&15))
@@ -2042,9 +2066,12 @@ static long kbmprend (const char *buf, long fleng,
 				}
 			}
 		}
-		palcol[0] = 24-(palcol[0]+palcol[3]); palcol[3] = ((-1<<(24-palcol[3]))&0x00ff0000);
-		palcol[1] = 16-(palcol[1]+palcol[4]); palcol[4] = ((-1<<(16-palcol[4]))&0x0000ff00);
-		palcol[2] =  8-(palcol[2]+palcol[5]); palcol[5] = ((-1<<( 8-palcol[5]))&0x000000ff);
+		palcol[0] = 24-(palcol[0]+palcol[3]);
+		palcol[1] = 16-(palcol[1]+palcol[4]);
+		palcol[2] =  8-(palcol[2]+palcol[5]);
+		palcol[3] = ((-1<<(24-palcol[3]))&0x00ff0000);
+		palcol[4] = ((-1<<(16-palcol[4]))&0x0000ff00);
+		palcol[5] = ((-1<<( 8-palcol[5]))&0x000000ff);
 	}
 
 	cptrinc = (((xsiz*cdim+31)>>3)&~3); cptr = &buf[rastoff];
@@ -2069,15 +2096,15 @@ static long kbmprend (const char *buf, long fleng,
 							i = ((long)(*(short *)&cptr[x<<1]));
 							lptr[x] = (_lrotl(i,palcol[0])&palcol[3]) +
 										 (_lrotl(i,palcol[1])&palcol[4]) +
-										 (_lrotl(i,palcol[2])&palcol[5]) + 0xff000000;
+										 (_lrotl(i,palcol[2])&palcol[5]) + LSWAPIB(0xff000000);
 						} break;
-			case 24: for(x=x0;x<x1;x++) lptr[x] = ((*(long *)&cptr[x*3])|0xff000000); break;
+			case 24: for(x=x0;x<x1;x++) lptr[x] = ((*(long *)&cptr[x*3])|LSWAPIB(0xff000000)); break;
 			case 32: for(x=x0;x<x1;x++)
 						{
 							i = (*(long *)&cptr[x<<2]);
 							lptr[x] = (_lrotl(i,palcol[0])&palcol[3]) +
 										 (_lrotl(i,palcol[1])&palcol[4]) +
-										 (_lrotl(i,palcol[2])&palcol[5]) + 0xff000000;
+										 (_lrotl(i,palcol[2])&palcol[5]) + LSWAPIB(0xff000000);
 						} break;
 		}
 
@@ -2093,9 +2120,9 @@ static long kpcxrend (const char *buf, long fleng,
 	long i, j, x, y, p, nplanes, x0, x1, y0, y1, xsiz, ysiz;
 	unsigned char c, *cptr;
 
-	if (*(long *)buf != 0x0801050a) return(-1);
-	xsiz = (*(short *)&buf[ 8])-(*(short *)&buf[4])+1; if (xsiz <= 0) return(-1);
-	ysiz = (*(short *)&buf[10])-(*(short *)&buf[6])+1; if (ysiz <= 0) return(-1);
+	if (*(long *)buf != LSWAPIB(0x0801050a)) return(-1);
+	xsiz = SSWAPIB(*(short *)&buf[ 8])-SSWAPIB(*(short *)&buf[4])+1; if (xsiz <= 0) return(-1);
+	ysiz = SSWAPIB(*(short *)&buf[10])-SSWAPIB(*(short *)&buf[6])+1; if (ysiz <= 0) return(-1);
 
 		//buf[3]: bpp/plane:{1,2,4,8}
 		//bpl = *(short *)&buf[66];  //#bytes per scanline. Must be EVEN. May have unused data.
@@ -2110,7 +2137,7 @@ static long kpcxrend (const char *buf, long fleng,
 		{
 			palcol[i] = (((long)cptr[0])<<16) +
 							(((long)cptr[1])<< 8) +
-							(((long)cptr[2])    ) + 0xff000000;
+							(((long)cptr[2])    ) + LSWAPIB(0xff000000);
 			cptr += 3;
 		}
 		coltype = 3; bitdepth = 8; paleng = 256; //For PNGOUT
@@ -2178,13 +2205,13 @@ void kpgetdim (const char *buf, long leng, long *xsiz, long *ysiz)
 	if ((ubuf[0] == 0x89) && (ubuf[1] == 0x50)) //.PNG
 	{
 		lptr = (long *)buf;
-		if ((lptr[0] != 0x474e5089) || (lptr[1] != 0x0a1a0a0d)) return;
+		if ((lptr[0] != LSWAPIB(0x474e5089)) || (lptr[1] != LSWAPIB(0x0a1a0a0d))) return;
 		lptr = &lptr[2];
 		while (((unsigned long)lptr-(unsigned long)buf) < (unsigned long)(leng-16))
 		{
-			if (lptr[1] == 0x52444849) //IHDR
-				{ (*xsiz) = bswap(lptr[2]); (*ysiz) = bswap(lptr[3]); break; }
-			lptr = (long *)((long)lptr + bswap(lptr[0]) + 12);
+			if (lptr[1] == LSWAPIB(0x52444849)) //IHDR
+				{ (*xsiz) = LSWAPIL(lptr[2]); (*ysiz) = LSWAPIL(lptr[3]); break; }
+			lptr = (long *)((long)lptr + LSWAPIL(lptr[0]) + 12);
 		}
 	}
 	else if ((ubuf[0] == 0xff) && (ubuf[1] == 0xd8)) //.JPG
@@ -2195,42 +2222,42 @@ void kpgetdim (const char *buf, long leng, long *xsiz, long *ysiz)
 			if (cptr[0] != 255) { cptr = &cptr[1]; continue; }
 			if ((unsigned long)(cptr[1]-0xc0) < 3)
 			{
-				(*ysiz) = ((long)cptr[5]<<8)+(long)cptr[6];
-				(*xsiz) = ((long)cptr[7]<<8)+(long)cptr[8];
+				(*ysiz) = SSWAPIL(*(unsigned short *)&cptr[5]);
+				(*xsiz) = SSWAPIL(*(unsigned short *)&cptr[7]);
 				break;
 			}
-			cptr = &cptr[((long)cptr[2]<<8)+(long)cptr[3]+2];
+			cptr = &cptr[SSWAPIL(*(unsigned short *)&cptr[2])+2];
 		}
 	}
 	else if ((ubuf[0] == 'G') && (ubuf[1] == 'I') && (ubuf[2] == 'F') && (ubuf[12] == 0)) //.GIF
 	{
-		(*xsiz) = (long)(*(unsigned short *)&buf[6]);
-		(*ysiz) = (long)(*(unsigned short *)&buf[8]);
+		(*xsiz) = (long)SSWAPIB(*(unsigned short *)&buf[6]);
+		(*ysiz) = (long)SSWAPIB(*(unsigned short *)&buf[8]);
 	}
 	else if ((ubuf[0] == 0x19) && (ubuf[1] == 0x91) && (ubuf[10] == 8) && (ubuf[11] == 0)) //old .CEL/.PIC
 	{
-		(*xsiz) = (long)(*(unsigned short *)&buf[2]);
-		(*ysiz) = (long)(*(unsigned short *)&buf[4]);
+		(*xsiz) = (long)SSWAPIB(*(unsigned short *)&buf[2]);
+		(*ysiz) = (long)SSWAPIB(*(unsigned short *)&buf[4]);
 	}
 	else if ((ubuf[0] == 'B') && (ubuf[1] == 'M')) //.BMP
 	{
-		if (*(long *)(&buf[14]) == 12) //OS/2 1.x (old format)
+		if (*(long *)(&buf[14]) == LSWAPIB(12)) //OS/2 1.x (old format)
 		{
-			if (*(short *)(&buf[22]) != 1) return;
-			(*xsiz) = (long)(*(unsigned short *)&buf[18]);
-			(*ysiz) = (long)(*(unsigned short *)&buf[20]);
+			if (*(short *)(&buf[22]) != SSWAPIB(1)) return;
+			(*xsiz) = (long)SSWAPIB(*(unsigned short *)&buf[18]);
+			(*ysiz) = (long)SSWAPIB(*(unsigned short *)&buf[20]);
 		}
 		else //All newer formats...
 		{
-			if (*(short *)(&buf[26]) != 1) return;
-			(*xsiz) = *(long *)&buf[18];
-			(*ysiz) = *(long *)&buf[22];
+			if (*(short *)(&buf[26]) != SSWAPIB(1)) return;
+			(*xsiz) = LSWAPIB(*(long *)&buf[18]);
+			(*ysiz) = LSWAPIB(*(long *)&buf[22]);
 		}
 	}
-	else if (*(long *)ubuf == 0x0801050a) //.PCX
+	else if (*(long *)ubuf == LSWAPIB(0x0801050a)) //.PCX
 	{
-		(*xsiz) = (*(short *)&buf[ 8])-(*(short *)&buf[4])+1;
-		(*ysiz) = (*(short *)&buf[10])-(*(short *)&buf[6])+1;
+		(*xsiz) = SSWAPIB(*(short *)&buf[ 8])-SSWAPIB(*(short *)&buf[4])+1;
+		(*ysiz) = SSWAPIB(*(short *)&buf[10])-SSWAPIB(*(short *)&buf[6])+1;
 	}
 	else
 	{     //Unreliable .TGA identification - this MUST be final case!
@@ -2239,8 +2266,8 @@ void kpgetdim (const char *buf, long leng, long *xsiz, long *ysiz)
 				if ((!(ubuf[16]&7)) && (ubuf[16] != 0) && (ubuf[16] <= 32))
 					if (!(buf[17]&0xc0))
 					{
-						(*xsiz) = (long)(*(unsigned short *)&buf[12]);
-						(*ysiz) = (long)(*(unsigned short *)&buf[14]);
+						(*xsiz) = (long)SSWAPIB(*(unsigned short *)&buf[12]);
+						(*ysiz) = (long)SSWAPIB(*(unsigned short *)&buf[14]);
 					}
 	}
 }
@@ -2265,7 +2292,7 @@ long kprender (const char *buf, long leng, long frameptr, long bpl,
 	if ((ubuf[0] == 'B') && (ubuf[1] == 'M')) //.BMP
 		return(kbmprend(buf,leng,frameptr,bpl,xdim,ydim,xoff,yoff));
 
-	if (*(long *)ubuf == 0x0801050a) //.PCX
+	if (*(long *)ubuf == LSWAPIB(0x0801050a)) //.PCX
 		return(kpcxrend(buf,leng,frameptr,bpl,xdim,ydim,xoff,yoff));
 
 		//Unreliable .TGA identification - this MUST be final case!
@@ -2280,7 +2307,6 @@ long kprender (const char *buf, long leng, long frameptr, long bpl,
 
 //==================== External picture interface ends =======================
 
-#ifndef NOKPLIBZIP
 	//Brute-force case-insensitive, slash-insensitive, * and ? wildcard matcher
 	//Given: string i and string j. string j can have wildcards
 	//Returns: 1:matches, 0:doesn't match
@@ -2414,10 +2440,10 @@ long kzaddstack (const char *zipnam)
 
 	fseek(fil,-22,SEEK_END);
 	fread(tempbuf,22,1,fil);
-	if (*(long *)&tempbuf[0] == 0x06054b50) //Fast way of finding dir info
+	if (*(long *)&tempbuf[0] == LSWAPIB(0x06054b50)) //Fast way of finding dir info
 	{
-		numfiles = *(short *)&tempbuf[10];
-		fseek(fil,*(long *)&tempbuf[16],SEEK_SET);
+		numfiles = SSWAPIB(*(short *)&tempbuf[10]);
+		fseek(fil,LSWAPIB(*(long *)&tempbuf[16]),SEEK_SET);
 	}
 	else //Slow way of finding dir info (used when ZIP has junk at end)
 	{
@@ -2425,10 +2451,10 @@ long kzaddstack (const char *zipnam)
 		while (1)
 		{
 			if (!fread(&j,4,1,fil)) { numfiles = -1; break; }
-			if (j == 0x02014b50) break; //Found central file header :)
-			if (j != 0x04034b50) { numfiles = -1; break; }
+			if (j == LSWAPIB(0x02014b50)) break; //Found central file header :)
+			if (j != LSWAPIB(0x04034b50)) { numfiles = -1; break; }
 			fread(tempbuf,26,1,fil);
-			fseek(fil,(*(long *)&tempbuf[14]) + (*(short *)&tempbuf[24]) + (*(short *)&tempbuf[22]),SEEK_CUR);
+			fseek(fil,LSWAPIB(*(long *)&tempbuf[14]) + SSWAPIB(*(short *)&tempbuf[24]) + SSWAPIB(*(short *)&tempbuf[22]),SEEK_CUR);
 			numfiles++;
 		}
 		if (numfiles < 0) { fclose(fil); return(-1); }
@@ -2437,9 +2463,9 @@ long kzaddstack (const char *zipnam)
 	for(i=0;i<numfiles;i++)
 	{
 		fread(tempbuf,46,1,fil);
-		if (*(long *)&tempbuf[0] != 0x02014b50) { fclose(fil); return(0); }
+		if (*(long *)&tempbuf[0] != LSWAPIB(0x02014b50)) { fclose(fil); return(0); }
 
-		j = (*(short *)&tempbuf[28]); //filename length
+		j = SSWAPIB(*(short *)&tempbuf[28]); //filename length
 		fread(&tempbuf[46],j,1,fil);
 		tempbuf[j+46] = 0;
 
@@ -2449,12 +2475,12 @@ long kzaddstack (const char *zipnam)
 		*(long *)&kzhashbuf[kzhashpos] = kzhashead[hashind];
 		*(long *)&kzhashbuf[kzhashpos+4] = kzlastfnam;
 		*(long *)&kzhashbuf[kzhashpos+8] = zipnamoffs;
-		*(long *)&kzhashbuf[kzhashpos+12] = *(long *)&tempbuf[42];
+		*(long *)&kzhashbuf[kzhashpos+12] = LSWAPIB(*(long *)&tempbuf[42]); //zipseek
 		strcpy(&kzhashbuf[kzhashpos+16],&tempbuf[46]);
 		kzhashead[hashind] = kzhashpos; kzlastfnam = kzhashpos; kzhashpos += j;
 
-		j  = (*(short *)&tempbuf[30]); //extra field length
-		j += (*(short *)&tempbuf[32]); //file comment length
+		j  = SSWAPIB(*(short *)&tempbuf[30]); //extra field length
+		j += SSWAPIB(*(short *)&tempbuf[32]); //file comment length
 		fseek(fil,j,SEEK_CUR);
 	}
 	fclose(fil);
@@ -2486,13 +2512,13 @@ long kzopen (const char *filnam)
 		fil = fopen(zipnam,"rb"); if (!fil) return(0);
 		fseek(fil,zipseek,SEEK_SET);
 		fread(tempbuf,30,1,fil);
-		if (*(long *)&tempbuf[0] != 0x04034b50) { fclose(fil); return(0); }
-		fseek(fil,(*(short *)&tempbuf[26])+(*(short *)&tempbuf[28]),SEEK_CUR);
+		if (*(long *)&tempbuf[0] != LSWAPIB(0x04034b50)) { fclose(fil); return(0); }
+		fseek(fil,SSWAPIB(*(short *)&tempbuf[26])+SSWAPIB(*(short *)&tempbuf[28]),SEEK_CUR);
 
 		kzfs.fil = fil;
-		kzfs.comptyp = *(short *)&tempbuf[8];
+		kzfs.comptyp = SSWAPIB(*(short *)&tempbuf[8]);
 		kzfs.seek0 = ftell(fil);
-		kzfs.leng = *(long *)&tempbuf[22];
+		kzfs.leng = LSWAPIB(*(long *)&tempbuf[22]);
 		kzfs.pos = 0;
 		switch(kzfs.comptyp) //Compression method
 		{
@@ -2500,7 +2526,7 @@ long kzopen (const char *filnam)
 			case 8:
 				if (!pnginited) { pnginited = 1; initpngtables(); }
 				kzfs.comptell = 0;
-				kzfs.compleng = *(long *)&tempbuf[18];
+				kzfs.compleng = LSWAPIB(*(long *)&tempbuf[18]);
 
 					//WARNING: No file in ZIP can be > 2GB-32K bytes
 				gslidew = 0x7fffffff; //Force reload at beginning
@@ -2525,6 +2551,8 @@ static HANDLE hfind = INVALID_HANDLE_VALUE;
 static WIN32_FIND_DATA findata;
 #else
 static char wildst[260] = "";
+static DIR *hfind = NULL;
+static struct dirent *findata = NULL;
 #endif
 
 void kzfindfilestart (const char *st)
@@ -2532,13 +2560,11 @@ void kzfindfilestart (const char *st)
 #ifdef _WIN32
 	if (hfind != INVALID_HANDLE_VALUE)
 		{ FindClose(hfind); hfind = INVALID_HANDLE_VALUE; }
+#else
+	if (hfind) { closedir(hfind); hfind = NULL; }
 #endif
 	strcpy(wildst,st);
-#if defined(_WIN32) || defined(__DOS__)
 	srchstat = -3;
-#else
-	srchstat = kzlastfnam;
-#endif
 }
 
 long kzfindfile (char *filnam)
@@ -2566,11 +2592,9 @@ long kzfindfile (char *filnam)
 				{ if (!kzhashbuf) return(0); srchstat = kzlastfnam; continue; }
 			i = wildstpathleng;
 			if (findata.attrib&16)
-			{
 				if ((findata.name[0] == '.') && (!findata.name[1])) continue;
-				filnam[i++] = '\\';
-			}
 			strcpy(&filnam[i],findata.name);
+			if (findata.attrib&16) strcat(&filnam[i],"\\");
 #elif defined(_WIN32)
 			hfind = FindFirstFile(wildst,&findata);
 			if (hfind == INVALID_HANDLE_VALUE)
@@ -2578,13 +2602,21 @@ long kzfindfile (char *filnam)
 			if (findata.dwFileAttributes&FILE_ATTRIBUTE_HIDDEN) continue;
 			i = wildstpathleng;
 			if (findata.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
-			{
 				if ((findata.cFileName[0] == '.') && (!findata.cFileName[1])) continue;
-				filnam[i++] = '\\';
-			}
 			strcpy(&filnam[i],findata.cFileName);
+			if (findata.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) strcat(&filnam[i],"\\");
 #else
-			return(0);
+			if (!hfind)
+			{
+				char *s = ".";
+				if (wildstpathleng > 0) {
+					filnam[wildstpathleng] = 0;
+					s = filnam;
+				}
+				hfind = opendir(s);
+				if (!hfind) { if (!kzhashbuf) return 0; srchstat = kzlastfnam; continue; }
+			}
+			break;   // process srchstat == -2
 #endif
 			return(1);
 		} while (0);
@@ -2598,24 +2630,30 @@ long kzfindfile (char *filnam)
 				{ if (!kzhashbuf) return(0); srchstat = kzlastfnam; break; }
 			i = wildstpathleng;
 			if (findata.attrib&16)
-			{
 				if ((findata.name[0] == '.') && (!findata.name[1])) continue;
-				filnam[i++] = '\\';
-			}
 			strcpy(&filnam[i],findata.name);
+			if (findata.attrib&16) strcat(&filnam[i],"\\");
 #elif defined(_WIN32)
 			if (!FindNextFile(hfind,&findata))
 				{ FindClose(hfind); if (!kzhashbuf) return(0); srchstat = kzlastfnam; break; }
 			if (findata.dwFileAttributes&FILE_ATTRIBUTE_HIDDEN) continue;
 			i = wildstpathleng;
 			if (findata.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY)
-			{
 				if ((findata.cFileName[0] == '.') && (!findata.cFileName[1])) continue;
-				filnam[i++] = '\\';
-			}
 			strcpy(&filnam[i],findata.cFileName);
+			if (findata.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) strcat(&filnam[i],"\\");
 #else
-			return(0);
+			if ((findata = readdir(hfind)) == NULL)
+				{ closedir(hfind); hfind = NULL; if (!kzhashbuf) return 0; srchstat = kzlastfnam; break; }
+			i = wildstpathleng;
+			if (findata->d_type == DT_DIR)
+				{ if (findata->d_name[0] == '.' && !findata->d_name[1]) continue; } //skip .
+			else if ((findata->d_type == DT_REG) || (findata->d_type == DT_LNK))
+				{ if (findata->d_name[0] == '.') continue; } //skip hidden (dot) files
+			else continue; //skip devices and fifos and such
+			if (!wildmatch(findata->d_name,&wildst[wildstpathleng])) continue;
+			strcpy(&filnam[i],findata->d_name);
+			if (findata->d_type == DT_DIR) strcat(&filnam[i],"/");
 #endif
 			return(1);
 		}
@@ -2638,7 +2676,7 @@ long kzfindfile (char *filnam)
 //   kzfindfilestart("vxl/*.vxl");
 //   while (kzfindfile(filnam)) puts(filnam);
 //NOTES:
-// * Directory names begin with '\'
+// * Directory names end with '\' or '/' (depending on system)
 // * Files inside zip begin with '|'
 
 // --------------------------------------------------------------------------
@@ -2922,4 +2960,3 @@ void kpzload (const char *filnam, long *pic, long *bpl, long *xsiz, long *ysiz)
 	free(buf);
 }
 //====================== HANDY PICTURE function ends =========================
-#endif //NOKPLIBZIP

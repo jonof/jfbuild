@@ -145,7 +145,7 @@ void copybufreverse(void *S, void *D, long c);
 	({ long __a=(a), __d=(d), __c=(c); \
 	   __asm__ __volatile__ ("imull %%edx; idivl %%ecx" \
 		: "=a" (__a), "=d" (__d) \
-		: "a" (__a), "d" (__d), "c" (__c) : "cc"); \
+		: "0" (__a), "1" (__d), "c" (__c) : "cc"); \
 	 __a; })
 
 #define mulscale(a,d,c) \

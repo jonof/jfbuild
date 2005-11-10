@@ -5686,10 +5686,12 @@ void drawmasks(void)
 		if (yp > (4<<8))
 		{
 			xp = dmulscale6(ys,cosglobalang,-xs,singlobalang);
+			if (mulscale24(labs(xp+yp),xdimen) >= yp) goto killsprite;
 			spritesx[i] = scale(xp+yp,xdimen<<7,yp);
 		}
 		else if ((tspriteptr[i]->cstat&48) == 0)
 		{
+killsprite:
 			spritesortcnt--;  //Delete face sprite if on wrong side!
 			if (i != spritesortcnt)
 			{
