@@ -185,7 +185,7 @@ $(OBJ)$(EDITORLIB): $(EDITOROBJS)
 	ranlib $@
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(GAMELIBS) -lsupc++
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(GAMELIBS) $(STDCPPLIB)
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
@@ -255,3 +255,7 @@ clean:
 
 veryclean: clean
 	-rm -f $(ENGINELIB) $(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS)
+
+.PHONY: fixlineends
+fixlineends:
+	for a in `find -type f -name *.c`; do tr -d "\015" < $$a > $$a.fix && mv $$a.fix $$a; done

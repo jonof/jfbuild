@@ -2098,9 +2098,9 @@ static void ceilspritehline(long x2, long y)
 {
 	long x1, v, bx, by;
 
-	//x = x1 + (x2-x1)t + (y1-y2)u  ³  x = 160v
-	//y = y1 + (y2-y1)t + (x2-x1)u  ³  y = (scrx-160)v
-	//z = z1 = z2                   ³  z = posz + (scry-horiz)v
+	//x = x1 + (x2-x1)t + (y1-y2)u  ~  x = 160v
+	//y = y1 + (y2-y1)t + (x2-x1)u  ~  y = (scrx-160)v
+	//z = z1 = z2                   ~  z = posz + (scry-horiz)v
 
 	x1 = lastx[y]; if (x2 < x1) return;
 
@@ -4089,7 +4089,7 @@ static void fillpolygon(long npoints)
 	long ox, oy, bx, by, p, day1, day2;
 	short *ptr, *ptr2;
 
-#ifdef POLYMOST
+#if defined POLYMOST && defined USE_OPENGL
 	if (rendmode == 3) { polymost_fillpolygon(npoints); return; }
 #endif
 
@@ -5786,7 +5786,11 @@ killsprite:
 	if (rendmode == 3)
 	{
 		for(i=spritesortcnt-1;i>=0;i--)
-			if ((!(tspriteptr[i]->cstat&2)) && (!gltexmayhavealpha(tspriteptr[i]->picnum,tspriteptr[i]->pal)))
+			if ((!(tspriteptr[i]->cstat&2))
+#ifdef USE_OPENGL
+			    && (!gltexmayhavealpha(tspriteptr[i]->picnum,tspriteptr[i]->pal))
+#endif
+			   )
 				{ drawsprite(i); tspriteptr[i] = 0; } //draw only if it is fully opaque
 		for(i=j=0;i<spritesortcnt;i++)
 		{
@@ -5801,7 +5805,11 @@ killsprite:
 		for(i=maskwallcnt-1;i>=0;i--)
 		{
 			k = thewall[maskwall[i]];
-			if ((!(wall[k].cstat&128)) && (!gltexmayhavealpha(wall[k].overpicnum,wall[k].pal)))
+			if ((!(wall[k].cstat&128))
+#ifdef USE_OPENGL
+			    && (!gltexmayhavealpha(wall[k].overpicnum,wall[k].pal))
+#endif
+			   )
 				{ drawmaskwall(i); maskwall[i] = -1; } //draw only if it is fully opaque
 		}
 		for(i=j=0;i<maskwallcnt;i++)
@@ -7299,7 +7307,7 @@ long qloadkvx(long voxindex, char *filename)
 	}
 	kclose(fil);
 
-#if defined POLYMOST
+#if defined POLYMOST && defined USE_OPENGL
 	if (voxmodels[voxindex]) {
 		voxfree(voxmodels[voxindex]);
 		voxmodels[voxindex] = NULL;

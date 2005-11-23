@@ -1,3 +1,5 @@
+#ifdef USE_OPENGL
+
 #ifdef RENDERTYPEWIN
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -192,6 +194,8 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 #endif
 
 #endif
+
+#endif //USE_OPENGL
 
 extern char *gldriver;
 

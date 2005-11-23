@@ -112,6 +112,16 @@ typedef unsigned long long uint64;
 # endif
 # define B_ENDIAN_C_INLINE 1
 
+#elif defined(__QNX__)
+# if defined __LITTLEENDIAN__
+#  define B_LITTLE_ENDIAN 1
+#  define B_BIG_ENDIAN    0
+# elif defined __BIGENDIAN__
+#  define B_LITTLE_ENDIAN 0
+#  define B_BIG_ENDIAN    1
+# endif
+# define B_ENDIAN_C_INLINE 1
+
 #elif defined(_WIN32)
 # define B_LITTLE_ENDIAN 1
 # define B_BIG_ENDIAN    0
@@ -292,7 +302,7 @@ typedef signed   long bssize_t;
 # define Bstrncpy strncpy
 # define Bstrcmp strcmp
 # define Bstrncmp strncmp
-# if defined(__WATCOMC__) || defined(_MSC_VER)
+# if defined(__WATCOMC__) || defined(_MSC_VER) || defined(__QNX__)
 #  define Bstrcasecmp stricmp
 #  define Bstrncasecmp strnicmp
 # else

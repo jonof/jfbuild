@@ -794,7 +794,11 @@ int checkvideomode(int *x, int *y, int c, int fs)
 
 	getvalidmodes();
 
-	if (c>8 && nogl) return -1;
+	if (c>8
+#ifdef USE_OPENGL
+	    && nogl
+#endif
+	   ) return -1;
 
 	// fix up the passed resolution values to be multiples of 8
 	// and at least 320x200 or at most MAXXDIMxMAXYDIM

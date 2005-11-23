@@ -11,6 +11,9 @@ GLLIBLIN=-lGL
 SDLCONFIG=sdl-config
 #SDLCONFIG=/usr/local/bin/sdl11-config
 
+# overridden for OSes that don't have the cutdown stdc++ that is supc++
+STDCPPLIB=-lsupc++
+
 # Detect the platform if it wasn't explicitly given to us from
 # the outside world. This allows cross-compilation by overriding
 # CC and giving us PLATFORM specifically.
@@ -31,6 +34,9 @@ ifndef PLATFORM
 	endif
 	ifeq ($(findstring BeOS,$(uname)),BeOS)
 		PLATFORM=BEOS
+	endif
+	ifeq ($(findstring QNX,$(uname)),QNX)
+		PLATFORM=QNX
 	endif
 endif
 
@@ -56,6 +62,13 @@ ifeq ($(PLATFORM),BSD)
 endif
 ifeq ($(PLATFORM),BEOS)
 	RENDERTYPE=SDL
+endif
+ifeq ($(PLATFORM),QNX)
+	RENDERTYPE=SDL
+	override USE_OPENGL=0
+	override USE_A_C=1
+	override STDCPPLIB=-lstdc++
+	LIBS+= -lsocket
 endif
 
 ifeq ($(RENDERTYPE),SDL)

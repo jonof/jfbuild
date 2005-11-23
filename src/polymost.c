@@ -68,7 +68,9 @@ Low priority:
 static long animateoffs(short tilenum, short fakevar);
 long rendmode = 0;
 long usemodels=1, usehightile=1, usegoodalpha=0;
+#ifdef USE_OPENGL
 static GLuint polymosttext = 0;
+#endif
 
 
 #include <math.h> //<-important!
@@ -950,10 +952,11 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	long i, j, k, x, y, z, nn, ix0, ix1, mini, maxi, tsizx, tsizy, tsizxm1 = 0, tsizym1 = 0, ltsizy = 0;
 	long xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0, ymulnice = 0, dorot;
 	char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
+#ifdef USE_OPENGL
+	pthtyp *pth;
+#endif
 
 	if (method == -1) return;
-
-	pthtyp *pth;
 
 	if (n == 3)
 	{
@@ -1772,7 +1775,7 @@ void domost (float x0, float y0, float x1, float y1)
 			ny1 = (dx1-x0)*slop + y0;
 
 				//      dx0           dx1
-				//       ³             ³
+				//       ~             ~
 				//----------------------------
 				//     t0+=0         t1+=0
 				//   vsp[i].cy[0]  vsp[i].cy[1]
@@ -2214,7 +2217,9 @@ static void polymost_drawalls (long bunch)
 					guo += (double)(ft[2]-gux)*ghalfx;
 					gvo -= (double)(ft[3]+gvx)*ghalfx;
 					gvx = -gvx; gvy = -gvy; gvo = -gvo; //y-flip skybox floor
+#ifdef USE_OPENGL
 					drawingskybox = 6; //ceiling/5th texture/index 4 of skybox
+#endif
 					if ((_fy0 > nfy0) && (_fy1 > nfy1)) domost(_x0,_fy0,_x1,_fy1);
 					else if ((_fy0 > nfy0) != (_fy1 > nfy1))
 					{
@@ -2231,7 +2236,9 @@ static void polymost_drawalls (long bunch)
 					} else domost(_x0,nfy0,_x1,nfy1);
 
 						//wall of skybox
+#ifdef USE_OPENGL
 					drawingskybox = i+1; //i+1th texture/index i of skybox
+#endif
 					gdx = (_ryp0-_ryp1)*gxyaspect*(1.f/512.f) / (_ox0-_ox1);
 					gdy = 0;
 					gdo = _ryp0*gxyaspect*(1.f/512.f) - gdx*_ox0;
@@ -2261,7 +2268,9 @@ static void polymost_drawalls (long bunch)
 				}
 
 					//Floor of skybox
+#ifdef USE_OPENGL
 				drawingskybox = 5; //floor/6th texture/index 5 of skybox
+#endif
 				ft[0] = 512/16; ft[1] = -512/-16;
 				ft[2] = ((float)cosglobalang)*(1.f/2147483648.f);
 				ft[3] = ((float)singlobalang)*(1.f/2147483648.f);
@@ -2277,7 +2286,9 @@ static void polymost_drawalls (long bunch)
 				domost(x0,fy0,x1,fy1);
 
 				skyclamphack = 0;
+#ifdef USE_OPENGL
 				drawingskybox = 0;
+#endif
 			}
 #ifdef USE_OPENGL
 			if (rendmode == 3)
@@ -2544,7 +2555,9 @@ static void polymost_drawalls (long bunch)
 						//(_x0,ncy0)-(_x1,ncy1)
 
 						//ceiling of skybox
+#ifdef USE_OPENGL
 					drawingskybox = 5; //ceiling/5th texture/index 4 of skybox
+#endif
 					ft[0] = 512/16; ft[1] = -512/-16;
 					ft[2] = ((float)cosglobalang)*(1.f/2147483648.f);
 					ft[3] = ((float)singlobalang)*(1.f/2147483648.f);
@@ -2573,7 +2586,9 @@ static void polymost_drawalls (long bunch)
 					} else domost(_x1,ncy1,_x0,ncy0);
 
 						//wall of skybox
+#ifdef USE_OPENGL
 					drawingskybox = i+1; //i+1th texture/index i of skybox
+#endif
 					gdx = (_ryp0-_ryp1)*gxyaspect*(1.f/512.f) / (_ox0-_ox1);
 					gdy = 0;
 					gdo = _ryp0*gxyaspect*(1.f/512.f) - gdx*_ox0;
@@ -2603,7 +2618,9 @@ static void polymost_drawalls (long bunch)
 				}
 
 					//Floor of skybox
+#ifdef USE_OPENGL
 				drawingskybox = 6; //floor/6th texture/index 5 of skybox
+#endif
 				ft[0] = 512/16; ft[1] = 512/-16;
 				ft[2] = ((float)cosglobalang)*(1.f/2147483648.f);
 				ft[3] = ((float)singlobalang)*(1.f/2147483648.f);
@@ -2620,7 +2637,9 @@ static void polymost_drawalls (long bunch)
 				domost(x1,cy1,x0,cy0);
 
 				skyclamphack = 0;
+#ifdef USE_OPENGL
 				drawingskybox = 0;
+#endif
 			}
 #ifdef USE_OPENGL
 			if (rendmode == 3)
@@ -3902,6 +3921,7 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 	gstang = ogstang;
 }
 
+#ifdef USE_OPENGL
 static float trapextx[2];
 static void drawtrap (float x0, float x1, float y0, float x2, float x3, float y1)
 {
@@ -3997,7 +4017,7 @@ static void tessectrap (float *px, float *py, long *point2, long numpoints)
 			//i0        i3
 			//  \      /
 			//   i1--i2
-			//  /      \  
+			//  /      \ ~
 			//i0        i3
 
 		if ((py[i1] < py[i0]) && (py[i2] < py[i3])) //Insert raster
@@ -4100,6 +4120,7 @@ void polymost_fillpolygon (long npoints)
 
 	tessectrap((float *)rx1,(float *)ry1,xb1,npoints);
 }
+#endif
 
 long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 {
@@ -4166,6 +4187,9 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 
 long polymost_printext256(long xpos, long ypos, short col, short backcol, char *name, char fontsize)
 {
+#ifndef USE_OPENGL
+	return -1;
+#else
 	GLfloat tx, ty, txc, tyc;
 	int c;
 
@@ -4255,6 +4279,7 @@ long polymost_printext256(long xpos, long ypos, short col, short backcol, char *
 	bglDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
 	
 	return 0;
+#endif
 }
 
 // Console commands by JBF
