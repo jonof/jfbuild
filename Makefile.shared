@@ -35,6 +35,9 @@ ifndef PLATFORM
 	ifeq ($(findstring BeOS,$(uname)),BeOS)
 		PLATFORM=BEOS
 	endif
+	ifeq ($(findstring skyos,$(uname)),skyos)
+		PLATFORM=SKYOS
+	endif
 	ifeq ($(findstring QNX,$(uname)),QNX)
 		PLATFORM=QNX
 	endif
@@ -63,6 +66,15 @@ endif
 ifeq ($(PLATFORM),BEOS)
 	RENDERTYPE=SDL
 endif
+ifeq ($(PLATFORM),SKYOS)
+	RENDERTYPE=SDL
+	EXESUFFIX=.app
+	override USE_A_C=1
+	override CFLAGS+= -DUNDERSCORES
+	SDLCONFIG=
+	SDLCONFIG_CFLAGS=-I/boot/programs/sdk/include/sdl
+	LIBS+= -lSDL -lnet
+endif
 ifeq ($(PLATFORM),QNX)
 	RENDERTYPE=SDL
 	override USE_OPENGL=0
@@ -72,7 +84,10 @@ ifeq ($(PLATFORM),QNX)
 endif
 
 ifeq ($(RENDERTYPE),SDL)
+	ifneq ($(SDLCONFIG),)
 	LIBS+= $(shell $(SDLCONFIG) --libs)
+		SDLCONFIG_CFLAGS+=$(shell $(SDLCONFIG) --cflags)
+	endif
 
 	ifeq (1,$(WITHOUT_GTK))
 		HAVE_GTK2=0

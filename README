@@ -65,6 +65,8 @@ interface layer on Windows is the DirectX interface. This can be overriden
 to the SDL one by using the command "make RENDERTYPE=SDL" instead. Linux
 builds will always use SDL.
 
+For compilation on other operating systems, see the addendum "Other OSes".
+
 
 Things Missing
 --------------
@@ -108,3 +110,17 @@ Jonathon Fowler
 [2]	http://www.libsdl.org
 
 
+Addendum: Other OSes
+--------------------
+
+QNX 6.2.1:
+	I got the engine compiling and running on QNX 6.2.1 on the
+	23rd November 2005. The QNX 6.2.1 Non-commercial CDROM includes
+	the GCC 2.95-series compiler (though you do have to install the
+	package), and the only extra library you need to obtain and
+	install (probably from source like I did) is SDL 1.2.9 or newer.
+	You also have to disable linking to fmod and use the
+	sound_stub.$o in the Makefile.
+
+SkyOS 5 beta 8.5:
+	

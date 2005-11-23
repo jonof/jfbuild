@@ -576,11 +576,11 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	} else {
 		dirr->status++;
 	}
-# if defined(__WATCOMC__) || defined(__linux) || defined(__BEOS__) || defined(__QNX__)
+//# if defined(__WATCOMC__) || defined(__linux) || defined(__BEOS__) || defined(__QNX__) || defined(SKYOS)
 	dirr->info.namlen = strlen(de->d_name);
-# else
-	dirr->info.namlen = de->d_namlen;
-# endif
+//# else
+//	dirr->info.namlen = de->d_namlen;
+//# endif
 	dirr->info.name   = de->d_name;
 #endif
 	dirr->info.mode = 0;

@@ -122,7 +122,7 @@ typedef unsigned long long uint64;
 # endif
 # define B_ENDIAN_C_INLINE 1
 
-#elif defined(_WIN32)
+#elif defined(_WIN32) || defined(SKYOS)
 # define B_LITTLE_ENDIAN 1
 # define B_BIG_ENDIAN    0
 # define B_ENDIAN_C_INLINE 1
