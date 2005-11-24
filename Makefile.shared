@@ -65,6 +65,7 @@ ifeq ($(PLATFORM),BSD)
 endif
 ifeq ($(PLATFORM),BEOS)
 	RENDERTYPE=SDL
+	override STDCPPLIB=-lstdc++
 endif
 ifeq ($(PLATFORM),SKYOS)
 	RENDERTYPE=SDL
