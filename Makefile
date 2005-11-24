@@ -258,6 +258,6 @@ veryclean: clean
 
 .PHONY: fixlineends
 fixlineends:
-	for a in `find -type f \( -name '*.c' -o -name 'Makefile*' \) \! -path '*/.svn/*'`; do \
+	for a in `find -type f \( -name '*.c' -o -name '*.h' -o -name 'Makefile*' \) \! -path '*/.svn/*'`; do \
 		echo Fixing $$a && tr -d "\015" < $$a > $$a.fix && mv $$a.fix $$a; \
 	done
