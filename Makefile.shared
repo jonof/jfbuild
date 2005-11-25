@@ -41,6 +41,9 @@ ifndef PLATFORM
 	ifeq ($(findstring QNX,$(uname)),QNX)
 		PLATFORM=QNX
 	endif
+	ifeq ($(findstring SunOS,$(uname)),SunOS)
+		PLATFORM=SUNOS
+	endif
 endif
 
 ifeq ($(PLATFORM),LINUX)
@@ -65,7 +68,7 @@ ifeq ($(PLATFORM),BSD)
 endif
 ifeq ($(PLATFORM),BEOS)
 	RENDERTYPE=SDL
-	override STDCPPLIB=-lstdc++
+	STDCPPLIB=-lstdc++
 endif
 ifeq ($(PLATFORM),SKYOS)
 	RENDERTYPE=SDL
@@ -80,8 +83,16 @@ ifeq ($(PLATFORM),QNX)
 	RENDERTYPE=SDL
 	override USE_OPENGL=0
 	override USE_A_C=1
-	override STDCPPLIB=-lstdc++
+	STDCPPLIB=-lstdc++
 	LIBS+= -lsocket
+endif
+ifeq ($(PLATFORM),SUNOS)
+	RENDERTYPE=SDL
+	override USE_OPENGL=0
+	override NOASM=1
+	override USE_A_C=1
+	STDCPPLIB=-lstdc++
+	LIBS+= -lsocket -lnsl
 endif
 
 ifeq ($(RENDERTYPE),SDL)

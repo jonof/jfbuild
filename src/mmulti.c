@@ -11,6 +11,9 @@
 #ifndef __BEOS__
 #include <arpa/inet.h>
 #endif
+#ifdef __sun
+#include <sys/filio.h>
+#endif
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netdb.h>

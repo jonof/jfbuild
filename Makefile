@@ -58,6 +58,8 @@ CC=gcc
 CXX=gcc
 AS=nasm
 RC=windres
+AR=ar
+RANLIB=ranlib
 CFLAGS=-march=pentium $(debug)
 override CFLAGS+= -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
@@ -123,6 +125,9 @@ ifeq ($(PLATFORM),BEOS)
 	ASFLAGS+= -f elf
 	TARGETOPTS+= -DNOASM
 endif
+ifeq ($(PLATFORM),SUNOS)
+	LIBS+= -lm
+endif
 
 ifeq ($(RENDERTYPE),SDL)
 	ENGINEOBJS+= $(OBJ)sdlayer.$o
@@ -176,13 +181,13 @@ utils: $(UTILS)
 
 enginelib: $(OBJ)$(ENGINELIB)
 $(OBJ)$(ENGINELIB): $(ENGINEOBJS)
-	ar rc $@ $^
-	ranlib $@
+	$(AR) rc $@ $^
+	$(RANLIB) $@
 
 editorlib: $(OBJ)$(EDITORLIB)
 $(OBJ)$(EDITORLIB): $(EDITOROBJS)
-	ar rc $@ $^
-	ranlib $@
+	$(AR) rc $@ $^
+	$(RANLIB) $@
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(GAMELIBS) $(STDCPPLIB)
@@ -258,6 +263,6 @@ veryclean: clean
 
 .PHONY: fixlineends
 fixlineends:
-	for a in `find -type f \( -name '*.c' -o -name '*.h' -o -name 'Makefile*' \) \! -path '*/.svn/*'`; do \
+	for a in `find . -type f \( -name '*.c' -o -name '*.h' -o -name 'Makefile*' \) \! -path '*/.svn/*'`; do \
 		echo Fixing $$a && tr -d "\015" < $$a > $$a.fix && mv $$a.fix $$a; \
 	done
