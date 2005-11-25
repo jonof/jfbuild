@@ -44,6 +44,9 @@ ifndef PLATFORM
 	ifeq ($(findstring SunOS,$(uname)),SunOS)
 		PLATFORM=SUNOS
 	endif
+	ifeq ($(findstring syllable,$(uname)),syllable)
+		PLATFORM=SYLLABLE
+	endif
 endif
 
 ifeq ($(PLATFORM),LINUX)
@@ -93,6 +96,11 @@ ifeq ($(PLATFORM),SUNOS)
 	override USE_A_C=1
 	STDCPPLIB=-lstdc++
 	LIBS+= -lsocket -lnsl
+endif
+ifeq ($(PLATFORM),SYLLABLE)
+	RENDERTYPE=SDL
+	override USE_OPENGL=0
+	override NOASM=1
 endif
 
 ifeq ($(RENDERTYPE),SDL)

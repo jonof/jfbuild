@@ -128,6 +128,9 @@ endif
 ifeq ($(PLATFORM),SUNOS)
 	LIBS+= -lm
 endif
+ifeq ($(PLATFORM),SYLLABLE)
+	ASFLAGS+= -f elf
+endif
 
 ifeq ($(RENDERTYPE),SDL)
 	ENGINEOBJS+= $(OBJ)sdlayer.$o
