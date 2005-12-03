@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#ifdef DYNAMIC_OPENGL
+#if defined DYNAMIC_OPENGL && defined USE_OPENGL
 
 #ifdef RENDERTYPESDL
 #include "SDL.h"
