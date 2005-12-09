@@ -805,11 +805,15 @@ static int md2draw (md2model *m, spritetype *tspr)
 	a0.z = f0->add.z*m->scale; a0.z = (f1->add.z*m->scale-a0.z)*f+a0.z + m->zadd*m->scale;
 	c0 = &f0->verts[0].v[0]; c1 = &f1->verts[0].v[0];
 
+    // Parkar: Moved up to be able to use k0 for the y-flipping code
+    k0 = tspr->z;
+	if (globalorientation&128) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<2);
+	
+	// Parkar: Changed to use the same method as centeroriented sprites
 	if (globalorientation&8) //y-flipping
 	{
 		m0.z = -m0.z; m1.z = -m1.z; a0.z = -a0.z;
-			//Add height of 1st frame (use same frame to prevent animation bounce)
-		a0.z += ((md2frame_t *)m->frames)->mul.z*m->scale*255;
+		k0 -= (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<2);
 	}
 	if (globalorientation&4) { m0.y = -m0.y; m1.y = -m1.y; a0.y = -a0.y; } //x-flipping
 
@@ -818,9 +822,6 @@ static int md2draw (md2model *m, spritetype *tspr)
 	m0.y *= f; m1.y *= f; a0.y *= f;
 	f = ((float)tspr->yrepeat)/64*m->bscale;
 	m0.z *= f; m1.z *= f; a0.z *= f;
-
-	k0 = tspr->z;
-	if (globalorientation&128) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<1);
 
 	f = (65536.0*512.0)/((float)xdimen*viewingrange);
 	g = 32.0/((float)xdimen*gxyaspect);
@@ -1033,7 +1034,6 @@ static md3model *md3load (int fil)
 static int md3draw (md3model *m, spritetype *tspr)
 {
 	point3d fp, m0, m1, a0, a1;
-	md3frame_t *f0, *f1;
 	md3xyzn_t *v0, *v1;
 	long i, j, k, surfi, *lptr;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
@@ -1044,21 +1044,22 @@ static int md3draw (md3model *m, spritetype *tspr)
 	updateanimation((md2model *)m,tspr);
 
 		//create current&next frame's vertex list from whole list
-	f0 = (md3frame_t *)&m->head.frames[m->cframe];
-	f1 = (md3frame_t *)&m->head.frames[m->nframe];
+
 	f = m->interpol; g = 1-f;
 	m0.x = (1.0/64.0)*m->scale*g; m1.x = (1.0/64.0)*m->scale*f;
 	m0.y = (1.0/64.0)*m->scale*g; m1.y = (1.0/64.0)*m->scale*f;
 	m0.z = (1.0/64.0)*m->scale*g; m1.z = (1.0/64.0)*m->scale*f;
 	a0.x = a0.y = 0; a0.z = m->zadd*m->scale;
 
+    // Parkar: Moved up to be able to use k0 for the y-flipping code
+	k0 = tspr->z;
+	if (globalorientation&128) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<1);
+
+    // Parkar: Changed to use the same method as centeroriented sprites
 	if (globalorientation&8) //y-flipping
 	{
 		m0.z = -m0.z; m1.z = -m1.z; a0.z = -a0.z;
-			//Add height of 1st frame (use same frame to prevent animation bounce)
-		f0 = (md3frame_t *)&m->head.frames[0];
-		a0.z += (m->zmax-m->zmin)*m->scale;
-
+		k0 -= (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<2);
 	}
 	if (globalorientation&4) { m0.y = -m0.y; m1.y = -m1.y; a0.y = -a0.y; } //x-flipping
 
@@ -1067,9 +1068,6 @@ static int md3draw (md3model *m, spritetype *tspr)
 	m0.y *= f; m1.y *= f; a0.y *= f;
 	f = ((float)tspr->yrepeat)/64*m->bscale;
 	m0.z *= f; m1.z *= f; a0.z *= f;
-
-	k0 = tspr->z;
-	if (globalorientation&128) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<1);
 
 	f = (65536.0*512.0)/((float)xdimen*viewingrange);
 	g = 32.0/((float)xdimen*gxyaspect);
