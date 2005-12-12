@@ -621,6 +621,7 @@ static long mdloadskin (md2model *m, int number, int pal, int surf)
 					{
 						((float *)lptr)[0] *= fx;
 						((float *)lptr)[1] *= fy;
+						lptr[2] = B_LITTLE32(lptr[2]);
 					}
 			}
 			else if (m->mdnum == 3)
@@ -742,6 +743,16 @@ static md2model *md2load (int fil, const char *filnam)
 	m->mdnum = 2; m->scale = .01;
 
 	kread(fil,(char *)&head,sizeof(md2head_t));
+	head.id = B_LITTLE32(head.id);                 head.vers = B_LITTLE32(head.vers);
+	head.skinxsiz = B_LITTLE32(head.skinxsiz);     head.skinysiz = B_LITTLE32(head.skinysiz);
+	head.framebytes = B_LITTLE32(head.framebytes); head.numskins = B_LITTLE32(head.numskins);
+	head.numverts = B_LITTLE32(head.numverts);     head.numuv = B_LITTLE32(head.numuv);
+	head.numtris = B_LITTLE32(head.numtris);       head.numglcmds = B_LITTLE32(head.numglcmds);
+	head.numframes = B_LITTLE32(head.numframes);   head.ofsskins = B_LITTLE32(head.ofsskins);
+	head.ofsuv = B_LITTLE32(head.ofsuv);           head.ofstris = B_LITTLE32(head.ofstris);
+	head.ofsframes = B_LITTLE32(head.ofsframes);   head.ofsglcmds = B_LITTLE32(head.ofsglcmds);
+	head.ofseof = B_LITTLE32(head.ofseof);
+	
 	if ((head.id != 0x32504449) || (head.vers != 8)) { free(m); return(0); } //"IDP2"
 
 	m->numskins = head.numskins;
@@ -749,14 +760,33 @@ static md2model *md2load (int fil, const char *filnam)
 	m->numverts = head.numverts;
 	m->numglcmds = head.numglcmds;
 	m->framebytes = head.framebytes;
-	m->frames = (char *)calloc(m->numframes,head.framebytes); if (!m->frames) { free(m); return(0); }
+	m->frames = (char *)calloc(m->numframes,m->framebytes); if (!m->frames) { free(m); return(0); }
 	m->glcmds = (long *)calloc(m->numglcmds,sizeof(long)); if (!m->glcmds) { free(m->frames); free(m); return(0); }
 	klseek(fil,head.ofsframes,SEEK_SET);
-	if (kread(fil,(char *)m->frames,m->numframes*head.framebytes) != m->numframes*head.framebytes)
+	if (kread(fil,(char *)m->frames,m->numframes*m->framebytes) != m->numframes*m->framebytes)
 		{ free(m->glcmds); free(m->frames); free(m); return(0); }
 	klseek(fil,head.ofsglcmds,SEEK_SET);
 	if (kread(fil,(char *)m->glcmds,m->numglcmds*sizeof(long)) != (long)(m->numglcmds*sizeof(long)))
 		{ free(m->glcmds); free(m->frames); free(m); return(0); }
+	
+#if B_BIG_ENDIAN != 0
+	{
+		char *f = (char *)m->frames;
+		long *l,j;
+		md2frame_t *fr;
+		
+		for (i = m->numframes-1; i>=0; i--) {
+			fr = (md2frame_t *)f;
+			l = (long *)&fr->mul;
+			for (j=5;j>=0;j--) l[j] = B_LITTLE32(l[j]);
+			f += m->framebytes;
+		}
+		
+		for (i = m->numglcmds-1; i>=0; i--) {
+			m->glcmds[i] = B_LITTLE32(m->glcmds[i]);
+		}
+	}
+#endif
 
 	strcpy(st,filnam);
 	for(i=strlen(st)-1;i>0;i--)
@@ -766,15 +796,15 @@ static md2model *md2load (int fil, const char *filnam)
 	m->basepath = (char *)malloc(i+1); if (!m->basepath) { free(m->glcmds); free(m->frames); free(m); return(0); }
 	strcpy(m->basepath, st);
 
-	m->skinfn = (char *)calloc(head.numskins,64); if (!m->skinfn) { free(m->basepath); free(m->glcmds); free(m->frames); free(m); return(0); }
+	m->skinfn = (char *)calloc(m->numskins,64); if (!m->skinfn) { free(m->basepath); free(m->glcmds); free(m->frames); free(m); return(0); }
 	klseek(fil,head.ofsskins,SEEK_SET);
-	if (kread(fil,m->skinfn,64*head.numskins) != 64*head.numskins)
+	if (kread(fil,m->skinfn,64*m->numskins) != 64*m->numskins)
 		{ free(m->glcmds); free(m->frames); free(m); return(0); }
 
-	m->texid = (unsigned int *)calloc(head.numskins, sizeof(unsigned int) * (HICEFFECTMASK+1));
+	m->texid = (unsigned int *)calloc(m->numskins, sizeof(unsigned int) * (HICEFFECTMASK+1));
 	if (!m->texid) { free(m->skinfn); free(m->basepath); free(m->glcmds); free(m->frames); free(m); return(0); }
 
-	maxmodelverts = max(maxmodelverts, head.numverts);
+	maxmodelverts = max(maxmodelverts, m->numverts);
 
 	return(m);
 }
@@ -947,6 +977,13 @@ static md3model *md3load (int fil)
 	m->mdnum = 3; m->texid = 0; m->scale = .01;
 
 	kread(fil,&m->head,sizeof(md3head_t));
+	m->head.id = B_LITTLE32(m->head.id);             m->head.vers = B_LITTLE32(m->head.vers);
+	m->head.flags = B_LITTLE32(m->head.flags);       m->head.numframes = B_LITTLE32(m->head.numframes);
+	m->head.numtags = B_LITTLE32(m->head.numtags);   m->head.numsurfs = B_LITTLE32(m->head.numsurfs);
+	m->head.numskins = B_LITTLE32(m->head.numskins); m->head.frames = (md3frame_t*)B_LITTLE32((long)m->head.frames);
+	m->head.tags = (md3tag_t*)B_LITTLE32((long)m->head.tags); m->head.surfs = (md3surf_t*)B_LITTLE32((long)m->head.surfs);
+	m->head.eof = B_LITTLE32(m->head.eof);
+	
 	if ((m->head.id != 0x33504449) && (m->head.vers != 15)) { free(m); return(0); } //"IDP3"
 
 	m->numskins = m->head.numskins; //<- dead code?
@@ -968,11 +1005,36 @@ static md3model *md3load (int fil)
 	klseek(fil,(long)m->head.surfs,SEEK_SET); i = m->head.numsurfs*sizeof(md3surf_t);
 	m->head.surfs = (md3surf_t *)malloc(i); if (!m->head.surfs) { if (m->head.tags) free(m->head.tags); free(m->head.frames); free(m); return(0); }
 
+#if B_BIG_ENDIAN != 0
+	{
+		long *l;
+		
+		for (i = m->head.numframes-1; i>=0; i--) {
+			l = (long *)&m->head.frames[i].min;
+			for (j=3+3+3+1-1;j>=0;j--) l[j] = B_LITTLE32(l[j]);
+		}
+		
+		for (i = m->head.numtags-1; i>=0; i--) {
+			l = (long *)&m->head.tags[i].p;
+			for (j=3+3+3+3-1;j>=0;j--) l[j] = B_LITTLE32(l[j]);
+		}
+	}
+#endif
+
 	szmin = 32767; szmax = -32768;
 	for(surfi=0;surfi<m->head.numsurfs;surfi++)
 	{
 		s = &m->head.surfs[surfi];
 		klseek(fil,ofsurf,SEEK_SET); kread(fil,s,sizeof(md3surf_t));
+
+#if B_BIG_ENDIAN != 0
+		{
+			long *l;
+			s->id = B_LITTLE32(s->id);
+			l =	(long *)&s->flags;
+			for	(j=1+1+1+1+1+1+1+1+1+1-1;j>=0;j--) l[j] = B_LITTLE32(l[j]);
+		}
+#endif
 
 		offs[0] = ofsurf+((long)(s->tris   )); leng[0] = s->numtris*sizeof(md3tri_t);
 		offs[1] = ofsurf+((long)(s->shaders)); leng[1] = s->numshaders*sizeof(md3shader_t);
@@ -993,6 +1055,29 @@ static md3model *md3load (int fil)
 		klseek(fil,offs[1],SEEK_SET); kread(fil,s->shaders,leng[1]);
 		klseek(fil,offs[2],SEEK_SET); kread(fil,s->uv     ,leng[2]);
 		klseek(fil,offs[3],SEEK_SET); kread(fil,s->xyzn   ,leng[3]);
+		
+#if B_BIG_ENDIAN != 0
+		{
+			long *l;
+			
+			for (i=s->numtris-1;i>=0;i--) {
+				for (j=2;j>=0;j--) s->tris[i].i[j] = B_LITTLE32(s->tris[i].i[j]);
+			}
+			for (i=s->numshaders-1;i>=0;i--) {
+				s->shaders[i].i = B_LITTLE32(s->shaders[i].i);
+			}
+			for (i=s->numverts-1;i>=0;i--) {
+				l = (long*)&s->uv[i].u;
+				l[0] = B_LITTLE32(l[0]);
+				l[1] = B_LITTLE32(l[1]);
+			}
+			for (i=s->numframes*s->numverts-1;i>=0;i--) {
+				s->xyzn[i].x = (signed short)B_LITTLE16((unsigned short)s->xyzn[i].x);
+				s->xyzn[i].y = (signed short)B_LITTLE16((unsigned short)s->xyzn[i].y);
+				s->xyzn[i].z = (signed short)B_LITTLE16((unsigned short)s->xyzn[i].z);
+			}
+		}
+#endif
 
 			//Find min/max height coord in first frame of all surfs (for accurate display alignment)
 		for(i=0;i<s->numverts*s->numframes;i++)
@@ -2036,7 +2121,7 @@ mdmodel *mdload (const char *filnam)
 
 	fil = kopen4load((char *)filnam,0); if (fil < 0) return(0);
 	kread(fil,&i,4); klseek(fil,0,SEEK_SET);
-	switch(i)
+	switch(B_LITTLE32(i))
 	{
 		case 0x32504449: vm = (mdmodel*)md2load(fil,filnam); break; //IDP2
 		case 0x33504449: vm = (mdmodel*)md3load(fil); break; //IDP3

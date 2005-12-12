@@ -4895,9 +4895,10 @@ void initlava(void)
 }
 
 #if defined(NOASM)
-inline long addlava(long b)
+inline long addlava(long bx)
 {
-	return 0;
+	char *b = (char *)bx;
+	return b[-133] + b[-132] + b[-131] + b[1] + b[-1] + b[131] + b[132];
 }
 #elif defined(__WATCOMC__)
 #pragma aux addlava =\

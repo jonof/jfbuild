@@ -259,10 +259,18 @@ $(RSRC)editor_banner.c: $(RSRC)build.bmp
 
 # PHONIES	
 clean:
+ifeq ($(PLATFORM),DARWIN)
+	cd osx/engine && xcodebuild -target All clean
+	cd osx/game && xcodebuild -target All clean
+else
 	-rm -f $(OBJ)*
+endif
 
 veryclean: clean
+ifeq ($(PLATFORM),DARWIN)
+else
 	-rm -f $(ENGINELIB) $(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS)
+endif
 
 .PHONY: fixlineends
 fixlineends:

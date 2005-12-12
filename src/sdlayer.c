@@ -19,6 +19,10 @@
 #include "glbuild.h"
 #endif
 
+#if defined __APPLE__
+# include "osxbits.h"
+#endif
+
 #define SURFACE_FLAGS	(SDL_SWSURFACE|SDL_HWPALETTE|SDL_HWACCEL)
 
 // undefine to restrict windowed resolutions to conventional sizes
@@ -104,7 +108,9 @@ int wm_msgbox(char *name, char *fmt, ...)
 	vsprintf(buf,fmt,va);
 	va_end(va);
 
-#ifdef HAVE_GTK2
+#if defined(__APPLE__)
+	return osx_msgbox(name, buf);
+#elif defined HAVE_GTK2
 	if (gtkenabled) {
 		GtkWidget *dialog;
 
@@ -136,7 +142,9 @@ int wm_ynbox(char *name, char *fmt, ...)
 	vsprintf(buf,fmt,va);
 	va_end(va);
 
-#ifdef HAVE_GTK2
+#if defined __APPLE__
+	return osx_ynbox(name, buf);
+#elif defined HAVE_GTK2
 	if (gtkenabled) {
 		GtkWidget *dialog;
 
@@ -257,6 +265,7 @@ int initsystem(void)
 	}
 #endif
 
+#ifndef __APPLE__
 	{
 		SDL_Surface *icon;
 		//icon = loadtarga("icon.tga");
@@ -266,6 +275,7 @@ int initsystem(void)
 			SDL_FreeSurface(icon);
 		}
 	}
+#endif
 
 	if (SDL_VideoDriverName(drvname, 32))
 		initprintf("Using \"%s\" video driver\n", drvname);
@@ -1273,6 +1283,7 @@ nogo:
 }
 */
 
+#ifndef __APPLE__
 extern struct sdlappicon sdlappicon;
 static SDL_Surface * loadappicon(void)
 {
@@ -1287,6 +1298,7 @@ static SDL_Surface * loadappicon(void)
 
 	return surf;
 }
+#endif
 
 //
 //

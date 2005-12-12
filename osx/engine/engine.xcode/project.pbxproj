@@ -5,6 +5,328 @@
 	};
 	objectVersion = 39;
 	objects = {
+		AB2B5C7308E6979600899067 = {
+			buildPhases = (
+				AB2B5C7408E6979600899067,
+				AB2B5C7508E6979600899067,
+				AB2B5C8408E6979600899067,
+				AB2B5C9608E6979600899067,
+			);
+			buildRules = (
+			);
+			buildSettings = {
+				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
+				GCC_ENABLE_CPP_EXCEPTIONS = NO;
+				GCC_ENABLE_CPP_RTTI = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = "SETSPRITEZ SUPERBUILD POLYMOST USE_OPENGL USE_A_C NOASM RENDERTYPESDL=1";
+				HEADER_SEARCH_PATHS = "/Library/Frameworks/SDL.framework/Headers ../../include ../../src";
+				LIBRARY_STYLE = STATIC;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				OTHER_REZFLAGS = "";
+				PRODUCT_NAME = enginez;
+				SECTORDER_FLAGS = "";
+				WARNING_CFLAGS = "-Wno-four-char-constants -Wno-unknown-pragmas -Wno-char-subscripts";
+			};
+			dependencies = (
+			);
+			isa = PBXNativeTarget;
+			name = enginez;
+			productName = engine;
+			productReference = AB2B5C9708E6979600899067;
+			productType = "com.apple.product-type.library.static";
+		};
+		AB2B5C7408E6979600899067 = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			isa = PBXShellScriptBuildPhase;
+			outputPaths = (
+				engineinfo.c,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "source writeengineinfo.sh";
+		};
+		AB2B5C7508E6979600899067 = {
+			buildActionMask = 2147483647;
+			files = (
+				AB2B5C7608E6979600899067,
+				AB2B5C7708E6979600899067,
+				AB2B5C7808E6979600899067,
+				AB2B5C7908E6979600899067,
+				AB2B5C7A08E6979600899067,
+				AB2B5C7B08E6979600899067,
+				AB2B5C7C08E6979600899067,
+				AB2B5C7D08E6979600899067,
+				AB2B5C7E08E6979600899067,
+				AB2B5C7F08E6979600899067,
+				AB2B5C8008E6979600899067,
+				AB2B5C8108E6979600899067,
+				AB2B5C8208E6979600899067,
+				AB2B5C8308E6979600899067,
+			);
+			isa = PBXHeadersBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB2B5C7608E6979600899067 = {
+			fileRef = AB3AFE9308DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C7708E6979600899067 = {
+			fileRef = AB3AFE9408DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C7808E6979600899067 = {
+			fileRef = AB3AFE9508DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C7908E6979600899067 = {
+			fileRef = AB3AFE9608DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C7A08E6979600899067 = {
+			fileRef = AB3AFE9708DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C7B08E6979600899067 = {
+			fileRef = AB3AFE9808DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C7C08E6979600899067 = {
+			fileRef = AB3AFE9908DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C7D08E6979600899067 = {
+			fileRef = AB3AFE9A08DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C7E08E6979600899067 = {
+			fileRef = AB3AFE9B08DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C7F08E6979600899067 = {
+			fileRef = AB3AFE9C08DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8008E6979600899067 = {
+			fileRef = AB3AFE9D08DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8108E6979600899067 = {
+			fileRef = AB3AFE9E08DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8208E6979600899067 = {
+			fileRef = AB3AFE9F08DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8308E6979600899067 = {
+			fileRef = AB3AFEA008DF044D00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8408E6979600899067 = {
+			buildActionMask = 2147483647;
+			files = (
+				AB2B5C8508E6979600899067,
+				AB2B5C8608E6979600899067,
+				AB2B5C8708E6979600899067,
+				AB2B5C8808E6979600899067,
+				AB2B5C8908E6979600899067,
+				AB2B5C8A08E6979600899067,
+				AB2B5C8B08E6979600899067,
+				AB2B5C8C08E6979600899067,
+				AB2B5C8D08E6979600899067,
+				AB2B5C8E08E6979600899067,
+				AB2B5C8F08E6979600899067,
+				AB2B5C9008E6979600899067,
+				AB2B5C9108E6979600899067,
+				AB2B5C9208E6979600899067,
+				AB2B5C9308E6979600899067,
+				AB2B5C9408E6979600899067,
+				AB2B5C9508E6979600899067,
+				AB2B5D4708E69D9000899067,
+			);
+			isa = PBXSourcesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB2B5C8508E6979600899067 = {
+			fileRef = AB3AF5F908DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8608E6979600899067 = {
+			fileRef = AB3AF5FA08DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8708E6979600899067 = {
+			fileRef = AB3AF5FB08DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8808E6979600899067 = {
+			fileRef = AB3AF5FC08DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8908E6979600899067 = {
+			fileRef = AB3AF5FD08DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8A08E6979600899067 = {
+			fileRef = AB3AF5FE08DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8B08E6979600899067 = {
+			fileRef = AB3AF5FF08DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8C08E6979600899067 = {
+			fileRef = AB3AF60008DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8D08E6979600899067 = {
+			fileRef = AB3AF60308DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8E08E6979600899067 = {
+			fileRef = AB3AF60608DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C8F08E6979600899067 = {
+			fileRef = AB3AF60808DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C9008E6979600899067 = {
+			fileRef = AB3AF60908DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C9108E6979600899067 = {
+			fileRef = AB3AF60A08DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C9208E6979600899067 = {
+			fileRef = AB3AF60508DEDB3100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C9308E6979600899067 = {
+			fileRef = AB3AF9CE08DEE17600C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C9408E6979600899067 = {
+			fileRef = AB3AF9D408DEE2B000C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C9508E6979600899067 = {
+			fileRef = AB3AF9D608DEE2B000C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5C9608E6979600899067 = {
+			buildActionMask = 2147483647;
+			files = (
+			);
+			isa = PBXFrameworksBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB2B5C9708E6979600899067 = {
+			explicitFileType = archive.ar;
+			includeInIndex = 0;
+			isa = PBXFileReference;
+			path = libenginez.a;
+			refType = 3;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		AB2B5D4508E69D9000899067 = {
+			fileEncoding = 4;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.objc;
+			name = osxbits.m;
+			path = ../../src/osxbits.m;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB2B5D4608E69D9000899067 = {
+			fileRef = AB2B5D4508E69D9000899067;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5D4708E69D9000899067 = {
+			fileRef = AB2B5D4508E69D9000899067;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB2B5D4808E69DB100899067 = {
+			fileEncoding = 4;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			name = osxbits.h;
+			path = ../../include/osxbits.h;
+			refType = 4;
+			sourceTree = "<group>";
+		};
 		AB3AF5E708DEDAA700C0AA42 = {
 			children = (
 				AB3AF9D208DEE28200C0AA42,
@@ -39,6 +361,7 @@
 			};
 			buildStyles = (
 				AB3AF5E908DEDAA700C0AA42,
+				ABB47F16093B121B005B3150,
 				AB3AF5EA08DEDAA700C0AA42,
 			);
 			hasScannedForEncodings = 0;
@@ -50,6 +373,7 @@
 				AB3AFBF408DF03EE00C0AA42,
 				AB3AF5F408DEDABE00C0AA42,
 				AB3AF9DD08DEE2CF00C0AA42,
+				AB2B5C7308E6979600899067,
 			);
 		};
 		AB3AF5F108DEDABE00C0AA42 = {
@@ -93,6 +417,7 @@
 				AB3AF9CF08DEE17600C0AA42,
 				AB3AF9D708DEE2B000C0AA42,
 				AB3AF9D908DEE2B000C0AA42,
+				AB2B5D4608E69D9000899067,
 			);
 			isa = PBXSourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -117,7 +442,7 @@
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
-				GCC_PREPROCESSOR_DEFINITIONS = "SUPERBUILD POLYMOST USE_OPENGL USE_A_C NOASM RENDERTYPESDL=1";
+				GCC_PREPROCESSOR_DEFINITIONS = "SUPERBUILD POLYMOST USE_OPENGL USE_A_C NOASM RENDERTYPESDL=1 NOSDLPARACHUTE";
 				HEADER_SEARCH_PATHS = "/Library/Frameworks/SDL.framework/Headers ../../include ../../src";
 				LIBRARY_STYLE = STATIC;
 				OTHER_CFLAGS = "";
@@ -147,6 +472,7 @@
 			children = (
 				AB3AF5F508DEDABE00C0AA42,
 				AB3AF9DE08DEE2CF00C0AA42,
+				AB2B5C9708E6979600899067,
 			);
 			isa = PBXGroup;
 			name = Products;
@@ -178,6 +504,7 @@
 				AB3AF60308DEDB3100C0AA42,
 				AB3AF60508DEDB3100C0AA42,
 				AB3AF60608DEDB3100C0AA42,
+				AB2B5D4508E69D9000899067,
 				AB3AF60808DEDB3100C0AA42,
 				AB3AF60908DEDB3100C0AA42,
 				AB3AF60A08DEDB3100C0AA42,
@@ -907,6 +1234,7 @@
 				AB3AFE9B08DF044D00C0AA42,
 				AB3AFE9C08DF044D00C0AA42,
 				AB3AFE9D08DF044D00C0AA42,
+				AB2B5D4808E69DB100899067,
 				AB3AFE9E08DF044D00C0AA42,
 				AB3AFE9F08DF044D00C0AA42,
 				AB3AFEA008DF044D00C0AA42,
@@ -940,6 +1268,15 @@
 			isa = PBXBuildFile;
 			settings = {
 			};
+		};
+		ABB47F16093B121B005B3150 = {
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GENERATE_PROFILING_CODE = YES;
+			};
+			isa = PBXBuildStyle;
+			name = Profiling;
 		};
 	};
 	rootObject = AB3AF5EB08DEDAA700C0AA42;
