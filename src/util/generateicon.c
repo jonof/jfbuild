@@ -1,13 +1,9 @@
 #include "kplib.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "compat.h"
 
 struct icon {
-	unsigned long width,height;
-	unsigned long ncolours;
-	unsigned long *colourmap;
-	unsigned char *pixels;
+	int width,height;
+	unsigned int *pixels;
 	unsigned char *mask;
 };
 
@@ -18,59 +14,45 @@ int writeicon(FILE *fp, struct icon *ico)
 	fprintf(fp,
 		"#include \"sdlayer.h\"\n"
 		"\n"
-		"static struct { unsigned char r,g,b,f; } sdlappicon_colourmap[] = {\n"
 	);
-	for (i=0;i<ico->ncolours;i++) {
-		if ((i%4) == 0) fprintf(fp,"\t");
-		else fprintf(fp," ");
-		fprintf(fp, "{ %3d,%3d,%3d,%3d }",
-				(ico->colourmap[i]>>16)&255, (ico->colourmap[i]>>8)&255,
-				(ico->colourmap[i]&255), (ico->colourmap[i]>>24)&255
-		);
-		if (i<ico->ncolours-1) fprintf(fp, ",");
-		if ((i%4) == 3) fprintf(fp,"\n");
-	}
-	if ((i%4) > 0) fprintf(fp, "\n");
-	fprintf(fp,"};\n\nstatic unsigned char sdlappicon_pixels[] = {\n");
+	fprintf(fp,"static unsigned int sdlappicon_pixels[] = {\n");
 	for (i=0;i<ico->width*ico->height;i++) {
-		if ((i%16) == 0) fprintf(fp,"\t");
+		if ((i%6) == 0) fprintf(fp,"\t");
 		else fprintf(fp," ");
-		fprintf(fp, "%3d", ico->pixels[i]);
-		if (i<ico->width*ico->height-1) fprintf(fp, ",");
-		if ((i%16) == 15) fprintf(fp,"\n");
+		fprintf(fp, "0x%08x,", B_LITTLE32(ico->pixels[i]));
+		if ((i%6) == 5) fprintf(fp,"\n");
 	}
 	if ((i%16) > 0) fprintf(fp, "\n");
-	fprintf(fp,"};\n\n"
+	fprintf(fp, "};\n\n");
+	
+	fprintf(fp,"static unsigned char sdlappicon_mask[] = {\n");
+	for (i=0;i<((ico->width+7)/8)*ico->height;i++) {
+		if ((i%14) == 0) fprintf(fp,"\t");
+		else fprintf(fp," ");
+		fprintf(fp, "%3d,", ico->mask[i]);
+		if ((i%14) == 13) fprintf(fp,"\n");
+	}
+	if ((i%16) > 0) fprintf(fp, "\n");
+	fprintf(fp, "};\n\n");
+
+	fprintf(fp,
 		"struct sdlappicon sdlappicon = {\n"
 		"	%d,%d,	// width,height\n"
-		"	%d,	// ncolours\n"
-		"	(void*)sdlappicon_colourmap,\n"
 		"	sdlappicon_pixels,\n"
-		"	(void*)0\n"
-		"};",
-		ico->width, ico->height, ico->ncolours
+		"	sdlappicon_mask\n"
+		"};\n",
+		ico->width, ico->height
 	);
 
 	return 0;
 }
 
-int findcolour(long colour, struct icon *ico)
-{
-	int i;
-
-	for (i=0; i<ico->ncolours; i++) {
-		if (ico->colourmap[i] == colour) return i;
-	}
-
-	return -1;
-}
-
 int main(int argc, char **argv)
 {
 	struct icon icon;
-	long colourmap[256];
-	long *pic = NULL, bpl, xsiz, ysiz;
+	long bpl, xsiz, ysiz;
 	long i,j,k,c;
+	unsigned char *mask, *maskp, bm, *pp;
 
 	if (argc<2) {
 		fprintf(stderr, "generateicon <picture file>\n");
@@ -78,36 +60,50 @@ int main(int argc, char **argv)
 	}
 
 	memset(&icon, 0, sizeof(icon));
-	icon.colourmap = colourmap;
 
-	kpzload(argv[1], (long*)&pic, &bpl, &icon.width, &icon.height);
-	if (!pic) {
+	kpzload(argv[1], (long*)&icon.pixels, &bpl, (long*)&icon.width, (long*)&icon.height);
+	if (!icon.pixels) {
 		fprintf(stderr, "Failure loading %s\n", argv[1]);
 		return 1;
 	}
 
-	icon.pixels = (unsigned char *)calloc(icon.width, icon.height);
-	
-	for (i=0; i<icon.height; i++) {
-		for (j=0; j<icon.width; j++) {
-			k = *((long*)((char*)pic+(i*bpl+j*4)));
-			if ((c=findcolour( k, &icon )) < 0) {
-				if (icon.ncolours == 256) {
-					free(pic);
-					free(icon.pixels);
-					fprintf(stderr, "image has more than 256 colours\n");
-					return 1;
-				}
-				icon.colourmap[ (c = icon.ncolours++) ] = k;
-			}
-			icon.pixels[icon.width*i+j] = (unsigned char)c;
+	if (bpl != icon.width * 4) {
+		fprintf(stderr, "bpl != icon.width * 4\n");
+		free(icon.pixels);
+		return 1;
+	}
+
+	icon.mask = (unsigned char *)calloc(icon.height, (icon.width+7)/8);
+	if (!icon.mask) {
+		fprintf(stderr, "Out of memory\n");
+		free(icon.pixels);
+		return 1;
+	}
+
+	maskp = icon.mask;
+	bm = 1;
+	pp = (unsigned char *)icon.pixels;
+	for (i=0; i<icon.height*icon.width; i++) {
+		if (bm == 0) {
+			bm = 1;
+			maskp++;
 		}
+
+		{
+			unsigned char c = pp[0];
+			pp[0] = pp[2];
+			pp[2] = c;
+		}
+		if (pp[3] > 0) *maskp |= bm;
+
+		bm <<= 1;
+		pp += 4;
 	}
 
 	writeicon(stdout, &icon);
 	
-	free(pic);
 	free(icon.pixels);
+	free(icon.mask);
 
 	return 0;
 }

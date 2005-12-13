@@ -5377,6 +5377,31 @@ static long raytrace(long x3, long y3, long *x4, long *y4)
 // Exported Engine Functions
 //
 
+#if !defined _WIN32 && defined DEBUGGINGAIDS
+#include <signal.h>
+static void sighandler(int sig, const siginfo_t *info, void *ctx)
+{
+	const char *s;
+	switch (sig) {
+		case SIGFPE:
+			switch (info->si_code) {
+				case FPE_INTDIV: s = "FPE_INTDIV (integer divide by zero)"; break;
+				case FPE_INTOVF: s = "FPE_INTOVF (integer overflow)"; break;
+				case FPE_FLTDIV: s = "FPE_FLTDIV (floating-point divide by zero)"; break;
+				case FPE_FLTOVF: s = "FPE_FLTOVF (floating-point overflow)"; break;
+				case FPE_FLTUND: s = "FPE_FLTUND (floating-point underflow)"; break;
+				case FPE_FLTRES: s = "FPE_FLTRES (floating-point inexact result)"; break;
+				case FPE_FLTINV: s = "FPE_FLTINV (floating-point invalid operation)"; break;
+				case FPE_FLTSUB: s = "FPE_FLTSUB (floating-point subscript out of range)"; break;
+				default: s = "?! (unknown)"; break;
+			}
+			fprintf(stderr, "Caught SIGFPE at address %p, code %s. Aborting.\n", info->si_addr, s);
+			break;
+		default: break;
+	}
+	abort();
+}
+#endif
 
 //
 // initengine
@@ -5385,6 +5410,14 @@ int initengine(void)
 {
 	long i, j;
 	char *e;
+
+#if !defined _WIN32 && defined DEBUGGINGAIDS
+	struct sigaction sigact, oldact;
+	memset(&sigact, 0, sizeof(sigact));
+	sigact.sa_sigaction = sighandler;
+	sigact.sa_flags = SA_SIGINFO;
+	sigaction(SIGFPE, &sigact, &oldact);
+#endif
 
 	if (initsystem()) exit(1);
 

@@ -8,10 +8,8 @@
 #include "baselayer.h"
 
 struct sdlappicon {
-	unsigned long width,height;
-	unsigned long ncolours;
-	struct { unsigned char r,g,b,f; } *colourmap;
-	unsigned char *pixels;
+	int width,height;
+	unsigned int *pixels;
 	unsigned char *mask;
 };
 

@@ -25,6 +25,7 @@ $(OBJ)defs.$o: $(SRC)defs.c $(INC)build.h $(INC)baselayer.h $(INC)scriptfile.h $
 #$(OBJ)kdmasm.$o: $(SRC)kdmasm.asm
 $(OBJ)mmulti_null.$o: $(SRC)mmulti_null.c $(INC)mmulti.h
 $(OBJ)mmulti.$o: $(SRC)mmulti.c
+$(OBJ)gtkbits.$o: $(SRC)gtkbits.c $(INC)baselayer.h $(INC)build.h
 
 $(OBJ)gameres.$(res): $(SRC)misc/gameres.rc
 $(OBJ)buildres.$(res): $(SRC)misc/buildres.rc

@@ -3,16 +3,21 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <gdk-pixbuf/gdk-pixdata.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
 #include "baselayer.h"
 #include "build.h"
 
+static int gtkenabled = 0;
+
 extern const GdkPixdata startbanner_pixdata;
 static GtkWidget *startwin = NULL;
+static GdkPixbuf *appicon = NULL;
 
 #define GLADE_HOOKUP_OBJECT(component,widget,name) \
   g_object_set_data_full (G_OBJECT (component), name, \
@@ -30,11 +35,13 @@ static gboolean on_startwin_delete_event (GtkWidget *widget, GdkEvent *event, gp
 	return TRUE;	// FALSE would let the event go through. we want the game to decide when to close
 }
 
-void create_startwin(void)
+void gtkbuild_create_startwin(void)
 {
 	GtkWidget *banner, *label, *content, *scroll;
 	GtkWidget *hbox1, *fixed1;
 	GdkPixbuf *startbanner_pixbuf;
+
+	if (!gtkenabled) return;
 
 	startwin = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title (GTK_WINDOW (startwin), apptitle);
@@ -94,13 +101,13 @@ void create_startwin(void)
   	gtk_main_iteration_do (FALSE);
 }
 
-void settitle_startwin(const char *title)
+void gtkbuild_settitle_startwin(const char *title)
 {
-	if (!startwin) return;
+	if (!gtkenabled || !startwin) return;
 	gtk_window_set_title (GTK_WINDOW (startwin), title);
 }
 
-void puts_startwin(const char *str)
+void gtkbuild_puts_startwin(const char *str)
 {
 	GtkWidget *textview;
 	GtkTextBuffer *textbuffer;
@@ -108,7 +115,7 @@ void puts_startwin(const char *str)
 	GtkTextMark *mark;
 	const char *aptr, *bptr;
 
-	if (!startwin || !str) return;
+	if (!gtkenabled || !startwin || !str) return;
 	if (!(textview = lookup_widget(startwin, "content"))) return;
 	textbuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
 
@@ -148,15 +155,85 @@ void puts_startwin(const char *str)
 	gtk_text_buffer_delete_mark(textbuffer, mark);
 }
 
-void close_startwin(void)
+void gtkbuild_close_startwin(void)
 {
+	if (!gtkenabled) return;
 	if (startwin) {
 		gtk_widget_destroy (startwin);
 		startwin = NULL;
 	}
 }
 
-void update_startwin(void)
+void gtkbuild_update_startwin(void)
 {
+	if (!gtkenabled) return;
   	gtk_main_iteration_do (FALSE);
+}
+
+
+int gtkbuild_msgbox(char *name, char *msg)
+{
+	GtkWidget *dialog;
+
+	if (!gtkenabled) return -1;
+
+	dialog = gtk_message_dialog_new(NULL,
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_INFO,
+			GTK_BUTTONS_OK,
+			msg);
+	gtk_window_set_title(GTK_WINDOW(dialog), name);
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	return 1;
+}
+
+int gtkbuild_ynbox(char *name, char *msg)
+{
+	int r;
+	GtkWidget *dialog;
+
+	if (!gtkenabled) return -1;
+
+	dialog = gtk_message_dialog_new(NULL,
+			GTK_DIALOG_DESTROY_WITH_PARENT,
+			GTK_MESSAGE_INFO,
+			GTK_BUTTONS_YES_NO,
+			msg);
+	gtk_window_set_title(GTK_WINDOW(dialog), name);
+	r = gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	if (r == GTK_RESPONSE_YES) return 1;
+	return 0;
+}
+
+#ifdef RENDERTYPESDL
+#include "sdlayer.h"
+extern struct sdlappicon sdlappicon;
+#endif
+void gtkbuild_init(int *argc, char ***argv)
+{
+	if (getenv("DISPLAY") == NULL) return;
+	gtkenabled = 1;
+	gtk_init(argc, argv);
+#ifdef RENDERTYPESDL
+	appicon = gdk_pixbuf_new_from_data((const guchar *)sdlappicon.pixels,
+			GDK_COLORSPACE_RGB, TRUE, 8, sdlappicon.width, sdlappicon.height,
+			sdlappicon.width*4, NULL, NULL);
+#endif
+	if (appicon) gtk_window_set_default_icon(appicon);
+}
+
+void gtkbuild_exit(int r)
+{
+	if (!gtkenabled) return;
+	if (appicon) g_object_unref((gpointer)appicon);
+	gtk_exit(r);
+}
+
+void *gtkbuild_get_app_icon(void)
+{
+	return appicon;
 }

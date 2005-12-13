@@ -51,7 +51,7 @@ ifneq ($(RELEASE),0)
   debug=-fomit-frame-pointer -O2
 else
   # debugging enabled
-  debug=-ggdb -O0 -DDEBUGGINGAIDS
+  debug=-ggdb -O0 -DDEBUGGINGAIDS -DNOSDLPARACHUTE
 endif
 
 CC=gcc
@@ -138,7 +138,7 @@ ifeq ($(RENDERTYPE),SDL)
 	
 	ifeq (1,$(HAVE_GTK2))
 		override CFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
-		ENGINEOBJS+= $(OBJ)gtkstartwin.$o
+		ENGINEOBJS+= $(OBJ)gtkbits.$o
 		GAMEEXEOBJS+= $(OBJ)game_banner.$o
 		EDITOREXEOBJS+= $(OBJ)editor_banner.$o
 	endif

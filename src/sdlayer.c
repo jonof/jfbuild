@@ -16,11 +16,13 @@
 #include "osd.h"
 
 #ifdef USE_OPENGL
-#include "glbuild.h"
+# include "glbuild.h"
 #endif
 
 #if defined __APPLE__
 # include "osxbits.h"
+#elif defined HAVE_GTK2
+# include "gtkbits.h"
 #endif
 
 #define SURFACE_FLAGS	(SDL_SWSURFACE|SDL_HWPALETTE|SDL_HWACCEL)
@@ -88,17 +90,6 @@ static unsigned char keytranslation[SDLK_LAST] = {
 //static SDL_Surface * loadtarga(const char *fn);		// for loading the icon
 static SDL_Surface * loadappicon(void);
 
-#ifdef HAVE_GTK2
-#include <gtk/gtk.h>
-static int gtkenabled = 0;
-
-void create_startwin(void);
-void settitle_startwin(const char *title);
-void puts_startwin(const char *str);
-void close_startwin(void);
-void update_startwin(void);
-#endif
-
 int wm_msgbox(char *name, char *fmt, ...)
 {
 	char buf[1000];
@@ -111,30 +102,19 @@ int wm_msgbox(char *name, char *fmt, ...)
 #if defined(__APPLE__)
 	return osx_msgbox(name, buf);
 #elif defined HAVE_GTK2
-	if (gtkenabled) {
-		GtkWidget *dialog;
-
-		dialog = gtk_message_dialog_new(NULL,
-				GTK_DIALOG_DESTROY_WITH_PARENT,
-				GTK_MESSAGE_INFO,
-				GTK_BUTTONS_OK,
-				buf);
-		gtk_window_set_title(GTK_WINDOW(dialog), name);
-		gtk_dialog_run(GTK_DIALOG(dialog));
-		gtk_widget_destroy(dialog);
-	} else
+	if (gtkbuild_msgbox(name, buf) >= 0) return 1;
 #endif
-	{
-		puts(buf);
-		puts("   (press Return or Enter to continue)");
-		getchar();
-	}
+	puts(buf);
+	puts("   (press Return or Enter to continue)");
+	getchar();
+
 	return 0;
 }
 
 int wm_ynbox(char *name, char *fmt, ...)
 {
 	char buf[1000];
+	char c;
 	va_list va;
 	int r;
 
@@ -145,27 +125,12 @@ int wm_ynbox(char *name, char *fmt, ...)
 #if defined __APPLE__
 	return osx_ynbox(name, buf);
 #elif defined HAVE_GTK2
-	if (gtkenabled) {
-		GtkWidget *dialog;
-
-		dialog = gtk_message_dialog_new(NULL,
-				GTK_DIALOG_DESTROY_WITH_PARENT,
-				GTK_MESSAGE_INFO,
-				GTK_BUTTONS_YES_NO,
-				buf);
-		gtk_window_set_title(GTK_WINDOW(dialog), name);
-		r = gtk_dialog_run(GTK_DIALOG(dialog));
-		gtk_widget_destroy(dialog);
-		if (r == GTK_RESPONSE_YES) return 1;
-	} else
+	if ((r = gtkbuild_ynbox(name, buf)) >= 0) return r;
 #endif
-	{
-		char c;
-		puts(buf);
-		puts("   (type 'Y' or 'N', and press Return or Enter to continue)");
-		do c = getchar(); while (c != 'Y' && c != 'y' && c != 'N' && c != 'n');
-		if (c == 'Y' || c == 'y') return 1;
-	}
+	puts(buf);
+	puts("   (type 'Y' or 'N', and press Return or Enter to continue)");
+	do c = getchar(); while (c != 'Y' && c != 'y' && c != 'N' && c != 'n');
+	if (c == 'Y' || c == 'y') return 1;
 
 	return 0;
 }
@@ -180,9 +145,7 @@ void wm_setapptitle(char *name)
 	SDL_WM_SetCaption(apptitle, NULL);
 
 #ifdef HAVE_GTK2
-	if (gtkenabled) {
-		settitle_startwin(apptitle);
-	}
+	gtkbuild_settitle_startwin(apptitle);
 #endif
 }
 
@@ -202,11 +165,8 @@ int main(int argc, char *argv[])
 	int r;
 	
 #ifdef HAVE_GTK2
-	if (getenv("DISPLAY") != NULL) {
-		gtk_init(&argc, &argv);
-		gtkenabled = 1;
-	}
-	if (gtkenabled) create_startwin();
+	gtkbuild_init(&argc, &argv);
+	gtkbuild_create_startwin();
 #endif
 
 	_buildargc = argc;
@@ -218,10 +178,8 @@ int main(int argc, char *argv[])
 	r = app_main(argc, argv);
 
 #ifdef HAVE_GTK2
-	if (gtkenabled) {
-		close_startwin();
-		gtk_exit(r);
-	}
+	gtkbuild_close_startwin();
+	gtkbuild_exit(r);
 #endif
 	return r;
 }
@@ -335,10 +293,8 @@ void initprintf(const char *f, ...)
 	OSD_Printf(buf);
 
 #ifdef HAVE_GTK2
-	if (gtkenabled) {
-		puts_startwin(buf);
-		update_startwin();
-	}
+	gtkbuild_puts_startwin(buf);
+	gtkbuild_update_startwin();
 #endif
 }
 
@@ -867,7 +823,7 @@ int setvideomode(int x, int y, int c, int fs)
 	if (checkvideomode(&x,&y,c,fs) < 0) return -1;
 
 #ifdef HAVE_GTK2
-	if (gtkenabled) close_startwin();
+	gtkbuild_close_startwin();
 #endif
 
 	if (mouseacquired) {
@@ -1290,11 +1246,8 @@ static SDL_Surface * loadappicon(void)
 	SDL_Surface *surf;
 
 	surf = SDL_CreateRGBSurfaceFrom((void*)sdlappicon.pixels,
-			sdlappicon.width, sdlappicon.height, 8, sdlappicon.width,
-			0,0,0,0);
-	if (!surf) return NULL;
-
-	SDL_SetPalette(surf, SDL_LOGPAL|SDL_PHYSPAL, (SDL_Color*)sdlappicon.colourmap, 0, sdlappicon.ncolours);
+			sdlappicon.width, sdlappicon.height, 32, sdlappicon.width*4,
+			0xffl,0xff00l,0xff0000l,0xff000000l);
 
 	return surf;
 }
@@ -1454,7 +1407,7 @@ int handleevents(void)
 	sampletimer();
 
 #ifdef HAVE_GTK2
-	if (gtkenabled) update_startwin();
+	gtkbuild_update_startwin();
 #endif
 
 #undef SetKey
