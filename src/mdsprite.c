@@ -130,7 +130,6 @@ typedef struct
 
 		//MD3 specific
 	md3head_t head;
-	float zmin, zmax;
 } md3model;
 
 #define VOXBORDWIDTH 1 //use 0 to save memory, but has texture artifacts; 1 looks better...
@@ -621,7 +620,6 @@ static long mdloadskin (md2model *m, int number, int pal, int surf)
 					{
 						((float *)lptr)[0] *= fx;
 						((float *)lptr)[1] *= fy;
-						lptr[2] = B_LITTLE32(lptr[2]);
 					}
 			}
 			else if (m->mdnum == 3)
@@ -768,7 +766,7 @@ static md2model *md2load (int fil, const char *filnam)
 	klseek(fil,head.ofsglcmds,SEEK_SET);
 	if (kread(fil,(char *)m->glcmds,m->numglcmds*sizeof(long)) != (long)(m->numglcmds*sizeof(long)))
 		{ free(m->glcmds); free(m->frames); free(m); return(0); }
-	
+
 #if B_BIG_ENDIAN != 0
 	{
 		char *f = (char *)m->frames;
@@ -969,7 +967,6 @@ static md3model *md3load (int fil)
 {
 	char *buf, st[BMAX_PATH+2], bst[BMAX_PATH+2];
 	long i, j, surfi, ofsurf, bsc, offs[4], leng[4];
-	short szmin, szmax;
 	md3model *m;
 	md3surf_t *s;
 
@@ -1021,7 +1018,6 @@ static md3model *md3load (int fil)
 	}
 #endif
 
-	szmin = 32767; szmax = -32768;
 	for(surfi=0;surfi<m->head.numsurfs;surfi++)
 	{
 		s = &m->head.surfs[surfi];
@@ -1055,7 +1051,7 @@ static md3model *md3load (int fil)
 		klseek(fil,offs[1],SEEK_SET); kread(fil,s->shaders,leng[1]);
 		klseek(fil,offs[2],SEEK_SET); kread(fil,s->uv     ,leng[2]);
 		klseek(fil,offs[3],SEEK_SET); kread(fil,s->xyzn   ,leng[3]);
-		
+
 #if B_BIG_ENDIAN != 0
 		{
 			long *l;
@@ -1079,18 +1075,9 @@ static md3model *md3load (int fil)
 		}
 #endif
 
-			//Find min/max height coord in first frame of all surfs (for accurate display alignment)
-		for(i=0;i<s->numverts*s->numframes;i++)
-		{
-			if (s->xyzn[i].y < szmin) szmin = s->xyzn[i].y;
-			if (s->xyzn[i].y > szmax) szmax = s->xyzn[i].y;
-		}
-
 		maxmodelverts = max(maxmodelverts, s->numverts);
 		ofsurf += s->ofsend;
 	}
-	m->zmin = ((float)szmin)/64.0;
-	m->zmax = ((float)szmax)/64.0;
 
 #if 0
 	strcpy(st,filnam);

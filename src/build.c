@@ -237,7 +237,7 @@ int app_main(int argc, char **argv)
 				grps[grpstoadd++] = argv[i];
 			}
 			else if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-?")) {
-				const char *s =
+				char *s =
 					"BUILD by Ken Silverman\n"
 					"Syntax: build [options] mapname\n"
 					"Options:\n"

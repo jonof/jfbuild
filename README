@@ -92,13 +92,14 @@ source may be found. You can contact me via email at jonof@edgenetwork.org
 
 Credits and Thanks
 ------------------
-*	Ken Silverman for his patience, help, and guidance in this. I
+* Ken Silverman for his patience, help, and guidance in this. I
 realise my rambling is taxing but your wisdom is invaluable.
-*	The folks at icculus.org for inspiring me to try and equal their
+* The folks at icculus.org for inspiring me to try and equal their
 work done in the first public port of the engine.
-*	Do I dare mention myself?
-*	Pimping the edgenetwork (http://www.edgenetwk.com) who host my
+* Do I dare mention myself?
+* Pimping the edgenetwork (http://www.edgenetwk.com) who host my
 site wouldn't go astray.
+* Pär Karlsson for his contributions
 
 
 Can't think of anything else at the moment, so, enjoy!
@@ -123,4 +124,18 @@ QNX 6.2.1:
 	sound_stub.$o in the Makefile.
 
 SkyOS 5 beta 8.5:
-	
+	Disabling fmod and using sound_stub.$o in the Makefile will get
+	it running.
+
+Solaris 9:
+	Because of how Solaris seems to set itself up, you need to:
+	 1. Edit Makefile and change AR to be 'gar' and RANLIB to be
+	    'granlib'
+	 2. Edit Makefile.shared and add (I think) /opt/sfw/bin/
+	    to the start of SDLCONFIG's value
+	 3. Disable fmod and use sound_stub.$o in Makefile
+
+BSD:
+	Disable fmod and use sound_stub.$o in the Makefile. Use 'gmake'
+	to build.
+
