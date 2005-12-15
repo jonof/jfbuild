@@ -1747,12 +1747,12 @@ static long loadvox (const char *filnam)
 				if ((!x) || (!y) || (!z) || (x == xsiz-1) || (y == ysiz-1) || (z == zsiz-1))
 					{ putvox(x,y,z,pal[tbuf[z]]); continue; }
 				k = j+z;
-				if ((!(vbit[(k-yzsiz)>>5]&(1<<(k-yzsiz)))) ||
-					 (!(vbit[(k+yzsiz)>>5]&(1<<(k+yzsiz)))) ||
-					 (!(vbit[(k- zsiz)>>5]&(1<<(k- zsiz)))) ||
-					 (!(vbit[(k+ zsiz)>>5]&(1<<(k+ zsiz)))) ||
-					 (!(vbit[(k-    1)>>5]&(1<<(k-    1)))) ||
-					 (!(vbit[(k+    1)>>5]&(1<<(k+    1)))))
+				if ((!(vbit[(k-yzsiz)>>5]&(1<<SHIFTMOD32(k-yzsiz)))) ||
+					 (!(vbit[(k+yzsiz)>>5]&(1<<SHIFTMOD32(k+yzsiz)))) ||
+					 (!(vbit[(k- zsiz)>>5]&(1<<SHIFTMOD32(k- zsiz)))) ||
+					 (!(vbit[(k+ zsiz)>>5]&(1<<SHIFTMOD32(k+ zsiz)))) ||
+					 (!(vbit[(k-    1)>>5]&(1<<SHIFTMOD32(k-    1)))) ||
+					 (!(vbit[(k+    1)>>5]&(1<<SHIFTMOD32(k+    1)))))
 					{ putvox(x,y,z,pal[tbuf[z]]); continue; }
 			}
 		}

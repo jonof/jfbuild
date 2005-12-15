@@ -75,7 +75,7 @@ void copybufbyte(void *S, void *D, long c)
 void copybufreverse(void *S, void *D, long c)
 {
 	char *p = (char*)S, *q = (char*)D;
-	while((c--) > 0) *(q--) = *(p++);
+	while((c--) > 0) *(q++) = *(p--);
 }
 
 #elif defined(__GNUC__) && defined(__i386__)	// NOASM

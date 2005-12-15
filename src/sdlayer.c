@@ -324,8 +324,7 @@ void debugprintf(const char *f, ...)
 //
 //
 
-static char mouseacquired=0;
-static char moustat = 0;
+static char mouseacquired=0,moustat=0;
 static long joyblast=0;
 static SDL_Joystick *joydev = NULL;
 
@@ -335,6 +334,11 @@ static SDL_Joystick *joydev = NULL;
 int initinput(void)
 {
 	int i,j;
+	
+#ifdef __APPLE__
+	// force OS X to operate in >1 button mouse mode so that LMB isn't adulterated
+	if (!getenv("SDL_HAS3BUTTONMOUSE")) putenv("SDL_HAS3BUTTONMOUSE=1");
+#endif
 	
 	if (SDL_EnableKeyRepeat(250, 30)) initprintf("Error enabling keyboard repeat.\n");
 	inputdevices = 1|2;	// keyboard (1) and mouse (2)
@@ -375,7 +379,7 @@ int initinput(void)
 //
 void uninitinput(void)
 {
-	grabmouse(0);
+	uninitmouse();
 
 	if (joydev) {
 		SDL_JoystickClose(joydev);
@@ -449,14 +453,8 @@ void setjoypresscallback(void (*callback)(long, long)) { joypresscallback = call
 //
 int initmouse(void)
 {
-	if (moustat) return 0;
-
-	initprintf("Initialising mouse\n");
-
-	// grab input
-	grabmouse(1);
 	moustat=1;
-
+	grabmouse(1);
 	return 0;
 }
 
@@ -465,10 +463,8 @@ int initmouse(void)
 //
 void uninitmouse(void)
 {
-	if (!moustat) return;
-
 	grabmouse(0);
-	moustat=mouseacquired=0;
+	moustat=0;
 }
 
 
@@ -477,21 +473,22 @@ void uninitmouse(void)
 //
 void grabmouse(char a)
 {
-#ifndef DEBUGGINGAIDS
-	SDL_GrabMode g;
-
-	if (!moustat) return;
-	if (appactive) {
+	if (appactive && moustat) {
 		if (a != mouseacquired) {
+#ifndef DEBUGGINGAIDS
+			SDL_GrabMode g;
+			
 			g = SDL_WM_GrabInput( a ? SDL_GRAB_ON : SDL_GRAB_OFF );
 			mouseacquired = (g == SDL_GRAB_ON);
 
 			SDL_ShowCursor(mouseacquired ? SDL_DISABLE : SDL_ENABLE);
+#else
+			mouseacquired = a;
+#endif
 		}
 	} else {
 		mouseacquired = a;
 	}
-#endif
 }
 
 
@@ -500,7 +497,7 @@ void grabmouse(char a)
 //
 void readmousexy(long *x, long *y)
 {
-	if (!moustat || !mouseacquired) { *x = *y = 0; return; }
+	if (!mouseacquired || !appactive || !moustat) { *x = *y = 0; return; }
 	*x = mousex;
 	*y = mousey;
 	mousex = mousey = 0;
@@ -511,7 +508,7 @@ void readmousexy(long *x, long *y)
 //
 void readmousebstatus(long *b)
 {
-	if (!moustat || !mouseacquired) *b = 0;
+	if (!mouseacquired || !appactive || !moustat) *b = 0;
 	else *b = mouseb;
 }
 
@@ -811,7 +808,7 @@ int checkvideomode(int *x, int *y, int c, int fs)
 //
 int setvideomode(int x, int y, int c, int fs)
 {
-	int modenum;
+	int modenum, regrab = 0;
 	static int warnonce = 0;
 	
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
@@ -827,8 +824,8 @@ int setvideomode(int x, int y, int c, int fs)
 #endif
 
 	if (mouseacquired) {
-		SDL_WM_GrabInput(SDL_GRAB_OFF);
-		SDL_ShowCursor(SDL_ENABLE);
+		regrab = 1;
+		grabmouse(0);
 	}
 
 	if (lockcount) while (lockcount) enddrawing();
@@ -873,11 +870,6 @@ int setvideomode(int x, int y, int c, int fs)
 	if (!sdl_surface) {
 		initprintf("Unable to set video mode!\n");
 		return -1;
-	}
-
-	if (mouseacquired) {
-		SDL_WM_GrabInput(SDL_GRAB_ON);
-		SDL_ShowCursor(SDL_DISABLE);
 	}
 
 #if 0
@@ -980,10 +972,7 @@ int setvideomode(int x, int y, int c, int fs)
 	if (c==8) setpalette(0,256,0);
 	//baselayer_onvideomodechange(c>8);
 	
-	if (mouseacquired) {
-		SDL_WM_GrabInput(SDL_GRAB_ON);
-		SDL_ShowCursor(SDL_DISABLE);
-	}
+	if (regrab) grabmouse(1);
 
 	return 0;
 }
@@ -1315,7 +1304,7 @@ int handleevents(void)
 			case SDL_ACTIVEEVENT:
 				if (ev.active.state & SDL_APPINPUTFOCUS) {
 					appactive = ev.active.gain;
-					if (mouseacquired) {
+					if (mouseacquired && moustat) {
 						if (appactive) {
 							SDL_WM_GrabInput(SDL_GRAB_ON);
 							SDL_ShowCursor(SDL_DISABLE);

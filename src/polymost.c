@@ -3365,6 +3365,10 @@ void polymost_drawsprite (long snum)
 			if (voxdraw(voxmodels[ tiletovox[tspr->picnum] ], tspr)) return;
 			break;	// else, render as flat sprite
 		}
+		if ((tspr->cstat&48)==48 && voxmodels[ tspr->picnum ]) {
+			voxdraw(voxmodels[ tspr->picnum ], tspr);
+			return;
+		}
 		break;
 	}
 #endif
