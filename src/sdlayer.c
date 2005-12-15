@@ -202,7 +202,7 @@ int initsystem(void)
 		linked->major, linked->minor, linked->patch,
 		compiled.major, compiled.minor, compiled.patch);
 
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER
+	if (SDL_Init(SDL_INIT_VIDEO //| SDL_INIT_TIMER
 #ifdef NOSDLPARACHUTE
 			| SDL_INIT_NOPARACHUTE
 #endif
@@ -884,8 +884,8 @@ int setvideomode(int x, int y, int c, int fs)
 	{
 	char flags[512] = "";
 #define FLAG(x,y) if ((sdl_surface->flags & x) == x) { strcat(flags, y); strcat(flags, " "); }
+	FLAG(SDL_HWSURFACE, "HWSURFACE") else
 	FLAG(SDL_SWSURFACE, "SWSURFACE")
-	FLAG(SDL_HWSURFACE, "HWSURFACE")
 	FLAG(SDL_ASYNCBLIT, "ASYNCBLIT")
 	FLAG(SDL_ANYFORMAT, "ANYFORMAT")
 	FLAG(SDL_HWPALETTE, "HWPALETTE")
@@ -900,7 +900,7 @@ int setvideomode(int x, int y, int c, int fs)
 	FLAG(SDL_SRCALPHA, "SRCALPHA")
 	FLAG(SDL_PREALLOC, "PREALLOC")
 #undef FLAG
-	printOSD("SDL Surface flags: %s\n", flags);
+	initprintf("SDL Surface flags: %s\n", flags);
 	}
 #endif
 

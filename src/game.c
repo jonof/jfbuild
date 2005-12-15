@@ -5522,6 +5522,7 @@ void faketimerhandler(void)
 	short other, packbufleng;
 	long i, j, k, l;
 
+	sampletimer();
 	if ((totalclock < ototalclock+(TIMERINTSPERSECOND/MOVESPERSECOND)) || (ready2send == 0)) return;
 	ototalclock += (TIMERINTSPERSECOND/MOVESPERSECOND);
 

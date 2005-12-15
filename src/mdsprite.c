@@ -1,5 +1,11 @@
 //------------------------------------- MD2/MD3 LIBRARY BEGINS -------------------------------------
 
+#ifdef __POWERPC__
+#define SHIFTMOD32(a) ((a)&31)
+#else
+#define SHIFTMOD32(a) (a)
+#endif
+
 typedef struct
 {
 	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
@@ -1388,20 +1394,20 @@ static void putvox (long x, long y, long z, long col)
 static void setzrange0 (long *lptr, long z0, long z1)
 {
 	long z, ze;
-	if (!((z0^z1)&~31)) { lptr[z0>>5] &= ((~(-1<<z0))|(-1<<z1)); return; }
+	if (!((z0^z1)&~31)) { lptr[z0>>5] &= ((~(-1<<SHIFTMOD32(z0)))|(-1<<SHIFTMOD32(z1))); return; }
 	z = (z0>>5); ze = (z1>>5);
-	lptr[z] &=~(-1<<z0); for(z++;z<ze;z++) lptr[z] = 0;
-	lptr[z] &= (-1<<z1);
+	lptr[z] &=~(-1<<SHIFTMOD32(z0)); for(z++;z<ze;z++) lptr[z] = 0;
+	lptr[z] &= (-1<<SHIFTMOD32(z1));
 }
 
 	//Set all bits in vbit from (x,y,z0) to (x,y,z1-1) to 1's
 static void setzrange1 (long *lptr, long z0, long z1)
 {
 	long z, ze;
-	if (!((z0^z1)&~31)) { lptr[z0>>5] |= ((~(-1<<z1))&(-1<<z0)); return; }
+	if (!((z0^z1)&~31)) { lptr[z0>>5] |= ((~(-1<<SHIFTMOD32(z1)))&(-1<<SHIFTMOD32(z0))); return; }
 	z = (z0>>5); ze = (z1>>5);
-	lptr[z] |= (-1<<z0); for(z++;z<ze;z++) lptr[z] = -1;
-	lptr[z] |=~(-1<<z1);
+	lptr[z] |= (-1<<SHIFTMOD32(z0)); for(z++;z<ze;z++) lptr[z] = -1;
+	lptr[z] |=~(-1<<SHIFTMOD32(z1));
 }
 
 static long isrectfree (long x0, long y0, long dx, long dy)
@@ -1410,7 +1416,7 @@ static long isrectfree (long x0, long y0, long dx, long dy)
 	long i, j, x;
 	i = y0*gvox->mytexx + x0;
 	for(dy=0;dy;dy--,i+=gvox->mytexx)
-		for(x=0;x<dx;x++) { j = i+x; if (zbit[j>>5]&(1<<j)) return(0); }
+		for(x=0;x<dx;x++) { j = i+x; if (zbit[j>>5]&(1<<SHIFTMOD32(j))) return(0); }
 #else
 	long i, c, m, m1, x;
 
@@ -1435,7 +1441,7 @@ static void setrect (long x0, long y0, long dx, long dy)
 	long i, j, y;
 	i = y0*gvox->mytexx + x0;
 	for(y=0;y<dy;y++,i+=gvox->mytexx)
-		for(x=0;x<dx;x++) { j = i+x; zbit[j>>5] |= (1<<j); }
+		for(x=0;x<dx;x++) { j = i+x; zbit[j>>5] |= (1<<SHIFTMOD32(j)); }
 #else
 	long i, c, m, m1, x;
 
@@ -1548,7 +1554,7 @@ static long isolid (long x, long y, long z)
 	if ((unsigned long)x >= (unsigned long)xsiz) return(0);
 	if ((unsigned long)y >= (unsigned long)ysiz) return(0);
 	if ((unsigned long)z >= (unsigned long)zsiz) return(0);
-	z += x*yzsiz + y*zsiz; return(vbit[z>>5]&(1<<z));
+	z += x*yzsiz + y*zsiz; return(vbit[z>>5]&(1<<SHIFTMOD32(z)));
 }
 
 static voxmodel *vox2poly ()
@@ -1727,7 +1733,7 @@ static long loadvox (const char *filnam)
 		{
 			kread(fil,tbuf,zsiz);
 			for(z=zsiz-1;z>=0;z--)
-				{ if (tbuf[z] != 255) { i = j+z; vbit[i>>5] |= (1<<i); } }
+				{ if (tbuf[z] != 255) { i = j+z; vbit[i>>5] |= (1<<SHIFTMOD32(i)); } }
 		}
 
 	klseek(fil,12,SEEK_SET);
@@ -1849,9 +1855,9 @@ static long loadkv6 (const char *filnam)
 			for(i=ylen[x*ysiz+y];i>0;i--)
 			{
 				kread(fil,c,8); //b,g,r,a,z_lo,z_hi,vis,dir
-				z0 = *(unsigned short *)&c[4];
+				z0 = B_LITTLE16(*(unsigned short *)&c[4]);
 				if (!(c[6]&16)) setzrange1(vbit,j+z1,j+z0);
-				vbit[(j+z0)>>5] |= (1<<(j+z0));
+				vbit[(j+z0)>>5] |= (1<<SHIFTMOD32(j+z0));
 				putvox(x,y,z0,B_LITTLE32(*(long *)&c[0])&0xffffff);
 				z1 = z0+1;
 			}

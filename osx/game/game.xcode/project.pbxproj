@@ -133,7 +133,6 @@
 		AB3AF9ED08DEE39E00C0AA42 = {
 			children = (
 				AB3AFA6D08DEE4D700C0AA42,
-				AB3AFAB308DEFF1B00C0AA42,
 				AB3AF9F108DEE3DA00C0AA42,
 				AB3AF9F208DEE3DA00C0AA42,
 				AB3AF9F308DEE3DA00C0AA42,
@@ -156,7 +155,6 @@
 		AB3AF9EF08DEE3AB00C0AA42 = {
 			children = (
 				AB3AFECC08DF059E00C0AA42,
-				AB3AFAB108DEFF0000C0AA42,
 				AB3AF9F008DEE3C100C0AA42,
 			);
 			isa = PBXGroup;
@@ -215,7 +213,6 @@
 				AB3AFA5D08DEE43500C0AA42,
 				AB3AFA5E08DEE43600C0AA42,
 				AB3AFA6E08DEE4D700C0AA42,
-				AB3AFAB408DEFF1B00C0AA42,
 			);
 			isa = PBXSourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -449,30 +446,6 @@
 			refType = 4;
 			sourceTree = "<group>";
 		};
-		AB3AFAB108DEFF0000C0AA42 = {
-			fileEncoding = 30;
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.c.c;
-			name = build_icon.c;
-			path = ../../rsrc/build_icon.c;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
-		};
-		AB3AFAB308DEFF1B00C0AA42 = {
-			fileEncoding = 30;
-			isa = PBXFileReference;
-			lastKnownFileType = sourcecode.c.c;
-			name = game_icon.c;
-			path = ../../rsrc/game_icon.c;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
-		};
-		AB3AFAB408DEFF1B00C0AA42 = {
-			fileRef = AB3AFAB308DEFF1B00C0AA42;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
 		AB3AFAB508DF00A400C0AA42 = {
 			containerPortal = AB3AFA5F08DEE45000C0AA42;
 			isa = PBXContainerItemProxy;
@@ -571,7 +544,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB3AFECA08DF058D00C0AA42,
-				AB3AFECB08DF058D00C0AA42,
 				AB3AFECD08DF059E00C0AA42,
 			);
 			isa = PBXSourcesBuildPhase;
@@ -689,12 +661,6 @@
 		};
 		AB3AFECA08DF058D00C0AA42 = {
 			fileRef = AB3AF9F008DEE3C100C0AA42;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB3AFECB08DF058D00C0AA42 = {
-			fileRef = AB3AFAB108DEFF0000C0AA42;
 			isa = PBXBuildFile;
 			settings = {
 			};

@@ -15,6 +15,7 @@
 			buildRules = (
 			);
 			buildSettings = {
+				COPY_PHASE_STRIP = NO;
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -81,78 +82,117 @@
 			fileRef = AB3AFE9408DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C7808E6979600899067 = {
 			fileRef = AB3AFE9508DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C7908E6979600899067 = {
 			fileRef = AB3AFE9608DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C7A08E6979600899067 = {
 			fileRef = AB3AFE9708DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C7B08E6979600899067 = {
 			fileRef = AB3AFE9808DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C7C08E6979600899067 = {
 			fileRef = AB3AFE9908DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C7D08E6979600899067 = {
 			fileRef = AB3AFE9A08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C7E08E6979600899067 = {
 			fileRef = AB3AFE9B08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C7F08E6979600899067 = {
 			fileRef = AB3AFE9C08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C8008E6979600899067 = {
 			fileRef = AB3AFE9D08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C8108E6979600899067 = {
 			fileRef = AB3AFE9E08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C8208E6979600899067 = {
 			fileRef = AB3AFE9F08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C8308E6979600899067 = {
 			fileRef = AB3AFEA008DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB2B5C8408E6979600899067 = {
@@ -349,7 +389,7 @@
 		};
 		AB3AF5EA08DEDAA700C0AA42 = {
 			buildSettings = {
-				COPY_PHASE_STRIP = YES;
+				COPY_PHASE_STRIP = NO;
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_OPTIMIZATION_LEVEL = 2;
 			};
@@ -361,7 +401,6 @@
 			};
 			buildStyles = (
 				AB3AF5E908DEDAA700C0AA42,
-				ABB47F16093B121B005B3150,
 				AB3AF5EA08DEDAA700C0AA42,
 			);
 			hasScannedForEncodings = 0;
@@ -439,6 +478,7 @@
 			buildRules = (
 			);
 			buildSettings = {
+				COPY_PHASE_STRIP = NO;
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -1141,84 +1181,126 @@
 			fileRef = AB3AFE9308DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Private,
+				);
 			};
 		};
 		AB3AFEA208DF044D00C0AA42 = {
 			fileRef = AB3AFE9408DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEA308DF044D00C0AA42 = {
 			fileRef = AB3AFE9508DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEA408DF044D00C0AA42 = {
 			fileRef = AB3AFE9608DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEA508DF044D00C0AA42 = {
 			fileRef = AB3AFE9708DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEA608DF044D00C0AA42 = {
 			fileRef = AB3AFE9808DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEA708DF044D00C0AA42 = {
 			fileRef = AB3AFE9908DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEA808DF044D00C0AA42 = {
 			fileRef = AB3AFE9A08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEA908DF044D00C0AA42 = {
 			fileRef = AB3AFE9B08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEAA08DF044D00C0AA42 = {
 			fileRef = AB3AFE9C08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEAB08DF044D00C0AA42 = {
 			fileRef = AB3AFE9D08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEAC08DF044D00C0AA42 = {
 			fileRef = AB3AFE9E08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEAD08DF044D00C0AA42 = {
 			fileRef = AB3AFE9F08DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEAE08DF044D00C0AA42 = {
 			fileRef = AB3AFEA008DF044D00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
 		};
 		AB3AFEAF08DF046600C0AA42 = {
@@ -1267,16 +1349,10 @@
 			fileRef = AB3AFEB308DF04B100C0AA42;
 			isa = PBXBuildFile;
 			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
 			};
-		};
-		ABB47F16093B121B005B3150 = {
-			buildSettings = {
-				COPY_PHASE_STRIP = NO;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				GENERATE_PROFILING_CODE = YES;
-			};
-			isa = PBXBuildStyle;
-			name = Profiling;
 		};
 	};
 	rootObject = AB3AF5EB08DEDAA700C0AA42;
