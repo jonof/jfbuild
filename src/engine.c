@@ -670,7 +670,7 @@ static long bakrendmode,baktile;
 long totalclocklock;
 
 char apptitle[256] = "Build Engine";
-palette_t curpalette[256], curpalettefaded[256], palfadergb = { 0,0,0,0 }, palfadeclamp = { 0,0,0,0 };
+palette_t curpalette[256], curpalettefaded[256], palfadergb = { 0,0,0,0 };
 char palfadedelta = 0;
 
 
@@ -6863,7 +6863,7 @@ long saveboard(char *filename, long *daposx, long *daposy, long *daposz,
 	walltype   twall;
 	spritetype tspri;
 
-	if ((fil = Bopen(filename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IWRITE)) == -1)
+	if ((fil = Bopen(filename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)
 		return(-1);
 
 	numsprites = 0;
@@ -9192,21 +9192,6 @@ void setpalettefade(char r, char g, char b, char offset)
     	}
 
 	setpalette(0,256,(char*)tempbuf);
-}
-
-
-//
-// setpalettefadeclamps
-//
-void setpalettefadeclamps(char r, char g, char b, char offset)
-{
-	int i,k;
-	
-	palfadeclamp.r = min(63,r) << 2;
-	palfadeclamp.g = min(63,g) << 2;
-	palfadeclamp.b = min(63,b) << 2;
-	palfadeclamp.f = min(63,offset) << 2;
-
 }
 
 

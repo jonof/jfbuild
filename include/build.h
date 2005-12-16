@@ -235,7 +235,7 @@ extern char apptitle[256];
 typedef struct {
 	unsigned char r,g,b,f;
 } palette_t;
-extern palette_t curpalette[256], curpalettefaded[256], palfadergb, palfadeclamp;
+extern palette_t curpalette[256], curpalettefaded[256], palfadergb;
 extern char palfadedelta;
 
 extern long dommxoverlay, novoxmips;
@@ -367,7 +367,6 @@ void   makepalookup(long palnum, char *remapbuf, signed char r, signed char g, s
 void   setvgapalette(void);
 void   setbrightness(char dabrightness, char *dapal, char noapply);
 void   setpalettefade(char r, char g, char b, char offset);
-void   setpalettefadeclamps(char r, char g, char b, char offset);
 void   squarerotatetile(short tilenume);
 
 long   setgamemode(char davidoption, long daxdim, long daydim, long dabpp);

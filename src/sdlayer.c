@@ -1056,7 +1056,7 @@ void showframe(int w)
 
 #ifdef USE_OPENGL
 	if (bpp > 8) {
-		if (palfadedelta || palfadeclamp.f) {
+		if (palfadedelta) {
 			bglMatrixMode(GL_PROJECTION);
 			bglPushMatrix();
 			bglLoadIdentity();
@@ -1069,11 +1069,7 @@ void showframe(int w)
 			bglDisable(GL_TEXTURE_2D);
 
 			bglEnable(GL_BLEND);
-			bglColor4ub(
-				max(palfadeclamp.r,palfadergb.r),
-				max(palfadeclamp.g,palfadergb.g),
-				max(palfadeclamp.b,palfadergb.b),
-				max(palfadeclamp.f,palfadedelta));
+			bglColor4ub(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);
 
 			bglBegin(GL_QUADS);
 			bglVertex2i(-1, -1);
