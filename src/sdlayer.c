@@ -6,7 +6,9 @@
 
 #include <stdlib.h>
 #include <math.h>
-#include "SDL.h"
+#ifndef __APPLE__
+# include "SDL.h"
+#endif
 #include "compat.h"
 #include "sdlayer.h"
 #include "cache1d.h"
@@ -20,6 +22,7 @@
 #endif
 
 #if defined __APPLE__
+# include <SDL/SDL.h>
 # include "osxbits.h"
 #elif defined HAVE_GTK2
 # include "gtkbits.h"

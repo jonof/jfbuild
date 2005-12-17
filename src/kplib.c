@@ -1,21 +1,28 @@
 /**************************************************************************************************
 KPLIB.C: Ken's Picture LIBrary written by Ken Silverman
 Copyright (c) 1998-2005 Ken Silverman
-Ken Silverman's official web site: http://www.advsys.net/ken
+Ken Silverman's official web site: http://advsys.net/ken
 
-This source file includes routines for decompression of the following picture formats:
-	JPG,PNG,GIF,PCX,TGA,BMP,CEL
-It also includes code to handle ZIP decompression.
+Features of KPLIB.C:
+	* Routines for decoding JPG, PNG, GIF, PCX, TGA, BMP, CEL.
+		See kpgetdim(), kprender(), and optional helper function: kpzload().
+	* Routines for ZIP decompression. All ZIP functions start with the letters "kz".
+	* Multi-platform support: Dos/Windows/Linux/Mac/etc..
+	* Compact code, all in a single source file. Yeah, bad design on my part... but makes life
+		  easier for everyone else - you simply add a single C file to your project, throw a few
+		  externs in there, add the function calls, and you're done!
 
 Brief history:
 1998?: Wrote KPEG, a JPEG viewer for DOS
 2000: Wrote KPNG, a PNG viewer for DOS
-2001: Combined KPEG&KPNG, ported to Visual C, and made it into a nice library called KPLIB.C
-2002: Added support for: TGA,GIF,CEL,ZIP
-2003: Added support for: BMP
-05/18/2004: Added support for 8/24 bit PCX
+2001: Combined KPEG & KPNG, ported to Visual C, and made it into a library called KPLIB.C
+2002: Added support for TGA, GIF, CEL, ZIP
+2003: Added support for BMP
+05/18/2004: Added support for 8&24 bit PCX
+12/09/2005: Added support for progressive JPEG
 
-I offer this code to the community for the benefit of Jonathon Fowler's Duke3D port.
+I offer this code to the community for free use - all I ask is that my name be included in the
+credits.
 
 -Ken S.
 **************************************************************************************************/
@@ -100,6 +107,17 @@ static const long pow2mask[32] =
 	0x000fffff,0x001fffff,0x003fffff,0x007fffff,
 	0x00ffffff,0x01ffffff,0x03ffffff,0x07ffffff,
 	0x0fffffff,0x1fffffff,0x3fffffff,0x7fffffff,
+};
+static const long pow2long[32] =
+{
+	0x00000001,0x00000002,0x00000004,0x00000008,
+	0x00000010,0x00000020,0x00000040,0x00000080,
+	0x00000100,0x00000200,0x00000400,0x00000800,
+	0x00001000,0x00002000,0x00004000,0x00008000,
+	0x00010000,0x00020000,0x00040000,0x00080000,
+	0x00100000,0x00200000,0x00400000,0x00800000,
+	0x01000000,0x02000000,0x04000000,0x08000000,
+	0x10000000,0x20000000,0x40000000,0x80000000,
 };
 
 	//Hack for peekbits,getbits,suckbits (to prevent lots of duplicate code)
@@ -1179,12 +1197,11 @@ static long clipxdim, clipydim;
 static long hufmaxatbit[8][20], hufvalatbit[8][20], hufcnt[8];
 static unsigned char hufnumatbit[8][20], huftable[8][256];
 static long hufquickval[8][1024], hufquickbits[8][1024], hufquickcnt[8];
-static long quantab[4][64], dct[19][64], lastdc[4], unzig[64];
+static long quantab[4][64], dct[12][64], lastdc[4], unzig[64], zigit[64]; //dct:10=MAX (says spec);+2 for hacks
 static unsigned char gnumcomponents, dcflagor[64];
-static long gcompid[4], gcomphsamp[4], gcompvsamp[4], gcompquantab[4];
-static long lcompid[4], lcompdc[4], lcompac[4];
-static long lcomphsamp[4], lcompvsamp[4], lcomphvsamp[4], lcompquantab[4];
-static long lcomphsampmask[4], lcomphsampshift[4], lcompvsampshift[4];
+static long gcompid[4], gcomphsamp[4], gcompvsamp[4], gcompquantab[4], gcomphsampshift[4], gcompvsampshift[4];
+static long lnumcomponents, lcompid[4], lcompdc[4], lcompac[4], lcomphsamp[4], lcompvsamp[4], lcompquantab[4];
+static long lcomphvsamp0, lcomphsampshift0, lcompvsampshift0;
 static long colclip[1024], colclipup8[1024], colclipup16[1024];
 static unsigned char pow2char[8] = {1,2,4,8,16,32,64,128};
 
@@ -1258,10 +1275,6 @@ static _inline long mulshr32 (long a, long d)
 
 #endif
 
-#define SQRT2 23726566   //(sqrt(2))<<24
-#define C182 31000253    //(cos(PI/8)*2)<<24
-#define C18S22 43840978  //(cos(PI/8)*sqrt(2)*2)<<24
-#define C38S22 18159528  //(cos(PI*3/8)*sqrt(2)*2)<<24
 static long cosqr16[8] =    //cosqr16[i] = ((cos(PI*i/16)*sqrt(2))<<24);
   {23726566,23270667,21920489,19727919,16777216,13181774,9079764,4628823};
 static long crmul[4096], cbmul[4096];
@@ -1273,12 +1286,13 @@ static void initkpeg ()
 	x = 0;  //Back & forth diagonal pattern (aligning bytes for best compression)
 	for(i=0;i<16;i+=2)
 	{
-		for(y=7;y>=0;y--)
+		for(y=8-1;y>=0;y--)
 			if ((unsigned)(i-y) < (unsigned)8) unzig[x++] = (y<<3)+i-y;
 		for(y=0;y<8;y++)
 			if ((unsigned)(i+1-y) < (unsigned)8) unzig[x++] = (y<<3)+i+1-y;
 	}
-	for(i=63;i>=0;i--) dcflagor[i] = (unsigned char)(1<<(unzig[i]>>3));
+	for(i=64-1;i>=0;i--) zigit[unzig[i]] = i;
+	for(i=64-1;i>=0;i--) dcflagor[i] = (unsigned char)(1<<(unzig[i]>>3));
 
 	for(i=0;i<128;i++) colclip[i] = i+128;
 	for(i=128;i<512;i++) colclip[i] = 255;
@@ -1306,8 +1320,7 @@ static void initkpeg ()
 		cbmul[(i<<1)+1] = (i-1024)*1858077; //1.772*1048576
 	}
 
-	memset((void *)&dct[16][0],0,64*2*sizeof(dct[0][0]));
-	memset((void *)&dct[18][0],0xa0,64*sizeof(dct[0][0]));
+	memset((void *)&dct[10][0],0,64*2*sizeof(dct[0][0]));
 }
 
 static void huffgetval (long index, long curbits, long num, long *daval, long *dabits)
@@ -1315,7 +1328,7 @@ static void huffgetval (long index, long curbits, long num, long *daval, long *d
 	long b, v, pow2, *hmax;
 
 	hmax = &hufmaxatbit[index][0];
-	pow2 = pow2mask[curbits-1]+1;
+	pow2 = pow2long[curbits-1];
 	if (num&pow2) v = 1; else v = 0;
 	for(b=1;b<=16;b++)
 	{
@@ -1328,20 +1341,153 @@ static void huffgetval (long index, long curbits, long num, long *daval, long *d
 		pow2 >>= 1; v <<= 1;
 		if (num&pow2) v++;
 	}
-	*dabits = 16;
-	*daval = 0;
+	*dabits = 16; *daval = 0;
+}
+
+static void invdct8x8 (long *dc, unsigned char dcflag)
+{
+	#define SQRT2 23726566   //(sqrt(2))<<24
+	#define C182 31000253    //(cos(PI/8)*2)<<24
+	#define C18S22 43840978  //(cos(PI/8)*sqrt(2)*2)<<24
+	#define C38S22 18159528  //(cos(PI*3/8)*sqrt(2)*2)<<24
+	long *edc, t0, t1, t2, t3, t4, t5, t6, t7;
+
+	edc = dc+64;
+	do
+	{
+		if (dcflag&1) //pow2char[z])
+		{
+			t3 = dc[2] + dc[6];
+			t2 = (mulshr32(dc[2]-dc[6],SQRT2<<6)<<2) - t3;
+			t4 = dc[0] + dc[4]; t5 = dc[0] - dc[4];
+			t0 = t4+t3; t3 = t4-t3; t1 = t5+t2; t2 = t5-t2;
+			t4 = (mulshr32(dc[5]-dc[3]+dc[1]-dc[7],C182<<6)<<2);
+			t7 = dc[1] + dc[7] + dc[5] + dc[3];
+			t6 = (mulshr32(dc[3]-dc[5],C18S22<<5)<<3) + t4 - t7;
+			t5 = (mulshr32(dc[1]+dc[7]-dc[5]-dc[3],SQRT2<<6)<<2) - t6;
+			t4 = (mulshr32(dc[1]-dc[7],C38S22<<6)<<2) - t4 + t5;
+			dc[0] = t0+t7; dc[7] = t0-t7; dc[1] = t1+t6; dc[6] = t1-t6;
+			dc[2] = t2+t5; dc[5] = t2-t5; dc[4] = t3+t4; dc[3] = t3-t4;
+		}
+		dc += 8; dcflag >>= 1;
+	} while (dc < edc);
+	dc -= 32; edc -= 24;
+	do
+	{
+		t3 = dc[2*8-32] + dc[6*8-32];
+		t2 = (mulshr32(dc[2*8-32]-dc[6*8-32],SQRT2<<6)<<2) - t3;
+		t4 = dc[0*8-32] + dc[4*8-32]; t5 = dc[0*8-32] - dc[4*8-32];
+		t0 = t4+t3; t3 = t4-t3; t1 = t5+t2; t2 = t5-t2;
+		t4 = (mulshr32(dc[5*8-32]-dc[3*8-32]+dc[1*8-32]-dc[7*8-32],C182<<6)<<2);
+		t7 = dc[1*8-32] + dc[7*8-32] + dc[5*8-32] + dc[3*8-32];
+		t6 = (mulshr32(dc[3*8-32]-dc[5*8-32],C18S22<<5)<<3) + t4 - t7;
+		t5 = (mulshr32(dc[1*8-32]+dc[7*8-32]-dc[5*8-32]-dc[3*8-32],SQRT2<<6)<<2) - t6;
+		t4 = (mulshr32(dc[1*8-32]-dc[7*8-32],C38S22<<6)<<2) - t4 + t5;
+		dc[0*8-32] = t0+t7; dc[7*8-32] = t0-t7; dc[1*8-32] = t1+t6; dc[6*8-32] = t1-t6;
+		dc[2*8-32] = t2+t5; dc[5*8-32] = t2-t5; dc[4*8-32] = t3+t4; dc[3*8-32] = t3-t4;
+		dc++;
+	} while (dc < edc);
+}
+
+static void yrbrend (long x, long y)
+{
+	long i, j, ox, oy, xx, yy, xxx, yyy, xxxend, yyyend, yv, cr, cb, p, pp, *odc, *dc, *dc2;
+
+	odc = dct[0]; dc2 = dct[10];
+	for(yy=0;yy<(lcompvsamp[0]<<3);yy+=8)
+	{
+		oy = y+yy+globyoffs; if ((unsigned)oy >= (unsigned)clipydim) { odc += (lcomphsamp[0]<<6); continue; }
+		pp = oy*bytesperline + ((x+globxoffs)<<2) + frameplace;
+		for(xx=0;xx<(lcomphsamp[0]<<3);xx+=8,odc+=64)
+		{
+			ox = x+xx+globxoffs; if ((unsigned)ox >= (unsigned)clipxdim) continue;
+			p = pp+(xx<<2);
+			dc = odc;
+			if (lnumcomponents > 1) dc2 = &dct[lcomphvsamp0][((yy>>lcompvsampshift0)<<3)+(xx>>lcomphsampshift0)];
+			xxxend = min(clipxdim-ox,8);
+			yyyend = min(clipydim-oy,8);
+			if ((lcomphsamp[0] == 1) && (xxxend == 8))
+			{
+				for(yyy=0;yyy<yyyend;yyy++)
+				{
+					for(xxx=0;xxx<8;xxx++)
+					{
+						yv = dc[xxx];
+						cr = (dc2[xxx+64]>>13)&~1;
+						cb = (dc2[xxx   ]>>13)&~1;
+						((long *)p)[xxx] = colclipup16[(unsigned)(yv+crmul[cr+2048]               )>>22]+
+												  colclipup8[(unsigned)(yv+crmul[cr+2049]+cbmul[cb+2048])>>22]+
+													  colclip[(unsigned)(yv+cbmul[cb+2049]               )>>22];
+					}
+					p += bytesperline;
+					dc += 8;
+					if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
+				}
+			}
+			else if ((lcomphsamp[0] == 2) && (xxxend == 8))
+			{
+				for(yyy=0;yyy<yyyend;yyy++)
+				{
+					for(xxx=0;xxx<8;xxx+=2)
+					{
+						yv = dc[xxx];
+						cr = (dc2[(xxx>>1)+64]>>13)&~1;
+						cb = (dc2[(xxx>>1)   ]>>13)&~1;
+						i = crmul[cr+2049]+cbmul[cb+2048];
+						cr = crmul[cr+2048];
+						cb = cbmul[cb+2049];
+						((long *)p)[xxx] = colclipup16[(unsigned)(yv+cr)>>22]+
+												  colclipup8[(unsigned)(yv+ i)>>22]+
+													  colclip[(unsigned)(yv+cb)>>22];
+						yv = dc[xxx+1];
+						((long *)p)[xxx+1] = colclipup16[(unsigned)(yv+cr)>>22]+
+													 colclipup8[(unsigned)(yv+ i)>>22]+
+														 colclip[(unsigned)(yv+cb)>>22];
+					}
+					p += bytesperline;
+					dc += 8;
+					if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
+				}
+			}
+			else
+			{
+				for(yyy=0;yyy<yyyend;yyy++)
+				{
+					i = 0; j = 1;
+					for(xxx=0;xxx<xxxend;xxx++)
+					{
+						yv = dc[xxx];
+						j--;
+						if (!j)
+						{
+							j = lcomphsamp[0];
+							cr = (dc2[i+64]>>13)&~1;
+							cb = (dc2[i   ]>>13)&~1;
+							i++;
+						}
+						((long *)p)[xxx] = colclipup16[(unsigned)(yv+crmul[cr+2048]               )>>22]+
+												  colclipup8[(unsigned)(yv+crmul[cr+2049]+cbmul[cb+2048])>>22]+
+													  colclip[(unsigned)(yv+cbmul[cb+2049]               )>>22];
+					}
+					p += bytesperline;
+					dc += 8;
+					if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
+				}
+			}
+		}
+	}
 }
 
 static long kpegrend (const char *kfilebuf, long kfilength,
 	long daframeplace, long dabytesperline, long daxres, long dayres,
 	long daglobxoffs, long daglobyoffs)
 {
-	long i, j, p, v, leng, xdim, ydim, index, prec, restartinterval;
-	long restartcnt, num, curbits, x, y, z, dctcnt, c, cc, daval, dabits;
-	long xx, yy, zz, xxx, yyy, r, g, b, t0, t1, t2, t3, t4, t5, t6, t7;
-	long yv, cr, cb, *dc, *dc2, xxxend, yyyend;
-	long *hqval, *hqbits, hqcnt, *quanptr;
-	unsigned char ch, marker, numbits, lnumcomponents, dcflag;
+	long i, j, p, v, leng, xdim, ydim, index, prec, restartcnt, restartinterval;
+	long x, y, z, xx, yy, zz, *dc, *dc2, num, curbits, c, daval, dabits, *hqval, *hqbits, hqcnt, *quanptr;
+	long passcnt = 0, ghsampmax, gvsampmax, glhsampmax, glvsampmax, glhstep, glvstep;
+	long eobrun, Ss, Se, Ah, Al, Alut[2], dctx[12], dcty[12], ldctx[12], ldcty[12], lshx[4], lshy[4];
+	short *dctbuf = 0, *dctptr[12], *ldctptr[12], *dcs;
+	unsigned char ch, marker, dcflag;
 	const unsigned char *kfileptr;
 
 	if (!kpeginited) { kpeginited = 1; initkpeg(); }
@@ -1359,14 +1505,18 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 	do
 	{
 		ch = *kfileptr++; if (ch != 255) continue;
-		marker = *kfileptr++;
-		leng = ((long)kfileptr[0]<<8)+(long)kfileptr[1]-2;
-		kfileptr += 2;
+		do { marker = *kfileptr++; } while (marker == 255);
+		if (marker != 0xd9) //Don't read past end of buffer
+		{
+			leng = ((long)kfileptr[0]<<8)+(long)kfileptr[1]-2;
+			kfileptr += 2;
+		}
+		//printf("fileoffs=%08x, marker=%02x,leng=%d",((long)kfileptr)-((long)kfilebuf)-2,marker,leng);
 		switch(marker)
 		{
 			case 0xc0: case 0xc1: case 0xc2:
 					//processit!
-				numbits = *kfileptr++;
+				kfileptr++; //numbits = *kfileptr++;
 
 				ydim = SSWAPIL(*(unsigned short *)&kfileptr[0]);
 				xdim = SSWAPIL(*(unsigned short *)&kfileptr[2]);
@@ -1381,14 +1531,20 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 
 				gnumcomponents = kfileptr[4];
 				kfileptr += 5;
+				ghsampmax = gvsampmax = glhsampmax = glvsampmax = 0;
 				for(z=0;z<gnumcomponents;z++)
 				{
 					gcompid[z] = kfileptr[0];
 					gcomphsamp[z] = (kfileptr[1]>>4);
 					gcompvsamp[z] = (kfileptr[1]&15);
 					gcompquantab[z] = kfileptr[2];
+					for(i=0;i<8;i++) if (gcomphsamp[z] == pow2long[i]) { gcomphsampshift[z] = i; break; }
+					for(i=0;i<8;i++) if (gcompvsamp[z] == pow2long[i]) { gcompvsampshift[z] = i; break; }
+					if (gcomphsamp[z] > ghsampmax) { ghsampmax = gcomphsamp[z]; glhsampmax = gcomphsampshift[z]; }
+					if (gcompvsamp[z] > gvsampmax) { gvsampmax = gcompvsamp[z]; glvsampmax = gcompvsampshift[z]; }
 					kfileptr += 3;
 				}
+
 				break;
 			case 0xc4:  //Huffman table
 				do
@@ -1400,24 +1556,24 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 					leng -= 16;
 
 					v = 0; hufcnt[index] = 0;
-					hufquickcnt[index] = 0; c = 0;
-					for(b=1;b<=16;b++)
+					hufquickcnt[index] = 0;
+					for(i=1;i<=16;i++)
 					{
-						hufmaxatbit[index][b] = v+hufnumatbit[index][b];
-						hufvalatbit[index][b] = hufcnt[index]-v;
-						memcpy((void *)&huftable[index][hufcnt[index]],(void *)kfileptr,(long)hufnumatbit[index][b]);
-						if (b <= 10)
-							for(c=0;c<hufnumatbit[index][b];c++)
-								for(j=(1<<(10-b));j>0;j--)
+						hufmaxatbit[index][i] = v+hufnumatbit[index][i];
+						hufvalatbit[index][i] = hufcnt[index]-v;
+						memcpy((void *)&huftable[index][hufcnt[index]],(void *)kfileptr,(long)hufnumatbit[index][i]);
+						if (i <= 10)
+							for(c=0;c<hufnumatbit[index][i];c++)
+								for(j=(1<<(10-i));j>0;j--)
 								{
 									hufquickval[index][hufquickcnt[index]] = huftable[index][hufcnt[index]+c];
-									hufquickbits[index][hufquickcnt[index]] = b;
+									hufquickbits[index][hufquickcnt[index]] = i;
 									hufquickcnt[index]++;
 								}
-						kfileptr += hufnumatbit[index][b];
-						leng -= hufnumatbit[index][b];
-						hufcnt[index] += hufnumatbit[index][b];
-						v = ((v+hufnumatbit[index][b])<<1);
+						kfileptr += hufnumatbit[index][i];
+						leng -= hufnumatbit[index][i];
+						hufcnt[index] += hufnumatbit[index][i];
+						v = ((v+hufnumatbit[index][i])<<1);
 					}
 
 				} while (leng > 0);
@@ -1433,7 +1589,7 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 						v = (long)(*kfileptr++);
 						if (prec) v = (v<<8)+((long)(*kfileptr++));
 						v <<= 19;
-						if (unzig[z]&7) v = mulshr24(v,cosqr16[unzig[z]&7]);
+						if (unzig[z]&7 ) v = mulshr24(v,cosqr16[unzig[z]&7 ]);
 						if (unzig[z]>>3) v = mulshr24(v,cosqr16[unzig[z]>>3]);
 						if (index) v >>= 6;
 						quantab[index][unzig[z]] = v;
@@ -1446,10 +1602,10 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 				restartinterval = SSWAPIL(*(unsigned short *)&kfileptr[0]);
 				kfileptr += leng;
 				break;
-			case 0xda: case 0xd9:
-				if ((xdim <= 0) || (ydim <= 0)) return(-1);
+			case 0xda:
+				if ((xdim <= 0) || (ydim <= 0)) { if (dctbuf) free(dctbuf); return(-1); }
 
-				lnumcomponents = *kfileptr++;
+				lnumcomponents = (long)(*kfileptr++); if (!lnumcomponents) { if (dctbuf) free(dctbuf); return(-1); }
 				if (lnumcomponents > 1) coltype = 2;
 				for(z=0;z<lnumcomponents;z++)
 				{
@@ -1457,248 +1613,215 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 					lcompdc[z] = (kfileptr[1]>>4);
 					lcompac[z] = (kfileptr[1]&15);
 					kfileptr += 2;
+				}
+
+				Ss = kfileptr[0];
+				Se = kfileptr[1];
+				Ah = (kfileptr[2]>>4);
+				Al = (kfileptr[2]&15);
+				kfileptr += 3;
+				//printf("passcnt=%d, Ss=%d, Se=%d, Ah=%d, Al=%d\n",passcnt,Ss,Se,Ah,Al);
+
+				if ((!passcnt) && ((Ss) || (Se != 63) || (Ah) || (Al)))
+				{
+					for(z=zz=0;z<gnumcomponents;z++)
+					{
+						dctx[z] = ((xdim+(ghsampmax<<3)-1)>>(glhsampmax+3)) << gcomphsampshift[z];
+						dcty[z] = ((ydim+(gvsampmax<<3)-1)>>(glvsampmax+3)) << gcompvsampshift[z];
+						zz += dctx[z]*dcty[z];
+					}
+					z = zz*64*sizeof(short);
+					dctbuf = (short *)malloc(z); if (!dctbuf) return(-1);
+					memset(dctbuf,0,z);
+					for(z=zz=0;z<gnumcomponents;z++) { dctptr[z] = &dctbuf[zz*64]; zz += dctx[z]*dcty[z]; }
+				}
+
+				glhstep = glvstep = 0x7fffffff;
+				for(z=0;z<lnumcomponents;z++)
 					for(zz=0;zz<gnumcomponents;zz++)
 						if (lcompid[z] == gcompid[zz])
 						{
+							ldctptr[z] = dctptr[zz];
+							ldctx[z] = dctx[zz];
+							ldcty[z] = dcty[zz];
 							lcomphsamp[z] = gcomphsamp[zz];
 							lcompvsamp[z] = gcompvsamp[zz];
-							lcomphvsamp[z] = lcomphsamp[z]*lcompvsamp[z];
 							lcompquantab[z] = gcompquantab[zz];
-
-							for(i=0;i<8;i++)
-								if (pow2mask[i]+1 == lcomphsamp[z])
-								{
-									lcomphsampmask[z] = pow2mask[i];
-									lcomphsampshift[z] = i;
-									break;
-								}
-
-							for(i=0;i<8;i++)
-								if (pow2mask[i]+1 == lcompvsamp[z])
-								{
-									lcompvsampshift[z] = i;
-									break;
-								}
+							if (!z)
+							{
+								lcomphsampshift0 = gcomphsampshift[zz];
+								lcompvsampshift0 = gcompvsampshift[zz];
+							}
+							lshx[z] = glhsampmax-gcomphsampshift[zz]+3;
+							lshy[z] = glvsampmax-gcompvsampshift[zz]+3;
+							if (gcomphsampshift[zz] < glhstep) glhstep = gcomphsampshift[zz];
+							if (gcompvsampshift[zz] < glvstep) glvstep = gcompvsampshift[zz];
 						}
-				}
-				//Ss = kfileptr[0];
-				//Se = kfileptr[1];
-				//Ah = (kfileptr[2]>>4);
-				//Al = (kfileptr[2]&15);
-				kfileptr += 3;
-
-				if ((hufcnt[0] == 0) || (hufcnt[4] == 0)) return(-1);
+				glhstep = (ghsampmax>>glhstep); lcomphsamp[0] = min(lcomphsamp[0],glhstep); glhstep <<= 3;
+				glvstep = (gvsampmax>>glvstep); lcompvsamp[0] = min(lcompvsamp[0],glvstep); glvstep <<= 3;
+				lcomphvsamp0 = lcomphsamp[0]*lcompvsamp[0];
 
 				clipxdim = min(xdim+globxoffs,xres);
 				clipydim = min(ydim+globyoffs,yres);
 
-				xx = max(globxoffs,0); xxx = min(globxoffs+xdim,xres);
-				yy = max(globyoffs,0); yyy = min(globyoffs+ydim,yres);
-				if ((xx >= xres) || (yy >= yres) || (xxx <= 0) || (yyy <= 0)) return(0);
+				if ((max(globxoffs,0) >= xres) || (min(globxoffs+xdim,xres) <= 0) ||
+					 (max(globyoffs,0) >= yres) || (min(globyoffs+ydim,yres) <= 0))
+					{ if (dctbuf) free(dctbuf); return(0); }
 
-				restartcnt = restartinterval; marker = 0xd0;
-				num = 0; curbits = 0; x = 0; y = 0;
-				while (1)
-				{
-					if (kfileptr-(unsigned char *)kfilebuf >= kfilength)
-						lnumcomponents = 0; //rest of file is missing!
+				Alut[0] = (1<<Al); Alut[1] = -Alut[0];
 
-					dctcnt = 0;
-					for(c=0;c<lnumcomponents;c++)
+				restartcnt = restartinterval; eobrun = 0; marker = 0xd0;
+				num = 0; curbits = 0;
+				for(y=0;y<ydim;y+=glvstep)
+					for(x=0;x<xdim;x+=glhstep)
 					{
-						hqval = &hufquickval[lcompac[c]+4][0];
-						hqbits = &hufquickbits[lcompac[c]+4][0];
-						hqcnt = hufquickcnt[lcompac[c]+4];
-						quanptr = &quantab[lcompquantab[c]][0];
-						for(cc=lcomphvsamp[c];cc>0;cc--)
+						if (kfileptr-4-(unsigned char *)kfilebuf >= kfilength) goto kpegrend_break2; //rest of file is missing!
+
+						if (!dctbuf) dc = dct[0];
+						for(c=0;c<lnumcomponents;c++)
 						{
-							dc = &dct[dctcnt][0];
+							hqval = &hufquickval[lcompac[c]+4][0];
+							hqbits = &hufquickbits[lcompac[c]+4][0];
+							hqcnt = hufquickcnt[lcompac[c]+4];
+							if (!dctbuf) quanptr = &quantab[lcompquantab[c]][0];
+							for(yy=0;yy<(lcompvsamp[c]<<3);yy+=8)
+								for(xx=0;xx<(lcomphsamp[c]<<3);xx+=8)
+								{  //NOTE: Might help to split this code into firstime vs. refinement (!Ah vs. Ah!=0)
 
-								//Get DC
-							while (curbits < 16) //Getbits
-							{
-								ch = *kfileptr++; if (ch == 255) kfileptr++;
-								num = (num<<8)+((long)ch); curbits += 8;
-							}
+									if (dctbuf) dcs = &ldctptr[c][(((y+yy)>>lshy[c])*ldctx[c] + ((x+xx)>>lshx[c]))<<6];
 
-							i = ((num>>(curbits-10))&1023);
-							if (i < hufquickcnt[lcompdc[c]])
-								{ dabits = hufquickbits[lcompdc[c]][i]; daval = hufquickval[lcompdc[c]][i]; }
-							else
-								huffgetval(lcompdc[c],curbits,num,&daval,&dabits);
-
-							curbits -= dabits;
-							if (daval)
-							{
-								while (curbits < 16) //Getbits
-								{
-									ch = *kfileptr++; if (ch == 255) kfileptr++;
-									num = (num<<8)+((long)ch); curbits += 8;
-								}
-
-								v = ((unsigned)num >> (curbits-daval)) & pow2mask[daval];
-								if (v <= pow2mask[daval-1]) v -= pow2mask[daval];
-								lastdc[c] += v;
-								curbits -= daval;
-							}
-							dc[0] = lastdc[c]*quanptr[0];
-
-								//Get AC
-							memset((void *)&dc[1],0,63*4);
-							dcflag = 1;
-							for(z=1;z<64;z++)
-							{
-								while (curbits < 16) //Getbits
-								{
-									ch = *kfileptr++; if (ch == 255) kfileptr++;
-									num = (num<<8)+((long)ch); curbits += 8;
-								}
-
-								i = ((num>>(curbits-10))&1023);
-								if (i < hqcnt)
-									{ daval = hqval[i]; curbits -= hqbits[i]; }
-								else
-								{
-									huffgetval(lcompac[c]+4,curbits,num,&daval,&dabits);
-									curbits -= dabits;
-								}
-
-								if (!daval) break;
-								z += (daval>>4); if (z >= 64) break;
-								daval &= 15;
-
-								while (curbits < 16) //Getbits
-								{
-									ch = *kfileptr++; if (ch == 255) kfileptr++;
-									num = (num<<8)+((long)ch); curbits += 8;
-								}
-
-								v = ((unsigned)num >> (curbits-daval)) & pow2mask[daval];
-								if (v <= pow2mask[daval-1]) v -= pow2mask[daval];
-								dcflag |= dcflagor[z];
-								dc[unzig[z]] = v*quanptr[unzig[z]];
-								curbits -= daval;
-							}
-
-							for(z=0;z<8;z++,dc+=8)
-							{
-								if (!(dcflag&pow2char[z])) continue;
-								t3 = dc[2] + dc[6];
-								t2 = (mulshr32(dc[2]-dc[6],SQRT2<<6)<<2) - t3;
-								t4 = dc[0] + dc[4]; t5 = dc[0] - dc[4];
-								t0 = t4+t3; t3 = t4-t3; t1 = t5+t2; t2 = t5-t2;
-								t4 = (mulshr32(dc[5]-dc[3]+dc[1]-dc[7],C182<<6)<<2);
-								t7 = dc[1] + dc[7] + dc[5] + dc[3];
-								t6 = (mulshr32(dc[3]-dc[5],C18S22<<5)<<3) + t4 - t7;
-								t5 = (mulshr32(dc[1]+dc[7]-dc[5]-dc[3],SQRT2<<6)<<2) - t6;
-								t4 = (mulshr32(dc[1]-dc[7],C38S22<<6)<<2) - t4 + t5;
-								dc[0] = t0+t7; dc[7] = t0-t7; dc[1] = t1+t6; dc[6] = t1-t6;
-								dc[2] = t2+t5; dc[5] = t2-t5; dc[4] = t3+t4; dc[3] = t3-t4;
-							}
-							dc = &dct[dctcnt][0];
-							for(z=7;z>=0;z--,dc++)
-							{
-								t3 = dc[2<<3] + dc[6<<3];
-								t2 = (mulshr32(dc[2<<3]-dc[6<<3],SQRT2<<6)<<2) - t3;
-								t4 = dc[0<<3] + dc[4<<3]; t5 = dc[0<<3] - dc[4<<3];
-								t0 = t4+t3; t3 = t4-t3; t1 = t5+t2; t2 = t5-t2;
-								t4 = (mulshr32(dc[5<<3]-dc[3<<3]+dc[1<<3]-dc[7<<3],C182<<6)<<2);
-								t7 = dc[1<<3] + dc[7<<3] + dc[5<<3] + dc[3<<3];
-								t6 = (mulshr32(dc[3<<3]-dc[5<<3],C18S22<<5)<<3) + t4 - t7;
-								t5 = (mulshr32(dc[1<<3]+dc[7<<3]-dc[5<<3]-dc[3<<3],SQRT2<<6)<<2) - t6;
-								t4 = (mulshr32(dc[1<<3]-dc[7<<3],C38S22<<6)<<2) - t4 + t5;
-								dc[0<<3] = t0+t7; dc[7<<3] = t0-t7; dc[1<<3] = t1+t6; dc[6<<3] = t1-t6;
-								dc[2<<3] = t2+t5; dc[5<<3] = t2-t5; dc[4<<3] = t3+t4; dc[3<<3] = t3-t4;
-							}
-
-							dctcnt++;
-						}
-					}
-
-					dctcnt = 0; dc = &dct[18][0]; dc2 = &dct[16][0];
-					r = g = b = 0; cc = 0;
-					for(yy=0;yy<(lcompvsamp[0]<<3);yy+=8)
-						for(xx=0;xx<(lcomphsamp[0]<<3);xx+=8,dctcnt++)
-						{
-							yyy = y+yy+globyoffs; if ((unsigned)yyy >= (unsigned)clipydim) continue;
-							xxx = x+xx+globxoffs; if ((unsigned)xxx >= (unsigned)clipxdim) continue;
-							p = yyy*bytesperline + xxx*4 + frameplace;
-							if (lnumcomponents > 0) dc = &dct[dctcnt][0];
-							if (lnumcomponents > 1) dc2 = &dct[lcomphvsamp[0]][((yy>>lcompvsampshift[0])<<3)+(xx>>lcomphsampshift[0])];
-							xxxend = min(clipxdim-(x+xx+globxoffs),8);
-							yyyend = min(clipydim-(y+yy+globyoffs),8);
-							if ((lcomphsamp[0] == 1) && (xxxend == 8))
-							{
-								for(yyy=0;yyy<yyyend;yyy++)
-								{
-									for(xxx=0;xxx<8;xxx++)
+										//Get DC
+									if (!Ss)
 									{
-										yv = dc[xxx];
-										cr = (dc2[xxx+64]>>13)&~1;
-										cb = (dc2[xxx]>>13)&~1;
-										((long *)p)[xxx] = colclipup16[(unsigned)(yv+crmul[cr+2048])>>22]+
-																  colclipup8[(unsigned)(yv+crmul[cr+2049]+cbmul[cb+2048])>>22]+
-																	  colclip[(unsigned)(yv+cbmul[cb+2049])>>22];
-									}
-									p += bytesperline;
-									dc += 8;
-									if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
-								}
-							}
-							else if ((lcomphsamp[0] == 2) && (xxxend == 8))
-							{
-								for(yyy=0;yyy<yyyend;yyy++)
-								{
-									for(xxx=0;xxx<8;xxx+=2)
-									{
-										yv = dc[xxx];
-										cr = (dc2[(xxx>>1)+64]>>13)&~1;
-										cb = (dc2[(xxx>>1)]>>13)&~1;
-										i = crmul[cr+2049]+cbmul[cb+2048];
-										cr = crmul[cr+2048];
-										cb = cbmul[cb+2049];
-										((long *)p)[xxx] = colclipup16[(unsigned)(yv+cr)>>22]+
-																  colclipup8[(unsigned)(yv+i)>>22]+
-																	  colclip[(unsigned)(yv+cb)>>22];
-										yv = dc[xxx+1];
-										((long *)p)[xxx+1] = colclipup16[(unsigned)(yv+cr)>>22]+
-																	 colclipup8[(unsigned)(yv+i)>>22]+
-																		 colclip[(unsigned)(yv+cb)>>22];
-									}
-									p += bytesperline;
-									dc += 8;
-									if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
-								}
-							}
-							else
-							{
-								for(yyy=0;yyy<yyyend;yyy++)
-								{
-									i = 0; j = 1;
-									for(xxx=0;xxx<xxxend;xxx++)
-									{
-										yv = dc[xxx];
-										j--;
-										if (!j)
+										while (curbits < 24) //Getbits
 										{
-											j = lcomphsamp[0];
-											cr = (dc2[i+64]>>13)&~1;
-											cb = (dc2[i]>>13)&~1;
-											i++;
+											ch = *kfileptr++; if (ch == 255) kfileptr++;
+											num = (num<<8)+((long)ch); curbits += 8;
 										}
-										((long *)p)[xxx] = colclipup16[(unsigned)(yv+crmul[cr+2048])>>22]+
-																  colclipup8[(unsigned)(yv+crmul[cr+2049]+cbmul[cb+2048])>>22]+
-																	  colclip[(unsigned)(yv+cbmul[cb+2049])>>22];
+
+										if (!Ah)
+										{
+											i = ((num>>(curbits-10))&1023);
+											if (i < hufquickcnt[lcompdc[c]])
+												  { daval = hufquickval[lcompdc[c]][i]; curbits -= hufquickbits[lcompdc[c]][i]; }
+											else { huffgetval(lcompdc[c],curbits,num,&daval,&dabits); curbits -= dabits; }
+
+											if (daval)
+											{
+												while (curbits < 24) //Getbits
+												{
+													ch = *kfileptr++; if (ch == 255) kfileptr++;
+													num = (num<<8)+((long)ch); curbits += 8;
+												}
+
+												curbits -= daval; v = ((unsigned)num >> curbits) & pow2mask[daval];
+												if (v <= pow2mask[daval-1]) v -= pow2mask[daval];
+												lastdc[c] += v;
+											}
+											if (!dctbuf) dc[0] = lastdc[c]; else dcs[0] = (short)(lastdc[c]<<Al);
+										}
+										else if (num&(pow2long[--curbits])) dcs[0] |= ((short)Alut[0]);
 									}
-									p += bytesperline;
-									dc += 8;
-									if (!((yyy+1)&(lcompvsamp[0]-1))) dc2 += 8;
+
+										//Get AC
+									if (!dctbuf) memset((void *)&dc[1],0,63*4);
+									z = max(Ss,1); dcflag = 1;
+									if (eobrun <= 0)
+									{
+										for(;z<=Se;z++)
+										{
+											while (curbits < 24) //Getbits
+											{
+												ch = *kfileptr++; if (ch == 255) kfileptr++;
+												num = (num<<8)+((long)ch); curbits += 8;
+											}
+											i = ((num>>(curbits-10))&1023);
+											if (i < hqcnt)
+												  { daval = hqval[i]; curbits -= hqbits[i]; }
+											else { huffgetval(lcompac[c]+4,curbits,num,&daval,&dabits); curbits -= dabits; }
+
+											zz = (daval>>4); daval &= 15;
+											if (daval)
+											{
+												if (Ah)
+												{
+													//NOTE: Getbits not needed here - buffer should have enough bits
+													if (num&(pow2long[--curbits])) daval = Alut[0]; else daval = Alut[1];
+												}
+											}
+											else if (zz < 15)
+											{
+												eobrun = pow2long[zz];
+												if (zz)
+												{
+													while (curbits < 24) //Getbits
+													{
+														ch = *kfileptr++; if (ch == 255) kfileptr++;
+														num = (num<<8)+((long)ch); curbits += 8;
+													}
+													curbits -= zz; eobrun += ((unsigned)num >> curbits) & pow2mask[zz];
+												}
+												if (!Ah) eobrun--;
+												break;
+											}
+											if (Ah)
+											{
+												do
+												{
+													if (dcs[z])
+													{
+														while (curbits < 24) //Getbits
+														{
+															ch = *kfileptr++; if (ch == 255) kfileptr++;
+															num = (num<<8)+((long)ch); curbits += 8;
+														}
+														if (num&(pow2long[--curbits])) dcs[z] += ((short)Alut[dcs[z] < 0]);
+												  } else if (--zz < 0) break;
+												  z++;
+												} while (z <= Se);
+												if (daval) dcs[z] = daval;
+											}
+											else
+											{
+												z += zz; if (z > Se) break;
+
+												while (curbits < 24) //Getbits
+												{
+													ch = *kfileptr++; if (ch == 255) kfileptr++;
+													num = (num<<8)+((long)ch); curbits += 8;
+												}
+												curbits -= daval; v = ((unsigned)num >> curbits) & pow2mask[daval];
+												if (v <= pow2mask[daval-1]) v -= pow2mask[daval];
+												dcflag |= dcflagor[z];
+												if (!dctbuf) dc[unzig[z]] = v; else dcs[z] = (short)(v<<Al);
+											}
+										}
+									} else if (!Ah) eobrun--;
+									if ((Ah) && (eobrun > 0))
+									{
+										eobrun--;
+										for(;z<=Se;z++)
+										{
+											if (!dcs[z]) continue;
+											while (curbits < 24) //Getbits
+											{
+												ch = *kfileptr++; if (ch == 255) kfileptr++;
+												num = (num<<8)+((long)ch); curbits += 8;
+											}
+											if (num&(pow2long[--curbits])) dcs[z] += ((short)Alut[dcs[z] < 0]);
+										}
+									}
+
+									if (!dctbuf)
+									{
+										for(z=64-1;z>=0;z--) dc[z] *= quanptr[z];
+										invdct8x8(dc,dcflag); dc += 64;
+									}
 								}
 							}
-						}
 
-					if (lnumcomponents) //do only when not EOF...
-					{
+						if (!dctbuf) yrbrend(x,y);
+
 						restartcnt--;
 						if (!restartcnt)
 						{
@@ -1707,18 +1830,47 @@ static long kpegrend (const char *kfilebuf, long kfilength,
 							marker++; if (marker >= 0xd8) marker = 0xd0;
 							restartcnt = restartinterval;
 							for(i=0;i<4;i++) lastdc[i] = 0;
+							eobrun = 0;
 						}
 					}
-
-					x += (lcomphsamp[0]<<3);
-					if (x >= xdim) { x = 0; y += (lcompvsamp[0]<<3); if (y >= ydim) return(0); }
-				}
-			default:
-				kfileptr += leng;
-				break;
+kpegrend_break2:;
+				if (!dctbuf) return(0);
+				passcnt++; kfileptr -= ((curbits>>3)+1); break;
+			case 0xd9: break;
+			default: kfileptr += leng; break;
 		}
 	} while (kfileptr-(unsigned char *)kfilebuf < kfilength);
-	return(0);
+
+	if (!dctbuf) return(0);
+
+	lnumcomponents = gnumcomponents;
+	for(i=0;i<gnumcomponents;i++)
+	{
+		lcomphsamp[i] = gcomphsamp[i]; gcomphsamp[i] <<= 3;
+		lcompvsamp[i] = gcompvsamp[i]; gcompvsamp[i] <<= 3;
+		lshx[i] = glhsampmax-gcomphsampshift[i]+3;
+		lshy[i] = glvsampmax-gcompvsampshift[i]+3;
+	}
+	lcomphsampshift0 = gcomphsampshift[0];
+	lcompvsampshift0 = gcompvsampshift[0];
+	lcomphvsamp0 = (lcomphsamp[0]<<lcompvsampshift0);
+	for(y=0;y<ydim;y+=gcompvsamp[0])
+		for(x=0;x<xdim;x+=gcomphsamp[0])
+		{
+			dc = dct[0];
+			for(c=0;c<gnumcomponents;c++)
+				for(yy=0;yy<gcompvsamp[c];yy+=8)
+					for(xx=0;xx<gcomphsamp[c];xx+=8,dc+=64)
+					{
+						dcs = &dctptr[c][(((y+yy)>>lshy[c])*dctx[c] + ((x+xx)>>lshx[c]))<<6];
+						quanptr = &quantab[gcompquantab[c]][0];
+						for(z=0;z<64;z++) dc[z] = ((long)dcs[zigit[z]])*quanptr[z];
+						invdct8x8(dc,-1);
+					}
+			yrbrend(x,y);
+		}
+
+	free(dctbuf); return(0);
 }
 
 //==============================  KPEGILIB ends ==============================
@@ -2150,7 +2302,6 @@ static long kpcxrend (const char *buf, long fleng,
 		x0 = max(daglobxoffs,0); x1 = min(xsiz+daglobxoffs,daxres);
 		y0 = max(daglobyoffs,0); y1 = min(ysiz+daglobyoffs,dayres);
 		i = y0*dabytesperline + daframeplace+3;
-		//if (bigendian) i -= 3; //Beware of Endian issues ... this loop is intended to modify the MSB!
 		for(y=y0;y<y1;y++,i+=dabytesperline)
 			for(x=x0;x<x1;x++) *(char *)((x<<2)+i) = 255;
 	}
@@ -2650,15 +2801,12 @@ long kzfindfile (char *filnam)
 			i = wildstpathleng;
 			strcpy(&filnam[i],findata->d_name);
 			if (stat(filnam,&st) < 0) continue;
-			//if (findata->d_type == DT_DIR)
-			if (st.st_mode & S_IFDIR) //(findata->d_type == DT_DIR)
+			if (st.st_mode & S_IFDIR)
 				{ if (findata->d_name[0] == '.' && !findata->d_name[1]) continue; } //skip .
-			//else if ((findata->d_type == DT_REG) || (findata->d_type == DT_LNK))
 			else if ((st.st_mode & S_IFREG) || (st.st_mode & S_IFLNK))
 				{ if (findata->d_name[0] == '.') continue; } //skip hidden (dot) files
 			else continue; //skip devices and fifos and such
 			if (!wildmatch(findata->d_name,&wildst[wildstpathleng])) continue;
-			//if (findata->d_type == DT_DIR) strcat(&filnam[i],"/");
 			if (st.st_mode & S_IFDIR) strcat(&filnam[i],"/");
 			}
 #endif
@@ -2963,7 +3111,7 @@ void kpzload (const char *filnam, long *pic, long *bpl, long *xsiz, long *ysiz)
 	kpgetdim(buf,leng,xsiz,ysiz);
 	(*bpl) = ((*xsiz)<<2);
 	(*pic) = (long)malloc((*ysiz)*(*bpl)); if (!(*pic)) { free(buf); return; }
-	kprender(buf,leng,*pic,*bpl,*xsiz,*ysiz,0,0);
+	if (kprender(buf,leng,*pic,*bpl,*xsiz,*ysiz,0,0) < 0) { free(buf); free((void *)*pic); (*pic) = 0; return; }
 	free(buf);
 }
 //====================== HANDY PICTURE function ends =========================

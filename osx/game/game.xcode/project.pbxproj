@@ -242,7 +242,7 @@
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = "SUPERBUILD POLYMOST USE_OPENGL NOASM RENDERTYPESDL=1";
-				HEADER_SEARCH_PATHS = "/Library/Frameworks/SDL.framework/Headers /Developer/SDKs/fmodapi3741mac/api/inc ../../include";
+				HEADER_SEARCH_PATHS = "/Developer/SDKs/fmodapi3741mac/api/inc ../../include";
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(USER_APPS_DIR)";
 				LIBRARY_SEARCH_PATHS = "/Developer/SDKs/fmodapi3741mac/api/lib ../engine/build";
@@ -574,7 +574,7 @@
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = "SUPERBUILD POLYMOST USE_OPENGL NOASM USE_A_C RENDERTYPESDL=1";
-				HEADER_SEARCH_PATHS = "/Library/Frameworks/SDL.framework/Headers ../../include";
+				HEADER_SEARCH_PATHS = ../../include;
 				INFOPLIST_FILE = "editor-Info.plist";
 				INSTALL_PATH = "$(USER_APPS_DIR)";
 				LIBRARY_SEARCH_PATHS = ../engine/build;
