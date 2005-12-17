@@ -71,6 +71,9 @@ void (APIENTRY * bglTexImage2D)( GLenum target, GLint level, GLint internalForma
 void (APIENTRY * bglTexSubImage2D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels );	// 1.1
 void (APIENTRY * bglTexParameterf)( GLenum target, GLenum pname, GLfloat param );
 void (APIENTRY * bglTexParameteri)( GLenum target, GLenum pname, GLint param );
+void (APIENTRY * bglGetTexLevelParameteriv)( GLenum target, GLint level, GLenum pname, GLint *params );
+void (APIENTRY * bglCompressedTexImage2DARB)(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid *);
+void (APIENTRY * bglGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
 
 // Fog
 void (APIENTRY * bglFogf)( GLenum pname, GLfloat param );
@@ -118,6 +121,7 @@ int loadgldriver(const char *driver)
 #ifdef RENDERTYPESDL
 	if (SDL_GL_LoadLibrary(driver)) return -1;
 #	define GETPROC(s) (t = (void*)SDL_GL_GetProcAddress(s)); if (!t) { initprintf("Failed to find " s " in %s\n",driver); err = 1; }
+#   define GETPROCSOFT(s) (void*)SDL_GL_GetProcAddress(s)
 #else
 #	ifdef _WIN32
 		hGLDLL = LoadLibrary(driver);
@@ -125,6 +129,7 @@ int loadgldriver(const char *driver)
 #		define GETPROC(s) \
 			(t = (void*)GetProcAddress(hGLDLL,s)); \
 			if (!t) { initprintf("Failed to find " s " in %s\n",driver); err = 1; }
+#       define GETPROCSOFT(s) (void*)GetProcAddress(hGLDLL,s)
 #	else
 #		error Umm...
 #	endif
@@ -192,6 +197,9 @@ int loadgldriver(const char *driver)
 	bglTexSubImage2D	= GETPROC("glTexSubImage2D");
 	bglTexParameterf	= GETPROC("glTexParameterf");
 	bglTexParameteri	= GETPROC("glTexParameteri");
+	bglGetTexLevelParameteriv   = GETPROC("glGetTexLevelParameteriv");
+	bglCompressedTexImage2DARB  = GETPROCSOFT("glCompressedTexImage2DARB");
+	bglGetCompressedTexImageARB = GETPROCSOFT("glGetCompressedTexImageARB");
 
 	// Fog
 	bglFogf			= GETPROC("glFogf");
@@ -290,6 +298,9 @@ int unloadgldriver(void)
 	bglTexSubImage2D	= NULL;
 	bglTexParameterf	= NULL;
 	bglTexParameteri	= NULL;
+	bglGetTexLevelParameteriv   = NULL;
+	bglCompressedTexImage2DARB  = NULL;
+	bglGetCompressedTexImageARB = NULL;
 
 	// Fog
 	bglFogf			= NULL;

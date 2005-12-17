@@ -65,6 +65,8 @@ Low priority:
 
 **************************************************************************************************/
 
+//#define USECOMPRTEXTURECACHE
+
 static long animateoffs(short tilenum, short fakevar);
 long rendmode = 0;
 long usemodels=1, usehightile=1, usegoodalpha=0;
@@ -634,7 +636,7 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 	*/
 	
 	if (js == 0) {
-		if (doalloc)
+		if (doalloc&1)
 			bglTexImage2D(GL_TEXTURE_2D,0,intexfmt,xsiz,ysiz,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
 		else
 			bglTexSubImage2D(GL_TEXTURE_2D,0,0,0,xsiz,ysiz,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
@@ -675,7 +677,7 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 		}
 		if (tsizx >= 0) fixtransparency(pic,(tsizx+(1<<j)-1)>>j,(tsizy+(1<<j)-1)>>j,x3,y3,dameth);
 		if (j >= js) {
-			if (doalloc)
+			if (doalloc&1)
 				bglTexImage2D(GL_TEXTURE_2D,j-js,intexfmt,x3,y3,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
 			else
 				bglTexSubImage2D(GL_TEXTURE_2D,j-js,0,0,x3,y3,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
@@ -785,13 +787,177 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 	return 0;
 }
 
+// JONOF'S COMPRESSED TEXTURE CACHE STUFF ---------------------------------------------------
+#ifdef USECOMPRTEXTURECACHE
+static char TEXCACHEDIR[] = "texcache/";
+typedef struct {
+	char magic[8];	// 'Polymost'
+	long xdim, ydim;	// of image, unpadded
+	long flags;		// 1 = !2^x
+} texcacheheader;
+typedef struct {
+	long size, format;
+	long xdim, ydim;	// of mipmap (possibly padded)
+	long border, depth;
+} texcachepicture;
+long glusetexcache = 1;
+#include "md4.h"
+
+static void inline phex(unsigned char v, char *s)
+{
+	int x;
+	x = v>>4;
+	s[0] = x<10 ? (x+'0') : (x-10+'a');
+	x = v&15;
+	s[1] = x<10 ? (x+'0') : (x-10+'a');
+}
+
+long trytexcache(char *fn, long len, long dameth, char effect, texcacheheader *head)
+{
+	long fil, fp;
+	char cachefn[BMAX_PATH], *cp;
+	unsigned char mdsum[16];
+	
+	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return -1;
+	
+	md4(fn, strlen(fn), mdsum);
+	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
+	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
+	sprintf(cp, "-%x-%x%x", len, dameth, effect);
+	
+	fil = kopen4load(cachefn, 0);
+	if (fil < 0) return -1;
+	
+	initprintf("Loading cached tex: %s\n", cachefn);
+	
+	if (kread(fil, head, sizeof(texcacheheader)) < sizeof(texcacheheader) ||
+		memcmp(head->magic, "Polymost", 8) ||
+		(!glinfo.texnpot && (head->flags & 1))) {
+		kclose(fil);
+		return -1;
+	}
+	
+	return fil;
+}
+
+void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *head)
+{
+	long fil=-1, fp;
+	char cachefn[BMAX_PATH], *cp;
+	unsigned char mdsum[16];
+	texcachepicture pict;
+	void *pic = NULL;
+	long alloclen=0, level;
+	unsigned long padx, pady;
+	GLuint gi;
+
+	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return;
+
+	gi = GL_FALSE;
+	bglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_ARB, &gi);
+	if (gi != GL_TRUE) return;
+
+	md4(fn, strlen(fn), mdsum);
+	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
+	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
+	sprintf(cp, "-%x-%x%x", len, dameth, effect);
+	
+	initprintf("Writing cached tex: %s\n", cachefn);
+	
+	fil = Bopen(cachefn,BO_BINARY|BO_CREAT|BO_TRUNC|BO_RDWR,BS_IREAD|BS_IWRITE);
+	if (fil < 0) return;
+	
+	memcpy(head->magic, "Polymost", 8);	// sizes are set by caller
+	if (Bwrite(fil, head, sizeof(texcacheheader)) != sizeof(texcacheheader)) goto failure;
+	
+	for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
+		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_ARB, &gi);
+		if (gi != GL_TRUE) goto failure;	// an uncompressed mipmap
+		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_INTERNAL_FORMAT, &gi);
+		pict.format = gi;
+		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB, &gi);
+		pict.size = gi;
+		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_WIDTH, &gi);
+		pict.xdim = gi;
+		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_HEIGHT, &gi);
+		pict.ydim = gi;
+		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_BORDER, &gi);
+		pict.border = gi;
+		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_DEPTH, &gi);
+		pict.depth = gi;
+		
+		if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
+
+		if (alloclen < pict.size) {
+			void *picc = realloc(pic, pict.size);
+			if (!picc) goto failure; else pic = picc;
+			alloclen = pict.size;
+		}
+		
+		bglGetCompressedTexImageARB(GL_TEXTURE_2D, level, pic);
+		if (Bwrite(fil, pic, pict.size) != pict.size) goto failure;
+	}
+	
+failure:
+	if (fil>=0) Bclose(fil);
+	if (pic) free(pic);
+}
+
+int gloadtile_cached(long fil, texcacheheader *head, long *doalloc, pthtyp *pth)
+{
+	int level, r;
+	texcachepicture pict;
+	void *pic = NULL;
+	long alloclen=0;
+	
+	if (*doalloc) bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
+	*doalloc |= 2;	// prevents bglGenTextures being called again if we fail in here
+	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
+	
+	pth->sizx = head->xdim;
+	pth->sizy = head->ydim;
+	
+	bglGetError();
+
+	// load the mipmaps
+	for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
+		r = kread(fil, &pict, sizeof(texcachepicture));
+		if (r < sizeof(texcachepicture)) goto failure;
+		
+		if (alloclen < pict.size) {
+			void *picc = realloc(pic, pict.size);
+			if (!picc) goto failure; else pic = picc;
+			alloclen = pict.size;
+		}
+
+		r = kread(fil, pic, pict.size);
+		if (r < pict.size) goto failure;
+		
+		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,pict.size,pic);
+		if (bglGetError() != GL_NO_ERROR) goto failure;
+	}
+
+	if (pic) free(pic);
+	return 0;
+failure:
+	if (pic) free(pic);
+	return -1;
+}
+#endif
+// --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
+
 int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp *pth, long doalloc, char effect)
 {
-	coltype *pic, *rpptr;
+	coltype *pic = NULL, *rpptr;
 	long j, x, y, x2, y2, xsiz, ysiz, tsizx, tsizy;
 
-	char *picfil = 0, *fn, hasalpha = 255;
+	char *picfil = NULL, *fn, hasalpha = 255;
 	long picfillen, texfmt = GL_RGBA, intexfmt = GL_RGBA, filh;
+
+#ifdef USECOMPRTEXTURECACHE
+	long cachefil;
+	texcacheheader cachead;
+#endif
 
 	if (!hicr) return -1;
 	if (facen > 0) {
@@ -813,75 +979,106 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 		return -1;
 	}
 	picfillen = kfilelength(filh);
-	picfil = (char *)malloc(picfillen); if (!picfil) { kclose(filh); return 1; }
-	kread(filh, picfil, picfillen);
-	kclose(filh);
 
-	// tsizx/y = replacement texture's natural size
-	// xsiz/y = 2^x size of replacement
+#ifdef USECOMPRTEXTURECACHE
+	kclose(filh);	// FIXME: shouldn't have to do this. bug in cache1d.c
 
-	kpgetdim(picfil,picfillen,&tsizx,&tsizy);
-	if (tsizx == 0 || tsizy == 0) { free(picfil); return -1; }
-	pth->sizx = tsizx;
-	pth->sizy = tsizy;
-
-	if (!glinfo.texnpot) {
-		for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
-		for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
+	cachefil = trytexcache(fn, picfillen, dameth, effect, &cachead);
+	if (cachefil >= 0 && !gloadtile_cached(cachefil, &cachead, &doalloc, pth)) {
+		tsizx = cachead.xdim;
+		tsizy = cachead.ydim;
+		kclose(cachefil);
+		//kclose(filh);	// FIXME: uncomment when cache1d.c is fixed
+		// cachefil >= 0, so it won't be rewritten
 	} else {
-		xsiz = tsizx;
-		ysiz = tsizy;
-	}
-	pic = (coltype *)calloc(xsiz,ysiz*sizeof(coltype)); if (!pic) { free(picfil); return 1; }
+		if (cachefil >= 0) kclose(cachefil);
+		cachefil = -1;	// the compressed version will be saved to disk
+		
+		if ((filh = kopen4load(fn, 0)) < 0) return -1;
+#endif
 
-	if (kprender(picfil,picfillen,(long)pic,xsiz*sizeof(coltype),xsiz,ysiz,0,0)) { free(picfil); free(pic); return -2; }
-	for(y=0,j=0;y<tsizy;y++,j+=xsiz)
-	{
-		coltype tcol;
-		char *cptr = &britable[curbrightness][0]; rpptr = &pic[j];
+		picfil = (char *)malloc(picfillen); if (!picfil) { kclose(filh); return 1; }
+		kread(filh, picfil, picfillen);
+		kclose(filh);
 
-		for(x=0;x<tsizx;x++)
+		// tsizx/y = replacement texture's natural size
+		// xsiz/y = 2^x size of replacement
+
+		kpgetdim(picfil,picfillen,&tsizx,&tsizy);
+		if (tsizx == 0 || tsizy == 0) { free(picfil); return -1; }
+		pth->sizx = tsizx;
+		pth->sizy = tsizy;
+
+		if (!glinfo.texnpot) {
+			for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
+			for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
+		} else {
+			xsiz = tsizx;
+			ysiz = tsizy;
+		}
+		pic = (coltype *)calloc(xsiz,ysiz*sizeof(coltype)); if (!pic) { free(picfil); return 1; }
+
+		if (kprender(picfil,picfillen,(long)pic,xsiz*sizeof(coltype),xsiz,ysiz,0,0)) { free(picfil); free(pic); return -2; }
+		for(y=0,j=0;y<tsizy;y++,j+=xsiz)
 		{
-			tcol.b = cptr[rpptr[x].b];
-			tcol.g = cptr[rpptr[x].g];
-			tcol.r = cptr[rpptr[x].r];
-			tcol.a = rpptr[x].a; hasalpha &= rpptr[x].a;
+			coltype tcol;
+			char *cptr = &britable[curbrightness][0]; rpptr = &pic[j];
 
-			if (effect & 1) {
-				// greyscale
-				tcol.b = max(tcol.b, max(tcol.g, tcol.r));
-				tcol.g = tcol.r = tcol.b;
-			}
-			if (effect & 2) {
-				// invert
-				tcol.b = 255-tcol.b;
-				tcol.g = 255-tcol.g;
-				tcol.r = 255-tcol.r;
-			}
+			for(x=0;x<tsizx;x++)
+			{
+				tcol.b = cptr[rpptr[x].b];
+				tcol.g = cptr[rpptr[x].g];
+				tcol.r = cptr[rpptr[x].r];
+				tcol.a = rpptr[x].a; hasalpha &= rpptr[x].a;
 
-			rpptr[x].b = tcol.b;
-			rpptr[x].g = tcol.g;
-			rpptr[x].r = tcol.r;
-			rpptr[x].a = tcol.a;
+				if (effect & 1) {
+					// greyscale
+					tcol.b = max(tcol.b, max(tcol.g, tcol.r));
+					tcol.g = tcol.r = tcol.b;
+				}
+				if (effect & 2) {
+					// invert
+					tcol.b = 255-tcol.b;
+					tcol.g = 255-tcol.g;
+					tcol.r = 255-tcol.r;
+				}
+
+				rpptr[x].b = tcol.b;
+				rpptr[x].g = tcol.g;
+				rpptr[x].r = tcol.r;
+				rpptr[x].a = tcol.a;
+			}
 		}
-	}
-	if ((!(dameth&4)) || (facen)) //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
-	{
-		if (xsiz > tsizx) //Copy left to right
+		if ((!(dameth&4)) || (facen)) //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
 		{
-			long *lptr = (long *)pic;
-			for(y=0;y<tsizy;y++,lptr+=xsiz)
-				memcpy(&lptr[tsizx],lptr,(xsiz-tsizx)<<2);
+			if (xsiz > tsizx) //Copy left to right
+			{
+				long *lptr = (long *)pic;
+				for(y=0;y<tsizy;y++,lptr+=xsiz)
+					memcpy(&lptr[tsizx],lptr,(xsiz-tsizx)<<2);
+			}
+			if (ysiz > tsizy)  //Copy top to bottom
+				memcpy(&pic[xsiz*tsizy],pic,(ysiz-tsizy)*xsiz<<2);
 		}
-		if (ysiz > tsizy)  //Copy top to bottom
-			memcpy(&pic[xsiz*tsizy],pic,(ysiz-tsizy)*xsiz<<2);
+		if (!glinfo.bgra) {
+			for(j=xsiz*ysiz-1;j>=0;j--) {
+				swapchar(&pic[j].r, &pic[j].b);
+			}
+		} else texfmt = GL_BGRA;
+		free(picfil); picfil = 0;
+
+		if (glinfo.texcompr && glusetexcompr)
+			intexfmt = (hasalpha == 255) ? GL_COMPRESSED_RGB_ARB : GL_COMPRESSED_RGBA_ARB;
+		else if (hasalpha == 255) intexfmt = GL_RGB;
+
+		if (doalloc < 2) bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
+		bglBindTexture(GL_TEXTURE_2D,pth->glpic);
+
+		fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);
+		uploadtexture(doalloc,xsiz,ysiz,intexfmt,texfmt,pic,-1,tsizy,dameth);
+#ifdef USECOMPRTEXTURECACHE
 	}
-	if (!glinfo.bgra) {
-		for(j=xsiz*ysiz-1;j>=0;j--) {
-			swapchar(&pic[j].r, &pic[j].b);
-		}
-	} else texfmt = GL_BGRA;
-	free(picfil); picfil = 0;
+#endif
 
 	// precalculate scaling parameters for replacement
 	if (facen > 0) {
@@ -891,17 +1088,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 		pth->scalex = ((float)tsizx) / ((float)tilesizx[dapic]);
 		pth->scaley = ((float)tsizy) / ((float)tilesizy[dapic]);
 	}
-
-	if (glinfo.texcompr && glusetexcompr)
-		intexfmt = (hasalpha == 255) ? GL_COMPRESSED_RGB_ARB : GL_COMPRESSED_RGBA_ARB;
-	else if (hasalpha == 255) intexfmt = GL_RGB;
-
-	if (doalloc) bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
-	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
-
-	fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);
-	uploadtexture(doalloc,xsiz,ysiz,intexfmt,texfmt,pic,-1,tsizy,dameth);
-
+	
 	if (gltexfiltermode < 0) gltexfiltermode = 0;
 	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
@@ -931,6 +1118,22 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 	pth->flags = ((dameth&4)>>2) + 2 + ((facen>0)<<2); if (hasalpha != 255) pth->flags |= 8;
 	pth->skyface = facen;
 	pth->hicr = hicr;
+	
+#ifdef USECOMPRTEXTURECACHE
+	if (cachefil < 0) {
+		// save off the compressed version
+		cachead.xdim = tsizx;
+		cachead.ydim = tsizy;
+		cachead.flags = 1;
+		x = 0;
+		for (j=0;j<31;j++) {
+			if (xsiz == pow2long[j]) { x |= 1; }
+			if (ysiz == pow2long[j]) { x |= 2; }
+		}
+		cachead.flags = (x!=3);
+		writexcache(fn, picfillen, dameth, effect, &cachead);
+	}
+#endif
 
 	return 0;
 }

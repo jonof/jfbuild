@@ -45,20 +45,21 @@ LIBS=dxguid.lib wsock32.lib fmodwc.lib #opengl32.lib
 ASFLAGS=# -d1
 EXESUFFIX=.exe
 
-ENGINEOBJS=$(OBJ)engine.$o &
-	$(OBJ)cache1d.$o &
-	$(OBJ)a.$o &
-	$(OBJ)pragmas.$o &
-	$(OBJ)osd.$o &
-	$(OBJ)crc32.$o &
-	$(OBJ)engineinfo.$o &
+ENGINEOBJS=$(OBJ)a.$o &
 	$(OBJ)baselayer.$o &
-	$(OBJ)glbuild.$o &
+	$(OBJ)cache1d.$o &
 	$(OBJ)compat.$o &
-	$(OBJ)kplib.$o &
-	$(OBJ)scriptfile.$o &
-	$(OBJ)mmulti.$o &
+	$(OBJ)crc32.$o &
 	$(OBJ)defs.$o &
+	$(OBJ)engine.$o &
+	$(OBJ)engineinfo.$o &
+	$(OBJ)glbuild.$o &
+	$(OBJ)kplib.$o &
+	$(OBJ)md4.$o &
+	$(OBJ)mmulti.$o &
+	$(OBJ)osd.$o &
+	$(OBJ)pragmas.$o &
+	$(OBJ)scriptfile.$o &
 	$(OBJ)winlayer.$o
 
 EDITOROBJS=$(OBJ)build.$o &

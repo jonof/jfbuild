@@ -68,6 +68,7 @@
 				AB2B5C8108E6979600899067,
 				AB2B5C8208E6979600899067,
 				AB2B5C8308E6979600899067,
+				AB8F394909545F3800B9F541,
 			);
 			isa = PBXHeadersBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -216,6 +217,7 @@
 				AB2B5C9408E6979600899067,
 				AB2B5C9508E6979600899067,
 				AB2B5D4708E69D9000899067,
+				AB8F394609545F2600B9F541,
 			);
 			isa = PBXSourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -436,6 +438,7 @@
 				AB3AFEAC08DF044D00C0AA42,
 				AB3AFEAD08DF044D00C0AA42,
 				AB3AFEAE08DF044D00C0AA42,
+				AB8F394809545F3800B9F541,
 			);
 			isa = PBXHeadersBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -461,6 +464,7 @@
 				AB3AF9D708DEE2B000C0AA42,
 				AB3AF9D908DEE2B000C0AA42,
 				AB2B5D4608E69D9000899067,
+				AB8F394509545F2600B9F541,
 			);
 			isa = PBXSourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -535,6 +539,7 @@
 		};
 		AB3AF5F808DEDAEB00C0AA42 = {
 			children = (
+				AB8F394409545F2600B9F541,
 				AB3AF62208DEDB5700C0AA42,
 				AB3AF5F908DEDB3100C0AA42,
 				AB3AF5FA08DEDB3100C0AA42,
@@ -1309,6 +1314,7 @@
 		};
 		AB3AFEAF08DF046600C0AA42 = {
 			children = (
+				AB8F394709545F3800B9F541,
 				AB3AFE9308DF044D00C0AA42,
 				AB3AFE9408DF044D00C0AA42,
 				AB3AFE9508DF044D00C0AA42,
@@ -1351,6 +1357,54 @@
 		};
 		AB3AFEB408DF04B100C0AA42 = {
 			fileRef = AB3AFEB308DF04B100C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
+			};
+		};
+		AB8F394409545F2600B9F541 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = md4.c;
+			path = ../../src/md4.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB8F394509545F2600B9F541 = {
+			fileRef = AB8F394409545F2600B9F541;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB8F394609545F2600B9F541 = {
+			fileRef = AB8F394409545F2600B9F541;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		AB8F394709545F3800B9F541 = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			name = md4.h;
+			path = ../../include/md4.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		AB8F394809545F3800B9F541 = {
+			fileRef = AB8F394709545F3800B9F541;
+			isa = PBXBuildFile;
+			settings = {
+				ATTRIBUTES = (
+					Public,
+				);
+			};
+		};
+		AB8F394909545F3800B9F541 = {
+			fileRef = AB8F394709545F3800B9F541;
 			isa = PBXBuildFile;
 			settings = {
 				ATTRIBUTES = (

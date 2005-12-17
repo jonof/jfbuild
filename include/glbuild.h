@@ -91,6 +91,9 @@ extern void (APIENTRY * bglTexImage2D)( GLenum target, GLint level, GLint intern
 extern void (APIENTRY * bglTexSubImage2D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels );	// 1.1
 extern void (APIENTRY * bglTexParameterf)( GLenum target, GLenum pname, GLfloat param );
 extern void (APIENTRY * bglTexParameteri)( GLenum target, GLenum pname, GLint param );
+extern void (APIENTRY * bglGetTexLevelParameteriv)( GLenum target, GLint level, GLenum pname, GLint *params );
+extern void (APIENTRY * bglCompressedTexImage2DARB)(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid *);
+extern void (APIENTRY * bglGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
 
 // Fog
 extern void (APIENTRY * bglFogf)( GLenum pname, GLfloat param );
@@ -174,6 +177,9 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 #define bglTexSubImage2D	glTexSubImage2D
 #define bglTexParameterf	glTexParameterf
 #define bglTexParameteri	glTexParameteri
+#define bglGetTexLevelParameteriv glGetTexLevelParameteriv
+#define bglCompressedTexImage2DARB glCompressedTexImage2DARB
+#define bglGetCompressedTexImageARB glGetCompressedTexImageARB
 
 // Fog
 #define bglFogf			glFogf
