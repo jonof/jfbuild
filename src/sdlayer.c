@@ -37,9 +37,6 @@ int   _buildargc = 1;
 char **_buildargv = NULL;
 extern long app_main(long argc, char *argv[]);
 
-static char gamma_saved = 0, gamma_supported = 0;
-static unsigned short sysgamma[3*256];
-
 char quitevent=0, appactive=1;
 
 // video
@@ -1155,24 +1152,10 @@ int getpalette(int start, int num, char *dapal)
 //
 // setgamma
 //
+
 int setgamma(float ro, float go, float bo)
 {
-	int i;
-	unsigned short gt[3*256];
-	
-	return -1;
-
-	if (!gamma_saved) {
-		gamma_saved = 1;
-	}
-
-	for (i=0;i<256;i++) {
-		gt[i]     = min(255,(unsigned short)floor(255.0 * pow((float)i / 255.0, ro))) << 8;
-		gt[i+256] = min(255,(unsigned short)floor(255.0 * pow((float)i / 255.0, go))) << 8;
-		gt[i+512] = min(255,(unsigned short)floor(255.0 * pow((float)i / 255.0, bo))) << 8;
-	}
-
-	return 0;
+	return SDL_SetGamma(ro,go,bo);
 }
 
 /*

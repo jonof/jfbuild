@@ -16,6 +16,7 @@
 #include "cache1d.h"
 #include "a.h"
 #include "osd.h"
+#include "crc32.h"
 
 #include "baselayer.h"
 
@@ -73,7 +74,7 @@ long dommxoverlay = 1, beforedrawrooms = 1;
 
 static long oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
 
-static long curbrightness = 0;
+static long curbrightness = 0, gammabrightness = 0;
 
 	//Textured Map variables
 static char globalpolytype;
@@ -5486,6 +5487,8 @@ int initengine(void)
 	if (!mdinited) mdinit();
 #endif
 
+	initcrc32table();
+
 	return 0;
 }
 
@@ -9121,16 +9124,19 @@ void setvgapalette(void)
 //
 // setbrightness
 //
+static unsigned long lastpalettesum = 0;
 void setbrightness(char dabrightness, char *dapal, char noapply)
 {
 	long i, k;
-	//float f;
+	float f;
+	unsigned long newpalettesum;
 
 	if (!(noapply&4))
 		curbrightness = min(max((long)dabrightness,0),15);
 
-	//f = -1.0 - ((float)curbrightness / 30.0);
-	//if (setgamma(f,f,f)) {
+	f = 1.0 + ((float)curbrightness / 10.0);
+	initprintf("noapply=%d, brightness is %d, gamma is %g\n",noapply,dabrightness,f);
+	if (setgamma(f,f,f)) {
 		k = 0;
 		for(i=0;i<256;i++)
 		{
@@ -9139,7 +9145,8 @@ void setbrightness(char dabrightness, char *dapal, char noapply)
 			curpalette[i].r = (tempbuf[k++] = britable[curbrightness][dapal[i*3+0] << 2]);
 			curpalette[i].f = tempbuf[k++] = 0;
 		}
-	/*} else {
+		gammabrightness = 0;
+	} else {
 		k = 0;
 		for(i=0;i<256;i++)
 		{
@@ -9148,15 +9155,18 @@ void setbrightness(char dabrightness, char *dapal, char noapply)
 			curpalette[i].r = (tempbuf[k++] = dapal[i*3+0]) << 2;
 			curpalette[i].f = tempbuf[k++] = 0;
 		}
-	}*/
-
+		gammabrightness = 1;
+	}
+	
 	copybufbyte(curpalette, curpalettefaded, sizeof(curpalette));
 	if ((noapply&1) == 0)
 		setpalette(0,256,(char*)tempbuf);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
-		if ((noapply&2) == 0) gltexinvalidateall();
+		newpalettesum = crc32(tempbuf, 4*256);
+		if ((noapply&2) == 0 && newpalettesum != lastpalettesum) gltexinvalidateall();
+		lastpalettesum = newpalettesum;
 	}
 #endif
 

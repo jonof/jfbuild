@@ -1022,7 +1022,10 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 		for(y=0,j=0;y<tsizy;y++,j+=xsiz)
 		{
 			coltype tcol;
-			char *cptr = &britable[curbrightness][0]; rpptr = &pic[j];
+			char *cptr;
+			if (gammabrightness) cptr = &britable[0][0];
+			else cptr = &britable[curbrightness][0];
+			rpptr = &pic[j];
 
 			for(x=0;x<tsizx;x++)
 			{
