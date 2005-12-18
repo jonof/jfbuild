@@ -74,7 +74,7 @@ long dommxoverlay = 1, beforedrawrooms = 1;
 
 static long oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
 
-static long curbrightness = 0, gammabrightness = 0;
+long curbrightness = 0, gammabrightness = 0;
 
 	//Textured Map variables
 static char globalpolytype;
@@ -671,7 +671,9 @@ static long bakrendmode,baktile;
 long totalclocklock;
 
 char apptitle[256] = "Build Engine";
-palette_t curpalette[256], curpalettefaded[256], palfadergb = { 0,0,0,0 };
+palette_t curpalette[256];			// the current palette, unadjusted for brightness or tint
+palette_t curpalettefaded[256];		// the current palette, adjusted for brightness and tint (ie. what gets sent to the card)
+palette_t palfadergb = { 0,0,0,0 };
 char palfadedelta = 0;
 
 
@@ -9127,45 +9129,44 @@ void setvgapalette(void)
 static unsigned long lastpalettesum = 0;
 void setbrightness(char dabrightness, char *dapal, char noapply)
 {
-	long i, k;
+	long i, k, j;
 	float f;
-	unsigned long newpalettesum;
+	unsigned long newpalettesum, lastbright;
 
+	lastbright = curbrightness;
 	if (!(noapply&4))
 		curbrightness = min(max((long)dabrightness,0),15);
 
 	f = 1.0 + ((float)curbrightness / 10.0);
-	initprintf("noapply=%d, brightness is %d, gamma is %g\n",noapply,dabrightness,f);
-	if (setgamma(f,f,f)) {
-		k = 0;
-		for(i=0;i<256;i++)
-		{
-			curpalette[i].b = (tempbuf[k++] = britable[curbrightness][dapal[i*3+2] << 2]);
-			curpalette[i].g = (tempbuf[k++] = britable[curbrightness][dapal[i*3+1] << 2]);
-			curpalette[i].r = (tempbuf[k++] = britable[curbrightness][dapal[i*3+0] << 2]);
-			curpalette[i].f = tempbuf[k++] = 0;
-		}
-		gammabrightness = 0;
-	} else {
-		k = 0;
-		for(i=0;i<256;i++)
-		{
-			curpalette[i].b = (tempbuf[k++] = dapal[i*3+2]) << 2;
-			curpalette[i].g = (tempbuf[k++] = dapal[i*3+1]) << 2;
-			curpalette[i].r = (tempbuf[k++] = dapal[i*3+0]) << 2;
-			curpalette[i].f = tempbuf[k++] = 0;
-		}
-		gammabrightness = 1;
+	if (setgamma(f,f,f)) j = curbrightness; else j = 0;
+
+	for(k=i=0;i<256;i++)
+	{
+		// save palette without any brightness adjustment
+		curpalette[i].r = dapal[i*3+0] << 2;
+		curpalette[i].g = dapal[i*3+1] << 2;
+		curpalette[i].b = dapal[i*3+2] << 2;
+		curpalette[i].f = 0;
+		
+		// brightness adjust the palette
+		curpalettefaded[i].b = (tempbuf[k++] = britable[j][ curpalette[i].b ]);
+		curpalettefaded[i].g = (tempbuf[k++] = britable[j][ curpalette[i].g ]);
+		curpalettefaded[i].r = (tempbuf[k++] = britable[j][ curpalette[i].r ]);
+		curpalettefaded[i].f = tempbuf[k++] = 0;
 	}
 	
-	copybufbyte(curpalette, curpalettefaded, sizeof(curpalette));
-	if ((noapply&1) == 0)
-		setpalette(0,256,(char*)tempbuf);
+	if ((noapply&1) == 0) setpalette(0,256,(char*)tempbuf);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
-		newpalettesum = crc32(tempbuf, 4*256);
-		if ((noapply&2) == 0 && newpalettesum != lastpalettesum) gltexinvalidateall();
+		newpalettesum = crc32((unsigned char *)curpalettefaded, sizeof(curpalettefaded));
+
+		// only reset the textures if the preserve flag (bit 1 of noapply) is clear and
+		// either (a) the new palette is different to the last, or (b) the brightness
+		// changed and we couldn't set it using hardware gamma
+		if (!(noapply&2) && (newpalettesum != lastpalettesum))
+			gltexinvalidateall();
+
 		lastpalettesum = newpalettesum;
 	}
 #endif
@@ -9181,6 +9182,7 @@ void setbrightness(char dabrightness, char *dapal, char noapply)
 void setpalettefade(char r, char g, char b, char offset)
 {
 	int i,k;
+	palette_t p;
 	
 	palfadergb.r = min(63,r) << 2;
 	palfadergb.g = min(63,g) << 2;
@@ -9189,17 +9191,24 @@ void setpalettefade(char r, char g, char b, char offset)
 
 	k = 0;
 	for (i=0;i<256;i++) {
-        	tempbuf[k++] = 
+		if (gammabrightness) p = curpalette[i];
+		else {
+			p.b = britable[curbrightness][ curpalette[i].b ];
+			p.g	= britable[curbrightness][ curpalette[i].g ];
+			p.r = britable[curbrightness][ curpalette[i].r ];
+		}
+		
+		tempbuf[k++] = 
 			(curpalettefaded[i].b =
-			   curpalette[i].b + ( ( ( (long)palfadergb.b - (long)curpalette[i].b ) * (long)offset ) >> 6 ) ) >> 2;
-        	tempbuf[k++] = 
+				p.b + ( ( ( (long)palfadergb.b - (long)p.b ) * (long)offset ) >> 6 ) ) >> 2;
+		tempbuf[k++] = 
 			(curpalettefaded[i].g =
-			   curpalette[i].g + ( ( ( (long)palfadergb.g - (long)curpalette[i].g ) * (long)offset ) >> 6 ) ) >> 2;
-        	tempbuf[k++] = 
+				p.g + ( ( ( (long)palfadergb.g - (long)p.g ) * (long)offset ) >> 6 ) ) >> 2;
+		tempbuf[k++] = 
 			(curpalettefaded[i].r =
-			   curpalette[i].r + ( ( ( (long)palfadergb.r - (long)curpalette[i].r ) * (long)offset ) >> 6 ) ) >> 2;
+				p.r + ( ( ( (long)palfadergb.r - (long)p.r ) * (long)offset ) >> 6 ) ) >> 2;
 		tempbuf[k++] = curpalettefaded[i].f = 0;
-    	}
+	}
 
 	setpalette(0,256,(char*)tempbuf);
 }
@@ -9216,9 +9225,17 @@ void clearview(long dacol)
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
-		bglClearColor(((float)curpalette[dacol].r)/255.0,
-						  ((float)curpalette[dacol].g)/255.0,
-						  ((float)curpalette[dacol].b)/255.0, 0);
+		palette_t p;
+		if (gammabrightness) p = curpalette[dacol];
+		else {
+			p.r = britable[curbrightness][ curpalette[dacol].r ];
+			p.g = britable[curbrightness][ curpalette[dacol].g ];
+			p.b = britable[curbrightness][ curpalette[dacol].b ];
+		}
+		bglClearColor(((float)p.r)/255.0,
+					  ((float)p.g)/255.0,
+					  ((float)p.b)/255.0,
+					  0);
 		bglClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}
@@ -9249,10 +9266,18 @@ void clearallviews(long dacol)
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
+		palette_t p;
+		if (gammabrightness) p = curpalette[dacol];
+		else {
+			p.r = britable[curbrightness][ curpalette[dacol].r ];
+			p.g = britable[curbrightness][ curpalette[dacol].g ];
+			p.b = britable[curbrightness][ curpalette[dacol].b ];
+		}
 		bglViewport(0,0,xdim,ydim); glox1 = -1;
-		bglClearColor(((float)curpalette[dacol].r)/255.0,
-						  ((float)curpalette[dacol].g)/255.0,
-						  ((float)curpalette[dacol].b)/255.0, 0);
+		bglClearColor(((float)p.r)/255.0,
+					  ((float)p.g)/255.0,
+					  ((float)p.b)/255.0,
+					  0);
 		bglClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}
@@ -9275,10 +9300,18 @@ void plotpixel(long x, long y, char col)
 {
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3 && qsetmode == 200) {
+		palette_t p;
+		if (gammabrightness) p = curpalette[col];
+		else {
+			p.r = britable[curbrightness][ curpalette[col].r ];
+			p.g = britable[curbrightness][ curpalette[col].g ];
+			p.b = britable[curbrightness][ curpalette[col].b ];
+		}
+
 		setpolymost2dview();	// JBF 20040205: more efficient setup
 
 		bglBegin(GL_POINTS);
-		 bglColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
+		 bglColor4ub(p.r,p.g,p.b,255);
 		 bglVertex2i(x,y);
 		bglEnd();
 
@@ -9666,15 +9699,23 @@ void drawline256(long x1, long y1, long x2, long y2, char col)
 	col = palookup[0][col];
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-   if (rendmode == 3)
-   {
-	setpolymost2dview();	// JBF 20040205: more efficient setup
+	if (rendmode == 3)
+	{
+		palette_t p;
+		if (gammabrightness) p = curpalette[col];
+		else {
+			p.r = britable[curbrightness][ curpalette[col].r ];
+			p.g = britable[curbrightness][ curpalette[col].g ];
+			p.b = britable[curbrightness][ curpalette[col].b ];
+		}
 
-      bglBegin(GL_LINES);
-      bglColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
-      bglVertex2f((float)x1/4096.0,(float)y1/4096.0);
-      bglVertex2f((float)x2/4096.0,(float)y2/4096.0);
-      bglEnd();
+		setpolymost2dview();	// JBF 20040205: more efficient setup
+
+		bglBegin(GL_LINES);
+			bglColor4ub(p.r,p.g,p.b,255);
+			bglVertex2f((float)x1/4096.0,(float)y1/4096.0);
+			bglVertex2f((float)x2/4096.0,(float)y2/4096.0);
+		bglEnd();
 
       return;
    }
@@ -10398,7 +10439,20 @@ void printext256(long xpos, long ypos, short col, short backcol, char *name, cha
 	if (rendmode == 3) {
 		long xx, yy;
 		int lc=-1;
+		palette_t p,b;
 
+		if (gammabrightness) {
+			p = curpalette[col];
+			b = curpalette[backcol];
+		} else {
+			p.r = britable[curbrightness][ curpalette[col].r ];
+			p.g = britable[curbrightness][ curpalette[col].g ];
+			p.b = britable[curbrightness][ curpalette[col].b ];
+			b.r = britable[curbrightness][ curpalette[backcol].r ];
+			b.g = britable[curbrightness][ curpalette[backcol].g ];
+			b.b = britable[curbrightness][ curpalette[backcol].b ];
+		}
+		
 		setpolymost2dview();
 		bglDisable(GL_ALPHA_TEST);
 		bglDepthMask(GL_FALSE);	// disable writing to the z-buffer
@@ -10413,12 +10467,12 @@ void printext256(long xpos, long ypos, short col, short backcol, char *name, cha
 				for(x=charxsiz-1;x>=0;x--) {
 					if (letptr[y]&pow2char[7-fontsize-x]) {
 						if (lc!=col)
-							bglColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
+							bglColor4ub(p.r,p.g,p.b,255);
 						lc = col;
 						bglVertex2i(xx+x,yy);
 					} else if (backcol >= 0) {
 						if (lc!=backcol)
-							bglColor4ub(curpalette[backcol].r,curpalette[backcol].g,curpalette[backcol].b,255);
+							bglColor4ub(b.r,b.g,b.b,255);
 						lc = backcol;
 						bglVertex2i(xx+x,yy);
 					}

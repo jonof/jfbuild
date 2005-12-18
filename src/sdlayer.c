@@ -47,6 +47,8 @@ char modechange=1;
 char offscreenrendering=0;
 char videomodereset = 0;
 char nofog=0;
+static unsigned short sysgamma[3][256];
+extern long curbrightness, gammabrightness;
 
 #ifdef USE_OPENGL
 // OpenGL stuff
@@ -835,6 +837,12 @@ int setvideomode(int x, int y, int c, int fs)
 		polymost_glreset();
 	}
 
+	// restore gamma before we change video modes if it was changed
+	if (sdl_surface && gammabrightness) {
+		SDL_SetGammaRamp(sysgamma[0], sysgamma[1], sysgamma[2]);
+		gammabrightness = 0;	// redetect on next mode switch
+	}
+	
 	if (c > 8) {
 		int i;
 		struct {
@@ -968,8 +976,22 @@ int setvideomode(int x, int y, int c, int fs)
 	modechange=1;
 	videomodereset = 0;
 	OSD_ResizeDisplay(xres,yres);
+	
+	// save the current system gamma to determine if gamma is available
+	if (!gammabrightness) {
+		float f = 1.0 + ((float)curbrightness / 10.0);
+		if (SDL_GetGammaRamp(sysgamma[0], sysgamma[1], sysgamma[2]) >= 0)
+			gammabrightness = 1;
 
-	if (c==8) setpalette(0,256,0);
+		// see if gamma really is working by trying to set the brightness
+		if (gammabrightness && SDL_SetGamma(f,f,f) < 0)
+			gammabrightness = 0;	// nope
+	}
+
+	// setpalettefade will set the palette according to whether gamma worked
+	setpalettefade(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);
+	
+	//if (c==8) setpalette(0,256,0);
 	//baselayer_onvideomodechange(c>8);
 	
 	if (regrab) grabmouse(1);
@@ -1152,63 +1174,10 @@ int getpalette(int start, int num, char *dapal)
 //
 // setgamma
 //
-
 int setgamma(float ro, float go, float bo)
 {
 	return SDL_SetGamma(ro,go,bo);
 }
-
-/*
-static SDL_Surface * loadtarga(const char *fn)
-{
-	int i, width, height, palsize;
-	char head[18];
-	SDL_Color palette[256];
-	SDL_Surface *surf=0;
-	long fil;
-
-	clearbufbyte(palette, sizeof(palette), 0);
-
-	if ((fil = kopen4load(fn,0)) == -1) return NULL;
-
-	kread(fil, head, 18);
-	if (head[0] > 0) klseek(fil, head[0], SEEK_CUR);
-
-	if ((head[1] != 1) ||		// colormap type
-		(head[2] != 1) ||	// image type
-		(head[7] != 24)	||	// colormap entry size
-		(head[16] != 8)) {	// image descriptor
-		printOSD("%s in unsuitable format for icon\n", fn);
-		goto nogo;
-	}
-
-	width = head[12] | ((int)head[13] << 8);
-	height = head[14] | ((int)head[15] << 8);
-
-	if (width != 32 && height != 32) goto nogo;
-
-	surf = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 8, 0,0,0,0);
-	if (!surf) goto nogo;
-
-	// palette first
-	palsize = head[5] | ((int)head[6] << 8);
-	for (i=(head[3]|((int)head[4]<<8)); palsize; --palsize, ++i) {
-		kread(fil, &palette[i].b, 1);		// b
-		kread(fil, &palette[i].g, 1);		// g
-		kread(fil, &palette[i].r, 1);		// r
-	}
-
-	// targa renders bottom to top, from left to right
-	for (i=height-1; i>=0; i--) {
-		kread(fil, surf->pixels+i*width, width);
-	}
-	SDL_SetPalette(surf, SDL_PHYSPAL|SDL_LOGPAL, palette, 0, 256);
-
-nogo:
-	kclose(fil);
-	return(surf);
-}
-*/
 
 #ifndef __APPLE__
 extern struct sdlappicon sdlappicon;

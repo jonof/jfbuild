@@ -729,20 +729,20 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 					{ wpptr->r = wpptr->g = wpptr->b = wpptr->a = 0; continue; }
 				if (x < tsizx) x2 = x; else x2 = x-tsizx;
 				dacol = (long)(*(unsigned char *)(waloff[dapic]+x2*tsizy+y2));
-				if (dacol == 255)
-				{
-					wpptr->r = curpalette[255].r;
-					wpptr->g = curpalette[255].g;
-					wpptr->b = curpalette[255].b;
+				if (dacol == 255) {
 					wpptr->a = 0; hasalpha = 1;
-				}
-				else
-				{
-					j = (long)((unsigned char)palookup[dapal][dacol]);
-					wpptr->r = curpalette[j].r;
-					wpptr->g = curpalette[j].g;
-					wpptr->b = curpalette[j].b;
+				} else {
 					wpptr->a = 255;
+					dacol = (long)((unsigned char)palookup[dapal][dacol]);
+				}
+				if (gammabrightness) {
+					wpptr->r = curpalette[dacol].r;
+					wpptr->g = curpalette[dacol].g;
+					wpptr->b = curpalette[dacol].b;
+				} else {
+					wpptr->r = britable[curbrightness][ curpalette[dacol].r ];
+					wpptr->g = britable[curbrightness][ curpalette[dacol].g ];
+					wpptr->b = britable[curbrightness][ curpalette[dacol].b ];
 				}
 			}
 		}
@@ -1022,9 +1022,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 		for(y=0,j=0;y<tsizy;y++,j+=xsiz)
 		{
 			coltype tcol;
-			char *cptr;
-			if (gammabrightness) cptr = &britable[0][0];
-			else cptr = &britable[curbrightness][0];
+			char *cptr = &britable[gammabrightness ? 0 : curbrightness][0];
 			rpptr = &pic[j];
 
 			for(x=0;x<tsizx;x++)
@@ -4371,7 +4369,16 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 	if (!pth || (pth->flags & 8)) {
 		bglDisable(GL_TEXTURE_2D);
 		bglBegin(GL_TRIANGLE_FAN);
-		bglColor4f((float)curpalette[255].r/255.0,(float)curpalette[255].g/255.0,(float)curpalette[255].b/255.0,1);
+		if (gammabrightness)
+			bglColor4f((float)curpalette[255].r/255.0,
+					   (float)curpalette[255].g/255.0,
+					   (float)curpalette[255].b/255.0,
+					   1);
+		else
+			bglColor4f((float)britable[curbrightness][ curpalette[255].r ] / 255.0,
+					   (float)britable[curbrightness][ curpalette[255].g ] / 255.0,
+					   (float)britable[curbrightness][ curpalette[255].b ] / 255.0,
+					   1);
 		bglVertex2f((float)tilex    ,(float)tiley    );
 		bglVertex2f((float)tilex+scx,(float)tiley    );
 		bglVertex2f((float)tilex+scx,(float)tiley+scy);
@@ -4402,6 +4409,19 @@ long polymost_printext256(long xpos, long ypos, short col, short backcol, char *
 #else
 	GLfloat tx, ty, txc, tyc;
 	int c;
+	palette_t p,b;
+	
+	if (gammabrightness) {
+		p = curpalette[col];
+		b = curpalette[backcol];
+	} else {
+		p.r = britable[curbrightness][ curpalette[col].r ];
+		p.g = britable[curbrightness][ curpalette[col].g ];
+		p.b = britable[curbrightness][ curpalette[col].b ];
+		b.r = britable[curbrightness][ curpalette[backcol].r ];
+		b.g = britable[curbrightness][ curpalette[backcol].g ];
+		b.b = britable[curbrightness][ curpalette[backcol].b ];
+	}
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
@@ -4456,7 +4476,7 @@ long polymost_printext256(long xpos, long ypos, short col, short backcol, char *
 	bglDepthMask(GL_FALSE);	// disable writing to the z-buffer
 
 	if (backcol >= 0) {
-		bglColor4ub(curpalette[backcol].r,curpalette[backcol].g,curpalette[backcol].b,255);
+		bglColor4ub(b.r,b.g,b.b,255);
 		c = Bstrlen(name);
 		
 		bglBegin(GL_QUADS);
@@ -4469,7 +4489,7 @@ long polymost_printext256(long xpos, long ypos, short col, short backcol, char *
 
 	bglEnable(GL_TEXTURE_2D);
 	bglEnable(GL_BLEND);
-	bglColor4ub(curpalette[col].r,curpalette[col].g,curpalette[col].b,255);
+	bglColor4ub(p.r,p.g,p.b,255);
 	txc = fontsize ? (4.0/256.0) : (8.0/256.0);
 	tyc = fontsize ? (6.0/128.0) : (8.0/128.0);
 	bglBegin(GL_QUADS);

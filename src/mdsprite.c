@@ -508,7 +508,7 @@ static int daskinloader (const char *fn, long *fptr, long *bpl, long *sizx, long
 		{ free(picfil); free(pic); return -1; }
 	free(picfil);
 
-	cptr = &britable[curbrightness][0];
+	cptr = &britable[gammabrightness ? 0 : curbrightness][0];
 	for(y=0,j=0;y<tsizy;y++,j+=xsiz)
 	{
 		coltype *rpptr = &pic[j], tcol;
@@ -1340,7 +1340,7 @@ unsigned gloadtex (long *picbuf, long xsiz, long ysiz, long is8bit, long dapal)
 
 	pic = (coltype *)picbuf; //Correct for GL's RGB order; also apply gamma here..
 	pic2 = (coltype *)malloc(xsiz*ysiz*sizeof(long)); if (!pic2) return((unsigned)-1);
-	cptr = (unsigned char*)&britable[curbrightness][0];
+	cptr = (unsigned char*)&britable[gammabrightness ? 0 : curbrightness][0];
 	if (!is8bit)
 	{
 	for(i=xsiz*ysiz-1;i>=0;i--)
