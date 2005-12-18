@@ -62,8 +62,8 @@ static int  startupdlgcommand = 0;
 static void (*startupdlgonclose)(void) = NULL;
 int    backgroundidle = 1;
 
-static char gamma_saved = 0, gamma_supported = 0;
-static WORD sysgamma[3*256];
+static WORD sysgamma[3][256];
+extern long curbrightness, gammabrightness;
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
 // OpenGL stuff
@@ -591,8 +591,6 @@ int initsystem(void)
 //
 void uninitsystem(void)
 {
-	//if (gamma_saved) SetDeviceGammaRamp(hDC, sysgamma);
-
 	DestroyAppWindow();
 
 	if (startupdlg) {
@@ -627,58 +625,6 @@ void initprintf(const char *f, ...)
 	va_end(va);
 	OSD_Printf(buf);
 	if (!startupdlg) return;
-
-	/*
-	Bmemset(workbuf,0,1024);
-	if (!newline) {
-		i = SendDlgItemMessage(startupdlg,102,LB_GETCOUNT,0,0);
-		if (i>0) {
-			overwriteline = i-1;
-			p = (char *)Bmalloc( SendDlgItemMessage(startupdlg,102,LB_GETTEXTLEN,overwriteline,0)+1 );
-			i = SendDlgItemMessage(startupdlg,102,LB_GETTEXT,overwriteline,(LPARAM)p);
-			if (i>1023) i = 1023;
-			Bmemcpy(workbuf, p, i);
-			free(p);
-			q = workbuf+i;
-			buf[1023-i] = 0;	// clip what we expect to output since it'll spill over if we don't
-		}
-	} else {
-		q = workbuf;
-		overwriteline = -1;
-	}
-	p = buf;
-	while (*p) {
-		if (*p == '\r') {
-			q = workbuf;
-			p++;
-			continue;
-		} else if (*p == '\n') {
-			newline = 1;
-			p++;
-
-			if (overwriteline >= 0)
-				SendDlgItemMessage(startupdlg,102,LB_DELETESTRING,overwriteline,0);
-			i = SendDlgItemMessage(startupdlg,102,LB_INSERTSTRING,overwriteline,(LPARAM)workbuf);
-		
-			overwriteline = -1;
-			q = workbuf;
-			Bmemset(workbuf,0,1024);
-		} else {
-			*(q++) = *(p++);
-			newline = 0;
-			continue;
-		}
-	}
-
-	if (!newline) {
-		if (overwriteline >= 0)
-			SendDlgItemMessage(startupdlg,102,LB_DELETESTRING,overwriteline,0);
-		i = SendDlgItemMessage(startupdlg,102,LB_INSERTSTRING,overwriteline,(LPARAM)workbuf);
-	}
-	
-	if (i!=LB_ERRSPACE && i!=LB_ERR) SendDlgItemMessage(startupdlg,102,LB_SETCURSEL,i,0);
-	//UpdateWindow(GetDlgItem(startupdlg,102));
-	*/
 
 	{
 	int curlen, linesbefore, linesafter;
@@ -836,30 +782,16 @@ struct _joydevicedefn {
 // This is to give more realistic names to the buttons, axes, etc on a controller than
 // those the driver reports. Curse inconsistency.
 struct _joydevicefeature joyfeatures_C20A046D[] = {	// Logitech WingMan RumblePad USB
-	{ 0,  "Left Stick X" },
-	{ 4,  "Left Stick Y" },
-	{ 8,  "Right Stick X" },
-	{ 20, "Right Stick Y" },
-	{ 24, "Throttle" },
+	{ 0,  "Left Stick X" }, { 4,  "Left Stick Y" }, { 8,  "Right Stick X" },
+	{ 20, "Right Stick Y" }, { 24, "Throttle" },
 };
 struct _joydevicefeature joyfeatures_C218046D[] = {	// Logitech RumblePad 2 USB
-	{ 0,  "Left Stick X" },
-	{ 4,  "Left Stick Y" },
-	{ 8,  "Right Stick X" },
-	{ 20, "Right Stick Y" },
-	{ 32, "D-Pad" },
-	{ 48, "Button 1" },
-	{ 49, "Button 2" },
-	{ 50, "Button 3" },
-	{ 51, "Button 4" },
-	{ 52, "Button 5" },
-	{ 53, "Button 6" },
-	{ 54, "Button 7" },
-	{ 55, "Button 8" },
-	{ 56, "Button 9" },
-	{ 57, "Button 10" },
-	{ 58, "Left Stick Press" },
-	{ 59, "Right Stick Press" },
+	{ 0,  "Left Stick X" }, { 4,  "Left Stick Y" }, { 8,  "Right Stick X" },
+	{ 20, "Right Stick Y" }, { 32, "D-Pad" }, { 48, "Button 1" },
+	{ 49, "Button 2" }, { 50, "Button 3" }, { 51, "Button 4" },
+	{ 52, "Button 5" }, { 53, "Button 6" }, { 54, "Button 7" },
+	{ 55, "Button 8" }, { 56, "Button 9" }, { 57, "Button 10" },
+	{ 58, "Left Stick Press" }, { 59, "Right Stick Press" },
 };
 #define featurecount(x) (sizeof(x)/sizeof(struct _joydevicefeature))
 static struct _joydevicedefn *thisjoydef = NULL, joyfeatures[] = {
@@ -1982,6 +1914,7 @@ static LPDIRECTDRAWSURFACE  lpDDSBack      = NULL;
 static char *               lpOffscreen = NULL;
 static LPDIRECTDRAWPALETTE  lpDDPalette = NULL;
 static BOOL                 bDDrawInited = FALSE;
+static DWORD                DDdwCaps = 0, DDdwCaps2 = 0;
 
 // DIB stuff
 static HDC      hDC         = NULL;	// opengl shares this
@@ -2020,6 +1953,9 @@ static int syscolouridx[NUM_SYS_COLOURS] = {
 };
 static DWORD syscolours[NUM_SYS_COLOURS];
 static char system_colours_saved = 0, bw_colours_set = 0;
+
+static int setgammaramp(WORD gt[3][256]);
+static int getgammaramp(WORD gt[3][256]);
 
 //
 // checkvideomode() -- makes sure the video mode passed is legal
@@ -2101,10 +2037,21 @@ int setvideomode(int x, int y, int c, int fs)
 	for (i=0;i<NUM_INPUTS;i++) inp[i] = devacquired[i];
 	AcquireInputDevices(0,-1);
 
+	if (hWindow && gammabrightness) {
+		setgammaramp(sysgamma);
+		gammabrightness = 0;
+	}
+
 	initprintf("Setting video mode %dx%d (%d-bit %s)\n",
 			x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
 
 	if (CreateAppWindow(modenum, apptitle)) return -1;
+
+	if (!gammabrightness) {
+		float f = 1.0 + ((float)curbrightness / 10.0);
+		if (getgammaramp(sysgamma) >= 0) gammabrightness = 1;
+		if (gammabrightness && setgamma(f,f,f) < 0) gammabrightness = 0;
+	}
 
 	for (i=0;i<NUM_INPUTS;i++) if (inp[i]) AcquireInputDevices(1,i);
 	modechange=1;
@@ -2568,26 +2515,90 @@ int getpalette(int start, int num, char *dapal)
 //
 // setgamma
 //
+static int setgammaramp(WORD gt[3][256])
+{
+	if (!fullscreen || bpp > 8) {
+		// GL and windowed mode use DIB method
+		int i;
+		HDC hDC = GetDC(hWindow);
+		i = SetDeviceGammaRamp(hDC, gt) ? 0 : -1;
+		ReleaseDC(hWindow, hDC);
+		return i;
+	} else {
+		// fullscreen uses DirectX
+		LPDIRECTDRAWGAMMACONTROL gam;
+		HRESULT hr;
+
+		if (!(DDdwCaps2 & DDCAPS2_PRIMARYGAMMA)) return -1;
+		
+		hr = IDirectDrawSurface_QueryInterface(lpDDSPrimary, &IID_IDirectDrawGammaControl, (LPVOID)&gam);
+		if (hr != DD_OK) {
+			ShowDDrawErrorBox("Error querying gamma control", hr);
+			return -1;
+		}
+
+		hr = IDirectDrawGammaControl_SetGammaRamp(gam, 0, (LPDDGAMMARAMP)gt);
+		if (hr != DD_OK) {
+			IDirectDrawGammaControl_Release(gam);
+			ShowDDrawErrorBox("Error setting gamma ramp", hr);
+			return -1;
+		}
+
+		IDirectDrawGammaControl_Release(gam);
+		return 0;
+	}
+}
+
 int setgamma(float ro, float go, float bo)
 {
 	int i;
-	WORD gt[3*256];
+	WORD gt[3][256];
 	
-	return -1;
-
-	if (!gamma_saved) {
-		gamma_saved = 1;
-	}
-
+	if (!hWindow) return -1;
+	
+	ro = 1.0 / ro; go = 1.0 / go; bo = 1.0 / bo;
 	for (i=0;i<256;i++) {
-		gt[i]     = min(255,(WORD)floor(255.0 * pow((float)i / 255.0, ro))) << 8;
-		gt[i+256] = min(255,(WORD)floor(255.0 * pow((float)i / 255.0, go))) << 8;
-		gt[i+512] = min(255,(WORD)floor(255.0 * pow((float)i / 255.0, bo))) << 8;
+		gt[0][i] = (WORD)min(65535, max(0, (int)(pow((double)i / 256.0, ro) * 65535.0 + 0.5)));
+		gt[1][i] = (WORD)min(65535, max(0, (int)(pow((double)i / 256.0, go) * 65535.0 + 0.5)));
+		gt[2][i] = (WORD)min(65535, max(0, (int)(pow((double)i / 256.0, go) * 65535.0 + 0.5)));
 	}
 
-	return 0;
+	return setgammaramp(gt);
 }
 
+static int getgammaramp(WORD gt[3][256])
+{
+	if (!hWindow) return -1;
+	if (!fullscreen || bpp > 8) {
+		int i;
+		HDC hDC = GetDC(hWindow);
+		i = GetDeviceGammaRamp(hDC, gt) ? 0 : -1;
+		ReleaseDC(hWindow, hDC);
+		return i;
+	} else {
+		LPDIRECTDRAWGAMMACONTROL gam;
+		HRESULT hr;
+
+		if (!(DDdwCaps2 & DDCAPS2_PRIMARYGAMMA)) return -1;
+
+		hr = IDirectDrawSurface_QueryInterface(lpDDSPrimary, &IID_IDirectDrawGammaControl, (LPVOID)&gam);
+		if (hr != DD_OK) {
+			ShowDDrawErrorBox("Error querying gamma control", hr);
+			return -1;
+		}
+
+		hr = IDirectDrawGammaControl_GetGammaRamp(gam, 0, (LPDDGAMMARAMP)gt);
+		if (hr != DD_OK) {
+			IDirectDrawGammaControl_Release(gam);
+			ShowDDrawErrorBox("Error getting gamma ramp", hr);
+			return -1;
+		}
+
+		IDirectDrawGammaControl_Release(gam);
+
+		return 0;
+	}
+}
 
 //
 // InitDirectDraw() -- get DirectDraw started
@@ -2605,6 +2616,7 @@ static BOOL InitDirectDraw(void)
 	HRESULT result;
 	HRESULT (WINAPI *aDirectDrawCreate)(GUID *, LPDIRECTDRAW *, IUnknown *);
 	HRESULT (WINAPI *aDirectDrawEnumerate)(LPDDENUMCALLBACK, LPVOID);
+	DDCAPS ddcaps;
 
 	if (bDDrawInited) return FALSE;
 
@@ -2647,6 +2659,17 @@ static BOOL InitDirectDraw(void)
 		ShowDDrawErrorBox("DirectDrawCreate() failed", result);
 		UninitDirectDraw();
 		return TRUE;
+	}
+
+	// fetch capabilities
+	initprintf("  - Checking capabilities\n");
+	ddcaps.dwSize = sizeof(DDCAPS);
+	result = IDirectDraw_GetCaps(lpDD, &ddcaps, NULL);
+	if (result != DD_OK) {
+		initprintf("    Unable to get capabilities.\n");
+	} else {
+		DDdwCaps = ddcaps.dwCaps;
+		DDdwCaps2 = ddcaps.dwCaps2;
 	}
 
 	bDDrawInited = TRUE;
