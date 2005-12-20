@@ -11,7 +11,7 @@ typedef struct
 	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
 	long shadeoff;
 	float scale, bscale, zadd;
-	unsigned int *texid;	// skins
+	GLuint *texid;	// skins
 } mdmodel;
 
 typedef struct _mdanim_t
@@ -28,7 +28,7 @@ typedef struct _mdskinmap_t
 	unsigned char palette, filler[3]; // Build palette number
 	int skinnum, surfnum;   // Skin identifier, surface number
 	char *fn;   // Skin filename
-	unsigned int texid[HICEFFECTMASK+1];   // OpenGL texture numbers for effect variations
+	GLuint texid[HICEFFECTMASK+1];   // OpenGL texture numbers for effect variations
 	struct _mdskinmap_t *next;
 } mdskinmap_t;
 
@@ -61,7 +61,7 @@ typedef struct
 	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
 	long shadeoff;
 	float scale, bscale, zadd;
-	unsigned int *texid;   // texture ids for base skin if no mappings defined
+	GLuint *texid;   // texture ids for base skin if no mappings defined
 
 	long numframes, cframe, nframe, fpssc, usesalpha;
 	float oldtime, curtime, interpol;
@@ -470,21 +470,16 @@ int md_undefinemodel(int modelid)
 	return 0;
 }
 
-static int daskinloader (const char *fn, long *fptr, long *bpl, long *sizx, long *sizy, long *osizx, long *osizy, char *hasalpha, char effect)
+static int daskinloader (long filh, long *fptr, long *bpl, long *sizx, long *sizy, long *osizx, long *osizy, char *hasalpha, char effect)
 {
-	long filh, picfillen, j,y,x;
+	long picfillen, j,y,x;
 	char *picfil,*cptr,al=255;
 	coltype *pic;
 	long xsiz, ysiz, tsizx, tsizy;
 
-	if ((filh = kopen4load((char*)fn, 0)) < 0) {
-		OSD_Printf("MD2 Skin: %s not found.\n",fn);
-		return -1;
-	}
 	picfillen = kfilelength(filh);
-	picfil = (char *)malloc(picfillen); if (!picfil) { kclose(filh); return -1; }
+	picfil = (char *)malloc(picfillen); if (!picfil) { return -1; }
 	kread(filh, picfil, picfillen);
-	kclose(filh);
 
 	// tsizx/y = replacement texture's natural size
 	// xsiz/y = 2^x size of replacement
@@ -551,14 +546,90 @@ static int daskinloader (const char *fn, long *fptr, long *bpl, long *sizx, long
 	return 0;
 }
 
+// JONOF'S COMPRESSED TEXTURE CACHE STUFF ---------------------------------------------------
+long mdloadskin_trytexcache(char *fn, long len, char effect, texcacheheader *head)
+{
+	long fil, fp;
+	char cachefn[BMAX_PATH], *cp;
+	unsigned char mdsum[16];
+	
+	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return -1;
+	
+	md4(fn, strlen(fn), mdsum);
+	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
+	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
+	sprintf(cp, "-%x-0%x", len, effect);
+	
+	fil = kopen4load(cachefn, 0);
+	if (fil < 0) return -1;
+	
+	initprintf("Loading cached skin: %s\n", cachefn);
+	
+	if (kread(fil, head, sizeof(texcacheheader)) < sizeof(texcacheheader) ||
+		memcmp(head->magic, "Polymost", 8) ||
+		(!glinfo.texnpot && (head->flags & 1))) {
+		kclose(fil);
+		return -1;
+	}
+	
+	return fil;
+}
+
+static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLuint *glpic, long *xsiz, long *ysiz)
+{
+		int level, r;
+		texcachepicture pict;
+		void *pic = NULL;
+		long alloclen=0;
+		
+		if (*doalloc&1) {
+			bglGenTextures(1,glpic);  //# of textures (make OpenGL allocate structure)
+			*doalloc |= 2;	// prevents bglGenTextures being called again if we fail in here
+		}
+		bglBindTexture(GL_TEXTURE_2D,*glpic);
+		
+		bglGetError();
+		
+		// load the mipmaps
+		for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
+			r = kread(fil, &pict, sizeof(texcachepicture));
+			if (r < sizeof(texcachepicture)) goto failure;
+			
+			if (level == 0) { *xsiz = pict.xdim; *ysiz = pict.ydim; }
+			
+			if (alloclen < pict.size) {
+				void *picc = realloc(pic, pict.size);
+				if (!picc) goto failure; else pic = picc;
+				alloclen = pict.size;
+			}
+			
+			r = kread(fil, pic, pict.size);
+			if (r < pict.size) goto failure;
+			
+			bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,pict.size,pic);
+			if (bglGetError() != GL_NO_ERROR) goto failure;
+		}
+		
+		if (pic) free(pic);
+		return 0;
+failure:
+		if (pic) free(pic);
+		return -1;
+}
+// --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
+
 	//Note: even though it says md2model, it works for both md2model&md3model
 static long mdloadskin (md2model *m, int number, int pal, int surf)
 {
-	long i, fptr, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
+	long i,j, fptr=0, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
 	char *skinfile, hasalpha, fn[BMAX_PATH+65];
-	unsigned int *texidx = NULL;
+	GLuint *texidx = NULL;
 	mdskinmap_t *sk, *skzero = NULL;
+	long doalloc = 1, filh;
 
+	long cachefil = -1, picfillen;
+	texcacheheader cachead;
+	
 	if (m->mdnum == 2) surf = 0;
 
 	if ((unsigned)pal >= (unsigned)MAXPALOOKUPS) return 0;
@@ -604,13 +675,48 @@ static long mdloadskin (md2model *m, int number, int pal, int surf)
 	if (*texidx) return *texidx;
 	*texidx = 0;
 
-	if (daskinloader(fn,&fptr,&bpl,&xsiz,&ysiz,&osizx,&osizy,&hasalpha,hictinting[pal].f))
-	{
-		initprintf("Failed loading skin file \"%s\"\n", fn);
+	if ((filh = kopen4load(fn, 0)) < 0) {
+		initprintf("Skin %s not found.\n",fn);
 		skinfile[0] = 0;
-		return(0);
+		return 0;
 	}
-	m->usesalpha = hasalpha;
+
+	picfillen = kfilelength(filh);
+	kclose(filh);	// FIXME: shouldn't have to do this. bug in cache1d.c
+
+	cachefil = mdloadskin_trytexcache(fn, picfillen, hictinting[pal].f, &cachead);
+	if (cachefil >= 0 && !mdloadskin_cached(cachefil, &cachead, &doalloc, texidx, &xsiz, &ysiz)) {
+		osizx = cachead.xdim;
+		osizy = cachead.ydim;
+		m->usesalpha = hasalpha = (cachead.flags & 2) ? 1 : 0;
+		kclose(cachefil);
+		//kclose(filh);	// FIXME: uncomment when cache1d.c is fixed
+		// cachefil >= 0, so it won't be rewritten
+	} else {
+		if (cachefil >= 0) kclose(cachefil);
+		cachefil = -1;	// the compressed version will be saved to disk
+		
+		if ((filh = kopen4load(fn, 0)) < 0) return -1;
+		if (daskinloader(filh,&fptr,&bpl,&xsiz,&ysiz,&osizx,&osizy,&hasalpha,hictinting[pal].f))
+		{
+			kclose(filh);
+			initprintf("Failed loading skin file \"%s\"\n", fn);
+			skinfile[0] = 0;
+			return(0);
+		} else kclose(filh);
+		m->usesalpha = hasalpha;
+
+		if ((doalloc&3)==1) bglGenTextures(1,(GLuint*)texidx);
+		bglBindTexture(GL_TEXTURE_2D,*texidx);
+
+		//gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGBA,xsiz,ysiz,GL_BGRA_EXT,GL_UNSIGNED_BYTE,(char *)fptr);
+		if (glinfo.texcompr && glusetexcompr) intexfmt = hasalpha ? GL_COMPRESSED_RGBA_ARB : GL_COMPRESSED_RGB_ARB;
+		else if (!hasalpha) intexfmt = GL_RGB;
+		if (glinfo.bgra) texfmt = GL_BGRA;
+		uploadtexture((doalloc&1), xsiz, ysiz, intexfmt, texfmt, (coltype*)fptr, xsiz, ysiz, 0);
+		free((void*)fptr);
+	}
+
 	if (!m->skinloaded)
 	{
 		if (xsiz != osizx || ysiz != osizy)
@@ -647,8 +753,6 @@ static long mdloadskin (md2model *m, int number, int pal, int surf)
 		m->skinloaded = 1+number;
 	}
 
-	bglGenTextures(1,(GLuint*)texidx);
-	bglBindTexture(GL_TEXTURE_2D,*texidx);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 	if (glinfo.maxanisotropy > 1.0)
@@ -656,13 +760,20 @@ static long mdloadskin (md2model *m, int number, int pal, int surf)
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
 
-	//gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGBA,xsiz,ysiz,GL_BGRA_EXT,GL_UNSIGNED_BYTE,(char *)fptr);
-	//bglTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,xsiz,ysiz,0,GL_BGRA_EXT,GL_UNSIGNED_BYTE,(char *)fptr);
-	if (glinfo.texcompr && glusetexcompr) intexfmt = GL_COMPRESSED_RGBA_ARB;
-	if (glinfo.bgra) texfmt = GL_BGRA;
-	uploadtexture(1, xsiz, ysiz, intexfmt, texfmt, (coltype*)fptr, xsiz, ysiz, 0);
-
-	free((void*)fptr);
+	if (cachefil < 0) {
+		// save off the compressed version
+		cachead.xdim = osizx;
+		cachead.ydim = osizy;
+		cachead.flags = 1;
+		i = 0;
+		for (j=0;j<31;j++) {
+			if (xsiz == pow2long[j]) { i |= 1; }
+			if (ysiz == pow2long[j]) { i |= 2; }
+		}
+		cachead.flags = (i!=3) | (hasalpha ? 2 : 0);
+		writexcache(fn, picfillen, 0, hictinting[pal].f, &cachead);
+	}
+	
 	return(*texidx);
 }
 
@@ -805,7 +916,7 @@ static md2model *md2load (int fil, const char *filnam)
 	if (kread(fil,m->skinfn,64*m->numskins) != 64*m->numskins)
 		{ free(m->glcmds); free(m->frames); free(m); return(0); }
 
-	m->texid = (unsigned int *)calloc(m->numskins, sizeof(unsigned int) * (HICEFFECTMASK+1));
+	m->texid = (GLuint *)calloc(m->numskins, sizeof(GLuint) * (HICEFFECTMASK+1));
 	if (!m->texid) { free(m->skinfn); free(m->basepath); free(m->glcmds); free(m->frames); free(m); return(0); }
 
 	maxmodelverts = max(maxmodelverts, m->numverts);

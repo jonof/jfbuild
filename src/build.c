@@ -6428,9 +6428,9 @@ long loadnames(void)
 	int num, syms=0, line=0, a;
 	BFILE *fp;
 
-	fp = Bfopen("NAMES.H","r");
+	fp = fopenfrompath("NAMES.H","r");
 	if (!fp) {
-		if ((fp = Bfopen("names.h","r")) == NULL) {
+		if ((fp = fopenfrompath("names.h","r")) == NULL) {
 			printf("Failed to open NAMES.H\n");
 			return -1;
 		}

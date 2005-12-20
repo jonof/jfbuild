@@ -939,6 +939,50 @@ int dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 	return count;
 }
 
+void kdfwrite(void *buffer, bsize_t dasizeof, bsize_t count, long fil)
+{
+	unsigned long i, j, k;
+	short leng, swleng;
+	char *ptr;
+	
+	lzwbuflock[0] = lzwbuflock[1] = lzwbuflock[2] = lzwbuflock[3] = lzwbuflock[4] = 200;
+	if (lzwbuf1 == NULL) allocache((long *)&lzwbuf1,LZWSIZE+(LZWSIZE>>4),&lzwbuflock[0]);
+	if (lzwbuf2 == NULL) allocache((long *)&lzwbuf2,(LZWSIZE+(LZWSIZE>>4))*2,&lzwbuflock[1]);
+	if (lzwbuf3 == NULL) allocache((long *)&lzwbuf3,(LZWSIZE+(LZWSIZE>>4))*2,&lzwbuflock[2]);
+	if (lzwbuf4 == NULL) allocache((long *)&lzwbuf4,LZWSIZE,&lzwbuflock[3]);
+	if (lzwbuf5 == NULL) allocache((long *)&lzwbuf5,LZWSIZE+(LZWSIZE>>4),&lzwbuflock[4]);
+	
+	if (dasizeof > LZWSIZE) { count *= dasizeof; dasizeof = 1; }
+	ptr = (char *)buffer;
+	
+	copybufbyte(ptr,lzwbuf4,(long)dasizeof);
+	k = dasizeof;
+	
+	if (k > LZWSIZE-dasizeof)
+	{
+		leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); k = 0; swleng = B_LITTLE16(leng);
+		Bwrite(fil,&swleng,2); Bwrite(fil,lzwbuf5,(long)leng);
+	}
+	
+	for(i=1;i<count;i++)
+	{
+		for(j=0;j<dasizeof;j++) lzwbuf4[j+k] = ((ptr[j+dasizeof]-ptr[j])&255);
+		k += dasizeof;
+		if (k > LZWSIZE-dasizeof)
+		{
+			leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); k = 0; swleng = B_LITTLE16(leng);
+			Bwrite(fil,&swleng,2); Bwrite(fil,lzwbuf5,(long)leng);
+		}
+		ptr += dasizeof;
+	}
+	if (k > 0)
+	{
+		leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); swleng = B_LITTLE16(leng);
+		Bwrite(fil,&swleng,2); Bwrite(fil,lzwbuf5,(long)leng);
+	}
+	lzwbuflock[0] = lzwbuflock[1] = lzwbuflock[2] = lzwbuflock[3] = lzwbuflock[4] = 1;
+}
+
 void dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 {
 	unsigned long i, j, k;

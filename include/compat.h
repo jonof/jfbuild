@@ -33,6 +33,7 @@
 # include <ctype.h>
 # include <sys/types.h>
 # include <sys/stat.h>
+# include <errno.h>
 # if defined(_WIN32)
 #  include <io.h>
 # else

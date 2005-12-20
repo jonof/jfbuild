@@ -65,13 +65,10 @@ Low priority:
 
 **************************************************************************************************/
 
-//#define USECOMPRTEXTURECACHE
-
 static long animateoffs(short tilenum, short fakevar);
 long rendmode = 0;
 long usemodels=1, usehightile=1, usegoodalpha=0;
 #ifdef USE_OPENGL
-static GLuint polymosttext = 0;
 #endif
 
 
@@ -122,10 +119,12 @@ static struct glfiltermodes {
 long glanisotropy = 1;            // 0 = maximum supported by card
 long glusetexcompr = 1;
 long gltexfiltermode = 3;   // GL_LINEAR_MIPMAP_NEAREST
+long glusetexcache = 0;
 long gltexmaxsize = 0;      // 0 means autodetection on first run
 long gltexmiplevel = 0;		// discards this many mipmap levels
 static long lastglpolygonmode = 0; //FUK
 long glpolygonmode = 0;     // 0:GL_FILL,1:GL_LINE,2:GL_POINT //FUK
+static GLuint polymosttext = 0;
 extern char nofog;
 #endif
 
@@ -243,6 +242,23 @@ void drawline2d (float x0, float y0, float x1, float y1, char col)
 typedef struct { unsigned char r, g, b, a; } coltype;
 
 static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth);
+
+#include "md4.h"
+
+static char TEXCACHEDIR[] = "texcache/";
+typedef struct {
+	char magic[8];	// 'Polymost'
+	long xdim, ydim;	// of image, unpadded
+	long flags;		// 1 = !2^x, 2 = has alpha
+} texcacheheader;
+typedef struct {
+	long size, format;
+	long xdim, ydim;	// of mipmap (possibly padded)
+	long border, depth;
+} texcachepicture;
+
+static void inline phex(unsigned char v, char *s);
+void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *head);
 
 static long mdtims, omdtims;
 #include "mdsprite.c"
@@ -788,21 +804,6 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 }
 
 // JONOF'S COMPRESSED TEXTURE CACHE STUFF ---------------------------------------------------
-#ifdef USECOMPRTEXTURECACHE
-static char TEXCACHEDIR[] = "texcache/";
-typedef struct {
-	char magic[8];	// 'Polymost'
-	long xdim, ydim;	// of image, unpadded
-	long flags;		// 1 = !2^x
-} texcacheheader;
-typedef struct {
-	long size, format;
-	long xdim, ydim;	// of mipmap (possibly padded)
-	long border, depth;
-} texcachepicture;
-long glusetexcache = 1;
-#include "md4.h"
-
 static void inline phex(unsigned char v, char *s)
 {
 	int x;
@@ -852,6 +853,28 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	GLuint gi;
 
 	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return;
+	
+	{
+		struct stat st;
+		if (stat(TEXCACHEDIR, &st) < 0) {
+			if (errno == ENOENT) {	// path doesn't exist
+				// try to create the cache directory
+				if (mkdir(TEXCACHEDIR, S_IRWXU) < 0) {
+					initprintf("Failed to create texture cache directory %s\n", TEXCACHEDIR);
+					glusetexcache = 0;
+					return;
+				} else initprintf("Created texture cache directory %s\n", TEXCACHEDIR);
+			} else {
+				// another type of failure
+				glusetexcache = 0;
+				return;
+			}
+		} else if ((st.st_mode & S_IFDIR) != S_IFDIR) {
+			// cache directory isn't a directory
+			glusetexcache = 0;
+			return;
+		}
+	}
 
 	gi = GL_FALSE;
 	bglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_ARB, &gi);
@@ -897,7 +920,7 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 		bglGetCompressedTexImageARB(GL_TEXTURE_2D, level, pic);
 		if (Bwrite(fil, pic, pict.size) != pict.size) goto failure;
 	}
-	
+
 failure:
 	if (fil>=0) Bclose(fil);
 	if (pic) free(pic);
@@ -910,8 +933,10 @@ int gloadtile_cached(long fil, texcacheheader *head, long *doalloc, pthtyp *pth)
 	void *pic = NULL;
 	long alloclen=0;
 	
-	if (*doalloc) bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
-	*doalloc |= 2;	// prevents bglGenTextures being called again if we fail in here
+	if (*doalloc&1) {
+		bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
+		*doalloc |= 2;	// prevents bglGenTextures being called again if we fail in here
+	}
 	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
 	
 	pth->sizx = head->xdim;
@@ -943,7 +968,6 @@ failure:
 	if (pic) free(pic);
 	return -1;
 }
-#endif
 // --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
 
 int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp *pth, long doalloc, char effect)
@@ -954,10 +978,8 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 	char *picfil = NULL, *fn, hasalpha = 255;
 	long picfillen, texfmt = GL_RGBA, intexfmt = GL_RGBA, filh;
 
-#ifdef USECOMPRTEXTURECACHE
-	long cachefil;
+	long cachefil = -1;
 	texcacheheader cachead;
-#endif
 
 	if (!hicr) return -1;
 	if (facen > 0) {
@@ -980,13 +1002,13 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 	}
 	picfillen = kfilelength(filh);
 
-#ifdef USECOMPRTEXTURECACHE
 	kclose(filh);	// FIXME: shouldn't have to do this. bug in cache1d.c
 
 	cachefil = trytexcache(fn, picfillen, dameth, effect, &cachead);
 	if (cachefil >= 0 && !gloadtile_cached(cachefil, &cachead, &doalloc, pth)) {
 		tsizx = cachead.xdim;
 		tsizy = cachead.ydim;
+		hasalpha = (cachead.flags & 2) ? 0 : 255;
 		kclose(cachefil);
 		//kclose(filh);	// FIXME: uncomment when cache1d.c is fixed
 		// cachefil >= 0, so it won't be rewritten
@@ -995,7 +1017,6 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 		cachefil = -1;	// the compressed version will be saved to disk
 		
 		if ((filh = kopen4load(fn, 0)) < 0) return -1;
-#endif
 
 		picfil = (char *)malloc(picfillen); if (!picfil) { kclose(filh); return 1; }
 		kread(filh, picfil, picfillen);
@@ -1072,14 +1093,12 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 			intexfmt = (hasalpha == 255) ? GL_COMPRESSED_RGB_ARB : GL_COMPRESSED_RGBA_ARB;
 		else if (hasalpha == 255) intexfmt = GL_RGB;
 
-		if (doalloc < 2) bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
+		if ((doalloc&3)==1) bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
 		bglBindTexture(GL_TEXTURE_2D,pth->glpic);
 
 		fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);
 		uploadtexture(doalloc,xsiz,ysiz,intexfmt,texfmt,pic,-1,tsizy,dameth);
-#ifdef USECOMPRTEXTURECACHE
 	}
-#endif
 
 	// precalculate scaling parameters for replacement
 	if (facen > 0) {
@@ -1120,7 +1139,6 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 	pth->skyface = facen;
 	pth->hicr = hicr;
 	
-#ifdef USECOMPRTEXTURECACHE
 	if (cachefil < 0) {
 		// save off the compressed version
 		cachead.xdim = tsizx;
@@ -1131,10 +1149,9 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 			if (xsiz == pow2long[j]) { x |= 1; }
 			if (ysiz == pow2long[j]) { x |= 2; }
 		}
-		cachead.flags = (x!=3);
+		cachead.flags = (x!=3) | (hasalpha != 255 ? 2 : 0);
 		writexcache(fn, picfillen, dameth, effect, &cachead);
 	}
-#endif
 
 	return 0;
 }
@@ -4587,6 +4604,7 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterVariable("gltexturemiplevel", OSDVAR_INTEGER, &gltexmiplevel, 1, osd_internal_validate_integer);
 	OSD_RegisterVariable("usegoodalpha", OSDVAR_INTEGER, &usegoodalpha, 0, osd_internal_validate_boolean);
 	OSD_RegisterVariable("glpolygonmode", OSDVAR_INTEGER, &glpolygonmode, 0, osd_internal_validate_integer); //FUK
+	OSD_RegisterVariable("glusetexcache", OSDVAR_INTEGER, &glusetexcache, 0, osd_internal_validate_boolean);
 #endif
 	OSD_RegisterVariable("usemodels", OSDVAR_INTEGER, &usemodels, 0, osd_internal_validate_boolean);
 	OSD_RegisterVariable("usehightile", OSDVAR_INTEGER, &usehightile, 0, osd_internal_validate_boolean);
