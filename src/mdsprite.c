@@ -558,14 +558,14 @@ long mdloadskin_trytexcache(char *fn, long len, char effect, texcacheheader *hea
 	md4(fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
-	sprintf(cp, "-%x-0%x", len, effect);
+	sprintf(cp, "-%lx-0%x", len, effect);
 	
 	fil = kopen4load(cachefn, 0);
 	if (fil < 0) return -1;
 	
 	initprintf("Loading cached skin: %s\n", cachefn);
 	
-	if (kread(fil, head, sizeof(texcacheheader)) < sizeof(texcacheheader) ||
+	if (kread(fil, head, sizeof(texcacheheader)) < (int)sizeof(texcacheheader) ||
 		memcmp(head->magic, "Polymost", 8) ||
 		(!glinfo.texnpot && (head->flags & 1))) {
 		kclose(fil);
@@ -593,7 +593,7 @@ static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLu
 		// load the mipmaps
 		for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
 			r = kread(fil, &pict, sizeof(texcachepicture));
-			if (r < sizeof(texcachepicture)) goto failure;
+			if (r < (int)sizeof(texcachepicture)) goto failure;
 			
 			if (level == 0) { *xsiz = pict.xdim; *ysiz = pict.ydim; }
 			

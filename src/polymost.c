@@ -68,8 +68,6 @@ Low priority:
 static long animateoffs(short tilenum, short fakevar);
 long rendmode = 0;
 long usemodels=1, usehightile=1, usegoodalpha=0;
-#ifdef USE_OPENGL
-#endif
 
 
 #include <math.h> //<-important!
@@ -257,7 +255,7 @@ typedef struct {
 	long border, depth;
 } texcachepicture;
 
-static void inline phex(unsigned char v, char *s);
+static inline void phex(unsigned char v, char *s);
 void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *head);
 
 static long mdtims, omdtims;
@@ -804,7 +802,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 }
 
 // JONOF'S COMPRESSED TEXTURE CACHE STUFF ---------------------------------------------------
-static void inline phex(unsigned char v, char *s)
+static inline void phex(unsigned char v, char *s)
 {
 	int x;
 	x = v>>4;
@@ -824,14 +822,14 @@ long trytexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	md4(fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
-	sprintf(cp, "-%x-%x%x", len, dameth, effect);
+	sprintf(cp, "-%lx-%lx%x", len, dameth, effect);
 	
 	fil = kopen4load(cachefn, 0);
 	if (fil < 0) return -1;
 	
 	initprintf("Loading cached tex: %s\n", cachefn);
 	
-	if (kread(fil, head, sizeof(texcacheheader)) < sizeof(texcacheheader) ||
+	if (kread(fil, head, sizeof(texcacheheader)) < (int)sizeof(texcacheheader) ||
 		memcmp(head->magic, "Polymost", 8) ||
 		(!glinfo.texnpot && (head->flags & 1))) {
 		kclose(fil);
@@ -859,7 +857,7 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 		if (stat(TEXCACHEDIR, &st) < 0) {
 			if (errno == ENOENT) {	// path doesn't exist
 				// try to create the cache directory
-				if (mkdir(TEXCACHEDIR, S_IRWXU) < 0) {
+				if (Bmkdir(TEXCACHEDIR, S_IRWXU) < 0) {
 					initprintf("Failed to create texture cache directory %s\n", TEXCACHEDIR);
 					glusetexcache = 0;
 					return;
@@ -883,7 +881,7 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	md4(fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
-	sprintf(cp, "-%x-%x%x", len, dameth, effect);
+	sprintf(cp, "-%lx-%lx%x", len, dameth, effect);
 	
 	initprintf("Writing cached tex: %s\n", cachefn);
 	
@@ -947,7 +945,7 @@ int gloadtile_cached(long fil, texcacheheader *head, long *doalloc, pthtyp *pth)
 	// load the mipmaps
 	for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
 		r = kread(fil, &pict, sizeof(texcachepicture));
-		if (r < sizeof(texcachepicture)) goto failure;
+		if (r < (int)sizeof(texcachepicture)) goto failure;
 		
 		if (alloclen < pict.size) {
 			void *picc = realloc(pic, pict.size);
