@@ -206,5 +206,6 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 extern char *gldriver;
 
 int loadgldriver(const char *driver);
+int loadglextensions(void);
 int unloadgldriver(void);
 

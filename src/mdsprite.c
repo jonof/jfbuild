@@ -554,9 +554,16 @@ long mdloadskin_trytexcache(char *fn, long len, char effect, texcacheheader *hea
 	unsigned char mdsum[16];
 	
 	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return -1;
+	if (!bglCompressedTexImage2DARB || !bglGetCompressedTexImageARB) {
+		// lacking the necessary extensions to do this
+		initprintf("Warning: the GL driver lacks necessary functions to use caching\n");
+		glusetexcache = 0;
+		return -1;
+	}
 	
 	md4(fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
+	*(cp++) = '/';
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
 	sprintf(cp, "-%lx-0%x", len, effect);
 	
@@ -565,56 +572,68 @@ long mdloadskin_trytexcache(char *fn, long len, char effect, texcacheheader *hea
 	
 	initprintf("Loading cached skin: %s\n", cachefn);
 	
-	if (kread(fil, head, sizeof(texcacheheader)) < (int)sizeof(texcacheheader) ||
-		memcmp(head->magic, "Polymost", 8) ||
-		(!glinfo.texnpot && (head->flags & 1))) {
-		kclose(fil);
-		return -1;
-	}
+	if (kread(fil, head, sizeof(texcacheheader)) < (int)sizeof(texcacheheader)) goto failure;
+	if (memcmp(head->magic, "Polymost", 8)) goto failure;
+
+	head->xdim = B_LITTLE32(head->xdim);
+	head->ydim = B_LITTLE32(head->ydim);
+	head->flags = B_LITTLE32(head->flags);
+
+	if (!glinfo.texnpot && (head->flags & 1)) goto failure;
 	
 	return fil;
+failure:
+	kclose(fil);
+	return -1;
 }
 
 static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLuint *glpic, long *xsiz, long *ysiz)
 {
-		int level, r;
-		texcachepicture pict;
-		void *pic = NULL;
-		long alloclen=0;
+	int level, r;
+	texcachepicture pict;
+	void *pic = NULL;
+	long alloclen=0;
 		
-		if (*doalloc&1) {
-			bglGenTextures(1,glpic);  //# of textures (make OpenGL allocate structure)
-			*doalloc |= 2;	// prevents bglGenTextures being called again if we fail in here
+	if (*doalloc&1) {
+		bglGenTextures(1,glpic);  //# of textures (make OpenGL allocate structure)
+		*doalloc |= 2;	// prevents bglGenTextures being called again if we fail in here
+	}
+	bglBindTexture(GL_TEXTURE_2D,*glpic);
+		
+	bglGetError();
+		
+	// load the mipmaps
+	for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
+		r = kread(fil, &pict, sizeof(texcachepicture));
+		if (r < (int)sizeof(texcachepicture)) goto failure;
+
+		pict.size = B_LITTLE32(pict.size);
+		pict.format = B_LITTLE32(pict.format);
+		pict.xdim = B_LITTLE32(pict.xdim);
+		pict.ydim = B_LITTLE32(pict.ydim);
+		pict.border = B_LITTLE32(pict.border);
+		pict.depth = B_LITTLE32(pict.depth);
+
+		if (level == 0) { *xsiz = pict.xdim; *ysiz = pict.ydim; }
+			
+		if (alloclen < pict.size) {
+			void *picc = realloc(pic, pict.size);
+			if (!picc) goto failure; else pic = picc;
+			alloclen = pict.size;
 		}
-		bglBindTexture(GL_TEXTURE_2D,*glpic);
+			
+		r = kread(fil, pic, pict.size);
+		if (r < pict.size) goto failure;
+			
+		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,pict.size,pic);
+		if (bglGetError() != GL_NO_ERROR) goto failure;
+	}
 		
-		bglGetError();
-		
-		// load the mipmaps
-		for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
-			r = kread(fil, &pict, sizeof(texcachepicture));
-			if (r < (int)sizeof(texcachepicture)) goto failure;
-			
-			if (level == 0) { *xsiz = pict.xdim; *ysiz = pict.ydim; }
-			
-			if (alloclen < pict.size) {
-				void *picc = realloc(pic, pict.size);
-				if (!picc) goto failure; else pic = picc;
-				alloclen = pict.size;
-			}
-			
-			r = kread(fil, pic, pict.size);
-			if (r < pict.size) goto failure;
-			
-			bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,pict.size,pic);
-			if (bglGetError() != GL_NO_ERROR) goto failure;
-		}
-		
-		if (pic) free(pic);
-		return 0;
+	if (pic) free(pic);
+	return 0;
 failure:
-		if (pic) free(pic);
-		return -1;
+	if (pic) free(pic);
+	return -1;
 }
 // --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
 

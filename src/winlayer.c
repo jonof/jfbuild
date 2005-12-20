@@ -3316,6 +3316,10 @@ static BOOL CreateAppWindow(int modenum, char *wtitle)
 			}
 		}
 	}
+	
+#if defined(USE_OPENGL) && defined(POLYMOST)
+	if (bitspp > 8) loadglextensions();
+#endif
 
 	xres = width;
 	yres = height;

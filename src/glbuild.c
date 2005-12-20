@@ -99,6 +99,28 @@ static HANDLE hGLDLL;
 
 char *gldriver = NULL;
 
+static void * getproc_(const char *s, int *err, int fatal, int extension)
+{
+	void *t;
+#if defined RENDERTYPESDL
+	t = (void*)SDL_GL_GetProcAddress(s);
+#elif defined _WIN32
+	if (extension) t = (void*)bwglGetProcAddress(s);
+	else t = (void*)GetProcAddress(hGLDLL,s);
+#else
+#error Need a dynamic loader for this platform...
+#endif
+	if (!t && fatal) {
+		initprintf("Failed to find %s in %s\n", s, gldriver);
+		*err = 1;
+	}
+	return t;
+}
+#define GETPROC(s)        getproc_(s,&err,1,0)
+#define GETPROCSOFT(s)    getproc_(s,&err,0,0)
+#define GETPROCEXT(s)     getproc_(s,&err,1,1)
+#define GETPROCEXTSOFT(s) getproc_(s,&err,0,1)
+
 int loadgldriver(const char *driver)
 {
 	void *t;
@@ -118,23 +140,26 @@ int loadgldriver(const char *driver)
 
 	initprintf("Loading %s\n",driver);
 
-#ifdef RENDERTYPESDL
+#if defined RENDERTYPESDL
 	if (SDL_GL_LoadLibrary(driver)) return -1;
-#	define GETPROC(s) (t = (void*)SDL_GL_GetProcAddress(s)); if (!t) { initprintf("Failed to find " s " in %s\n",driver); err = 1; }
-#   define GETPROCSOFT(s) (void*)SDL_GL_GetProcAddress(s)
-#else
-#	ifdef _WIN32
-		hGLDLL = LoadLibrary(driver);
-		if (!hGLDLL) return -1;
-#		define GETPROC(s) \
-			(t = (void*)GetProcAddress(hGLDLL,s)); \
-			if (!t) { initprintf("Failed to find " s " in %s\n",driver); err = 1; }
-#       define GETPROCSOFT(s) (void*)GetProcAddress(hGLDLL,s)
-#	else
-#		error Umm...
-#	endif
+#elif defined _WIN32
+	hGLDLL = LoadLibrary(driver);
+	if (!hGLDLL) return -1;
 #endif
 	gldriver = strdup(driver);
+
+#ifdef RENDERTYPEWIN
+	bwglCreateContext	= GETPROC("wglCreateContext");
+	bwglDeleteContext	= GETPROC("wglDeleteContext");
+	bwglGetProcAddress	= GETPROC("wglGetProcAddress");
+	bwglMakeCurrent		= GETPROC("wglMakeCurrent");
+
+	bwglSwapBuffers		= GETPROC("wglSwapBuffers");
+	bwglChoosePixelFormat	= GETPROC("wglChoosePixelFormat");
+	bwglDescribePixelFormat	= GETPROC("wglDescribePixelFormat");
+	bwglGetPixelFormat	= GETPROC("wglGetPixelFormat");
+	bwglSetPixelFormat	= GETPROC("wglSetPixelFormat");
+#endif
 
 	bglClearColor		= GETPROC("glClearColor");
 	bglClear		= GETPROC("glClear");
@@ -197,29 +222,29 @@ int loadgldriver(const char *driver)
 	bglTexSubImage2D	= GETPROC("glTexSubImage2D");
 	bglTexParameterf	= GETPROC("glTexParameterf");
 	bglTexParameteri	= GETPROC("glTexParameteri");
-	bglGetTexLevelParameteriv   = GETPROC("glGetTexLevelParameteriv");
-	bglCompressedTexImage2DARB  = GETPROCSOFT("glCompressedTexImage2DARB");
-	bglGetCompressedTexImageARB = GETPROCSOFT("glGetCompressedTexImageARB");
+	bglGetTexLevelParameteriv = GETPROC("glGetTexLevelParameteriv");
 
 	// Fog
 	bglFogf			= GETPROC("glFogf");
 	bglFogi			= GETPROC("glFogi");
 	bglFogfv		= GETPROC("glFogfv");
 
-#ifdef RENDERTYPEWIN
-	bwglCreateContext	= GETPROC("wglCreateContext");
-	bwglDeleteContext	= GETPROC("wglDeleteContext");
-	bwglGetProcAddress	= GETPROC("wglGetProcAddress");
-	bwglMakeCurrent		= GETPROC("wglMakeCurrent");
-
-	bwglSwapBuffers		= GETPROC("wglSwapBuffers");
-	bwglChoosePixelFormat	= GETPROC("wglChoosePixelFormat");
-	bwglDescribePixelFormat	= GETPROC("wglDescribePixelFormat");
-	bwglGetPixelFormat	= GETPROC("wglGetPixelFormat");
-	bwglSetPixelFormat	= GETPROC("wglSetPixelFormat");
-#endif
+	loadglextensions();
 
 	if (err) unloadgldriver();
+	return err;
+}
+
+int loadglextensions(void)
+{
+	int err = 0;
+#ifdef RENDERTYPEWIN
+	if (!hGLDLL) return 0;
+#endif
+
+	bglCompressedTexImage2DARB  = GETPROCEXTSOFT("glCompressedTexImage2DARB");
+	bglGetCompressedTexImageARB = GETPROCEXTSOFT("glGetCompressedTexImageARB");
+
 	return err;
 }
 

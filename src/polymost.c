@@ -243,7 +243,7 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 
 #include "md4.h"
 
-static char TEXCACHEDIR[] = "texcache/";
+static char TEXCACHEDIR[] = "texcache";
 typedef struct {
 	char magic[8];	// 'Polymost'
 	long xdim, ydim;	// of image, unpadded
@@ -818,9 +818,16 @@ long trytexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	unsigned char mdsum[16];
 	
 	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return -1;
+	if (!bglCompressedTexImage2DARB || !bglGetCompressedTexImageARB) {
+		// lacking the necessary extensions to do this
+		initprintf("Warning: the GL driver lacks necessary functions to use caching\n");
+		glusetexcache = 0;
+		return -1;
+	}
 	
 	md4(fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
+	*(cp++) = '/';
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
 	sprintf(cp, "-%lx-%lx%x", len, dameth, effect);
 	
@@ -829,14 +836,19 @@ long trytexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	
 	initprintf("Loading cached tex: %s\n", cachefn);
 	
-	if (kread(fil, head, sizeof(texcacheheader)) < (int)sizeof(texcacheheader) ||
-		memcmp(head->magic, "Polymost", 8) ||
-		(!glinfo.texnpot && (head->flags & 1))) {
-		kclose(fil);
-		return -1;
-	}
+	if (kread(fil, head, sizeof(texcacheheader)) < (int)sizeof(texcacheheader)) goto failure;
+	if (memcmp(head->magic, "Polymost", 8)) goto failure;
+	
+	head->xdim = B_LITTLE32(head->xdim);
+	head->ydim = B_LITTLE32(head->ydim);
+	head->flags = B_LITTLE32(head->flags);
+	
+	if (!glinfo.texnpot && (head->flags & 1)) goto failure;
 	
 	return fil;
+failure:
+	kclose(fil);
+	return -1;
 }
 
 void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *head)
@@ -846,11 +858,17 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	unsigned char mdsum[16];
 	texcachepicture pict;
 	void *pic = NULL;
-	long alloclen=0, level;
+	unsigned long alloclen=0, level;
 	unsigned long padx, pady;
 	GLuint gi;
 
 	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return;
+	if (!bglCompressedTexImage2DARB || !bglGetCompressedTexImageARB) {
+		// lacking the necessary extensions to do this
+		initprintf("Warning: the GL driver lacks necessary functions to use caching\n");
+		glusetexcache = 0;
+		return;
+	}
 	
 	{
 		struct stat st;
@@ -880,6 +898,7 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 
 	md4(fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
+	*(cp++) = '/';
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
 	sprintf(cp, "-%lx-%lx%x", len, dameth, effect);
 	
@@ -889,34 +908,39 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	if (fil < 0) return;
 	
 	memcpy(head->magic, "Polymost", 8);	// sizes are set by caller
+
+	head->xdim = B_LITTLE32(head->xdim);
+	head->ydim = B_LITTLE32(head->ydim);
+	head->flags = B_LITTLE32(head->flags);
+
 	if (Bwrite(fil, head, sizeof(texcacheheader)) != sizeof(texcacheheader)) goto failure;
 	
 	for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_ARB, &gi);
 		if (gi != GL_TRUE) goto failure;	// an uncompressed mipmap
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_INTERNAL_FORMAT, &gi);
-		pict.format = gi;
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB, &gi);
-		pict.size = gi;
+		pict.format = B_LITTLE32(gi);
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_WIDTH, &gi);
-		pict.xdim = gi;
+		pict.xdim = B_LITTLE32(gi);
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_HEIGHT, &gi);
-		pict.ydim = gi;
+		pict.ydim = B_LITTLE32(gi);
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_BORDER, &gi);
-		pict.border = gi;
+		pict.border = B_LITTLE32(gi);
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_DEPTH, &gi);
-		pict.depth = gi;
+		pict.depth = B_LITTLE32(gi);
+		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB, &gi);
+		pict.size = B_LITTLE32(gi);
 		
 		if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
 
-		if (alloclen < pict.size) {
-			void *picc = realloc(pic, pict.size);
+		if (alloclen < gi) {
+			void *picc = realloc(pic, gi);
 			if (!picc) goto failure; else pic = picc;
-			alloclen = pict.size;
+			alloclen = gi;
 		}
 		
 		bglGetCompressedTexImageARB(GL_TEXTURE_2D, level, pic);
-		if (Bwrite(fil, pic, pict.size) != pict.size) goto failure;
+		if (Bwrite(fil, pic, gi) != (int)gi) goto failure;
 	}
 
 failure:
@@ -946,6 +970,13 @@ int gloadtile_cached(long fil, texcacheheader *head, long *doalloc, pthtyp *pth)
 	for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
 		r = kread(fil, &pict, sizeof(texcachepicture));
 		if (r < (int)sizeof(texcachepicture)) goto failure;
+
+		pict.size = B_LITTLE32(pict.size);
+		pict.format = B_LITTLE32(pict.format);
+		pict.xdim = B_LITTLE32(pict.xdim);
+		pict.ydim = B_LITTLE32(pict.ydim);
+		pict.border = B_LITTLE32(pict.border);
+		pict.depth = B_LITTLE32(pict.depth);
 		
 		if (alloclen < pict.size) {
 			void *picc = realloc(pic, pict.size);
