@@ -3348,6 +3348,11 @@ static BOOL CreateAppWindow(int modenum, char *wtitle)
 //
 static void DestroyAppWindow(void)
 {
+	if (hWindow && gammabrightness) {
+		setgammaramp(sysgamma);
+		gammabrightness = 0;
+	}
+
 #if defined(USE_OPENGL) && defined(POLYMOST)
 	UninitOpenGL();
 #endif
