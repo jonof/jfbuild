@@ -959,7 +959,7 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 
 		pict.packed = B_LITTLE32(packlen);
 		if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
-		if (Bwrite(fil, packbuf, packlen) != packlen) goto failure;
+		if (Bwrite(fil, packlen == miplen ? pic : packbuf, packlen) != packlen) goto failure;
 	}
 
 failure:
