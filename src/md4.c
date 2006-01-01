@@ -83,7 +83,7 @@ static unsigned char PADDING[64] = {
     (a) = ROTATE_LEFT ((a), (s)); \
   }
 
-void md4(unsigned char *block, unsigned int len, unsigned char digest[16])
+void md4once(unsigned char *block, unsigned int len, unsigned char digest[16])
 {
 	MD4_CTX ctx;
 	

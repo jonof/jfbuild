@@ -860,6 +860,8 @@ int getsearchgroupnext(char *name, long *size)
 static char *lzwbuf1, *lzwbuf4, *lzwbuf5, lzwbuflock[5];
 static short *lzwbuf2, *lzwbuf3;
 
+static long lzwcompress(char *lzwinbuf, long uncompleng, char *lzwoutbuf);
+static long lzwuncompress(char *lzwinbuf, long compleng, char *lzwoutbuf);
 
 int kdfread(void *buffer, bsize_t dasizeof, bsize_t count, long fil)
 {
@@ -1027,7 +1029,7 @@ void dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 	lzwbuflock[0] = lzwbuflock[1] = lzwbuflock[2] = lzwbuflock[3] = lzwbuflock[4] = 1;
 }
 
-long lzwcompress(char *lzwinbuf, long uncompleng, char *lzwoutbuf)
+static long lzwcompress(char *lzwinbuf, long uncompleng, char *lzwoutbuf)
 {
 	long i, addr, newaddr, addrcnt, zx, *intptr;
 	long bytecnt1, bitcnt, numbits, oneupnumbits;
@@ -1089,7 +1091,7 @@ long lzwcompress(char *lzwinbuf, long uncompleng, char *lzwoutbuf)
 	return(uncompleng+4);
 }
 
-long lzwuncompress(char *lzwinbuf, long compleng, char *lzwoutbuf)
+static long lzwuncompress(char *lzwinbuf, long compleng, char *lzwoutbuf)
 {
 	long strtot, currstr, numbits, oneupnumbits;
 	long i, dat, leng, bitcnt, outbytecnt, *intptr;

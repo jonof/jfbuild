@@ -561,7 +561,7 @@ long mdloadskin_trytexcache(char *fn, long len, char effect, texcacheheader *hea
 		return -1;
 	}
 	
-	md4(fn, strlen(fn), mdsum);
+	md4once(fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
 	*(cp++) = '/';
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
@@ -591,8 +591,8 @@ static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLu
 {
 	int level, r;
 	texcachepicture pict;
-	void *pic = NULL;
-	long alloclen=0;
+	void *pic = NULL, *packbuf = NULL;
+	long alloclen=0, packlen;
 		
 	if (*doalloc&1) {
 		bglGenTextures(1,glpic);  //# of textures (make OpenGL allocate structure)
@@ -608,6 +608,7 @@ static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLu
 		if (r < (int)sizeof(texcachepicture)) goto failure;
 
 		pict.size = B_LITTLE32(pict.size);
+		pict.packed = B_LITTLE32(pict.packed);
 		pict.format = B_LITTLE32(pict.format);
 		pict.xdim = B_LITTLE32(pict.xdim);
 		pict.ydim = B_LITTLE32(pict.ydim);
@@ -620,19 +621,26 @@ static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLu
 			void *picc = realloc(pic, pict.size);
 			if (!picc) goto failure; else pic = picc;
 			alloclen = pict.size;
+			
+			picc = realloc(packbuf, alloclen);
+			if (!picc) goto failure; else packbuf = picc;
 		}
 			
-		r = kread(fil, pic, pict.size);
-		if (r < pict.size) goto failure;
-			
-		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,pict.size,pic);
+		if (kread(fil, pic, pict.packed) < pict.packed) goto failure;
+		if (pict.packed < pict.size && lzwuncompress(pic, pict.packed, packbuf, pict.size) != pict.size)
+			goto failure;
+
+		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,
+								   pict.size,pict.packed < pict.size ? packbuf : pic);
 		if (bglGetError() != GL_NO_ERROR) goto failure;
 	}
 		
 	if (pic) free(pic);
+	if (packbuf) free(packbuf);
 	return 0;
 failure:
 	if (pic) free(pic);
+	if (packbuf) free(packbuf);
 	return -1;
 }
 // --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
@@ -951,8 +959,6 @@ static int md2draw (md2model *m, spritetype *tspr)
 	long i, *lptr;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
 
-	if ((tspr->cstat&48) == 32) return 0;
-
 	updateanimation(m,tspr);
 
 // -------- Unnecessarily clean (lol) code to generate translation/rotation matrix for MD2 ---------
@@ -969,9 +975,9 @@ static int md2draw (md2model *m, spritetype *tspr)
 	a0.z = f0->add.z*m->scale; a0.z = (f1->add.z*m->scale-a0.z)*f+a0.z + m->zadd*m->scale;
 	c0 = &f0->verts[0].v[0]; c1 = &f1->verts[0].v[0];
 
-    // Parkar: Moved up to be able to use k0 for the y-flipping code
-    k0 = tspr->z;
-	if (globalorientation&128) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<2);
+	// Parkar: Moved up to be able to use k0 for the y-flipping code
+	k0 = tspr->z;
+	if ((globalorientation&128) && !((globalorientation&48)==32)) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<1);
 	
 	// Parkar: Changed to use the same method as centeroriented sprites
 	if (globalorientation&8) //y-flipping
@@ -986,11 +992,21 @@ static int md2draw (md2model *m, spritetype *tspr)
 	m0.y *= f; m1.y *= f; a0.y *= f;
 	f = ((float)tspr->yrepeat)/64*m->bscale;
 	m0.z *= f; m1.z *= f; a0.z *= f;
+	
+	// floor aligned
+	k1 = tspr->y;
+	if((globalorientation&48)==32)
+	{
+		m0.z = -m0.z; m1.z = -m1.z; a0.z = -a0.z;
+		m0.y = -m0.y; m1.y = -m1.y; a0.y = -a0.y;
+		f = a0.x; a0.x = a0.z; a0.z = f;
+		k1 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)>>3);
+	}
 
 	f = (65536.0*512.0)/((float)xdimen*viewingrange);
 	g = 32.0/((float)xdimen*gxyaspect);
 	m0.y *= f; m1.y *= f; a0.y = (((float)(tspr->x-globalposx))/  1024.0 + a0.y)*f;
-	m0.x *=-f; m1.x *=-f; a0.x = (((float)(tspr->y-globalposy))/ -1024.0 + a0.x)*-f;
+	m0.x *=-f; m1.x *=-f; a0.x = (((float)(k1     -globalposy))/ -1024.0 + a0.x)*-f;
 	m0.z *= g; m1.z *= g; a0.z = (((float)(k0     -globalposz))/-16384.0 + a0.z)*g;
 
 	k0 = ((float)(tspr->x-globalposx))*f/1024.0;
@@ -1007,11 +1023,19 @@ static int md2draw (md2model *m, spritetype *tspr)
 	mat[1] = k4*k6 + k5*k7; mat[5] = gchang*gctang; mat[ 9] = k4*k7 - k5*k6; mat[13] = k2*k6 + k3*k7;
 	k6 =           gcosang2*gchang; k7 =           gsinang2*gchang;
 	mat[2] = k4*k6 + k5*k7; mat[6] =-gshang;        mat[10] = k4*k7 - k5*k6; mat[14] = k2*k6 + k3*k7;
-
+	
 	mat[12] += a0.y*mat[0] + a0.z*mat[4] + a0.x*mat[ 8];
 	mat[13] += a0.y*mat[1] + a0.z*mat[5] + a0.x*mat[ 9];
 	mat[14] += a0.y*mat[2] + a0.z*mat[6] + a0.x*mat[10];
-
+	
+	// floor aligned
+	if((globalorientation&48)==32)
+	{
+        f = mat[4]; mat[4] = mat[8]*16.0; mat[8] = -f*(1.0/16.0);
+        f = mat[5]; mat[5] = mat[9]*16.0; mat[9] = -f*(1.0/16.0);
+        f = mat[6]; mat[6] = mat[10]*16.0; mat[10] = -f*(1.0/16.0);
+    }
+    
 		//Mirrors
 	if (grhalfxdown10x < 0) { mat[0] = -mat[0]; mat[4] = -mat[4]; mat[8] = -mat[8]; mat[12] = -mat[12]; }
 
@@ -1247,8 +1271,6 @@ static int md3draw (md3model *m, spritetype *tspr)
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
 	md3surf_t *s;
 
-	if ((tspr->cstat&48) == 32) return 0;
-
 	updateanimation((md2model *)m,tspr);
 
 		//create current&next frame's vertex list from whole list
@@ -1261,7 +1283,7 @@ static int md3draw (md3model *m, spritetype *tspr)
 
     // Parkar: Moved up to be able to use k0 for the y-flipping code
 	k0 = tspr->z;
-	if (globalorientation&128) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<1);
+	if ((globalorientation&128) && !((globalorientation&48)==32)) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<1);
 
     // Parkar: Changed to use the same method as centeroriented sprites
 	if (globalorientation&8) //y-flipping
@@ -1276,11 +1298,21 @@ static int md3draw (md3model *m, spritetype *tspr)
 	m0.y *= f; m1.y *= f; a0.y *= f;
 	f = ((float)tspr->yrepeat)/64*m->bscale;
 	m0.z *= f; m1.z *= f; a0.z *= f;
+	
+	// floor aligned
+	k1 = tspr->y;
+	if((globalorientation&48)==32)
+	{
+		m0.z = -m0.z; m1.z = -m1.z; a0.z = -a0.z;
+		m0.y = -m0.y; m1.y = -m1.y; a0.y = -a0.y;
+		f = a0.x; a0.x = a0.z; a0.z = f;
+		k1 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)>>3);
+	}
 
 	f = (65536.0*512.0)/((float)xdimen*viewingrange);
 	g = 32.0/((float)xdimen*gxyaspect);
 	m0.y *= f; m1.y *= f; a0.y = (((float)(tspr->x-globalposx))/  1024.0 + a0.y)*f;
-	m0.x *=-f; m1.x *=-f; a0.x = (((float)(tspr->y-globalposy))/ -1024.0 + a0.x)*-f;
+	m0.x *=-f; m1.x *=-f; a0.x = (((float)(k1     -globalposy))/ -1024.0 + a0.x)*-f;
 	m0.z *= g; m1.z *= g; a0.z = (((float)(k0     -globalposz))/-16384.0 + a0.z)*g;
 
 	k0 = ((float)(tspr->x-globalposx))*f/1024.0;
@@ -1302,10 +1334,17 @@ static int md3draw (md3model *m, spritetype *tspr)
 	mat[13] += a0.y*mat[1] + a0.z*mat[5] + a0.x*mat[ 9];
 	mat[14] += a0.y*mat[2] + a0.z*mat[6] + a0.x*mat[10];
 
-		//Mirrors
+	// floor aligned
+	if((globalorientation&48)==32)
+	{
+		f = mat[4]; mat[4] = mat[8]*16.0; mat[8] = -f*(1.0/16.0);
+		f = mat[5]; mat[5] = mat[9]*16.0; mat[9] = -f*(1.0/16.0);
+		f = mat[6]; mat[6] = mat[10]*16.0; mat[10] = -f*(1.0/16.0);
+	}
+    
+	//Mirrors
 	if (grhalfxdown10x < 0) { mat[0] = -mat[0]; mat[4] = -mat[4]; mat[8] = -mat[8]; mat[12] = -mat[12]; }
-
-
+	
 //------------
 	//bit 10 is an ugly hack in game.c\animatesprites telling MD2SPRITE
 	//to use Z-buffer hacks to hide overdraw problems with the shadows

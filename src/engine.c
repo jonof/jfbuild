@@ -9159,7 +9159,7 @@ void setbrightness(char dabrightness, char *dapal, char noapply)
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
-		newpalettesum = crc32((unsigned char *)curpalettefaded, sizeof(curpalettefaded));
+		newpalettesum = crc32once((unsigned char *)curpalettefaded, sizeof(curpalettefaded));
 
 		// only reset the textures if the preserve flag (bit 1 of noapply) is clear and
 		// either (a) the new palette is different to the last, or (b) the brightness

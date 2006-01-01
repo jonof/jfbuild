@@ -88,6 +88,7 @@ ENGINEOBJS+= \
 	$(OBJ)engineinfo.$o \
 	$(OBJ)glbuild.$o \
 	$(OBJ)kplib.$o \
+	$(OBJ)lzwnew.$o \
 	$(OBJ)md4.$o \
 	$(OBJ)mmulti.$o \
 	$(OBJ)osd.$o \

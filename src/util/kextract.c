@@ -63,14 +63,14 @@ int main(int argc, char **argv)
 		printf("Error: %s not a valid group file\n",argv[1]);
 		return(0);
 	}
-	numfiles = ((long)buf[12])+(((long)buf[13])<<8)+(((long)buf[14])<<16)+(((long)buf[15])<<24);
+	numfiles = *((long*)&buf[12]); numfiles = B_LITTLE32(numfiles);
 
 	Bread(fil,filelist,numfiles<<4);
 
 	j = 0;
 	for(i=0;i<numfiles;i++)
 	{
-		k = ((long)filelist[i][12])+(((long)filelist[i][13])<<8)+(((long)filelist[i][14])<<16)+(((long)filelist[i][15])<<24);
+		k = *((long*)&filelist[i][12]); k = B_LITTLE32(k);
 		filelist[i][12] = 0;
 		fileoffs[i] = j;
 		j += k;

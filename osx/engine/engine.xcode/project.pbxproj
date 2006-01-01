@@ -69,6 +69,7 @@
 				AB2B5C8208E6979600899067,
 				AB2B5C8308E6979600899067,
 				AB8F394909545F3800B9F541,
+				ABD656410967A52B0066981D,
 			);
 			isa = PBXHeadersBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -218,6 +219,7 @@
 				AB2B5C9508E6979600899067,
 				AB2B5D4708E69D9000899067,
 				AB8F394609545F2600B9F541,
+				ABD6563A0967A4FA0066981D,
 			);
 			isa = PBXSourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -439,6 +441,7 @@
 				AB3AFEAD08DF044D00C0AA42,
 				AB3AFEAE08DF044D00C0AA42,
 				AB8F394809545F3800B9F541,
+				ABD656400967A52B0066981D,
 			);
 			isa = PBXHeadersBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -465,6 +468,7 @@
 				AB3AF9D908DEE2B000C0AA42,
 				AB2B5D4608E69D9000899067,
 				AB8F394509545F2600B9F541,
+				ABD656390967A4FA0066981D,
 			);
 			isa = PBXSourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -551,6 +555,7 @@
 				AB3AF9CE08DEE17600C0AA42,
 				AB3AF60008DEDB3100C0AA42,
 				AB3AF60308DEDB3100C0AA42,
+				ABD656380967A4FA0066981D,
 				AB3AF60508DEDB3100C0AA42,
 				AB3AF60608DEDB3100C0AA42,
 				AB2B5D4508E69D9000899067,
@@ -1314,6 +1319,7 @@
 		};
 		AB3AFEAF08DF046600C0AA42 = {
 			children = (
+				ABD6563F0967A52B0066981D,
 				AB8F394709545F3800B9F541,
 				AB3AFE9308DF044D00C0AA42,
 				AB3AFE9408DF044D00C0AA42,
@@ -1410,6 +1416,48 @@
 				ATTRIBUTES = (
 					Public,
 				);
+			};
+		};
+		ABD656380967A4FA0066981D = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.c;
+			name = lzwnew.c;
+			path = ../../src/lzwnew.c;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		ABD656390967A4FA0066981D = {
+			fileRef = ABD656380967A4FA0066981D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		ABD6563A0967A4FA0066981D = {
+			fileRef = ABD656380967A4FA0066981D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		ABD6563F0967A52B0066981D = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.c.h;
+			name = lzwnew.h;
+			path = ../../include/lzwnew.h;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		ABD656400967A52B0066981D = {
+			fileRef = ABD6563F0967A52B0066981D;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		ABD656410967A52B0066981D = {
+			fileRef = ABD6563F0967A52B0066981D;
+			isa = PBXBuildFile;
+			settings = {
 			};
 		};
 	};

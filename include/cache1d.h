@@ -34,9 +34,6 @@ int	dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil);
 void	kdfwrite(void *buffer, bsize_t dasizeof, bsize_t count, long fil);
 void	dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil);
 
-long	lzwcompress(char *lzwinbuf, long uncompleng, char *lzwoutbuf);
-long	lzwuncompress(char *lzwinbuf, long compleng, char *lzwoutbuf);
-
 #ifdef __cplusplus
 }
 #endif

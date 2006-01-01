@@ -74,7 +74,7 @@ void initcrc32table(void)
 }
 
 
-unsigned long crc32(unsigned char *blk, unsigned long len)
+unsigned long crc32once(unsigned char *blk, unsigned long len)
 {
 	unsigned long crc;
 	

@@ -118,6 +118,7 @@ long glanisotropy = 1;            // 0 = maximum supported by card
 long glusetexcompr = 1;
 long gltexfiltermode = 3;   // GL_LINEAR_MIPMAP_NEAREST
 long glusetexcache = 0;
+long glusetexcachecompression = 1;
 long gltexmaxsize = 0;      // 0 means autodetection on first run
 long gltexmiplevel = 0;		// discards this many mipmap levels
 static long lastglpolygonmode = 0; //FUK
@@ -242,6 +243,7 @@ typedef struct { unsigned char r, g, b, a; } coltype;
 static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth);
 
 #include "md4.h"
+#include "lzwnew.h"
 
 static char TEXCACHEDIR[] = "texcache";
 typedef struct {
@@ -250,7 +252,8 @@ typedef struct {
 	long flags;		// 1 = !2^x, 2 = has alpha
 } texcacheheader;
 typedef struct {
-	long size, format;
+	long size, packed;	// if packed < size, deflate was used
+	long format;
 	long xdim, ydim;	// of mipmap (possibly padded)
 	long border, depth;
 } texcachepicture;
@@ -825,7 +828,7 @@ long trytexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 		return -1;
 	}
 	
-	md4(fn, strlen(fn), mdsum);
+	md4once(fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
 	*(cp++) = '/';
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
@@ -857,8 +860,8 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	char cachefn[BMAX_PATH], *cp;
 	unsigned char mdsum[16];
 	texcachepicture pict;
-	void *pic = NULL;
-	unsigned long alloclen=0, level;
+	void *pic = NULL, *packbuf = NULL;
+	unsigned long alloclen=0, level, miplen, packlen;
 	unsigned long padx, pady;
 	GLuint gi;
 
@@ -896,7 +899,7 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	bglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_ARB, &gi);
 	if (gi != GL_TRUE) return;
 
-	md4(fn, strlen(fn), mdsum);
+	md4once(fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
 	*(cp++) = '/';
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
@@ -915,45 +918,62 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 
 	if (Bwrite(fil, head, sizeof(texcacheheader)) != sizeof(texcacheheader)) goto failure;
 	
-	for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
+	bglGetError();
+	for (level = 0; level==0 || (padx > 1 || pady > 1); level++) {
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_ARB, &gi);
+		if (bglGetError() != GL_NO_ERROR) goto failure;
 		if (gi != GL_TRUE) goto failure;	// an uncompressed mipmap
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_INTERNAL_FORMAT, &gi);
+		if (bglGetError() != GL_NO_ERROR) goto failure;
 		pict.format = B_LITTLE32(gi);
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_WIDTH, &gi);
-		pict.xdim = B_LITTLE32(gi);
+		if (bglGetError() != GL_NO_ERROR) goto failure;
+		padx = gi; pict.xdim = B_LITTLE32(gi);
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_HEIGHT, &gi);
-		pict.ydim = B_LITTLE32(gi);
+		if (bglGetError() != GL_NO_ERROR) goto failure;
+		pady = gi; pict.ydim = B_LITTLE32(gi);
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_BORDER, &gi);
+		if (bglGetError() != GL_NO_ERROR) goto failure;
 		pict.border = B_LITTLE32(gi);
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_DEPTH, &gi);
+		if (bglGetError() != GL_NO_ERROR) goto failure;
 		pict.depth = B_LITTLE32(gi);
 		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB, &gi);
-		pict.size = B_LITTLE32(gi);
+		if (bglGetError() != GL_NO_ERROR) goto failure;
+		miplen = (long)gi; pict.size = B_LITTLE32(gi);
 		
-		if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
-
-		if (alloclen < gi) {
-			void *picc = realloc(pic, gi);
+		if (alloclen < miplen) {
+			void *picc = realloc(pic, miplen);
 			if (!picc) goto failure; else pic = picc;
-			alloclen = gi;
+			alloclen = miplen;
+			
+			picc = realloc(packbuf, alloclen+16);
+			if (!picc) goto failure; else packbuf = picc;
 		}
 		
 		bglGetCompressedTexImageARB(GL_TEXTURE_2D, level, pic);
-		if (Bwrite(fil, pic, gi) != (int)gi) goto failure;
+		if (bglGetError() != GL_NO_ERROR) goto failure;
+		
+		if (!glusetexcachecompression) packlen = miplen;
+		else packlen = lzwcompress(pic, miplen, packbuf);
+
+		pict.packed = B_LITTLE32(packlen);
+		if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
+		if (Bwrite(fil, packbuf, packlen) != packlen) goto failure;
 	}
 
 failure:
 	if (fil>=0) Bclose(fil);
 	if (pic) free(pic);
+	if (packbuf) free(packbuf);
 }
 
 int gloadtile_cached(long fil, texcacheheader *head, long *doalloc, pthtyp *pth)
 {
 	int level, r;
 	texcachepicture pict;
-	void *pic = NULL;
-	long alloclen=0;
+	void *pic = NULL, *packbuf = NULL;
+	long alloclen=0, packlen;
 	
 	if (*doalloc&1) {
 		bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
@@ -972,6 +992,7 @@ int gloadtile_cached(long fil, texcacheheader *head, long *doalloc, pthtyp *pth)
 		if (r < (int)sizeof(texcachepicture)) goto failure;
 
 		pict.size = B_LITTLE32(pict.size);
+		pict.packed = B_LITTLE32(pict.packed);
 		pict.format = B_LITTLE32(pict.format);
 		pict.xdim = B_LITTLE32(pict.xdim);
 		pict.ydim = B_LITTLE32(pict.ydim);
@@ -982,19 +1003,26 @@ int gloadtile_cached(long fil, texcacheheader *head, long *doalloc, pthtyp *pth)
 			void *picc = realloc(pic, pict.size);
 			if (!picc) goto failure; else pic = picc;
 			alloclen = pict.size;
+			
+			picc = realloc(packbuf, alloclen+16);
+			if (!picc) goto failure; else packbuf = picc;
 		}
 
-		r = kread(fil, pic, pict.size);
-		if (r < pict.size) goto failure;
+		if (kread(fil, pic, pict.packed) < pict.packed) goto failure;
+		if (pict.packed < pict.size && lzwuncompress(pic, pict.packed, packbuf, pict.size) != pict.size)
+			goto failure;
 		
-		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,pict.size,pic);
+		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,
+								   pict.size,pict.packed < pict.size ? packbuf : pic);
 		if (bglGetError() != GL_NO_ERROR) goto failure;
 	}
 
 	if (pic) free(pic);
+	if (packbuf) free(packbuf);
 	return 0;
 failure:
 	if (pic) free(pic);
+	if (packbuf) free(packbuf);
 	return -1;
 }
 // --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
@@ -4634,6 +4662,7 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterVariable("usegoodalpha", OSDVAR_INTEGER, &usegoodalpha, 0, osd_internal_validate_boolean);
 	OSD_RegisterVariable("glpolygonmode", OSDVAR_INTEGER, &glpolygonmode, 0, osd_internal_validate_integer); //FUK
 	OSD_RegisterVariable("glusetexcache", OSDVAR_INTEGER, &glusetexcache, 0, osd_internal_validate_boolean);
+	OSD_RegisterVariable("glusetexcachecompression", OSDVAR_INTEGER, &glusetexcachecompression, 0, osd_internal_validate_boolean);
 #endif
 	OSD_RegisterVariable("usemodels", OSDVAR_INTEGER, &usemodels, 0, osd_internal_validate_boolean);
 	OSD_RegisterVariable("usehightile", OSDVAR_INTEGER, &usehightile, 0, osd_internal_validate_boolean);
