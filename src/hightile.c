@@ -15,7 +15,7 @@ struct hicskybox_t {
 };
 typedef struct hicreplc_t {
 	struct hicreplc_t *next;
-	char palnum, ignore, filler[2];
+	char palnum, ignore, flags, filler;
 	char *filename;
 	float alphacut;
 	struct hicskybox_t *skybox;
@@ -113,7 +113,7 @@ void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned c
 // hicsetsubsttex(picnum,pal,filen,alphacut)
 //   Specifies a replacement graphic file for an ART tile.
 //
-int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut)
+int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut, char flags)
 {
 	hicreplctyp *hr, *hrn;
 
@@ -144,6 +144,7 @@ int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut)
 	}
 	hrn->ignore = 0;
 	hrn->alphacut = min(alphacut,1.0);
+	hrn->flags = flags;
 	if (hr == NULL) {
 		hrn->next = hicreplc[picnum];
 		hicreplc[picnum] = hrn;

@@ -27,7 +27,7 @@ SETSPRITEZ ?= 0
 # Debugging options
 #  RELEASE - 1 = no debugging
 #  EFENCE  - 1 = compile with Electric Fence for malloc() debugging
-RELEASE?=0
+RELEASE?=1
 EFENCE?=0
 
 # SDK locations - adjust to match your setup

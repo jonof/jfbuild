@@ -475,7 +475,8 @@ void gltexapplyprops (void);
 void hicinit(void);
 // effect bitset: 1 = greyscale, 2 = invert
 void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect);
-int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut);
+// flags bitset: 1 = don't compress
+int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut, char flags);
 int hicsetskybox(long picnum, long palnum, char *faces[6]);
 int hicclearsubst(long picnum, long palnum);
 

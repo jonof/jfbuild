@@ -54,7 +54,7 @@ enum {
 	T_SKYBOX,
 	T_FRONT,T_RIGHT,T_BACK,T_LEFT,T_TOP,T_BOTTOM,
 	T_TINT,T_RED,T_GREEN,T_BLUE,
-	T_TEXTURE,T_ALPHACUT,
+	T_TEXTURE,T_ALPHACUT,T_NOCOMPRESS,
 	T_UNDEFMODEL,T_UNDEFMODELRANGE,T_UNDEFMODELOF,T_UNDEFTEXTURE,T_UNDEFTEXTURERANGE,
 };
 
@@ -167,8 +167,9 @@ static tokenlist texturetokens[] = {
 	{ "pal",   T_PAL  },
 };
 static tokenlist texturetokens_pal[] = {
-	{ "file",     T_FILE },{ "name", T_FILE },
-	{ "alphacut", T_ALPHACUT },
+	{ "file",      T_FILE },{ "name", T_FILE },
+	{ "alphacut",  T_ALPHACUT },
+	{ "nocompress",T_NOCOMPRESS },
 };
 
 
@@ -254,7 +255,7 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getnumber(script,&fnoo)) break; //x-size
 					if (scriptfile_getnumber(script,&fnoo)) break; //y-size
 					if (scriptfile_getstring(script,&fn))  break;
-					hicsetsubsttex(tile,pal,fn,-1.0);
+					hicsetsubsttex(tile,pal,fn,-1.0,0);
 				}
 				break;
 			case T_DEFINESKYBOX:
@@ -818,6 +819,7 @@ static int defsparser(scriptfile *script)
 								int pal=-1;
 								char *fn = NULL;
 								double alphacut = -1.0;
+								char flags = 0;
 
 								if (scriptfile_getsymbol(script,&pal)) break;
 								if (scriptfile_getbraces(script,&palend)) break;
@@ -825,6 +827,7 @@ static int defsparser(scriptfile *script)
 									switch (getatoken(script,texturetokens_pal,sizeof(texturetokens_pal)/sizeof(tokenlist))) {
 										case T_FILE:     scriptfile_getstring(script,&fn); break;
 										case T_ALPHACUT: scriptfile_getdouble(script,&alphacut); break;
+										case T_NOCOMPRESS: flags |= 1; break;
 										default: break;
 									}
 								}
@@ -840,7 +843,7 @@ static int defsparser(scriptfile *script)
 												script->filename, scriptfile_getlinum(script,paltokptr));
 									break;
 								}
-								hicsetsubsttex(tile,pal,fn,alphacut);
+								hicsetsubsttex(tile,pal,fn,alphacut,flags);
 							} break;
 							default: break;
 						}

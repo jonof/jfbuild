@@ -854,176 +854,382 @@ failure:
 	return -1;
 }
 
+static unsigned short hicosub (unsigned short c)
+{
+   long r, g, b;
+   g = ((c>> 5)&63);
+   r = ((c>>11)-(g>>1))&31;
+   b = ((c>> 0)-(g>>1))&31;
+   return((r<<11)+(g<<5)+b);
+}
+
+static unsigned short hicoadd (unsigned short c)
+{
+   long r, g, b;
+   g = ((c>> 5)&63);
+   r = ((c>>11)+(g>>1))&31;
+   b = ((c>> 0)+(g>>1))&31;
+   return((r<<11)+(g<<5)+b);
+}
+
+#define USEDXTFILT 1 //enable for 15% better LZW compression
+/*
+Description of Ken's filter to improve LZW compression of DXT1 format by ~15%: (as tested with the HRP)
+
+To increase LZW patterns, I store each field of the DXT block structure separately.
+Here are the 3 DXT fields:
+   1.  __int64 alpha_4x4; //DXT3 only (16 byte structure size when included)
+   2.  short rgb0, rgb1;
+   3.  long index_4x4;
+
+Each field is then stored with its own specialized algorithm.
+1. I haven't done much testing with this field - I just copy it raw without any transform for now.
+
+2. For rgb0 and rgb1, I use a "green" filter like this:
+      g = g;
+      r = r-g;
+      b = b-g;
+   For grayscale, this makes the stream: x,0,0,x,0,0,x,0,0,... instead of x,x,x,x,x,x,x,x,...
+   Q:what was the significance of choosing green? A:largest/most dominant component
+   Believe it or not, this gave 1% better compression :P
+   I tried subtracting each componenet with the previous pixel, but strangely it hurt compression.
+   Oh, the joy of trial & error. :)
+
+3. For index_4x4, I transform the ordering of 2-bit indices in the DXT blocks from this:
+      0123 0123 0123  ---- ---- ----
+      4567 4567 4567  ---- ---- ----
+      89ab 89ab 89ab  ---- ---- ----
+      cdef cdef cdef  ---- ---- ----
+   To this: (I swap x & y axes)
+      048c 048c 048c  |||| |||| ||||
+      159d 159d 159d  |||| |||| ||||
+      26ae 26ae 26ae  |||| |||| ||||
+      37bf 37bf 37bf  |||| |||| ||||
+   The trick is: going from the bottom of the 4th line to the top of the 5th line
+   is the exact same jump (geometrically) as from 5th to 6th, etc.. This is not true in the top case.
+   These silly tricks will increase patterns and therefore make LZW compress better.
+   I think this improved compression by a few % :)
+*/
+
 void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *head)
 {
-	long fil=-1, fp;
-	char cachefn[BMAX_PATH], *cp;
-	unsigned char mdsum[16];
-	texcachepicture pict;
-	void *pic = NULL, *packbuf = NULL;
-	unsigned long alloclen=0, level, miplen, packlen;
-	unsigned long padx, pady;
-	GLuint gi;
+   long fil=-1, fp;
+   char cachefn[BMAX_PATH], *cp;
+   unsigned char mdsum[16];
+   texcachepicture pict;
+   char *pic = NULL, *packbuf = NULL;
+#if (USEDXTFILT != 0)
+   void *midbuf = NULL;
+#endif
+   unsigned long alloclen=0, level, miplen, packlen;
+   unsigned long padx, pady;
+   GLuint gi;
+   long j, k, offs, stride, cleng;
+   char *cptr;
 
-	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return;
-	if (!bglCompressedTexImage2DARB || !bglGetCompressedTexImageARB) {
-		// lacking the necessary extensions to do this
-		initprintf("Warning: the GL driver lacks necessary functions to use caching\n");
-		glusetexcache = 0;
-		return;
-	}
-	
-	{
-		struct stat st;
-		if (stat(TEXCACHEDIR, &st) < 0) {
-			if (errno == ENOENT) {	// path doesn't exist
-				// try to create the cache directory
-				if (Bmkdir(TEXCACHEDIR, S_IRWXU) < 0) {
-					initprintf("Failed to create texture cache directory %s\n", TEXCACHEDIR);
-					glusetexcache = 0;
-					return;
-				} else initprintf("Created texture cache directory %s\n", TEXCACHEDIR);
-			} else {
-				// another type of failure
-				glusetexcache = 0;
-				return;
-			}
-		} else if ((st.st_mode & S_IFDIR) != S_IFDIR) {
-			// cache directory isn't a directory
-			glusetexcache = 0;
-			return;
-		}
-	}
 
-	gi = GL_FALSE;
-	bglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_ARB, &gi);
-	if (gi != GL_TRUE) return;
+   if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return;
+   if (!bglCompressedTexImage2DARB || !bglGetCompressedTexImageARB) {
+      // lacking the necessary extensions to do this
+      initprintf("Warning: the GL driver lacks necessary functions to use caching\n");
+      glusetexcache = 0;
+      return;
+   }
 
-	md4once(fn, strlen(fn), mdsum);
-	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
-	*(cp++) = '/';
-	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
-	sprintf(cp, "-%lx-%lx%x", len, dameth, effect);
-	
-	initprintf("Writing cached tex: %s\n", cachefn);
-	
-	fil = Bopen(cachefn,BO_BINARY|BO_CREAT|BO_TRUNC|BO_RDWR,BS_IREAD|BS_IWRITE);
-	if (fil < 0) return;
-	
-	memcpy(head->magic, "Polymost", 8);	// sizes are set by caller
+   {
+      struct stat st;
+      if (stat(TEXCACHEDIR, &st) < 0) {
+         if (errno == ENOENT) {   // path doesn't exist
+            // try to create the cache directory
+            if (Bmkdir(TEXCACHEDIR, S_IRWXU) < 0) {
+               initprintf("Failed to create texture cache directory %s\n", TEXCACHEDIR);
+               glusetexcache = 0;
+               return;
+            } else initprintf("Created texture cache directory %s\n", TEXCACHEDIR);
+         } else {
+            // another type of failure
+            glusetexcache = 0;
+            return;
+         }
+      } else if ((st.st_mode & S_IFDIR) != S_IFDIR) {
+         // cache directory isn't a directory
+         glusetexcache = 0;
+         return;
+      }
+   }
 
-	head->xdim = B_LITTLE32(head->xdim);
-	head->ydim = B_LITTLE32(head->ydim);
-	head->flags = B_LITTLE32(head->flags);
+   gi = GL_FALSE;
+   bglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_ARB, &gi);
+   if (gi != GL_TRUE) return;
 
-	if (Bwrite(fil, head, sizeof(texcacheheader)) != sizeof(texcacheheader)) goto failure;
-	
-	bglGetError();
-	for (level = 0; level==0 || (padx > 1 || pady > 1); level++) {
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_ARB, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		if (gi != GL_TRUE) goto failure;	// an uncompressed mipmap
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_INTERNAL_FORMAT, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		pict.format = B_LITTLE32(gi);
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_WIDTH, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		padx = gi; pict.xdim = B_LITTLE32(gi);
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_HEIGHT, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		pady = gi; pict.ydim = B_LITTLE32(gi);
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_BORDER, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		pict.border = B_LITTLE32(gi);
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_DEPTH, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		pict.depth = B_LITTLE32(gi);
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		miplen = (long)gi; pict.size = B_LITTLE32(gi);
-		
-		if (alloclen < miplen) {
-			void *picc = realloc(pic, miplen);
-			if (!picc) goto failure; else pic = picc;
-			alloclen = miplen;
-			
-			picc = realloc(packbuf, alloclen+16);
-			if (!picc) goto failure; else packbuf = picc;
-		}
-		
-		bglGetCompressedTexImageARB(GL_TEXTURE_2D, level, pic);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		
-		if (!glusetexcachecompression) packlen = miplen;
-		else packlen = lzwcompress(pic, miplen, packbuf);
+   md4once(fn, strlen(fn), mdsum);
+   for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
+   *(cp++) = '/';
+   for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
+   sprintf(cp, "-%lx-%lx%x", len, dameth, effect);
 
-		pict.packed = B_LITTLE32(packlen);
-		if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
-		if (Bwrite(fil, packlen == miplen ? pic : packbuf, packlen) != packlen) goto failure;
-	}
+   initprintf("Writing cached tex: %s\n", cachefn);
+   
+   fil = Bopen(cachefn,BO_BINARY|BO_CREAT|BO_TRUNC|BO_RDWR,BS_IREAD|BS_IWRITE);
+   if (fil < 0) return;
+
+   memcpy(head->magic, "Polymost", 8);   // sizes are set by caller
+
+   head->xdim = B_LITTLE32(head->xdim);
+   head->ydim = B_LITTLE32(head->ydim);
+   head->flags = B_LITTLE32(head->flags);
+
+   if (Bwrite(fil, head, sizeof(texcacheheader)) != sizeof(texcacheheader)) goto failure;
+
+   bglGetError();
+   for (level = 0; level==0 || (padx > 1 || pady > 1); level++) {
+      bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_ARB, &gi);
+      if (bglGetError() != GL_NO_ERROR) goto failure;
+      if (gi != GL_TRUE) goto failure;   // an uncompressed mipmap
+      bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_INTERNAL_FORMAT, &gi);
+      if (bglGetError() != GL_NO_ERROR) goto failure;
+      pict.format = B_LITTLE32(gi);
+      bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_WIDTH, &gi);
+      if (bglGetError() != GL_NO_ERROR) goto failure;
+      padx = gi; pict.xdim = B_LITTLE32(gi);
+      bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_HEIGHT, &gi);
+      if (bglGetError() != GL_NO_ERROR) goto failure;
+      pady = gi; pict.ydim = B_LITTLE32(gi);
+      bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_BORDER, &gi);
+      if (bglGetError() != GL_NO_ERROR) goto failure;
+      pict.border = B_LITTLE32(gi);
+      bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_DEPTH, &gi);
+      if (bglGetError() != GL_NO_ERROR) goto failure;
+      pict.depth = B_LITTLE32(gi);
+      bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB, &gi);
+      if (bglGetError() != GL_NO_ERROR) goto failure;
+      miplen = (long)gi; pict.size = B_LITTLE32(gi);
+      
+      if (alloclen < miplen) {
+         void *picc = realloc(pic, miplen);
+         if (!picc) goto failure; else pic = picc;
+         alloclen = miplen;
+
+         picc = realloc(packbuf, alloclen+16);
+         if (!picc) goto failure; else packbuf = picc;
+
+#if (USEDXTFILT != 0)
+         picc = realloc(midbuf, miplen);
+         if (!picc) goto failure; else midbuf = picc;
+#endif
+      }
+
+      bglGetCompressedTexImageARB(GL_TEXTURE_2D, level, pic);
+      if (bglGetError() != GL_NO_ERROR) goto failure;
+      
+      if (!glusetexcachecompression)
+      {
+         pict.packed = B_LITTLE32(miplen);
+         if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
+         if (Bwrite(fil, pic, miplen) != miplen) goto failure;
+      }
+      else
+      {
+#if (USEDXTFILT == 0)
+         packlen = lzwcompress(pic, miplen, packbuf);
+         pict.packed = B_LITTLE32(packlen);
+         if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
+         if (Bwrite(fil, packlen == miplen ? pic : packbuf, packlen) != packlen) goto failure;
+#else
+         if ((pict.format == B_LITTLE32(GL_COMPRESSED_RGB_S3TC_DXT1_EXT)) ||
+             (pict.format == B_LITTLE32(GL_COMPRESSED_RGBA_S3TC_DXT1_EXT))) { offs = 0; stride = 8; }
+         else if ((pict.format == B_LITTLE32(GL_COMPRESSED_RGBA_S3TC_DXT3_EXT)) ||
+                  (pict.format == B_LITTLE32(GL_COMPRESSED_RGBA_S3TC_DXT5_EXT))) { offs = 8; stride = 16; }
+         else { offs = 0; stride = 8; }
+         
+         pict.packed = 0;
+         if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
+         
+         if (stride == 16) //If DXT3...
+         {
+               //alpha_4x4
+            cptr = midbuf;
+            for(k=0;k<8;k++) *cptr++ = pic[k];
+            for(j=stride;j<miplen;j+=stride)
+               for(k=0;k<8;k++) *cptr++ = pic[j+k];
+            cleng = lzwcompress(midbuf,(miplen/stride)*8,packbuf);
+            j = B_LITTLE32(cleng);
+            Bwrite(fil,&j,4);
+            Bwrite(fil,packbuf,cleng);
+         }
+
+            //rgb0,rgb1
+         cptr = midbuf;
+         for(k=0;k<=2;k+=2)
+            for(j=0;j<miplen;j+=stride)
+               { *(short *)cptr = hicosub(*(short *)(&pic[offs+j+k])); cptr += 2; }
+         cleng = lzwcompress(midbuf,(miplen/stride)*4,packbuf);
+         j = B_LITTLE32(cleng);
+         Bwrite(fil,&j,4);
+         Bwrite(fil,packbuf,cleng);
+
+            //index_4x4
+         cptr = midbuf;
+         for(j=0;j<miplen;j+=stride)
+         {
+            char *c2 = &pic[j+offs+4];
+            cptr[0] = ((c2[0]>>0)&3) + (((c2[1]>>0)&3)<<2) + (((c2[2]>>0)&3)<<4) + (((c2[3]>>0)&3)<<6);
+            cptr[1] = ((c2[0]>>2)&3) + (((c2[1]>>2)&3)<<2) + (((c2[2]>>2)&3)<<4) + (((c2[3]>>2)&3)<<6);
+            cptr[2] = ((c2[0]>>4)&3) + (((c2[1]>>4)&3)<<2) + (((c2[2]>>4)&3)<<4) + (((c2[3]>>4)&3)<<6);
+            cptr[3] = ((c2[0]>>6)&3) + (((c2[1]>>6)&3)<<2) + (((c2[2]>>6)&3)<<4) + (((c2[3]>>6)&3)<<6);
+            cptr += 4;
+         }
+         cleng = lzwcompress(midbuf,(miplen/stride)*4,packbuf);
+         j = B_LITTLE32(cleng);
+         Bwrite(fil,&j,4);
+         Bwrite(fil,packbuf,cleng);
+#endif
+      }
+   // why don't we just put your filter into a function like
+   //int kenfilter(char *input, int len, char **output, int **len)
+   //maybe later... first let's get it working
+   }
 
 failure:
-	if (fil>=0) Bclose(fil);
-	if (pic) free(pic);
-	if (packbuf) free(packbuf);
+   if (fil>=0) Bclose(fil);
+#if (USEDXTFILT != 0)
+   if (midbuf) free(midbuf);
+#endif
+   if (pic) free(pic);
+   if (packbuf) free(packbuf);
 }
 
 int gloadtile_cached(long fil, texcacheheader *head, long *doalloc, pthtyp *pth)
 {
-	int level, r;
-	texcachepicture pict;
-	void *pic = NULL, *packbuf = NULL;
-	long alloclen=0, packlen;
-	
-	if (*doalloc&1) {
-		bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
-		*doalloc |= 2;	// prevents bglGenTextures being called again if we fail in here
-	}
-	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
-	
-	pth->sizx = head->xdim;
-	pth->sizy = head->ydim;
-	
-	bglGetError();
+   int level, r;
+   texcachepicture pict;
+   char *pic = NULL, *packbuf = NULL;
+#if (USEDXTFILT != 0)
+   void *midbuf = NULL;
+#endif
+   long alloclen=0, packlen;
+   long j, k, offs, stride, cleng;
+   char *cptr;
+   
+   if (*doalloc&1) {
+      bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
+      *doalloc |= 2;   // prevents bglGenTextures being called again if we fail in here
+   }
+   bglBindTexture(GL_TEXTURE_2D,pth->glpic);
+   
+   pth->sizx = head->xdim;
+   pth->sizy = head->ydim;
+   
+   bglGetError();
 
-	// load the mipmaps
-	for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
-		r = kread(fil, &pict, sizeof(texcachepicture));
-		if (r < (int)sizeof(texcachepicture)) goto failure;
+   // load the mipmaps
+   for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
+      r = kread(fil, &pict, sizeof(texcachepicture));
+      if (r < (int)sizeof(texcachepicture)) goto failure;
 
-		pict.size = B_LITTLE32(pict.size);
-		pict.packed = B_LITTLE32(pict.packed);
-		pict.format = B_LITTLE32(pict.format);
-		pict.xdim = B_LITTLE32(pict.xdim);
-		pict.ydim = B_LITTLE32(pict.ydim);
-		pict.border = B_LITTLE32(pict.border);
-		pict.depth = B_LITTLE32(pict.depth);
-		
-		if (alloclen < pict.size) {
-			void *picc = realloc(pic, pict.size);
-			if (!picc) goto failure; else pic = picc;
-			alloclen = pict.size;
-			
-			picc = realloc(packbuf, alloclen+16);
-			if (!picc) goto failure; else packbuf = picc;
-		}
+      pict.size = B_LITTLE32(pict.size);
+      pict.packed = B_LITTLE32(pict.packed);
+      pict.format = B_LITTLE32(pict.format);
+      pict.xdim = B_LITTLE32(pict.xdim);
+      pict.ydim = B_LITTLE32(pict.ydim);
+      pict.border = B_LITTLE32(pict.border);
+      pict.depth = B_LITTLE32(pict.depth);
+      
+#if (USEDXTFILT == 0)
+      if (pict.packed == 0) goto failure; // wasn't compiled with filtering capability and the cache has it
+#endif
 
-		if (kread(fil, pic, pict.packed) < pict.packed) goto failure;
-		if (pict.packed < pict.size && lzwuncompress(pic, pict.packed, packbuf, pict.size) != pict.size)
-			goto failure;
-		
-		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,
-								   pict.size,pict.packed < pict.size ? packbuf : pic);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-	}
+      if (alloclen < pict.size) {
+         void *picc = realloc(pic, pict.size);
+         if (!picc) goto failure; else pic = picc;
+         alloclen = pict.size;
+         
+         picc = realloc(packbuf, alloclen+16);
+         if (!picc) goto failure; else packbuf = picc;
 
-	if (pic) free(pic);
-	if (packbuf) free(packbuf);
-	return 0;
+#if (USEDXTFILT != 0)
+         picc = realloc(midbuf, pict.size);
+         if (!picc) goto failure; else midbuf = picc;
+#endif
+      }
+
+
+     // if (pict.packed < pict.size)
+      {
+#if (USEDXTFILT != 0)
+         if (pict.packed > 0) {
+#endif
+            if (kread(fil, packbuf, pict.packed) < pict.packed) goto failure;
+            if (lzwuncompress(packbuf, pict.packed, pic, pict.size) != pict.size) goto failure;
+#if (USEDXTFILT != 0)
+         } else {
+            if ((pict.format == GL_COMPRESSED_RGB_S3TC_DXT1_EXT) ||
+                (pict.format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT)) { offs = 0; stride = 8; }
+            else if ((pict.format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT) ||
+                     (pict.format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT)) { offs = 8; stride = 16; }
+            else { offs = 0; stride = 8; }
+
+            if (stride == 16) //If DXT3...
+            {
+                  //alpha_4x4
+               if (kread(fil,&cleng,4) < 4) goto failure; cleng = B_LITTLE32(cleng);
+               if (kread(fil,packbuf,cleng) < cleng) goto failure;
+               j = (pict.size/stride)*8; if (lzwuncompress(packbuf,cleng,midbuf,j) != j) goto failure;
+               cptr = midbuf;
+               for(k=0;k<8;k++) pic[k] = *cptr++;
+               for(j=stride;j<pict.size;j+=stride)
+                  for(k=0;k<8;k++) pic[j+k] = (*cptr++);
+            }
+
+               //rgb0,rgb1
+            if (kread(fil,&cleng,4) < 4) goto failure; cleng = B_LITTLE32(cleng);
+            if (kread(fil,packbuf,cleng) < cleng) goto failure;
+            j = (pict.size/stride)*4; if (lzwuncompress(packbuf,cleng,midbuf,j) != j) goto failure;
+            cptr = midbuf;
+            for(k=0;k<=2;k+=2)
+               for(j=0;j<pict.size;j+=stride)
+               {
+                  *(short *)(&pic[offs+j+k]) = hicoadd(*(short *)cptr);
+                  cptr += 2;
+               }
+
+               //index_4x4:
+            if (kread(fil,&cleng,4) < 4) goto failure; cleng = B_LITTLE32(cleng);
+            if (kread(fil,packbuf,cleng) < cleng) goto failure;
+            j = (pict.size/stride)*4; if (lzwuncompress(packbuf,cleng,midbuf,j) != j) goto failure;
+            cptr = midbuf;
+            for(j=0;j<pict.size;j+=stride)
+            {
+               pic[j+offs+4] = ((cptr[0]>>0)&3) + (((cptr[1]>>0)&3)<<2) + (((cptr[2]>>0)&3)<<4) + (((cptr[3]>>0)&3)<<6);
+               pic[j+offs+5] = ((cptr[0]>>2)&3) + (((cptr[1]>>2)&3)<<2) + (((cptr[2]>>2)&3)<<4) + (((cptr[3]>>2)&3)<<6);
+               pic[j+offs+6] = ((cptr[0]>>4)&3) + (((cptr[1]>>4)&3)<<2) + (((cptr[2]>>4)&3)<<4) + (((cptr[3]>>4)&3)<<6);
+               pic[j+offs+7] = ((cptr[0]>>6)&3) + (((cptr[1]>>6)&3)<<2) + (((cptr[2]>>6)&3)<<4) + (((cptr[3]>>6)&3)<<6);
+               cptr += 4;
+            }
+         }
+#endif
+    //  } else {
+   //      if (kread(fil, pic, pict.size) < pict.size) goto failure;
+      }
+
+      bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,
+                           pict.size,pic);
+      if (bglGetError() != GL_NO_ERROR) goto failure;
+   }
+
+#if (USEDXTFILT != 0)
+   if (midbuf) free(midbuf);
+#endif
+   if (pic) free(pic);
+   if (packbuf) free(packbuf);
+   return 0;
 failure:
-	if (pic) free(pic);
-	if (packbuf) free(packbuf);
-	return -1;
+#if (USEDXTFILT != 0)
+   if (midbuf) free(midbuf);
+#endif
+   if (pic) free(pic);
+   if (packbuf) free(packbuf);
+   return -1;
 }
 // --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
 
@@ -1146,7 +1352,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 		} else texfmt = GL_BGRA;
 		free(picfil); picfil = 0;
 
-		if (glinfo.texcompr && glusetexcompr)
+		if (glinfo.texcompr && glusetexcompr && !(hicr->flags & 1))
 			intexfmt = (hasalpha == 255) ? GL_COMPRESSED_RGB_ARB : GL_COMPRESSED_RGBA_ARB;
 		else if (hasalpha == 255) intexfmt = GL_RGB;
 

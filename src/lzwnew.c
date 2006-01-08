@@ -78,7 +78,7 @@ long lzwuncompress (unsigned char *compbuf, long compleng, unsigned char *ucompb
 	unsigned char ch, *ucptr, *suffix;
 	long ucomp = (long)ucompbuf;
 
-	if (compleng >= ucompleng) { memcpy(ucompbuf,compbuf,ucompleng); return 0; }
+	if (compleng >= ucompleng) { memcpy(ucompbuf,compbuf,ucompleng); return ucompleng; }
 
 	totnodes = LSWAPIB(((long *)compbuf)[0]); if (totnodes <= 0 || totnodes >= ucompleng+256) return 0;
 	
