@@ -252,6 +252,3 @@ int hicclearsubst(long picnum, long palnum)
 
 	return 0;
 }
-
-
-

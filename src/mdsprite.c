@@ -592,7 +592,8 @@ static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLu
 	int level, r;
 	texcachepicture pict;
 	void *pic = NULL, *packbuf = NULL;
-	long alloclen=0, packlen;
+	void *midbuf = NULL;
+	long alloclen=0;
 		
 	if (*doalloc&1) {
 		bglGenTextures(1,glpic);  //# of textures (make OpenGL allocate structure)
@@ -608,7 +609,6 @@ static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLu
 		if (r < (int)sizeof(texcachepicture)) goto failure;
 
 		pict.size = B_LITTLE32(pict.size);
-		pict.packed = B_LITTLE32(pict.packed);
 		pict.format = B_LITTLE32(pict.format);
 		pict.xdim = B_LITTLE32(pict.xdim);
 		pict.ydim = B_LITTLE32(pict.ydim);
@@ -622,23 +622,32 @@ static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLu
 			if (!picc) goto failure; else pic = picc;
 			alloclen = pict.size;
 			
-			picc = realloc(packbuf, alloclen);
+			picc = realloc(packbuf, alloclen+16);
 			if (!picc) goto failure; else packbuf = picc;
+			
+			if (head->flags & 4) {
+				picc = realloc(midbuf, pict.size);
+				if (!picc) goto failure; else midbuf = picc;
+			}
 		}
 			
-		if (kread(fil, pic, pict.packed) < pict.packed) goto failure;
-		if (pict.packed < pict.size && lzwuncompress(pic, pict.packed, packbuf, pict.size) != pict.size)
-			goto failure;
-
+		if (head->flags & 4) {
+			if (dekendxtfilter(fil, &pict, pic, midbuf, packbuf)) goto failure; 
+		} else {
+			if (kread(fil, pic, pict.size) < pict.size) goto failure;
+		}
+		
 		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,
-								   pict.size,pict.packed < pict.size ? packbuf : pic);
+								   pict.size,pic);
 		if (bglGetError() != GL_NO_ERROR) goto failure;
 	}
 		
+	if (midbuf) free(midbuf);
 	if (pic) free(pic);
 	if (packbuf) free(packbuf);
 	return 0;
 failure:
+	if (midbuf) free(midbuf);
 	if (pic) free(pic);
 	if (packbuf) free(packbuf);
 	return -1;
@@ -791,7 +800,6 @@ static long mdloadskin (md2model *m, int number, int pal, int surf)
 		// save off the compressed version
 		cachead.xdim = osizx;
 		cachead.ydim = osizy;
-		cachead.flags = 1;
 		i = 0;
 		for (j=0;j<31;j++) {
 			if (xsiz == pow2long[j]) { i |= 1; }

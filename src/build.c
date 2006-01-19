@@ -2192,7 +2192,7 @@ void editinput(void)
 
 				if ((searchstat == 0) || (searchstat == 4))
 				{
-					sprite[i].cstat |= (16+64);
+					sprite[i].cstat = (sprite[i].cstat&~48)|(16+64);
 					if (hitwall >= 0)
 						sprite[i].ang = ((getangle(wall[wall[hitwall].point2].x-wall[hitwall].x,wall[wall[hitwall].point2].y-wall[hitwall].y)+512)&2047);
 
