@@ -964,6 +964,8 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 		bglGetCompressedTexImageARB(GL_TEXTURE_2D, level, pic);
 		if (bglGetError() != GL_NO_ERROR) goto failure;
 
+		if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
+		
 		if (glusetexcachecompression)
 		{
 			if (kendxtfilter(fil, &pict, pic, midbuf, packbuf, miplen)) goto failure;
@@ -4781,8 +4783,17 @@ Description of Ken's filter to improve LZW compression of DXT1 format by ~15%: (
  I think this improved compression by a few % :)
  */
 
+#define USEKENFILTER 1
+
 int kendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, unsigned long miplen)
 {
+#if (USEKENFILTER == 0)
+	unsigned long cleng,j;
+	cleng = lzwcompress(pic,miplen,packbuf);
+	if (cleng < 0) return -1; j = B_LITTLE32(cleng);
+	if (Bwrite(fil, &j, sizeof(unsigned long)) != sizeof(unsigned long)) return -1;
+	if (Bwrite(fil, packbuf, cleng) != cleng) return -1;
+#else
 	long j, k, offs, stride, cleng;
 	char *cptr;
 	
@@ -4791,8 +4802,6 @@ int kendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *
 	else if ((pict->format == B_LITTLE32(GL_COMPRESSED_RGBA_S3TC_DXT3_EXT)) ||
 			 (pict->format == B_LITTLE32(GL_COMPRESSED_RGBA_S3TC_DXT5_EXT))) { offs = 8; stride = 16; }
 	else { offs = 0; stride = 8; }
-	
-	if (Bwrite(fil, pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) return -1;
 	
 	if (stride == 16) //If DXT3...
 	{
@@ -4832,12 +4841,18 @@ int kendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *
 	j = B_LITTLE32(cleng);
 	Bwrite(fil,&j,4);
 	Bwrite(fil,packbuf,cleng);
-	
+#endif
 	return 0;
 }
 
 int dekendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf)
 {
+#if (USEKENFILTER == 0)
+	unsigned long cleng;
+	if (kread(fil, &cleng, sizeof(unsigned long)) != sizeof(unsigned long)) return -1; cleng = B_LITTLE32(cleng);
+	if (kread(fil, packbuf, cleng) != cleng) return -1;
+	if (lzwuncompress(packbuf, cleng, pic, pict->size) != pict->size) return -1;
+#else
 	long j, k, offs, stride, cleng;
 	char *cptr;
 
@@ -4884,7 +4899,7 @@ int dekendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char
 		pic[j+offs+7] = ((cptr[0]>>6)&3) + (((cptr[1]>>6)&3)<<2) + (((cptr[2]>>6)&3)<<4) + (((cptr[3]>>6)&3)<<6);
 		cptr += 4;
 	}
-	
+#endif
 	return 0;
 }
 
