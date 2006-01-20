@@ -41,4 +41,4 @@ $(OBJ)transpal.$o: $(SRC)util/transpal.c $(INC)compat.h $(INC)pragmas.h
 $(OBJ)wad2art.$o: $(SRC)util/wad2art.c $(INC)compat.h $(INC)pragmas.h
 $(OBJ)wad2map.$o: $(SRC)util/wad2map.c $(INC)compat.h $(INC)pragmas.h
 $(OBJ)generateicon.$o: $(SRC)util/generateicon.c
-
+$(OBJ)cacheinfo.$o: $(SRC)util/cacheinfo.c $(INC)compat.h

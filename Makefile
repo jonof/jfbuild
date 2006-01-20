@@ -215,6 +215,8 @@ wad2map$(EXESUFFIX): $(OBJ)wad2map.$o $(OBJ)pragmas.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
 generateicon$(EXESUFFIX): $(OBJ)generateicon.$o $(OBJ)kplib.$o
 	$(CC) -o $@ $^
+cacheinfo$(EXESUFFIX): $(OBJ)cacheinfo.$o $(OBJ)compat.$o
+	$(CC) -o $@ $^
 
 # DEPENDENCIES
 include Makefile.deps
