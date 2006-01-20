@@ -972,7 +972,6 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 		}
 		else
 		{
-			if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
 			if (Bwrite(fil, pic, miplen) != miplen) goto failure;
 		}
    }
