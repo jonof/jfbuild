@@ -8,21 +8,13 @@
 
 typedef struct {
 	int numparms;
+	const char *name;
 	const char **parms;
 	const char *raw;
 } osdfuncparm_t;
 
 #define OSDCMD_OK	0
 #define OSDCMD_SHOWHELP 1
-
-#define OSDVAR_INTEGER	0
-#define OSDVAR_STRING	1
-
-
-int osd_internal_validate_string(void *);
-int osd_internal_validate_integer(void *);
-int osd_internal_validate_boolean(void *);
-
 
 // initializes things
 void OSD_Init(void);
@@ -80,19 +72,6 @@ int OSD_Dispatch(const char *cmd);
 //   help = a short help string
 //   func = the entry point to the function
 int OSD_RegisterFunction(const char *name, const char *help, int (*func)(const osdfuncparm_t*));
-
-// registers a variable
-//   name  = name of variable
-//   type  = one of the OSDVAR_* constants
-//   var   = pointer to the variable
-//   extra = extra information pertaining to the variable
-//      if type is OSDVAR_STRING, this is the char array size
-//      if type is OSDVAR_INTEGER, this is the signed-ness of the variable
-//   validator = a function which validates the value before assigning it.
-//   	may be null for the default function relevant to the type be used.
-//   	gets passed a pointer to the value which is potentially to be set
-//   	and returns an error code and may modify the value.
-int OSD_RegisterVariable(const char *name, int type, void *var, int extra, int (*validator)(void *));
 
 #endif // __osd_h__
 

@@ -4673,22 +4673,82 @@ static int gltextureanisotropy(const osdfuncparm_t *parm)
 }
 #endif
 
+static int osdcmd_polymostvars(const osdfuncparm_t *parm)
+{
+	int showval = (parm->numparms < 1), val;
+	
+	val = atoi(parm->parms[0]);
+	if (!Bstrcasecmp(parm->name, "usemodels")) {
+		if (showval) { OSD_Printf("usemodels is %d\n", usemodels); }
+		else usemodels = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "usehightile")) {
+		if (showval) { OSD_Printf("usehightile is %d\n", usehightile); }
+		else usehightile = (val != 0);
+		return OSDCMD_OK;
+	}
+#ifdef USE_OPENGL
+	else if (!Bstrcasecmp(parm->name, "glusetexcompr")) {
+		if (showval) { OSD_Printf("glusetexcompr is %d\n", glusetexcompr); }
+		else glusetexcompr = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glredbluemode")) {
+		if (showval) { OSD_Printf("glredbluemode is %d\n", glredbluemode); }
+		else glredbluemode = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "gltexturemaxsize")) {
+		if (showval) { OSD_Printf("gltexturemaxsize is %d\n", gltexmaxsize); }
+		else gltexmaxsize = val;
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "gltexturemiplevel")) {
+		if (showval) { OSD_Printf("gltexturemiplevel is %d\n", gltexmiplevel); }
+		else gltexmiplevel = val;
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "usegoodalpha")) {
+		if (showval) { OSD_Printf("usegoodalpha is %d\n", usegoodalpha); }
+		else usegoodalpha = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glpolygonmode")) {
+		if (showval) { OSD_Printf("glpolygonmode is %d\n", glpolygonmode); }
+		else glpolygonmode = val;
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glusetexcache")) {
+		if (showval) { OSD_Printf("glusetexcache is %d\n", glusetexcache); }
+		else glusetexcache = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glusetexcachecompression")) {
+		if (showval) { OSD_Printf("glusetexcachecompression is %d\n", glusetexcachecompression); }
+		else glusetexcachecompression = (val != 0);
+		return OSDCMD_OK;
+	}
+#endif
+	return OSDCMD_SHOWHELP;
+}
+
 void polymost_initosdfuncs(void)
 {
 #ifdef USE_OPENGL
-	OSD_RegisterVariable("glusetexcompr", OSDVAR_INTEGER, &glusetexcompr, 0, osd_internal_validate_boolean);
-	OSD_RegisterVariable("glredbluemode", OSDVAR_INTEGER, &glredbluemode, 1, osd_internal_validate_boolean);
+	OSD_RegisterFunction("glusetexcompr","glusetexcompr: enable/disable OpenGL texture compression",osdcmd_polymostvars);
+	OSD_RegisterFunction("glredbluemode","glredbluemode: enable/disable experimental OpenGL red-blue glasses mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("gltexturemode", "gltexturemode: changes the texture filtering settings", gltexturemode);
-	OSD_RegisterFunction("gltextureanisotropy", "gltextureanisotropy: changes the texture anisotropy setting", gltextureanisotropy);
-	OSD_RegisterVariable("gltexturemaxsize", OSDVAR_INTEGER, &gltexmaxsize, 1, osd_internal_validate_integer);
-	OSD_RegisterVariable("gltexturemiplevel", OSDVAR_INTEGER, &gltexmiplevel, 1, osd_internal_validate_integer);
-	OSD_RegisterVariable("usegoodalpha", OSDVAR_INTEGER, &usegoodalpha, 0, osd_internal_validate_boolean);
-	OSD_RegisterVariable("glpolygonmode", OSDVAR_INTEGER, &glpolygonmode, 0, osd_internal_validate_integer); //FUK
-	OSD_RegisterVariable("glusetexcache", OSDVAR_INTEGER, &glusetexcache, 0, osd_internal_validate_boolean);
-	OSD_RegisterVariable("glusetexcachecompression", OSDVAR_INTEGER, &glusetexcachecompression, 0, osd_internal_validate_boolean);
+	OSD_RegisterFunction("gltextureanisotropy", "gltextureanisotropy: changes the OpenGL texture anisotropy setting", gltextureanisotropy);
+	OSD_RegisterFunction("gltexturemaxsize","gltexturemaxsize: changes the maximum OpenGL texture size limit",osdcmd_polymostvars);
+	OSD_RegisterFunction("gltexturemiplevel","gltexturemiplevel: changes the highest OpenGL mipmap level used",osdcmd_polymostvars);
+	OSD_RegisterFunction("usegoodalpha","usegoodalpha: enable/disable better looking OpenGL alpha hack",osdcmd_polymostvars);
+	OSD_RegisterFunction("glpolygonmode","glpolygonmode: debugging feature",osdcmd_polymostvars); //FUK
+	OSD_RegisterFunction("glusetexcache","glusetexcache: enable/disable OpenGL compressed texture cache",osdcmd_polymostvars);
+	OSD_RegisterFunction("glusetexcachecompression","usetexcachecompression: enable/disable compression of files in the OpenGL compressed texture cache",osdcmd_polymostvars);
 #endif
-	OSD_RegisterVariable("usemodels", OSDVAR_INTEGER, &usemodels, 0, osd_internal_validate_boolean);
-	OSD_RegisterVariable("usehightile", OSDVAR_INTEGER, &usehightile, 0, osd_internal_validate_boolean);
+	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
+	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
 }
 
 void polymost_precache(long dapicnum, long dapalnum, long datype)

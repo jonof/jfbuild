@@ -65,29 +65,27 @@ static int osdfunc_setrendermode(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
-#ifdef DEBUGGINGAIDS
 #if defined(POLYMOST) && defined(USE_OPENGL)
+#ifdef DEBUGGINGAIDS
 static int osdcmd_hicsetpalettetint(const osdfuncparm_t *parm)
 {
 	long pal, cols[3], eff;
 	char *p;
-
+	
 	if (parm->numparms != 5) return OSDCMD_SHOWHELP;
-
+	
 	pal = Batol(parm->parms[0]);
 	cols[0] = Batol(parm->parms[1]);
 	cols[1] = Batol(parm->parms[2]);
 	cols[2] = Batol(parm->parms[3]);
 	eff = Batol(parm->parms[4]);
-
+	
 	hicsetpalettetint(pal,cols[0],cols[1],cols[2],eff);
-
+	
 	return OSDCMD_OK;
 }
 #endif
-#endif
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
 static int osdcmd_glinfo(const osdfuncparm_t *parm)
 {
 	char *s,*t,*u,i;
@@ -138,8 +136,36 @@ static int osdcmd_glinfo(const osdfuncparm_t *parm)
 	
 	return OSDCMD_OK;
 }
-
 #endif
+
+static int osdcmd_vars(const osdfuncparm_t *parm)
+{
+	int showval = (parm->numparms < 1);
+	
+	if (!Bstrcasecmp(parm->name, "screencaptureformat")) {
+		const char *fmts[2][2] = { {"TGA", "PCX"}, {"0", "1"} };
+		if (showval) { OSD_Printf("captureformat is %s\n", fmts[captureformat]); }
+		else {
+			int i,j;
+			for (j=0; j<2; j++)
+				for (i=0; i<2; i++)
+					if (!Bstrcasecmp(parm->parms[0], fmts[j][i])) break;
+			if (j == 2) return OSDCMD_SHOWHELP;
+			captureformat = i;
+		}
+		return OSDCMD_OK;
+	}
+#ifdef SUPERBUILD
+	else if (!Bstrcasecmp(parm->name, "novoxmips")) {
+		if (showval) { OSD_Printf("novoxmips is %d\n", novoxmips); }
+		else { novoxmips = (atoi(parm->parms[0]) != 0); }
+	}
+	else if (!Bstrcasecmp(parm->name, "usevoxels")) {
+		if (showval) { OSD_Printf("usevoxels is %d\n", usevoxels); }
+		else { usevoxels = (atoi(parm->parms[0]) != 0); }
+	}
+#endif
+}
 
 int baselayer_init(void)
 {
@@ -156,17 +182,15 @@ int baselayer_init(void)
 			osdfunc_setrendermode);
 #endif
 	OSD_RegisterFunction("dumpbuildinfo","dumpbuildinfo: outputs engine compilation information",osdfunc_dumpbuildinfo);
-	OSD_RegisterVariable("screencaptureformat", OSDVAR_INTEGER, &captureformat, 0, osd_internal_validate_integer);
+	OSD_RegisterFunction("screencaptureformat","screencaptureformat: sets the output format for screenshots (TGA or PCX)",osdcmd_vars);
 #ifdef SUPERBUILD
-	OSD_RegisterVariable("novoxmips", OSDVAR_INTEGER, &novoxmips, 0, osd_internal_validate_boolean);
-	OSD_RegisterVariable("usevoxels", OSDVAR_INTEGER, &usevoxels, 0, osd_internal_validate_boolean);
+	OSD_RegisterFunction("novoxmips","novoxmips: turn off/on the use of mipmaps when rendering 8-bit voxels",osdcmd_vars);
+	OSD_RegisterFunction("usevoxels","usevoxels: enable/disable automatic sprite->voxel rendering",osdcmd_vars);
 #endif
-#ifdef DEBUGGINGAIDS
 #if defined(POLYMOST) && defined(USE_OPENGL)
+#ifdef DEBUGGINGAIDS
 	OSD_RegisterFunction("hicsetpalettetint","hicsetpalettetint: sets palette tinting values",osdcmd_hicsetpalettetint);
 #endif
-#endif
-#if defined(POLYMOST) && defined(USE_OPENGL)
 	OSD_RegisterFunction("glinfo","glinfo: shows OpenGL information about the current OpenGL mode",osdcmd_glinfo);
 #endif
 	

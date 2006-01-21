@@ -10,28 +10,14 @@
 
 typedef struct _symbol {
 	const char *name;
-	struct _symbol *next, *nexttype;
+	struct _symbol *next;
 
-	int type;
-	union {
-		struct {
-			const char *help;
-			int (*func)(const osdfuncparm_t *);
-		} func;
-		struct {
-			int         type;
-			void       *var;
-			int         extra;
-			int (*validator)(void *);
-		} var;
-	} i;
+	const char *help;
+	int (*func)(const osdfuncparm_t *);
 } symbol_t;
 
-#define SYMBTYPE_FUNC 0
-#define SYMBTYPE_VAR  1
-
-static symbol_t *symbols = NULL, *symbols_func = NULL, *symbols_var = NULL;
-static symbol_t *addnewsymbol(int type, const char *name);
+static symbol_t *symbols = NULL;
+static symbol_t *addnewsymbol(const char *name);
 static symbol_t *findsymbol(const char *name, symbol_t *startingat);
 static symbol_t *findexactsymbol(const char *name);
 
@@ -112,51 +98,6 @@ static int (*getrowheight)(int) = _internal_getrowheight;
 static void (*clearbackground)(int,int) = _internal_clearbackground;
 static int (*gettime)(void) = _internal_gettime;
 static void (*onshowosd)(int) = _internal_onshowosd;
-
-
-// translation table for turning scancode into ascii characters
-/*
-static char sctoasc[2][256] = {
-	{
-//      0    1    2    3    4    5    6    7    8    9    a    b    c    d    e    f
-	0,   27,  '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 8,   9,   // 0x00
-	'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', 13,  0,   'a', 's', // 0x10
-	'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'','`', 0,   '\\','z', 'x', 'c', 'v', // 0x20
-	'b', 'n', 'm', ',', '.', '/', 0,   '*', 0,   ' ', 0,   0,   0,   0,   0,   0,   // 0x30
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   '-', 0,   0,   0,   '+', 0,   // 0x40
-	0,   0,   0,   '.', 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0x50
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0x60
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0x70
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0x80
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   13,  0,   0,   0,   // 0x90
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0xa0
-	0,   0,   0,   0,   0,   '/', 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0xb0
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0xc0
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0xd0
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0xe0
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0    // 0xf0
-	},
-	{
-//      0    1    2    3    4    5    6    7    8    9    a    b    c    d    e    f
-	0,   27,  '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', 8,   9,   // 0x00
-	'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', 13,  0,   'A', 'S', // 0x10
-	'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~', 0,   '|', 'Z', 'X', 'C', 'V', // 0x20
-	'B', 'N', 'M', '<', '>', '?', 0,   '*', 0,   ' ', 0,   0,   0,   0,   0,   0,   // 0x30
-	0,   0,   0,   0,   0,   0,   0,   '7', '8', '9', '-', '4', '5', '6', '+', '1', // 0x40
-	'2', '3', '0', '.', 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0x50
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0x60
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0x70
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0x80
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   13,  0,   0,   0,   // 0x90
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0xa0
-	0,   0,   0,   0,   0,   '/', 0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0xb0
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0xc0
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0xd0
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   // 0xe0
-	0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0    // 0xf0
-	}
-};
-*/
 
 
 static void _internal_drawosdchar(int x, int y, char ch, int shade, int pal)
@@ -246,51 +187,30 @@ static void _internal_onshowosd(int a)
 
 ////////////////////////////
 
-int osd_internal_validate_string(void *a)
+static int _internal_osdfunc_vars(const osdfuncparm_t *parm)
 {
-	return 0;	// no problems
-}
+	int showval = (parm->numparms < 1);
 
-int osd_internal_validate_integer(void *a)
-{
-	return 0;	// no problems
-}
-
-int osd_internal_validate_boolean(void *a)
-{
-	long *l = (long *)a;
-	if (*l) *l = 1;	// anything nonzero should be 1
-	return 0;
-}
-
-static int _validate_osdlines(void *a)
-{
-	int *v = (int *)a;
-
-	if (*v < 1) {
-		*v = 1;
-		return 1;
+	if (!Bstrcasecmp(parm->name, "osdlines")) {
+		if (showval) { OSD_Printf("osdlines is %d\n", osdlines); return OSDCMD_OK; }
+		else {
+			osdlines = atoi(parm->parms[0]);
+			if (osdlines < 1) osdlines = 1;
+			else if (osdlines > osdmaxrows) osdlines = osdmaxrows;
+			return OSDCMD_OK;
+		}
 	}
-	if (*v > osdmaxrows) {
-		*v = osdmaxrows;
-		return 1;
-	}
-
-	return 0;	
+	return OSDCMD_SHOWHELP;
 }
 
 static int _internal_osdfunc_listsymbols(const osdfuncparm_t *parm)
 {
 	symbol_t *i;
 
-	OSD_Printf("Symbol listing\n  Functions:\n");
-	for (i=symbols_func; i!=NULL; i=i->nexttype)
+	OSD_Printf("Symbol listing:\n");
+	for (i=symbols; i!=NULL; i=i->next)
 		OSD_Printf("     %s\n", i->name);
 	
-	OSD_Printf("\n  Variables:\n");
-	for (i=symbols_var; i!=NULL; i=i->nexttype)
-		OSD_Printf("     %s\n", i->name);
-
 	return OSDCMD_OK;
 }
 
@@ -303,16 +223,7 @@ static int _internal_osdfunc_help(const osdfuncparm_t *parm)
 	if (!symb) {
 		OSD_Printf("Help Error: \"%s\" is not a defined variable or function\n", parm->parms[0]);
 	} else {
-		if (symb->type == SYMBTYPE_FUNC) {
-			OSD_Printf("%s\n", symb->i.func.help);
-		} else {
-			OSD_Printf("\"%s\" is a", symb->name);
-			switch (symb->i.var.type) {
-				case OSDVAR_INTEGER: OSD_Printf("n integer"); break;
-				case OSDVAR_STRING:  OSD_Printf(" string"); break;
-			}
-			OSD_Printf(" variable\n");
-		}
+		OSD_Printf("%s\n", symb->help);
 	}
 	
 	return OSDCMD_OK;
@@ -351,7 +262,7 @@ void OSD_Init(void)
 
 	OSD_RegisterFunction("listsymbols","listsymbols: lists all the recognized symbols",_internal_osdfunc_listsymbols);
 	OSD_RegisterFunction("help","help: displays help on the named symbol",_internal_osdfunc_help);
-	OSD_RegisterVariable("osdrows", OSDVAR_INTEGER, &osdrows, 0, _validate_osdlines);
+	OSD_RegisterFunction("osdrows","osdrows: sets the number of visible lines of the OSD",_internal_osdfunc_vars);
 
 	atexit(OSD_Cleanup);
 }
@@ -926,62 +837,18 @@ int OSD_Dispatch(const char *cmd)
 		free(workbuf);
 		return -1;
 	}
-
+	
+	ofp.name = wp;
 	while (wtp) {
 		wp = strtoken(NULL, &wtp);
 		if (wp && numparms < MAXPARMS) parms[numparms++] = wp;
 	}
-
-	//OSD_Printf("Symbol: %s\nParameters:\n",symb->name);
-	//for (i=0;i<numparms;i++) OSD_Printf("Parm %d: %s\n",i,parms[i]);
-
-	if (symb->type == SYMBTYPE_FUNC) {
-		ofp.numparms = numparms;
-		ofp.parms    = (const char **)parms;
-		ofp.raw      = cmd;
-		switch (symb->i.func.func(&ofp)) {
-			case OSDCMD_OK: break;
-			case OSDCMD_SHOWHELP: OSD_Printf("%s\n", symb->i.func.help); break;
-		}
-	} else if (symb->type == SYMBTYPE_VAR) {
-		if (numparms >= 1) {
-			switch (symb->i.var.type) {
-				case OSDVAR_STRING: {
-					strvar = (char *)Bmalloc(symb->i.var.extra);
-					Bstrncpy(strvar, parms[0], symb->i.var.extra-1);
-					strvar[symb->i.var.extra-1] = 0;
-
-					if (symb->i.var.validator(strvar) >= 0)
-						Bmemcpy(symb->i.var.var, strvar, symb->i.var.extra);
-					free(strvar);
-					break;
-				}
-				
-				case OSDVAR_INTEGER:
-					if (symb->i.var.extra)
-						intvar = Bstrtol(parms[0], &strvar, 0);
-					else
-						intvar = Bstrtoul(parms[0], &strvar, 0);
-					if (!strvar[0])
-						if (symb->i.var.validator(&intvar) >= 0)
-							Bmemcpy(symb->i.var.var, &intvar, 4);
-					break;
-			}
-		}
-		
-		// display variable value
-		switch (symb->i.var.type) {
-			case OSDVAR_STRING:
-				OSD_Printf("%s[%d] = \"%s\"\n", symb->name, symb->i.var.extra, symb->i.var.var);
-				break;
-			
-			case OSDVAR_INTEGER:
-				if (symb->i.var.extra)
-					OSD_Printf("%s = %d\n", symb->name, *((signed int*)symb->i.var.var));
-				else
-					OSD_Printf("%s = %u\n", symb->name, *((unsigned int*)symb->i.var.var));
-				break;
-		}
+	ofp.numparms = numparms;
+	ofp.parms    = (const char **)parms;
+	ofp.raw      = cmd;
+	switch (symb->func(&ofp)) {
+		case OSDCMD_OK: break;
+		case OSDCMD_SHOWHELP: OSD_Printf("%s\n", symb->help); break;
 	}
 	
 	free(workbuf);
@@ -1032,104 +899,19 @@ int OSD_RegisterFunction(const char *name, const char *help, int (*func)(const o
 
 	symb = findexactsymbol(name);
 	if (symb) {
-		const char *s;
-		switch (symb->type) {
-			case SYMBTYPE_FUNC: s = "function"; break;
-			case SYMBTYPE_VAR:  s = "variable"; break;
-			default: s = "?"; break;
-		}
-		Bprintf("OSD_RegisterFunction(): \"%s\" is already defined as a %s\n", name, s);
+		Bprintf("OSD_RegisterFunction(): \"%s\" is already defined\n", name);
 		return -1;
 	}
 	
-	symb = addnewsymbol(SYMBTYPE_FUNC, name);
+	symb = addnewsymbol(name);
 	if (!symb) {
 		Bprintf("OSD_RegisterFunction(): Failed registering function \"%s\"\n", name);
 		return -1;
 	}
 
 	symb->name = name;
-	symb->type = SYMBTYPE_FUNC;
-	symb->i.func.help = help;
-	symb->i.func.func = func;
-
-	return 0;
-}
-
-
-//
-// OSD_RegisterVariable() -- Registers a new variable
-//
-int OSD_RegisterVariable(const char *name, int type, void *var, int extra, int (*validator)(void*))
-{
-	symbol_t *symb;
-	const char *cp;
-
-	if (!osdinited) OSD_Init();
-
-	if (!name) {
-		Bprintf("OSD_RegisterVariable(): may not register a variable with a null name\n");
-		return -1;
-	}
-	if (!name[0]) {
-		Bprintf("OSD_RegisterVariable(): may not register a variable with no name\n");
-		return -1;
-	}
-
-	// check for illegal characters in name
-	for (cp = name; *cp; cp++) {
-		if ((cp == name) && (*cp >= '0') && (*cp <= '9')) {
-			Bprintf("OSD_RegisterVariable(): first character of variable name \"%s\" must not be a numeral\n", name);
-			return -1;
-		}
-		if ((*cp < '0') ||
-		    (*cp > '9' && *cp < 'A') ||
-		    (*cp > 'Z' && *cp < 'a' && *cp != '_') ||
-		    (*cp > 'z')) {
-			Bprintf("OSD_RegisterVariable(): illegal character in variable name \"%s\"\n", name);
-			return -1;
-		}
-	}
-
-	if (type != OSDVAR_INTEGER && type != OSDVAR_STRING) {
-		Bprintf("OSD_RegisterVariable(): unrecognised variable type for \"%s\"\n", name);
-		return -1;
-	}
-	if (!var) {
-		Bprintf("OSD_RegisterVariable(): may not register a null variable\n");
-		return -1;
-	}
-	if (!validator) {
-		switch (type) {
-			case OSDVAR_INTEGER: validator = osd_internal_validate_integer; break;
-			case OSDVAR_STRING:  validator = osd_internal_validate_string; break;
-		}
-	}
-	
-	symb = findexactsymbol(name);
-	if (symb) {
-		const char *s;
-		switch (symb->type) {
-			case SYMBTYPE_FUNC: s = "function"; break;
-			case SYMBTYPE_VAR:  s = "variable"; break;
-			default: s = "?"; break;
-		}
-		Bprintf("OSD_RegisterVariable(): \"%s\" is already defined as a %s\n", name, s);
-		return -1;
-	}
-	
-	symb = addnewsymbol(SYMBTYPE_VAR, name);
-	if (!symb) {
-		Bprintf("OSD_RegisterVariable(): Failed registering variable \"%s\"\n", name);
-		return -1;
-	}
-
-	symb->name = name;
-	symb->type = SYMBTYPE_VAR;
-	symb->i.var.type = type;
-	symb->i.var.var  = var;
-	symb->i.var.extra = extra;
-	symb->i.var.validator = validator;
+	symb->help = help;
+	symb->func = func;
 
 	return 0;
 }
@@ -1139,17 +921,13 @@ int OSD_RegisterVariable(const char *name, int type, void *var, int extra, int (
 // addnewsymbol() -- Allocates space for a new symbol and attaches it
 //   appropriately to the lists, sorted.
 //
-static symbol_t *addnewsymbol(int type, const char *name)
+static symbol_t *addnewsymbol(const char *name)
 {
 	symbol_t *newsymb, *s, *t;
 
-	if (type != SYMBTYPE_FUNC && type != SYMBTYPE_VAR) { return NULL; }
-
 	newsymb = (symbol_t *)Bmalloc(sizeof(symbol_t));
 	if (!newsymb) { return NULL; }
-
 	Bmemset(newsymb, 0, sizeof(symbol_t));
-	newsymb->type = type;
 
 	// link it to the main chain
 	if (!symbols) {
@@ -1168,47 +946,6 @@ static symbol_t *addnewsymbol(int type, const char *name)
 			t = s->next;
 			s->next = newsymb;
 			newsymb->next = t;
-		}
-	}
-
-	// link it to the appropriate type chain
-	if (type == SYMBTYPE_FUNC) {
-		if (!symbols_func) {
-			symbols_func = newsymb;
-		} else {
-			if (Bstrcasecmp(name, symbols_func->name) <= 0) {
-				t = symbols_func;
-				symbols_func = newsymb;
-				symbols_func->nexttype = t;
-			} else {
-				s = symbols_func;
-				while (s->nexttype) {
-					if (Bstrcasecmp(s->nexttype->name, name) > 0) break;
-					s=s->nexttype;
-				}
-				t = s->nexttype;
-				s->nexttype = newsymb;
-				newsymb->nexttype = t;
-			}
-		}
-	} else {
-		if (!symbols_var) {
-			symbols_var = newsymb;
-		} else {
-			if (Bstrcasecmp(name, symbols_var->name) <= 0) {
-				t = symbols_var;
-				symbols_var = newsymb;
-				symbols_var->nexttype = t;
-			} else {
-				s = symbols_var;
-				while (s->nexttype) {
-					if (Bstrcasecmp(s->nexttype->name, name) > 0) break;
-					s=s->nexttype;
-				}
-				t = s->nexttype;
-				s->nexttype = newsymb;
-				newsymb->nexttype = t;
-			}
 		}
 	}
 
