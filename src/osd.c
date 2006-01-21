@@ -760,27 +760,41 @@ void OSD_DispatchQueued(void)
 // OSD_Dispatch() -- Executes a command string
 //
 
-static char *strtoken(char *s, char **ptrptr)
+static char *strtoken(char *s, char **ptrptr, int *restart)
 {
 	char *p, *p2, *start;
-
+	
+	*restart = 0;
 	if (!ptrptr) return NULL;
 	
+	// if s != NULL, we process from the start of s, otherwise
+	// we just continue with where ptrptr points to
 	if (s) p = s;
 	else p = *ptrptr;
-
+	
 	if (!p) return NULL;
-
+	
+	// eat up any leading whitespace
 	while (*p != 0 && *p != ';' && *p == ' ') p++;
-	if (*p == 0 || *p == ';') {
+	
+	// a semicolon is an end of statement delimiter like a \0 is, so we signal
+	// the caller to 'restart' for the rest of the string pointed at by *ptrptr
+	if (*p == ';') {
+		*restart = 1;
+		*ptrptr = p+1;
+		return NULL;
+	}
+	// or if we hit the end of the input, signal all done by nulling *ptrptr
+	else if (*p == 0) {
 		*ptrptr = NULL;
 		return NULL;
 	}
+	
 	if (*p == '\"') {
 		// quoted string
 		start = ++p;
 		p2 = p;
-		while (*p != 0 && *p != ';') {
+		while (*p != 0) {
 			if (*p == '\"') {
 				p++;
 				break;
@@ -801,55 +815,70 @@ static char *strtoken(char *s, char **ptrptr)
 		while (*p != 0 && *p != ';' && *p != ' ') p++;
 	}
 	
-	if (*p == 0 || *p == ';') *ptrptr = NULL;
+	// if we hit the end of input, signal all done by nulling *ptrptr
+	if (*p == 0) {
+		*ptrptr = NULL;
+	}
+	// or if we came upon a semicolon, signal caller to restart with the
+	// string at *ptrptr
+	else if (*p == ';') {
+		*p = 0;
+		*ptrptr = p+1;
+		*restart = 1;
+	}
+	// otherwise, clip off the token and carry on
 	else {
 		*(p++) = 0;
 		*ptrptr = p;
 	}
-
+	
 	return start;
 }
-
 
 #define MAXPARMS 512
 int OSD_Dispatch(const char *cmd)
 {
-	char *workbuf, *wp, *wtp;
+	char *workbuf, *wp, *wtp, *state;
 	char *parms[MAXPARMS];
-	int  numparms;
+	int  numparms, restart = 0;
 	osdfuncparm_t ofp;
 	symbol_t *symb;
 	//int i;
 	
-	int intvar;
-	char *strvar;
-
-	workbuf = Bstrdup(cmd);
+	workbuf = state = Bstrdup(cmd);
 	if (!workbuf) return -1;
 
-	numparms = 0;
-	Bmemset(parms, 0, sizeof(parms));
-	wp = strtoken(workbuf, &wtp);
-	
-	symb = findexactsymbol(wp);
-	if (!symb) {
-		OSD_Printf("Error: \"%s\" is not a defined variable or function\n", wp);
-		free(workbuf);
-		return -1;
-	}
-	
-	ofp.name = wp;
-	while (wtp) {
-		wp = strtoken(NULL, &wtp);
-		if (wp && numparms < MAXPARMS) parms[numparms++] = wp;
-	}
-	ofp.numparms = numparms;
-	ofp.parms    = (const char **)parms;
-	ofp.raw      = cmd;
-	switch (symb->func(&ofp)) {
-		case OSDCMD_OK: break;
-		case OSDCMD_SHOWHELP: OSD_Printf("%s\n", symb->help); break;
-	}
+	do {
+		numparms = 0;
+		Bmemset(parms, 0, sizeof(parms));
+		wp = strtoken(state, &wtp, &restart);
+		if (!wp) {
+			state = wtp;
+			continue;
+		}
+
+		symb = findexactsymbol(wp);
+		if (!symb) {
+			OSD_Printf("Error: \"%s\" is not a defined variable or function\n", wp);
+			free(workbuf);
+			return -1;
+		}
+		
+		ofp.name = wp;
+		while (wtp && !restart) {
+			wp = strtoken(NULL, &wtp, &restart);
+			if (wp && numparms < MAXPARMS) parms[numparms++] = wp;
+		}
+		ofp.numparms = numparms;
+		ofp.parms    = (const char **)parms;
+		ofp.raw      = cmd;
+		switch (symb->func(&ofp)) {
+			case OSDCMD_OK: break;
+			case OSDCMD_SHOWHELP: OSD_Printf("%s\n", symb->help); break;
+		}
+		
+		state = wtp;
+	} while (wtp && restart);
 	
 	free(workbuf);
 	
