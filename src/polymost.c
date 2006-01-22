@@ -243,7 +243,15 @@ typedef struct { unsigned char r, g, b, a; } coltype;
 static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth);
 
 #include "md4.h"
-#include "lzwnew.h"
+
+#define USELZF
+#define USEKENFILTER 1
+
+#ifdef USELZF
+#	include "lzf.h"
+#else
+#	include "lzwnew.h"
+#endif
 
 static char TEXCACHEDIR[] = "texcache";
 typedef struct {
@@ -258,8 +266,8 @@ typedef struct {
 	long border, depth;
 } texcachepicture;
 
-int kendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, unsigned long miplen);
-int dekendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf);
+int dxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, unsigned long miplen);
+int dedxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, int ispacked);
 
 static inline void phex(unsigned char v, char *s);
 void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *head);
@@ -965,16 +973,8 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 		if (bglGetError() != GL_NO_ERROR) goto failure;
 
 		if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
-		
-		if (glusetexcachecompression)
-		{
-			if (kendxtfilter(fil, &pict, pic, midbuf, packbuf, miplen)) goto failure;
-		}
-		else
-		{
-			if (Bwrite(fil, pic, miplen) != miplen) goto failure;
-		}
-   }
+		if (dxtfilter(fil, &pict, pic, midbuf, packbuf, miplen)) goto failure;
+	}
 
 failure:
    if (fil>=0) Bclose(fil);
@@ -1022,17 +1022,11 @@ int gloadtile_cached(long fil, texcacheheader *head, long *doalloc, pthtyp *pth)
 			picc = realloc(packbuf, alloclen+16);
 			if (!picc) goto failure; else packbuf = picc;
 
-			if (head->flags & 4) {
-				picc = realloc(midbuf, pict.size);
-				if (!picc) goto failure; else midbuf = picc;
-			}
+			picc = realloc(midbuf, pict.size);
+			if (!picc) goto failure; else midbuf = picc;
 		}
 
-		if (head->flags & 4) {
-			if (dekendxtfilter(fil, &pict, pic, midbuf, packbuf)) goto failure; 
-		} else {
-			if (kread(fil, pic, pict.size) < pict.size) goto failure;
-		}
+		if (dedxtfilter(fil, &pict, pic, midbuf, packbuf, (head->flags&4)==4)) goto failure; 
 
 		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,
 								   pict.size,pic);
@@ -4842,16 +4836,30 @@ Description of Ken's filter to improve LZW compression of DXT1 format by ~15%: (
  I think this improved compression by a few % :)
  */
 
-#define USEKENFILTER 1
-
-int kendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, unsigned long miplen)
+int dxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, unsigned long miplen)
 {
+	void *writebuf;
 #if (USEKENFILTER == 0)
 	unsigned long cleng,j;
-	cleng = lzwcompress(pic,miplen,packbuf);
+	if (glusetexcachecompression) {
+#ifdef USELZF
+		cleng = lzf_compress(pic, miplen, packbuf, miplen-1);
+		if (cleng == 0)	{
+			// failed to compress
+			cleng = miplen;
+			writebuf = pic;
+		} else writebuf = packbuf;
+#else
+		cleng = lzwcompress(pic,miplen,packbuf);
+		writebuf = packbuf;
+#endif
+	} else {
+		cleng = miplen;
+		writebuf = pic;
+	}
 	if (cleng < 0) return -1; j = B_LITTLE32(cleng);
 	if (Bwrite(fil, &j, sizeof(unsigned long)) != sizeof(unsigned long)) return -1;
-	if (Bwrite(fil, packbuf, cleng) != cleng) return -1;
+	if (Bwrite(fil, writebuf, cleng) != cleng) return -1;
 #else
 	long j, k, offs, stride, cleng;
 	char *cptr;
@@ -4869,21 +4877,51 @@ int kendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *
 		for(k=0;k<8;k++) *cptr++ = pic[k];
 		for(j=stride;j<miplen;j+=stride)
 			for(k=0;k<8;k++) *cptr++ = pic[j+k];
-		cleng = lzwcompress(midbuf,(miplen/stride)*8,packbuf);
+		if (glusetexcachecompression) {
+#ifdef USELZF
+			j = (miplen/stride)*8;
+			cleng = lzf_compress(midbuf,j,packbuf,j-1);
+			if (cleng == 0) {
+				cleng = j;
+				writebuf = midbuf;
+			} else writebuf = packbuf;
+#else
+			cleng = lzwcompress(midbuf,(miplen/stride)*8,packbuf);
+			writebuf = packbuf;
+#endif
+		} else {
+			cleng = (miplen/stride)*8;
+			writebuf = midbuf;
+		}
 		j = B_LITTLE32(cleng);
 		Bwrite(fil,&j,4);
-		Bwrite(fil,packbuf,cleng);
+		Bwrite(fil,writebuf,cleng);
 	}
 	
 	//rgb0,rgb1
 	cptr = midbuf;
 	for(k=0;k<=2;k+=2)
 		for(j=0;j<miplen;j+=stride)
-		{ *(short *)cptr = hicosub(*(short *)(&pic[offs+j+k])); cptr += 2; }
-	cleng = lzwcompress(midbuf,(miplen/stride)*4,packbuf);
+			{ *(short *)cptr = hicosub(*(short *)(&pic[offs+j+k])); cptr += 2; }
+	if (glusetexcachecompression) {
+#ifdef USELZF
+		j = (miplen/stride)*4;
+		cleng = lzf_compress(midbuf,j,packbuf,j-1);
+		if (cleng == 0) {
+			cleng = j;
+			writebuf = midbuf;
+		} else writebuf = packbuf;
+#else
+		cleng = lzwcompress(midbuf,(miplen/stride)*4,packbuf);
+		writebuf = packbuf;
+#endif
+	} else {
+		cleng = (miplen/stride)*4;
+		writebuf = midbuf;
+	}
 	j = B_LITTLE32(cleng);
 	Bwrite(fil,&j,4);
-	Bwrite(fil,packbuf,cleng);
+	Bwrite(fil,writebuf,cleng);
 	
 	//index_4x4
 	cptr = midbuf;
@@ -4896,24 +4934,50 @@ int kendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *
 		cptr[3] = ((c2[0]>>6)&3) + (((c2[1]>>6)&3)<<2) + (((c2[2]>>6)&3)<<4) + (((c2[3]>>6)&3)<<6);
 		cptr += 4;
 	}
-	cleng = lzwcompress(midbuf,(miplen/stride)*4,packbuf);
+	if (glusetexcachecompression) {
+#ifdef USELZF
+		j = (miplen/stride)*4;
+		cleng = lzf_compress(midbuf,j,packbuf,j-1);
+		if (cleng == 0) {
+			cleng = j;
+			writebuf = midbuf;
+		} else writebuf = packbuf;
+#else
+		cleng = lzwcompress(midbuf,(miplen/stride)*4,packbuf);
+		writebuf = packbuf;
+#endif
+	} else {
+		cleng = (miplen/stride)*4;
+		writebuf = midbuf;
+	}
 	j = B_LITTLE32(cleng);
 	Bwrite(fil,&j,4);
-	Bwrite(fil,packbuf,cleng);
+	Bwrite(fil,writebuf,cleng);
 #endif
 	return 0;
 }
 
-int dekendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf)
+int dedxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, int ispacked)
 {
+	void *inbuf;
 #if (USEKENFILTER == 0)
 	unsigned long cleng;
 	if (kread(fil, &cleng, sizeof(unsigned long)) != sizeof(unsigned long)) return -1; cleng = B_LITTLE32(cleng);
-	if (kread(fil, packbuf, cleng) != cleng) return -1;
-	if (lzwuncompress(packbuf, cleng, pic, pict->size) != pict->size) return -1;
+#ifdef USELZF
+	if (ispacked && cleng < pict->size) inbuf = packbuf; else inbuf = pic;
+	if (kread(fil, inbuf, cleng) != cleng) return -1;
+	if (ispacked && cleng < pict->size)
+		if (lzf_decompress(packbuf, cleng, pic, pict->size) == 0) return -1;
+#else
+	if (ispacked) inbuf = packbuf; else inbuf = pic;
+	if (kread(fil, inbuf, cleng) != cleng) return -1;
+	if (ispacked && lzwuncompress(packbuf, cleng, pic, pict->size) != pict->size) return -1;
+#endif
 #else
 	long j, k, offs, stride, cleng;
 	char *cptr;
+
+	if (ispacked) inbuf = packbuf; else inbuf = midbuf;
 
 	if ((pict->format == GL_COMPRESSED_RGB_S3TC_DXT1_EXT) ||
 		(pict->format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT)) { offs = 0; stride = 8; }
@@ -4925,8 +4989,16 @@ int dekendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char
 	{
 		//alpha_4x4
 		if (kread(fil,&cleng,4) < 4) return -1; cleng = B_LITTLE32(cleng);
-		if (kread(fil,packbuf,cleng) < cleng) return -1;
-		j = (pict->size/stride)*8; if (lzwuncompress(packbuf,cleng,midbuf,j) != j) return -1;
+		j = (pict->size/stride)*8;
+#ifdef USELZF
+		if (ispacked && cleng < j) inbuf = packbuf; else inbuf = midbuf;
+		if (kread(fil,inbuf,cleng) < cleng) return -1;
+		if (ispacked && cleng < j)
+			if (lzf_decompress(packbuf,cleng,midbuf,j) == 0) return -1;
+#else
+		if (kread(fil,inbuf,cleng) < cleng) return -1;
+		if (ispacked && lzwuncompress(packbuf,cleng,midbuf,j) != j) return -1;
+#endif
 		cptr = midbuf;
 		for(k=0;k<8;k++) pic[k] = *cptr++;
 		for(j=stride;j<pict->size;j+=stride)
@@ -4935,8 +5007,16 @@ int dekendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char
 	
 	//rgb0,rgb1
 	if (kread(fil,&cleng,4) < 4) return -1; cleng = B_LITTLE32(cleng);
-	if (kread(fil,packbuf,cleng) < cleng) return -1;
-	j = (pict->size/stride)*4; if (lzwuncompress(packbuf,cleng,midbuf,j) != j) return -1;
+	j = (pict->size/stride)*4;
+#ifdef USELZF
+	if (ispacked && cleng < j) inbuf = packbuf; else inbuf = midbuf;
+	if (kread(fil,inbuf,cleng) < cleng) return -1;
+	if (ispacked && cleng < j)
+		if (lzf_decompress(packbuf,cleng,midbuf,j) == 0) return -1;
+#else
+	if (kread(fil,inbuf,cleng) < cleng) return -1;
+	if (ispacked && lzwuncompress(packbuf,cleng,midbuf,j) != j) return -1;
+#endif
 	cptr = midbuf;
 	for(k=0;k<=2;k+=2)
 		for(j=0;j<pict->size;j+=stride)
@@ -4947,8 +5027,16 @@ int dekendxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char
 			
 	//index_4x4:
     if (kread(fil,&cleng,4) < 4) return -1; cleng = B_LITTLE32(cleng);
-	if (kread(fil,packbuf,cleng) < cleng) return -1;
-	j = (pict->size/stride)*4; if (lzwuncompress(packbuf,cleng,midbuf,j) != j) return -1;
+	j = (pict->size/stride)*4;
+#ifdef USELZF
+	if (ispacked && cleng < j) inbuf = packbuf; else inbuf = midbuf;
+	if (kread(fil,inbuf,cleng) < cleng) return -1;
+	if (ispacked && cleng < j)
+		if (lzf_decompress(packbuf,cleng,midbuf,j) == 0) return -1;
+#else
+	if (kread(fil,inbuf,cleng) < cleng) return -1;
+	if (ispacked && lzwuncompress(packbuf,cleng,midbuf,j) != j) return -1;
+#endif
 	cptr = midbuf;
 	for(j=0;j<pict->size;j+=stride)
 	{

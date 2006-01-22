@@ -625,17 +625,11 @@ static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLu
 			picc = realloc(packbuf, alloclen+16);
 			if (!picc) goto failure; else packbuf = picc;
 			
-			if (head->flags & 4) {
-				picc = realloc(midbuf, pict.size);
-				if (!picc) goto failure; else midbuf = picc;
-			}
+			picc = realloc(midbuf, pict.size);
+			if (!picc) goto failure; else midbuf = picc;
 		}
 			
-		if (head->flags & 4) {
-			if (dekendxtfilter(fil, &pict, pic, midbuf, packbuf)) goto failure; 
-		} else {
-			if (kread(fil, pic, pict.size) < pict.size) goto failure;
-		}
+		if (dedxtfilter(fil, &pict, pic, midbuf, packbuf, (head->flags&4)==4)) goto failure; 
 		
 		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,
 								   pict.size,pic);
