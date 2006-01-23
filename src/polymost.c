@@ -4671,7 +4671,7 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 {
 	int showval = (parm->numparms < 1), val;
 	
-	val = atoi(parm->parms[0]);
+	if (!showval) val = atoi(parm->parms[0]);
 	if (!Bstrcasecmp(parm->name, "usemodels")) {
 		if (showval) { OSD_Printf("usemodels is %d\n", usemodels); }
 		else usemodels = (val != 0);
