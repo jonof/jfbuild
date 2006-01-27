@@ -6029,15 +6029,19 @@ long menuselect(void)
 				currentlist = 1-currentlist;
 		} else if ((ch == 75) || (ch == 72)) {
 			if (currentlist == 0) {
-				if (finddirshigh->prev) finddirshigh = finddirshigh->prev;
+				if (finddirshigh)
+					if (finddirshigh->prev) finddirshigh = finddirshigh->prev;
 			} else {
-				if (findfileshigh->prev) findfileshigh = findfileshigh->prev;
+				if (findfileshigh)
+					if (findfileshigh->prev) findfileshigh = findfileshigh->prev;
 			}
 		} else if ((ch == 77) || (ch == 80)) {
 			if (currentlist == 0) {
-				if (finddirshigh->next) finddirshigh = finddirshigh->next;
+				if (finddirshigh)
+					if (finddirshigh->next) finddirshigh = finddirshigh->next;
 			} else {
-				if (findfileshigh->next) findfileshigh = findfileshigh->next;
+				if (findfileshigh)
+					if (findfileshigh->next) findfileshigh = findfileshigh->next;
 			}
 		} else if ((ch == 13) && (currentlist == 0)) {
 			strcat(selectedboardfilename, finddirshigh->name);
