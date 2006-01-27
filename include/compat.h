@@ -186,6 +186,9 @@ static inline uint64 B_SWAP64(uint64 l) { return (l>>56)|((l>>40)&0xff00)|((l>>2
 # ifndef O_BINARY
 #  define O_BINARY 0
 # endif
+# ifndef O_TEXT
+#  define O_TEXT 0
+# endif
 
 # ifndef F_OK
 #  define F_OK 0

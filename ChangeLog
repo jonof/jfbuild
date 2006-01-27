@@ -468,6 +468,12 @@ ENGINE.C l6773:
 	so increasing the MAXCLIPNUM constant on line 31 to 1024 will
 	decrease the chance of this happening.
 
+ENGINE.C l7880:
+	The for loop that reverses the rendered image of a mirror is
+	iterating one too many times. Change the for loop to read:
+	
+	for(dy=mirrorsy2-mirrorsy1-1;dy>=0;dy--)
+
 BUILD.C l2137:
 	gettile() sometimes gets handed a tile with an index of -1, and
 	doesn't adjust this to something safe before it tries to draw the

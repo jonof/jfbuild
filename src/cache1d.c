@@ -69,6 +69,7 @@ typedef struct { long *hand, leng; char *lock; } cactype;
 cactype cac[MAXCACHEOBJECTS];
 static long lockrecip[200];
 
+static char toupperlookup[256];
 
 extern void *kmalloc(size_t);
 extern void kfree(void *);
@@ -76,7 +77,6 @@ extern void kfree(void *);
 static void reportandexit(char *errormessage);
 
 extern char pow2char[8];
-static void cleanupsearchgroup(void);
 
 
 void initcache(long dacachestart, long dacachesize)
@@ -284,66 +284,64 @@ int addsearchpath(const char *p)
 int openfrompath(const char *fn, int flags, int mode)
 {
 	searchpath_t *sp;
-	char *pfn;
-	int h = -1;
+	char *pfn, *ffn;
+	int h = -1, allocsiz;
 
-	// test local directory first
-	if ((h = open(fn, flags, mode)) >= 0)
+	for (; toupperlookup[*fn] == '/'; fn++);
+	ffn = strdup(fn);
+	if (!ffn) return -1;
+	Bcorrectfilename(ffn,0);	// compress relative paths
+	
+	allocsiz = 2;	// "./" (aka. curdir)
+	for (sp = searchpathhead; sp; sp = sp->next) allocsiz = max(sp->pathlen, allocsiz);
+	allocsiz += strlen(ffn);
+	allocsiz += 1;	// a nul
+	
+	pfn = (char *)malloc(allocsiz);
+	if (!pfn) { free(ffn); return -1; }
+	strcpy(pfn, "./");
+	strcat(pfn, ffn);
+	
+	// test current directory first
+	if ((h = open(fn, flags, mode)) >= 0) {
+		free(pfn); free(ffn);
 		return h;
+	}
 
-#ifdef _WIN32
-	// if a UNC or drive letter is at the beginning, don't search path
-	if ((fn[0] == '\\' && fn[1] == '\\') || fn[1] == ':') return -1;
-	if (fn[0] == '\\') return -1;
-#endif
-	if (fn[0] == '/') return -1;
-
-	pfn = NULL;
 	for (sp = searchpathhead; sp && h < 0; sp = sp->next) {
-		if (!pfn) {
-			pfn = (char*)malloc(strlen(fn) + maxsearchpathlen + 1);
-			if (!pfn) return -1;
-		}
-
 		strcpy(pfn, sp->path);
-		strcat(pfn, fn);
+		strcat(pfn, ffn);
 		//initprintf("Trying %s\n", pfn);
 		h = open(pfn, flags, mode);
 	}
-	if (pfn) free(pfn);
+	free(pfn); free(ffn);
 
 	return h;
 }
 
 BFILE* fopenfrompath(const char *fn, const char *mode)
 {
-	searchpath_t *sp;
-	char *pfn;
-	BFILE *h = NULL;
+	int fh;
+	BFILE *h;
+	int bmode = 0, smode = 0;
+	const char *c;
 
-	// test local directory first
-	if ((h = Bfopen(fn, mode)) != NULL)
-		return h;
-
-#ifdef _WIN32
-	// if a UNC or drive letter is at the beginning, don't search path
-	if ((fn[0] == '\\' && fn[1] == '\\') || fn[1] == ':') return NULL;
-	if (fn[0] == '\\') return NULL;
-#endif
-	if (fn[0] == '/') return NULL;
-
-	pfn = NULL;
-	for (sp = searchpathhead; sp && !h; sp = sp->next) {
-		if (!pfn) {
-			pfn = (char*)malloc(strlen(fn) + maxsearchpathlen + 1);
-			if (!pfn) return NULL;
-		}
-
-		strcpy(pfn, sp->path);
-		strcat(pfn, fn);
-		h = Bfopen(pfn, mode);
+	for (c=mode; c[0]; ) {
+			 if (c[0] == 'r' && c[1] == '+') { bmode = BO_RDWR; smode = BS_IREAD|BS_IWRITE; c+=2; }
+		else if (c[0] == 'r')                { bmode = BO_RDONLY; smode = BS_IREAD; c+=1; }
+		else if (c[0] == 'w' && c[1] == '+') { bmode = BO_RDWR|BO_CREAT|BO_TRUNC; smode = BS_IREAD|BS_IWRITE; c+=2; }
+		else if (c[0] == 'w')                { bmode = BO_WRONLY|BO_CREAT|BO_TRUNC; smode = BS_IREAD|BS_IWRITE; c+=2; }
+		else if (c[0] == 'a' && c[1] == '+') { bmode = BO_RDWR|BO_CREAT; smode=BS_IREAD|BS_IWRITE; c+=2; }
+		else if (c[0] == 'a')                { bmode = BO_WRONLY|BO_CREAT; smode=BS_IREAD|BS_IWRITE; c+=1; }
+		else if (c[0] == 'b')                { bmode |= BO_BINARY; c+=1; }
+		else if (c[1] == 't')                { bmode |= BO_TEXT; c+=1; }
+		else c++;
 	}
-	if (pfn) free(pfn);
+	fh = openfrompath(fn,bmode,smode);
+	if (fh < 0) return NULL;
+	
+	h = fdopen(fh,mode);
+	if (!h) close(fh);
 
 	return h;
 }
@@ -372,9 +370,6 @@ static char toupperlookup[256] =
 	0xf0,0xf1,0xf2,0xf3,0xf4,0xf5,0xf6,0xf7,0xf8,0xf9,0xfa,0xfb,0xfc,0xfd,0xfe,0xff
 };
 
-static long searchgroupcursor = -1, searchgroupgrp = -1;
-static char *searchgroupflags[MAXGROUPFILES];
-
 static long numgroupfiles = 0;
 static long gnumfiles[MAXGROUPFILES];
 static long groupfil[MAXGROUPFILES] = {-1,-1,-1,-1};
@@ -401,6 +396,11 @@ long initgroupfile(char *filename)
 	char buf[16];
 	long i, j, k;
 
+#ifdef _WIN32
+	// on Windows, translate all backslashes (0x5c) to forward slashes (0x2f)
+	toupperlookup[0x5c] = 0x2f;
+#endif
+	
 #ifdef WITHKPLIB
 	char *zfn;
 	searchpath_t *sp = NULL;
@@ -524,8 +524,6 @@ void uninitgroupfile(void)
 {
 	long i;
 
-	cleanupsearchgroup();
-
 	for(i=numgroupfiles-1;i>=0;i--)
 		if (groupfil[i] != -1)
 		{
@@ -548,6 +546,8 @@ long kopen4load(char *filename, char searchfirst)
 	long i, j, k, fil, newhandle;
 	char bad, *gfileptr;
 
+	for (; toupperlookup[*filename] == '/'; filename++);
+
 	newhandle = MAXOPENFILES-1;
 	while (filehan[newhandle] != -1)
 	{
@@ -557,13 +557,6 @@ long kopen4load(char *filename, char searchfirst)
 			Bprintf("TOO MANY FILES OPEN IN FILE GROUPING SYSTEM!");
 			exit(0);
 		}
-	}
-
-	// handle the GRP: pseudodrive
-	if (!Bstrncasecmp(filename,"GRP:",4)) {
-		filename += 4;
-		if (*filename == '\\' || *filename == '/') filename++;
-		if (searchfirst != 1) searchfirst = 2;
 	}
 
 	if (searchfirst == 0)
@@ -761,99 +754,236 @@ void kclose(long handle)
 	filehan[handle] = -1;
 }
 
-
-static void cleanupsearchgroup(void)
+static int klistaddentry(CACHE1D_FIND_REC **rec, char *name, int type, int source)
 {
-	int i;
-	if (searchgroupcursor >= 0) {
-		for (i=0;i<MAXGROUPFILES;i++)
-			if (searchgroupflags[i])
-				kfree(searchgroupflags[i]);
+	CACHE1D_FIND_REC *r = NULL, *attach = NULL;
+
+	if (*rec) {
+		int insensitive, v;
+		CACHE1D_FIND_REC *last = NULL;
+		
+		for (attach = *rec; attach; last = attach, attach = attach->next) {
+#ifdef _WIN32
+			insensitive = 1;
+#else
+			if (source == CACHE1D_SOURCE_GRP || attach->source == CACHE1D_SOURCE_GRP)
+				insensitive = 1;
+			else if (source == CACHE1D_SOURCE_ZIP || attach->source == CACHE1D_SOURCE_ZIP)
+				insensitive = 1;
+			else
+				insensitive = 0;
+#endif
+			if (insensitive) v = Bstrcasecmp(name, attach->name);
+			else v = Bstrcmp(name, attach->name);
+			
+			// sorted list
+			if (v > 0) continue;	// item to add is bigger than the current one
+									// so look for something bigger than us
+			if (v < 0) {			// item to add is smaller than the current one
+				attach = NULL;		// so wedge it between the current item and the one before
+				break;
+			}
+			
+			// matched
+			if (source >= attach->source) return 1;	// item to add is of lower priority
+			r = attach;
+			break;
+		}
+
+		// wasn't found in the list, so attach to the end
+		if (!attach) attach = last;
+	}
+
+	if (r) {
+		r->type = type;
+		r->source = source;
+		return 0;
+	}
+
+	r = (CACHE1D_FIND_REC *)malloc(sizeof(CACHE1D_FIND_REC)+strlen(name)+1);
+	if (!r) return -1;
+	r->name = (char*)r + sizeof(CACHE1D_FIND_REC); strcpy(r->name, name);
+	r->type = type;
+	r->source = source;
+	r->usera = r->userb = NULL;
+
+	if (!attach) {	// we are the first item
+		r->prev = NULL;
+		r->next = *rec;
+		if (*rec) (*rec)->prev = r;
+		*rec = r;
+	} else {
+		r->prev = attach;
+		r->next = attach->next;
+		if (attach->next) attach->next->prev = r;
+		attach->next = r;
+	}
+
+	return 0;
+}
+
+void klistfree(CACHE1D_FIND_REC *rec)
+{
+	CACHE1D_FIND_REC *n;
+	
+	while (rec) {
+		n = rec->next;
+		free(rec);
+		rec = n;
 	}
 }
 
-int beginsearchgroup(char *ext)
+CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 {
-	int i,j,k,l,m;
-	char workspace[13], *gfileptr1, *gfileptr2, bad;
+	CACHE1D_FIND_REC *rec = NULL;
+	char *path;
+	
+	path = strdup(_path);
+	if (!path) return NULL;
 
-	workspace[12] = 0;
+	// we don't need any leading dots and slashes or trailing slashes either
+	{
+		int i,j;
+		for (i=0; path[i] == '.' || toupperlookup[path[i]] == '/'; ) i++;
+		for (j=0; path[j] = path[i]; j++,i++) ;
+		while (toupperlookup[path[j-1]] == '/') j--;
+		path[j] = 0;
+		//initprintf("Cleaned up path = \"%s\"\n",path);
+	}
+	
+	if (*path && (type & CACHE1D_FIND_DIR)) {
+		if (klistaddentry(&rec, "..", CACHE1D_FIND_DIR, CACHE1D_SOURCE_CURDIR) < 0) goto failure;
+	}
+	
+	{	// current directory and paths in the search stack
+		searchpath_t *search = NULL;
+		BDIR *dir;
+		struct Bdirent *dirent;
+		const char *d = ".";
+		int stackdepth = CACHE1D_SOURCE_CURDIR;
+		char buf[BMAX_PATH];
 
-	cleanupsearchgroup();
+		do {
+			strcpy(buf, path);
+			if (*path) strcat(buf, "/");
+			strcat(buf, d);
+			dir = Bopendir(buf);
+			if (dir) {
+				while ((dirent = Breaddir(dir))) {
+					if ((dirent->name[0] == '.' && dirent->name[1] == 0) ||
+						(dirent->name[0] == '.' && dirent->name[1] == '.' && dirent->name[2] == 0))
+						continue;
+					if ((type & CACHE1D_FIND_DIR) && !(dirent->mode & BS_IFDIR)) continue;
+					if ((type & CACHE1D_FIND_FILE) && (dirent->mode & BS_IFDIR)) continue;
+					if (!Bwildmatch(dirent->name, mask)) continue;
+					switch (klistaddentry(&rec, dirent->name,
+								(dirent->mode & BS_IFDIR) ? CACHE1D_FIND_DIR : CACHE1D_FIND_FILE,
+										  stackdepth)) {
+						case -1: goto failure;
+						//case 1: initprintf("%s:%s dropped for lower priority\n", d,dirent->name); break;
+						//case 0: initprintf("%s:%s accepted\n", d,dirent->name); break;
+						default: break;
+					}
+				}
+				Bclosedir(dir);
+			}
 
-	for (i=0;i<MAXGROUPFILES;i++) {
-		searchgroupflags[i] = 0;
-		if (groupfil[i] == -1) continue;
-
-		searchgroupflags[i] = (char *)kmalloc((gnumfiles[i]+7) >> 3);
-		if (!searchgroupflags[i]) continue;
-
-		memset(searchgroupflags[i], 0, (gnumfiles[i]+7) >> 3);
-
-		// now, scan the filenames in this group and flag those which match our criteria
-		for(j=gnumfiles[i]-1;j>=0;j--)
-		{
-			Bmemcpy(workspace,&gfilelist[i][j<<4],12);
-			if (Bwildmatch(workspace,ext))
-				searchgroupflags[i][j>>3] |= 1<<(j&7);
-		}
+			if (!search) {
+				search = searchpathhead;
+				stackdepth = CACHE1D_SOURCE_PATH;
+			} else {
+				search = search->next;
+				stackdepth++;
+			}
+			if (search) d = search->path;
+		} while (search);
 	}
 
-	// now, unflag any duplicate names in the groups
-	for (i=MAXGROUPFILES-1;i>=0;i--) {
-		if (!searchgroupflags[i]) continue;
-		for (j=i-1;j>=0;j--) {
-			if (!searchgroupflags[j]) continue;
+	{	// next, zip files
+		char buf[BMAX_PATH], *p;
+		int i, j, ftype;
+		strcpy(buf,path);
+		if (*path) strcat(buf,"/");
+		strcat(buf,mask);
+		for (kzfindfilestart(buf); kzfindfile(buf); ) {
+			if (buf[0] != '|') continue;	// local files we don't need
+			
+			// scan for the end of the string and shift
+			// everything left a char in the process
+			for (i=1; (buf[i-1]=buf[i]); i++) ; i-=2;
 
-			for (k=gnumfiles[i]-1;k>=0;k--) {
-				if ((searchgroupflags[i][k>>3] & pow2char[k&7]) == 0) continue;
-				gfileptr1 = (char *)&gfilelist[i][k<<4];
-				for (l=gnumfiles[j]-1;l>=0;l--) {
-					if ((searchgroupflags[j][l>>3] & pow2char[l&7]) == 0) continue;
-					gfileptr2 = (char *)&gfilelist[j][l<<4];
+			// if there's a slash at the end, this is a directory entry
+			if (toupperlookup[buf[i]] == '/') { ftype = CACHE1D_FIND_DIR; buf[i] = 0; }
+			else ftype = CACHE1D_FIND_FILE;
 
-					bad=0;
-					for (m=0;m<13;m++)
-						if (toupperlookup[gfileptr1[m]] != toupperlookup[gfileptr2[m]]) {
-							bad = 1;
-							break;
-						}
-					if (!bad) searchgroupflags[j][l>>3] &= ~pow2char[l&7];
+			// skip over the common characters at the beginning of the base path and the zip entry
+			for (j=0; buf[j] && path[j]; j++) {
+				if (toupperlookup[ path[j] ] == toupperlookup[ buf[j] ]) continue;
+				break;
+			}
+			// we've now hopefully skipped the common path component at the beginning.
+			// if that's true, we should be staring at a null byte in path and either any character in buf
+			// if j==0, or a slash if j>0
+			if ((!path[0] && buf[j]) || (!path[j] && toupperlookup[ buf[j] ] == '/')) {
+				if (j>0) j++;
+				
+				// yep, so now we shift what follows back to the start of buf and while we do that,
+				// keep an eye out for any more slashes which would mean this entry has sub-entities
+				// and is useless to us.
+				for (i = 0; (buf[i] = buf[j]) && toupperlookup[buf[j]] != '/'; i++,j++) ;
+				if (toupperlookup[buf[j]] == '/') continue;	// damn, try next entry
+			} else {
+				// if we're here it means we have a situation where:
+				//   path = foo
+				//   buf = foobar...
+				// or
+				//   path = foobar
+				//   buf = foo...
+				// which would mean the entry is higher up in the directory tree and is also useless
+				continue;
+			}
+
+			if ((type & CACHE1D_FIND_DIR) && ftype != CACHE1D_FIND_DIR) continue;
+			if ((type & CACHE1D_FIND_FILE) && ftype != CACHE1D_FIND_FILE) continue;
+			
+			// the entry is in the clear
+			switch (klistaddentry(&rec, buf, ftype, CACHE1D_SOURCE_ZIP)) {
+				case -1: goto failure;
+				//case 1: initprintf("<ZIP>:%s dropped for lower priority\n", buf); break;
+				//case 0: initprintf("<ZIP>:%s accepted\n", buf); break;
+				default: break;
+			}
+		}
+	}
+	
+	// then, grp files
+	if (!*path && (type & CACHE1D_FIND_FILE)) {
+		char buf[13];
+		int i,j;
+		buf[12] = 0;
+		for (i=0;i<MAXGROUPFILES;i++) {
+			if (groupfil[i] == -1) continue;
+			for(j=gnumfiles[i]-1;j>=0;j--)
+			{
+				Bmemcpy(buf,&gfilelist[i][j<<4],12);
+				if (!Bwildmatch(buf,mask)) continue;
+				switch (klistaddentry(&rec, buf, CACHE1D_FIND_FILE, CACHE1D_SOURCE_GRP)) {
+					case -1: goto failure;
+					//case 1: initprintf("<GRP>:%s dropped for lower priority\n", workspace); break;
+					//case 0: initprintf("<GRP>:%s accepted\n", workspace); break;
+					default: break;
 				}
 			}
 		}
 	}
 
-	searchgroupcursor = 0;
-	searchgroupgrp = 0;
-	return 0;
+	free(path);
+	return rec;
+failure:
+	free(path);
+	klistfree(rec);
+	return NULL;
 }
-
-int getsearchgroupnext(char *name, long *size)
-{
-	do {
-		while (searchgroupgrp < MAXGROUPFILES && searchgroupflags[searchgroupgrp] == 0)
-			searchgroupgrp++;
-		if (searchgroupgrp == MAXGROUPFILES) return 0;
-
-		while (searchgroupcursor < gnumfiles[searchgroupgrp] &&
-				(searchgroupflags[searchgroupgrp][searchgroupcursor >> 3] & pow2char[searchgroupcursor & 7]) == 0)
-			searchgroupcursor++;
-		if (searchgroupcursor == gnumfiles[searchgroupgrp]) {
-			searchgroupgrp++;
-			searchgroupcursor = 0;
-			continue;
-		}
-
-		Bmemcpy(name, &gfilelist[searchgroupgrp][searchgroupcursor<<4], 12);
-		name[12] = 0;
-		*size = gfileoffs[searchgroupgrp][searchgroupcursor+1]-gfileoffs[searchgroupgrp][searchgroupcursor];
-		searchgroupcursor++;
-
-		return 1;
-	} while(1);
-}
-
 
 	//Internal LZW variables
 #define LZWSIZE 16384           //Watch out for shorts!
@@ -1083,7 +1213,7 @@ static long lzwcompress(char *lzwinbuf, long uncompleng, char *lzwoutbuf)
 	shortptr[0] = B_LITTLE16((short)uncompleng);
 	if (((bitcnt+7)>>3) < uncompleng)
 	{
-		shortptr[1] = (short)addrcnt;
+		shortptr[1] = B_LITTLE16((short)addrcnt);
 		return((bitcnt+7)>>3);
 	}
 	shortptr[1] = (short)0;

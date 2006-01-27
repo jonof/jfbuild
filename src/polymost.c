@@ -4727,6 +4727,34 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 	return OSDCMD_SHOWHELP;
 }
 
+#if 0
+// because I'm lazy
+static int dumptexturedefs(const osdfuncparm_t *parm)
+{
+	hicreplctyp *hr;
+	int i;
+	
+	if (!hicfirstinit) return OSDCMD_OK;
+	
+	initprintf("// Begin Texture Dump\n");
+	for (i=0;i<MAXTILES;i++) {
+		hr = hicreplc[i];
+		if (!hr) continue;
+		initprintf("texture %d {\n", i);
+		for (; hr; hr = hr->next) {
+			if (!hr->filename) continue;
+			initprintf("    pal %d { name \"%s\" ", hr->palnum, hr->filename);
+			if (hr->alphacut >= 0.0) initprintf("alphacut %g ", hr->alphacut);
+			initprintf("}\n");
+		}
+		initprintf("}\n");
+	}
+	initprintf("// End Texture Dump\n");
+	
+	return OSDCMD_OK;	// no replacement found
+}
+#endif
+
 void polymost_initosdfuncs(void)
 {
 #ifdef USE_OPENGL
@@ -4743,6 +4771,7 @@ void polymost_initosdfuncs(void)
 #endif
 	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
+	//OSD_RegisterFunction("dumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",dumptexturedefs);
 }
 
 void polymost_precache(long dapicnum, long dapalnum, long datype)

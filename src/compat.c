@@ -343,111 +343,49 @@ char *Bgethomedir(void)
 #endif
 }
 
-
 int Bcorrectfilename(char *filename, int removefn)
 {
-#ifdef _WIN32
-	int r, trailslash=0;
-#endif
-	char path[256]="", fn[64]="", scratch[256], *ptr, *ptr2, ch;
-	char cwd[256], *cwdp = cwd;
-	char *tokarr[64];
-	int ntok=0, i, j;
-
-	int grpmode = 0;
+	char *fn;
+	char *tokarr[64], *first, *next, *token;
+	int i, ntok = 0, leadslash = 0, trailslash = 0;
 	
-	if (!Bstrncasecmp(filename,"GRP:",4)) {
-		grpmode = 1;
-		for (ptr=filename; *ptr; ptr++) if (*ptr == '\\') *ptr = '/';
+	fn = strdup(filename);
+	if (!fn) return -1;
+	
+	for (first=fn; *first; first++) {
+#ifdef _WIN32
+		if (*first == '\\') *first = '/';
+#endif
 	}
-#ifdef _WIN32
-	if (!grpmode) {
-		// Windows uses backslashes so translate all unix-like forwardslashes
-		for (ptr=filename; *ptr; ptr++) if (*ptr == '/') *ptr = '\\';
-		if (*(ptr-1) == '\\') trailslash = 1;
-
-		r = GetFullPathName(filename, 256, path, &ptr);
-		if (r > 256) return -1;
-		if (r == 0) return -1;
-		if (!trailslash && removefn && ptr) *ptr=0;
-		if (trailslash) {
-			if (path[ strlen(path) - 1 ] != '\\')
-				strcat(path, "\\");
-		}
-
-		for (ptr=path; *ptr; ptr++) if (*ptr == '\\') *ptr = '/';
+	leadslash = (*fn == '/');
+	trailslash = (first>fn && first[-1] == '/');
 	
-		strcpy(filename,path);
-	} else {
-#endif
+	first = fn;
+	do {
+		token = Bstrtoken(first, "/", &next, 1);
+		first = NULL;
+		if (!token) break;
+		else if (token[0] == 0) continue;
+		else if (token[0] == '.' && token[1] == 0) continue;
+		else if (token[0] == '.' && token[1] == '.' && token[2] == 0) ntok = max(0,ntok-1);
+		else tokarr[ntok++] = token;
+	} while (1);
 	
-#ifndef _WIN32
-		if (!grpmode) {
-			Bgetcwd(cwd, 256);
-			Bstrcat(cwd, "/");
-		} else {
-#endif
-		cwd[0] = '/';
-		cwd[1] = 0;
-#ifndef _WIN32
-		}
-#endif
-
-		ptr2 = filename;
-		if (grpmode) {
-			ptr2 += 3;
-			if (ptr2[1] != '/')
-				*ptr2 = '/';
-			else ptr2++;
-		}
-
-		if (removefn) {
-			ptr = Bstrrchr(ptr2, '/');
-			if (ptr) ptr[1] = 0;
-			else if (!grpmode) ptr2[0] = 0;
-		}
-
-		// now we have all the bits and pieces, clean it all up
-		scratch[0] = 0;
-
-		if (ptr2[0] != '/') {
-			// relative path, which means prepend the current dir to the path
-			Bstrcat(scratch, cwdp);
-		}
-
-		Bstrcat(scratch, ptr2);
-
-		ptr2 = scratch;
-		while ((ptr = Bstrtoken(ptr2==scratch?scratch:NULL,"/",&ptr2,1)) != NULL) {
-			if (!Bstrcmp(ptr,".")) continue;
-			else if (!Bstrcmp(ptr,"..")) {
-				if (ntok>0) ntok--;
-			} else {
-				tokarr[ntok++] = ptr;
-			}
-		}
-
-		ptr2 = filename;
-		if (grpmode) {
-			Bstrcpy(filename,"GRP:");
-			ptr2 += 4;
-		} else filename[0] = 0;
-		*(ptr2++) = '/';
-		for (i=0; i<ntok; i++) {
-			ptr = tokarr[i];
-			if (i>0) *(ptr2++) = '/';
-			while (*ptr) *(ptr2++) = *(ptr++);
-		}
-		if (removefn) if (*(ptr2-1) != '/') *(ptr2++) = '/';
-		*(ptr2) = 0;
-
-#ifdef _WIN32
+	if (!trailslash && removefn) ntok = max(0,ntok-1);
+	if (ntok == 0 && trailslash && leadslash) trailslash = 0;
+	
+	first = filename;
+	if (leadslash) *(first++) = '/';
+	for (i=0; i<ntok; i++) {
+		if (i>0) *(first++) = '/';
+		for (token=tokarr[i]; *token; token++)
+			*(first++) = *token;
 	}
-#endif
+	if (trailslash) *(first++) = '/';
+	*(first++) = 0;
 
 	return 0;
 }
-
 
 char *Bgetsystemdrives(void)
 {

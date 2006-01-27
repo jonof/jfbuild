@@ -2077,23 +2077,6 @@ int setvideomode(int x, int y, int c, int fs)
 
 #define CHECK(w,h) if ((w < maxx) && (h < maxy))
 
-// mode enumerator
-static HRESULT WINAPI getvalidmodes_enum(DDSURFACEDESC *ddsd, VOID *udata)
-{
-	unsigned maxx = MAXXDIM, maxy = MAXYDIM;
-
-//#if defined(USE_OPENGL) && defined(POLYMOST)
-//	if (ddsd->ddpfPixelFormat.dwRGBBitCount >= 8) {
-//#else
-	if (ddsd->ddpfPixelFormat.dwRGBBitCount == 8) {
-//#endif
-		CHECK(ddsd->dwWidth, ddsd->dwHeight)
-			ADDMODE(ddsd->dwWidth, ddsd->dwHeight, ddsd->ddpfPixelFormat.dwRGBBitCount, 1,-1);
-	}
-
-	return(DDENUMRET_OK);
-}
-
 #if defined(USE_OPENGL) && defined(POLYMOST)
 static void cdsenummodes(void)
 {
@@ -2138,6 +2121,19 @@ static void cdsenummodes(void)
 	}
 }
 #endif
+
+// mode enumerator
+static HRESULT WINAPI getvalidmodes_enum(DDSURFACEDESC *ddsd, VOID *udata)
+{
+	unsigned maxx = MAXXDIM, maxy = MAXYDIM;
+	
+	if (ddsd->ddpfPixelFormat.dwRGBBitCount == 8) {
+		CHECK(ddsd->dwWidth, ddsd->dwHeight)
+		ADDMODE(ddsd->dwWidth, ddsd->dwHeight, ddsd->ddpfPixelFormat.dwRGBBitCount, 1,-1);
+	}
+	
+	return(DDENUMRET_OK);
+}
 
 static int sortmodes(const struct validmode_t *a, const struct validmode_t *b)
 {

@@ -89,11 +89,7 @@ char tempshade, temppal, tempvis, tempxrepeat, tempyrepeat;
 char somethingintab = 255;
 
 static char boardfilename[BMAX_PATH], selectedboardfilename[BMAX_PATH];
-static struct _directoryitem {
-	struct _directoryitem *next, *prev;
-	char name[64];
-} *filedirectory = (void*)0, *dirdirectory = (void*)0,
-  *filehighlight = (void*)0, *dirhighlight = (void*)0;
+static CACHE1D_FIND_REC *finddirs=NULL, *findfiles=NULL, *finddirshigh=NULL, *findfileshigh=NULL;
 static int numdirs=0, numfiles=0;
 static int currentlist=0;
 
@@ -5029,10 +5025,6 @@ void overheadeditor(void)
 							cursectnum = -1;
 							initspritelists();
 							Bstrcpy(boardfilename,"newboard.map");
-							if (Bcorrectfilename(boardfilename,0)) {
-								printf("Error in Bcorrectfilename()\n");
-								exit(0);
-							}
 							break;
 						} else if (ch == 'N' || ch == 'n' || ch == 13 || ch == ' ') {
 							break;
@@ -5861,7 +5853,7 @@ short getnumber16(char namestart[80], short num, long maxnumber, char sign)
 			else
 				n = (danum*10)+(ch-'0');
 			if (n < maxnumber) danum = n;
-		} else if (ch == 8) {	// backspace
+		} else if (ch == 8 || ch == 127) {	// backspace
 			danum /= 10;
 		} else if (ch == 13) {
 			oldnum = danum;
@@ -5907,7 +5899,7 @@ short getnumber256(char namestart[80], short num, long maxnumber, char sign)
 			else
 				n = (danum*10)+(ch-'0');
 			if (n < maxnumber) danum = n;
-		} else if (ch == 8) {	// backspace
+		} else if (ch == 8 || ch == 127) {	// backspace
 			danum /= 10;
 		} else if (ch == 13) {
 			oldnum = danum;
@@ -5927,201 +5919,41 @@ short getnumber256(char namestart[80], short num, long maxnumber, char sign)
 
 void clearfilenames(void)
 {
-	struct _directoryitem *d;
-
-	while (filedirectory) {
-		d = filedirectory->next;
-
-		Bfree(filedirectory);
-		filedirectory = d;
-	}
-
-	while (dirdirectory) {
-		d = dirdirectory->next;
-
-		Bfree(dirdirectory);
-		dirdirectory = d;
-	}
-
-	filehighlight = 0;
-	dirhighlight = 0;
+	klistfree(finddirs);
+	klistfree(findfiles);
+	finddirs = findfiles = NULL;
 	numfiles = numdirs = 0;
 }
 
 long getfilenames(char *path, char kind[6])
 {
-	short type;
-	struct Bdirent *fileinfo;
-	BDIR *dir;
-	struct _directoryitem *d;
-	struct _directoryitem *directory;
-	char buf[256], *p;
-	long size;
-	char *drives;
+	CACHE1D_FIND_REC *r;
 
-	if (Bstrcmp(kind,"SUBD") == 0) {
-		type = 0;
-		directory = dirdirectory;
-	} else {
-		type = 1;
-		directory = filedirectory;
-	}
+	clearfilenames();
+	finddirs = klistpath(path,"*",CACHE1D_FIND_DIR);
+	findfiles = klistpath(path,kind,CACHE1D_FIND_FILE);
+	for (r = finddirs; r; r=r->next) numdirs++;
+	for (r = findfiles; r; r=r->next) numfiles++;
 	
-#define newdirentry() \
-				if (!d) { \
-					directory = (struct _directoryitem *)Bmalloc(sizeof(struct _directoryitem)); \
-					if (!directory) return 0; \
-				 \
-					d = directory; \
-					if (type == 0) dirdirectory = d; \
-					else filedirectory = d; \
-					d->prev = NULL; \
-				} else { \
-					d->next = (struct _directoryitem *)Bmalloc(sizeof(struct _directoryitem)); \
-					if (!d->next) return 0; \
-				 \
-					d->next->prev = d; \
-					d = d->next; \
-				}
-	
-	d = directory;
-	if (d) while (d->next) d = d->next;
+	finddirshigh = finddirs;
+	findfileshigh = findfiles;
+	currentlist = 0;
+	if (findfileshigh) currentlist = 1;
 
-	if (!Bstrncasecmp(path,"GRP:",4)) {
-		path += 4;	// ignore the GRP: prefix
-
-		// searching groups
-		if (type == 0) {
-			// directories
-			newdirentry();
-
-			d->next = NULL;
-			Bstrcpy(d->name, "..");
-			numdirs++;
-
-			goto dodrives;
-		} else {
-			// files
-			beginsearchgroup(kind);
-			while (getsearchgroupnext(buf,&size)) {
-				//if (scandirectory(directory,buf)) continue;
-
-				newdirentry();
-
-				d->next = NULL;
-				Bstrcpy(d->name, buf);
-				numfiles++;
-			}
-		}
-		return 0;
-	}
-
-	Bstrcpy(buf, path);
-	p = Bstrrchr(buf, '/');
-	if (!p) p = Bstrrchr(buf, '\\');
-	if (!p) return -1;
-
-	p[1] = '.';
-	p[2] = 0;
-
-	if ((dir = Bopendir(buf)) == NULL) /*return -1;*/ goto dodrives;
-
-	p[1] = 0;
-	p++;
-
-	while ((fileinfo = Breaddir(dir)) != NULL) {
-		if (type == 1) {
-			if (fileinfo->mode & BS_IFDIR) continue;
-			if (!Bwildmatch(fileinfo->name, kind)) continue;
-			//if ((p = Bstrrchr(fileinfo->name,'.')) == NULL) continue;
-			//else if (Bstrcasecmp(p, kind)) continue;
-		} else if ((type == 0) && !(fileinfo->mode & BS_IFDIR)) {
-			continue;
-		}
-
-		if (!Bstrcmp(fileinfo->name, ".")) continue;
-		if (fileinfo->namlen > 63) continue;	// too long
-
-		newdirentry();
-
-		d->next = NULL;
-		Bstrcpy(d->name, fileinfo->name);
-		if (type == 0) numdirs++;
-		else numfiles++;
-	}
-
-	Bclosedir(dir);
-
-	if (type != 0) return 0;
-
-dodrives:
-	drives = p = Bgetsystemdrives();
-	if (drives) {
-		while (*p) {
-			newdirentry();
-
-			d->next = NULL;
-			Bsprintf(d->name, "\xff[ %s ]", p);
-			while (*p) p++; p++;
-		}
-		free(drives);
-	}
-
-	newdirentry();
-
-	d->next = NULL;
-	Bsprintf(d->name, "\xff< GRP: >");
-
-#undef newdirentry
-	
 	return(0);
-}
-
-void sortfilenames(void)
-{
-	long i;
-	struct _directoryitem *dira, *dirb;
-
-	for (dira=dirdirectory; dira; dira=dira->next) {
-		i=0;
-		for (dirb=dirdirectory; dirb->next; dirb=dirb->next) {
-			if (Bstrcasecmp(dirb->name, dirb->next->name) > 0) {
-				swapbuf4(dirb->name, dirb->next->name, (64/4));
-				i++;
-			}
-		}
-		if (!i) break;
-	}
-
-	for (dira=filedirectory; dira; dira=dira->next) {
-		i=0;
-		for (dirb=filedirectory; dirb->next; dirb=dirb->next) {
-			if (Bstrcasecmp(dirb->name, dirb->next->name) > 0) {
-				swapbuf4(dirb->name, dirb->next->name, (64/4));
-				i++;
-			}
-		}
-		if (!i) break;
-	}
 }
 
 long menuselect(void)
 {
 	long i, j, topplc;
 	char ch, buffer[78], *sb;
-	struct _directoryitem *dir, *head;
+	CACHE1D_FIND_REC *dir;
 
-	Bstrcpy(selectedboardfilename, boardfilename);
-	Bcorrectfilename(selectedboardfilename, 1);
+	Bstrcpy(selectedboardfilename, "/");
+	Bstrcat(selectedboardfilename, boardfilename);
+	Bcorrectfilename(selectedboardfilename, 1);		// clips off the last token and compresses relative path
 
-	clearfilenames();
-	getfilenames(selectedboardfilename, "SUBD");
-	getfilenames(selectedboardfilename, "*.MAP");
-	sortfilenames();
-	filehighlight = filedirectory;
-	dirhighlight = dirdirectory;
-	currentlist = 0;
-	if (filehighlight) currentlist = 1;
+	getfilenames(selectedboardfilename, "*.map");
 
 	begindrawing();
 	printmessage16("Select .MAP file with arrows&enter.");
@@ -6130,29 +5962,33 @@ long menuselect(void)
 	do {
 		begindrawing();
 		clearbuf((char *)frameplace, (bytesperline*ydim16) >> 2, 0l);
-		Bsnprintf(buffer,78,"(%d dirs, %d files) %s",numdirs-1,numfiles,selectedboardfilename);
+		Bsnprintf(buffer,78,"(%d dirs, %d files) %s",numdirs,numfiles,selectedboardfilename);
 		buffer[sizeof(buffer)-1] = 0;
 		printext16(1,ydim16-8-1,8,0,buffer,0);
 
-		dir = dirhighlight;
-		for(i=0; i<18; i++) if (!dir->prev) break; else dir=dir->prev;
-		for(i=18; i>-18 && dir; i--, dir=dir->next) {
-			if (dir == dirhighlight) {
-				if (currentlist == 0)
-					printext16(8,8*(1+19-i),4|8,0,"->",0);
-				printext16(32,8*(1+19-i),4|8,0,dir->name,0);
-			} else {
-				printext16(32,8*(1+19-i),4,0,dir->name,0);
+		if (finddirshigh) {
+			dir = finddirshigh;
+			for(i=17; i>=0; i--) if (!dir->prev) break; else dir=dir->prev;
+			for(i=18; i>-18 && dir; i--, dir=dir->next) {
+				memset(buffer,0,sizeof(buffer));
+				strncpy(buffer,dir->name,25);
+				if (strlen(buffer) == 25)
+					buffer[21] = buffer[22] = buffer[23] = '.', buffer[24] = 0;
+				if (dir == finddirshigh) {
+					if (currentlist == 0) printext16(8,8*(1+19-i),4|8,0,"->",0);
+					printext16(32,8*(1+19-i),4|8,0,buffer,0);
+				} else {
+					printext16(32,8*(1+19-i),4,0,buffer,0);
+				}
 			}
 		}
 
-		if (filehighlight) {
-			dir = filehighlight;
-			for(i=0; i<18; i++) if (!dir->prev) break; else dir=dir->prev;
+		if (findfileshigh) {
+			dir = findfileshigh;
+			for(i=17; i>=0; i--) if (!dir->prev) break; else dir=dir->prev;
 			for(i=18; i>-18 && dir; i--, dir=dir->next) {
-				if (dir == filehighlight) {
-					if (currentlist == 1)
-						printext16(240,8*(1+19-i),7|8,0,"->",0);
+				if (dir == findfileshigh) {
+					if (currentlist == 1) printext16(240,8*(1+19-i),7|8,0,"->",0);
 					printext16(240+24,8*(1+19-i),7|8,0,dir->name,0);
 				} else {
 					printext16(240+24,8*(1+19-i),7,0,dir->name,0);
@@ -6189,45 +6025,28 @@ long menuselect(void)
 		}
 
 		if (ch == 9) {
-			if ((currentlist == 0 && filedirectory) || filedirectory)
+			if ((currentlist == 0 && finddirs) || finddirs)
 				currentlist = 1-currentlist;
 		} else if ((ch == 75) || (ch == 72)) {
 			if (currentlist == 0) {
-				if (dirhighlight->prev) dirhighlight = dirhighlight->prev;
+				if (finddirshigh->prev) finddirshigh = finddirshigh->prev;
 			} else {
-				if (filehighlight->prev) filehighlight = filehighlight->prev;
+				if (findfileshigh->prev) findfileshigh = findfileshigh->prev;
 			}
 		} else if ((ch == 77) || (ch == 80)) {
 			if (currentlist == 0) {
-				if (dirhighlight->next) dirhighlight = dirhighlight->next;
+				if (finddirshigh->next) finddirshigh = finddirshigh->next;
 			} else {
-				if (filehighlight->next) filehighlight = filehighlight->next;
+				if (findfileshigh->next) findfileshigh = findfileshigh->next;
 			}
 		} else if ((ch == 13) && (currentlist == 0)) {
-			if (dirhighlight->name[0] == 0xff) {
-				strcpy(selectedboardfilename, dirhighlight->name + 3);
-				selectedboardfilename[strlen(selectedboardfilename) - 2] = '/';
-				selectedboardfilename[strlen(selectedboardfilename) - 1] = 0;
-			} else {
-				// .. in the GRP: root dir goes to the disk filesystem
-				if (!Bstrcmp(dirhighlight->name,"..") && !Bstrcmp(selectedboardfilename,"GRP:/"))
-					Bstrcpy(selectedboardfilename,"./");
-				else {
-					strcat(selectedboardfilename, dirhighlight->name);
-					strcat(selectedboardfilename, "/");
-				}
-				Bcorrectfilename(selectedboardfilename, 1);
-			}
+			strcat(selectedboardfilename, finddirshigh->name);
+			strcat(selectedboardfilename, "/");
+			Bcorrectfilename(selectedboardfilename, 1);
 
-			printf("Changing directories to: %s\n", selectedboardfilename);
+			//printf("Changing directories to: %s\n", selectedboardfilename);
 
-			clearfilenames();
-			getfilenames(selectedboardfilename, "SUBD");
-			getfilenames(selectedboardfilename, "*.MAP");
-			sortfilenames();
-			filehighlight = filedirectory;
-			dirhighlight = dirdirectory;
-			if (!filehighlight) currentlist = 0;
+			getfilenames(selectedboardfilename, "*.map");
 			ch = 0;
 
 			begindrawing();
@@ -6239,8 +6058,8 @@ long menuselect(void)
 	while ((ch != 13) && (ch != 27));
 	if (ch == 13)
 	{
-		Bstrcat(selectedboardfilename, filehighlight->name);
-		printf("Selected file: %s\n", selectedboardfilename);
+		Bstrcat(selectedboardfilename, findfileshigh->name);
+		//printf("Selected file: %s\n", selectedboardfilename);
 
 		return(0);
 	}

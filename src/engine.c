@@ -9475,7 +9475,7 @@ void completemirror(void)
 	begindrawing();
 	p = frameplace+ylookup[windowy1+mirrorsy1]+windowx1+mirrorsx1;
 	i = windowx2-windowx1-mirrorsx2-mirrorsx1; mirrorsx2 -= mirrorsx1;
-	for(dy=mirrorsy2-mirrorsy1;dy>=0;dy--)
+	for(dy=mirrorsy2-mirrorsy1-1;dy>=0;dy--)
 	{
 		copybufbyte((void*)(p+1),tempbuf,mirrorsx2+1);
 		tempbuf[mirrorsx2] = tempbuf[mirrorsx2-1];

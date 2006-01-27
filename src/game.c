@@ -589,9 +589,9 @@ long app_main(long argc, char *argv[])
 	waitforeverybody();
 	totalclock = ototalclock = 0; gotlastpacketclock = 0; nummoves = 0;
 
+	ready2send = 1;
 	drawscreen(screenpeek,65536L);
 
-	ready2send = 1;
 	while (!keystatus[1])       //Main loop starts here
 	{
 		if (handleevents()) {
@@ -3858,13 +3858,25 @@ void drawscreen(short snum, long dasmoothratio)
 						j += sintable[((y2-totalclock)<<7)&2047];
 						j >>= 14;
 
-						ptr2 += j;
+						//ptr2 += j;
 
-						for(x1=windowx1;x1<=windowx2;x1++)
+						//for(x1=windowx1;x1<=windowx2;x1++)
+						//	{ ch = ptr[x1]; ptr[x1] = ptr3[ptr2[x1]]; ptr2[x1] = ptr4[ch]; }
+						
+						ox1 = windowx1-min(j,0);
+						ox2 = windowx2-max(j,0);
+						
+						for(x1=windowx1;x1<ox1;x1++)
+							{ ch = ptr[x1]; ptr[x1] = ptr3[ptr2[x1]]; ptr2[x1] = ptr4[ch]; }
+						for(x1=ox2+1;x1<=windowx2;x1++)
+							{ ch = ptr[x1]; ptr[x1] = ptr3[ptr2[x1]]; ptr2[x1] = ptr4[ch]; }
+						
+						ptr2 += j;
+						for(x1=ox1;x1<=ox2;x1++)
 							{ ch = ptr[x1]; ptr[x1] = ptr3[ptr2[x1]]; ptr2[x1] = ptr4[ch]; }
 					}
+					enddrawing(); //}}}
 				}
-				enddrawing(); //}}}
 				gotpic[FLOORMIRROR>>3] &= ~(1<<(FLOORMIRROR&7));
 			}
 
@@ -4663,6 +4675,7 @@ void playback(void)
 
 		while (totalclock >= lockclock+TICSPERFRAME)
 		{
+			sampletimer();
 			if (i >= reccnt)
 			{
 				prepareboard(boardfilename);
