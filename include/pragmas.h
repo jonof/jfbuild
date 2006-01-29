@@ -63,8 +63,8 @@ static inline long mul3(long a) { return (a<<1)+a; }
 static inline long mul5(long a) { return (a<<2)+a; }
 static inline long mul9(long a) { return (a<<3)+a; }
 
-static inline long divmod(long a, long b) { dmval = a%b; return a/b; }
-static inline long moddiv(long a, long b) { dmval = a/b; return a%b; }
+static inline long divmod(long a, long b) { unsigned long _a=(unsigned long)a, _b=(unsigned long)b; dmval = _a%_b; return _a/_b; }
+static inline long moddiv(long a, long b) { unsigned long _a=(unsigned long)a, _b=(unsigned long)b; dmval = _a/_b; return _a%_b; }
 
 static inline long klabs(long a) { if (a < 0) return -a; return a; }
 static inline long ksgn(long a)  { if (a > 0) return 1; if (a < 0) return -1; return 0; }
@@ -1053,14 +1053,14 @@ void copybufreverse(void *S, void *D, long c);
 #define divmod(a,b) \
 	({ long __a=(a), __b=(b); \
 	   __asm__ __volatile__ ("xorl %%edx, %%edx; divl %%ebx; movl %%edx, "_DMVAL \
-		: "=a" (__a) : "a" (__a), "b" (__b) : "edx", "memory", "cc"); \
+		: "+a" (__a) : "b" (__b) : "edx", "memory", "cc"); \
 	 __a; })
 //returns eax%ebx, dmval = eax/edx;
 #define moddiv(a,b) \
 	({ long __a=(a), __b=(b), __d; \
 	   __asm__ __volatile__ ("xorl %%edx, %%edx; divl %%ebx; movl %%eax, "_DMVAL \
-		: "=d" (__d) : "a" (__a), "b" (__b) : "memory", "cc"); \
-	 __a; })
+		: "=d" (__d) : "a" (__a), "b" (__b) : "eax", "memory", "cc"); \
+	 __d; })
 
 #define klabs(a) \
 	({ long __a=(a); \
