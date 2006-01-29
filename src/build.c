@@ -37,6 +37,7 @@ char buildkeys[NUMBUILDKEYS] =
 };
 
 long posx, posy, posz, horiz = 100;
+long mousexsurp = 0, mouseysurp = 0;
 short ang, cursectnum;
 long hvel;
 
@@ -459,10 +460,12 @@ void editinput(void)
 
 	mousz = 0;
 	getmousevalues(&mousx,&mousy,&bstatus);
-	mousx = (long)((double)mousx*msens);
-	mousy = (long)((double)mousy*msens);
-	searchx += (mousx>>1);
-	searchy += (mousy>>1);
+	mousx = (mousx<<16)+mousexsurp;
+	mousy = (mousy<<16)+mouseysurp;
+	mousx = divmod((long)((double)mousx*msens), (2<<16)); mousexsurp = dmval;
+	mousy = divmod((long)((double)mousy*msens), (2<<16)); mouseysurp = dmval;
+	searchx += mousx;
+	searchy += mousy;
 	if (searchx < 4) searchx = 4;
 	if (searchy < 4) searchy = 4;
 	if (searchx > xdim-5) searchx = xdim-5;
@@ -2673,10 +2676,12 @@ void overheadeditor(void)
 
 		oldmousebstatus = bstatus;
 		getmousevalues(&mousx,&mousy,&bstatus);
-		mousx = (long)((double)mousx*msens);
-		mousy = (long)((double)mousy*msens);
-		searchx += (mousx>>1);
-		searchy += (mousy>>1);
+		mousx = (mousx<<16)+mousexsurp;
+		mousy = (mousy<<16)+mouseysurp;
+		mousx = divmod((long)((double)mousx*msens), (2<<16)); mousexsurp = dmval;
+		mousy = divmod((long)((double)mousy*msens), (2<<16)); mouseysurp = dmval;
+		searchx += mousx;
+		searchy += mousy;
 		if (searchx < 8) searchx = 8;
 		if (searchx > xdim-8-1) searchx = xdim-8-1;
 		if (searchy < 8) searchy = 8;

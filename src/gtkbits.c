@@ -215,9 +215,8 @@ extern struct sdlappicon sdlappicon;
 #endif
 void gtkbuild_init(int *argc, char ***argv)
 {
-	if (getenv("DISPLAY") == NULL) return;
-	gtkenabled = 1;
-	gtk_init(argc, argv);
+	gtkenabled = gtk_init_check(argc, argv);
+	if (!gtkenabled) return;
 #ifdef RENDERTYPESDL
 	appicon = gdk_pixbuf_new_from_data((const guchar *)sdlappicon.pixels,
 			GDK_COLORSPACE_RGB, TRUE, 8, sdlappicon.width, sdlappicon.height,
@@ -230,7 +229,7 @@ void gtkbuild_exit(int r)
 {
 	if (!gtkenabled) return;
 	if (appicon) g_object_unref((gpointer)appicon);
-	gtk_exit(r);
+	//gtk_exit(r);
 }
 
 void *gtkbuild_get_app_icon(void)

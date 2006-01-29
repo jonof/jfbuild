@@ -64,6 +64,7 @@ int scriptfile_getnumber(scriptfile *sf, int *num)
 static double parsedouble(char *ptr, char **end)
 {
 	int beforedecimal = 1, negative = 0, dig;
+	int exposgn = 0, expo = 0;
 	double num = 0.0, decpl = 0.1;
 	char *p;
 	
@@ -74,6 +75,7 @@ static double parsedouble(char *ptr, char **end)
 		if (*p >= '0' && *p <= '9') {
 			dig = *p - '0';
 			if (beforedecimal) num = num * 10.0 + dig;
+			else if (exposgn) expo = expo*10 + dig;
 			else {
 				num += (double)dig * decpl;
 				decpl /= 10.0;
@@ -81,10 +83,15 @@ static double parsedouble(char *ptr, char **end)
 		} else if (*p == '.') {
 			if (beforedecimal) beforedecimal = 0;
 			else break;
+		} else if ((*p == 'E') || (*p == 'e')) {
+			exposgn = 1;
+			if (p[1] == '-') { exposgn = -1; p++; }
+			else if (p[1] == '+') p++;
 		} else break;
 	}
 	
 	if (end) *end = p;
+	if (exposgn) num *= pow(10.0,(double)(expo*exposgn));
 	return negative ? -num : num;
 }
 

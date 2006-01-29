@@ -477,6 +477,7 @@ void grabmouse(char a)
 	} else {
 		mouseacquired = a;
 	}
+	mousex = mousey = 0;
 }
 
 
