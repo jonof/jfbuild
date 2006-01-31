@@ -12,7 +12,7 @@ void	allocache(long *newhandle, long newbytes, char *newlockptr);
 void	suckcache(long *suckptr);
 void	agecache(void);
 
-extern int pathsearchmode;	// 0 = only search path stack, 1 = try opening bare file
+extern int pathsearchmode;	// 0 = gamefs mode (default), 1 = localfs mode (editor's mode)
 int     addsearchpath(const char *p);
 int		findfrompath(const char *fn, char **where);
 int     openfrompath(const char *fn, int flags, int mode);
@@ -32,6 +32,8 @@ enum {
 	CACHE1D_FIND_FILE = 1,
 	CACHE1D_FIND_DIR = 2,
 	CACHE1D_FIND_DRIVE = 4,
+
+	CACHE1D_OPT_NOSTACK = 0x100,
 	
 	// the lower the number, the higher the priority
 	CACHE1D_SOURCE_DRIVE = 0,

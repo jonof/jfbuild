@@ -41,6 +41,7 @@ long mousexsurp = 0, mouseysurp = 0;
 short ang, cursectnum;
 long hvel;
 
+long grponlymode = 0;
 extern long editorgridextent;	// in engine.c
 extern double msens;
 
@@ -266,7 +267,7 @@ int app_main(int argc, char **argv)
 	} else if (Bstrchr(boardfilename,'.') == 0) {
 		Bstrcat(boardfilename, ".map");
 	}
-	Bcanonicalisefilename(boardfilename,0);
+	//Bcanonicalisefilename(boardfilename,0);
 
 	if ((i = ExtInit()) < 0) return -1;
 #ifdef RENDERTYPEWIN
@@ -314,8 +315,8 @@ int app_main(int argc, char **argv)
 	for(i=0;i<MAXSPRITES;i++) sprite[i].extra = -1;
 
 	ExtPreLoadMap();
-	i = loadboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum);
-	if (i == -2) i = loadoldboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum);
+	i = loadboard(boardfilename,2*grponlymode,&posx,&posy,&posz,&ang,&cursectnum);
+	if (i == -2) i = loadoldboard(boardfilename,2*grponlymode,&posx,&posy,&posz,&ang,&cursectnum);
 	if (i < 0)
 	{
 		initspritelists();
@@ -5135,8 +5136,8 @@ void overheadeditor(void)
 						for(i=0;i<MAXSPRITES;i++) sprite[i].extra = -1;
 
 						ExtPreLoadMap();
-						i = loadboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum);
-						if (i == -2) i = loadoldboard(boardfilename,0,&posx,&posy,&posz,&ang,&cursectnum);
+						i = loadboard(boardfilename,2*grponlymode,&posx,&posy,&posz,&ang,&cursectnum);
+						if (i == -2) i = loadoldboard(boardfilename,2*grponlymode,&posx,&posy,&posz,&ang,&cursectnum);
 						if (i < 0)
 						{
 							printmessage16("Invalid map format.");
@@ -5241,7 +5242,7 @@ void overheadeditor(void)
 						if (keystatus[1] > 0) bad = 1;
 						else if (ch == 13) bad = 2;
 						else if (ch > 0) {
-							if (i > 0 && ch == 8) {
+							if (i > 0 && (ch == 8 || ch == 127)) {
 								i--;
 								boardfilename[i] = 0;
 							}
@@ -5261,6 +5262,7 @@ void overheadeditor(void)
 					}
 					if (bad == 2)
 					{
+						char *f;
 						keystatus[0x1c] = 0;
 
 						boardfilename[i] = '.';
@@ -5273,15 +5275,22 @@ void overheadeditor(void)
 							Bstrcpy(Bstrrchr(selectedboardfilename, '/')+1, boardfilename);
 						else
 							Bstrcpy(selectedboardfilename, boardfilename);
-						Bsprintf(buffer,"Saving to %s...",selectedboardfilename);
+						if (pathsearchmode) f = selectedboardfilename;
+						else {
+							// virtual filesystem mode can't save to directories so drop the file into
+							// the current directory
+							f = strrchr(selectedboardfilename, '/');
+							if (!f) f = selectedboardfilename; else f++;
+						}
+						Bsprintf(buffer,"Saving to %s...",f);
 						printmessage16(buffer);
 						showframe(1);
 
 						fixspritesectors();   //Do this before saving!
 						updatesector(startposx,startposy,&startsectnum);
 						ExtPreSaveMap();
-						saveboard(selectedboardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
-						ExtSaveMap(selectedboardfilename);
+						saveboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+						ExtSaveMap(f);
 						printmessage16("Board saved.");
 						Bstrcpy(boardfilename, selectedboardfilename);
 					}
@@ -5289,14 +5298,22 @@ void overheadeditor(void)
 				}
 				else if (ch == 's' || ch == 'S')  //S
 				{
+					char *f;
 					bad = 0;
 					printmessage16("Saving board...");
 					showframe(1);
 					fixspritesectors();   //Do this before saving!
 					updatesector(startposx,startposy,&startsectnum);
+					if (pathsearchmode) f = boardfilename;
+					else {
+						// virtual filesystem mode can't save to directories so drop the file into
+						// the current directory
+						f = strrchr(boardfilename, '/');
+						if (!f) f = boardfilename; else f++;
+					}
 					ExtPreSaveMap();
-					saveboard(boardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
-					ExtSaveMap(boardfilename);
+					saveboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+					ExtSaveMap(f);
 					printmessage16("Board saved.");
 					showframe(1);
 				}
@@ -5330,11 +5347,19 @@ void overheadeditor(void)
 
 								if (ch == 'y' || ch == 'Y')
 								{
+									char *f;
 									fixspritesectors();   //Do this before saving!
 									updatesector(startposx,startposy,&startsectnum);
 									ExtPreSaveMap();
-									saveboard(boardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
-									ExtSaveMap(boardfilename);
+									if (pathsearchmode) f = boardfilename;
+									else {
+										// virtual filesystem mode can't save to directories so drop the file into
+										// the current directory
+										f = strrchr(boardfilename, '/');
+										if (!f) f = boardfilename; else f++;
+									}
+									saveboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+									ExtSaveMap(f);
 									break;
 								} else if (ch == 'n' || ch == 'N' || ch == 13 || ch == ' ') {
 									break;
@@ -5948,8 +5973,8 @@ long getfilenames(char *path, char kind[6])
 	CACHE1D_FIND_REC *r;
 
 	clearfilenames();
-	finddirs = klistpath(path,"*",CACHE1D_FIND_DIR|CACHE1D_FIND_DRIVE);
-	findfiles = klistpath(path,kind,CACHE1D_FIND_FILE);
+	finddirs = klistpath(path,"*",CACHE1D_FIND_DIR|CACHE1D_FIND_DRIVE|(!pathsearchmode&&grponlymode?CACHE1D_OPT_NOSTACK:0));
+	findfiles = klistpath(path,kind,CACHE1D_FIND_FILE|(!pathsearchmode&&grponlymode?CACHE1D_OPT_NOSTACK:0));
 	for (r = finddirs; r; r=r->next) numdirs++;
 	for (r = findfiles; r; r=r->next) numfiles++;
 	
@@ -5967,6 +5992,8 @@ long menuselect(void)
 	long i, j, topplc;
 	char ch, buffer[78], *sb;
 	CACHE1D_FIND_REC *dir;
+	
+	int bakpathsearchmode = pathsearchmode;
 
 	listsize = (ydim16-32)/8;
 
@@ -5982,6 +6009,15 @@ long menuselect(void)
 	do {
 		begindrawing();
 		clearbuf((char *)frameplace, (bytesperline*ydim16) >> 2, 0l);
+		
+		if (pathsearchmode) {
+			strcpy(buffer,"Local filesystem mode. Press F for game filesystem.");
+		} else {
+			sprintf(buffer,"Game filesystem %smode. Press F for local filesystem, G for %s.",
+					grponlymode?"GRP-only ":"", grponlymode?"all files":"GRP files only");
+		}
+		printext16(halfxdim16-(8*strlen(buffer)/2), 4, 14,0,buffer,0);
+		
 		Bsnprintf(buffer,78,"(%d dirs, %d files) %s",numdirs,numfiles,selectedboardfilename);
 		buffer[sizeof(buffer)-1] = 0;
 		printext16(1,ydim16-8-1,8,0,buffer,0);
@@ -5996,10 +6032,10 @@ long menuselect(void)
 				if (strlen(buffer) == 25)
 					buffer[21] = buffer[22] = buffer[23] = '.', buffer[24] = 0;
 				if (dir == finddirshigh) {
-					if (currentlist == 0) printext16(8,8+8*i,c|8,0,"->",0);
-					printext16(32,8+8*i,c|8,0,buffer,0);
+					if (currentlist == 0) printext16(8,16+8*i,c|8,0,"->",0);
+					printext16(32,16+8*i,c|8,0,buffer,0);
 				} else {
-					printext16(32,8+8*i,c,0,buffer,0);
+					printext16(32,16+8*i,c,0,buffer,0);
 				}
 			}
 		}
@@ -6009,10 +6045,10 @@ long menuselect(void)
 			for(i=listsize/2-1; i>=0; i--) if (!dir->prev) break; else dir=dir->prev;
 			for(i=0; i<listsize && dir; i++, dir=dir->next) {
 				if (dir == findfileshigh) {
-					if (currentlist == 1) printext16(240,8+8*i,7|8,0,"->",0);
-					printext16(240+24,8+8*i,7|8,0,dir->name,0);
+					if (currentlist == 1) printext16(240,16+8*i,7|8,0,"->",0);
+					printext16(240+24,16+8*i,7|8,0,dir->name,0);
 				} else {
-					printext16(240+24,8+8*i,7,0,dir->name,0);
+					printext16(240+24,16+8*i,7,0,dir->name,0);
 				}
 			}
 		}
@@ -6023,9 +6059,9 @@ long menuselect(void)
 		keystatus[0xcd] = 0;
 		keystatus[0xc8] = 0;
 		keystatus[0xd0] = 0;
-		keystatus[0x1c] = 0;
-		keystatus[0xf] = 0;
-		keystatus[1] = 0;
+		keystatus[0x1c] = 0;	//enter
+		keystatus[0xf] = 0;		//tab
+		keystatus[1] = 0;		//esc
 		ch = 0;                      //Interesting fakery of ch = getch()
 		while (ch == 0)
 		{
@@ -6035,34 +6071,39 @@ long menuselect(void)
 					quitevent = 0;
 				}
 			}
-
-			if (keystatus[0xcb] > 0) ch = /*75*/ 9;
-			if (keystatus[0xcd] > 0) ch = /*77*/ 9;
-			if (keystatus[0xc8] > 0) ch = 72;
-			if (keystatus[0xd0] > 0) ch = 80;
-			if (keystatus[0x1c] > 0) ch = 13;
-			if (keystatus[0xf] > 0) ch = 9;
-			if (keystatus[1] > 0) ch = 27;
+			ch = bgetchar();
+			if (keystatus[0xcb] > 0) ch = 9;		// left arr
+			if (keystatus[0xcd] > 0) ch = 9;		// right arr
+			if (keystatus[0xc8] > 0) ch = 72;		// up arr
+			if (keystatus[0xd0] > 0) ch = 80;		// down arr
+			
 		}
 
-		if (ch == 9) {
-			if ((currentlist == 0 && finddirs) || finddirs)
+		if (ch == 'f' || ch == 'F') {
+			currentlist = 0;
+			pathsearchmode = 1-pathsearchmode;
+			if (pathsearchmode) {
+				strcpy(selectedboardfilename, "");
+				Bcanonicalisefilename(selectedboardfilename, 0);
+			} else strcpy(selectedboardfilename, "/");
+			getfilenames(selectedboardfilename, "*.map");
+		} else if (ch == 'g' || ch == 'G') {
+			if (!pathsearchmode) grponlymode = 1-grponlymode;
+			getfilenames(selectedboardfilename, "*.map");
+		} else if (ch == 9) {
+			if ((currentlist == 0 && findfiles) || (currentlist == 1 && finddirs))
 				currentlist = 1-currentlist;
 		} else if ((ch == 75) || (ch == 72)) {
 			if (currentlist == 0) {
-				if (finddirshigh)
-					if (finddirshigh->prev) finddirshigh = finddirshigh->prev;
+				if (finddirshigh && finddirshigh->prev) finddirshigh = finddirshigh->prev;
 			} else {
-				if (findfileshigh)
-					if (findfileshigh->prev) findfileshigh = findfileshigh->prev;
+				if (findfileshigh && findfileshigh->prev) findfileshigh = findfileshigh->prev;
 			}
 		} else if ((ch == 77) || (ch == 80)) {
 			if (currentlist == 0) {
-				if (finddirshigh)
-					if (finddirshigh->next) finddirshigh = finddirshigh->next;
+				if (finddirshigh && finddirshigh->next) finddirshigh = finddirshigh->next;
 			} else {
-				if (findfileshigh)
-					if (findfileshigh->next) findfileshigh = findfileshigh->next;
+				if (findfileshigh && findfileshigh->next) findfileshigh = findfileshigh->next;
 			}
 		} else if ((ch == 13) && (currentlist == 0)) {
 			if (finddirshigh->type == CACHE1D_FIND_DRIVE) {
@@ -6083,6 +6124,7 @@ long menuselect(void)
 			enddrawing();
 			showframe(1);
 		}
+		if (ch == 13 && !findfileshigh) ch = 0;
 	}
 	while ((ch != 13) && (ch != 27));
 	if (ch == 13)
@@ -6092,6 +6134,7 @@ long menuselect(void)
 
 		return(0);
 	}
+	pathsearchmode = bakpathsearchmode;
 	return(-1);
 }
 

@@ -288,6 +288,9 @@ int findfrompath(const char *fn, char **where)
 	char *pfn, *ffn;
 	int allocsiz;
 
+	// pathsearchmode == 0: tests current dir and then the dirs of the path stack
+	// pathsearchmode == 1: tests fn without modification, then like for pathsearchmode == 0
+	
 	if (pathsearchmode) {
 		// test unmolested filename first
 		if (access(fn, F_OK) >= 0) {
@@ -848,6 +851,9 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 	CACHE1D_FIND_REC *rec = NULL;
 	char *path;
 	
+	// pathsearchmode == 0: enumerates a path in the virtual filesystem
+	// pathsearchmode == 1: enumerates the system filesystem path passed in
+	
 	path = strdup(_path);
 	if (!path) return NULL;
 
@@ -865,7 +871,7 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 		if (klistaddentry(&rec, "..", CACHE1D_FIND_DIR, CACHE1D_SOURCE_CURDIR) < 0) goto failure;
 	}
 	
-	{	// current directory and paths in the search stack
+	if (!(type & CACHE1D_OPT_NOSTACK)) {	// current directory and paths in the search stack
 		searchpath_t *search = NULL;
 		BDIR *dir;
 		struct Bdirent *dirent;
