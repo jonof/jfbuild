@@ -5998,7 +5998,10 @@ long menuselect(void)
 	listsize = (ydim16-32)/8;
 
 	Bstrcpy(selectedboardfilename, boardfilename);
-	Bcanonicalisefilename(selectedboardfilename, 1);		// clips off the last token and compresses relative path
+	if (pathsearchmode)
+			Bcanonicalisefilename(selectedboardfilename, 1);		// clips off the last token and compresses relative path
+	else
+			Bcorrectfilename(selectedboardfilename, 1);
 
 	getfilenames(selectedboardfilename, "*.map");
 
@@ -6112,7 +6115,10 @@ long menuselect(void)
 				strcat(selectedboardfilename, finddirshigh->name);
 			}
 			strcat(selectedboardfilename, "/");
-			Bcanonicalisefilename(selectedboardfilename, 1);
+			if (pathsearchmode)
+				Bcanonicalisefilename(selectedboardfilename, 1);
+			else
+				Bcorrectfilename(selectedboardfilename, 1);
 
 			//printf("Changing directories to: %s\n", selectedboardfilename);
 
