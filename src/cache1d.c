@@ -307,6 +307,14 @@ int findfrompath(const char *fn, char **where)
 	
 	pfn = (char *)malloc(allocsiz);
 	if (!pfn) { free(ffn); return -1; }
+
+	strcpy(pfn, "./");
+	strcat(pfn, ffn);
+	if (!access(pfn, F_OK) >= 0) {
+		*where = pfn;
+		free(ffn);
+		return 0;
+	}
 	
 	for (sp = searchpathhead; sp; sp = sp->next) {
 		strcpy(pfn, sp->path);

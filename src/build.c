@@ -5963,9 +5963,12 @@ long getfilenames(char *path, char kind[6])
 
 long menuselect(void)
 {
+	int listsize;
 	long i, j, topplc;
 	char ch, buffer[78], *sb;
 	CACHE1D_FIND_REC *dir;
+
+	listsize = (ydim16-32)/8;
 
 	Bstrcpy(selectedboardfilename, boardfilename);
 	Bcanonicalisefilename(selectedboardfilename, 1);		// clips off the last token and compresses relative path
@@ -5985,31 +5988,31 @@ long menuselect(void)
 
 		if (finddirshigh) {
 			dir = finddirshigh;
-			for(i=17; i>=0; i--) if (!dir->prev) break; else dir=dir->prev;
-			for(i=18; i>-18 && dir; i--, dir=dir->next) {
+			for(i=listsize/2-1; i>=0; i--) if (!dir->prev) break; else dir=dir->prev;
+			for(i=0; i<listsize && dir; i++, dir=dir->next) {
 				int c = dir->type == CACHE1D_FIND_DIR ? 4 : 3;
 				memset(buffer,0,sizeof(buffer));
 				strncpy(buffer,dir->name,25);
 				if (strlen(buffer) == 25)
 					buffer[21] = buffer[22] = buffer[23] = '.', buffer[24] = 0;
 				if (dir == finddirshigh) {
-					if (currentlist == 0) printext16(8,8*(1+19-i),c|8,0,"->",0);
-					printext16(32,8*(1+19-i),c|8,0,buffer,0);
+					if (currentlist == 0) printext16(8,8+8*i,c|8,0,"->",0);
+					printext16(32,8+8*i,c|8,0,buffer,0);
 				} else {
-					printext16(32,8*(1+19-i),c,0,buffer,0);
+					printext16(32,8+8*i,c,0,buffer,0);
 				}
 			}
 		}
 
 		if (findfileshigh) {
 			dir = findfileshigh;
-			for(i=17; i>=0; i--) if (!dir->prev) break; else dir=dir->prev;
-			for(i=18; i>-18 && dir; i--, dir=dir->next) {
+			for(i=listsize/2-1; i>=0; i--) if (!dir->prev) break; else dir=dir->prev;
+			for(i=0; i<listsize && dir; i++, dir=dir->next) {
 				if (dir == findfileshigh) {
-					if (currentlist == 1) printext16(240,8*(1+19-i),7|8,0,"->",0);
-					printext16(240+24,8*(1+19-i),7|8,0,dir->name,0);
+					if (currentlist == 1) printext16(240,8+8*i,7|8,0,"->",0);
+					printext16(240+24,8+8*i,7|8,0,dir->name,0);
 				} else {
-					printext16(240+24,8*(1+19-i),7,0,dir->name,0);
+					printext16(240+24,8+8*i,7,0,dir->name,0);
 				}
 			}
 		}

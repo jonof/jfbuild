@@ -165,6 +165,7 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 		else { usevoxels = (atoi(parm->parms[0]) != 0); }
 	}
 #endif
+	return OSDCMD_SHOWHELP;
 }
 
 int baselayer_init(void)

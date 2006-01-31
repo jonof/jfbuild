@@ -219,6 +219,8 @@ generateicon$(EXESUFFIX): $(OBJ)generateicon.$o $(OBJ)kplib.$o
 	$(CC) -o $@ $^
 cacheinfo$(EXESUFFIX): $(OBJ)cacheinfo.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
+enumdisplay$(EXESUFFIX): src/misc/enumdisplay.c
+	$(CC) -g -Os -o $@ $^ -I$(DXROOT)/include -lgdi32
 
 # DEPENDENCIES
 include Makefile.deps
