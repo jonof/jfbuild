@@ -310,7 +310,7 @@ int findfrompath(const char *fn, char **where)
 
 	strcpy(pfn, "./");
 	strcat(pfn, ffn);
-	if (!access(pfn, F_OK) >= 0) {
+	if (access(pfn, F_OK) >= 0) {
 		*where = pfn;
 		free(ffn);
 		return 0;
