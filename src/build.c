@@ -315,8 +315,8 @@ int app_main(int argc, char **argv)
 	for(i=0;i<MAXSPRITES;i++) sprite[i].extra = -1;
 
 	ExtPreLoadMap();
-	i = loadboard(boardfilename,2*grponlymode,&posx,&posy,&posz,&ang,&cursectnum);
-	if (i == -2) i = loadoldboard(boardfilename,2*grponlymode,&posx,&posy,&posz,&ang,&cursectnum);
+	i = loadboard(boardfilename,(!pathsearchmode&&grponlymode?2:0),&posx,&posy,&posz,&ang,&cursectnum);
+	if (i == -2) i = loadoldboard(boardfilename,(!pathsearchmode&&grponlymode?2:0),&posx,&posy,&posz,&ang,&cursectnum);
 	if (i < 0)
 	{
 		initspritelists();
@@ -5136,8 +5136,8 @@ void overheadeditor(void)
 						for(i=0;i<MAXSPRITES;i++) sprite[i].extra = -1;
 
 						ExtPreLoadMap();
-						i = loadboard(boardfilename,2*grponlymode,&posx,&posy,&posz,&ang,&cursectnum);
-						if (i == -2) i = loadoldboard(boardfilename,2*grponlymode,&posx,&posy,&posz,&ang,&cursectnum);
+						i = loadboard(boardfilename,(!pathsearchmode&&grponlymode?2:0),&posx,&posy,&posz,&ang,&cursectnum);
+						if (i == -2) i = loadoldboard(boardfilename,(!pathsearchmode&&grponlymode?2:0),&posx,&posy,&posz,&ang,&cursectnum);
 						if (i < 0)
 						{
 							printmessage16("Invalid map format.");
