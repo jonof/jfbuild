@@ -106,70 +106,28 @@ int loadsetup(const char *fn)
 
 	if ((fp = Bfopen(fn, "rt")) == NULL) return -1;
 
-	if (readconfig(fp, "fullscreen", val, VL) > 0) {
-		if (Batoi(val) != 0) fullscreen = 1;
-		else fullscreen = 0;
-	}
-
+	if (readconfig(fp, "fullscreen", val, VL) > 0) { if (Batoi(val) != 0) fullscreen = 1; else fullscreen = 0; }
 	if (readconfig(fp, "resolution", val, VL) > 0) {
 		i = Batoi(val) & 0x0f;
-		if ((unsigned)i<13) {
-			xdimgame = xdim2d = vesares[i][0];
-			ydimgame = ydim2d = vesares[i][1];
-		}
+		if ((unsigned)i<13) { xdimgame = xdim2d = vesares[i][0]; ydimgame = ydim2d = vesares[i][1]; }
 	}
 	if (readconfig(fp, "2dresolution", val, VL) > 0) {
 		i = Batoi(val) & 0x0f;
-		if ((unsigned)i<13) {
-			xdim2d = vesares[i][0];
-			ydim2d = vesares[i][1];
-		}
+		if ((unsigned)i<13) { xdim2d = vesares[i][0]; ydim2d = vesares[i][1]; }
 	}
-
-	if (readconfig(fp, "xdim2d", val, VL) > 0) {
-		xdim2d = Batoi(val);
-	}
-	if (readconfig(fp, "ydim2d", val, VL) > 0) {
-		ydim2d = Batoi(val);
-	}
-	if (readconfig(fp, "xdim3d", val, VL) > 0) {
-		xdimgame = Batoi(val);
-	}
-	if (readconfig(fp, "ydim3d", val, VL) > 0) {
-		ydimgame = Batoi(val);
-	}
-
-	if (readconfig(fp, "samplerate", val, VL) > 0) {
-		option[7] = (Batoi(val) & 0x0f) << 4;
-	}
-
-	if (readconfig(fp, "music", val, VL) > 0) {
-		if (Batoi(val) != 0) option[2] = 1;
-		else option[2] = 0;
-	}
-
-	if (readconfig(fp, "mouse", val, VL) > 0) {
-		if (Batoi(val) != 0) option[3] = 1;
-		else option[3] = 0;
-	}
-
-	if (readconfig(fp, "bpp", val, VL) > 0) {
-		bppgame = Batoi(val);
-	}
-	
-	if (readconfig(fp, "renderer", val, VL) > 0) {
-		i = Batoi(val);
-		setrendermode(i);
-	}
-
-	if (readconfig(fp, "brightness", val, VL) > 0) {
-		brightness = min(max(Batoi(val),0),15);
-	}
+	if (readconfig(fp, "xdim2d", val, VL) > 0) xdim2d = Batoi(val);
+	if (readconfig(fp, "ydim2d", val, VL) > 0) ydim2d = Batoi(val);
+	if (readconfig(fp, "xdim3d", val, VL) > 0) xdimgame = Batoi(val);
+	if (readconfig(fp, "ydim3d", val, VL) > 0) ydimgame = Batoi(val);
+	if (readconfig(fp, "samplerate", val, VL) > 0) option[7] = (Batoi(val) & 0x0f) << 4;
+	if (readconfig(fp, "music", val, VL) > 0) { if (Batoi(val) != 0) option[2] = 1; else option[2] = 0; }
+	if (readconfig(fp, "mouse", val, VL) > 0) { if (Batoi(val) != 0) option[3] = 1; else option[3] = 0; }
+	if (readconfig(fp, "bpp", val, VL) > 0) bppgame = Batoi(val);
+	if (readconfig(fp, "renderer", val, VL) > 0) { i = Batoi(val); setrendermode(i); }
+	if (readconfig(fp, "brightness", val, VL) > 0) brightness = min(max(Batoi(val),0),15);
 
 #ifdef RENDERTYPEWIN
-	if (readconfig(fp, "maxrefreshfreq", val, VL) > 0) {
-		maxrefreshfreq = Batoi(val);
-	}
+	if (readconfig(fp, "maxrefreshfreq", val, VL) > 0) maxrefreshfreq = Batoi(val);
 #endif
 
 	option[0] = 1;	// vesa all the way...
@@ -226,6 +184,10 @@ int writesetup(const char *fn)
 	"\n"
 	"; 3D-mode colour depth\n"
 	"bpp = %ld\n"
+	"\n"
+	"; OpenGL mode options\n"
+	"glusetexcache = %ld\n"
+	"glusetexcachecompression = %ld\n"
 	"\n"
 #ifdef RENDERTYPEWIN
 	"; Maximum OpenGL mode refresh rate (Windows only, in Hertz)\n"
@@ -305,6 +267,7 @@ int writesetup(const char *fn)
 	"\n",
 	
 	fullscreen, xdim2d, ydim2d, xdimgame, ydimgame, bppgame,
+	glusetexcache, glusetexcachecompression,
 #ifdef RENDERTYPEWIN
 	maxrefreshfreq,
 #endif

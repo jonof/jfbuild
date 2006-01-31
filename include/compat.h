@@ -413,6 +413,7 @@ char *Bgetenv(const char *name);
 char *Bgethomedir(void);
 unsigned int Bgetsysmemsize(void);
 int Bcorrectfilename(char *filename, int removefn);
+int Bcanonicalisefilename(char *filename, int removefn);
 char *Bgetsystemdrives(void);
 long Bfilelength(int fd);
 char *Bstrtoken(char *s, char *delim, char **ptrptr, int chop);

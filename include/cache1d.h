@@ -12,7 +12,9 @@ void	allocache(long *newhandle, long newbytes, char *newlockptr);
 void	suckcache(long *suckptr);
 void	agecache(void);
 
+extern int pathsearchmode;	// 0 = only search path stack, 1 = try opening bare file
 int     addsearchpath(const char *p);
+int		findfrompath(const char *fn, char **where);
 int     openfrompath(const char *fn, int flags, int mode);
 BFILE  *fopenfrompath(const char *fn, const char *mode);
 
@@ -29,10 +31,12 @@ void	kclose(long handle);
 enum {
 	CACHE1D_FIND_FILE = 1,
 	CACHE1D_FIND_DIR = 2,
+	CACHE1D_FIND_DRIVE = 4,
 	
 	// the lower the number, the higher the priority
-	CACHE1D_SOURCE_CURDIR = 0,
-	CACHE1D_SOURCE_PATH = 1,	// + path stack depth
+	CACHE1D_SOURCE_DRIVE = 0,
+	CACHE1D_SOURCE_CURDIR = 1,
+	CACHE1D_SOURCE_PATH = 2,	// + path stack depth
 	CACHE1D_SOURCE_ZIP = 0x7ffffffe,
 	CACHE1D_SOURCE_GRP = 0x7fffffff,
 };

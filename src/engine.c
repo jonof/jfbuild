@@ -54,6 +54,7 @@ long usevoxels = 1;
 #define kloadvoxel loadvoxel
 
 long novoxmips = 0;
+long editorgridextent = 131072;
 
 	//These variables need to be copied into BUILD
 #define MAXXSIZ 256
@@ -10104,16 +10105,16 @@ void draw2dgrid(long posxe, long posye, short ange, long zoome, short gride)
 	{
 		begindrawing();	//{{{
 		
-		yp1 = midydim16-mulscale14(posye+131072,zoome);
+		yp1 = midydim16-mulscale14(posye+editorgridextent,zoome);
 		if (yp1 < 0) yp1 = 0;
-		yp2 = midydim16-mulscale14(posye-131072,zoome);
+		yp2 = midydim16-mulscale14(posye-editorgridextent,zoome);
 		if (yp2 >= ydim16) yp2 = ydim16-1;
 
 		if ((yp1 < ydim16) && (yp2 >= 0) && (yp2 >= yp1))
 		{
-			xp1 = halfxdim16-mulscale14(posxe+131072,zoome);
+			xp1 = halfxdim16-mulscale14(posxe+editorgridextent,zoome);
 
-			for(i=-131072;i<=131072;i+=(2048>>gride))
+			for(i=-editorgridextent;i<=editorgridextent;i+=(2048>>gride))
 			{
 				xp2 = xp1;
 				xp1 = halfxdim16-mulscale14(posxe-i,zoome);
@@ -10127,7 +10128,7 @@ void draw2dgrid(long posxe, long posye, short ange, long zoome, short gride)
 					}
 				}
 			}
-			if ((i >= 131072) && (xp1 < xdim))
+			if ((i >= editorgridextent) && (xp1 < xdim))
 				xp2 = xp1;
 			if ((xp2 >= 0) && (xp2 < xdim))
 			{
@@ -10135,10 +10136,10 @@ void draw2dgrid(long posxe, long posye, short ange, long zoome, short gride)
 			}
 		}
 
-		xp1 = mulscale14(posxe+131072,zoome);
-		xp2 = mulscale14(posxe-131072,zoome);
+		xp1 = mulscale14(posxe+editorgridextent,zoome);
+		xp2 = mulscale14(posxe-editorgridextent,zoome);
 		tempy = 0x80000000l;
-		for(i=-131072;i<=131072;i+=(2048>>gride))
+		for(i=-editorgridextent;i<=editorgridextent;i+=(2048>>gride))
 		{
 			yp1 = (((posye-i)*zoome)>>14);
 			if (yp1 != tempy)

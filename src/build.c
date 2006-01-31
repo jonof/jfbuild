@@ -41,6 +41,7 @@ long mousexsurp = 0, mouseysurp = 0;
 short ang, cursectnum;
 long hvel;
 
+extern long editorgridextent;	// in engine.c
 extern double msens;
 
 static long synctics = 0, lockclock = 0;
@@ -211,6 +212,8 @@ int app_main(int argc, char **argv)
 	char ch, quitflag, forcesetup = 0, grpstoadd = 0;
 	char **grps = NULL;
 	long i, j, k;
+	
+	pathsearchmode = 1;		// unrestrict findfrompath so that full access to the filesystem can be had
 
 #ifdef USE_OPENGL
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
@@ -263,6 +266,7 @@ int app_main(int argc, char **argv)
 	} else if (Bstrchr(boardfilename,'.') == 0) {
 		Bstrcat(boardfilename, ".map");
 	}
+	Bcanonicalisefilename(boardfilename,0);
 
 	if ((i = ExtInit()) < 0) return -1;
 #ifdef RENDERTYPEWIN
@@ -270,7 +274,10 @@ int app_main(int argc, char **argv)
 #endif
 
 	if (grps && grpstoadd > 0) {
-		for (i=0;i<grpstoadd;i++) initgroupfile(grps[i]);
+		for (i=0;i<grpstoadd;i++) {
+			initprintf("Adding %s\n",grps[i]);
+			initgroupfile(grps[i]);
+		}
 		free(grps);	
 	}
 	
@@ -4146,10 +4153,10 @@ void overheadeditor(void)
 					dax = centerx+mulscale14(sintable[(j+512)&2047],circlerad);
 					day = centery+mulscale14(sintable[j],circlerad);
 
-					if (dax <= -131072) dax = -131072;
-					if (dax >= 131072) dax = 131072;
-					if (day <= -131072) day = -131072;
-					if (day >= 131072) day = 131072;
+					if (dax <= -editorgridextent) dax = -editorgridextent;
+					if (dax >= editorgridextent) dax = editorgridextent;
+					if (day <= -editorgridextent) day = -editorgridextent;
+					if (day >= editorgridextent) day = editorgridextent;
 
 					if (bad > 0)
 					{
@@ -5387,18 +5394,18 @@ void overheadeditor(void)
 
 void getpoint(long searchxe, long searchye, long *x, long *y)
 {
-	if (posx <= -131072) posx = -131072;
-	if (posx >= 131072) posx = 131072;
-	if (posy <= -131072) posy = -131072;
-	if (posy >= 131072) posy = 131072;
+	if (posx <= -editorgridextent) posx = -editorgridextent;
+	if (posx >= editorgridextent) posx = editorgridextent;
+	if (posy <= -editorgridextent) posy = -editorgridextent;
+	if (posy >= editorgridextent) posy = editorgridextent;
 
 	*x = posx + divscale14(searchxe-halfxdim16,zoom);
 	*y = posy + divscale14(searchye-midydim16,zoom);
 
-	if (*x <= -131072) *x = -131072;
-	if (*x >= 131072) *x = 131072;
-	if (*y <= -131072) *y = -131072;
-	if (*y >= 131072) *y = 131072;
+	if (*x <= -editorgridextent) *x = -editorgridextent;
+	if (*x >= editorgridextent) *x = editorgridextent;
+	if (*y <= -editorgridextent) *y = -editorgridextent;
+	if (*y >= editorgridextent) *y = editorgridextent;
 }
 
 long getlinehighlight(long xplc, long yplc)
@@ -5941,7 +5948,7 @@ long getfilenames(char *path, char kind[6])
 	CACHE1D_FIND_REC *r;
 
 	clearfilenames();
-	finddirs = klistpath(path,"*",CACHE1D_FIND_DIR);
+	finddirs = klistpath(path,"*",CACHE1D_FIND_DIR|CACHE1D_FIND_DRIVE);
 	findfiles = klistpath(path,kind,CACHE1D_FIND_FILE);
 	for (r = finddirs; r; r=r->next) numdirs++;
 	for (r = findfiles; r; r=r->next) numfiles++;
@@ -5960,9 +5967,8 @@ long menuselect(void)
 	char ch, buffer[78], *sb;
 	CACHE1D_FIND_REC *dir;
 
-	Bstrcpy(selectedboardfilename, "/");
-	Bstrcat(selectedboardfilename, boardfilename);
-	Bcorrectfilename(selectedboardfilename, 1);		// clips off the last token and compresses relative path
+	Bstrcpy(selectedboardfilename, boardfilename);
+	Bcanonicalisefilename(selectedboardfilename, 1);		// clips off the last token and compresses relative path
 
 	getfilenames(selectedboardfilename, "*.map");
 
@@ -5981,15 +5987,16 @@ long menuselect(void)
 			dir = finddirshigh;
 			for(i=17; i>=0; i--) if (!dir->prev) break; else dir=dir->prev;
 			for(i=18; i>-18 && dir; i--, dir=dir->next) {
+				int c = dir->type == CACHE1D_FIND_DIR ? 4 : 3;
 				memset(buffer,0,sizeof(buffer));
 				strncpy(buffer,dir->name,25);
 				if (strlen(buffer) == 25)
 					buffer[21] = buffer[22] = buffer[23] = '.', buffer[24] = 0;
 				if (dir == finddirshigh) {
-					if (currentlist == 0) printext16(8,8*(1+19-i),4|8,0,"->",0);
-					printext16(32,8*(1+19-i),4|8,0,buffer,0);
+					if (currentlist == 0) printext16(8,8*(1+19-i),c|8,0,"->",0);
+					printext16(32,8*(1+19-i),c|8,0,buffer,0);
 				} else {
-					printext16(32,8*(1+19-i),4,0,buffer,0);
+					printext16(32,8*(1+19-i),c,0,buffer,0);
 				}
 			}
 		}
@@ -6055,9 +6062,13 @@ long menuselect(void)
 					if (findfileshigh->next) findfileshigh = findfileshigh->next;
 			}
 		} else if ((ch == 13) && (currentlist == 0)) {
-			strcat(selectedboardfilename, finddirshigh->name);
+			if (finddirshigh->type == CACHE1D_FIND_DRIVE) {
+				strcpy(selectedboardfilename, finddirshigh->name);
+			} else {
+				strcat(selectedboardfilename, finddirshigh->name);
+			}
 			strcat(selectedboardfilename, "/");
-			Bcorrectfilename(selectedboardfilename, 1);
+			Bcanonicalisefilename(selectedboardfilename, 1);
 
 			//printf("Changing directories to: %s\n", selectedboardfilename);
 

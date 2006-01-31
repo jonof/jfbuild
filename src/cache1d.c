@@ -247,6 +247,7 @@ typedef struct _searchpath {
 } searchpath_t;
 static searchpath_t *searchpathhead = NULL;
 static size_t maxsearchpathlen = 0;
+int pathsearchmode = 0;
 
 int addsearchpath(const char *p)
 {
@@ -272,7 +273,7 @@ int addsearchpath(const char *p)
 		return -1;
 	}
 	strcpy(srch->path, p);
-	strcat(srch->path, "/");
+	for (s=srch->path; *s; s++) ; s--; if (s<srch->path || toupperlookup[*s] != '/') strcat(srch->path, "/");
 
 	searchpathhead = srch;
 	if (srch->pathlen > maxsearchpathlen) maxsearchpathlen = srch->pathlen;
@@ -281,40 +282,54 @@ int addsearchpath(const char *p)
 	return 0;
 }
 
-int openfrompath(const char *fn, int flags, int mode)
+int findfrompath(const char *fn, char **where)
 {
 	searchpath_t *sp;
 	char *pfn, *ffn;
-	int h = -1, allocsiz;
+	int allocsiz;
 
-	for (; toupperlookup[*fn] == '/'; fn++);
-	ffn = strdup(fn);
+	if (pathsearchmode) {
+		// test unmolested filename first
+		if (access(fn, F_OK) >= 0) {
+			*where = strdup(fn);
+			return 0;
+		}
+	}
+
+	for (pfn = (char*)fn; toupperlookup[*pfn] == '/'; pfn++);
+	ffn = strdup(pfn);
 	if (!ffn) return -1;
 	Bcorrectfilename(ffn,0);	// compress relative paths
 	
-	allocsiz = 2;	// "./" (aka. curdir)
-	for (sp = searchpathhead; sp; sp = sp->next) allocsiz = max(sp->pathlen, allocsiz);
+	allocsiz = max(maxsearchpathlen, 2);	// "./" (aka. curdir)
 	allocsiz += strlen(ffn);
 	allocsiz += 1;	// a nul
 	
 	pfn = (char *)malloc(allocsiz);
 	if (!pfn) { free(ffn); return -1; }
-	strcpy(pfn, "./");
-	strcat(pfn, ffn);
 	
-	// test current directory first
-	if ((h = open(fn, flags, mode)) >= 0) {
-		free(pfn); free(ffn);
-		return h;
-	}
-
-	for (sp = searchpathhead; sp && h < 0; sp = sp->next) {
+	for (sp = searchpathhead; sp; sp = sp->next) {
 		strcpy(pfn, sp->path);
 		strcat(pfn, ffn);
 		//initprintf("Trying %s\n", pfn);
-		h = open(pfn, flags, mode);
+		if (access(pfn, F_OK) >= 0) {
+			*where = pfn;
+			free(ffn);
+			return 0;
+		}
 	}
 	free(pfn); free(ffn);
+	return -1;
+}
+
+int openfrompath(const char *fn, int flags, int mode)
+{
+	char *pfn;
+	int h;
+
+	if (findfrompath(fn, &pfn) < 0) return -1;
+	h = Bopen(pfn, flags, mode);
+	free(pfn);
 
 	return h;
 }
@@ -395,6 +410,10 @@ long initgroupfile(char *filename)
 {
 	char buf[16];
 	long i, j, k;
+#ifdef WITHKPLIB
+	char *zfn;
+	searchpath_t *sp = NULL;
+#endif	
 
 #ifdef _WIN32
 	// on Windows, translate all backslashes (0x5c) to forward slashes (0x2f)
@@ -402,40 +421,22 @@ long initgroupfile(char *filename)
 #endif
 	
 #ifdef WITHKPLIB
-	char *zfn;
-	searchpath_t *sp = NULL;
+	if (findfrompath(filename, &zfn) < 0) return -1;
+	
+	// check to see if the file passed is a ZIP and pass it on to kplib if it is
+	i = Bopen(zfn,BO_BINARY|BO_RDONLY,BS_IREAD);
+	if (i < 0) { free(zfn); return -1; }
 
-	zfn = (char*)malloc(strlen(filename) + maxsearchpathlen + 1);
-	do {
-		if (sp == NULL) {
-			zfn[0] = 0;
-			sp = searchpathhead;
-		} else {
-			strcpy(zfn, sp->path);
-			sp = sp->next;
-		}
-		strcat(zfn, filename);
-
-		// check to see if the file passed is a ZIP and pass it on to kplib if it is
-		i = Bopen(zfn,BO_BINARY|BO_RDONLY,BS_IREAD);
-		if (i < 0) continue;
-
-		Bread(i, buf, 4);
-		if (buf[0] == 0x50 && buf[1] == 0x4B && buf[2] == 0x03 && buf[3] == 0x04) {
-			Bclose(i);
-			j = kzaddstack(zfn);
-			if (j >= 0) {
-				free(zfn);
-				return j;
-			}
-		}
-	} while (sp);
+	Bread(i, buf, 4);
+	if (buf[0] == 0x50 && buf[1] == 0x4B && buf[2] == 0x03 && buf[3] == 0x04) {
+		Bclose(i);
+		j = kzaddstack(zfn);
+		free(zfn);
+		return j;
+	}
 	free(zfn);
 
-	if (numgroupfiles >= MAXGROUPFILES) {
-		if (i >= 0) Bclose(i);
-		return(-1);
-	}
+	if (numgroupfiles >= MAXGROUPFILES) return(-1);
 
 	Blseek(i,0,BSEEK_SET);
 	groupfil[numgroupfiles] = i;
@@ -546,8 +547,6 @@ long kopen4load(char *filename, char searchfirst)
 	long i, j, k, fil, newhandle;
 	char bad, *gfileptr;
 
-	for (; toupperlookup[*filename] == '/'; filename++);
-
 	newhandle = MAXOPENFILES-1;
 	while (filehan[newhandle] != -1)
 	{
@@ -568,6 +567,8 @@ long kopen4load(char *filename, char searchfirst)
 			return(newhandle);
 		}
 
+	for (; toupperlookup[*filename] == '/'; filename++);
+	
 #ifdef WITHKPLIB
 	if ((kzcurhand != newhandle) && (kztell() >= 0))
 	{
@@ -763,6 +764,7 @@ static int klistaddentry(CACHE1D_FIND_REC **rec, char *name, int type, int sourc
 		CACHE1D_FIND_REC *last = NULL;
 		
 		for (attach = *rec; attach; last = attach, attach = attach->next) {
+			if (type == CACHE1D_FIND_DRIVE) continue;	// we just want to get to the end for drives
 #ifdef _WIN32
 			insensitive = 1;
 #else
@@ -863,10 +865,14 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 		int stackdepth = CACHE1D_SOURCE_CURDIR;
 		char buf[BMAX_PATH];
 
+		if (pathsearchmode) d = _path;
+
 		do {
-			strcpy(buf, path);
-			if (*path) strcat(buf, "/");
-			strcat(buf, d);
+			if (!pathsearchmode) {
+				strcpy(buf, path);
+				if (*path) strcat(buf, "/");
+				strcat(buf, d);
+			} else strcpy(buf, d);
 			dir = Bopendir(buf);
 			if (dir) {
 				while ((dirent = Breaddir(dir))) {
@@ -887,6 +893,8 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 				}
 				Bclosedir(dir);
 			}
+			
+			if (pathsearchmode) break;
 
 			if (!search) {
 				search = searchpathhead;
@@ -899,7 +907,7 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 		} while (search);
 	}
 
-	{	// next, zip files
+	if (!pathsearchmode) {	// next, zip files
 		char buf[BMAX_PATH], *p;
 		int i, j, ftype;
 		strcpy(buf,path);
@@ -957,7 +965,7 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 	}
 	
 	// then, grp files
-	if (!*path && (type & CACHE1D_FIND_FILE)) {
+	if (!pathsearchmode && !*path && (type & CACHE1D_FIND_FILE)) {
 		char buf[13];
 		int i,j;
 		buf[12] = 0;
@@ -976,7 +984,21 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 			}
 		}
 	}
-
+	
+	if (pathsearchmode && (type & CACHE1D_FIND_DRIVE)) {
+		char *drives, *drp;
+		drives = Bgetsystemdrives();
+		if (drives) {
+			for (drp=drives; *drp; drp+=strlen(drp)+1) {
+				if (klistaddentry(&rec, drp, CACHE1D_FIND_DRIVE, CACHE1D_SOURCE_DRIVE) < 0) {
+					free(drives);
+					goto failure;
+				}
+			}
+			free(drives);
+		}
+	}
+	
 	free(path);
 	return rec;
 failure:

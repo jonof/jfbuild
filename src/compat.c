@@ -371,7 +371,7 @@ int Bcorrectfilename(char *filename, int removefn)
 		else tokarr[ntok++] = token;
 	} while (1);
 	
-	if (!trailslash && removefn) ntok = max(0,ntok-1);
+	if (!trailslash && removefn) { ntok = max(0,ntok-1); trailslash = 1; }
 	if (ntok == 0 && trailslash && leadslash) trailslash = 0;
 	
 	first = filename;
@@ -385,6 +385,56 @@ int Bcorrectfilename(char *filename, int removefn)
 	*(first++) = 0;
 
 	return 0;
+}
+
+int Bcanonicalisefilename(char *filename, int removefn)
+{
+	char cwd[BMAX_PATH], fn[BMAX_PATH], *p;
+	char *fnp = filename;
+#ifdef _WIN32
+	int drv = 0;
+#endif
+	
+#ifdef _WIN32
+	{
+		if (filename[0] && filename[1] == ':') {
+			// filename is prefixed with a drive
+			drv = toupper(filename[0])-'A' + 1;
+			fnp += 2;
+		}
+		if (!_getdcwd(drv, cwd, sizeof(cwd))) return -1;
+		for (p=cwd; *p; p++) if (*p == '\\') *p = '/';
+	}
+#else
+	if (!getcwd(cwd,sizeof(cwd))) return -1;
+#endif
+	p = strrchr(cwd,'/'); if (!p || p[1]) strcat(cwd, "/");
+	
+	strcpy(fn, fnp);
+#ifdef _WIN32
+	for (p=fn; *p; p++) if (*p == '\\') *p = '/';
+#endif
+	
+	if (fn[0] != '/') {
+		// we are dealing with a path relative to the current directory
+		strcpy(filename, cwd);
+		strcat(filename, fn);
+	} else {
+#ifdef _WIN32
+		filename[0] = cwd[0];
+		filename[1] = ':';
+		filename[2] = 0;
+#else
+		filename[0] = 0;
+#endif
+		strcat(filename, fn);
+	}
+	fnp = filename;
+#ifdef _WIN32
+	fnp += 2;	// skip the drive
+#endif
+	
+	return Bcorrectfilename(fnp,1);	
 }
 
 char *Bgetsystemdrives(void)
