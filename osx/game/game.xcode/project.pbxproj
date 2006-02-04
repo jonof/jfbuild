@@ -54,9 +54,9 @@
 			isa = PBXFileReference;
 			lastKnownFileType = archive.ar;
 			name = libeditor.a;
-			path = ../engine/build/libeditor.a;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
+			path = /Users/jonof/ports/build/osx/engine/build/libeditor.a;
+			refType = 0;
+			sourceTree = "<absolute>";
 		};
 		AB3A002708DF066200C0AA42 = {
 			fileRef = AB3A002608DF066200C0AA42;
@@ -66,9 +66,8 @@
 		};
 		AB3AF9E408DEE39200C0AA42 = {
 			children = (
-				AB3A002608DF066200C0AA42,
-				AB3AFABD08DF030B00C0AA42,
 				AB3AFA5F08DEE45000C0AA42,
+				ABBC7AA3099344E40064C16C,
 				AB3AF9EE08DEE3A100C0AA42,
 				AB3AF9EC08DEE39A00C0AA42,
 				AB3AFA7908DEFECF00C0AA42,
@@ -109,6 +108,10 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
+					ProductGroup = ABBC7AA5099344E60064C16C;
+					ProjectRef = ABBC7AA3099344E40064C16C;
+				},
+				{
 					ProductGroup = AB3AFA6208DEE45200C0AA42;
 					ProjectRef = AB3AFA5F08DEE45000C0AA42;
 				},
@@ -136,6 +139,7 @@
 				AB3AF9F108DEE3DA00C0AA42,
 				AB3AF9F208DEE3DA00C0AA42,
 				AB3AF9F308DEE3DA00C0AA42,
+				ABBC7A9A099344CF0064C16C,
 			);
 			isa = PBXGroup;
 			name = Sources;
@@ -211,8 +215,8 @@
 			files = (
 				AB3AFA5C08DEE43500C0AA42,
 				AB3AFA5D08DEE43500C0AA42,
-				AB3AFA5E08DEE43600C0AA42,
 				AB3AFA6E08DEE4D700C0AA42,
+				ABBC7A9B099344CF0064C16C,
 			);
 			isa = PBXSourcesBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -220,11 +224,13 @@
 		AB3AF9F608DEE3EE00C0AA42 = {
 			buildActionMask = 2147483647;
 			files = (
+				ABBC7B6409934A410064C16C,
 				AB3AFAC008DF035400C0AA42,
 				AB3AFB5708DF037500C0AA42,
 				AB3AFABE08DF030B00C0AA42,
 				AB3AFA7008DEE50200C0AA42,
 				AB3AFA7408DEE53C00C0AA42,
+				ABBC7B6609934A5A0064C16C,
 			);
 			isa = PBXFrameworksBuildPhase;
 			runOnlyForDeploymentPostprocessing = 0;
@@ -234,10 +240,12 @@
 				AB3AF9F408DEE3EE00C0AA42,
 				AB3AF9F508DEE3EE00C0AA42,
 				AB3AF9F608DEE3EE00C0AA42,
+				ABBC7B40099347230064C16C,
 			);
 			buildRules = (
 			);
 			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = /Users/jonof/ports/jfaud/osx/build;
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -247,7 +255,7 @@
 				INSTALL_PATH = "$(USER_APPS_DIR)";
 				LIBRARY_SEARCH_PATHS = "/Developer/SDKs/fmodapi3741mac/api/lib ../engine/build";
 				OTHER_CFLAGS = "";
-				OTHER_LDFLAGS = "-lfmod";
+				OTHER_LDFLAGS = "";
 				OTHER_REZFLAGS = "";
 				PRODUCT_NAME = game;
 				SECTORDER_FLAGS = "";
@@ -320,12 +328,6 @@
 		};
 		AB3AFA5D08DEE43500C0AA42 = {
 			fileRef = AB3AF9F208DEE3DA00C0AA42;
-			isa = PBXBuildFile;
-			settings = {
-			};
-		};
-		AB3AFA5E08DEE43600C0AA42 = {
-			fileRef = AB3AF9F308DEE3DA00C0AA42;
 			isa = PBXBuildFile;
 			settings = {
 			};
@@ -436,8 +438,12 @@
 		};
 		AB3AFA7908DEFECF00C0AA42 = {
 			children = (
+				AB3A002608DF066200C0AA42,
+				AB3AFABD08DF030B00C0AA42,
+				ABBC7AD6099345F70064C16C,
 				AB3AFABF08DF035400C0AA42,
 				AB3AFB5608DF037500C0AA42,
+				ABBC7B6509934A5A0064C16C,
 				AB3AFA6F08DEE50200C0AA42,
 				AB3AFA7308DEE53C00C0AA42,
 			);
@@ -462,9 +468,9 @@
 			isa = PBXFileReference;
 			lastKnownFileType = archive.ar;
 			name = libengine.a;
-			path = ../engine/build/libengine.a;
-			refType = 2;
-			sourceTree = SOURCE_ROOT;
+			path = /Users/jonof/ports/build/osx/engine/build/libengine.a;
+			refType = 0;
+			sourceTree = "<absolute>";
 		};
 		AB3AFABE08DF030B00C0AA42 = {
 			fileRef = AB3AFABD08DF030B00C0AA42;
@@ -687,6 +693,129 @@
 		};
 		AB3AFECF08DF063D00C0AA42 = {
 			fileRef = AB3AFABD08DF030B00C0AA42;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		ABBC7A9A099344CF0064C16C = {
+			fileEncoding = 30;
+			isa = PBXFileReference;
+			lastKnownFileType = sourcecode.cpp.cpp;
+			name = jfaud_sound.cpp;
+			path = ../../src/jfaud_sound.cpp;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		ABBC7A9B099344CF0064C16C = {
+			fileRef = ABBC7A9A099344CF0064C16C;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		ABBC7AA3099344E40064C16C = {
+			isa = PBXFileReference;
+			lastKnownFileType = "wrapper.pb-project";
+			name = jfaud.xcode;
+			path = ../../../jfaud/osx/jfaud.xcode;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		ABBC7AA5099344E60064C16C = {
+			children = (
+				ABBC7AA6099344E60064C16C,
+				ABBC7AA7099344E60064C16C,
+				ABBC7AA8099344E60064C16C,
+			);
+			isa = PBXGroup;
+			name = Products;
+			refType = 4;
+			sourceTree = "<group>";
+		};
+		ABBC7AA6099344E60064C16C = {
+			fileType = wrapper.framework;
+			isa = PBXReferenceProxy;
+			path = jfaud.framework;
+			refType = 3;
+			remoteRef = ABBC7AAA099344F50064C16C;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ABBC7AA7099344E60064C16C = {
+			fileType = archive.ar;
+			isa = PBXReferenceProxy;
+			path = libmpadec.a;
+			refType = 3;
+			remoteRef = ABBC7AAB099344F50064C16C;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ABBC7AA8099344E60064C16C = {
+			fileType = wrapper.application;
+			isa = PBXReferenceProxy;
+			path = jfaudtest.app;
+			refType = 3;
+			remoteRef = ABBC7AAC099344F50064C16C;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ABBC7AAA099344F50064C16C = {
+			containerPortal = ABBC7AA3099344E40064C16C;
+			isa = PBXContainerItemProxy;
+			proxyType = 2;
+			remoteGlobalIDString = 8DC2EF5B0486A6940098B216;
+			remoteInfo = jfaud;
+		};
+		ABBC7AAB099344F50064C16C = {
+			containerPortal = ABBC7AA3099344E40064C16C;
+			isa = PBXContainerItemProxy;
+			proxyType = 2;
+			remoteGlobalIDString = ABE7399C095277C50040A74A;
+			remoteInfo = mpadec;
+		};
+		ABBC7AAC099344F50064C16C = {
+			containerPortal = ABBC7AA3099344E40064C16C;
+			isa = PBXContainerItemProxy;
+			proxyType = 2;
+			remoteGlobalIDString = ABE7394E09526A5B0040A74A;
+			remoteInfo = jfaudtest;
+		};
+		ABBC7AD6099345F70064C16C = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = jfaud.framework;
+			path = /Users/jonof/ports/jfaud/osx/build/jfaud.framework;
+			refType = 0;
+			sourceTree = "<absolute>";
+		};
+		ABBC7B40099347230064C16C = {
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				ABBC7B410993474A0064C16C,
+			);
+			isa = PBXCopyFilesBuildPhase;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ABBC7B410993474A0064C16C = {
+			fileRef = ABBC7AD6099345F70064C16C;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		ABBC7B6409934A410064C16C = {
+			fileRef = ABBC7AD6099345F70064C16C;
+			isa = PBXBuildFile;
+			settings = {
+			};
+		};
+		ABBC7B6509934A5A0064C16C = {
+			isa = PBXFileReference;
+			lastKnownFileType = wrapper.framework;
+			name = OpenAL.framework;
+			path = ../../../../../../Library/Frameworks/OpenAL.framework;
+			refType = 2;
+			sourceTree = SOURCE_ROOT;
+		};
+		ABBC7B6609934A5A0064C16C = {
+			fileRef = ABBC7B6509934A5A0064C16C;
 			isa = PBXBuildFile;
 			settings = {
 			};

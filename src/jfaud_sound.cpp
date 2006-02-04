@@ -1,4 +1,4 @@
-#include "jfaud.hpp"
+#include <jfaud/jfaud.hpp>
 
 #include <ctype.h>
 
@@ -26,6 +26,16 @@ void refreshaudio(void);
 static char musistat = 0;
 static char songname[BMAX_PATH] = "";
 static JFAud *jfaud = NULL;
+
+static int kwvnumwaves = 0;
+static struct _kwvitem {
+	char instname[16];
+	long wavleng;
+	long repstart;
+	long repleng;
+	long finetune;
+	long datastart;
+} *kwvitems = NULL;
 
 static struct {
 	long *posx, *posy;
@@ -87,36 +97,29 @@ public:
 		: JFAudFile(filename, NULL),
 		  datastart(-1), datalen(-1), datapos(-1)
 	{
-		long i,j, numwaves, wavleng, repstart, repleng, finetune;
-		char instname[16];
+		long i,j;
 		bool found = false;
 
 		if (!subfilename) return;
-		fh = kopen4load(const_cast<char *>(filename), 0);
-		if (fh < 0) return;
 
-		if (kread(fh, &i,        4) != 4 || i != 0) return;
-		if (kread(fh, &numwaves, 4) != 4) return; numwaves = B_LITTLE32(numwaves);
-		datastart = (4+4) + numwaves * (16+4*4);
-		for (i=0;i<numwaves;i++) {
-			if (kread(fh, instname, 16) != 16) return;
-			if (kread(fh, &wavleng, 4)  != 4) return; wavleng  = B_LITTLE32(wavleng);
-			if (kread(fh, &repstart, 4) != 4) return; repstart = B_LITTLE32(repstart);
-			if (kread(fh, &repleng, 4)  != 4) return; repleng  = B_LITTLE32(repleng);
-			if (kread(fh, &finetune, 4) != 4) return; finetune = B_LITTLE32(finetune);
+		for (i=0;i<kwvnumwaves;i++) {
 			for (j=0;j<16 && subfilename[j];j++) {
-				if (tolower(subfilename[j]) != tolower(instname[j])) {
+				if (tolower(subfilename[j]) != tolower(kwvitems[i].instname[j])) {
 					found = false;
 					break;
 				} else found = true;
 			}
-			if (found) break;
-			datastart += wavleng;
+			if (found) {
+				fh = kopen4load(const_cast<char *>(filename), 0);
+				if (fh < 0) return;
+				
+				datastart = kwvitems[i].datastart;
+				datalen   = kwvitems[i].wavleng;
+				datapos   = 0;
+				klseek(fh, datastart, SEEK_SET);
+				return;
+			}
 		}
-		if (!found) return;
-		klseek(fh, datastart, SEEK_SET);
-		datalen = wavleng;
-		datapos = 0;
 	}
 	
 	virtual ~KWVFile()
@@ -125,7 +128,7 @@ public:
 	}
 	virtual bool IsOpen(void) const
 	{
-		return !(datalen < 0 || fh < 0);
+		return datalen > 0 && fh >= 0;
 	}
 
 	virtual int Read(int nbytes, void *buf)
@@ -180,6 +183,32 @@ static void logfunc(const char *s) { initprintf("%s", s); }
 
 void loadwaves(void)
 {
+	long fh, i, datastart;
+
+	fh = kopen4load(WAVESFILE, 0);
+	if (fh < 0) return;
+	
+	if (kread(fh, &i,           4) != 4 || i != 0) return;
+	if (kread(fh, &kwvnumwaves, 4) != 4) return; kwvnumwaves = B_LITTLE32(kwvnumwaves);
+	
+	kwvitems = new struct _kwvitem [kwvnumwaves];
+	if (!kwvitems) {
+		kclose(fh);
+		return;
+	}
+	
+	datastart = (4+4) + kwvnumwaves * (16+4*4);
+	for (i=0;i<kwvnumwaves;i++) {
+		if (kread(fh,  kwvitems[i].instname, 16) != 16) return;
+		if (kread(fh, &kwvitems[i].wavleng,  4)  != 4)  return; kwvitems[i].wavleng  = B_LITTLE32(kwvitems[i].wavleng);
+		if (kread(fh, &kwvitems[i].repstart, 4)  != 4)  return; kwvitems[i].repstart = B_LITTLE32(kwvitems[i].repstart);
+		if (kread(fh, &kwvitems[i].repleng,  4)  != 4)  return; kwvitems[i].repleng  = B_LITTLE32(kwvitems[i].repleng);
+		if (kread(fh, &kwvitems[i].finetune, 4)  != 4)  return; kwvitems[i].finetune = B_LITTLE32(kwvitems[i].finetune);
+		kwvitems[i].datastart = datastart;
+		datastart += kwvitems[i].wavleng;
+	}
+	
+	kclose(fh);
 }
 
 void initsb(char dadigistat, char damusistat, long dasamplerate, char danumspeakers, 
@@ -206,6 +235,8 @@ void initsb(char dadigistat, char damusistat, long dasamplerate, char danumspeak
 	musistat = damusistat;
 
 	for (i=NUMCHANNELS-1;i>=0;i--) sfxchans[i].handle = NULL;
+	
+	loadwaves();
 }
 
 void uninitsb(void)
@@ -214,6 +245,8 @@ void uninitsb(void)
 
 	delete jfaud;
 	jfaud = NULL;
+	
+	if (kwvitems) delete [] kwvitems;
 }
 
 void setears(long daposx, long daposy, long daxvect, long dayvect)
@@ -229,7 +262,7 @@ void setears(long daposx, long daposy, long daxvect, long dayvect)
 			0.0, 0.0, -1.0);	// OpenAL's up is Build's down
 }
 
-static void storehandle(JFAudMixerChannel *handle, long *daxplc, long *dayplc)
+static int storehandle(JFAudMixerChannel *handle, long *daxplc, long *dayplc)
 {
 	int i,empty = -1;
 
@@ -241,24 +274,35 @@ static void storehandle(JFAudMixerChannel *handle, long *daxplc, long *dayplc)
 		}
 	}
 
-	if (empty < 0) return;
+	if (empty < 0) return -1;
 
 	sfxchans[empty].handle = handle;
 	sfxchans[empty].posx = daxplc;
 	sfxchans[empty].posy = dayplc;
+	
+	return empty;
+}
+
+static void stopcb(int r)
+{
+	jfaud->FreeSound(sfxchans[r].handle);
+	sfxchans[r].handle = NULL;
 }
 
 void wsayfollow(char *dafilename, long dafreq, long davol, long *daxplc, long *dayplc, char followstat)
 {
 	JFAudMixerChannel *handl;
+	int r;
 
 	if (!jfaud) return;
 
 	handl = jfaud->PlayRawSound(WAVESFILE, dafilename, 1, 11025, 1, 1, false);
 	if (!handl) return;
 
-	if (followstat) storehandle(handl, daxplc, dayplc);
-	else storehandle(handl, NULL, NULL);
+	if (followstat) r = storehandle(handl, daxplc, dayplc);
+	else r = storehandle(handl, NULL, NULL);
+	
+	if (r >= 0) handl->SetStopCallback(stopcb, r);
 
 	handl->SetPitch((float)dafreq / 4096.0);
 	handl->SetGain((float)davol / 256.0);
@@ -272,13 +316,16 @@ void wsayfollow(char *dafilename, long dafreq, long davol, long *daxplc, long *d
 void wsay(char *dafilename, long dafreq, long volume1, long volume2)
 {
 	JFAudMixerChannel *handl;
+	int r;
 
 	if (!jfaud) return;
 	
 	handl = jfaud->PlayRawSound(WAVESFILE, dafilename, 1, 11025, 1, 1, false);
 	if (!handl) return;
 
-	storehandle(handl, NULL, NULL);
+	r = storehandle(handl, NULL, NULL);
+	
+	if (r >= 0) handl->SetStopCallback(stopcb, r);
 	
 	handl->SetPitch((float)dafreq / 4096.0);
 	handl->SetGain((float)volume1 / 256.0);

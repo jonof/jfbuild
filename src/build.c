@@ -472,8 +472,8 @@ void editinput(void)
 	mousy = (mousy<<16)+mouseysurp;
 	{
 	ldiv_t ld;
-	ld = ldiv((long)((double)mousx*msens), (2<<16)); mousx = ld.quot; mousexsurp = ld.rem;
-	ld = ldiv((long)((double)mousy*msens), (2<<16)); mousy = ld.quot; mouseysurp = ld.rem;
+	ld = ldiv((long)((double)mousx*msens), (1<<16)); mousx = ld.quot; mousexsurp = ld.rem;
+	ld = ldiv((long)((double)mousy*msens), (1<<16)); mousy = ld.quot; mouseysurp = ld.rem;
 	}
 	searchx += mousx;
 	searchy += mousy;
@@ -2691,8 +2691,8 @@ void overheadeditor(void)
 		mousy = (mousy<<16)+mouseysurp;
 		{
 		ldiv_t ld;
-		ld = ldiv((long)((double)mousx*msens), (2<<16)); mousx = ld.quot; mousexsurp = ld.rem;
-		ld = ldiv((long)((double)mousy*msens), (2<<16)); mousy = ld.quot; mouseysurp = ld.rem;
+		ld = ldiv((long)((double)mousx*msens), (1<<16)); mousx = ld.quot; mousexsurp = ld.rem;
+		ld = ldiv((long)((double)mousy*msens), (1<<16)); mousy = ld.quot; mouseysurp = ld.rem;
 		}
 		searchx += mousx;
 		searchy += mousy;
