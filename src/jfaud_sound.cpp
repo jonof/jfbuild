@@ -1,4 +1,8 @@
-#include <jfaud/jfaud.hpp>
+#ifdef __APPLE__
+# include <jfaud/jfaud.hpp>
+#else
+# include "jfaud.hpp"
+#endif
 
 #include <ctype.h>
 

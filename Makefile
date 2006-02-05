@@ -63,10 +63,10 @@ RANLIB=ranlib
 CFLAGS=-march=pentium $(debug)
 override CFLAGS+= -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
-	-DKSFORBUILD -I$(INC:/=) #-I../jfaud/src
+	-DKSFORBUILD -I$(INC:/=) -I../jfaud/src
 CXXFLAGS=-fno-exceptions -fno-rtti
 LIBS=
-GAMELIBS=-lfmod #../jfaud/libjfaud.a ../jfaud/mpadec/libmpadec/libmpadec.a -lwinmm
+GAMELIBS=../jfaud/libjfaud.a ../jfaud/mpadec/libmpadec/libmpadec.a -lwinmm
 ASFLAGS=-s #-g
 EXESUFFIX=
 
@@ -101,7 +101,7 @@ EDITOROBJS=$(OBJ)build.$o \
 	$(OBJ)config.$o
 
 GAMEEXEOBJS=$(OBJ)game.$o \
-	$(OBJ)sound.$o \
+	$(OBJ)jfaud_sound.$o \
 	$(OBJ)config.$o \
 	$(OBJ)$(ENGINELIB)
 
