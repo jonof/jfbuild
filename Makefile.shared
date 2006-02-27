@@ -14,6 +14,8 @@ SDLCONFIG=sdl-config
 # overridden for OSes that don't have the cutdown stdc++ that is supc++
 STDCPPLIB=-lsupc++
 
+BUILDCFLAGS=
+
 # Detect the platform if it wasn't explicitly given to us from
 # the outside world. This allows cross-compilation by overriding
 # CC and giving us PLATFORM specifically.
@@ -77,7 +79,7 @@ ifeq ($(PLATFORM),SKYOS)
 	RENDERTYPE=SDL
 	EXESUFFIX=.app
 	override USE_A_C=1
-	override CFLAGS+= -DUNDERSCORES
+	BUILDCFLAGS+= -DUNDERSCORES
 	SDLCONFIG=
 	SDLCONFIG_CFLAGS=-I/boot/programs/sdk/include/sdl
 	LIBS+= -lSDL -lnet
@@ -105,7 +107,7 @@ endif
 
 ifeq ($(RENDERTYPE),SDL)
 	ifneq ($(SDLCONFIG),)
-	LIBS+= $(shell $(SDLCONFIG) --libs)
+		LIBS+= $(shell $(SDLCONFIG) --libs)
 		SDLCONFIG_CFLAGS+=$(shell $(SDLCONFIG) --cflags)
 	endif
 
@@ -125,28 +127,28 @@ else
 	endif
 endif
 
-override CFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
+BUILDCFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
 
 ifneq (0,$(SUPERBUILD))
-  override CFLAGS+= -DSUPERBUILD
+  BUILDCFLAGS+= -DSUPERBUILD
 endif
 ifneq (0,$(POLYMOST))
-  override CFLAGS+= -DPOLYMOST
+  BUILDCFLAGS+= -DPOLYMOST
 endif
 ifneq (0,$(USE_OPENGL))
-  override CFLAGS+= -DUSE_OPENGL
+  BUILDCFLAGS+= -DUSE_OPENGL
   ifneq (0,$(DYNAMIC_OPENGL))
-    override CFLAGS+= -DDYNAMIC_OPENGL
+    BUILDCFLAGS+= -DDYNAMIC_OPENGL
   endif
 endif
 ifneq (0,$(USE_A_C))
-  override CFLAGS+= -DUSE_A_C
+  BUILDCFLAGS+= -DUSE_A_C
 endif
 ifneq (0,$(NOASM))
-  override CFLAGS+= -DNOASM
+  BUILDCFLAGS+= -DNOASM
 endif
 ifneq (0,$(SETSPRITEZ))
-  override CFLAGS+= -DSETSPRITEZ
+  BUILDCFLAGS+= -DSETSPRITEZ
 endif
 
 

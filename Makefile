@@ -60,13 +60,12 @@ AS=nasm
 RC=windres
 AR=ar
 RANLIB=ranlib
-CFLAGS=-march=pentium $(debug)
-override CFLAGS+= -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
+OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
 	-DKSFORBUILD -I$(INC:/=) -I../jfaud/src
-CXXFLAGS=-fno-exceptions -fno-rtti
+OURCXXFLAGS=-fno-exceptions -fno-rtti
 LIBS=
-GAMELIBS=../jfaud/libjfaud.a ../jfaud/mpadec/libmpadec/libmpadec.a -lwinmm
+GAMELIBS=../jfaud/libjfaud.a ../jfaud/mpadec/libmpadec/libmpadec.a
 ASFLAGS=-s #-g
 EXESUFFIX=
 
@@ -90,7 +89,6 @@ ENGINEOBJS+= \
 	$(OBJ)kplib.$o \
 	$(OBJ)lzf_c.$o \
 	$(OBJ)lzf_d.$o \
-	$(OBJ)lzwnew.$o \
 	$(OBJ)md4.$o \
 	$(OBJ)mmulti.$o \
 	$(OBJ)osd.$o \
@@ -116,11 +114,11 @@ ifeq ($(PLATFORM),LINUX)
 endif
 ifeq ($(PLATFORM),BSD)
 	ASFLAGS+= -f elf
-	override CFLAGS+= -I/usr/X11R6/include
+	OURCFLAGS+= -I/usr/X11R6/include
 	LIBS+= -lm
 endif
 ifeq ($(PLATFORM),WINDOWS)
-	override CFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOTWIN)/inc
+	OURCFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOTWIN)/inc
 	LIBS+= -lm
 	GAMELIBS+= -L$(FMODROOTWIN)/lib
 	ASFLAGS+= -DUNDERSCORES -f win32
@@ -138,10 +136,10 @@ endif
 
 ifeq ($(RENDERTYPE),SDL)
 	ENGINEOBJS+= $(OBJ)sdlayer.$o
-	override CFLAGS+= $(subst -Dmain=SDL_main,,$(SDLCONFIG_CFLAGS))
+	OURCFLAGS+= $(subst -Dmain=SDL_main,,$(SDLCONFIG_CFLAGS))
 	
 	ifeq (1,$(HAVE_GTK2))
-		override CFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
+		OURCFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
 		ENGINEOBJS+= $(OBJ)gtkbits.$o
 		GAMEEXEOBJS+= $(OBJ)game_banner.$o
 		EDITOREXEOBJS+= $(OBJ)editor_banner.$o
@@ -159,10 +157,10 @@ endif
 
 ifneq (0,$(EFENCE))
 	LIBS+= -lefence
-	override CFLAGS+= -DEFENCE
+	OURCFLAGS+= -DEFENCE
 endif
 
-CXXFLAGS+= $(CFLAGS)
+OURCFLAGS+= $(BUILDCFLAGS)
 
 .PHONY: clean veryclean all utils writeengineinfo enginelib editorlib
 
@@ -197,13 +195,13 @@ $(OBJ)$(EDITORLIB): $(EDITOROBJS)
 	$(RANLIB) $@
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS) $(GAMELIBS) $(STDCPPLIB)
+	$(CC) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(LIBS) $(GAMELIBS) $(STDCPPLIB)
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(LIBS)
 
 pragmacheck$(EXESUFFIX): $(OBJ)pragmacheck.$o $(OBJ)pragmas.$o
-	$(CC) $(subst -Dmain=app_main,,$(CFLAGS)) -o $@ $^
+	$(CC) $(subst -Dmain=app_main,,$(OURCFLAGS)) -o $@ $^
 	
 kextract$(EXESUFFIX): $(OBJ)kextract.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
@@ -227,34 +225,34 @@ include Makefile.deps
 
 .PHONY: $(OBJ)engineinfo.$o
 $(OBJ)engineinfo.$o:
-	echo "const char _engine_cflags[] = \"$(CFLAGS)\";" > $(SRC)tmp/engineinfo.c
+	echo "const char _engine_cflags[] = \"$(CFLAGS) $(OURCFLAGS)\";" > $(SRC)tmp/engineinfo.c
 	echo "const char _engine_libs[] = \"$(LIBS)\";" >> $(SRC)tmp/engineinfo.c
 	echo "const char _engine_uname[] = \"$(shell uname -a)\";" >> $(SRC)tmp/engineinfo.c
 	echo "const char _engine_compiler[] = \"$(CC) $(shell $(CC) -dumpversion) $(shell $(CC) -dumpmachine)\";" >> $(SRC)tmp/engineinfo.c
 	echo "const char _engine_date[] = __DATE__ \" \" __TIME__;" >> $(SRC)tmp/engineinfo.c
-	$(CC) $(CFLAGS) -c $(SRC)tmp/engineinfo.c -o $@ 2>&1
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $(SRC)tmp/engineinfo.c -o $@ 2>&1
 
 # RULES
 $(OBJ)%.$o: $(SRC)%.nasm
 	$(AS) $(ASFLAGS) $< -o $@
 
 $(OBJ)%.$o: $(SRC)%.c
-	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)%.$o: $(SRC)%.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@ 2>&1
+	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)%.$o: $(SRC)tmp/%.c
-	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)%.$o: $(SRC)misc/%.rc
 	$(RC) -i $^ -o $@
 
 $(OBJ)%.$o: $(SRC)util/%.c
-	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)%.$o: $(RSRC)%.c
-	$(CC) $(CFLAGS) -c $< -o $@ 2>&1
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)game_banner.$o: $(RSRC)game_banner.c
 $(OBJ)editor_banner.$o: $(RSRC)editor_banner.c
