@@ -191,12 +191,12 @@ static int _internal_osdfunc_vars(const osdfuncparm_t *parm)
 {
 	int showval = (parm->numparms < 1);
 
-	if (!Bstrcasecmp(parm->name, "osdlines")) {
-		if (showval) { OSD_Printf("osdlines is %d\n", osdlines); return OSDCMD_OK; }
+	if (!Bstrcasecmp(parm->name, "osdrows")) {
+		if (showval) { OSD_Printf("osdrows is %d\n", osdrows); return OSDCMD_OK; }
 		else {
-			osdlines = atoi(parm->parms[0]);
-			if (osdlines < 1) osdlines = 1;
-			else if (osdlines > osdmaxrows) osdlines = osdmaxrows;
+			osdrows = atoi(parm->parms[0]);
+			if (osdrows < 1) osdrows = 1;
+			else if (osdrows > osdmaxrows) osdrows = osdmaxrows;
 			return OSDCMD_OK;
 		}
 	}

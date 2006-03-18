@@ -63,12 +63,12 @@ public:
 
 	virtual bool IsOpen(void) const { return fh >= 0; }
 
-	virtual int Read(int nbytes, void *buf)
+	virtual long Read(long nbytes, void *buf)
 	{
 		if (fh < 0) return -1;
 		return kread(fh, buf, nbytes);
 	}
-	virtual int Seek(int pos, SeekFrom where)
+	virtual long Seek(long pos, SeekFrom where)
 	{
 		int when;
 		if (fh < 0) return -1;
@@ -80,12 +80,12 @@ public:
 		}
 		return klseek(fh, pos, when);
 	}
-	virtual int Tell(void) const
+	virtual long Tell(void) const
 	{
 		if (fh < 0) return -1;
 		return klseek(fh, 0, SEEK_CUR);
 	}
-	virtual int Length(void) const
+	virtual long Length(void) const
 	{
 		if (fh < 0) return -1;
 		return kfilelength(fh);
@@ -95,7 +95,7 @@ public:
 class KWVFile : public JFAudFile {
 private:
 	int fh;
-	int datastart, datalen, datapos;
+	long datastart, datalen, datapos;
 public:
 	KWVFile(const char *filename, const char *subfilename = NULL)
 		: JFAudFile(filename, NULL),
@@ -135,7 +135,7 @@ public:
 		return datalen > 0 && fh >= 0;
 	}
 
-	virtual int Read(int nbytes, void *buf)
+	virtual long Read(long nbytes, void *buf)
 	{
 		if (!IsOpen()) return -1;
 		if (datalen - datapos < nbytes) nbytes = datalen - datapos;
@@ -144,9 +144,9 @@ public:
 		if (nbytes > 0) datapos += nbytes;
 		return nbytes;
 	}
-	virtual int Seek(int pos, SeekFrom where)
+	virtual long Seek(long pos, SeekFrom where)
 	{
-		int newpos;
+		long newpos;
 		if (!IsOpen()) return -1;
 		switch (where) {
 			case JFAudFile::Set: newpos = pos; break;
@@ -158,12 +158,12 @@ public:
 		else if (newpos > datalen) newpos = datalen;
 		return klseek(fh, datastart + newpos, SEEK_SET);
 	}
-	virtual int Tell(void) const
+	virtual long Tell(void) const
 	{
 		if (!IsOpen()) return -1;
 		return datapos;
 	}
-	virtual int Length(void) const
+	virtual long Length(void) const
 	{
 		if (!IsOpen()) return -1;
 		return datalen;
@@ -261,9 +261,9 @@ void setears(long daposx, long daposy, long daxvect, long dayvect)
 	mixer = jfaud->GetWave();
 	if (!mixer) return;
 
-	mixer->SetListenerPosition((float)daposx/UNITSPERMTR, (float)daposy/UNITSPERMTR, 0.0);
-	mixer->SetListenerOrientation((float)daxvect/UNITSPERMTR, (float)dayvect/UNITSPERMTR, 0.0,
-			0.0, 0.0, -1.0);	// OpenAL's up is Build's down
+	mixer->SetListenerPosition((float)daposx/UNITSPERMTR, 0.0, (float)-daposy/UNITSPERMTR);
+	mixer->SetListenerOrientation((float)daxvect/UNITSPERMTR, 0.0, (float)-dayvect/UNITSPERMTR,
+			0.0, 1.0, 0.0);
 }
 
 static int storehandle(JFAudMixerChannel *handle, long *daxplc, long *dayplc)
@@ -310,7 +310,7 @@ void wsayfollow(char *dafilename, long dafreq, long davol, long *daxplc, long *d
 
 	handl->SetPitch((float)dafreq / 4096.0);
 	handl->SetGain((float)davol / 256.0);
-	handl->SetPosition((float)(*daxplc) / UNITSPERMTR, (float)(*dayplc) / UNITSPERMTR, 0.0);
+	handl->SetPosition((float)(*daxplc) / UNITSPERMTR, 0.0, (float)(-*dayplc) / UNITSPERMTR);
 	handl->SetFollowListener(false);
 	handl->SetRolloff(1.0);
 
@@ -371,8 +371,8 @@ void refreshaudio(void)
 
 		sfxchans[i].handle->SetPosition(
 				(float)(*sfxchans[i].posx)/UNITSPERMTR,
-				(float)(*sfxchans[i].posy)/UNITSPERMTR,
-				0.0);
+				0.0,
+				(float)(-*sfxchans[i].posy)/UNITSPERMTR);
 	}
 	jfaud->Update();
 }

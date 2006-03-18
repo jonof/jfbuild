@@ -5,8 +5,8 @@
 // This file has been modified from Ken Silverman's original release
 // by Jonathon Fowler (jonof@edgenetwk.com)
 
-#include "pragmas.h"
 #include "compat.h"
+#include "pragmas.h"
 
 #define MAXPALOOKUPS 256
 
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 		return(0);
 	}
 	Bread(fil,palette,768);
-	Bread(fil,&orignumpalookups,2);
+	Bread(fil,&orignumpalookups,2); orignumpalookups = B_LITTLE16(orignumpalookups);
 	orignumpalookups = min(max(orignumpalookups,1),256);
 	Bread(fil,origpalookup,(long)orignumpalookups<<8);
 	Bclose(fil);
@@ -240,10 +240,11 @@ int main(int argc, char **argv)
 
 	if (ch == 13)
 	{
+		short s;
 		if ((fil = Bopen(palettefilename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)
 			{ printf("Couldn't save file %s",palettefilename); return(0); }
 		Bwrite(fil,palette,768);
-		Bwrite(fil,&numpalookups,2);
+		s = B_LITTLE16(numpalookups); Bwrite(fil,&s,2);
 		Bwrite(fil,palookup,numpalookups<<8);
 		Bwrite(fil,transluc,65536);
 		Bclose(fil);
@@ -251,10 +252,11 @@ int main(int argc, char **argv)
 	}
 	else if (ch == 32)
 	{
+		short s;
 		if ((fil = Bopen(palettefilename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)
 			{ printf("Couldn't save file %s",palettefilename); return(0); }
 		Bwrite(fil,palette,768);
-		Bwrite(fil,&orignumpalookups,2);
+		s = B_LITTLE16(orignumpalookups); Bwrite(fil,&s,2);
 		Bwrite(fil,origpalookup,(long)orignumpalookups<<8);
 		Bwrite(fil,transluc,65536);
 		Bclose(fil);
