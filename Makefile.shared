@@ -56,6 +56,11 @@ ifeq ($(PLATFORM),LINUX)
 	ifneq ($(DYNAMIC_OPENGL),1)
 		LIBS+= $(GLLIBLIN)
 	endif
+	ifeq ($(findstring x86_64,$(shell uname -m)),x86_64)
+		# on my 64bit Gentoo these are the 32bit emulation libs
+		LIBS+= -m32 -L/emul/linux/x86/usr/lib
+		BUILDCFLAGS+= -m32
+	endif
 endif
 ifeq ($(PLATFORM),WINDOWS)
 	RENDERTYPE ?= WIN

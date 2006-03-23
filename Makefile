@@ -65,7 +65,7 @@ OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-DKSFORBUILD -I$(INC:/=) -I../jfaud/src
 OURCXXFLAGS=-fno-exceptions -fno-rtti
 LIBS=
-GAMELIBS=../jfaud/libjfaud.a ../jfaud/mpadec/libmpadec/libmpadec.a
+GAMELIBS=../jfaud/libjfaud.a #../jfaud/mpadec/libmpadec/libmpadec.a
 ASFLAGS=-s #-g
 EXESUFFIX=
 
