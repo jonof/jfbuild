@@ -820,9 +820,8 @@ int setvideomode(int x, int y, int c, int fs)
 	if (lockcount) while (lockcount) enddrawing();
 
 #if defined(USE_OPENGL)
-	if (bpp > 8 && sdl_surface) {
-		polymost_glreset();
-	}
+	if (bpp > 8 && sdl_surface) polymost_glreset();
+#endif
 
 	// restore gamma before we change video modes if it was changed
 	if (sdl_surface && gammabrightness) {
@@ -830,8 +829,9 @@ int setvideomode(int x, int y, int c, int fs)
 		gammabrightness = 0;	// redetect on next mode switch
 	}
 	
+#if defined(USE_OPENGL)
 	if (c > 8) {
-		int i;
+		int i, j, multisamplecheck = (glmultisample > 0);
 		struct {
 			SDL_GLattr attr;
 			int value;
@@ -847,24 +847,50 @@ int setvideomode(int x, int y, int c, int fs)
 			{ SDL_GL_ACCUM_GREEN_SIZE, 0 },
 			{ SDL_GL_ACCUM_BLUE_SIZE, 0 },
 			{ SDL_GL_ACCUM_ALPHA_SIZE, 0 },
-			{ SDL_GL_DEPTH_SIZE, 32 },
+			{ SDL_GL_DEPTH_SIZE, 24 },
 #endif
-			{ SDL_GL_DOUBLEBUFFER, 1 }
+			{ SDL_GL_DOUBLEBUFFER, 1 },
+			{ SDL_GL_MULTISAMPLEBUFFERS, glmultisample > 0 },
+			{ SDL_GL_MULTISAMPLESAMPLES, glmultisample },
 		};
 
 		if (nogl) return -1;
 		
-		for (i=0; i < (int)(sizeof(attributes)/sizeof(attributes[0])); i++)
-			SDL_GL_SetAttribute(attributes[i].attr, attributes[i].value);
-	}
-#endif
+		initprintf("Setting video mode %dx%d (%d-bpp %s)\n",
+				x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
+		do {
+			for (i=0; i < (int)(sizeof(attributes)/sizeof(attributes[0])); i++) {
+				j = attributes[i].value;
+				if (!multisamplecheck &&
+				    (attributes[i].attr == SDL_GL_MULTISAMPLEBUFFERS ||
+				     attributes[i].attr == SDL_GL_MULTISAMPLESAMPLES)
+				   ) {
+					j = 0;
+				}
+				SDL_GL_SetAttribute(attributes[i].attr, j);
+			}
 
-	initprintf("Setting video mode %dx%d (%d-bpp %s)\n",
-			x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
-	sdl_surface = SDL_SetVideoMode(x, y, c, (c>8?SDL_OPENGL:SURFACE_FLAGS) | ((fs&1)?SDL_FULLSCREEN:0));
-	if (!sdl_surface) {
-		initprintf("Unable to set video mode!\n");
-		return -1;
+			sdl_surface = SDL_SetVideoMode(x, y, c, SDL_OPENGL | ((fs&1)?SDL_FULLSCREEN:0));
+			if (!sdl_surface) {
+				if (multisamplecheck) {
+					initprintf("Multisample mode not possible. Retrying without multisampling.\n");
+					glmultisample = 0;
+					continue;
+				}
+				initprintf("Unable to set video mode!\n");
+				return -1;
+			}
+		} while (multisamplecheck--);
+	} else
+#endif
+	{
+		initprintf("Setting video mode %dx%d (%d-bpp %s)\n",
+				x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
+		sdl_surface = SDL_SetVideoMode(x, y, c, SURFACE_FLAGS | ((fs&1)?SDL_FULLSCREEN:0));
+		if (!sdl_surface) {
+			initprintf("Unable to set video mode!\n");
+			return -1;
+		}
 	}
 
 #if 0
@@ -945,6 +971,12 @@ int setvideomode(int x, int y, int c, int fs)
 				nofog = 1;
 				if (!(warnonce&1)) initprintf("3dfx card detected: OpenGL fog disabled\n");
 				warnonce |= 1;
+			} else if (!Bstrcmp(p2, "GL_ARB_multisample")) {
+				// supports multisampling
+				glinfo.multisample = 1;
+			} else if (!Bstrcmp(p2, "GL_NV_multisample_filter_hint")) {
+				// supports nvidia's multisample hint extension
+				glinfo.nvmultisamplehint = 1;
 			}
 		}
 		Bfree(p);

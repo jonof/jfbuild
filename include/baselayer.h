@@ -30,7 +30,12 @@ struct glinfo {
 	const char *extensions;
 
 	float maxanisotropy;
-	char bgra, clamptoedge, texcompr, texnpot;
+	char bgra;
+	char clamptoedge;
+	char texcompr;
+	char texnpot;
+	char multisample;
+	char nvmultisamplehint;
 };
 extern struct glinfo glinfo;
 #endif

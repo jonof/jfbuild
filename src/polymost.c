@@ -119,6 +119,7 @@ long glusetexcompr = 1;
 long gltexfiltermode = 3;   // GL_LINEAR_MIPMAP_NEAREST
 long glusetexcache = 0;
 long glusetexcachecompression = 1;
+long glmultisample = 0, glnvmultisamplehint = 0;
 long gltexmaxsize = 0;      // 0 means autodetection on first run
 long gltexmiplevel = 0;		// discards this many mipmap levels
 static long lastglpolygonmode = 0; //FUK
@@ -539,6 +540,12 @@ void polymost_glinit()
 	bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
 
 	bglBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+
+	if (glmultisample > 0 && glinfo.multisample) {
+		if (glinfo.nvmultisamplehint)
+			bglHint(GL_MULTISAMPLE_FILTER_HINT_NV, glnvmultisamplehint ? GL_NICEST:GL_FASTEST);
+		bglEnable(GL_MULTISAMPLE_ARB);
+	}
 }
 
 void resizeglcheck ()
@@ -4723,6 +4730,16 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 		else glusetexcachecompression = (val != 0);
 		return OSDCMD_OK;
 	}
+	else if (!Bstrcasecmp(parm->name, "glmultisample")) {
+		if (showval) { OSD_Printf("glmultisample is %d\n", glmultisample); }
+		else glmultisample = max(0,val);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glnvmultisamplehint")) {
+		if (showval) { OSD_Printf("glnvmultisamplehint is %d\n", glnvmultisamplehint); }
+		else glnvmultisamplehint = (val != 0);
+		return OSDCMD_OK;
+	}
 #endif
 	return OSDCMD_SHOWHELP;
 }
@@ -4768,6 +4785,8 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("glpolygonmode","glpolygonmode: debugging feature",osdcmd_polymostvars); //FUK
 	OSD_RegisterFunction("glusetexcache","glusetexcache: enable/disable OpenGL compressed texture cache",osdcmd_polymostvars);
 	OSD_RegisterFunction("glusetexcachecompression","usetexcachecompression: enable/disable compression of files in the OpenGL compressed texture cache",osdcmd_polymostvars);
+	OSD_RegisterFunction("glmultisample","glmultisample: sets the number of samples used for antialiasing (0 = off)",osdcmd_polymostvars);
+	OSD_RegisterFunction("glnvmultisamplehint","glnvmultisamplehint: enable/disable Nvidia multisampling hinting",osdcmd_polymostvars);
 #endif
 	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);

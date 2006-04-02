@@ -20,6 +20,8 @@ struct glinfo glinfo = {
 	0,		// clamp-to-edge support
 	0,		// texture compression
 	0,		// non-power-of-two textures
+	0,		// multisampling
+	0,		// nvidia multisampling hint
 };
 #endif
 
@@ -99,11 +101,13 @@ static int osdcmd_glinfo(const osdfuncparm_t *parm)
 	           " Version:  %s\n"
 		   " Vendor:   %s\n"
 		   " Renderer: %s\n"
-		   " Maximum anisotropy:  %.1f%s\n"
-		   " BGRA textures:       %s\n"
-		   " Non-x^2 textures:    %s\n"
-		   " Texure compression:  %s\n"
-		   " Clamp-to-edge:       %s\n"
+		   " Maximum anisotropy:      %.1f%s\n"
+		   " BGRA textures:           %s\n"
+		   " Non-x^2 textures:        %s\n"
+		   " Texure compression:      %s\n"
+		   " Clamp-to-edge:           %s\n"
+		   " Multisampling:           %s\n"
+		   " Nvidia multisample hint: %s\n"
 		   " Extensions:\n",
 		   	glinfo.version,
 			glinfo.vendor,
@@ -112,7 +116,9 @@ static int osdcmd_glinfo(const osdfuncparm_t *parm)
 			glinfo.bgra ? "supported": "not supported",
 			glinfo.texnpot ? "supported": "not supported",
 			glinfo.texcompr ? "supported": "not supported",
-			glinfo.clamptoedge ? "supported": "not supported"
+			glinfo.clamptoedge ? "supported": "not supported",
+			glinfo.multisample ? "supported": "not supported",
+			glinfo.nvmultisamplehint ? "supported": "not supported"
 		);
 
 	s = Bstrdup(glinfo.extensions);
