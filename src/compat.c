@@ -26,8 +26,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <direct.h>
 #if defined(__WATCOMC__)
+# include <direct.h>
 #elif defined(_MSC_VER)
 # include <io.h>
 #else
