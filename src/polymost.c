@@ -541,6 +541,9 @@ void polymost_glinit()
 
 	bglBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
+	//bglHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+	//bglEnable(GL_LINE_SMOOTH);
+
 	if (glmultisample > 0 && glinfo.multisample) {
 		if (glinfo.nvmultisamplehint)
 			bglHint(GL_MULTISAMPLE_FILTER_HINT_NV, glnvmultisamplehint ? GL_NICEST:GL_FASTEST);

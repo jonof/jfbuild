@@ -5920,10 +5920,6 @@ void drawmapview(long dax, long day, long zoome, short ang)
 	long bakgxvect, bakgyvect, sortnum, gap, npoints;
 	long xvect, yvect, xvect2, yvect2, daslope;
 
-#ifdef POLYMOST
-	//if (rendmode == 3) return;
-#endif
-
 	beforedrawrooms = 0;
 
 	clearbuf(&gotsector[0],(long)((numsectors+31)>>5),0L);
@@ -6000,10 +5996,11 @@ void drawmapview(long dax, long day, long zoome, short ang)
 			globalorientation = (long)sec->floorstat;
 			if ((globalorientation&1) != 0) continue;
 
+			globalpal = sec->floorpal;
 			if (palookup[sec->floorpal] != globalpalwritten)
 			{
 				globalpalwritten = palookup[sec->floorpal];
-				if (!globalpalwritten) globalpalwritten = palookup[globalpal];	// JBF: fixes null-pointer crash
+				if (!globalpalwritten) globalpalwritten = palookup[0];	// JBF: fixes null-pointer crash
 				setpalookupaddress(globalpalwritten);
 			}
 			globalpicnum = sec->floorpicnum;
@@ -9716,11 +9713,13 @@ void drawline256(long x1, long y1, long x2, long y2, char col)
 
 		setpolymost2dview();	// JBF 20040205: more efficient setup
 
+		//bglEnable(GL_BLEND);	// When using line antialiasing, this is needed
 		bglBegin(GL_LINES);
 			bglColor4ub(p.r,p.g,p.b,255);
 			bglVertex2f((float)x1/4096.0,(float)y1/4096.0);
 			bglVertex2f((float)x2/4096.0,(float)y2/4096.0);
 		bglEnd();
+		//bglDisable(GL_BLEND);
 
       return;
    }
