@@ -1621,8 +1621,6 @@ static void ProcessInputDevices(void)
 
 				if (result == DI_OK) {
 					// process the mouse events
-					mousex=0;
-					mousey=0;
 					for (i=0; i<dwElements; i++) {
 						switch (didod[i].dwOfs) {
 							case DIMOFS_BUTTON0:
@@ -1650,9 +1648,9 @@ static void ProcessInputDevices(void)
 									mousepresscallback(4, (mouseb&8)==8);
 								break;
 							case DIMOFS_X:
-								mousex = (short)didod[i].dwData; break;
+								mousex += (short)didod[i].dwData; break;
 							case DIMOFS_Y:
-								mousey = (short)didod[i].dwData; break;
+								mousey += (short)didod[i].dwData; break;
 							case DIMOFS_Z:
 								if ((int)didod[i].dwData > 0) {		// wheel up
 									if (mousewheel[1] > 0 && mousepresscallback) mousepresscallback(6,0);
@@ -1680,7 +1678,7 @@ static void ProcessInputDevices(void)
 						// check axes
 						for (j=0; j<joynumaxes; j++) {
 							if (axisdefs[j].ofs != didod[i].dwOfs) continue;
-							joyaxis[j] = didod[i].dwData - 32767;
+							joyaxis[j] += didod[i].dwData - 32767;
 							break;
 						}
 						if (j<joynumaxes) continue;
@@ -1880,7 +1878,7 @@ void sampletimer(void)
 
 
 //
-// getticks() -- returns the windows ticks count
+// getticks() -- returns the millisecond ticks count
 //
 unsigned long getticks(void)
 {
@@ -1888,6 +1886,18 @@ unsigned long getticks(void)
 	if (timerfreq == 0) return 0;
 	QueryPerformanceCounter((LARGE_INTEGER*)&i);
 	return (unsigned long)(i*longlong(1000)/timerfreq);
+}
+
+
+//
+// getusecticks() -- returns the microsecond ticks count
+//
+unsigned long getusecticks(void)
+{
+	int64 i;
+	if (timerfreq == 0) return 0;
+	QueryPerformanceCounter((LARGE_INTEGER*)&i);
+	return (unsigned long)(i*longlong(1000000)/timerfreq);
 }
 
 

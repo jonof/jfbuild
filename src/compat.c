@@ -32,6 +32,9 @@
 # include <io.h>
 #else
 # include <dirent.h>
+# ifdef _WIN32
+#  include <direct.h>	// for _getdcwd
+# endif
 #endif
 
 #include "compat.h"

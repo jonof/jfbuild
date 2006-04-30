@@ -93,6 +93,7 @@ int inittimer(int);
 void uninittimer(void);
 void sampletimer(void);
 unsigned long getticks(void);
+unsigned long getusecticks(void);
 int gettimerfreq(void);
 void (*installusertimercallback(void (*callback)(void)))(void);
 

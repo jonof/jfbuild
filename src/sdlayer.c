@@ -591,11 +591,19 @@ void sampletimer(void)
 }
 
 //
-// getticks() -- returns the sdl ticks count
+// getticks() -- returns a millisecond ticks count
 //
 unsigned long getticks(void)
 {
 	return (unsigned long)SDL_GetTicks();
+}
+
+//
+// getusecticks() -- returns a microsecond ticks count
+//
+unsigned long getusecticks(void)
+{
+	return (unsigned long)SDL_GetTicks() * 1000;
 }
 
 

@@ -62,7 +62,7 @@ AR=ar
 RANLIB=ranlib
 OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
-	-DKSFORBUILD -I$(INC:/=) -I../jfaud/src
+	-DKSFORBUILD -I$(INC:/=) -I../jfaud/inc
 OURCXXFLAGS=-fno-exceptions -fno-rtti
 LIBS=
 GAMELIBS=../jfaud/libjfaud.a #../jfaud/mpadec/libmpadec/libmpadec.a

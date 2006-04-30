@@ -122,6 +122,7 @@ char britable[16][256];	// JBF 20040207: full 8bit precision
 static char kensmessage[128];
 char *engineerrstr = "No error";
 
+//unsigned long ratelimitlast[32], ratelimitn = 0, ratelimit = 60;
 
 #if defined(NOASM)
 
@@ -7030,6 +7031,8 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 	}
 #endif
 	qsetmode = 200;
+//	memset(ratelimitlast,0,sizeof(ratelimitlast));
+//	ratelimitn = 0;
 	return(0);
 }
 
@@ -7071,6 +7074,28 @@ void nextpage(void)
 
 			OSD_Draw();
 			showframe(0);
+
+			/*
+			if (ratelimit > 0) {
+				long delaytime;
+				unsigned long thisticks, thist;
+
+				ratelimitlast[ ratelimitn++ & 31 ] = thist = getusecticks();
+				delaytime = 0;
+				if (ratelimitn >= 32) {
+					for (i=1;i<32;i++) delaytime += ratelimitlast[i] - ratelimitlast[i-1];
+					delaytime = (1000000/ratelimit) - (delaytime/31);
+				}
+#ifdef _WIN32
+				while (delaytime > 0) {
+					Sleep(1);
+					thisticks = getusecticks();
+					delaytime -= (thisticks - thist);
+					thist = thisticks;
+				}
+#endif
+			}
+			*/
 
 			begindrawing();	//{{{
 			for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
