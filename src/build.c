@@ -203,9 +203,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
-#ifdef RENDERTYPEWIN
-int DoLaunchWindow(int initval);	// buildstartwin.c
-#endif
+extern int startupwin_run(void);
 
 extern char *defsfilename;	// set in bstub.c
 int app_main(int argc, char **argv)
@@ -244,11 +242,11 @@ int app_main(int argc, char **argv)
 					"Options:\n"
 					"\t-grp\tUse an extra GRP or ZIP file.\n"
 					"\t-g\tSame as above.\n"
-#ifdef RENDERTYPEWIN
+#if defined RENDERTYPEWIN || defined __APPLE__
 					"\t-setup\tDisplays the configuration dialogue box before entering the editor.\n"
 #endif
 					;
-#ifdef RENDERTYPEWIN
+#if defined RENDERTYPEWIN || defined __APPLE__
 				wm_msgbox("BUILD by Ken Silverman",s);
 #else
 				puts(s);
@@ -270,8 +268,10 @@ int app_main(int argc, char **argv)
 	//Bcanonicalisefilename(boardfilename,0);
 
 	if ((i = ExtInit()) < 0) return -1;
-#ifdef RENDERTYPEWIN
-	if (DoLaunchWindow(i|forcesetup)) return -1;
+#if defined RENDERTYPEWIN || (defined __APPLE__ && !defined RENDERTYPESDL)
+	if (i || forcesetup) {
+		if (!startwin_run()) return -1;
+	}
 #endif
 
 	if (grps && grpstoadd > 0) {

@@ -7,7 +7,11 @@
 #if defined DYNAMIC_OPENGL && defined USE_OPENGL
 
 #ifdef RENDERTYPESDL
-#include "SDL.h"
+# ifdef __APPLE__
+#  include <SDL/SDL.h>
+# else
+#  include "SDL.h"
+# endif
 #endif
 
 void (APIENTRY * bglClearColor)( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha );
@@ -133,6 +137,8 @@ int loadgldriver(const char *driver)
 	if (!driver) {
 #ifdef _WIN32
 		driver = "OPENGL32.DLL";
+#elif defined __APPLE__
+		driver = "OpenGLLibrary";
 #else
 		driver = "libGL.so";
 #endif

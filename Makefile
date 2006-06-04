@@ -84,7 +84,6 @@ ENGINEOBJS+= \
 	$(OBJ)crc32.$o \
 	$(OBJ)defs.$o \
 	$(OBJ)engine.$o \
-	$(OBJ)engineinfo.$o \
 	$(OBJ)glbuild.$o \
 	$(OBJ)kplib.$o \
 	$(OBJ)lzf_c.$o \
@@ -162,7 +161,7 @@ endif
 
 OURCFLAGS+= $(BUILDCFLAGS)
 
-.PHONY: clean veryclean all utils writeengineinfo enginelib editorlib
+.PHONY: clean veryclean all utils enginelib editorlib
 
 # TARGETS
 
@@ -222,15 +221,6 @@ enumdisplay$(EXESUFFIX): src/misc/enumdisplay.c
 
 # DEPENDENCIES
 include Makefile.deps
-
-.PHONY: $(OBJ)engineinfo.$o
-$(OBJ)engineinfo.$o:
-	echo "const char _engine_cflags[] = \"$(CFLAGS) $(OURCFLAGS)\";" > $(SRC)tmp/engineinfo.c
-	echo "const char _engine_libs[] = \"$(LIBS)\";" >> $(SRC)tmp/engineinfo.c
-	echo "const char _engine_uname[] = \"$(shell uname -a)\";" >> $(SRC)tmp/engineinfo.c
-	echo "const char _engine_compiler[] = \"$(CC) $(shell $(CC) -dumpversion) $(shell $(CC) -dumpmachine)\";" >> $(SRC)tmp/engineinfo.c
-	echo "const char _engine_date[] = __DATE__ \" \" __TIME__;" >> $(SRC)tmp/engineinfo.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $(SRC)tmp/engineinfo.c -o $@ 2>&1
 
 # RULES
 $(OBJ)%.$o: $(SRC)%.nasm

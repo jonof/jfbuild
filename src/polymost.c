@@ -849,7 +849,7 @@ long trytexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 		return -1;
 	}
 	
-	md4once(fn, strlen(fn), mdsum);
+	md4once((unsigned char *)fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
 	*(cp++) = '/';
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
@@ -922,7 +922,7 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	bglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_ARB, &gi);
 	if (gi != GL_TRUE) return;
 
-	md4once(fn, strlen(fn), mdsum);
+	md4once((unsigned char *)fn, strlen(fn), mdsum);
 	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
 	*(cp++) = '/';
 	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
