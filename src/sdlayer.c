@@ -30,7 +30,7 @@
 int startwin_open(void) { return 0; }
 int startwin_close(void) { return 0; }
 int startwin_puts(const char *s) { s=s; return 0; }
-int startwin_idle(void) { return 0; }
+int startwin_idle(void *) { return 0; }
 int startwin_settitle(const char *s) { s=s; return 0; }
 #endif
 
@@ -284,7 +284,7 @@ void initprintf(const char *f, ...)
 	OSD_Printf(buf);
 
 	startwin_puts(buf);
-	startwin_idle();
+	startwin_idle(NULL);
 }
 
 

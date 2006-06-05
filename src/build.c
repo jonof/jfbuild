@@ -203,7 +203,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
-extern int startupwin_run(void);
+extern int startwin_run(void);
 
 extern char *defsfilename;	// set in bstub.c
 int app_main(int argc, char **argv)

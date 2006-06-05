@@ -118,7 +118,7 @@ ifeq ($(PLATFORM),BSD)
 endif
 ifeq ($(PLATFORM),WINDOWS)
 	OURCFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOTWIN)/inc
-	LIBS+= -lm
+	LIBS+= -lm -lcomctl32
 	GAMELIBS+= -L$(FMODROOTWIN)/lib
 	ASFLAGS+= -DUNDERSCORES -f win32
 endif
@@ -149,8 +149,8 @@ ifeq ($(RENDERTYPE),SDL)
 endif
 ifeq ($(RENDERTYPE),WIN)
 	ENGINEOBJS+= $(OBJ)winlayer.$o
-	EDITOROBJS+= $(OBJ)buildstartwin.$o
-	GAMEEXEOBJS+= $(OBJ)gameres.$(res) $(OBJ)gamestartwin.$o
+	EDITOROBJS+= $(OBJ)startwin.editor.$o
+	GAMEEXEOBJS+= $(OBJ)gameres.$(res) $(OBJ)startwin.game.$o
 	EDITOREXEOBJS+= $(OBJ)buildres.$(res)
 endif
 
@@ -236,7 +236,7 @@ $(OBJ)%.$o: $(SRC)tmp/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)%.$o: $(SRC)misc/%.rc
-	$(RC) -i $^ -o $@
+	$(RC) -i $< -o $@ --include-dir=$(SRC)
 
 $(OBJ)%.$o: $(SRC)util/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1

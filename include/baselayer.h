@@ -19,7 +19,7 @@ extern int startwin_open(void);
 extern int startwin_close(void);
 extern int startwin_puts(const char *);
 extern int startwin_settitle(const char *);
-extern int startwin_idle(void);
+extern int startwin_idle(void *);
 
 // video
 extern long xres, yres, bpp, fullscreen, bytesperline, imageSize, frameplace;

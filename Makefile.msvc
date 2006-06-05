@@ -71,13 +71,13 @@ ENGINEOBJS=$(OBJ)a.$o \
 	$(OBJ)winlayer.$o
 
 EDITOROBJS=$(OBJ)build.$o \
-	$(OBJ)buildstartwin.$o \
+	$(OBJ)startwin.editor.$o \
 	$(OBJ)config.$o
 
 GAMEEXEOBJS=$(OBJ)config.$o \
 	$(OBJ)game.$o \
 	$(OBJ)gameres.$(res) \
-	$(OBJ)gamestartwin.$o \
+	$(OBJ)startwin.game.$o \
 	$(OBJ)sound.$o \
 	$(OBJ)$(ENGINELIB)
 

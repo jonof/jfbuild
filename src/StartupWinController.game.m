@@ -163,7 +163,7 @@ int startwin_settitle(const char *s)
 	return 0;
 }
 
-int startwin_idle(void)
+int startwin_idle(void *v)
 {
 	if (startwin) [[startwin window] displayIfNeeded];
 	return 0;

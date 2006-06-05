@@ -66,12 +66,12 @@ ENGINEOBJS=$(OBJ)a.$o &
 
 EDITOROBJS=$(OBJ)build.$o &
 	$(OBJ)config.$o &
-	$(OBJ)buildstartwin.$o
+	$(OBJ)startwin.editor.$o
 
 GAMEEXEOBJS=$(OBJ)game.$o &
 	$(OBJ)sound.$o &
 	$(OBJ)config.$o &
-	$(OBJ)gamestartwin.$o
+	$(OBJ)startwin.game.$o
 
 EDITOREXEOBJS=$(OBJ)bstub.$o
 
