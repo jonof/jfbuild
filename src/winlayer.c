@@ -1718,7 +1718,7 @@ static int getgammaramp(WORD gt[3][256]);
 //
 // checkvideomode() -- makes sure the video mode passed is legal
 //
-int checkvideomode(int *x, int *y, int c, int fs)
+int checkvideomode(int *x, int *y, int c, int fs, int forced)
 {
 	int i, nearest=-1, dx, dy, odx=9999, ody=9999;
 
@@ -1748,7 +1748,7 @@ int checkvideomode(int *x, int *y, int c, int fs)
 	}
 		
 #ifdef ANY_WINDOWED_SIZE
-	if ((fs&1) == 0 && (nearest < 0 || validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)) {
+	if (!forced && (fs&1) == 0 && (nearest < 0 || validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)) {
 		// check the colour depth is recognised at the very least
 		for (i=0;i<validmodecnt;i++)
 			if (validmode[i].bpp == c)
@@ -1783,7 +1783,7 @@ int setvideomode(int x, int y, int c, int fs)
 		return 0;
 	}
 
-	modenum = checkvideomode(&x,&y,c,fs);
+	modenum = checkvideomode(&x,&y,c,fs,0);
 	if (modenum < 0) return -1;
 	if (modenum == 0x7fffffff) {
 		customxdim = x;

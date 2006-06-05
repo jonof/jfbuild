@@ -755,7 +755,7 @@ void getvalidmodes(void)
 //
 // checkvideomode() -- makes sure the video mode passed is legal
 //
-int checkvideomode(int *x, int *y, int c, int fs)
+int checkvideomode(int *x, int *y, int c, int fs, int forced)
 {
 	int i, nearest=-1, dx, dy, odx=9999, ody=9999;
 
@@ -791,7 +791,7 @@ int checkvideomode(int *x, int *y, int c, int fs)
 	}
 		
 #ifdef ANY_WINDOWED_SIZE
-	if ((fs&1) == 0 && (nearest < 0 || (validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)))
+	if (!forced && (fs&1) == 0 && (nearest < 0 || (validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)))
 		return 0x7fffffffl;
 #endif
 

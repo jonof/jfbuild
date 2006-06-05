@@ -16,72 +16,99 @@
 
 #include "startwin.editor.h"
 
-static void PopulateVideoModeLists(int fs, HWND list2d, HWND list3d)
+static struct {
+	int fullscreen;
+	int xdim2d, ydim2d;
+	int xdim3d, ydim3d, bpp3d;
+	int forcesetup;
+} settings;
+
+static HWND startupdlg = NULL;
+static HWND pages[2] = { NULL, NULL};
+static int done = -1;
+
+static void PopulateForm(void)
 {
 	int i,j;
 	char buf[64];
+	int mode2d, mode3d;
+	HWND hwnd2d, hwnd3d;
 
-	ComboBox_ResetContent(list2d);
-	ComboBox_ResetContent(list3d);
+	hwnd2d = GetDlgItem(pages[0], IDC2DVMODE);
+	hwnd3d = GetDlgItem(pages[0], IDC3DVMODE);
+
+	mode2d = checkvideomode(&settings.xdim2d, &settings.ydim2d, 8, settings.fullscreen, 1);
+	mode3d = checkvideomode(&settings.xdim3d, &settings.ydim3d, settings.bpp3d, settings.fullscreen, 1);
+	if (mode2d < 0) mode2d = 0;
+	if (mode3d < 0) {
+		int cd[] = { 32, 24, 16, 15, 8, 0 };
+		for (i=0; cd[i]; ) { if (cd[i] >= settings.bpp3d) i++; else break; }
+		for ( ; cd[i]; i++) {
+			mode3d = checkvideomode(&settings.xdim3d, &settings.ydim3d, cd[i], settings.fullscreen, 1);
+			if (mode3d < 0) continue;
+			settings.bpp3d = cd[i];
+			break;
+		}
+	}
+
+	Button_SetCheck(GetDlgItem(pages[0], IDCFULLSCREEN), (settings.fullscreen ? BST_CHECKED : BST_UNCHECKED));
+	Button_SetCheck(GetDlgItem(pages[0], IDCALWAYSSHOW), (settings.forcesetup ? BST_CHECKED : BST_UNCHECKED));
+	
+	ComboBox_ResetContent(hwnd2d);
+	ComboBox_ResetContent(hwnd3d);
 	for (i=0; i<validmodecnt; i++) {
-		if (validmode[i].fs != fs) continue;
+		if (validmode[i].fs != settings.fullscreen) continue;
 
 		// all modes get added to the 3D mode list
-		Bsprintf(buf, "%ldx%ld %dbpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
-		j = ComboBox_AddString(list3d, buf);
-		ComboBox_SetItemData(list3d, j, i);
-		if (xdimgame == validmode[i].xdim && ydimgame == validmode[i].ydim && bppgame == validmode[i].bpp)
-			ComboBox_SetCurSel(list3d, j);
+		Bsprintf(buf, "%ld x %ld %dbpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
+		j = ComboBox_AddString(hwnd3d, buf);
+		ComboBox_SetItemData(hwnd3d, j, i);
+		if (i == mode3d) ComboBox_SetCurSel(hwnd3d, j);
 
 		// only 8-bit modes get used for 2D
 		if (validmode[i].bpp != 8) continue;
-		Bsprintf(buf, "%ldx%ld", validmode[i].xdim, validmode[i].ydim);
-		j = ComboBox_AddString(list2d, buf);
-		ComboBox_SetItemData(list2d, j, i);
-		if (xdim2d == validmode[i].xdim && ydim2d == validmode[i].ydim && 8 == validmode[i].bpp)
-			ComboBox_SetCurSel(list2d, j);
+		Bsprintf(buf, "%ld x %ld", validmode[i].xdim, validmode[i].ydim);
+		j = ComboBox_AddString(hwnd2d, buf);
+		ComboBox_SetItemData(hwnd2d, j, i);
+		if (i == mode2d) ComboBox_SetCurSel(hwnd2d, j);
 	}
 }
 
 static INT_PTR CALLBACK ConfigPageProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg) {
-		//case WM_INITDIALOG: {
-			// populate the controls
-		//	Button_SetCheck(GetDlgItem(hwndDlg, IDCFULLSCREEN), fullscreen ? BST_CHECKED : BST_UNCHECKED);
-		//	PopulateVideoModeLists(fullscreen, GetDlgItem(hwndDlg, IDC2DVMODE), GetDlgItem(hwndDlg, IDC3DVMODE));
-		//	return TRUE;
-		//}
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
 				case IDCFULLSCREEN:
-					fullscreen = Button_GetCheck((HWND)lParam) == BST_CHECKED ? 1:0;
-					PopulateVideoModeLists(fullscreen, GetDlgItem(hwndDlg, IDC2DVMODE),
-							GetDlgItem(hwndDlg, IDC3DVMODE));
-					break;
+					settings.fullscreen = !settings.fullscreen;
+					PopulateForm();
+					return TRUE;
 				case IDC2DVMODE:
 					if (HIWORD(wParam) == CBN_SELCHANGE) {
 						int i;
 						i = ComboBox_GetCurSel((HWND)lParam);
 						if (i != CB_ERR) i = ComboBox_GetItemData((HWND)lParam, i);
 						if (i != CB_ERR) {
-							xdim2d = validmode[i].xdim;
-							ydim2d = validmode[i].ydim;
+							settings.xdim2d = validmode[i].xdim;
+							settings.ydim2d = validmode[i].ydim;
 						}
 					}
-					break;
+					return TRUE;
 				case IDC3DVMODE:
 					if (HIWORD(wParam) == CBN_SELCHANGE) {
 						int i;
 						i = ComboBox_GetCurSel((HWND)lParam);
 						if (i != CB_ERR) i = ComboBox_GetItemData((HWND)lParam, i);
 						if (i != CB_ERR) {
-							xdimgame = validmode[i].xdim;
-							ydimgame = validmode[i].ydim;
-							bppgame  = validmode[i].bpp;
+							settings.xdim3d = validmode[i].xdim;
+							settings.ydim3d = validmode[i].ydim;
+							settings.bpp3d  = validmode[i].bpp;
 						}
 					}
-					break;
+					return TRUE;
+				case IDCALWAYSSHOW:
+					settings.forcesetup = IsDlgButtonChecked(hwndDlg, IDCALWAYSSHOW) == BST_CHECKED;
+					return TRUE;
 				default: break;
 			}
 			break;
@@ -90,10 +117,6 @@ static INT_PTR CALLBACK ConfigPageProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 	return FALSE;
 }
 
-
-static HWND startupdlg = NULL;
-static HWND pages[2] = { NULL, NULL};
-static int done = -1;
 
 
 static void SetPage(int n)
@@ -374,6 +397,15 @@ int startwin_run(void)
 	SetPage(0);
 	EnableConfig(1);
 
+	settings.fullscreen = fullscreen;
+	settings.xdim2d = xdim2d;
+	settings.ydim2d = ydim2d;
+	settings.xdim3d = xdimgame;
+	settings.ydim3d = ydimgame;
+	settings.bpp3d = bppgame;
+	settings.forcesetup = forcesetup;
+	PopulateForm();
+
 	while (done < 0) {
 		switch (GetMessage(&msg, NULL, 0,0)) {
 			case 0: done = 1; break;
@@ -388,6 +420,15 @@ int startwin_run(void)
 
 	SetPage(1);
 	EnableConfig(0);
+	if (done) {
+		fullscreen = settings.fullscreen;
+		xdim2d = settings.xdim2d;
+		ydim2d = settings.ydim2d;
+		xdimgame = settings.xdim3d;
+		ydimgame = settings.ydim3d;
+		bppgame = settings.bpp3d;
+		forcesetup = settings.forcesetup;
+	}
 
 	return done;
 }
