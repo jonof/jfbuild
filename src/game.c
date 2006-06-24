@@ -131,6 +131,7 @@ char keys[NUMKEYS] =
 	0x9c,0x1c,0xd,0xc,0xf
 };
 long xdimgame = 320, ydimgame = 200, bppgame = 8, xdim2d = 640, ydim2d = 480;	// JBF 20050318: config.c expects to find these
+long forcesetup = 1;
 
 static long digihz[8] = {6000,8000,11025,16000,22050,32000,44100,48000};
 
@@ -391,7 +392,7 @@ extern int startwin_run(void);
 
 long app_main(long argc, char *argv[])
 {
-	long forcesetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
+	long cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
 	long other, packleng, netparm;
 
 #ifdef USE_OPENGL
@@ -412,7 +413,7 @@ long app_main(long argc, char *argv[])
 			}
 			if (isvalidipaddress(argv[i])) continue;
 		} else {
-			if (!Bstrcasecmp(argv[i], "-setup")) forcesetup = 1;
+			if (!Bstrcasecmp(argv[i], "-setup")) cmdsetup = 1;
 			else {
 				Bstrcpy(boardfilename, argv[i]);
 				if (!Bstrrchr(boardfilename,'.')) Bstrcat(boardfilename,".map");
@@ -422,19 +423,17 @@ long app_main(long argc, char *argv[])
 	
 	OSD_SetLogFile("console.txt");
 
-	if (loadsetup("game.cfg") < 0) {
-		initprintf("Configuration file not found, using defaults.\n");
-		forcesetup = 1;
-	}
-
 	initgroupfile("stuff.dat");
 	if (initengine()) {
 		initprintf("There was a problem initialising the engine.\n");
 		return -1;
 	}
 
+	if ((i = loadsetup("game.cfg")) < 0)
+		initprintf("Configuration file not found, using defaults.\n");
+
 #if defined RENDERTYPEWIN || (defined __APPLE__ && !defined RENDERTYPESDL)
-	if (forcesetup) {
+	if (i || forcesetup || cmdsetup) {
 		if (!startwin_run()) return -1;
 	}
 #endif
