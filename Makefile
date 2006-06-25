@@ -118,7 +118,7 @@ ifeq ($(PLATFORM),BSD)
 endif
 ifeq ($(PLATFORM),WINDOWS)
 	OURCFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOTWIN)/inc
-	LIBS+= -lm -lcomctl32
+	LIBS+= -lm
 	GAMELIBS+= -L$(FMODROOTWIN)/lib
 	ASFLAGS+= -DUNDERSCORES -f win32
 endif
@@ -236,7 +236,7 @@ $(OBJ)%.$o: $(SRC)tmp/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)%.$o: $(SRC)misc/%.rc
-	$(RC) -i $< -o $@ --include-dir=$(SRC)
+	$(RC) -i $< -o $@ --include-dir=$(INC) --include-dir=$(SRC)
 
 $(OBJ)%.$o: $(SRC)util/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1

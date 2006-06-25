@@ -3,7 +3,6 @@
 #endif
 
 #include "build.h"
-#include "editor.h"
 #include "winlayer.h"
 #include "compat.h"
 
@@ -15,6 +14,9 @@
 #include <stdio.h>
 
 #include "startwin.game.h"
+
+#define TAB_CONFIG 0
+#define TAB_MESSAGES 1
 
 static struct {
 	int fullscreen;
@@ -33,7 +35,7 @@ static void PopulateForm(void)
 	int mode3d;
 	HWND hwnd3d;
 
-	hwnd3d = GetDlgItem(pages[0], IDC3DVMODE);
+	hwnd3d = GetDlgItem(pages[TAB_CONFIG], IDC3DVMODE);
 
 	mode3d = checkvideomode(&settings.xdim3d, &settings.ydim3d, settings.bpp3d, settings.fullscreen, 1);
 	if (mode3d < 0) {
@@ -47,8 +49,8 @@ static void PopulateForm(void)
 		}
 	}
 
-	Button_SetCheck(GetDlgItem(pages[0], IDCFULLSCREEN), (settings.fullscreen ? BST_CHECKED : BST_UNCHECKED));
-	Button_SetCheck(GetDlgItem(pages[0], IDCALWAYSSHOW), (settings.forcesetup ? BST_CHECKED : BST_UNCHECKED));
+	Button_SetCheck(GetDlgItem(pages[TAB_CONFIG], IDCFULLSCREEN), (settings.fullscreen ? BST_CHECKED : BST_UNCHECKED));
+	Button_SetCheck(GetDlgItem(pages[TAB_CONFIG], IDCALWAYSSHOW), (settings.forcesetup ? BST_CHECKED : BST_UNCHECKED));
 	
 	ComboBox_ResetContent(hwnd3d);
 	for (i=0; i<validmodecnt; i++) {
@@ -104,15 +106,15 @@ static void SetPage(int n)
 	cur = (int)SendMessage(tab, TCM_GETCURSEL,0,0);
 	ShowWindow(pages[cur],SW_HIDE);
 	SendMessage(tab, TCM_SETCURSEL, n, 0);
-	ShowWindow(pages[n],SW_SHOWDEFAULT);
+	ShowWindow(pages[n],SW_SHOW);
 }
 
 static void EnableConfig(int n)
 {
 	EnableWindow(GetDlgItem(startupdlg, WIN_STARTWIN_CANCEL), n);
 	EnableWindow(GetDlgItem(startupdlg, WIN_STARTWIN_START), n);
-	EnableWindow(GetDlgItem(pages[0], IDCFULLSCREEN), n);
-	EnableWindow(GetDlgItem(pages[0], IDC3DVMODE), n);
+	EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDCFULLSCREEN), n);
+	EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC3DVMODE), n);
 }
 
 static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -204,19 +206,21 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 				r.left += rtab.left;
 
 				// Create the pages and position them in the tab control, but hide them
-				pages[0] = CreateDialog((HINSTANCE)win_gethinstance(),
+				pages[TAB_CONFIG] = CreateDialog((HINSTANCE)win_gethinstance(),
 					MAKEINTRESOURCE(WIN_STARTWINPAGE_CONFIG), hwndDlg, ConfigPageProc);
-				pages[1] = GetDlgItem(hwndDlg, WIN_STARTWIN_MESSAGES);
-				SetWindowPos(pages[0], hwnd,r.left,r.top,r.right,r.bottom,SWP_HIDEWINDOW);
-				SetWindowPos(pages[1], hwnd,r.left,r.top,r.right,r.bottom,SWP_HIDEWINDOW);
+				pages[TAB_MESSAGES] = GetDlgItem(hwndDlg, WIN_STARTWIN_MESSAGES);
+				SetWindowPos(pages[TAB_CONFIG], hwnd,r.left,r.top,r.right,r.bottom,SWP_HIDEWINDOW);
+				SetWindowPos(pages[TAB_MESSAGES], hwnd,r.left,r.top,r.right,r.bottom,SWP_HIDEWINDOW);
 
 				// Tell the editfield acting as the console to exclude the width of the scrollbar
-				GetClientRect(pages[1],&r);
+				GetClientRect(pages[TAB_MESSAGES],&r);
 				r.right -= GetSystemMetrics(SM_CXVSCROLL)+4;
 				r.left = r.top = 0;
-				SendMessage(pages[1], EM_SETRECTNP,0,(LPARAM)&r);
+				SendMessage(pages[TAB_MESSAGES], EM_SETRECTNP,0,(LPARAM)&r);
+
+				SetFocus(GetDlgItem(hwndDlg, WIN_STARTWIN_START));
 			}
-			return TRUE;
+			return FALSE;
 		}
 
 		case WM_NOTIFY: {
@@ -232,7 +236,7 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 				}
 				case TCN_SELCHANGE: {
 					if (cur < 0 || !pages[cur]) break;
-					ShowWindow(pages[cur],SW_SHOWDEFAULT);
+					ShowWindow(pages[cur],SW_SHOW);
 					return TRUE;
 				}
 			}
@@ -249,9 +253,9 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 				hbmp = NULL;
 			}
 
-			if (pages[0]) {
-				DestroyWindow(pages[0]);
-				pages[0] = NULL;
+			if (pages[TAB_CONFIG]) {
+				DestroyWindow(pages[TAB_CONFIG]);
+				pages[TAB_CONFIG] = NULL;
 			}
 
 			startupdlg = NULL;
@@ -265,7 +269,7 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 			return FALSE;
 
 		case WM_CTLCOLORSTATIC:
-			if ((HWND)lParam == pages[1])
+			if ((HWND)lParam == pages[TAB_MESSAGES])
 				return (BOOL)GetSysColorBrush(COLOR_WINDOW);
 			break;
 
@@ -285,7 +289,7 @@ int startwin_open(void)
 	InitCommonControlsEx(&icc);
 	startupdlg = CreateDialog((HINSTANCE)win_gethinstance(), MAKEINTRESOURCE(WIN_STARTWIN), NULL, startup_dlgproc);
 	if (startupdlg) {
-		SetPage(1);
+		SetPage(TAB_MESSAGES);
 		EnableConfig(0);
 		return 0;
 	}
@@ -307,13 +311,16 @@ int startwin_puts(const char *buf)
 	static int newline = 0;
 	int curlen, linesbefore, linesafter;
 	HWND edctl;
+	int vis;
 
 	if (!startupdlg) return 1;
 	
-	edctl = pages[1];
+	edctl = pages[TAB_MESSAGES];
 	if (!edctl) return -1;
 
-	SendMessage(edctl, WM_SETREDRAW, FALSE,0);
+	vis = ((int)SendMessage(GetDlgItem(startupdlg, WIN_STARTWIN_TABCTL), TCM_GETCURSEL,0,0) == TAB_MESSAGES);
+	
+	if (vis) SendMessage(edctl, WM_SETREDRAW, FALSE,0);
 	curlen = SendMessage(edctl, WM_GETTEXTLENGTH, 0,0);
 	SendMessage(edctl, EM_SETSEL, (WPARAM)curlen, (LPARAM)curlen);
 	linesbefore = SendMessage(edctl, EM_GETLINECOUNT, 0,0);
@@ -344,7 +351,7 @@ int startwin_puts(const char *buf)
 	}
 	linesafter = SendMessage(edctl, EM_GETLINECOUNT, 0,0);
 	SendMessage(edctl, EM_LINESCROLL, 0, linesafter-linesbefore);
-	SendMessage(edctl, WM_SETREDRAW, TRUE,0);
+	if (vis) SendMessage(edctl, WM_SETREDRAW, TRUE,0);
 	return 0;
 }
 
@@ -359,9 +366,10 @@ int startwin_idle(void *v)
 {
 	if (!startupdlg || !IsWindow(startupdlg)) return 0;
 	if (IsDialogMessage(startupdlg, (MSG*)v)) return 1;
-	//if (IsDialogMessage(pages[0], (MSG*)v)) return 1;
 	return 0;
 }
+
+extern int xdimgame, ydimgame, bppgame, forcesetup;
 
 int startwin_run(void)
 {
@@ -370,7 +378,7 @@ int startwin_run(void)
 
 	done = -1;
 
-	SetPage(0);
+	SetPage(TAB_CONFIG);
 	EnableConfig(1);
 
 	settings.fullscreen = fullscreen;
@@ -392,7 +400,7 @@ int startwin_run(void)
 		}
 	}
 
-	SetPage(1);
+	SetPage(TAB_MESSAGES);
 	EnableConfig(0);
 	if (done) {
 		fullscreen = settings.fullscreen;

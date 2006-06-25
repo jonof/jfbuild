@@ -30,8 +30,8 @@ $(OBJ)winlayer.$o: $(SRC)winlayer.c $(INC)compat.h $(INC)winlayer.h $(INC)basela
 $(OBJ)gtkbits.$o: $(SRC)gtkbits.c $(INC)baselayer.h $(INC)build.h
 
 $(OBJ)gameres.$(res): $(SRC)misc/gameres.rc $(SRC)startwin.game.h
-$(OBJ)buildres.$(res): $(SRC)misc/buildres.rc $(SRC)startwin.editor.h
-$(OBJ)startwin.editor.$o: $(SRC)startwin.editor.c $(INC)build.h $(INC)editor.h $(INC)winlayer.h $(INC)compat.h $(SRC)startwin.editor.h
+$(OBJ)buildres.$(res): $(SRC)misc/buildres.rc $(INC)startwin.editor.h
+$(OBJ)startwin.editor.$o: $(SRC)startwin.editor.c $(INC)build.h $(INC)editor.h $(INC)winlayer.h $(INC)compat.h $(INC)startwin.editor.h
 $(OBJ)startwin.game.$o: $(SRC)startwin.game.c $(INC)build.h $(INC)editor.h $(INC)winlayer.h $(INC)compat.h $(SRC)startwin.game.h
 
 $(OBJ)game_icon.$o: $(RSRC)game_icon.c
