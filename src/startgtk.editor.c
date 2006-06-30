@@ -290,7 +290,7 @@ static GtkWidget *create_window(void)
 	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(vmode2dcombo), cell, "text", 0, NULL);
   }
   gtk_widget_show (vmode2dcombo);
-  gtk_fixed_put (GTK_FIXED (configlayout), vmode2dcombo, 88, 0);
+  gtk_fixed_put (GTK_FIXED (configlayout), vmode2dcombo, 96, 0);
   gtk_widget_set_size_request (vmode2dcombo, 150, 29);
   gtk_widget_add_accelerator (vmode2dcombo, "grab_focus", accel_group,
                               GDK_2, GDK_MOD1_MASK,
@@ -309,7 +309,7 @@ static GtkWidget *create_window(void)
 	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(vmode3dcombo), cell, "text", 0, NULL);
   }
   gtk_widget_show (vmode3dcombo);
-  gtk_fixed_put (GTK_FIXED (configlayout), vmode3dcombo, 88, 32);
+  gtk_fixed_put (GTK_FIXED (configlayout), vmode3dcombo, 96, 32);
   gtk_widget_set_size_request (vmode3dcombo, 150, 29);
   gtk_widget_add_accelerator (vmode3dcombo, "grab_focus", accel_group,
                               GDK_3, GDK_MOD1_MASK,

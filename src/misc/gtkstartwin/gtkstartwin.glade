@@ -115,35 +115,6 @@
 		      </child>
 
 		      <child>
-			<widget class="GtkComboBox" id="vmode2dcombo">
-			  <property name="width_request">150</property>
-			  <property name="height_request">29</property>
-			  <property name="visible">True</property>
-			  <property name="items" translatable="yes"></property>
-			  <signal name="changed" handler="on_vmode2dcombo_changed" last_modification_time="Fri, 30 Jun 2006 05:12:16 GMT"/>
-			  <accelerator key="2" modifiers="GDK_MOD1_MASK" signal="grab_focus"/>
-			</widget>
-			<packing>
-			  <property name="x">88</property>
-			  <property name="y">0</property>
-			</packing>
-		      </child>
-
-		      <child>
-			<widget class="GtkComboBox" id="vmode3dcombo">
-			  <property name="width_request">150</property>
-			  <property name="height_request">29</property>
-			  <property name="visible">True</property>
-			  <signal name="changed" handler="on_vmode3dcombo_changed" last_modification_time="Fri, 30 Jun 2006 05:12:25 GMT"/>
-			  <accelerator key="3" modifiers="GDK_MOD1_MASK" signal="grab_focus"/>
-			</widget>
-			<packing>
-			  <property name="x">88</property>
-			  <property name="y">32</property>
-			</packing>
-		      </child>
-
-		      <child>
 			<widget class="GtkCheckButton" id="fullscreencheck">
 			  <property name="width_request">85</property>
 			  <property name="height_request">29</property>
@@ -162,6 +133,35 @@
 			<packing>
 			  <property name="x">248</property>
 			  <property name="y">0</property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkComboBox" id="vmode2dcombo">
+			  <property name="width_request">150</property>
+			  <property name="height_request">29</property>
+			  <property name="visible">True</property>
+			  <property name="items" translatable="yes"></property>
+			  <signal name="changed" handler="on_vmode2dcombo_changed" last_modification_time="Fri, 30 Jun 2006 05:12:16 GMT"/>
+			  <accelerator key="2" modifiers="GDK_MOD1_MASK" signal="grab_focus"/>
+			</widget>
+			<packing>
+			  <property name="x">96</property>
+			  <property name="y">0</property>
+			</packing>
+		      </child>
+
+		      <child>
+			<widget class="GtkComboBox" id="vmode3dcombo">
+			  <property name="width_request">150</property>
+			  <property name="height_request">29</property>
+			  <property name="visible">True</property>
+			  <signal name="changed" handler="on_vmode3dcombo_changed" last_modification_time="Fri, 30 Jun 2006 05:12:25 GMT"/>
+			  <accelerator key="3" modifiers="GDK_MOD1_MASK" signal="grab_focus"/>
+			</widget>
+			<packing>
+			  <property name="x">96</property>
+			  <property name="y">32</property>
 			</packing>
 		      </child>
 		    </widget>
