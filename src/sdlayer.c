@@ -30,7 +30,7 @@
 int startwin_open(void) { return 0; }
 int startwin_close(void) { return 0; }
 int startwin_puts(const char *s) { s=s; return 0; }
-int startwin_idle(void *) { return 0; }
+int startwin_idle(void *s) { return 0; }
 int startwin_settitle(const char *s) { s=s; return 0; }
 #endif
 
@@ -821,7 +821,7 @@ int setvideomode(int x, int y, int c, int fs)
 		return 0;
 	}
 
-	if (checkvideomode(&x,&y,c,fs) < 0) return -1;
+	if (checkvideomode(&x,&y,c,fs,0) < 0) return -1;
 
 	startwin_close();
 
@@ -1377,7 +1377,7 @@ int handleevents(void)
 	}
 
 	sampletimer();
-	startwin_idle();
+	startwin_idle(NULL);
 #undef SetKey
 
 	return rv;

@@ -60,7 +60,7 @@ ifeq ($(PLATFORM),LINUX)
 		# on my 64bit Gentoo these are the 32bit emulation libs
 		LIBS+= -m32 -L/emul/linux/x86/usr/lib
 		BUILDCFLAGS+= -m32
-		override WITHOUT_GTK=1
+		override WITHOUT_GTK=0
 	endif
 endif
 ifeq ($(PLATFORM),WINDOWS)

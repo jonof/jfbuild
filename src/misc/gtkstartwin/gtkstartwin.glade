@@ -9,13 +9,14 @@
   <property name="type">GTK_WINDOW_TOPLEVEL</property>
   <property name="window_position">GTK_WIN_POS_CENTER</property>
   <property name="modal">False</property>
-  <property name="resizable">True</property>
+  <property name="resizable">False</property>
   <property name="destroy_with_parent">False</property>
   <property name="decorated">True</property>
   <property name="skip_taskbar_hint">False</property>
   <property name="skip_pager_hint">False</property>
   <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
+  <signal name="delete_event" handler="on_startwin_delete_event" last_modification_time="Fri, 30 Jun 2006 05:55:35 GMT"/>
 
   <child>
     <widget class="GtkHBox" id="hlayout">
