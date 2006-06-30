@@ -16,6 +16,7 @@
 #include <gtk/gtk.h>
 
 #include "baselayer.h"
+#include "compat.h"
 #include "build.h"
 #include "editor.h"
 
@@ -68,11 +69,18 @@ static void EnableConfig(int n)
 			(GtkCallback)gtk_widget_set_sensitive, (gpointer)mode);
 }
 
-static void fixvidmodes(int *m2, int *m3)
+static void on_vmode2dcombo_changed(GtkComboBox *, gpointer);
+static void on_vmode3dcombo_changed(GtkComboBox *, gpointer);
+static void PopulateForm(void)
 {
-	int mode2d, mode3d;
-	mode2d = x;
-	mode3d = y;
+	int mode2d, mode3d, i;
+	GtkListStore *modes2d, *modes3d;
+	GtkTreeIter iter;
+	GtkComboBox *box2d, *box3d;
+	char buf[64];
+
+	mode2d = checkvideomode(&settings.xdim2d, &settings.ydim2d, 8, settings.fullscreen, 1);
+	mode3d = checkvideomode(&settings.xdim3d, &settings.ydim3d, settings.bpp3d, settings.fullscreen, 1);
 	if (mode2d < 0) mode2d = 0;
 	if (mode3d < 0) {
 		int i, cd[] = { 32, 24, 16, 15, 8, 0 };
@@ -85,24 +93,13 @@ static void fixvidmodes(int *m2, int *m3)
 		}
 	}
 
-	*m2 = mode2d;
-	*m3 = mode3d;
-}
-
-static void PopulateForm(void)
-{
-	int mode2d, mode3d, haveiters = 0;
-	GtkListStore *modes2d, *modes3d;
-	GtkTreeIter iter, iter2d, iter3d;
-	char buf[64];
-
-	fixvidmodes(&mode2d, &mode3d);
-	
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget(startwin,"fullscreencheck")), settings.fullscreen);
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget(startwin,"alwaysshowcheck")), settings.forcesetup);
 
-	modes2d = GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(lookup_widget(startwin,"vmode2dcombo"))));
-	modes3d = GTK_LIST_STORE(gtk_combo_box_get_model(GTK_COMBO_BOX(lookup_widget(startwin,"vmode3dcombo"))));
+	box2d = GTK_COMBO_BOX(lookup_widget(startwin,"vmode2dcombo"));
+	box3d = GTK_COMBO_BOX(lookup_widget(startwin,"vmode3dcombo"));
+	modes2d = GTK_LIST_STORE(gtk_combo_box_get_model(box2d));
+	modes3d = GTK_LIST_STORE(gtk_combo_box_get_model(box3d));
 	gtk_list_store_clear(modes2d);
 	gtk_list_store_clear(modes3d);
 
@@ -114,8 +111,9 @@ static void PopulateForm(void)
 		gtk_list_store_append(modes3d, &iter);
 		gtk_list_store_set(modes3d, &iter, 0,buf, 1,i, -1);
 		if (i == mode3d) {
-			iter3d = iter;
-			haveiters |= 1;
+			g_signal_handlers_block_by_func(box3d, on_vmode3dcombo_changed, NULL);
+			gtk_combo_box_set_active_iter(box3d, &iter);
+			g_signal_handlers_unblock_by_func(box3d, on_vmode3dcombo_changed, NULL);
 		}
 		
 		// only 8-bit modes get used for 2D
@@ -124,13 +122,11 @@ static void PopulateForm(void)
 		gtk_list_store_append(modes2d, &iter);
 		gtk_list_store_set(modes2d, &iter, 0,buf, 1,i, -1);
 		if (i == mode2d) {
-			iter2d = iter;
-			haveiters |= 2;
+			g_signal_handlers_block_by_func(box2d, on_vmode2dcombo_changed, NULL);
+			gtk_combo_box_set_active_iter(box2d, &iter);
+			g_signal_handlers_unblock_by_func(box2d, on_vmode2dcombo_changed, NULL);
 		}
 	}
-
-	if (haveiters&2) gtk_combo_box_set_active_iter(GTK_COMBO_BOX(lookup_widget(startwin,"vmode2dcombo")), &iter2d);
-	if (haveiters&1) gtk_combo_box_set_active_iter(GTK_COMBO_BOX(lookup_widget(startwin,"vmode3dcombo")), &iter3d);
 }
 
 // -- EVENT CALLBACKS AND CREATION STUFF --------------------------------------
@@ -140,9 +136,9 @@ static void on_vmode2dcombo_changed(GtkComboBox *combobox, gpointer user_data)
 	GtkTreeModel *data;
 	GtkTreeIter iter;
 	int val;
-	if (!(data = gtk_combo_box_get_model(combobox))) return;
 	if (!gtk_combo_box_get_active_iter(combobox, &iter)) return;
-	gtk_tree_model_get(data, &iter, 1, &val);
+	if (!(data = gtk_combo_box_get_model(combobox))) return;
+	gtk_tree_model_get(data, &iter, 1, &val, -1);
 	settings.xdim2d = validmode[val].xdim;
 	settings.ydim2d = validmode[val].ydim;
 }
@@ -152,9 +148,9 @@ static void on_vmode3dcombo_changed(GtkComboBox *combobox, gpointer user_data)
 	GtkTreeModel *data;
 	GtkTreeIter iter;
 	int val;
-	if (!(data = gtk_combo_box_get_model(combobox))) return;
 	if (!gtk_combo_box_get_active_iter(combobox, &iter)) return;
-	gtk_tree_model_get(data, &iter, 1, &val);
+	if (!(data = gtk_combo_box_get_model(combobox))) return;
+	gtk_tree_model_get(data, &iter, 1, &val, -1);
 	settings.xdim3d = validmode[val].xdim;
 	settings.ydim3d = validmode[val].ydim;
 }
@@ -283,26 +279,38 @@ static GtkWidget *create_window(void)
 
   // 2D video mode combo
   {
-	  GtkListStore *list = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_INT);
-	  vmode2dcombo = gtk_combo_box_new_with_model (list);
-	  g_object_unref(G_OBJECT(list));
+	GtkListStore *list = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_INT);
+	GtkCellRenderer *cell;
+
+	vmode2dcombo = gtk_combo_box_new_with_model (GTK_TREE_MODEL(list));
+	g_object_unref(G_OBJECT(list));
+
+	cell = gtk_cell_renderer_text_new();
+	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(vmode2dcombo), cell, FALSE);
+	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(vmode2dcombo), cell, "text", 0, NULL);
   }
   gtk_widget_show (vmode2dcombo);
   gtk_fixed_put (GTK_FIXED (configlayout), vmode2dcombo, 88, 0);
-  gtk_widget_set_size_request (vmode2dcombo, 180, 29);
+  gtk_widget_set_size_request (vmode2dcombo, 150, 29);
   gtk_widget_add_accelerator (vmode2dcombo, "grab_focus", accel_group,
                               GDK_2, GDK_MOD1_MASK,
                               GTK_ACCEL_VISIBLE);
 
   // 3D video mode combo
   {
-	  GtkListStore *list = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_INT);
-	  vmode3dcombo = gtk_combo_box_new_with_model (list);
-	  g_object_unref(G_OBJECT(list));
+	GtkListStore *list = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_INT);
+	GtkCellRenderer *cell;
+
+	vmode3dcombo = gtk_combo_box_new_with_model (GTK_TREE_MODEL(list));
+	g_object_unref(G_OBJECT(list));
+
+	cell = gtk_cell_renderer_text_new();
+	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(vmode3dcombo), cell, FALSE);
+	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(vmode3dcombo), cell, "text", 0, NULL);
   }
   gtk_widget_show (vmode3dcombo);
   gtk_fixed_put (GTK_FIXED (configlayout), vmode3dcombo, 88, 32);
-  gtk_widget_set_size_request (vmode3dcombo, 180, 29);
+  gtk_widget_set_size_request (vmode3dcombo, 150, 29);
   gtk_widget_add_accelerator (vmode3dcombo, "grab_focus", accel_group,
                               GDK_3, GDK_MOD1_MASK,
                               GTK_ACCEL_VISIBLE);
@@ -310,7 +318,7 @@ static GtkWidget *create_window(void)
   // Fullscreen checkbox
   fullscreencheck = gtk_check_button_new_with_mnemonic ("_Fullscreen");
   gtk_widget_show (fullscreencheck);
-  gtk_fixed_put (GTK_FIXED (configlayout), fullscreencheck, 272, 0);
+  gtk_fixed_put (GTK_FIXED (configlayout), fullscreencheck, 248, 0);
   gtk_widget_set_size_request (fullscreencheck, 85, 29);
   gtk_widget_add_accelerator (fullscreencheck, "grab_focus", accel_group,
                               GDK_F, GDK_MOD1_MASK,
@@ -558,7 +566,7 @@ int startwin_settitle(const char *title)
 int startwin_idle(void *s)
 {
 	if (!gtkenabled) return 0;
-	if (!startwin) return 1;
+	//if (!startwin) return 1;
   	gtk_main_iteration_do (FALSE);
   	return 0;
 }

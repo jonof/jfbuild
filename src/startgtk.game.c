@@ -16,6 +16,7 @@
 #include <gtk/gtk.h>
 
 #include "baselayer.h"
+#include "compat.h"
 #include "build.h"
 
 #define TAB_CONFIG 0
@@ -66,15 +67,61 @@ static void EnableConfig(int n)
 			(GtkCallback)gtk_widget_set_sensitive, (gpointer)mode);
 }
 
+static void on_vmode3dcombo_changed(GtkComboBox *, gpointer);
 static void PopulateForm(void)
 {
+	int mode3d, i;
+	GtkListStore *modes3d;
+	GtkTreeIter iter;
+	GtkComboBox *box3d;
+	char buf[64];
+
+	mode3d = checkvideomode(&settings.xdim3d, &settings.ydim3d, settings.bpp3d, settings.fullscreen, 1);
+	if (mode3d < 0) {
+		int i, cd[] = { 32, 24, 16, 15, 8, 0 };
+		for (i=0; cd[i]; ) { if (cd[i] >= settings.bpp3d) i++; else break; }
+		for ( ; cd[i]; i++) {
+			mode3d = checkvideomode(&settings.xdim3d, &settings.ydim3d, cd[i], settings.fullscreen, 1);
+			if (mode3d < 0) continue;
+			settings.bpp3d = cd[i];
+			break;
+		}
+	}
+
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget(startwin,"fullscreencheck")), settings.fullscreen);
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(lookup_widget(startwin,"alwaysshowcheck")), settings.forcesetup);
+
+	box3d = GTK_COMBO_BOX(lookup_widget(startwin,"vmode3dcombo"));
+	modes3d = GTK_LIST_STORE(gtk_combo_box_get_model(box3d));
+	gtk_list_store_clear(modes3d);
+
+	for (i=0; i<validmodecnt; i++) {
+		if (validmode[i].fs != settings.fullscreen) continue;
+
+		// all modes get added to the 3D mode list
+		Bsprintf(buf, "%ld x %ld %dbpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
+		gtk_list_store_append(modes3d, &iter);
+		gtk_list_store_set(modes3d, &iter, 0,buf, 1,i, -1);
+		if (i == mode3d) {
+			g_signal_handlers_block_by_func(box3d, on_vmode3dcombo_changed, NULL);
+			gtk_combo_box_set_active_iter(box3d, &iter);
+			g_signal_handlers_unblock_by_func(box3d, on_vmode3dcombo_changed, NULL);
+		}
+	}
 }
 
 // -- EVENT CALLBACKS AND CREATION STUFF --------------------------------------
 
 static void on_vmode3dcombo_changed(GtkComboBox *combobox, gpointer user_data)
 {
-
+	GtkTreeModel *data;
+	GtkTreeIter iter;
+	int val;
+	if (!gtk_combo_box_get_active_iter(combobox, &iter)) return;
+	if (!(data = gtk_combo_box_get_model(combobox))) return;
+	gtk_tree_model_get(data, &iter, 1, &val, -1);
+	settings.xdim3d = validmode[val].xdim;
+	settings.ydim3d = validmode[val].ydim;
 }
 
 static void on_fullscreencheck_toggled(GtkToggleButton *togglebutton, gpointer user_data)
@@ -191,10 +238,20 @@ static GtkWidget *create_window(void)
   gtk_misc_set_alignment (GTK_MISC (vmode3dlabel), 0, 0.5);
 
   // 3D video mode combo
-  vmode3dcombo = gtk_combo_box_new_text ();
+  {
+	GtkListStore *list = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_INT);
+	GtkCellRenderer *cell;
+
+	vmode3dcombo = gtk_combo_box_new_with_model (GTK_TREE_MODEL(list));
+	g_object_unref(G_OBJECT(list));
+
+	cell = gtk_cell_renderer_text_new();
+	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(vmode3dcombo), cell, FALSE);
+	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(vmode3dcombo), cell, "text", 0, NULL);
+  }
   gtk_widget_show (vmode3dcombo);
   gtk_fixed_put (GTK_FIXED (configlayout), vmode3dcombo, 88, 0);
-  gtk_widget_set_size_request (vmode3dcombo, 180, 29);
+  gtk_widget_set_size_request (vmode3dcombo, 150, 29);
   gtk_widget_add_accelerator (vmode3dcombo, "grab_focus", accel_group,
                               GDK_V, GDK_MOD1_MASK,
                               GTK_ACCEL_VISIBLE);
@@ -202,7 +259,7 @@ static GtkWidget *create_window(void)
   // Fullscreen checkbox
   fullscreencheck = gtk_check_button_new_with_mnemonic ("_Fullscreen");
   gtk_widget_show (fullscreencheck);
-  gtk_fixed_put (GTK_FIXED (configlayout), fullscreencheck, 272, 0);
+  gtk_fixed_put (GTK_FIXED (configlayout), fullscreencheck, 248, 0);
   gtk_widget_set_size_request (fullscreencheck, 85, 29);
   gtk_widget_add_accelerator (fullscreencheck, "grab_focus", accel_group,
                               GDK_F, GDK_MOD1_MASK,
@@ -232,6 +289,7 @@ static GtkWidget *create_window(void)
   gtk_widget_show (messagestext);
   gtk_container_add (GTK_CONTAINER (messagesscroll), messagestext);
   gtk_text_view_set_editable (GTK_TEXT_VIEW (messagestext), FALSE);
+  gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (messagestext), GTK_WRAP_WORD);
   gtk_text_view_set_cursor_visible (GTK_TEXT_VIEW (messagestext), FALSE);
   gtk_text_view_set_left_margin (GTK_TEXT_VIEW (messagestext), 2);
   gtk_text_view_set_right_margin (GTK_TEXT_VIEW (messagestext), 2);
@@ -443,7 +501,7 @@ int startwin_settitle(const char *title)
 int startwin_idle(void *s)
 {
 	if (!gtkenabled) return 0;
-	if (!startwin) return 1;
+	//if (!startwin) return 1;
   	gtk_main_iteration_do (FALSE);
   	return 0;
 }
