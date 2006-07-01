@@ -15,6 +15,10 @@
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
+#ifndef LINKED_GTK
+# include "dynamicgtk.h"
+#endif
+
 #include "baselayer.h"
 #include "compat.h"
 #include "build.h"
