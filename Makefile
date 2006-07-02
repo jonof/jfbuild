@@ -37,6 +37,7 @@ FMODROOTWIN=c:/sdks/fmodapi374win/api
 # build locations - OBJ gets overridden to the game-specific objects dir
 OBJ?=obj.gnu/
 SRC=src/
+GAME=game/
 RSRC=rsrc/
 INC=include/
 
@@ -62,8 +63,9 @@ AR=ar
 RANLIB=ranlib
 OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
-	-DKSFORBUILD -I$(INC:/=) -I../jfaud/inc
+	-DKSFORBUILD -I$(INC:/=)
 OURCXXFLAGS=-fno-exceptions -fno-rtti
+GAMECFLAGS=-I../jfaud/inc -I$(GAME)
 LIBS=
 GAMELIBS=../jfaud/libjfaud.a #../jfaud/mpadec/libmpadec/libmpadec.a
 ASFLAGS=-s #-g
@@ -233,17 +235,20 @@ $(OBJ)%.$o: $(SRC)%.c
 $(OBJ)%.$o: $(SRC)%.cpp
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
-$(OBJ)%.$o: $(SRC)tmp/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
-
 $(OBJ)%.$o: $(SRC)misc/%.rc
-	$(RC) -i $< -o $@ --include-dir=$(INC) --include-dir=$(SRC)
+	$(RC) -i $< -o $@ --include-dir=$(INC) --include-dir=$(SRC) --include-dir=$(GAME)
 
 $(OBJ)%.$o: $(SRC)util/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)%.$o: $(RSRC)%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+
+$(OBJ)%.$o: $(GAME)%.c
+	$(CC) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@ 2>&1
+
+$(OBJ)%.$o: $(GAME)%.cpp
+	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)game_banner.$o: $(RSRC)game_banner.c
 $(OBJ)editor_banner.$o: $(RSRC)editor_banner.c
