@@ -4,7 +4,7 @@
 !endif
 
 SRC=src\ #
-GAME=game\ #
+GAME=testgame\ #
 !ifndef OBJ
 OBJ=obj.msc\ #
 !endif
