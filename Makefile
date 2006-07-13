@@ -221,6 +221,8 @@ cacheinfo$(EXESUFFIX): $(OBJ)cacheinfo.$o $(OBJ)compat.$o
 	$(CC) -o $@ $^
 enumdisplay$(EXESUFFIX): src/misc/enumdisplay.c
 	$(CC) -g -Os -o $@ $^ -I$(DXROOT)/include -lgdi32
+mapdump$(EXESUFFIX): $(OBJ)mapdump.$o
+	$(CC) -o $@ $^
 
 # DEPENDENCIES
 include Makefile.deps

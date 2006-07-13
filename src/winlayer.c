@@ -522,14 +522,6 @@ int handleevents(void)
 
 	ProcessInputDevices();
 
-#ifdef DEBUGGINGAIDS
-	// break to the debugger if KP- is pressed
-	if (IsDebuggerPresent() && keystatus[0x4a]) {
-		keystatus[0x4a] = 0;
-		DebugBreak();
-	}
-#endif
-
 	if (!appactive || quitevent) rv = -1;
 
 	sampletimer();
@@ -1341,7 +1333,8 @@ static void ProcessInputDevices(void)
 						k = didod[i].dwOfs;
 
 						if (k == DIK_PAUSE) continue;	// fucking pause
-						
+						//if (IsDebuggerPresent() && k == DIK_F12) continue;
+
 						// hook in the osd
 						if (OSD_HandleKey(k, (didod[i].dwData & 0x80)) != 0) {
 							SetKey(k, (didod[i].dwData & 0x80) == 0x80);
