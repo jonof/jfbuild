@@ -178,7 +178,7 @@
 			children = (
 				AB73601B0A29AA70003261DC /* libengine.a */,
 				AB73601D0A29AA70003261DC /* libeditor.a */,
-				AB73601F0A29AA70003261DC /* libengine.a */,
+				AB73601F0A29AA70003261DC /* libenginez.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -349,10 +349,10 @@
 			remoteRef = AB73601C0A29AA70003261DC /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		AB73601F0A29AA70003261DC /* libengine.a */ = {
+		AB73601F0A29AA70003261DC /* libenginez.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
-			path = libengine.a;
+			path = libenginez.a;
 			remoteRef = AB73601E0A29AA70003261DC /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};

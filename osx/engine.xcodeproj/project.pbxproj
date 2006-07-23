@@ -128,7 +128,7 @@
 		AB735FC30A29A8E5003261DC /* config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = config.c; sourceTree = "<group>"; };
 		AB735FC60A29A8FD003261DC /* editor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = editor.h; sourceTree = "<group>"; };
 		AB735FCC0A29A916003261DC /* libeditor.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditor.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		AB7360030A29A9B3003261DC /* libengine.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libengine.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB7360030A29A9B3003261DC /* libenginez.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libenginez.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7360410A29AD2F003261DC /* osxmain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osxmain.h; sourceTree = "<group>"; };
 		AB7360440A29AD3A003261DC /* osxmain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = osxmain.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -172,7 +172,7 @@
 			children = (
 				AB735F490A29A2DC003261DC /* libengine.a */,
 				AB735FCC0A29A916003261DC /* libeditor.a */,
-				AB7360030A29A9B3003261DC /* libengine.a */,
+				AB7360030A29A9B3003261DC /* libenginez.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -379,7 +379,7 @@
 			);
 			name = enginez;
 			productName = engine;
-			productReference = AB7360030A29A9B3003261DC /* libengine.a */;
+			productReference = AB7360030A29A9B3003261DC /* libenginez.a */;
 			productType = "com.apple.product-type.library.static";
 		};
 /* End PBXNativeTarget section */
@@ -579,7 +579,7 @@
 					SETSPRITEZ,
 				);
 				PREBINDING = NO;
-				PRODUCT_NAME = engine;
+				PRODUCT_NAME = enginez;
 			};
 			name = Debug;
 		};
@@ -592,7 +592,7 @@
 					SETSPRITEZ,
 				);
 				PREBINDING = NO;
-				PRODUCT_NAME = engine;
+				PRODUCT_NAME = enginez;
 			};
 			name = Release;
 		};
