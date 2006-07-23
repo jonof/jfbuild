@@ -37,14 +37,11 @@
 		AB735F900A29A44C003261DC /* lzf.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7F0A29A44C003261DC /* lzf.h */; };
 		AB735F910A29A44C003261DC /* md4.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F800A29A44C003261DC /* md4.h */; };
 		AB735F920A29A44C003261DC /* mmulti.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F810A29A44C003261DC /* mmulti.h */; };
-		AB735F930A29A44C003261DC /* names.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F820A29A44C003261DC /* names.h */; };
 		AB735F940A29A44C003261DC /* osd.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F830A29A44C003261DC /* osd.h */; };
 		AB735F950A29A44C003261DC /* osxbits.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F840A29A44C003261DC /* osxbits.h */; };
 		AB735F960A29A44C003261DC /* pragmas.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F850A29A44C003261DC /* pragmas.h */; };
 		AB735F970A29A44C003261DC /* scriptfile.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F860A29A44C003261DC /* scriptfile.h */; };
 		AB735F980A29A44C003261DC /* sdlayer.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F870A29A44C003261DC /* sdlayer.h */; };
-		AB735FC40A29A8E5003261DC /* build.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC20A29A8E5003261DC /* build.c */; };
-		AB735FC50A29A8E5003261DC /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC30A29A8E5003261DC /* config.c */; };
 		AB735FC70A29A8FD003261DC /* editor.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735FC60A29A8FD003261DC /* editor.h */; };
 		AB735FD00A29A994003261DC /* editor.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735FC60A29A8FD003261DC /* editor.h */; };
 		AB735FD10A29A99A003261DC /* build.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC20A29A8E5003261DC /* build.c */; };
@@ -60,7 +57,6 @@
 		AB735FDF0A29A9B3003261DC /* lzf.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7F0A29A44C003261DC /* lzf.h */; };
 		AB735FE00A29A9B3003261DC /* md4.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F800A29A44C003261DC /* md4.h */; };
 		AB735FE10A29A9B3003261DC /* mmulti.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F810A29A44C003261DC /* mmulti.h */; };
-		AB735FE20A29A9B3003261DC /* names.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F820A29A44C003261DC /* names.h */; };
 		AB735FE30A29A9B3003261DC /* osd.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F830A29A44C003261DC /* osd.h */; };
 		AB735FE40A29A9B3003261DC /* osxbits.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F840A29A44C003261DC /* osxbits.h */; };
 		AB735FE50A29A9B3003261DC /* pragmas.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F850A29A44C003261DC /* pragmas.h */; };
@@ -85,8 +81,6 @@
 		AB735FFA0A29A9B3003261DC /* pragmas.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5D0A29A39C003261DC /* pragmas.c */; };
 		AB735FFB0A29A9B3003261DC /* scriptfile.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5E0A29A39C003261DC /* scriptfile.c */; };
 		AB735FFC0A29A9B3003261DC /* sdlayer.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5F0A29A39C003261DC /* sdlayer.c */; };
-		AB735FFD0A29A9B3003261DC /* build.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC20A29A8E5003261DC /* build.c */; };
-		AB735FFE0A29A9B3003261DC /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC30A29A8E5003261DC /* config.c */; };
 		AB7360420A29AD2F003261DC /* osxmain.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7360410A29AD2F003261DC /* osxmain.h */; };
 		AB7360430A29AD2F003261DC /* osxmain.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7360410A29AD2F003261DC /* osxmain.h */; };
 		AB7360450A29AD3A003261DC /* osxmain.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7360440A29AD3A003261DC /* osxmain.m */; };
@@ -125,7 +119,6 @@
 		AB735F7F0A29A44C003261DC /* lzf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lzf.h; sourceTree = "<group>"; };
 		AB735F800A29A44C003261DC /* md4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = md4.h; sourceTree = "<group>"; };
 		AB735F810A29A44C003261DC /* mmulti.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mmulti.h; sourceTree = "<group>"; };
-		AB735F820A29A44C003261DC /* names.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = names.h; sourceTree = "<group>"; };
 		AB735F830A29A44C003261DC /* osd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osd.h; sourceTree = "<group>"; };
 		AB735F840A29A44C003261DC /* osxbits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osxbits.h; sourceTree = "<group>"; };
 		AB735F850A29A44C003261DC /* pragmas.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pragmas.h; sourceTree = "<group>"; };
@@ -234,7 +227,6 @@
 				AB735F7F0A29A44C003261DC /* lzf.h */,
 				AB735F800A29A44C003261DC /* md4.h */,
 				AB735F810A29A44C003261DC /* mmulti.h */,
-				AB735F820A29A44C003261DC /* names.h */,
 				AB735F830A29A44C003261DC /* osd.h */,
 				AB735F840A29A44C003261DC /* osxbits.h */,
 				AB7360410A29AD2F003261DC /* osxmain.h */,
@@ -293,7 +285,6 @@
 				AB735F900A29A44C003261DC /* lzf.h in Headers */,
 				AB735F910A29A44C003261DC /* md4.h in Headers */,
 				AB735F920A29A44C003261DC /* mmulti.h in Headers */,
-				AB735F930A29A44C003261DC /* names.h in Headers */,
 				AB735F940A29A44C003261DC /* osd.h in Headers */,
 				AB735F950A29A44C003261DC /* osxbits.h in Headers */,
 				AB735F960A29A44C003261DC /* pragmas.h in Headers */,
@@ -327,7 +318,6 @@
 				AB735FDF0A29A9B3003261DC /* lzf.h in Headers */,
 				AB735FE00A29A9B3003261DC /* md4.h in Headers */,
 				AB735FE10A29A9B3003261DC /* mmulti.h in Headers */,
-				AB735FE20A29A9B3003261DC /* names.h in Headers */,
 				AB735FE30A29A9B3003261DC /* osd.h in Headers */,
 				AB735FE40A29A9B3003261DC /* osxbits.h in Headers */,
 				AB735FE50A29A9B3003261DC /* pragmas.h in Headers */,
@@ -433,8 +423,6 @@
 				AB735F6F0A29A39D003261DC /* pragmas.c in Sources */,
 				AB735F700A29A39D003261DC /* scriptfile.c in Sources */,
 				AB735F710A29A39D003261DC /* sdlayer.c in Sources */,
-				AB735FC40A29A8E5003261DC /* build.c in Sources */,
-				AB735FC50A29A8E5003261DC /* config.c in Sources */,
 				AB7360450A29AD3A003261DC /* osxmain.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -471,8 +459,6 @@
 				AB735FFA0A29A9B3003261DC /* pragmas.c in Sources */,
 				AB735FFB0A29A9B3003261DC /* scriptfile.c in Sources */,
 				AB735FFC0A29A9B3003261DC /* sdlayer.c in Sources */,
-				AB735FFD0A29A9B3003261DC /* build.c in Sources */,
-				AB735FFE0A29A9B3003261DC /* config.c in Sources */,
 				AB7360460A29AD3A003261DC /* osxmain.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -488,6 +474,10 @@
 					i386,
 				);
 				COPY_PHASE_STRIP = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					/Library/Frameworks,
+					/System/Library/Frameworks,
+				);
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -518,6 +508,10 @@
 					i386,
 				);
 				COPY_PHASE_STRIP = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					/Library/Frameworks,
+					/System/Library/Frameworks,
+				);
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
