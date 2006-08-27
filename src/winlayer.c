@@ -92,7 +92,7 @@ static void ReleaseOpenGL(void);
 static void UninitOpenGL(void);
 static int SetupOpenGL(int width, int height, int bitspp);
 static BOOL RegisterWindowClass(void);
-static BOOL CreateAppWindow(int modenum, char *wtitle);
+static BOOL CreateAppWindow(int modenum);
 static void DestroyAppWindow(void);
 static void SaveSystemColours(void);
 static void SetBWSystemColours(void);
@@ -1796,7 +1796,7 @@ int setvideomode(int x, int y, int c, int fs)
 	initprintf("Setting video mode %dx%d (%d-bit %s)\n",
 			x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
 
-	if (CreateAppWindow(modenum, apptitle)) return -1;
+	if (CreateAppWindow(modenum)) return -1;
 
 	if (!gammabrightness) {
 		float f = 1.0 + ((float)curbrightness / 10.0);
@@ -2869,7 +2869,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 //
 // CreateAppWindow() -- create the application window
 //
-static BOOL CreateAppWindow(int modenum, char *wtitle)
+static BOOL CreateAppWindow(int modenum)
 {
 	RECT rect;
 	int w, h, x, y, stylebits = 0, stylebitsex = 0;
@@ -2966,7 +2966,7 @@ static BOOL CreateAppWindow(int modenum, char *wtitle)
 	}
 	SetWindowPos(hWindow, HWND_TOP, x, y, w, h, 0);
 
-	SetWindowText(hWindow, wtitle);
+	SetWindowText(hWindow, apptitle);
 	ShowWindow(hWindow, SW_SHOWNORMAL);
 	SetForegroundWindow(hWindow);
 	SetFocus(hWindow);
