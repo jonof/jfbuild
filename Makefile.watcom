@@ -1,10 +1,5 @@
 # Build Makefile for Watcom Make
 
-# OpenWatcom 1.2 or older users should uncomment this line
-# to enable some compatibility files that work around some
-# missing header files in those versions
-#WATCOMHAX=-i=watcomhax
-
 !ifdef OVERRIDES
 !include $(OVERRIDES)
 !endif
@@ -30,6 +25,7 @@ DXROOT=c:\sdks\directx\dx7
 
 !ifdef __LOADDLL__
 ! loaddll wcc386 wccd386
+! loaddll wpp386 wppd386
 !endif
 
 # -d these to enable certain features of the port's compile process
@@ -46,7 +42,7 @@ CXX=wpp386
 AS=wasm
 RC=wrc
 CFLAGS+= -zq -5r -s -orb -fp5 $(TARGETOPTS) -d2 -dRENDERTYPEWIN=1 &
-	$(WATCOMHAX) -i=$(INC) -i=$(SRC) -i=$(DXROOT)\include -i=..\jfaud\inc
+	-i=$(INC) -i=$(SRC) -i=$(DXROOT)\include -i=..\jfaud\inc
 GAMECFLAGS=-i=$(GAME)
 LIBS=dxguid.lib wsock32.lib ..\jfaud\jfaud.lib winmm.lib #opengl32.lib
 ASFLAGS=# -d1
