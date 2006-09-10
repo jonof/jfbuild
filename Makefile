@@ -11,15 +11,13 @@
 #  POLYMOST       - enables Polymost renderer
 #  USE_OPENGL     - enables OpenGL support in Polymost
 #  DYNAMIC_OPENGL - enables run-time loading of OpenGL library
-#  USE_A_C        - enables use of C version of classic renderer
-#  NOASM          - disables the use of inline assembly pragmas
+#  NOASM          - disables the use of assembly code
 #
 #  SETSPRITEZ     - set to 1 for Shadow Warrior
 SUPERBUILD ?= 1
 POLYMOST ?= 1		
 USE_OPENGL ?= 1
 DYNAMIC_OPENGL ?= 1
-USE_A_C ?= 0
 NOASM ?= 0
 
 SETSPRITEZ ?= 0
@@ -62,7 +60,7 @@ RC=windres
 AR=ar
 RANLIB=ranlib
 OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
-	-funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
+	-fno-pic -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
 	-DKSFORBUILD -I$(INC)
 OURCXXFLAGS=-fno-exceptions -fno-rtti
 GAMECFLAGS=-I../jfaud/inc -I$(GAME)
@@ -73,13 +71,13 @@ EXESUFFIX=
 
 include Makefile.shared
 
-ifneq (0,$(USE_A_C))
-  ENGINEOBJS=$(OBJ)/a-c.$o
-else
-  ENGINEOBJS=$(OBJ)/a.$o
+ENGINEOBJS=
+ifeq (0,$(NOASM))
+  ENGINEOBJS+= $(OBJ)/a.$o
 endif
 
 ENGINEOBJS+= \
+	$(OBJ)/a-c.$o \
 	$(OBJ)/baselayer.$o \
 	$(OBJ)/cache1d.$o \
 	$(OBJ)/compat.$o \
