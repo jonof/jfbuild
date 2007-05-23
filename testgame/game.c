@@ -432,7 +432,7 @@ long app_main(long argc, char *argv[])
 	if ((i = loadsetup("game.cfg")) < 0)
 		initprintf("Configuration file not found, using defaults.\n");
 
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && !defined __APPLE__ && defined HAVE_GTK2)
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK2))
 	if (i || forcesetup || cmdsetup) {
 		if (quitevent || !startwin_run()) return -1;
 	}

@@ -14,6 +14,7 @@
 		AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07650A33068500FF2442 /* startwin.editor.nib */; };
 		AB3E076E0A3306CE00FF2442 /* build.bmp in Resources */ = {isa = PBXBuildFile; fileRef = AB3E076D0A3306CE00FF2442 /* build.bmp */; };
 		AB3E07710A3307F700FF2442 /* osxmain.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07700A3307F700FF2442 /* osxmain.nib */; };
+		AB3FE4680C0433D000D5DBDC /* libeditor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB3FE4580C04338D00D5DBDC /* libeditor.a */; };
 		AB69BCCF0A73BBC800F3DCB8 /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = AB69BCCE0A73BBC800F3DCB8 /* config.c */; };
 		AB69BCEC0A73BFDC00F3DCB8 /* jfaud.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB73609D0A29B57D003261DC /* jfaud.framework */; };
 		AB7360330A29AB7E003261DC /* game.c in Sources */ = {isa = PBXBuildFile; fileRef = AB7360310A29AB7E003261DC /* game.c */; };
@@ -32,6 +33,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		AB3FE4570C04338D00D5DBDC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AB3FE4550C04336F00D5DBDC /* libeditor.a */;
+			remoteInfo = editorsupp;
+		};
 		AB73601A0A29AA70003261DC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
@@ -119,7 +127,7 @@
 		AB3E07700A3307F700FF2442 /* osxmain.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = osxmain.nib; sourceTree = SOURCE_ROOT; };
 		AB69BCCE0A73BBC800F3DCB8 /* config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = config.c; path = ../src/config.c; sourceTree = SOURCE_ROOT; };
 		AB7360140A29AA70003261DC /* engine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = engine.xcodeproj; sourceTree = "<group>"; };
-		AB73602A0A29AB08003261DC /* game.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = game.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB73602A0A29AB08003261DC /* game.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = game.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB73602D0A29AB08003261DC /* game-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "game-Info.plist"; sourceTree = "<group>"; };
 		AB7360310A29AB7E003261DC /* game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = game.c; sourceTree = "<group>"; };
 		AB7360320A29AB7E003261DC /* jfaud_sound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = jfaud_sound.cpp; sourceTree = "<group>"; };
@@ -150,8 +158,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AB73605A0A29ADB5003261DC /* libengine.a in Frameworks */,
 				AB73605B0A29ADB7003261DC /* libeditor.a in Frameworks */,
+				AB73605A0A29ADB5003261DC /* libengine.a in Frameworks */,
+				AB3FE4680C0433D000D5DBDC /* libeditor.a in Frameworks */,
 				AB7361240A29B9D4003261DC /* SDL.framework in Frameworks */,
 				AB73612A0A29BA60003261DC /* CoreFoundation.framework in Frameworks */,
 				AB73612E0A29BA7A003261DC /* AppKit.framework in Frameworks */,
@@ -179,6 +188,7 @@
 				AB73601B0A29AA70003261DC /* libengine.a */,
 				AB73601D0A29AA70003261DC /* libeditor.a */,
 				AB73601F0A29AA70003261DC /* libenginez.a */,
+				AB3FE4580C04338D00D5DBDC /* libeditor.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -335,6 +345,13 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
+		AB3FE4580C04338D00D5DBDC /* libeditor.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libeditor.a;
+			remoteRef = AB3FE4570C04338D00D5DBDC /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		AB73601B0A29AA70003261DC /* libengine.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;

@@ -204,7 +204,7 @@ pragmacheck$(EXESUFFIX): $(OBJ)/pragmacheck.$o $(OBJ)/pragmas.$o
 	$(CC) $(subst -Dmain=app_main,,$(OURCFLAGS)) -o $@ $^
 	
 kextract$(EXESUFFIX): $(OBJ)/kextract.$o $(OBJ)/compat.$o
-	$(CC) -o $@ $^
+	$(CC) -o $@ $^ -framework CoreFoundation -framework CoreServices
 kgroup$(EXESUFFIX): $(OBJ)/kgroup.$o $(OBJ)/compat.$o
 	$(CC) -o $@ $^
 transpal$(EXESUFFIX): $(OBJ)/transpal.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o

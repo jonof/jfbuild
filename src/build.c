@@ -243,11 +243,11 @@ int app_main(int argc, char **argv)
 					"Options:\n"
 					"\t-grp\tUse an extra GRP or ZIP file.\n"
 					"\t-g\tSame as above.\n"
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && !defined __APPLE__ && defined HAVE_GTK2)
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK2))
 					"\t-setup\tDisplays the configuration dialogue box before entering the editor.\n"
 #endif
 					;
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && !defined __APPLE__ && defined HAVE_GTK2)
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK2))
 				wm_msgbox("BUILD by Ken Silverman",s);
 #else
 				puts(s);
@@ -269,7 +269,7 @@ int app_main(int argc, char **argv)
 	//Bcanonicalisefilename(boardfilename,0);
 
 	if ((i = ExtInit()) < 0) return -1;
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && !defined __APPLE__ && defined HAVE_GTK2)
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK2))
 	if (i || forcesetup || cmdsetup) {
 		if (quitevent || !startwin_run()) return -1;
 	}

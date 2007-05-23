@@ -1,15 +1,11 @@
 #include "osxbits.h"
-#import <Cocoa/Cocoa.h>
-
-#ifndef MAC_OS_VERSION_10_3
-# define MAC_OS_VERSION_10_3 1030
-#endif
+#import <AppKit/AppKit.h>
 
 int osx_msgbox(char *name, char *msg)
 {
 	NSString *mmsg = [[NSString alloc] initWithCString: msg];
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_3
+#if defined(MAC_OS_X_VERSION_10_3) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_3)
 	NSAlert *alert = [[NSAlert alloc] init];
 	[alert addButtonWithTitle: @"OK"];
 	[alert setInformativeText: mmsg];
@@ -32,7 +28,7 @@ int osx_ynbox(char *name, char *msg)
 	NSString *mmsg = [[NSString alloc] initWithCString: msg];
 	int r;
 
-#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_3
+#if defined(MAC_OS_X_VERSION_10_3) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_3)
 	NSAlert *alert = [[NSAlert alloc] init];
 
 	[alert addButtonWithTitle:@"Yes"];

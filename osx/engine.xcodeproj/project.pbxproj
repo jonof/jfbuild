@@ -7,7 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AB3E072B0A33035B00FF2442 /* StartupWinController.editor.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */; };
+		AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */; };
+		AB7029850AEB2D69004FCD2A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
+		AB70298C0AEB2DAD004FCD2A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
 		AB735F600A29A39C003261DC /* a-c.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F4E0A29A39C003261DC /* a-c.c */; };
 		AB735F610A29A39D003261DC /* baselayer.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F4F0A29A39C003261DC /* baselayer.c */; };
 		AB735F620A29A39D003261DC /* cache1d.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F500A29A39C003261DC /* cache1d.c */; };
@@ -87,8 +89,20 @@
 		AB7360460A29AD3A003261DC /* osxmain.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7360440A29AD3A003261DC /* osxmain.m */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		AB3FE4660C0433A600D5DBDC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB735F3A0A29A24A003261DC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AB3FE44A0C04336F00D5DBDC /* editorsupp */;
+			remoteInfo = editorsupp;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StartupWinController.editor.m; sourceTree = "<group>"; };
+		AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditorsupp.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB7029840AEB2D69004FCD2A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		AB735F490A29A2DC003261DC /* libengine.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libengine.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB735F4E0A29A39C003261DC /* a-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "a-c.c"; sourceTree = "<group>"; };
 		AB735F4F0A29A39C003261DC /* baselayer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = baselayer.c; sourceTree = "<group>"; };
@@ -134,10 +148,18 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		AB3FE4510C04336F00D5DBDC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AB735F470A29A2DC003261DC /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB7029850AEB2D69004FCD2A /* AppKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -152,18 +174,29 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB70298C0AEB2DAD004FCD2A /* AppKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		AB7029790AEB2D0B004FCD2A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				AB7029840AEB2D69004FCD2A /* AppKit.framework */,
+			);
+			name = Frameworks;
+			path = /System/Library/Frameworks;
+			sourceTree = "<absolute>";
+		};
 		AB735F380A29A24A003261DC = {
 			isa = PBXGroup;
 			children = (
 				AB735FBF0A29A89F003261DC /* Editor */,
 				AB735F720A29A3A0003261DC /* Engine */,
 				AB735F4A0A29A2DC003261DC /* Products */,
+				AB7029790AEB2D0B004FCD2A /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -173,6 +206,7 @@
 				AB735F490A29A2DC003261DC /* libengine.a */,
 				AB735FCC0A29A916003261DC /* libeditor.a */,
 				AB7360030A29A9B3003261DC /* libenginez.a */,
+				AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -270,6 +304,13 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
+		AB3FE44B0C04336F00D5DBDC /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AB735F450A29A2DC003261DC /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
@@ -331,6 +372,23 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		AB3FE44A0C04336F00D5DBDC /* editorsupp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB3FE4520C04336F00D5DBDC /* Build configuration list for PBXNativeTarget "editorsupp" */;
+			buildPhases = (
+				AB3FE44B0C04336F00D5DBDC /* Headers */,
+				AB3FE44D0C04336F00D5DBDC /* Sources */,
+				AB3FE4510C04336F00D5DBDC /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = editorsupp;
+			productName = editor;
+			productReference = AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */;
+			productType = "com.apple.product-type.library.static";
+		};
 		AB735F480A29A2DC003261DC /* engine */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AB735F4B0A29A2DD003261DC /* Build configuration list for PBXNativeTarget "engine" */;
@@ -359,6 +417,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				AB3FE4670C0433A600D5DBDC /* PBXTargetDependency */,
 			);
 			name = editor;
 			productName = editor;
@@ -396,11 +455,20 @@
 				AB735F480A29A2DC003261DC /* engine */,
 				AB735FCB0A29A916003261DC /* editor */,
 				AB735FD40A29A9B3003261DC /* enginez */,
+				AB3FE44A0C04336F00D5DBDC /* editorsupp */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		AB3FE44D0C04336F00D5DBDC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AB735F460A29A2DC003261DC /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -433,7 +501,6 @@
 			files = (
 				AB735FD10A29A99A003261DC /* build.c in Sources */,
 				AB735FD20A29A99A003261DC /* config.c in Sources */,
-				AB3E072B0A33035B00FF2442 /* StartupWinController.editor.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -465,7 +532,34 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		AB3FE4670C0433A600D5DBDC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AB3FE44A0C04336F00D5DBDC /* editorsupp */;
+			targetProxy = AB3FE4660C0433A600D5DBDC /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		AB3FE4530C04336F00D5DBDC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = NO;
+				PREBINDING = NO;
+				PRODUCT_NAME = editorsupp;
+			};
+			name = Debug;
+		};
+		AB3FE4540C04336F00D5DBDC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				PREBINDING = NO;
+				PRODUCT_NAME = editor;
+				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
 		AB735F3C0A29A24B003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -474,10 +568,6 @@
 					i386,
 				);
 				COPY_PHASE_STRIP = NO;
-				FRAMEWORK_SEARCH_PATHS = (
-					/Library/Frameworks,
-					/System/Library/Frameworks,
-				);
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -508,10 +598,6 @@
 					i386,
 				);
 				COPY_PHASE_STRIP = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					/Library/Frameworks,
-					/System/Library/Frameworks,
-				);
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -599,6 +685,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		AB3FE4520C04336F00D5DBDC /* Build configuration list for PBXNativeTarget "editorsupp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB3FE4530C04336F00D5DBDC /* Debug */,
+				AB3FE4540C04336F00D5DBDC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		AB735F3B0A29A24B003261DC /* Build configuration list for PBXProject "engine" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -1,10 +1,10 @@
+#if defined DYNAMIC_OPENGL && defined USE_OPENGL
+
 #include "glbuild.h"
 #include "baselayer.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-#if defined DYNAMIC_OPENGL && defined USE_OPENGL
 
 #ifdef RENDERTYPESDL
 # ifdef __APPLE__
