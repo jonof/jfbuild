@@ -2,6 +2,12 @@
 
 #include "baselayer.h"
 
+static struct {
+	int fullscreen;
+	int xdim3d, ydim3d, bpp3d;
+	int forcesetup;
+} settings;
+
 @interface StartupWinController : NSWindowController
 {
 	IBOutlet NSButton *alwaysShowButton;
@@ -44,13 +50,18 @@
 
 - (IBAction)start:(id)sender
 {
-	// XXX: write the states of the form controls to their respective homes
+	settings.fullscreen = [fullscreenButton state] == NSOnState;
+	// XXX: resolution
+	settings.forcesetup = [alwaysShowButton state] == NSOnState;
+
 	[NSApp stopModal];
 }
 
 - (void)setupRunMode
 {
-	// XXX: populate the lists and set everything up to represent the current options
+	[fullscreenButton setState: (settings.fullscreen ? NSOnState : NSOffState)];
+	// XXX: resolutions
+	[alwaysShowButton setState: (settings.forcesetup ? NSOnState : NSOffState)];
 
 	// enable all the controls on the Configuration page
 	NSEnumerator *enumerator = [[[[tabView tabViewItemAtIndex:0] view] subviews] objectEnumerator];
@@ -169,11 +180,19 @@ int startwin_idle(void *v)
 	return 0;
 }
 
+extern int xdimgame, ydimgame, bppgame, forcesetup;
+
 int startwin_run(void)
 {
 	int retval;
 	
 	if (startwin == nil) return 0;
+
+	settings.fullscreen = fullscreen;
+	settings.xdim3d = xdimgame;
+	settings.ydim3d = ydimgame;
+	settings.bpp3d = bppgame;
+	settings.forcesetup = forcesetup;
 	
 	[startwin setupRunMode];
 	
@@ -184,6 +203,14 @@ int startwin_run(void)
 	}
 	
 	[startwin setupMessagesMode];
+
+	if (retval) {
+		fullscreen = settings.fullscreen;
+		xdimgame = settings.xdim3d;
+		ydimgame = settings.ydim3d;
+		bppgame = settings.bpp3d;
+		forcesetup = settings.forcesetup;
+	}
 	
 	return retval;
 }
