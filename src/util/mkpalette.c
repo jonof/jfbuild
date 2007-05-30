@@ -2,29 +2,6 @@
 #include <string.h>
 #include <math.h>
 
-/*
-Palette description file format
-
-Each line contains nine values separated by spaces:
-   [startindex] [rangesize] [skip] [starthue] [startsat] [startval] [endhue] [endsat] [endval]
-
-Any text after the end of a colour description is ignored, so use it to describe the colour.
-
-* startindex specifies the first palette index to write to
-* rangesize specifies the length of the gradient
-* skip indicates that the first element and/or last elements of the range should be ignored
-  and there should be rangesize elements calculated in between. This is so you can have a
-  gradient starting at (potentially) pure black and ending at (potentially) pure white but
-  without wasting a palette index on those colours if they already exist, eg. in a grey ramp
-  Values are 0 (no skipping), 1 (skip start), 2 (skip end), or 3 (skip start and end).
-* starthue, startsat, startval specify the beginning colour in Hue-Saturation-Value format.
-  starthue should be an integer in the range 0-360 indicating a degrees value
-  startsat should be an integer in the range 0-100 indicating a percentage saturation value
-  startval should be an integer in the range 0-100 indicating a percentage value
-* endhue, endsat, endval specify the ending colour.
-
-*/
-
 struct hsv {
 	float h, s, v;
 };
@@ -65,17 +42,19 @@ int main(int argc, char **argv)
 	for (rampnum = 0; rampnum < nramps; rampnum++) {
 		idx = ramps[rampnum].start;
 		step = ramps[rampnum].len;
-		if (ramps[rampnum].chompends) step += 2;
+		if (ramps[rampnum].chompends & 1) step++;
+		if (ramps[rampnum].chompends & 2) step++;
 		lerpstep.h = (ramps[rampnum].endcolour.h - ramps[rampnum].startcolour.h) / (float)step;
 		lerpstep.s = (ramps[rampnum].endcolour.s - ramps[rampnum].startcolour.s) / (float)step;
 		lerpstep.v = (ramps[rampnum].endcolour.v - ramps[rampnum].startcolour.v) / (float)step;
 		lerped = ramps[rampnum].startcolour;
-		if (ramps[rampnum].chompends) {
+		if (ramps[rampnum].chompends & 1) {
+			step--;
 			lerped.h += lerpstep.h;
 			lerped.s += lerpstep.s;
 			lerped.v += lerpstep.v;
-			step -= 2;
 		}
+		if (ramps[rampnum].chompends & 2) step--;
 
 		for (; step > 0; step--,idx++) {
 			palette[idx].h = lerped.h;
@@ -168,6 +147,32 @@ int showusage(void)
 {
 	puts("mkpalette <palettescript.txt> [outputfile]");
 	puts("If outputfile is not given, palette.dat is assumed");
+	
+	puts("\nPalette script format:\n"
+	"  A line beginning with # is a comment, otherwise each line contains none\n"
+	"values separated by spaces defining the gradient:\n"
+	"\n"
+	"  startindex rangesize skip starthue startsat startval endhue endsat endval\n"
+	"\n"
+	"Any text after the end of a gradient description is ignored, so may use it\n"
+	"to describe the colour.\n"
+	"\n"
+	"* 'startindex' specifies the first palette index to write to\n"
+	"* 'rangesize' specifies the length of the gradient\n"
+	"* 'skip' specifies whether the first and/or last elements of the range should\n"
+	"  be ignored and with 'rangesize' elements interpolated between. This is so\n"
+	"  you can have a gradient starting at (potentially) pure black and ending at\n"
+	"  (potentially) pure white but without wasting a palette index on those colours\n"
+	"  if they already exist, eg. in a grey ramp.\n"
+	"  Legal values are 0 (no skipping), 1 (skip start), 2 (skip end),\n"
+	"  or 3 (skip start and end).\n"
+	"* 'starthue', 'startsat', 'startval' are integers specifying the beginning\n"
+	"  colour in Hue-Saturation-Value format.\n"
+	"  'starthue' should be in the range 0-360 indicating a degrees value\n"
+	"  'startsat' should be in the range 0-100 indicating a saturation percentage\n"
+	"  'startval' should be in the range 0-100 indicating an intensity percentage\n"
+	"* 'endhue', 'endsat', 'endval' specify the ending colour."
+	);
 	return 0;
 }
 
@@ -184,6 +189,13 @@ int readscript(char *fn)
 	}
 	
 	while (fgets(line,sizeof(line),fp)) {
+		{
+			// test for comment
+			char *p = line;
+			while (*p && (*p == ' ' || *p == '\t')) p++;
+			if (*p == '#') continue;
+		}
+		
 		if (sscanf(line, "%d %d %d %d %d %d %d %d %d", &start,&len,&skip,&shue,&ssat,&sval,&ehue,&esat,&eval) < 9)
 			continue;
 		
