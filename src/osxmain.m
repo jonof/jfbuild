@@ -10,7 +10,7 @@
 #import <unistd.h>
 
 static int    gArgc;
-static char  **gArgv;
+static const char  **gArgv;
 static BOOL   gFinderLaunch;
 static BOOL   gCalledAppMainline = FALSE;
 
@@ -72,7 +72,7 @@ static BOOL   gCalledAppMainline = FALSE;
 	const char *temparg;
 	size_t arglen;
 	char *arg;
-	char **newargv;
+	const char **newargv;
 	
 	if (!gFinderLaunch)  /* MacOS is passing command line args. */
 		return FALSE;
@@ -86,7 +86,7 @@ static BOOL   gCalledAppMainline = FALSE;
 	if (arg == NULL)
 		return FALSE;
 	
-	newargv = (char **) realloc(gArgv, sizeof (char *) * (gArgc + 2));
+	newargv = (const char **) realloc(gArgv, sizeof (const char *) * (gArgc + 2));
 	if (newargv == NULL)
 	{
 		SDL_free(arg);
@@ -130,7 +130,7 @@ int main (int argc, const char *argv[])
 	/* Copy the arguments into a global variable */
 	/* This is passed if we are launched by double-clicking */
 	if ( argc >= 2 && strncmp (argv[1], "-psn", 4) == 0 ) {
-		gArgv = (char **) SDL_malloc(sizeof (char *) * 2);
+		gArgv = (const char **) SDL_malloc(sizeof (const char *) * 2);
 		gArgv[0] = argv[0];
 		gArgv[1] = NULL;
 		gArgc = 1;
@@ -138,7 +138,7 @@ int main (int argc, const char *argv[])
 	} else {
 		int i;
 		gArgc = argc;
-		gArgv = (char **) SDL_malloc(sizeof (char *) * (argc+1));
+		gArgv = (const char **) SDL_malloc(sizeof (const char *) * (argc+1));
 		for (i = 0; i <= argc; i++)
 			gArgv[i] = argv[i];
 		gFinderLaunch = NO;

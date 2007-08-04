@@ -207,10 +207,11 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 extern int startwin_run(void);
 
 extern char *defsfilename;	// set in bstub.c
-int app_main(int argc, char **argv)
+int app_main(int argc, const char **argv)
 {
-	char ch, quitflag, cmdsetup = 0, grpstoadd = 0;
-	char **grps = NULL;
+	char ch, quitflag, cmdsetup = 0;
+	int grpstoadd = 0;
+	const char **grps = NULL;
 	long i, j, k;
 	
 	pathsearchmode = 1;		// unrestrict findfrompath so that full access to the filesystem can be had
@@ -233,7 +234,7 @@ int app_main(int argc, char **argv)
 			if (!strcmp(argv[i], "-setup")) cmdsetup = 1;
 			else if (!strcmp(argv[i], "-g") || !strcmp(argv[i], "-grp")) {
 				i++;
-				grps = (char**)realloc(grps, sizeof(char*)*(grpstoadd+1));
+				grps = (const char**)realloc(grps, sizeof(const char*)*(grpstoadd+1));
 				grps[grpstoadd++] = argv[i];
 			}
 			else if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-?")) {
@@ -278,7 +279,7 @@ int app_main(int argc, char **argv)
 	if (grps && grpstoadd > 0) {
 		for (i=0;i<grpstoadd;i++) {
 			initprintf("Adding %s\n",grps[i]);
-			initgroupfile(grps[i]);
+			initgroupfile((char*)grps[i]);
 		}
 		free(grps);	
 	}

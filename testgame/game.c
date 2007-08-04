@@ -390,7 +390,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 
 extern int startwin_run(void);
 
-long app_main(long argc, char *argv[])
+long app_main(long argc, const char *argv[])
 {
 	long cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
 	long other, packleng, netparm;
