@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */; };
 		AB7029850AEB2D69004FCD2A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
-		AB70298C0AEB2DAD004FCD2A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
 		AB735F600A29A39C003261DC /* a-c.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F4E0A29A39C003261DC /* a-c.c */; };
 		AB735F610A29A39D003261DC /* baselayer.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F4F0A29A39C003261DC /* baselayer.c */; };
 		AB735F620A29A39D003261DC /* cache1d.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F500A29A39C003261DC /* cache1d.c */; };
@@ -48,45 +47,8 @@
 		AB735FD00A29A994003261DC /* editor.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735FC60A29A8FD003261DC /* editor.h */; };
 		AB735FD10A29A99A003261DC /* build.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC20A29A8E5003261DC /* build.c */; };
 		AB735FD20A29A99A003261DC /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC30A29A8E5003261DC /* config.c */; };
-		AB735FD70A29A9B3003261DC /* a.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F770A29A44C003261DC /* a.h */; };
-		AB735FD80A29A9B3003261DC /* baselayer.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F780A29A44C003261DC /* baselayer.h */; };
-		AB735FD90A29A9B3003261DC /* build.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F790A29A44C003261DC /* build.h */; };
-		AB735FDA0A29A9B3003261DC /* cache1d.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7A0A29A44C003261DC /* cache1d.h */; };
-		AB735FDB0A29A9B3003261DC /* compat.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7B0A29A44C003261DC /* compat.h */; };
-		AB735FDC0A29A9B3003261DC /* crc32.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7C0A29A44C003261DC /* crc32.h */; };
-		AB735FDD0A29A9B3003261DC /* glbuild.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7D0A29A44C003261DC /* glbuild.h */; };
-		AB735FDE0A29A9B3003261DC /* kplib.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7E0A29A44C003261DC /* kplib.h */; };
-		AB735FDF0A29A9B3003261DC /* lzf.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7F0A29A44C003261DC /* lzf.h */; };
-		AB735FE00A29A9B3003261DC /* md4.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F800A29A44C003261DC /* md4.h */; };
-		AB735FE10A29A9B3003261DC /* mmulti.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F810A29A44C003261DC /* mmulti.h */; };
-		AB735FE30A29A9B3003261DC /* osd.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F830A29A44C003261DC /* osd.h */; };
-		AB735FE40A29A9B3003261DC /* osxbits.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F840A29A44C003261DC /* osxbits.h */; };
-		AB735FE50A29A9B3003261DC /* pragmas.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F850A29A44C003261DC /* pragmas.h */; };
-		AB735FE60A29A9B3003261DC /* scriptfile.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F860A29A44C003261DC /* scriptfile.h */; };
-		AB735FE70A29A9B3003261DC /* sdlayer.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F870A29A44C003261DC /* sdlayer.h */; };
-		AB735FE90A29A9B3003261DC /* editor.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735FC60A29A8FD003261DC /* editor.h */; };
-		AB735FEB0A29A9B3003261DC /* a-c.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F4E0A29A39C003261DC /* a-c.c */; };
-		AB735FEC0A29A9B3003261DC /* baselayer.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F4F0A29A39C003261DC /* baselayer.c */; };
-		AB735FED0A29A9B3003261DC /* cache1d.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F500A29A39C003261DC /* cache1d.c */; };
-		AB735FEE0A29A9B3003261DC /* compat.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F510A29A39C003261DC /* compat.c */; };
-		AB735FEF0A29A9B3003261DC /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F520A29A39C003261DC /* crc32.c */; };
-		AB735FF00A29A9B3003261DC /* defs.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F530A29A39C003261DC /* defs.c */; };
-		AB735FF10A29A9B3003261DC /* engine.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F540A29A39C003261DC /* engine.c */; };
-		AB735FF20A29A9B3003261DC /* glbuild.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F550A29A39C003261DC /* glbuild.c */; };
-		AB735FF30A29A9B3003261DC /* kplib.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F560A29A39C003261DC /* kplib.c */; };
-		AB735FF40A29A9B3003261DC /* lzf_c.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F570A29A39C003261DC /* lzf_c.c */; };
-		AB735FF50A29A9B3003261DC /* lzf_d.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F580A29A39C003261DC /* lzf_d.c */; };
-		AB735FF60A29A9B3003261DC /* md4.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F590A29A39C003261DC /* md4.c */; };
-		AB735FF70A29A9B3003261DC /* mmulti.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5A0A29A39C003261DC /* mmulti.c */; };
-		AB735FF80A29A9B3003261DC /* osd.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5B0A29A39C003261DC /* osd.c */; };
-		AB735FF90A29A9B3003261DC /* osxbits.m in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5C0A29A39C003261DC /* osxbits.m */; };
-		AB735FFA0A29A9B3003261DC /* pragmas.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5D0A29A39C003261DC /* pragmas.c */; };
-		AB735FFB0A29A9B3003261DC /* scriptfile.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5E0A29A39C003261DC /* scriptfile.c */; };
-		AB735FFC0A29A9B3003261DC /* sdlayer.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5F0A29A39C003261DC /* sdlayer.c */; };
 		AB7360420A29AD2F003261DC /* osxmain.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7360410A29AD2F003261DC /* osxmain.h */; };
-		AB7360430A29AD2F003261DC /* osxmain.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7360410A29AD2F003261DC /* osxmain.h */; };
 		AB7360450A29AD3A003261DC /* osxmain.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7360440A29AD3A003261DC /* osxmain.m */; };
-		AB7360460A29AD3A003261DC /* osxmain.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7360440A29AD3A003261DC /* osxmain.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -142,7 +104,6 @@
 		AB735FC30A29A8E5003261DC /* config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = config.c; sourceTree = "<group>"; };
 		AB735FC60A29A8FD003261DC /* editor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = editor.h; sourceTree = "<group>"; };
 		AB735FCC0A29A916003261DC /* libeditor.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditor.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		AB7360030A29A9B3003261DC /* libenginez.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libenginez.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7360410A29AD2F003261DC /* osxmain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osxmain.h; sourceTree = "<group>"; };
 		AB7360440A29AD3A003261DC /* osxmain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = osxmain.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -167,14 +128,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AB735FFF0A29A9B3003261DC /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AB70298C0AEB2DAD004FCD2A /* AppKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -205,7 +158,6 @@
 			children = (
 				AB735F490A29A2DC003261DC /* libengine.a */,
 				AB735FCC0A29A916003261DC /* libeditor.a */,
-				AB7360030A29A9B3003261DC /* libenginez.a */,
 				AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */,
 			);
 			name = Products;
@@ -344,31 +296,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		AB735FD60A29A9B3003261DC /* Headers */ = {
-			isa = PBXHeadersBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AB735FD70A29A9B3003261DC /* a.h in Headers */,
-				AB735FD80A29A9B3003261DC /* baselayer.h in Headers */,
-				AB735FD90A29A9B3003261DC /* build.h in Headers */,
-				AB735FDA0A29A9B3003261DC /* cache1d.h in Headers */,
-				AB735FDB0A29A9B3003261DC /* compat.h in Headers */,
-				AB735FDC0A29A9B3003261DC /* crc32.h in Headers */,
-				AB735FDD0A29A9B3003261DC /* glbuild.h in Headers */,
-				AB735FDE0A29A9B3003261DC /* kplib.h in Headers */,
-				AB735FDF0A29A9B3003261DC /* lzf.h in Headers */,
-				AB735FE00A29A9B3003261DC /* md4.h in Headers */,
-				AB735FE10A29A9B3003261DC /* mmulti.h in Headers */,
-				AB735FE30A29A9B3003261DC /* osd.h in Headers */,
-				AB735FE40A29A9B3003261DC /* osxbits.h in Headers */,
-				AB735FE50A29A9B3003261DC /* pragmas.h in Headers */,
-				AB735FE60A29A9B3003261DC /* scriptfile.h in Headers */,
-				AB735FE70A29A9B3003261DC /* sdlayer.h in Headers */,
-				AB735FE90A29A9B3003261DC /* editor.h in Headers */,
-				AB7360430A29AD2F003261DC /* osxmain.h in Headers */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
@@ -424,23 +351,6 @@
 			productReference = AB735FCC0A29A916003261DC /* libeditor.a */;
 			productType = "com.apple.product-type.library.static";
 		};
-		AB735FD40A29A9B3003261DC /* enginez */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = AB7360000A29A9B3003261DC /* Build configuration list for PBXNativeTarget "enginez" */;
-			buildPhases = (
-				AB735FD60A29A9B3003261DC /* Headers */,
-				AB735FEA0A29A9B3003261DC /* Sources */,
-				AB735FFF0A29A9B3003261DC /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = enginez;
-			productName = engine;
-			productReference = AB7360030A29A9B3003261DC /* libenginez.a */;
-			productType = "com.apple.product-type.library.static";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -454,7 +364,6 @@
 			targets = (
 				AB735F480A29A2DC003261DC /* engine */,
 				AB735FCB0A29A916003261DC /* editor */,
-				AB735FD40A29A9B3003261DC /* enginez */,
 				AB3FE44A0C04336F00D5DBDC /* editorsupp */,
 			);
 		};
@@ -501,32 +410,6 @@
 			files = (
 				AB735FD10A29A99A003261DC /* build.c in Sources */,
 				AB735FD20A29A99A003261DC /* config.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		AB735FEA0A29A9B3003261DC /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AB735FEB0A29A9B3003261DC /* a-c.c in Sources */,
-				AB735FEC0A29A9B3003261DC /* baselayer.c in Sources */,
-				AB735FED0A29A9B3003261DC /* cache1d.c in Sources */,
-				AB735FEE0A29A9B3003261DC /* compat.c in Sources */,
-				AB735FEF0A29A9B3003261DC /* crc32.c in Sources */,
-				AB735FF00A29A9B3003261DC /* defs.c in Sources */,
-				AB735FF10A29A9B3003261DC /* engine.c in Sources */,
-				AB735FF20A29A9B3003261DC /* glbuild.c in Sources */,
-				AB735FF30A29A9B3003261DC /* kplib.c in Sources */,
-				AB735FF40A29A9B3003261DC /* lzf_c.c in Sources */,
-				AB735FF50A29A9B3003261DC /* lzf_d.c in Sources */,
-				AB735FF60A29A9B3003261DC /* md4.c in Sources */,
-				AB735FF70A29A9B3003261DC /* mmulti.c in Sources */,
-				AB735FF80A29A9B3003261DC /* osd.c in Sources */,
-				AB735FF90A29A9B3003261DC /* osxbits.m in Sources */,
-				AB735FFA0A29A9B3003261DC /* pragmas.c in Sources */,
-				AB735FFB0A29A9B3003261DC /* scriptfile.c in Sources */,
-				AB735FFC0A29A9B3003261DC /* sdlayer.c in Sources */,
-				AB7360460A29AD3A003261DC /* osxmain.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -656,32 +539,6 @@
 			};
 			name = Release;
 		};
-		AB7360010A29A9B3003261DC /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COPY_PHASE_STRIP = NO;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"$(inherited)",
-					SETSPRITEZ,
-				);
-				PREBINDING = NO;
-				PRODUCT_NAME = enginez;
-			};
-			name = Debug;
-		};
-		AB7360020A29A9B3003261DC /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COPY_PHASE_STRIP = YES;
-				GCC_PREPROCESSOR_DEFINITIONS = (
-					"$(inherited)",
-					SETSPRITEZ,
-				);
-				PREBINDING = NO;
-				PRODUCT_NAME = enginez;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -717,15 +574,6 @@
 			buildConfigurations = (
 				AB735FCE0A29A965003261DC /* Debug */,
 				AB735FCF0A29A965003261DC /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		AB7360000A29A9B3003261DC /* Build configuration list for PBXNativeTarget "enginez" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				AB7360010A29A9B3003261DC /* Debug */,
-				AB7360020A29A9B3003261DC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
