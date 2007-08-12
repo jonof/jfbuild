@@ -13,14 +13,11 @@
 #  DYNAMIC_OPENGL - enables run-time loading of OpenGL library
 #  NOASM          - disables the use of assembly code
 #
-#  SETSPRITEZ     - set to 1 for Shadow Warrior
 SUPERBUILD ?= 1
 POLYMOST ?= 1		
 USE_OPENGL ?= 1
 DYNAMIC_OPENGL ?= 1
 NOASM ?= 0
-
-SETSPRITEZ ?= 0
 
 # Debugging options
 #  RELEASE - 1 = no debugging
@@ -204,7 +201,7 @@ pragmacheck$(EXESUFFIX): $(OBJ)/pragmacheck.$o $(OBJ)/pragmas.$o
 	$(CC) $(subst -Dmain=app_main,,$(OURCFLAGS)) -o $@ $^
 	
 kextract$(EXESUFFIX): $(OBJ)/kextract.$o $(OBJ)/compat.$o
-	$(CC) -o $@ $^ -framework CoreFoundation -framework CoreServices
+	$(CC) -o $@ $^
 kgroup$(EXESUFFIX): $(OBJ)/kgroup.$o $(OBJ)/compat.$o
 	$(CC) -o $@ $^
 transpal$(EXESUFFIX): $(OBJ)/transpal.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o

@@ -427,6 +427,7 @@ long   deletesprite(short spritenum);
 long   changespritesect(short spritenum, short newsectnum);
 long   changespritestat(short spritenum, short newstatnum);
 long   setsprite(short spritenum, long newx, long newy, long newz);
+long   setspritez(short spritenum, long newx, long newy, long newz);
 
 long   screencapture(char *filename, char inverseit);
 

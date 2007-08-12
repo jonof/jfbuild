@@ -7531,11 +7531,28 @@ long setsprite(short spritenum, long newx, long newy, long newz)
 	sprite[spritenum].z = newz;
 
 	tempsectnum = sprite[spritenum].sectnum;
-#ifdef SETSPRITEZ
-	updatesectorz(newx,newy,newz,&tempsectnum);
-#else
 	updatesector(newx,newy,&tempsectnum);
-#endif
+	if (tempsectnum < 0)
+		return(-1);
+	if (tempsectnum != sprite[spritenum].sectnum)
+		changespritesect(spritenum,tempsectnum);
+
+	return(0);
+}
+
+//
+// setspritez
+//
+long setspritez(short spritenum, long newx, long newy, long newz)
+{
+	short tempsectnum;
+
+	sprite[spritenum].x = newx;
+	sprite[spritenum].y = newy;
+	sprite[spritenum].z = newz;
+
+	tempsectnum = sprite[spritenum].sectnum;
+	updatesectorz(newx,newy,newz,&tempsectnum);
 	if (tempsectnum < 0)
 		return(-1);
 	if (tempsectnum != sprite[spritenum].sectnum)
