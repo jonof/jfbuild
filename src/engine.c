@@ -1821,6 +1821,8 @@ static void wallscan(long x1, long x2, short *uwal, short *dwal, long *swal, lon
 	long i, x, xnice, ynice, fpalookup;
 	long y1ve[4], y2ve[4], u4, d4, z, tsizx, tsizy;
 	char bad;
+	
+	if (x2 >= xdim) x2 = xdim-1;
 
 	tsizx = tilesizx[globalpicnum];
 	tsizy = tilesizy[globalpicnum];
