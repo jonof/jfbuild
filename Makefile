@@ -12,12 +12,14 @@
 #  USE_OPENGL     - enables OpenGL support in Polymost
 #  DYNAMIC_OPENGL - enables run-time loading of OpenGL library
 #  NOASM          - disables the use of assembly code
+#  LINKED_GTK     - enables compile-time linkage to GTK
 #
 SUPERBUILD ?= 1
 POLYMOST ?= 1		
 USE_OPENGL ?= 1
 DYNAMIC_OPENGL ?= 1
 NOASM ?= 0
+LINKED_GTK ?= 0
 
 # Debugging options
 #  RELEASE - 1 = no debugging
