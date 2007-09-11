@@ -2762,7 +2762,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 			0,0,
 			width,height,
 			hWindow,
-			(HMENU)1,
+			(HMENU)0,
 			hInstance,
 			NULL);
 	if (!hGLWindow) {
