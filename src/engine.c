@@ -5415,6 +5415,8 @@ int preinitengine(void)
 	char *e;
 	if (initsystem()) exit(1);
 
+	makeasmwriteable();
+
 	if ((e = Bgetenv("BUILD_NOP6")) != NULL)
 		if (!Bstrcasecmp(e, "TRUE")) {
 			Bprintf("Disabling P6 optimizations.\n");

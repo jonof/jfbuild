@@ -1516,3 +1516,7 @@ static int buildkeytranslationtable(void)
 
 	return 0;
 }
+
+void makeasmwriteable(void)
+{
+}
