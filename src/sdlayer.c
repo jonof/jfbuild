@@ -1520,7 +1520,7 @@ static int buildkeytranslationtable(void)
 #if defined _WIN32
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
-#elif defined __linux
+#elif defined __linux || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
 # include <sys/mman.h>
 #endif
 
@@ -1534,7 +1534,7 @@ void makeasmwriteable(void)
 		initprint("Error making code writeable\n");
 		return;
 	}
-# elif defined __linux
+# elif defined __linux || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
 	int pagesize;
 	size_t dep_begin_page;
 	pagesize = sysconf(_SC_PAGE_SIZE);
