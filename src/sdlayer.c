@@ -1548,7 +1548,7 @@ void makeasmwriteable(void)
 		return;
 	}
 # else
-#  error Don't know how to unprotect the self-modifying assembly on this platform!
+#  error Dont know how to unprotect the self-modifying assembly on this platform!
 # endif
 #endif
 }

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB1751270CEF5AF8003AF128 /* SDL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB1751260CEF5AF8003AF128 /* SDL.framework */; };
 		AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */; };
 		AB7029850AEB2D69004FCD2A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
 		AB735F600A29A39C003261DC /* a-c.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F4E0A29A39C003261DC /* a-c.c */; };
@@ -62,6 +63,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AB1751260CEF5AF8003AF128 /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = ../../../../Library/Frameworks/SDL.framework; sourceTree = SOURCE_ROOT; };
 		AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StartupWinController.editor.m; sourceTree = "<group>"; };
 		AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditorsupp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7029840AEB2D69004FCD2A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
@@ -121,6 +123,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB7029850AEB2D69004FCD2A /* AppKit.framework in Frameworks */,
+				AB1751270CEF5AF8003AF128 /* SDL.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -146,6 +149,7 @@
 		AB735F380A29A24A003261DC = {
 			isa = PBXGroup;
 			children = (
+				AB1751260CEF5AF8003AF128 /* SDL.framework */,
 				AB735FBF0A29A89F003261DC /* Editor */,
 				AB735F720A29A3A0003261DC /* Engine */,
 				AB735F4A0A29A2DC003261DC /* Products */,
@@ -357,10 +361,12 @@
 		AB735F3A0A29A24A003261DC /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = AB735F3B0A29A24B003261DC /* Build configuration list for PBXProject "engine" */;
+			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 0;
 			mainGroup = AB735F380A29A24A003261DC;
 			productRefGroup = AB735F4A0A29A2DC003261DC /* Products */;
 			projectDirPath = "";
+			projectRoot = "";
 			targets = (
 				AB735F480A29A2DC003261DC /* engine */,
 				AB735FCB0A29A916003261DC /* editor */,
@@ -438,7 +444,7 @@
 			buildSettings = {
 				COPY_PHASE_STRIP = YES;
 				PREBINDING = NO;
-				PRODUCT_NAME = editor;
+				PRODUCT_NAME = editorsupp;
 				ZERO_LINK = NO;
 			};
 			name = Release;
@@ -506,6 +512,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COPY_PHASE_STRIP = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+				);
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../../../../Library/Frameworks\"";
 				PREBINDING = NO;
 				PRODUCT_NAME = engine;
 			};
@@ -515,6 +526,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COPY_PHASE_STRIP = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
+				);
+				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"$(SRCROOT)/../../../../Library/Frameworks\"";
 				PREBINDING = NO;
 				PRODUCT_NAME = engine;
 			};
