@@ -389,20 +389,25 @@ char *Bgetsupportdir(int global)
 int Bcorrectfilename(char *filename, int removefn)
 {
 	char *fn;
+	const int MAXTOKARR = 64;
 	char *tokarr[64], *first, *next, *token;
 	int i, ntok = 0, leadslash = 0, trailslash = 0;
 	
 	fn = strdup(filename);
 	if (!fn) return -1;
 	
+	// find the end of the string
 	for (first=fn; *first; first++) {
 #ifdef _WIN32
+		// translating backslashes to forwardslashes on the way
 		if (*first == '\\') *first = '/';
 #endif
 	}
 	leadslash = (*fn == '/');
 	trailslash = (first>fn && first[-1] == '/');
 	
+	// carve up the string into pieces by directory, and interpret
+	// the . and .. components
 	first = fn;
 	do {
 		token = Bstrtoken(first, "/", &next, 1);
@@ -412,11 +417,12 @@ int Bcorrectfilename(char *filename, int removefn)
 		else if (token[0] == '.' && token[1] == 0) continue;
 		else if (token[0] == '.' && token[1] == '.' && token[2] == 0) ntok = max(0,ntok-1);
 		else tokarr[ntok++] = token;
-	} while (1);
+	} while (ntok < MAXTOKARR);
 	
 	if (!trailslash && removefn) { ntok = max(0,ntok-1); trailslash = 1; }
 	if (ntok == 0 && trailslash && leadslash) trailslash = 0;
 	
+	// rebuild the filename
 	first = filename;
 	if (leadslash) *(first++) = '/';
 	for (i=0; i<ntok; i++) {
@@ -426,6 +432,8 @@ int Bcorrectfilename(char *filename, int removefn)
 	}
 	if (trailslash) *(first++) = '/';
 	*(first++) = 0;
+	
+	free(fn);
 
 	return 0;
 }
