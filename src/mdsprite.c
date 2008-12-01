@@ -1,185 +1,36 @@
 //------------------------------------- MD2/MD3 LIBRARY BEGINS -------------------------------------
 
+#include "compat.h"
+#include "build.h"
+#include "glbuild.h"
+#include "pragmas.h"
+#include "baselayer.h"
+#include "engine_priv.h"
+#include "polymost_priv.h"
+#include "hightile_priv.h"
+#include "mdsprite_priv.h"
+
 #ifdef __POWERPC__
 #define SHIFTMOD32(a) ((a)&31)
 #else
 #define SHIFTMOD32(a) (a)
 #endif
 
-typedef struct
-{
-	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
-	long shadeoff;
-	float scale, bscale, zadd;
-	GLuint *texid;	// skins
-} mdmodel;
-
-typedef struct _mdanim_t
-{
-	int startframe, endframe;
-	int fpssc, flags;
-	struct _mdanim_t *next;
-} mdanim_t;
-#define MDANIM_LOOP 0
-#define MDANIM_ONESHOT 1
-
-typedef struct _mdskinmap_t
-{
-	unsigned char palette, filler[3]; // Build palette number
-	int skinnum, surfnum;   // Skin identifier, surface number
-	char *fn;   // Skin filename
-	GLuint texid[HICEFFECTMASK+1];   // OpenGL texture numbers for effect variations
-	struct _mdskinmap_t *next;
-} mdskinmap_t;
-
-
-	//This MD2 code is based on the source code from David Henry (tfc_duke(at)hotmail.com)
-	//   Was at http://tfc.duke.free.fr/us/tutorials/models/md2.htm
-	//   Available from http://web.archive.org/web/20030816010242/http://tfc.duke.free.fr/us/tutorials/models/md2.htm
-	//   Now at http://tfc.duke.free.fr/coding/md2.html (in French)
-	//He probably wouldn't recognize it if he looked at it though :)
-typedef struct { float x, y, z; } point3d;
-
-typedef struct
-{
-	long id, vers, skinxsiz, skinysiz, framebytes; //id:"IPD2", vers:8
-	long numskins, numverts, numuv, numtris, numglcmds, numframes;
-	long ofsskins, ofsuv, ofstris, ofsframes, ofsglcmds, ofseof; //ofsskins: skin names (64 bytes each)
-} md2head_t;
-
-typedef struct { unsigned char v[3], ni; } md2vert_t; //compressed vertex coords (x,y,z)
-typedef struct
-{
-	point3d mul, add; //scale&translation vector
-	char name[16];    //frame name
-	md2vert_t verts[1]; //first vertex of this frame
-} md2frame_t;
-
-typedef struct
-{
-		//WARNING: This top block is a union between md2model&md3model: Make sure it matches!
-	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
-	long shadeoff;
-	float scale, bscale, zadd;
-	GLuint *texid;   // texture ids for base skin if no mappings defined
-
-	long numframes, cframe, nframe, fpssc, usesalpha;
-	float oldtime, curtime, interpol;
-	mdanim_t *animations;
-	mdskinmap_t *skinmap;
-	long numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
-
-		//MD2 specific stuff:
-	long numverts, numglcmds, framebytes, *glcmds;
-	char *frames;
-	char *basepath;   // pointer to string of base path
-	char *skinfn;   // pointer to first of numskins 64-char strings
-} md2model;
-
-
-typedef struct { char nam[64]; long i; } md3shader_t; //ascz path of shader, shader index
-typedef struct { long i[3]; } md3tri_t; //indices of tri
-typedef struct { float u, v; } md3uv_t;
-typedef struct { signed short x, y, z; unsigned char nlat, nlng; } md3xyzn_t; //xyz are [10:6] ints
-
-typedef struct
-{
-	point3d min, max, cen; //bounding box&origin
-	float r; //radius of bounding sphere
-	char nam[16]; //ascz frame name
-} md3frame_t;
-
-typedef struct
-{
-	char nam[64]; //ascz tag name
-	point3d p, x, y, z; //tag object pos&orient
-} md3tag_t;
-
-typedef struct
-{
-	long id; //IDP3(0x33806873)
-	char nam[64]; //ascz surface name
-	long flags; //?
-	long numframes, numshaders, numverts, numtris; //numframes same as md3head,max shade=~256,vert=~4096,tri=~8192
-	md3tri_t *tris;       //file format: rel offs from md3surf
-	md3shader_t *shaders; //file format: rel offs from md3surf
-	md3uv_t *uv;          //file format: rel offs from md3surf
-	md3xyzn_t *xyzn;      //file format: rel offs from md3surf
-	long ofsend;
-} md3surf_t;
-
-typedef struct
-{
-	long id, vers; //id=IDP3(0x33806873), vers=15
-	char nam[64]; //ascz path in PK3
-	long flags; //?
-	long numframes, numtags, numsurfs, numskins; //max=~1024,~16,~32,numskins=artifact of MD2; use shader field instead
-	md3frame_t *frames; //file format: abs offs
-	md3tag_t *tags;     //file format: abs offs
-	md3surf_t *surfs;   //file format: abs offs
-	long eof;           //file format: abs offs
-} md3head_t;
-
-typedef struct
-{
-		//WARNING: This top block is a union between md2model&md3model: Make sure it matches!
-	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
-	long shadeoff;
-	float scale, bscale, zadd;
-	unsigned int *texid;   // texture ids for base skin if no mappings defined
-
-	long numframes, cframe, nframe, fpssc, usesalpha;
-	float oldtime, curtime, interpol;
-	mdanim_t *animations;
-	mdskinmap_t *skinmap;
-	long numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
-
-		//MD3 specific
-	md3head_t head;
-} md3model;
-
 #define VOXBORDWIDTH 1 //use 0 to save memory, but has texture artifacts; 1 looks better...
-#define VOXUSECHAR 0
-#if (VOXUSECHAR != 0)
-typedef struct { unsigned char x, y, z, u, v; } vert_t;
-#else
-typedef struct { unsigned short x, y, z, u, v; } vert_t;
-#endif
-typedef struct { vert_t v[4]; } voxrect_t;
-typedef struct
-{
-		//WARNING: This top block is a union of md2model,md3model,voxmodel: Make sure it matches!
-	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
-	long shadeoff;
-	float scale, bscale, zadd;
-	unsigned int *texid;	// skins for palettes
+voxmodel *voxmodels[MAXVOXELS];
 
-		//VOX specific stuff:
-	voxrect_t *quad; long qcnt, qfacind[7];
-	long *mytex, mytexx, mytexy;
-	long xsiz, ysiz, zsiz;
-	float xpiv, ypiv, zpiv;
-	long is8bit;
-} voxmodel;
-static voxmodel *voxmodels[MAXVOXELS];
-
-typedef struct
-{ // maps build tiles to particular animation frames of a model
-	int modelid;
-	int skinnum;
-	int framenum;   // calculate the number from the name when declaring
-} tile2model_t;
-static tile2model_t tile2model[MAXTILES];
+tile2model_t tile2model[MAXTILES];
 
 	//Move this to appropriate place!
-typedef struct { float xadd, yadd, zadd; short angadd, flags; } hudtyp;
 hudtyp hudmem[2][MAXTILES]; //~320KB ... ok for now ... could replace with dynamic alloc
 
-static char mdinited=0;
+char mdinited=0;
+long mdtims, omdtims;
 
 #define MODELALLOCGROUP 256
-static long nummodelsalloced = 0, nextmodelid = 0;
-static mdmodel **models = NULL;
+static long nummodelsalloced = 0;
+long nextmodelid = 0;
+mdmodel **models = NULL;
 
 static long maxmodelverts = 0, allocmodelverts = 0;
 static point3d *vertlist = NULL; //temp array to store interpolated vertices for drawing
@@ -188,7 +39,7 @@ mdmodel *mdload (const char *);
 int mddraw (spritetype *);
 void mdfree (mdmodel *);
 
-static void freeallmodels ()
+void freeallmodels ()
 {
 	int i;
 
@@ -210,7 +61,7 @@ static void freeallmodels ()
 	}
 }
 
-static void clearskins ()
+void clearskins ()
 {
 	mdmodel *m;
 	int i, j;
@@ -252,7 +103,7 @@ static void clearskins ()
 	}
 }
 
-static void mdinit ()
+void mdinit ()
 {
 	memset(hudmem,0,sizeof(hudmem));
 	freeallmodels();
@@ -649,7 +500,7 @@ failure:
 // --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
 
 	//Note: even though it says md2model, it works for both md2model&md3model
-static long mdloadskin (md2model *m, int number, int pal, int surf)
+long mdloadskin (md2model *m, int number, int pal, int surf)
 {
 	long i,j, fptr=0, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
 	char *skinfile, hasalpha, fn[BMAX_PATH+65];
@@ -2086,7 +1937,7 @@ static long loadvxl (const char *filnam)
 }
 #endif
 
-static void voxfree (voxmodel *m)
+void voxfree (voxmodel *m)
 {
 	if (!m) return;
 	if (m->mytex) free(m->mytex);
@@ -2095,7 +1946,7 @@ static void voxfree (voxmodel *m)
 	free(m);
 }
 
-static voxmodel *voxload (const char *filnam)
+voxmodel *voxload (const char *filnam)
 {
 	long i, is8bit, ret;
 	voxmodel *vm;
@@ -2126,7 +1977,7 @@ static voxmodel *voxload (const char *filnam)
 }
 
 	//Draw voxel model as perfect cubes
-static int voxdraw (voxmodel *m, spritetype *tspr)
+int voxdraw (voxmodel *m, spritetype *tspr)
 {
 	point3d fp, m0, a0;
 	long i, j, k, fi, *lptr, xx, yy, zz;

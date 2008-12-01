@@ -8,6 +8,15 @@
 
 /* Begin PBXBuildFile section */
 		AB1751270CEF5AF8003AF128 /* SDL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB1751260CEF5AF8003AF128 /* SDL.framework */; };
+		AB3B2A0E0EE3FC0400944CD1 /* hightile.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2A0D0EE3FC0400944CD1 /* hightile.c */; };
+		AB3B2A1D0EE3FCF900944CD1 /* polymost.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2A1C0EE3FCF900944CD1 /* polymost.c */; };
+		AB3B2AB60EE402B600944CD1 /* engine_priv.h in Headers */ = {isa = PBXBuildFile; fileRef = AB3B2AB50EE402B600944CD1 /* engine_priv.h */; };
+		AB3B2AC20EE4033300944CD1 /* hightile_priv.h in Headers */ = {isa = PBXBuildFile; fileRef = AB3B2ABF0EE4033300944CD1 /* hightile_priv.h */; };
+		AB3B2AC30EE4033300944CD1 /* mdsprite_priv.h in Headers */ = {isa = PBXBuildFile; fileRef = AB3B2AC00EE4033300944CD1 /* mdsprite_priv.h */; };
+		AB3B2AC40EE4033300944CD1 /* polymost_priv.h in Headers */ = {isa = PBXBuildFile; fileRef = AB3B2AC10EE4033300944CD1 /* polymost_priv.h */; };
+		AB3B2AE10EE403E000944CD1 /* mdsprite.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */; };
+		AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */; };
+		AB3B2C820EE41B9000944CD1 /* textfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C800EE41B9000944CD1 /* textfont.c */; };
 		AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */; };
 		AB7029850AEB2D69004FCD2A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
 		AB735F600A29A39C003261DC /* a-c.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F4E0A29A39C003261DC /* a-c.c */; };
@@ -63,7 +72,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		AB1751260CEF5AF8003AF128 /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = ../../../../Library/Frameworks/SDL.framework; sourceTree = SOURCE_ROOT; };
+		AB1751260CEF5AF8003AF128 /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = /Library/Frameworks/SDL.framework; sourceTree = "<absolute>"; };
+		AB3B2A0D0EE3FC0400944CD1 /* hightile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hightile.c; sourceTree = "<group>"; };
+		AB3B2A1C0EE3FCF900944CD1 /* polymost.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymost.c; sourceTree = "<group>"; };
+		AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mdsprite.c; sourceTree = "<group>"; };
+		AB3B2AB50EE402B600944CD1 /* engine_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = engine_priv.h; sourceTree = "<group>"; };
+		AB3B2ABF0EE4033300944CD1 /* hightile_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hightile_priv.h; sourceTree = "<group>"; };
+		AB3B2AC00EE4033300944CD1 /* mdsprite_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mdsprite_priv.h; sourceTree = "<group>"; };
+		AB3B2AC10EE4033300944CD1 /* polymost_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymost_priv.h; sourceTree = "<group>"; };
+		AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smalltextfont.c; sourceTree = "<group>"; };
+		AB3B2C800EE41B9000944CD1 /* textfont.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = textfont.c; sourceTree = "<group>"; };
 		AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StartupWinController.editor.m; sourceTree = "<group>"; };
 		AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditorsupp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7029840AEB2D69004FCD2A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
@@ -179,6 +197,12 @@
 		AB735F730A29A3AC003261DC /* src */ = {
 			isa = PBXGroup;
 			children = (
+				AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */,
+				AB3B2C800EE41B9000944CD1 /* textfont.c */,
+				AB3B2AB50EE402B600944CD1 /* engine_priv.h */,
+				AB3B2ABF0EE4033300944CD1 /* hightile_priv.h */,
+				AB3B2AC00EE4033300944CD1 /* mdsprite_priv.h */,
+				AB3B2AC10EE4033300944CD1 /* polymost_priv.h */,
 				AB735F4E0A29A39C003261DC /* a-c.c */,
 				AB735F4F0A29A39C003261DC /* baselayer.c */,
 				AB735F500A29A39C003261DC /* cache1d.c */,
@@ -187,14 +211,17 @@
 				AB735F530A29A39C003261DC /* defs.c */,
 				AB735F540A29A39C003261DC /* engine.c */,
 				AB735F550A29A39C003261DC /* glbuild.c */,
+				AB3B2A0D0EE3FC0400944CD1 /* hightile.c */,
 				AB735F560A29A39C003261DC /* kplib.c */,
 				AB735F570A29A39C003261DC /* lzf_c.c */,
 				AB735F580A29A39C003261DC /* lzf_d.c */,
 				AB735F590A29A39C003261DC /* md4.c */,
+				AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */,
 				AB735F5A0A29A39C003261DC /* mmulti.c */,
 				AB735F5B0A29A39C003261DC /* osd.c */,
 				AB735F5C0A29A39C003261DC /* osxbits.m */,
 				AB7360440A29AD3A003261DC /* osxmain.m */,
+				AB3B2A1C0EE3FCF900944CD1 /* polymost.c */,
 				AB735F5D0A29A39C003261DC /* pragmas.c */,
 				AB735F5E0A29A39C003261DC /* scriptfile.c */,
 				AB735F5F0A29A39C003261DC /* sdlayer.c */,
@@ -289,6 +316,10 @@
 				AB735F980A29A44C003261DC /* sdlayer.h in Headers */,
 				AB735FC70A29A8FD003261DC /* editor.h in Headers */,
 				AB7360420A29AD2F003261DC /* osxmain.h in Headers */,
+				AB3B2AB60EE402B600944CD1 /* engine_priv.h in Headers */,
+				AB3B2AC20EE4033300944CD1 /* hightile_priv.h in Headers */,
+				AB3B2AC30EE4033300944CD1 /* mdsprite_priv.h in Headers */,
+				AB3B2AC40EE4033300944CD1 /* polymost_priv.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -361,7 +392,6 @@
 		AB735F3A0A29A24A003261DC /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = AB735F3B0A29A24B003261DC /* Build configuration list for PBXProject "engine" */;
-			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 0;
 			mainGroup = AB735F380A29A24A003261DC;
 			productRefGroup = AB735F4A0A29A2DC003261DC /* Products */;
@@ -407,6 +437,11 @@
 				AB735F700A29A39D003261DC /* scriptfile.c in Sources */,
 				AB735F710A29A39D003261DC /* sdlayer.c in Sources */,
 				AB7360450A29AD3A003261DC /* osxmain.m in Sources */,
+				AB3B2A0E0EE3FC0400944CD1 /* hightile.c in Sources */,
+				AB3B2A1D0EE3FCF900944CD1 /* polymost.c in Sources */,
+				AB3B2AE10EE403E000944CD1 /* mdsprite.c in Sources */,
+				AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */,
+				AB3B2C820EE41B9000944CD1 /* textfont.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

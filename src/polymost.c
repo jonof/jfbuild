@@ -65,7 +65,20 @@ Low priority:
 
 **************************************************************************************************/
 
-static long animateoffs(short tilenum, short fakevar);
+#ifdef POLYMOST
+
+#include "compat.h"
+#include "build.h"
+#include "glbuild.h"
+#include "pragmas.h"
+#include "baselayer.h"
+#include "osd.h"
+#include "engine_priv.h"
+#include "polymost_priv.h"
+#include "hightile_priv.h"
+#include "mdsprite_priv.h"
+extern char textfont[2048], smalltextfont[2048];
+
 long rendmode = 0;
 long usemodels=1, usehightile=1, usegoodalpha=0;
 
@@ -83,12 +96,13 @@ static double dxb1[MAXWALLSB], dxb2[MAXWALLSB];
 #define LINTERPSIZ 4 //log2 of interpolation size. 4:pretty fast&acceptable quality, 0:best quality/slow!
 #define DEPTHDEBUG 0 //1:render distance instead of texture, for debugging only!, 0:default
 #define FOGSCALE 0.0000384
-#define PI 3.14159265358979323
 
-static double gyxscale, gxyaspect, gviewxrange, ghalfx, grhalfxdown10, grhalfxdown10x, ghoriz;
-static double gcosang, gsinang, gcosang2, gsinang2;
-static double gchang, gshang, gctang, gstang, gvisibility;
-static float gtang = 0.0;
+double gxyaspect, grhalfxdown10x;
+static double gyxscale, gviewxrange, ghalfx, grhalfxdown10, ghoriz;
+double gcosang, gsinang, gcosang2, gsinang2;
+double gchang, gshang, gctang, gstang;
+static double gvisibility;
+float gtang = 0.0;
 double guo, gux, guy; //Screen-based texture mapping parameters
 double gvo, gvx, gvy;
 double gdo, gdx, gdy;
@@ -101,10 +115,7 @@ long zbufmem = 0, zbufysiz = 0, zbufbpl = 0, *zbufoff = 0;
 long glredbluemode = 0;
 static long lastglredbluemode = 0, redblueclearcnt = 0;
 
-static struct glfiltermodes {
-	char *name;
-	long min,mag;
-} glfiltermodes[] = {
+struct glfiltermodes glfiltermodes[numglfiltermodes] = {
 	{"GL_NEAREST",GL_NEAREST,GL_NEAREST},
 	{"GL_LINEAR",GL_LINEAR,GL_LINEAR},
 	{"GL_NEAREST_MIPMAP_NEAREST",GL_NEAREST_MIPMAP_NEAREST,GL_NEAREST},
@@ -112,7 +123,6 @@ static struct glfiltermodes {
 	{"GL_NEAREST_MIPMAP_LINEAR",GL_NEAREST_MIPMAP_LINEAR,GL_NEAREST},
 	{"GL_LINEAR_MIPMAP_LINEAR",GL_LINEAR_MIPMAP_LINEAR,GL_LINEAR}
 };
-#define numglfiltermodes (sizeof(glfiltermodes)/sizeof(glfiltermodes[0]))
 
 long glanisotropy = 1;            // 0 = maximum supported by card
 long glusetexcompr = 1;
@@ -239,9 +249,6 @@ void drawline2d (float x0, float y0, float x1, float y1, char col)
 }
 
 #ifdef USE_OPENGL
-typedef struct { unsigned char r, g, b, a; } coltype;
-
-static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth);
 
 #include "md4.h"
 
@@ -254,27 +261,12 @@ static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, lon
 #	include "lzwnew.h"
 #endif
 
-static char TEXCACHEDIR[] = "texcache";
-typedef struct {
-	char magic[8];	// 'Polymost'
-	long xdim, ydim;	// of image, unpadded
-	long flags;		// 1 = !2^x, 2 = has alpha, 4 = lzw compressed
-} texcacheheader;
-typedef struct {
-	long size;
-	long format;
-	long xdim, ydim;	// of mipmap (possibly padded)
-	long border, depth;
-} texcachepicture;
+const char *TEXCACHEDIR = "texcache";
 
 int dxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, unsigned long miplen);
 int dedxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, int ispacked);
 
-static inline void phex(unsigned char v, char *s);
 void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *head);
-
-static long mdtims, omdtims;
-#include "mdsprite.c"
 
 //--------------------------------------------------------------------------------------------------
 //TEXTURE MANAGEMENT: treats same texture with different .PAL as a separate texture. This makes the
@@ -488,7 +480,7 @@ void gltexapplyprops (void)
 
 //--------------------------------------------------------------------------------------------------
 
-static float glox1, gloy1, glox2, gloy2;
+float glox1, gloy1, glox2, gloy2;
 
 	//Use this for both initialization and uninitialization of OpenGL.
 static int gltexcacnum = -1;
@@ -642,7 +634,7 @@ void fixtransparency (coltype *dapic, long daxsiz, long daysiz, long daxsiz2, lo
 	}
 }
 
-static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth)
+void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth)
 {
 	coltype *wpptr, *rpptr;
 	long x2, y2, j, js=0, x3, y3, y, x, r, g, b, a, k;
@@ -826,7 +818,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 }
 
 // JONOF'S COMPRESSED TEXTURE CACHE STUFF ---------------------------------------------------
-static inline void phex(unsigned char v, char *s)
+void phex(unsigned char v, char *s)
 {
 	int x;
 	x = v>>4;
@@ -885,7 +877,7 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 	void *midbuf = NULL;
 	unsigned long alloclen=0, level, miplen;
 	unsigned long padx, pady;
-	GLuint gi;
+	GLint gi;
 	long j, k;
 
 	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return;
@@ -3109,7 +3101,6 @@ static void polymost_drawalls (long bunch)
 	}
 }
 
-static long wallfront(long, long);
 static long polymost_bunchfront (long b1, long b2)
 {
 	double x1b1, x1b2, x2b1, x2b2;
@@ -3224,6 +3215,7 @@ void polymost_drawrooms ()
 {
 	long i, j, k, n, n2, closest;
 	double ox, oy, oz, ox2, oy2, oz2, r, px[6], py[6], pz[6], px2[6], py2[6], pz2[6], sx[6], sy[6];
+	static unsigned char tempbuf[MAXWALLS];
 
 	if (!rendmode) return;
 
@@ -5100,5 +5092,11 @@ int dedxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *p
 #endif
 	return 0;
 }
+
+#else /* POLYMOST */
+
+long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen) { return -1; }
+
+#endif
 
 // vim:ts=4:sw=4:

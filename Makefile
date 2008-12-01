@@ -83,6 +83,9 @@ ENGINEOBJS+= \
 	$(OBJ)/crc32.$o \
 	$(OBJ)/defs.$o \
 	$(OBJ)/engine.$o \
+	$(OBJ)/polymost.$o \
+	$(OBJ)/hightile.$o \
+	$(OBJ)/mdsprite.$o \
 	$(OBJ)/glbuild.$o \
 	$(OBJ)/kplib.$o \
 	$(OBJ)/lzf_c.$o \
@@ -91,7 +94,9 @@ ENGINEOBJS+= \
 	$(OBJ)/mmulti.$o \
 	$(OBJ)/osd.$o \
 	$(OBJ)/pragmas.$o \
-	$(OBJ)/scriptfile.$o
+	$(OBJ)/scriptfile.$o \
+	$(OBJ)/textfont.$o \
+	$(OBJ)/smalltextfont.$o
 
 EDITOROBJS=$(OBJ)/build.$o \
 	$(OBJ)/config.$o

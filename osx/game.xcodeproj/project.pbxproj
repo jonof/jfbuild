@@ -54,13 +54,6 @@
 			remoteGlobalIDString = AB735FCC0A29A916003261DC;
 			remoteInfo = editor;
 		};
-		AB73601E0A29AA70003261DC /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = AB7360030A29A9B3003261DC;
-			remoteInfo = enginez;
-		};
 		AB7360490A29AD51003261DC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
@@ -187,7 +180,6 @@
 			children = (
 				AB73601B0A29AA70003261DC /* libengine.a */,
 				AB73601D0A29AA70003261DC /* libeditor.a */,
-				AB73601F0A29AA70003261DC /* libenginez.a */,
 				AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */,
 			);
 			name = Products;
@@ -364,13 +356,6 @@
 			fileType = archive.ar;
 			path = libeditor.a;
 			remoteRef = AB73601C0A29AA70003261DC /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		AB73601F0A29AA70003261DC /* libenginez.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libenginez.a;
-			remoteRef = AB73601E0A29AA70003261DC /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		AB73609D0A29B57D003261DC /* jfaud.framework */ = {

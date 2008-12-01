@@ -21,25 +21,21 @@
 #include "baselayer.h"
 
 #ifdef POLYMOST
+# ifdef USE_OPENGL
+#  include "glbuild.h"
+# endif
+# include "polymost_priv.h"
+# include "hightile_priv.h"
+# include "mdsprite_priv.h"
 # ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
-# endif
-# ifdef USE_OPENGL
-#  include "glbuild.h"
 # endif
 #endif
 
 #include <math.h>
 
-#define MAXCLIPNUM 1024
-#define MAXPERMS 512
-#define MAXTILEFILES 256
-#define MAXYSAVES ((MAXXDIM*MAXSPRITES)>>7)
-#define MAXNODESPERLINE 42   //Warning: This depends on MAXYSAVES & MAXYDIM!
-#define MAXWALLSB 2048
-#define MAXCLIPDIST 1024
-
+#include "engine_priv.h"
 
 void *kmalloc(bsize_t size) { return(Bmalloc(size)); }
 #define kkmalloc kmalloc
@@ -86,7 +82,7 @@ static unsigned char tempbuf[MAXWALLS];
 long ebpbak, espbak;
 long slopalookup[16384];	// was 2048
 #if defined(USE_OPENGL)
-static palette_t palookupfog[MAXPALOOKUPS];
+palette_t palookupfog[MAXPALOOKUPS];
 #endif
 
 static char permanentlock = 255;
@@ -115,9 +111,7 @@ long pow2long[32] =
 long reciptable[2048], fpuasm;
 
 char britable[16][256];	// JBF 20040207: full 8bit precision
-//char textfont[1024], smalltextfont[1024];
-#include "textfont.c"
-#include "smalltextfont.c"
+extern char textfont[2048], smalltextfont[2048];
 
 static char kensmessage[128];
 char *engineerrstr = "No error";
@@ -184,21 +178,6 @@ long msqrtasm(unsigned long);
 	parm [eax]\
 	modify exact [eax ebx ecx]
 long krecipasm(long);
-
-#pragma aux setgotpic =\
-	"mov ebx, eax",\
-	"cmp byte ptr walock[eax], 200",\
-	"jae skipit",\
-	"mov byte ptr walock[eax], 199",\
-	"skipit: shr eax, 3",\
-	"and ebx, 7",\
-	"mov dl, byte ptr gotpic[eax]",\
-	"mov bl, byte ptr pow2char[ebx]",\
-	"or dl, bl",\
-	"mov byte ptr gotpic[eax], dl",\
-	parm [eax]\
-	modify exact [eax ebx ecx edx]
-void setgotpic(long);
 
 #pragma aux getclipmask =\
 	"sar eax, 31",\
@@ -305,26 +284,6 @@ static inline long krecipasm(long a)
 	}
 }
 
-static inline void setgotpic(long a)
-{
-	_asm {
-		push ebx
-		mov eax, a
-		mov ebx, eax
-		cmp byte ptr walock[eax], 200
-		jae skipit
-		mov byte ptr walock[eax], 199
-	skipit:
-		shr eax, 3
-		and ebx, 7
-		mov dl, byte ptr gotpic[eax]
-		mov bl, byte ptr pow2char[ebx]
-		or dl, bl
-		mov byte ptr gotpic[eax], dl
-		pop ebx
-	}
-}
-
 static inline long getclipmask(long a, long b, long c, long d)
 {
 	_asm {
@@ -413,24 +372,6 @@ static inline long getkensmessagecrc(void *b)
 		: "=a" (__r) : "c" (__c) : "edx","ebx", "cc"); \
 	 __r; })
 
-#define setgotpic(a) \
-	({ long __a=(a); \
-	   __asm__ __volatile__ ( \
-		"movl %%eax, %%ebx\n\t" \
-		"cmpb $200, "ASMSYM("walock")"(%%eax)\n\t" \
-		"jae 0f\n\t" \
-		"movb $199, "ASMSYM("walock")"(%%eax)\n\t" \
-		"0:\n\t" \
-		"shrl $3, %%eax\n\t" \
-		"andl $7, %%ebx\n\t" \
-		"movb "ASMSYM("gotpic")"(%%eax), %%dl\n\t" \
-		"movb "ASMSYM("pow2char")"(%%ebx), %%bl\n\t" \
-		"orb %%bl, %%dl\n\t" \
-		"movb %%dl, "ASMSYM("gotpic")"(%%eax)" \
-		: "=a" (__a) : "a" (__a) \
-		: "ebx", "edx", "memory", "cc"); \
-	 __a; })
-
 #define krecipasm(a) \
 	({ long __a=(a); \
 	   __asm__ __volatile__ ( \
@@ -513,12 +454,6 @@ static inline long msqrtasm(unsigned long c)
 	return a;
 }
 
-static inline void setgotpic(long tilenume)
-{
-	if (walock[tilenume] < 200) walock[tilenume] = 199;
-	gotpic[tilenume>>3] |= pow2char[tilenume&7];
-}
-
 static inline long krecipasm(long i)
 { // Ken did this
 	float f = (float)i; i = *(long *)&f;
@@ -541,22 +476,25 @@ inline long getkensmessagecrc(long b)
 #endif
 
 
-static long xb1[MAXWALLSB], yb1[MAXWALLSB], xb2[MAXWALLSB], yb2[MAXWALLSB];
-static long rx1[MAXWALLSB], ry1[MAXWALLSB], rx2[MAXWALLSB], ry2[MAXWALLSB];
-static short p2[MAXWALLSB], thesector[MAXWALLSB], thewall[MAXWALLSB];
+long xb1[MAXWALLSB];
+static long yb1[MAXWALLSB], xb2[MAXWALLSB], yb2[MAXWALLSB];
+long rx1[MAXWALLSB], ry1[MAXWALLSB];
+static long rx2[MAXWALLSB], ry2[MAXWALLSB];
+short p2[MAXWALLSB];
+short thesector[MAXWALLSB], thewall[MAXWALLSB];
 
-static short bunchfirst[MAXWALLSB], bunchlast[MAXWALLSB];
+short bunchfirst[MAXWALLSB], bunchlast[MAXWALLSB];
 
 static short smost[MAXYSAVES], smostcnt;
 static short smoststart[MAXWALLSB];
 static char smostwalltype[MAXWALLSB];
 static long smostwall[MAXWALLSB], smostwallcnt = -1L;
 
-static short maskwall[MAXWALLSB], maskwallcnt;
+short maskwall[MAXWALLSB], maskwallcnt;
 static long spritesx[MAXSPRITESONSCREEN];
 static long spritesy[MAXSPRITESONSCREEN+1];
 static long spritesz[MAXSPRITESONSCREEN];
-static spritetype *tspriteptr[MAXSPRITESONSCREEN];
+spritetype *tspriteptr[MAXSPRITESONSCREEN];
 
 short umost[MAXXDIM], dmost[MAXXDIM];
 static short bakumost[MAXXDIM], bakdmost[MAXXDIM];
@@ -593,13 +531,13 @@ long globalzd, globalbufplc, globalyscale, globalorientation;
 long globalx1, globaly1, globalx2, globaly2, globalx3, globaly3, globalzx;
 long globalx, globaly, globalz;
 
-static short sectorborder[256], sectorbordercnt;
+short sectorborder[256], sectorbordercnt;
 static char tablesloaded = 0;
 long pageoffset, ydim16, qsetmode = 0;
 long startposx, startposy, startposz;
 short startang, startsectnum;
 short pointhighlight, linehighlight, highlightcnt;
-static long lastx[MAXYDIM];
+long lastx[MAXYDIM];
 char *transluc = NULL, paletteloaded = 0;
 
 long halfxdim16, midydim16;
@@ -615,7 +553,7 @@ static long colscan[27];
 static short clipnum, hitwalls[4];
 long hitscangoalx = (1<<29)-1, hitscangoaly = (1<<29)-1;
 #ifdef POLYMOST
-static long hitallsprites = 0;
+long hitallsprites = 0;
 #endif
 
 typedef struct { long x1, y1, x2, y2; } linetype;
@@ -655,7 +593,7 @@ double msens = 1.0;
 static char artfilename[20];
 static long numtilefiles, artfil = -1, artfilnum, artfilplc;
 
-static char inpreparemirror = 0;
+char inpreparemirror = 0;
 static long mirrorsx1, mirrorsy1, mirrorsx2, mirrorsy2;
 
 static long setviewcnt = 0;	// interface layers use this now
@@ -680,22 +618,6 @@ char palfadedelta = 0;
 // Internal Engine Functions
 //
 //long cacheresets = 0,cacheinvalidates = 0;
-
-
-//============================================================================= //POLYMOST BEGINS
-#ifdef POLYMOST
-static void scansector(short sectnum);
-#include "hightile.c"
-#include "polymost.c"
-#else
-void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect) { }
-int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut) { return 0; }
-int hicsetskybox(long picnum, long palnum, char *faces[6]) { return 0; }
-int hicclearsubst(long picnum, long palnum) { return 0; }
-long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen) { return -1; }
-#endif
-//============================================================================= //POLYMOST ENDS
-
 
 //
 // getpalookup (internal)
@@ -1004,7 +926,7 @@ static void maskwallscan(long x1, long x2, short *uwal, short *dwal, long *swal,
 //
 // wallfront (internal)
 //
-static long wallfront(long l1, long l2)
+long wallfront(long l1, long l2)
 {
 	walltype *wal;
 	long x11, y11, x21, y21, x12, y12, x22, y22, dx, dy, t1, t2;
@@ -1201,7 +1123,7 @@ static void prepwall(long z, walltype *wal)
 //
 // animateoffs (internal)
 //
-static long animateoffs(short tilenum, short fakevar)
+long animateoffs(short tilenum, short fakevar)
 {
 	long i, k, offs;
 
@@ -1316,7 +1238,7 @@ static long owallmost(short *mostbuf, long w, long z)
 //
 // wallmost (internal)
 //
-static long wallmost(short *mostbuf, long w, long sectnum, char dastat)
+long wallmost(short *mostbuf, long w, long sectnum, char dastat)
 {
 	long bad, i, j, t, y, z, inty, intz, xcross, yinc, fw;
 	long x1, y1, z1, x2, y2, z2, xv, yv, dx, dy, dasqr, oz1, oz2;

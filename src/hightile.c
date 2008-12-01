@@ -4,29 +4,22 @@
  * See the included license file "BUILDLIC.TXT" for license info.
  */
 
+#ifdef POLYMOST
+
 #include "kplib.h"
+#include "build.h"
+#include "compat.h"
+#include "hightile_priv.h"
 
-#define HICEFFECTMASK (1|2)
-static palette_t hictinting[MAXPALOOKUPS];
+palette_t hictinting[MAXPALOOKUPS];
 
-struct hicskybox_t {
-	long ignore;
-	char *face[6];
-};
-typedef struct hicreplc_t {
-	struct hicreplc_t *next;
-	char palnum, ignore, flags, filler;
-	char *filename;
-	float alphacut;
-	struct hicskybox_t *skybox;
-} hicreplctyp;
-static hicreplctyp *hicreplc[MAXTILES];
-static char hicfirstinit = 0;
+hicreplctyp *hicreplc[MAXTILES];
+char hicfirstinit = 0;
 
 //
 // find the index into hicreplc[] which contains the replacement tile particulars
 //
-static hicreplctyp * hicfindsubst(long picnum, long palnum, long skybox)
+hicreplctyp * hicfindsubst(long picnum, long palnum, long skybox)
 {
 	hicreplctyp *hr;
 
@@ -66,23 +59,24 @@ void hicinit(void)
 		hictinting[i].f = 0;
 	}
 
-	if (hicfirstinit)
-	for (i=MAXTILES-1;i>=0;i--) {
-		for (hr=hicreplc[i]; hr; ) {
-			next = hr->next;
+	if (hicfirstinit) {
+		for (i=MAXTILES-1;i>=0;i--) {
+			for (hr=hicreplc[i]; hr; ) {
+				next = hr->next;
 
-			if (hr->skybox) {
-				for (j=5;j>=0;j--) {
-					if (hr->skybox->face[j]) {
-						free(hr->skybox->face[j]);
+				if (hr->skybox) {
+					for (j=5;j>=0;j--) {
+						if (hr->skybox->face[j]) {
+							free(hr->skybox->face[j]);
+						}
 					}
+					free(hr->skybox);
 				}
-				free(hr->skybox);
-			}
-			if (hr->filename) free(hr->filename);
-			free(hr);
+				if (hr->filename) free(hr->filename);
+				free(hr);
 
-			hr = next;
+				hr = next;
+			}
 		}
 	}
 	memset(hicreplc,0,sizeof(hicreplc));
@@ -252,3 +246,12 @@ int hicclearsubst(long picnum, long palnum)
 
 	return 0;
 }
+
+#else /* POLYMOST */
+
+void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect) { }
+int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut) { return 0; }
+int hicsetskybox(long picnum, long palnum, char *faces[6]) { return 0; }
+int hicclearsubst(long picnum, long palnum) { return 0; }
+
+#endif
