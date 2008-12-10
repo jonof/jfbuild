@@ -16,9 +16,14 @@ palette_t hictinting[MAXPALOOKUPS];
 hicreplctyp *hicreplc[MAXTILES];
 char hicfirstinit = 0;
 
-//
-// find the index into hicreplc[] which contains the replacement tile particulars
-//
+/**
+ * Find a substitute definition which satisfies the given parameters
+ *
+ * @param picnum tile number
+ * @param palnum palette index
+ * @param skybox 'true' to find a substitute that defines a skybox
+ * @return the substitute header, or null
+ */
 hicreplctyp * hicfindsubst(long picnum, long palnum, long skybox)
 {
 	hicreplctyp *hr;
@@ -37,7 +42,7 @@ hicreplctyp * hicfindsubst(long picnum, long palnum, long skybox)
 			}
 		}
 
-		if (!palnum) break;
+		if (palnum == 0) break;
 		palnum = 0;
 	} while (1);
 
@@ -45,10 +50,9 @@ hicreplctyp * hicfindsubst(long picnum, long palnum, long skybox)
 }
 
 
-//
-// hicinit()
-//   Initialise the high-colour stuff to default.
-//
+/**
+ * Initialise the high-colour stuff to a default state
+ */
 void hicinit(void)
 {
 	long i,j;
@@ -246,6 +250,7 @@ int hicclearsubst(long picnum, long palnum)
 
 	return 0;
 }
+
 
 #else /* POLYMOST */
 

@@ -76,12 +76,25 @@ Low priority:
 #include "engine_priv.h"
 #include "polymost_priv.h"
 #include "hightile_priv.h"
+#include "polymosttex_priv.h"
 #include "mdsprite_priv.h"
 extern char textfont[2048], smalltextfont[2048];
 
 long rendmode = 0;
 long usemodels=1, usehightile=1, usegoodalpha=0;
 
+//TODO
+typedef struct _pthtyp { struct _pthtyp *next; long picnum,palnum,effects,flags,skyface; GLuint glpic; hicreplctyp *hicr; short sizx,sizy; float scalex,scaley;} pthtyp;
+#define GLTEXCACHEADSIZ 10
+pthtyp *gltexcachead[GLTEXCACHEADSIZ];
+
+enum {
+	METH_SOLID   = 0,
+	METH_MASKED  = 1,
+	METH_TRANS   = 2,
+	METH_INTRANS = 3,
+	METH_CLAMPED = 4
+};
 
 #include <math.h> //<-important!
 typedef struct { float x, cy[2], fy[2]; long n, p, tag, ctag, ftag; } vsptyp;
@@ -274,24 +287,6 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 //   every virtual texture, I use a cache where indexing is managed through a hash table.
 //
 
-typedef struct pthtyp_t
-{
-	struct pthtyp_t *next;
-	GLuint glpic;
-	short picnum;
-	char palnum;
-	char effects;
-	char flags;      // 1 = clamped (dameth&4), 2 = hightile, 4 = skybox face, 8 = hasalpha, 128 = invalidated
-	char skyface;
-	hicreplctyp *hicr;
-
-	unsigned short sizx, sizy;
-	float scalex, scaley;
-} pthtyp;
-
-#define GLTEXCACHEADSIZ 8192
-static pthtyp *gltexcachead[GLTEXCACHEADSIZ];
-
 static long drawingskybox = 0;
 
 int gloadtile_art(long,long,long,pthtyp*,long);
@@ -323,7 +318,7 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 		if (pth->picnum == dapicnum &&
 			pth->palnum == si->palnum &&
 			(si->palnum>0 ? 1 : (pth->effects == hictinting[dapalnum].f)) &&
-			(pth->flags & (1+2+4)) == (((dameth&4)>>2)+2+((drawingskybox>0)<<2)) &&
+			(pth->flags & (1+2+4)) == (((dameth & METH_CLAMPED)>>2)+2+((drawingskybox>0)<<2)) &&
 			(drawingskybox>0 ? (pth->skyface == drawingskybox) : 1)
 			)
 		{
@@ -360,7 +355,7 @@ tryart:
 	for(pth=gltexcachead[j]; pth; pth=pth->next)
 		if (pth->picnum == dapicnum &&
 			pth->palnum == dapalnum &&
-			(pth->flags & (1+2)) == ((dameth&4)>>2)
+			(pth->flags & (1+2)) == ((dameth & METH_CLAMPED)>>2)
 			)
 		{
 			if (pth->flags & 128)
@@ -385,23 +380,25 @@ tryart:
 
 long gltexmayhavealpha (long dapicnum, long dapalnum)
 {
-	long j = (dapicnum&(GLTEXCACHEADSIZ-1));
-	pthtyp *pth;
+	struct pthead * pth;
 
-	for(pth=gltexcachead[j]; pth; pth=pth->next)
-		if ((pth->picnum == dapicnum) && (pth->palnum == dapalnum))
-			return((pth->flags&8) != 0);
-	return(1);
+	pth = ptgethead(dapicnum, dapalnum, 1);
+	if (!pth) {
+		return 1;
+	}
+	
+	return (pth->flags & PTH_HASALPHA) == PTH_HASALPHA;
 }
 
 void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
 {
+	//TODO
 	long i, j;
 	pthtyp *pth;
 
 	j = (dapicnum&(GLTEXCACHEADSIZ-1));
 	for(pth=gltexcachead[j]; pth; pth=pth->next)
-		if (pth->picnum == dapicnum && pth->palnum == dapalnum && (pth->flags & 1) == ((dameth&4)>>2) )
+		if (pth->picnum == dapicnum && pth->palnum == dapalnum && (pth->flags & 1) == ((dameth & METH_CLAMPED)>>2) )
 			{ pth->flags |= 128; }
 }
 
@@ -410,6 +407,7 @@ void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
 	//Use this for palette effects ... but not ones that change every frame!
 void gltexinvalidateall ()
 {
+	//TODO
 	long j;
 	pthtyp *pth;
 
@@ -426,7 +424,8 @@ void gltexinvalidateall ()
 void gltexapplyprops (void)
 {
 	long i;
-	pthtyp *pth;
+	struct ptiter * iter;
+	struct pthead * pth;
 	
 	if (glinfo.maxanisotropy > 1.0)
 	{
@@ -435,15 +434,17 @@ void gltexapplyprops (void)
 	
 	if (gltexfiltermode < 0) gltexfiltermode = 0;
 	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
-	for(i=GLTEXCACHEADSIZ-1;i>=0;i--) {
-		for(pth=gltexcachead[i];pth;pth=pth->next) {
-			bglBindTexture(GL_TEXTURE_2D,pth->glpic);
-			bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-			bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
-			if (glinfo.maxanisotropy > 1.0)
-				bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+	
+	iter = ptiternew();
+	while ((pth = ptiternext(iter)) != 0) {
+		bglBindTexture(GL_TEXTURE_2D,pth->glpic);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+		if (glinfo.maxanisotropy > 1.0) {
+			bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 		}
 	}
+	ptiterfree(iter);
 
 	{
 		int j;
@@ -499,22 +500,13 @@ void polymost_glreset ()
 	}
 	else
 	{
-		for (i=GLTEXCACHEADSIZ-1; i>=0; i--) {
-			for (pth=gltexcachead[i]; pth;) {
-				next = pth->next;
-				bglDeleteTextures(1,&pth->glpic);
-				free(pth);
-				pth = next;
-			}
-			gltexcachead[i] = NULL;
-		}
+		ptreset();
 		clearskins();
 	}
 	
 	if (polymosttext) bglDeleteTextures(1,&polymosttext);
 	polymosttext=0;
 	
-	memset(gltexcachead,0,sizeof(gltexcachead));
 	glox1 = -1;
 }
 
@@ -604,7 +596,7 @@ void fixtransparency (coltype *dapic, long daxsiz, long daysiz, long daxsiz2, lo
 	long j, x, y, r, g, b, dox, doy, naxsiz2;
 
 	dox = daxsiz2-1; doy = daysiz2-1;
-	if (dameth&4) { dox = min(dox,daxsiz); doy = min(doy,daysiz); }
+	if (dameth & METH_CLAMPED) { dox = min(dox,daxsiz); doy = min(doy,daysiz); }
 				else { daxsiz = daxsiz2; daysiz = daysiz2; } //Make repeating textures duplicate top/left parts
 
 	daxsiz--; daysiz--; naxsiz2 = -daxsiz2; //Hacks for optimization inside loop
@@ -755,7 +747,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 			wpptr = &pic[y*xsiz];
 			for(x=0;x<xsiz;x++,wpptr++)
 			{
-				if ((dameth&4) && ((x >= tsizx) || (y >= tsizy))) //Clamp texture
+				if ((dameth & METH_CLAMPED) && ((x >= tsizx) || (y >= tsizy))) //Clamp texture
 					{ wpptr->r = wpptr->g = wpptr->b = wpptr->a = 0; continue; }
 				if (x < tsizx) x2 = x; else x2 = x-tsizx;
 				dacol = (long)(*(unsigned char *)(waloff[dapic]+x2*tsizy+y2));
@@ -795,7 +787,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 	}
 
-	if (!(dameth&4))
+	if (!(dameth & METH_CLAMPED))
 	{
 		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
@@ -811,7 +803,7 @@ int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doallo
 	pth->picnum = dapic;
 	pth->palnum = dapal;
 	pth->effects = 0;
-	pth->flags = ((dameth&4)>>2) | (hasalpha<<3);
+	pth->flags = ((dameth & METH_CLAMPED)>>2) | (hasalpha<<3);
 	pth->hicr = NULL;
 	
 	return 0;
@@ -1148,7 +1140,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 				rpptr[x].a = tcol.a;
 			}
 		}
-		if ((!(dameth&4)) || (facen)) //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
+		if ((!(dameth & METH_CLAMPED)) || (facen)) //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
 		{
 			if (xsiz > tsizx) //Copy left to right
 			{
@@ -1197,7 +1189,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 	}
 
-	if (!(dameth&4))
+	if (!(dameth & METH_CLAMPED))
 	{
 		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
@@ -1212,7 +1204,7 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 
 	pth->picnum = dapic;
 	pth->effects = effect;
-	pth->flags = ((dameth&4)>>2) + 2 + ((facen>0)<<2); if (hasalpha != 255) pth->flags |= 8;
+	pth->flags = ((dameth & METH_CLAMPED)>>2) + 2 + ((facen>0)<<2); if (hasalpha != 255) pth->flags |= 8;
 	pth->skyface = facen;
 	pth->hicr = hicr;
 	
@@ -1278,7 +1270,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		if (!waloff[globalpicnum])
 		{
 			if (rendmode != 3) return;
-			tsizx = tsizy = 1; method = 1; //Hack to update Z-buffer for invalid mirror textures
+			tsizx = tsizy = 1; method = METH_MASKED; //Hack to update Z-buffer for invalid mirror textures
 		}
 	}
 	walptr = (char *)waloff[globalpicnum];
@@ -1333,8 +1325,8 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	{
 		float hackscx, hackscy;
 
-		if (skyclamphack) method |= 4;
-		pth = gltexcache(globalpicnum,globalpal,method&(~3));
+		if (skyclamphack) method |= METH_CLAMPED;
+		pth = gltexcache(globalpicnum,globalpal,method&(~(METH_MASKED | METH_TRANS)));
 		bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic : 0);
 
 		if (pth && (pth->flags & 2))
@@ -1354,7 +1346,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 			yy = tsizy; oy2 = (double)1.0/(double)yy;
 		}
 
-		if (!(method&3)) {
+		if (!(method & (METH_MASKED | METH_TRANS))) {
 			bglDisable(GL_BLEND);
 			bglDisable(GL_ALPHA_TEST);
 		} else {
@@ -1381,12 +1373,12 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 			float pc[4];
 			f = ((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 			pc[0] = pc[1] = pc[2] = f;
-			switch(method&3)
+			switch(method & (METH_MASKED | METH_TRANS))
 			{
-				case 0: pc[3] = 1.0; break;
-				case 1: pc[3] = 1.0; break;
-				case 2: pc[3] = 0.66; break;
-				case 3: pc[3] = 0.33; break;
+				case METH_SOLID:   pc[3] = 1.0; break;
+				case METH_MASKED:  pc[3] = 1.0; break;
+				case METH_TRANS:   pc[3] = 0.66; break;
+				case METH_INTRANS: pc[3] = 0.33; break;
 			}
 			// tinting happens only to hightile textures, and only if the texture we're
 			// rendering isn't for the same palette as what we asked for
@@ -1544,7 +1536,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		}
 		zbufoff = (long *)(zbufmem-(frameplace<<2));
 #endif
-		if ((!transluc)) method = (method&~3)+1; //In case translucent table doesn't exist
+		if ((!transluc)) method = (method & ~(METH_MASKED | METH_TRANS)) + METH_MASKED; //In case translucent table doesn't exist
 
 		if (!dorot)
 		{
@@ -1588,7 +1580,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 
 		tsizxm1 = tsizx-1; xmodnice = (!(tsizxm1&tsizx));
 		tsizym1 = tsizy-1; ymulnice = (!(tsizym1&tsizy));
-		if ((method&4) && (!xmodnice)) //Sprites don't need a mod on texture coordinates
+		if ((method & METH_CLAMPED) && (!xmodnice)) //Sprites don't need a mod on texture coordinates
 			{ xmodnice = 1; for(tsizxm1=1;tsizxm1<tsizx;tsizxm1=(tsizxm1<<1)+1); }
 		if (!ymulnice) { for(tsizym1=1;tsizym1+1<tsizy;tsizym1=(tsizym1<<1)+1); }
 		ltsizy = (picsiz[globalpicnum]>>4);
@@ -1662,9 +1654,9 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 						dtol(vp*rdp,&v0); vp += ngvx2;
 						rdp = 65536.0/dp;
 
-						switch (method&3)
+						switch (method & (METH_MASKED | METH_TRANS))
 						{
-							case 0:
+							case METH_SOLID:
 								if (xmodnice&ymulnice) //both u&v texture sizes are powers of 2 :)
 								{
 									for(xx=ix0;xx<ix1;xx+=(1<<LINTERPSIZ))
@@ -1710,7 +1702,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 									}
 								}
 								break;
-							case 1:
+							case METH_MASKED:
 								if (xmodnice) //both u&v texture sizes are powers of 2 :)
 								{
 									for(xx=ix0;xx<ix1;xx+=(1<<LINTERPSIZ))
@@ -1768,7 +1760,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 									}
 								}
 								break;
-							case 2: //Transluscence #1
+							case METH_TRANS: //Transluscence #1
 								for(xx=ix0;xx<ix1;xx+=(1<<LINTERPSIZ))
 								{
 									dtol(   rdp,&d1); dp += ngdx2; d1 = ((d1-d0)>>LINTERPSIZ);
@@ -1797,7 +1789,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 									}
 								}
 								break;
-							case 3: //Transluscence #2
+							case METH_INTRANS: //Transluscence #2
 								for(xx=ix0;xx<ix1;xx+=(1<<LINTERPSIZ))
 								{
 									dtol(   rdp,&d1); dp += ngdx2; d1 = ((d1-d0)>>LINTERPSIZ);
@@ -1836,7 +1828,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 
 	if (rendmode == 1)
 	{
-		if (method&3) //Only draw border around sprites/maskwalls
+		if (method & (METH_MASKED | METH_TRANS)) //Only draw border around sprites/maskwalls
 		{
 		for(i=0,j=n-1;i<n;j=i,i++) drawline2d(px[i],py[i],px[j],py[j],31); //hopefully color index 31 is white
 		}
@@ -3531,8 +3523,8 @@ void polymost_drawmaskwall (long damaskwallcnt)
 	}
 	if (wal->cstat&256) { gvx = -gvx; gvy = -gvy; gvo = -gvo; } //yflip
 
-	method = 1; pow2xsplit = 1;
-	if (wal->cstat&128) { if (!(wal->cstat&512)) method = 2; else method = 3; }
+	method = METH_MASKED; pow2xsplit = 1;
+	if (wal->cstat&128) { if (!(wal->cstat&512)) method = METH_TRANS; else method = METH_INTRANS; }
 
 #ifdef USE_OPENGL
 	if (!nofog) {
@@ -3639,8 +3631,8 @@ void polymost_drawsprite (long snum)
 		yoff = (long)((signed char)((picanm[globalpicnum]>>16)&255))+((long)tspr->yoffset);
 	}
 
-	method = 1+4;
-	if (tspr->cstat&2) { if (!(tspr->cstat&512)) method = 2+4; else method = 3+4; }
+	method = METH_MASKED + METH_CLAMPED;
+	if (tspr->cstat&2) { if (!(tspr->cstat&512)) method = METH_TRANS + METH_CLAMPED; else method = METH_INTRANS + METH_CLAMPED; }
 
 #ifdef USE_OPENGL
 	if (!nofog && rendmode == 3) {
@@ -4094,13 +4086,13 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 	}
 #endif
 
-	method = 0;
+	method = METH_SOLID;
 	if (!(dastat&64))
 	{
-		 method = 1;
-		 if (dastat&1) { if (!(dastat&32)) method = 2; else method = 3; }
+		 method = METH_MASKED;
+		 if (dastat&1) { if (!(dastat&32)) method = METH_TRANS; else method = METH_INTRANS; }
 	}
-	method |= 4; //Use OpenGL clamping - dorotatesprite never repeats 
+	method |= METH_CLAMPED; //Use OpenGL clamping - dorotatesprite never repeats 
 
 	xsiz = tilesizx[globalpicnum]; ysiz = tilesizy[globalpicnum];
 	if (dastat&16) { xoff = 0; yoff = 0; }

@@ -26,6 +26,7 @@
 # endif
 # include "polymost_priv.h"
 # include "hightile_priv.h"
+# include "polymosttex_priv.h"
 # include "mdsprite_priv.h"
 # ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
@@ -5444,6 +5445,7 @@ void uninitengine(void)
 	//OSD_Printf("cacheresets = %d, cacheinvalidates = %d\n", cacheresets, cacheinvalidates);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
+	ptclear();
 	polymost_glreset();
 	hicinit();
 	freeallmodels();

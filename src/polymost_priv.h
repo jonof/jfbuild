@@ -18,6 +18,19 @@ struct glfiltermodes {
 #define numglfiltermodes 6
 extern struct glfiltermodes glfiltermodes[numglfiltermodes];
 
+
+typedef struct {
+	char magic[8];	// 'Polymost'
+	long xdim, ydim;	// of image, unpadded
+	long flags;		// 1 = !2^x, 2 = has alpha, 4 = lzw compressed
+} texcacheheader;
+typedef struct {
+	long size;
+	long format;
+	long xdim, ydim;	// of mipmap (possibly padded)
+	long border, depth;
+} texcachepicture;
+
 extern const char *TEXCACHEDIR;
 void phex(unsigned char v, char *s);
 void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth);
