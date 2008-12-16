@@ -6,6 +6,7 @@ enum {
 	PTH_HIGHTILE = 2,
 	PTH_SKYBOX = 4,
 	PTH_HASALPHA = 8,
+	PTH_DIRTY = 128,
 };
 
 struct pthead {
@@ -21,6 +22,12 @@ struct pthead {
 
 	unsigned short sizx, sizy;
 	float scalex, scaley;
+};
+
+enum {
+	PTITER_PICNUM = 1,
+	PTITER_PALNUM = 2,
+	PTITER_FLAGS  = 4,
 };
 
 struct ptiter;	// an opaque iterator type for walking the internal hash
@@ -44,6 +51,8 @@ void ptclear();
  * @return pointer to the header, or null if peek!=0 and none exists
  */
 struct pthead * ptgethead(long picnum, long palnum, int peek);
+
+struct ptiter * ptiternewmatch(int match, long picnum, long palnum, unsigned char flagsmask, unsigned char flags);
 
 /**
  * Creates a new iterator for walking the header hash

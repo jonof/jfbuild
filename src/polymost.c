@@ -392,14 +392,17 @@ long gltexmayhavealpha (long dapicnum, long dapalnum)
 
 void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
 {
-	//TODO
-	long i, j;
-	pthtyp *pth;
-
-	j = (dapicnum&(GLTEXCACHEADSIZ-1));
-	for(pth=gltexcachead[j]; pth; pth=pth->next)
-		if (pth->picnum == dapicnum && pth->palnum == dapalnum && (pth->flags & 1) == ((dameth & METH_CLAMPED)>>2) )
-			{ pth->flags |= 128; }
+	struct ptiter * iter;
+	struct pthead * pth;
+	
+	iter = ptiternewmatch(
+		PTITER_PALNUM | PTITER_PALNUM | PTITER_FLAGS,
+		dapicnum, dapalnum, PTH_CLAMPED, (dameth & METH_CLAMPED) ? PTH_CLAMPED : 0
+		);
+	while ((pth = ptiternext(iter)) != 0) {
+		pth->flags |= PTH_DIRTY;
+	}
+	ptiterfree(iter);
 }
 
 	//Make all textures "dirty" so they reload, but not re-allocate
@@ -407,13 +410,14 @@ void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
 	//Use this for palette effects ... but not ones that change every frame!
 void gltexinvalidateall ()
 {
-	//TODO
-	long j;
-	pthtyp *pth;
+	struct ptiter * iter;
+	struct pthead * pth;
 
-	for(j=GLTEXCACHEADSIZ-1;j>=0;j--)
-		for(pth=gltexcachead[j];pth;pth=pth->next)
-			pth->flags |= 128;
+	iter = ptiternew();
+	while ((pth = ptiternext(iter)) != 0) {
+		pth->flags |= PTH_DIRTY;
+	}
+	ptiterfree(iter);
 	clearskins();
 #ifdef DEBUGGINGAIDS
 	OSD_Printf("gltexinvalidateall()\n");
