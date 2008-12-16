@@ -7,19 +7,23 @@
 #include "hightile_priv.h"
 #include "polymosttex_priv.h"
 
-struct pthash {
-	struct pthash *next;
-	struct pthead head;
-	struct pthash *deferto;	// if pt_findpthash can't find an exact match for a set of
+/** a texture hash entry */
+struct PTHash_typ {
+	struct PTHash_typ *next;
+	PTHead head;
+	struct PTHash_typ *deferto;	// if pt_findpthash can't find an exact match for a set of
 				// parameters, it creates a header and defers it to another
 				// entry that stands in its place
 	int primecnt;	// a count of how many times the texture is touched when priming
 };
+typedef struct PTHash_typ PTHash;
 
-struct ptiter {
+/** an iterator for walking the hash */
+struct PTIter_typ {
 	int i;
-	struct pthash *pth;
+	PTHash *pth;
 	
+	// criteria for doing selective matching
 	int match;
 	long picnum;
 	long palnum;
@@ -27,14 +31,22 @@ struct ptiter {
 	unsigned char flags;
 };
 
+/** a convenient structure for passing around texture data that is being baked */
+struct PTTexture_typ {
+	coltype * pic;
+	unsigned long sizx, sizy;	// padded size
+	unsigned long tsizx, tsizy;	// true size
+};
+typedef struct PTTexture_typ PTTexture;
+
 static int primecnt   = 0;	// expected number of textures to load during priming
 static int primedone  = 0;	// running total of how many textures have been primed
-static int primepos   = 0;	// the position in pthashhead where we are up to in priming
+static int primepos   = 0;	// the position in hashhead where we are up to in priming
 
 #define PTHASHHEADSIZ 8192
-static struct pthash *pthashhead[PTHASHHEADSIZ];
+static PTHash * hashhead[PTHASHHEADSIZ];
 
-static inline int getpthashhead(long picnum)
+static inline int gethashhead(long picnum)
 {
 	return picnum & (PTHASHHEADSIZ-1);
 }
@@ -46,13 +58,13 @@ static inline int getpthashhead(long picnum)
  * @param skyface skybox face number (0 = none)
  * @param flags PTH_HIGHTILE = try for hightile, PTH_CLAMPED
  * @param create !0 = create if none found
- * @return the pthash item, or null if none was found
+ * @return the PTHash item, or null if none was found
  */
-static struct pthash * pt_findpthash(long picnum, long palnum, long skyface, long flags, int create)
+static PTHash * pt_findhash(long picnum, long palnum, long skyface, long flags, int create)
 {
-	int i = getpthashhead(picnum);
-	struct pthash * pth;
-	struct pthash * basepth;	// palette 0 in case we find we need it
+	int i = gethashhead(picnum);
+	PTHash * pth;
+	PTHash * basepth;	// palette 0 in case we find we need it
 	
 	long flagmask = flags & (PTH_HIGHTILE | PTH_CLAMPED | PTH_SKYBOX);
 	if (skyface > 0) {
@@ -60,7 +72,7 @@ static struct pthash * pt_findpthash(long picnum, long palnum, long skyface, lon
 	}
 	
 	// first, try and find an existing match for our parameters
-	pth = pthashhead[i];
+	pth = hashhead[i];
 	while (pth) {
 		if (pth->head.picnum == picnum &&
 		    pth->head.palnum == palnum &&
@@ -84,28 +96,28 @@ static struct pthash * pt_findpthash(long picnum, long palnum, long skyface, lon
 			replc = hicfindsubst(picnum, palnum, skyface);
 		}
 
-		pth = (struct pthash *) malloc(sizeof(struct pthash));
+		pth = (PTHash *) malloc(sizeof(PTHash));
 		if (!pth) {
 			return 0;
 		}
-		memset(pth, 0, sizeof(struct pthash));
+		memset(pth, 0, sizeof(PTHash));
 		
-		pth->next = pthashhead[i];
+		pth->next = hashhead[i];
 		pth->head.picnum  = picnum;
 		pth->head.palnum  = palnum;
 		pth->head.flags   = flagmask;
 		pth->head.skyface = skyface;
 		pth->head.repldef = replc;
 		
-		pthashhead[i] = pth;
+		hashhead[i] = pth;
 		
 		if (replc && replc->palnum != palnum) {
 			// we were given a substitute by hightile, so what we just
 			// created needs to defer to the substitute
-			pth->deferto = pt_findpthash(picnum, replc->palnum, skyface, flags, create);
+			pth->deferto = pt_findhash(picnum, replc->palnum, skyface, flags, create);
 		} else if ((flags & PTH_HIGHTILE) && !replc) {
 			// there is no replacement, so defer to ART
-			pth->deferto = pt_findpthash(picnum, replc->palnum, skyface, (flags & ~PTH_HIGHTILE), create);
+			pth->deferto = pt_findhash(picnum, replc->palnum, skyface, (flags & ~PTH_HIGHTILE), create);
 		}
 	}
 	
@@ -116,7 +128,7 @@ static struct pthash * pt_findpthash(long picnum, long palnum, long skyface, lon
  * Unloads a texture from memory
  * @param pth pointer to the pthash of the loaded texture
  */
-static void pt_unload(struct pthash * pth)
+static void pt_unload(PTHash * pth)
 {
 	if (pth->head.glpic == 0) return;	// not loaded
 	
@@ -124,19 +136,19 @@ static void pt_unload(struct pthash * pth)
 	pth->head.glpic = 0;
 }
 
-static int pt_load_art(struct pthead * pth);
-static int pt_load_hightile(struct pthead * pth);
-static int pt_load_cache(struct pthead * pth);
-static void pt_load_fixtransparency(coltype * dapic, long daxsiz, long daysiz, long daxsiz2, long daysiz2, int clamped);
-static int pt_load_uploadtexture(int replace);
-static void pt_load_applyparameters(struct pthead * pth);
+static int pt_load_art(PTHead * pth);
+static int pt_load_hightile(PTHead * pth);
+static int pt_load_cache(PTHead * pth);
+static void pt_load_fixtransparency(PTTexture * tex, int clamped);
+static void pt_load_uploadtexture(int replace, PTTexture * tex);
+static void pt_load_applyparameters(PTHead * pth);
 
 /**
  * Loads a texture into memory from disk
  * @param pth pointer to the pthash of the texture to load
  * @return !0 on success
  */
-static int pt_load(struct pthash * pth)
+static int pt_load(PTHash * pth)
 {
 	if (pth->head.glpic != 0 && (pth->head.flags & PTH_DIRTY) == 0) {
 		return 1;	// loaded
@@ -148,7 +160,7 @@ static int pt_load(struct pthash * pth)
 		// if that failed, try and load from a raw replacement
 		// if that failed, get the hash for the ART version and
 		//   defer this to there
-		pth->deferto = pt_findpthash(
+		pth->deferto = pt_findhash(
 				pth->head.picnum, pth->head.palnum,
 				pth->head.skyface, (pth->head.flags & ~PTH_HIGHTILE),
 				1);
@@ -169,63 +181,62 @@ static int pt_load(struct pthash * pth)
  * @param pth the header to populate
  * @return !0 on success
  */
-static int pt_load_art(struct pthead * pth)
+static int pt_load_art(PTHead * pth)
 {
 	// TODO: implement fullbrights by copying fullbright texels to
 	//   a second buffer and uploading to a secondary texture
-	coltype * pic, * wpptr;
-	long tsizx, tsizy;	// true size of the texture
-	long xsiz, ysiz;	// rounded size
+	PTTexture tex;
+	coltype * wpptr;
 	long x, y, x2, y2;
 	long dacol;
 	int hasalpha = 0, replace = 0;
 	
-	tsizx = tilesizx[pth->picnum];
-	tsizy = tilesizy[pth->picnum];
+	tex.tsizx = tilesizx[pth->picnum];
+	tex.tsizy = tilesizy[pth->picnum];
 	if (!glinfo.texnpot) {
-		for (xsiz = 1; xsiz < tsizx; xsiz += xsiz) ;
-		for (ysiz = 1; ysiz < tsizx; ysiz += ysiz) ;
+		for (tex.sizx = 1; tex.sizx < tex.tsizx; tex.sizx += tex.sizx) ;
+		for (tex.sizy = 1; tex.sizy < tex.tsizy; tex.sizy += tex.sizy) ;
 	} else {
-		if ((tsizx | tsizy) == 0) {
-			xsiz = ysiz = 1;
+		if ((tex.tsizx | tex.tsizy) == 0) {
+			tex.sizx = tex.sizy = 1;
 		} else {
-			xsiz = tsizx;
-			ysiz = tsizy;
+			tex.sizx = tex.tsizx;
+			tex.sizy = tex.tsizy;
 		}
 	}
 	
-	pic = (coltype *) malloc(xsiz * ysiz * sizeof(coltype));
-	if (!pic) {
+	tex.pic = (coltype *) malloc(tex.sizx * tex.sizy * sizeof(coltype));
+	if (!tex.pic) {
 		return 0;
 	}
 	
 	if (!waloff[pth->picnum]) {
 		// Force invalid textures to draw something - an almost purely transparency texture
 		// This allows the Z-buffer to be updated for mirrors (which are invalidated textures)
-		pic[0].r = pic[0].g = pic[0].b = 0; pic[0].a = 1;
-		tsizx = tsizy = 1;
+		tex.pic[0].r = tex.pic[0].g = tex.pic[0].b = 0; tex.pic[0].a = 1;
+		tex.tsizx = tex.tsizy = 1;
 		hasalpha = 1;
 	} else {
-		for (y = 0; y < ysiz; y++) {
-			if (y < tsizy) {
+		for (y = 0; y < tex.sizy; y++) {
+			if (y < tex.tsizy) {
 				y2 = y;
 			} else {
-				y2 = y-tsizy;
+				y2 = y-tex.tsizy;
 			}
-			wpptr = &pic[y*xsiz];
-			for (x = 0; x < xsiz; x++, wpptr++) {
-				if ((pth->flags & PTH_CLAMPED) && (x >= tsizx || y >= tsizy)) {
+			wpptr = &tex.pic[y*tex.sizx];
+			for (x = 0; x < tex.sizx; x++, wpptr++) {
+				if ((pth->flags & PTH_CLAMPED) && (x >= tex.tsizx || y >= tex.tsizy)) {
 					// Clamp texture
 					wpptr->r = wpptr->g = wpptr->b = wpptr->a = 0;
 					continue;
 				}
-				if (x < tsizx) {
+				if (x < tex.tsizx) {
 					x2 = x;
 				} else {
 					// wrap around to fill the repeated region
-					x2 = x-tsizx;
+					x2 = x-tex.tsizx;
 				}
-				dacol = (long) (*(unsigned char *)(waloff[pth->picnum]+x2*tsizy+y2));
+				dacol = (long) (*(unsigned char *)(waloff[pth->picnum]+x2*tex.tsizy+y2));
 				if (dacol == 255) {
 					wpptr->a = 0;
 					hasalpha = 1;
@@ -253,12 +264,12 @@ static int pt_load_art(struct pthead * pth)
 	}
 	bglBindTexture(GL_TEXTURE_2D, pth->glpic);
 	
-	pt_load_fixtransparency(pic, tsizx, tsizy, xsiz, ysiz, (pth->flags & PTH_CLAMPED));
-	pt_load_uploadtexture(replace);
+	pt_load_fixtransparency(&tex, (pth->flags & PTH_CLAMPED));
+	pt_load_uploadtexture(replace, &tex);
 	pt_load_applyparameters(pth);
 	
-	if (pic) {
-		free(pic);
+	if (tex.pic) {
+		free(tex.pic);
 	}
 	
 	if (hasalpha) {
@@ -272,17 +283,16 @@ static int pt_load_art(struct pthead * pth)
 
 /**
  * Applies a filter to transparent pixels to improve their appearence when bilinearly filtered
- * @param dapic the bitmap
- * @param daxsiz the width of the unpadded region of the picture
- * @param daysiz the height of the unpadded region of the picture
- * @param daxsiz2 the padded width of the picture
- * @param daysiz2 the padded height of the picture
+ * @param tex the texture to process
  * @param clamped whether the texture is to be used clamped
  */
-static void pt_load_fixtransparency(coltype * dapic, long daxsiz, long daysiz, long daxsiz2, long daysiz2, int clamped)
+static void pt_load_fixtransparency(PTTexture * tex, int clamped)
 {
 	coltype *wpptr;
-	long j, x, y, r, g, b, dox, doy, naxsiz2;
+	long j, x, y, r, g, b;
+	long dox, doy, naxsiz2;
+	long daxsiz = tex->tsizx, daysiz = tex->tsizy;
+	long daxsiz2 = tex->sizx, daysiz2 = tex->sizy;
 	
 	dox = daxsiz2-1; doy = daysiz2-1;
 	if (clamped) {
@@ -299,7 +309,7 @@ static void pt_load_fixtransparency(coltype * dapic, long daxsiz, long daysiz, l
 	// Set transparent pixels to average color of neighboring opaque pixels
 	// Doing this makes bilinear filtering look much better for masked textures (I.E. sprites)
 	for (y = doy; y >= 0; y--) {
-		wpptr = &dapic[y*daxsiz2+dox];
+		wpptr = &tex->pic[y*daxsiz2+dox];
 		for (x = dox; x >= 0; x--, wpptr--) {
 			if (wpptr->a) {
 				continue;
@@ -354,8 +364,10 @@ static void pt_load_fixtransparency(coltype * dapic, long daxsiz, long daysiz, l
 
 /**
  * Sends texture data to GL
+ * @param replace attempt to reuse driver memory by overwriting
+ * @param tex the texture to upload
  */
-static int pt_load_uploadtexture(int replace)
+static void pt_load_uploadtexture(int replace, PTTexture * tex)
 {
 }
 
@@ -363,7 +375,7 @@ static int pt_load_uploadtexture(int replace)
  * Applies the global texture filter parameters to the currently-bound texture
  * @param clamped 
  */
-static void pt_load_applyparameters(struct pthead * pth)
+static void pt_load_applyparameters(PTHead * pth)
 {
 	if (gltexfiltermode < 0) {
 		gltexfiltermode = 0;
@@ -394,13 +406,13 @@ static void pt_load_applyparameters(struct pthead * pth)
 /**
  * Prepare for priming by sweeping through the textures and marking them as all unused
  */
-void ptbeginpriming(void)
+void PTBeginPriming(void)
 {
-	struct pthash * pth;
+	PTHash * pth;
 	int i;
 	
 	for (i=PTHASHHEADSIZ-1; i>=0; i--) {
-		pth = pthashhead[i];
+		pth = hashhead[i];
 		while (pth) {
 			pth->primecnt = 0;
 			pth = pth->next;
@@ -415,11 +427,11 @@ void ptbeginpriming(void)
 /**
  * Flag a texture as required for priming
  */
-void ptmarkprime(long picnum, long palnum)
+void PTMarkPrime(long picnum, long palnum)
 {
-	struct pthash * pth;
+	PTHash * pth;
 	
-	pth = pt_findpthash(picnum, palnum, /*FIXME skyface*/0, /*FIXME flags*/0, 1);
+	pth = pt_findhash(picnum, palnum, /*FIXME skyface*/0, /*FIXME flags*/0, 1);
 	if (pth) {
 		if (pth->primecnt == 0) {
 			primecnt++;
@@ -434,9 +446,9 @@ void ptmarkprime(long picnum, long palnum)
  * @param total receives the total number of textures to be primed
  * @return 0 when priming is complete
  */
-int ptdoprime(int* done, int* total)
+int PTDoPrime(int* done, int* total)
 {
-	struct pthash * pth;
+	PTHash * pth;
 	
 	if (primepos >= PTHASHHEADSIZ) {
 		// done
@@ -448,7 +460,7 @@ int ptdoprime(int* done, int* total)
 		
 		// first, unload all the textures that are not marked
 		for (i=PTHASHHEADSIZ-1; i>=0; i--) {
-			pth = pthashhead[i];
+			pth = hashhead[i];
 			while (pth) {
 				if (pth->primecnt == 0) {
 					pt_unload(pth);
@@ -458,7 +470,7 @@ int ptdoprime(int* done, int* total)
 		}
 	}
 	
-	pth = pthashhead[primepos];
+	pth = hashhead[primepos];
 	while (pth) {
 		if (pth->primecnt == 0) {
 			// was not in the set to prime
@@ -481,13 +493,13 @@ int ptdoprime(int* done, int* total)
 /**
  * Resets the texture hash but leaves the headers in memory
  */
-void ptreset()
+void PTReset()
 {
-	struct pthash * pth;
+	PTHash * pth;
 	int i;
 	
 	for (i=PTHASHHEADSIZ-1; i>=0; i--) {
-		pth = pthashhead[i];
+		pth = hashhead[i];
 		while (pth) {
 			pt_unload(pth);
 			pth = pth->next;
@@ -498,20 +510,20 @@ void ptreset()
 /**
  * Clears the texture hash of all content
  */
-void ptclear()
+void PTClear()
 {
-	struct pthash * pth, * next;
+	PTHash * pth, * next;
 	int i;
 	
 	for (i=PTHASHHEADSIZ-1; i>=0; i--) {
-		pth = pthashhead[i];
+		pth = hashhead[i];
 		while (pth) {
 			next = pth->next;
 			pt_unload(pth);
 			free(pth);
 			pth = next;
 		}
-		pthashhead[i] = 0;
+		hashhead[i] = 0;
 	}
 }
 
@@ -524,11 +536,11 @@ void ptclear()
  * @param peek if !0, does not try and create a header if none exists
  * @return pointer to the header, or null if peek!=0 and none exists
  */
-struct pthead * ptgethead(long picnum, long palnum, int peek)
+PTHead * PT_GetHead(long picnum, long palnum, int peek)
 {
-	struct pthash * pth;
+	PTHash * pth;
 	
-	pth = pt_findpthash(picnum, palnum, /*FIXME skyface*/0, /*FIXME flags*/0, peek == 0);
+	pth = pt_findhash(picnum, palnum, /*FIXME skyface*/0, /*FIXME flags*/0, peek == 0);
 	if (pth == 0) {
 		return 0;
 	}
@@ -545,7 +557,7 @@ struct pthead * ptgethead(long picnum, long palnum, int peek)
 	return &pth->head;
 }
 
-static int ptiter_matches(struct ptiter * iter)
+static int ptiter_matches(PTIter iter)
 {
 	if (iter->match == 0) {
 		return 1;	// matching every item
@@ -562,7 +574,7 @@ static int ptiter_matches(struct ptiter * iter)
 	return 1;
 }
 
-static void ptiter_seekforward(struct ptiter * iter)
+static void ptiter_seekforward(PTIter iter)
 {
 	while (1) {
 		if (iter->pth && ptiter_matches(iter)) {
@@ -581,7 +593,7 @@ static void ptiter_seekforward(struct ptiter * iter)
 				break;
 			}
 			iter->i++;
-			iter->pth = pthashhead[iter->i];
+			iter->pth = hashhead[iter->i];
 		} else {
 			iter->pth = iter->pth->next;
 		}
@@ -598,17 +610,17 @@ static void ptiter_seekforward(struct ptiter * iter)
  * @param flags when (match&PTITER_FLAGS), specifies the flags to test
  * @return an iterator
  */
-struct ptiter * ptiternewmatch(int match, long picnum, long palnum, unsigned char flagsmask, unsigned char flags)
+PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned char flagsmask, unsigned char flags)
 {
-	struct ptiter * iter;
+	PTIter iter;
 	
-	iter = (struct ptiter *) malloc(sizeof(struct ptiter));
+	iter = (PTIter) malloc(sizeof(struct PTIter_typ));
 	if (!iter) {
 		return 0;
 	}
 	
 	iter->i = 0;
-	iter->pth = pthashhead[0];
+	iter->pth = hashhead[0];
 	iter->match = match;
 	iter->picnum = picnum;
 	iter->palnum = palnum;
@@ -616,8 +628,8 @@ struct ptiter * ptiternewmatch(int match, long picnum, long palnum, unsigned cha
 	iter->flags = flags;
 	
 	if ((match & PTITER_PICNUM)) {
-		iter->i = getpthashhead(picnum);
-		iter->pth = pthashhead[iter->i];
+		iter->i = gethashhead(picnum);
+		iter->pth = hashhead[iter->i];
 		if (iter->pth == 0) {
 			iter->pth = 0;
 			return iter;
@@ -633,9 +645,9 @@ struct ptiter * ptiternewmatch(int match, long picnum, long palnum, unsigned cha
  * Creates a new iterator for walking the header hash
  * @return an iterator
  */
-struct ptiter * ptiternew(void)
+PTIter PTIterNew(void)
 {
-	return ptiternewmatch(0, 0, 0, 0, 0);
+	return PTIterNewMatch(0, 0, 0, 0, 0);
 }
 
 /**
@@ -643,9 +655,9 @@ struct ptiter * ptiternew(void)
  * @param iter the iterator
  * @return the next header, or null if at the end
  */
-struct pthead * ptiternext(struct ptiter *iter)
+PTHead * PTIterNext(PTIter iter)
 {
-	struct pthead * found = 0;
+	PTHead * found = 0;
 	
 	if (!iter) return 0;
 	
@@ -665,7 +677,7 @@ struct pthead * ptiternext(struct ptiter *iter)
  * Frees an iterator
  * @param iter the iterator
  */
-void ptiterfree(struct ptiter *iter)
+void PTIterFree(PTIter iter)
 {
 	if (!iter) return;
 	free(iter);

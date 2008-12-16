@@ -9,7 +9,7 @@ enum {
 	PTH_DIRTY = 128,
 };
 
-struct pthead {
+struct PTHead_typ {
 	GLuint glpic;
 	long picnum;
 	long palnum;
@@ -24,23 +24,26 @@ struct pthead {
 	float scalex, scaley;
 };
 
+typedef struct PTHead_typ PTHead;
+
 enum {
 	PTITER_PICNUM = 1,
 	PTITER_PALNUM = 2,
 	PTITER_FLAGS  = 4,
 };
 
-struct ptiter;	// an opaque iterator type for walking the internal hash
+struct PTIter_typ;	// an opaque iterator type for walking the internal hash
+typedef struct PTIter_typ * PTIter;
 
 /**
  * Resets the texture hash but leaves the headers in memory
  */
-void ptreset();
+void PTReset();
 
 /**
  * Clears the texture hash of all content
  */
-void ptclear();
+void PTClear();
 
 /**
  * Fetches a texture header. This also means loading the texture from
@@ -50,27 +53,27 @@ void ptclear();
  * @param peek if !0, does not try and create a header if none exists
  * @return pointer to the header, or null if peek!=0 and none exists
  */
-struct pthead * ptgethead(long picnum, long palnum, int peek);
+PTHead * PT_GetHead(long picnum, long palnum, int peek);
 
-struct ptiter * ptiternewmatch(int match, long picnum, long palnum, unsigned char flagsmask, unsigned char flags);
+PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned char flagsmask, unsigned char flags);
 
 /**
  * Creates a new iterator for walking the header hash
  * @return an iterator
  */
-struct ptiter * ptiternew(void);
+PTIter PTIterNew(void);
 
 /**
  * Gets the next header from an iterator
  * @param iter the iterator
  * @return the next header, or null if at the end
  */
-struct pthead * ptiternext(struct ptiter *iter);
+PTHead * PTIterNext(PTIter iter);
 
 /**
  * Frees an iterator
  * @param iter the iterator
  */
-void ptiterfree(struct ptiter *iter);
+void PTIterFree(PTIter iter);
 
 #endif

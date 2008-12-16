@@ -380,9 +380,9 @@ tryart:
 
 long gltexmayhavealpha (long dapicnum, long dapalnum)
 {
-	struct pthead * pth;
+	PTHead * pth;
 
-	pth = ptgethead(dapicnum, dapalnum, 1);
+	pth = PT_GetHead(dapicnum, dapalnum, 1);
 	if (!pth) {
 		return 1;
 	}
@@ -392,17 +392,17 @@ long gltexmayhavealpha (long dapicnum, long dapalnum)
 
 void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
 {
-	struct ptiter * iter;
-	struct pthead * pth;
+	PTIter iter;
+	PTHead * pth;
 	
-	iter = ptiternewmatch(
+	iter = PTIterNewMatch(
 		PTITER_PALNUM | PTITER_PALNUM | PTITER_FLAGS,
 		dapicnum, dapalnum, PTH_CLAMPED, (dameth & METH_CLAMPED) ? PTH_CLAMPED : 0
 		);
-	while ((pth = ptiternext(iter)) != 0) {
+	while ((pth = PTIterNext(iter)) != 0) {
 		pth->flags |= PTH_DIRTY;
 	}
-	ptiterfree(iter);
+	PTIterFree(iter);
 }
 
 	//Make all textures "dirty" so they reload, but not re-allocate
@@ -410,14 +410,14 @@ void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
 	//Use this for palette effects ... but not ones that change every frame!
 void gltexinvalidateall ()
 {
-	struct ptiter * iter;
-	struct pthead * pth;
+	PTIter iter;
+	PTHead * pth;
 
-	iter = ptiternew();
-	while ((pth = ptiternext(iter)) != 0) {
+	iter = PTIterNew();
+	while ((pth = PTIterNext(iter)) != 0) {
 		pth->flags |= PTH_DIRTY;
 	}
-	ptiterfree(iter);
+	PTIterFree(iter);
 	clearskins();
 #ifdef DEBUGGINGAIDS
 	OSD_Printf("gltexinvalidateall()\n");
@@ -428,8 +428,8 @@ void gltexinvalidateall ()
 void gltexapplyprops (void)
 {
 	long i;
-	struct ptiter * iter;
-	struct pthead * pth;
+	PTIter iter;
+	PTHead * pth;
 	
 	if (glinfo.maxanisotropy > 1.0)
 	{
@@ -439,8 +439,8 @@ void gltexapplyprops (void)
 	if (gltexfiltermode < 0) gltexfiltermode = 0;
 	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
 	
-	iter = ptiternew();
-	while ((pth = ptiternext(iter)) != 0) {
+	iter = PTIterNew();
+	while ((pth = PTIterNext(iter)) != 0) {
 		bglBindTexture(GL_TEXTURE_2D,pth->glpic);
 		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
@@ -448,7 +448,7 @@ void gltexapplyprops (void)
 			bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 		}
 	}
-	ptiterfree(iter);
+	PTIterFree(iter);
 
 	{
 		int j;
@@ -504,7 +504,7 @@ void polymost_glreset ()
 	}
 	else
 	{
-		ptreset();
+		PTReset();
 		clearskins();
 	}
 	
