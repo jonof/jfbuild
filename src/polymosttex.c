@@ -737,7 +737,7 @@ PTHead * PT_GetHead(long picnum, long palnum, unsigned char skyface, unsigned sh
 	return &pth->head;
 }
 
-static int ptiter_matches(PTIter iter)
+static inline int ptiter_matches(PTIter iter)
 {
 	if (iter->match == 0) {
 		return 1;	// matching every item

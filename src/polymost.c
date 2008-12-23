@@ -398,12 +398,16 @@ void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
 	PTHead * pth;
 	
 	iter = PTIterNewMatch(
-		PTITER_PALNUM | PTITER_PALNUM | PTITER_FLAGS,
+		PTITER_PICNUM | PTITER_PALNUM | PTITER_FLAGS,
 		dapicnum, dapalnum, PTH_CLAMPED, (dameth & METH_CLAMPED) ? PTH_CLAMPED : 0
 		);
 	while ((pth = PTIterNext(iter)) != 0) {
 		pth->flags |= PTH_DIRTY;
+		/*initprintf("invalidating picnum:%d palnum:%d effects:%d skyface:%d flags:%04X repldef:%p glpic:%d\n",
+			   pth->picnum, pth->palnum, pth->effects, pth->skyface,
+			   pth->flags, pth->repldef, pth->glpic);*/
 	}
+	//initprintf("done\n");
 	PTIterFree(iter);
 }
 
@@ -421,9 +425,7 @@ void gltexinvalidateall ()
 	}
 	PTIterFree(iter);
 	clearskins();
-#ifdef DEBUGGINGAIDS
-	OSD_Printf("gltexinvalidateall()\n");
-#endif
+	//initprintf("gltexinvalidateall()\n");
 }
 
 
@@ -4777,6 +4779,28 @@ static int dumptexturedefs(const osdfuncparm_t *parm)
 	
 	return OSDCMD_OK;	// no replacement found
 }
+
+static int debugtexturehash(const osdfuncparm_t *parm)
+{
+	PTIter iter;
+	PTHead * pth;
+	
+	if (!hicfirstinit) {
+		return OSDCMD_OK;
+	}
+	
+	initprintf("// Begin texture hash dump\n");
+	iter = PTIterNew();
+	while ((pth = PTIterNext(iter)) != 0) {
+		initprintf(" picnum:%d palnum:%d effects:%d skyface:%d flags:%04X repldef:%p glpic:%d\n",
+			   pth->picnum, pth->palnum, pth->effects, pth->skyface,
+			   pth->flags, pth->repldef, pth->glpic);
+	}
+	PTIterFree(iter);
+	initprintf("// End texture hash dump\n");
+		
+	return OSDCMD_OK;	// no replacement found
+}
 #endif
 
 void polymost_initosdfuncs(void)
@@ -4798,6 +4822,7 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
 	//OSD_RegisterFunction("dumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",dumptexturedefs);
+	//OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",debugtexturehash);
 }
 
 void polymost_precache(long dapicnum, long dapalnum, long datype)
