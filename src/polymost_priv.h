@@ -18,6 +18,9 @@ struct glfiltermodes {
 #define numglfiltermodes 6
 extern struct glfiltermodes glfiltermodes[numglfiltermodes];
 
+extern long gltexmaxsize;	// 0 means autodetection on first run
+extern long gltexmiplevel;	// discards this many mipmap levels
+
 
 typedef struct {
 	char magic[8];	// 'Polymost'

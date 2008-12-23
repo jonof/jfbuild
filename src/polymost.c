@@ -297,6 +297,8 @@ static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
 	long i, j;
 	hicreplctyp *si;
 	pthtyp *pth;
+	
+	return 0;
 
 	j = (dapicnum&(GLTEXCACHEADSIZ-1));
 
@@ -382,7 +384,7 @@ long gltexmayhavealpha (long dapicnum, long dapalnum)
 {
 	PTHead * pth;
 
-	pth = PT_GetHead(dapicnum, dapalnum, 1);
+	pth = PT_GetHead(dapicnum, dapalnum, 0, 0, 1);
 	if (!pth) {
 		return 1;
 	}
@@ -1246,7 +1248,8 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	long xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0, ymulnice = 0, dorot;
 	char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
 #ifdef USE_OPENGL
-	pthtyp *pth;
+//	pthtyp *pth;
+	PTHead * pth = 0;
 #endif
 
 	if (method == -1) return;
@@ -1328,11 +1331,21 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	if (rendmode == 3)
 	{
 		float hackscx, hackscy;
-
+		unsigned short ptflags = 0;
+		
 		if (skyclamphack) method |= METH_CLAMPED;
-		pth = gltexcache(globalpicnum,globalpal,method&(~(METH_MASKED | METH_TRANS)));
+		if (method & METH_CLAMPED) ptflags |= PTH_CLAMPED;
+		if (drawingskybox) ptflags |= PTH_SKYBOX;
+		
+		pth = PT_GetHead(globalpicnum, globalpal, drawingskybox, ptflags, 0);
+//		pth = gltexcache(globalpicnum,globalpal,method&(~(METH_MASKED | METH_TRANS)));
 		bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic : 0);
 
+		hackscx = pth->scalex;
+		hackscy = pth->scaley;
+		tsizx = pth->sizx;
+		tsizy = pth->sizy;
+/*
 		if (pth && (pth->flags & 2))
 		{
 			hackscx = pth->scalex;
@@ -1341,6 +1354,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 			tsizy = pth->sizy;
 		}
 		else { hackscx = 1.0; hackscy = 1.0; }
+*/
 
 		if (!glinfo.texnpot) {
 			for(xx=1;xx<tsizx;xx+=xx); ox2 = (double)1.0/(double)xx;
@@ -1355,7 +1369,9 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 			bglDisable(GL_ALPHA_TEST);
 		} else {
 			float al = 0.32;
-			if (pth && pth->hicr && pth->hicr->alphacut >= 0.0) al = pth->hicr->alphacut;
+			if (pth && pth->repldef && pth->repldef->alphacut >= 0.0) {
+				al = pth->repldef->alphacut;
+			}
 			if (usegoodalpha) al = 0.0;
 			if (!waloff[globalpicnum]) al = 0.0;	// invalid textures ignore the alpha cutoff settings
 			bglEnable(GL_BLEND);

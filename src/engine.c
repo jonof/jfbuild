@@ -5445,7 +5445,7 @@ void uninitengine(void)
 	//OSD_Printf("cacheresets = %d, cacheinvalidates = %d\n", cacheresets, cacheinvalidates);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-	ptclear();
+	PTClear();
 	polymost_glreset();
 	hicinit();
 	freeallmodels();

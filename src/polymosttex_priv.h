@@ -6,6 +6,8 @@ enum {
 	PTH_HIGHTILE = 2,
 	PTH_SKYBOX = 4,
 	PTH_HASALPHA = 8,
+	PTH_NOCOMPRESS = 16,	// prevents texture compression from being used
+	PTH_NOMIPLEVEL = 32,	// prevents gltexmiplevel from being applied
 	PTH_DIRTY = 128,
 };
 
@@ -14,14 +16,13 @@ struct PTHead_typ {
 	long picnum;
 	long palnum;
 	unsigned char effects;
-	unsigned char flags;
 	unsigned char skyface;
-	unsigned char filler;
+	unsigned short flags;
 	
 	hicreplctyp *repldef;
 
-	unsigned short sizx, sizy;
-	float scalex, scaley;
+	unsigned short sizx, sizy;	// texture dimensions
+	float scalex, scaley;		// scale factor between texture and ART tile dimensions
 };
 
 typedef struct PTHead_typ PTHead;
@@ -50,12 +51,14 @@ void PTClear();
  * disk if need be (if peek!=0).
  * @param picnum
  * @param palnum
+ * @param skyface
+ * @param flags
  * @param peek if !0, does not try and create a header if none exists
  * @return pointer to the header, or null if peek!=0 and none exists
  */
-PTHead * PT_GetHead(long picnum, long palnum, int peek);
+PTHead * PT_GetHead(long picnum, long palnum, unsigned char skyface, unsigned short flags, int peek);
 
-PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned char flagsmask, unsigned char flags);
+PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned short flagsmask, unsigned short flags);
 
 /**
  * Creates a new iterator for walking the header hash

@@ -27,15 +27,16 @@ struct PTIter_typ {
 	int match;
 	long picnum;
 	long palnum;
-	unsigned char flagsmask;
-	unsigned char flags;
+	unsigned short flagsmask;
+	unsigned short flags;
 };
 
 /** a convenient structure for passing around texture data that is being baked */
 struct PTTexture_typ {
 	coltype * pic;
-	unsigned long sizx, sizy;	// padded size
-	unsigned long tsizx, tsizy;	// true size
+	GLsizei sizx, sizy;	// padded size
+	GLsizei tsizx, tsizy;	// true size
+	GLenum rawfmt;		// raw format of the data (GL_RGBA, GL_BGRA)
 };
 typedef struct PTTexture_typ PTTexture;
 
@@ -60,13 +61,13 @@ static inline int gethashhead(long picnum)
  * @param create !0 = create if none found
  * @return the PTHash item, or null if none was found
  */
-static PTHash * pt_findhash(long picnum, long palnum, long skyface, long flags, int create)
+static PTHash * pt_findhash(long picnum, long palnum, long skyface, unsigned short flags, int create)
 {
 	int i = gethashhead(picnum);
 	PTHash * pth;
 	PTHash * basepth;	// palette 0 in case we find we need it
 	
-	long flagmask = flags & (PTH_HIGHTILE | PTH_CLAMPED | PTH_SKYBOX);
+	unsigned short flagmask = flags & (PTH_HIGHTILE | PTH_CLAMPED | PTH_SKYBOX);
 	if (skyface > 0) {
 		flagmask |= PTH_SKYBOX;
 	}
@@ -84,6 +85,8 @@ static PTHash * pt_findhash(long picnum, long palnum, long skyface, long flags, 
 			}
 			return pth;
 		}
+		
+		pth = pth->next;
 	}
 	
 	if (!create) {
@@ -94,6 +97,11 @@ static PTHash * pt_findhash(long picnum, long palnum, long skyface, long flags, 
 		
 		if ((flags & PTH_HIGHTILE)) {
 			replc = hicfindsubst(picnum, palnum, skyface);
+			if (replc) {
+				if (replc->flags & 1) {
+					flagmask |= PTH_NOCOMPRESS;
+				}
+			}
 		}
 
 		pth = (PTHash *) malloc(sizeof(PTHash));
@@ -140,7 +148,8 @@ static int pt_load_art(PTHead * pth);
 static int pt_load_hightile(PTHead * pth);
 static int pt_load_cache(PTHead * pth);
 static void pt_load_fixtransparency(PTTexture * tex, int clamped);
-static void pt_load_uploadtexture(int replace, PTTexture * tex);
+static void pt_load_mipscale(PTTexture * tex);
+static void pt_load_uploadtexture(PTHead * pth, PTTexture * tex);
 static void pt_load_applyparameters(PTHead * pth);
 
 /**
@@ -189,7 +198,7 @@ static int pt_load_art(PTHead * pth)
 	coltype * wpptr;
 	long x, y, x2, y2;
 	long dacol;
-	int hasalpha = 0, replace = 0;
+	int hasalpha = 0;
 	
 	tex.tsizx = tilesizx[pth->picnum];
 	tex.tsizy = tilesizy[pth->picnum];
@@ -209,6 +218,8 @@ static int pt_load_art(PTHead * pth)
 	if (!tex.pic) {
 		return 0;
 	}
+	
+	tex.rawfmt = GL_RGBA;
 	
 	if (!waloff[pth->picnum]) {
 		// Force invalid textures to draw something - an almost purely transparency texture
@@ -257,25 +268,22 @@ static int pt_load_art(PTHead * pth)
 		}
 	}
 	
-	if (pth->glpic == 0) {
-		bglGenTextures(1, &pth->glpic);
-	} else {
-		replace = 1;
+	pth->sizx = tilesizx[pth->picnum];
+	pth->sizy = tilesizy[pth->picnum];
+	pth->scalex = 1.0;
+	pth->scaley = 1.0;
+	pth->flags &= ~(PTH_DIRTY);
+	pth->flags |= (PTH_NOCOMPRESS | PTH_NOMIPLEVEL);
+	if (hasalpha) {
+		pth->flags |= PTH_HASALPHA;
 	}
-	bglBindTexture(GL_TEXTURE_2D, pth->glpic);
 	
-	pt_load_fixtransparency(&tex, (pth->flags & PTH_CLAMPED));
-	pt_load_uploadtexture(replace, &tex);
+	pt_load_uploadtexture(pth, &tex);
 	pt_load_applyparameters(pth);
 	
 	if (tex.pic) {
 		free(tex.pic);
 	}
-	
-	if (hasalpha) {
-		pth->flags |= PTH_HASALPHA;
-	}
-	pth->flags &= ~PTH_DIRTY;
 	
 	return 1;
 }
@@ -294,7 +302,8 @@ static void pt_load_fixtransparency(PTTexture * tex, int clamped)
 	long daxsiz = tex->tsizx, daysiz = tex->tsizy;
 	long daxsiz2 = tex->sizx, daysiz2 = tex->sizy;
 	
-	dox = daxsiz2-1; doy = daysiz2-1;
+	dox = daxsiz2-1;
+	doy = daysiz2-1;
 	if (clamped) {
 		dox = min(dox,daxsiz);
 		doy = min(doy,daysiz);
@@ -363,20 +372,189 @@ static void pt_load_fixtransparency(PTTexture * tex, int clamped)
 }
 
 /**
+ * Scales down the texture by half in-place
+ * @param tex the texture
+ */
+static void pt_load_mipscale(PTTexture * tex)
+{
+	GLsizei newx, newy;
+	GLsizei x, y;
+	coltype *wpptr, *rpptr;
+	long r, g, b, a, k;
+	
+	newx = max(1, (tex->sizx >> 1));
+	newy = max(1, (tex->sizy >> 1));
+	
+	for (y = 0; y < newy; y++) {
+		wpptr = &tex->pic[y * newx];
+		rpptr = &tex->pic[(y << 1) * tex->sizx];
+		
+		for (x = 0; x < newx; x++, wpptr++, rpptr += 2) {
+			r = g = b = a = k = 0;
+			if (rpptr[0].a) {
+				r += (long)rpptr[0].r;
+				g += (long)rpptr[0].g;
+				b += (long)rpptr[0].b;
+				a += (long)rpptr[0].a;
+				k++;
+			}
+			if ((x+x+1 < tex->sizx) && (rpptr[1].a)) {
+				r += (long)rpptr[1].r;
+				g += (long)rpptr[1].g;
+				b += (long)rpptr[1].b;
+				a += (long)rpptr[1].a;
+				k++;
+			}
+			if (y+y+1 < tex->sizy) {
+				if (rpptr[tex->sizx].a) {
+					r += (long)rpptr[tex->sizx  ].r;
+					g += (long)rpptr[tex->sizx  ].g;
+					b += (long)rpptr[tex->sizx  ].b;
+					a += (long)rpptr[tex->sizx  ].a;
+					k++;
+				}
+				if ((x+x+1 < tex->sizx) && (rpptr[tex->sizx+1].a)) {
+					r += (long)rpptr[tex->sizx+1].r;
+					g += (long)rpptr[tex->sizx+1].g;
+					b += (long)rpptr[tex->sizx+1].b;
+					a += (long)rpptr[tex->sizx+1].a;
+					k++;
+				}
+			}
+			switch(k) {
+				case 0:
+				case 1: wpptr->r = r;
+					wpptr->g = g;
+					wpptr->b = b;
+					wpptr->a = a;
+					break;
+				case 2: wpptr->r = ((r+1)>>1);
+					wpptr->g = ((g+1)>>1);
+					wpptr->b = ((b+1)>>1);
+					wpptr->a = ((a+1)>>1);
+					break;
+				case 3: wpptr->r = ((r*85+128)>>8);
+					wpptr->g = ((g*85+128)>>8);
+					wpptr->b = ((b*85+128)>>8);
+					wpptr->a = ((a*85+128)>>8);
+					break;
+				case 4: wpptr->r = ((r+2)>>2);
+					wpptr->g = ((g+2)>>2);
+					wpptr->b = ((b+2)>>2);
+					wpptr->a = ((a+2)>>2);
+					break;
+				default: break;
+			}
+			//if (wpptr->a) wpptr->a = 255;
+		}
+	}
+	
+	tex->sizx = newx;
+	tex->sizy = newy;
+}
+
+
+/**
  * Sends texture data to GL
- * @param replace attempt to reuse driver memory by overwriting
+ * @param pth the cache header
  * @param tex the texture to upload
  */
-static void pt_load_uploadtexture(int replace, PTTexture * tex)
+static void pt_load_uploadtexture(PTHead * pth, PTTexture * tex)
 {
+	int replace = 0;
+	int i;
+	GLint mipmap;
+	GLint intexfmt;
+	
+	if (gltexmaxsize <= 0) {
+		GLint siz = 0;
+		bglGetIntegerv(GL_MAX_TEXTURE_SIZE, &siz);
+		if (siz == 0) {
+			gltexmaxsize = 6;   // 2^6 = 64 == default GL max texture size
+		} else {
+			gltexmaxsize = 0;
+			for (; siz > 1; siz >>= 1) {
+				gltexmaxsize++;
+			}
+		}
+	}
+		
+	if ((pth->flags & PTH_NOCOMPRESS) || !glinfo.texcompr || !glusetexcompr) {
+		intexfmt = (pth->flags & PTH_HASALPHA)
+		         ? GL_RGBA
+			 : GL_RGB;
+	} else {
+		intexfmt = (pth->flags & PTH_HASALPHA)
+		         ? GL_COMPRESSED_RGBA_ARB
+			 : GL_COMPRESSED_RGB_ARB;
+	}
+	
+	if (pth->glpic == 0) {
+		bglGenTextures(1, &pth->glpic);
+	} else {
+		replace = 1;
+	}
+	bglBindTexture(GL_TEXTURE_2D, pth->glpic);
+
+	pt_load_fixtransparency(tex, (pth->flags & PTH_CLAMPED));
+
+	mipmap = 0;
+	if (! (pth->flags & PTH_NOMIPLEVEL)) {
+		// if we aren't instructed to preserve all mipmap levels,
+		// immediately throw away gltexmiplevel mipmaps
+		mipmap = max(0, gltexmiplevel);
+	}
+	while ((tex->sizx >> mipmap) > (1 << gltexmaxsize) ||
+	       (tex->sizy >> mipmap) > (1 << gltexmaxsize)) {
+		// throw away additional mipmaps until the texture fits within
+		// the maximum size permitted by the GL driver
+		mipmap++;
+	}
+	
+	for ( ;
+	     mipmap > 0 && (tex->sizx > 1 || tex->sizy > 1);
+	     mipmap--) {
+		pt_load_mipscale(tex);
+		pt_load_fixtransparency(tex, (pth->flags & PTH_CLAMPED));
+	}
+	
+	if (replace) {
+		bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
+			tex->sizx, tex->sizy, tex->rawfmt,
+			GL_UNSIGNED_BYTE, (const GLvoid *) tex->pic);
+	} else {
+		bglTexImage2D(GL_TEXTURE_2D, 0,
+			intexfmt, tex->sizx, tex->sizy, 0, tex->rawfmt,
+			GL_UNSIGNED_BYTE, (const GLvoid *) tex->pic);
+	}
+	
+	for (mipmap = 1; tex->sizx > 1 || tex->sizy > 1; mipmap++) {
+		pt_load_mipscale(tex);
+		pt_load_fixtransparency(tex, (pth->flags & PTH_CLAMPED));
+
+		if (replace) {
+			bglTexSubImage2D(GL_TEXTURE_2D, mipmap, 0, 0,
+				tex->sizx, tex->sizy, tex->rawfmt,
+				GL_UNSIGNED_BYTE, (const GLvoid *) tex->pic);
+		} else {
+			bglTexImage2D(GL_TEXTURE_2D, mipmap,
+				intexfmt, tex->sizx, tex->sizy, 0, tex->rawfmt,
+				GL_UNSIGNED_BYTE, (const GLvoid *) tex->pic);
+		}
+	}
 }
 
 /**
- * Applies the global texture filter parameters to the currently-bound texture
- * @param clamped 
+ * Applies the global texture filter parameters to the given texture
+ * @param pth the cache header
  */
 static void pt_load_applyparameters(PTHead * pth)
 {
+	if (pth->glpic == 0) {
+		return;
+	}
+	bglBindTexture(GL_TEXTURE_2D, pth->glpic);
+
 	if (gltexfiltermode < 0) {
 		gltexfiltermode = 0;
 	} else if (gltexfiltermode >= (long)numglfiltermodes) {
@@ -533,14 +711,16 @@ void PTClear()
  * Fetches a texture header ready for rendering
  * @param picnum
  * @param palnum
+ * @param skyface
+ * @param flags
  * @param peek if !0, does not try and create a header if none exists
  * @return pointer to the header, or null if peek!=0 and none exists
  */
-PTHead * PT_GetHead(long picnum, long palnum, int peek)
+PTHead * PT_GetHead(long picnum, long palnum, unsigned char skyface, unsigned short flags, int peek)
 {
 	PTHash * pth;
 	
-	pth = pt_findhash(picnum, palnum, /*FIXME skyface*/0, /*FIXME flags*/0, peek == 0);
+	pth = pt_findhash(picnum, palnum, skyface, flags, peek == 0);
 	if (pth == 0) {
 		return 0;
 	}
@@ -610,7 +790,7 @@ static void ptiter_seekforward(PTIter iter)
  * @param flags when (match&PTITER_FLAGS), specifies the flags to test
  * @return an iterator
  */
-PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned char flagsmask, unsigned char flags)
+PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned short flagsmask, unsigned short flags)
 {
 	PTIter iter;
 	
