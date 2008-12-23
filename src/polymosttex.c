@@ -2,6 +2,7 @@
 #include "baselayer.h"
 #include "build.h"
 #include "glbuild.h"
+#include "pragmas.h"
 #include "engine_priv.h"
 #include "polymost_priv.h"
 #include "hightile_priv.h"
@@ -97,11 +98,6 @@ static PTHash * pt_findhash(long picnum, long palnum, long skyface, unsigned sho
 		
 		if ((flags & PTH_HIGHTILE)) {
 			replc = hicfindsubst(picnum, palnum, skyface);
-			if (replc) {
-				if (replc->flags & 1) {
-					flagmask |= PTH_NOCOMPRESS;
-				}
-			}
 		}
 
 		pth = (PTHash *) malloc(sizeof(PTHash));
@@ -125,7 +121,7 @@ static PTHash * pt_findhash(long picnum, long palnum, long skyface, unsigned sho
 			pth->deferto = pt_findhash(picnum, replc->palnum, skyface, flags, create);
 		} else if ((flags & PTH_HIGHTILE) && !replc) {
 			// there is no replacement, so defer to ART
-			pth->deferto = pt_findhash(picnum, replc->palnum, skyface, (flags & ~PTH_HIGHTILE), create);
+			pth->deferto = pt_findhash(picnum, palnum, 0, (flags & ~PTH_HIGHTILE), create);
 		}
 	}
 	
@@ -166,7 +162,12 @@ static int pt_load(PTHash * pth)
 	//FIXME
 	if ((pth->head.flags & PTH_HIGHTILE)) {
 		// try and load from a cached replacement
+		
 		// if that failed, try and load from a raw replacement
+		if (pt_load_hightile(&pth->head)) {
+			return 1;
+		}
+		
 		// if that failed, get the hash for the ART version and
 		//   defer this to there
 		pth->deferto = pt_findhash(
@@ -272,7 +273,7 @@ static int pt_load_art(PTHead * pth)
 	pth->sizy = tilesizy[pth->picnum];
 	pth->scalex = 1.0;
 	pth->scaley = 1.0;
-	pth->flags &= ~(PTH_DIRTY);
+	pth->flags &= ~(PTH_DIRTY | PTH_HASALPHA);
 	pth->flags |= (PTH_NOCOMPRESS | PTH_NOMIPLEVEL);
 	if (hasalpha) {
 		pth->flags |= PTH_HASALPHA;
@@ -285,6 +286,144 @@ static int pt_load_art(PTHead * pth)
 		free(tex.pic);
 	}
 	
+	return 1;
+}
+
+/**
+ * Load a Hightile texture into an OpenGL texture
+ * @param pth the header to populate
+ * @return !0 on success
+ */
+static int pt_load_hightile(PTHead * pth)
+{
+	PTTexture tex;
+	const char *filename = 0;
+	long filh, picdatalen;
+	char * picdata = 0;
+	int hasalpha = 0;
+	long x, y;
+	
+	if (!pth->repldef) {
+		return 0;
+	}
+	if (pth->skyface > 0) {
+		if (pth->repldef->skybox == 0 || pth->skyface > 6) {
+			return 0;
+		}
+		filename = pth->repldef->skybox->face[pth->skyface - 1];
+	} else {
+		filename = pth->repldef->filename;
+	}
+	if (!filename) {
+		return 0;
+	}
+	
+	filh = kopen4load(filename, 0);
+	if (filh < 0) {
+		initprintf("hightile: %s (pic %d pal %d) not found\n",
+			filename, pth->picnum, pth->palnum);
+		return 0;
+	}
+	picdatalen = kfilelength(filh);
+	
+	picdata = (char *) malloc(picdatalen);
+	if (!picdata) {
+		initprintf("hightile: %s (pic %d pal %d) out of memory\n",
+			   filename, pth->picnum, pth->palnum, picdatalen);
+		kclose(filh);
+		return 0;
+	}
+	
+	if (kread(filh, picdata, picdatalen) != picdatalen) {
+		initprintf("hightile: %s (pic %d pal %d) truncated read\n",
+			   filename, pth->picnum, pth->palnum);
+		kclose(filh);
+		return 0;
+	}
+	
+	kclose(filh);
+	
+	kpgetdim(picdata, picdatalen, (long *) &tex.tsizx, (long *) &tex.tsizy);
+	if (tex.tsizx == 0 || tex.tsizy == 0) {
+		initprintf("hightile: %s (pic %d pal %d) unrecognised format\n",
+			   filename, pth->picnum, pth->palnum);
+		free(picdata);
+		return 0;
+	}
+
+	if (!glinfo.texnpot) {
+		for (tex.sizx = 1; tex.sizx < tex.tsizx; tex.sizx += tex.sizx) ;
+		for (tex.sizy = 1; tex.sizy < tex.tsizy; tex.sizy += tex.sizy) ;
+	} else {
+		tex.sizx = tex.tsizx;
+		tex.sizy = tex.tsizy;
+	}
+	
+	tex.pic = (coltype *) malloc(tex.sizx * tex.sizy * sizeof(coltype));
+	if (!tex.pic) {
+		return 0;
+	}
+	memset(tex.pic, 0, tex.sizx * tex.sizy * sizeof(coltype));
+	
+	if (kprender(picdata, picdatalen, (long) tex.pic, tex.sizx * sizeof(coltype), tex.sizx, tex.sizy, 0, 0)) {
+		initprintf("hightile: %s (pic %d pal %d) decode error\n",
+			   filename, pth->picnum, pth->palnum);
+		free(picdata);
+		free(tex.pic);
+		return 0;
+	}
+	
+	if (! (pth->flags & PTH_CLAMPED) || pth->skyface > 0) { //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
+		if (tex.sizx > tex.tsizx) {	//Copy left to right
+			coltype * lptr = tex.pic;
+			for (y = 0; y < tex.tsizy; y++, lptr += tex.sizx) {
+				memcpy(&lptr[tex.tsizx], lptr, (tex.sizx - tex.tsizx) << 2);
+			}
+		}
+		if (tex.sizy > tex.tsizy) {	//Copy top to bottom
+			memcpy(&tex.pic[tex.sizx * tex.tsizy], tex.pic, (tex.sizy - tex.tsizy) * tex.sizx << 2);
+		}
+	}
+	
+	tex.rawfmt = GL_BGRA;
+	if (!glinfo.bgra) {
+		long j;
+		for (j = tex.sizx * tex.sizy - 1; j >= 0; j--) {
+			swapchar(&tex.pic[j].r, &tex.pic[j].b);
+		}
+		tex.rawfmt = GL_RGBA;
+	}
+	
+	free(picdata);
+	picdata = 0;
+
+	pth->sizx = tex.tsizx;
+	pth->sizy = tex.tsizy;
+	if (pth->skyface > 0) {
+		pth->scalex = (float)tex.tsizx / 64.0;
+		pth->scaley = (float)tex.tsizy / 64.0;
+	} else {
+		pth->scalex = (float)tex.tsizx / (float)tilesizx[pth->picnum];
+		pth->scaley = (float)tex.tsizy / (float)tilesizy[pth->picnum];
+	}
+	pth->flags &= ~(PTH_DIRTY | PTH_NOCOMPRESS | PTH_SKYBOX | PTH_HASALPHA);
+	if (pth->repldef->flags & 1) {
+		pth->flags |= PTH_NOCOMPRESS;
+	}
+	if (pth->skyface > 0) {
+		pth->flags |= PTH_SKYBOX;
+	}
+	if (hasalpha) {
+		pth->flags |= PTH_HASALPHA;
+	}
+	
+	pt_load_uploadtexture(pth, &tex);
+	pt_load_applyparameters(pth);
+	
+	if (tex.pic) {
+		free(tex.pic);
+	}
+
 	return 1;
 }
 

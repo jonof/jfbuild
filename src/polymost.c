@@ -1336,6 +1336,8 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		unsigned short ptflags = 0;
 		
 		if (skyclamphack) method |= METH_CLAMPED;
+		
+		if (usehightile) ptflags |= PTH_HIGHTILE;
 		if (method & METH_CLAMPED) ptflags |= PTH_CLAMPED;
 		if (drawingskybox) ptflags |= PTH_SKYBOX;
 		
@@ -4821,8 +4823,10 @@ void polymost_initosdfuncs(void)
 #endif
 	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
-	//OSD_RegisterFunction("dumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",dumptexturedefs);
-	//OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",debugtexturehash);
+#if 0
+	OSD_RegisterFunction("dumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",dumptexturedefs);
+	OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",debugtexturehash);
+#endif
 }
 
 void polymost_precache(long dapicnum, long dapalnum, long datype)
