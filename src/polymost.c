@@ -83,10 +83,11 @@ extern char textfont[2048], smalltextfont[2048];
 long rendmode = 0;
 long usemodels=1, usehightile=1, usegoodalpha=0;
 
-//TODO
+#if 0	// DEPRECATED
 typedef struct _pthtyp { struct _pthtyp *next; long picnum,palnum,effects,flags,skyface; GLuint glpic; hicreplctyp *hicr; short sizx,sizy; float scalex,scaley;} pthtyp;
 #define GLTEXCACHEADSIZ 10
 pthtyp *gltexcachead[GLTEXCACHEADSIZ];
+#endif
 
 enum {
 	METH_SOLID   = 0,
@@ -222,7 +223,7 @@ static inline long imod (long a, long b)
 	return(((a+1)%b)+b-1);
 }
 
-void drawline2d (float x0, float y0, float x1, float y1, char col)
+static void drawline2d (float x0, float y0, float x1, float y1, char col)
 {
 	float f, dx, dy, fxres, fyres;
 	long e, inc, x, y;
@@ -263,6 +264,10 @@ void drawline2d (float x0, float y0, float x1, float y1, char col)
 
 #ifdef USE_OPENGL
 
+static long drawingskybox = 0;
+
+#if 0	// DEPRECATED
+
 #include "md4.h"
 
 #define USELZF
@@ -286,8 +291,6 @@ void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *h
 //   max number of virtual textures very large (MAXTILES*256). Instead of allocating a handle for
 //   every virtual texture, I use a cache where indexing is managed through a hash table.
 //
-
-static long drawingskybox = 0;
 
 int gloadtile_art(long,long,long,pthtyp*,long);
 int gloadtile_hi(long,long,hicreplctyp*,long,pthtyp*,long,char);
@@ -379,6 +382,8 @@ tryart:
 	gltexcachead[j] = pth;
 	return(pth);
 }
+
+#endif	// DEPRECATED
 
 long gltexmayhavealpha (long dapicnum, long dapalnum)
 {
@@ -501,7 +506,7 @@ static int gltexcacnum = -1;
 void polymost_glreset ()
 {
 	long i;
-	pthtyp *pth, *next;
+
 	//Reset if this is -1 (meaning 1st texture call ever), or > 0 (textures in memory)
 	if (gltexcacnum < 0)
 	{
@@ -602,6 +607,8 @@ void resizeglcheck ()
 		//bglEnable(GL_TEXTURE_2D);
 	}
 }
+
+#if 0	// DEPRECATED
 
 void fixtransparency (coltype *dapic, long daxsiz, long daysiz, long daxsiz2, long daysiz2, long dameth)
 {
@@ -1237,6 +1244,8 @@ int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp 
 	return 0;
 }
 
+#endif	// DEPRECATED
+
 #endif
 
 	//(dpx,dpy) specifies an n-sided polygon. The polygon must be a convex clockwise loop.
@@ -1255,7 +1264,6 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	long xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0, ymulnice = 0, dorot;
 	char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
 #ifdef USE_OPENGL
-//	pthtyp *pth;
 	PTHead * pth = 0;
 #endif
 
@@ -1359,16 +1367,12 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 
 		hackscx = pth->scalex;
 		hackscy = pth->scaley;
-		tsizx = pth->sizx;
-		tsizy = pth->sizy;
-
-		if (!glinfo.texnpot) {
-			for(xx=1;xx<tsizx;xx+=xx); ox2 = (double)1.0/(double)xx;
-			for(yy=1;yy<tsizy;yy+=yy); oy2 = (double)1.0/(double)yy;
-		} else {
-			xx = tsizx; ox2 = (double)1.0/(double)xx;
-			yy = tsizy; oy2 = (double)1.0/(double)yy;
-		}
+		tsizx   = pth->tsizx;
+		tsizy   = pth->tsizy;
+		xx      = pth->sizx;
+		yy      = pth->sizy;
+		ox2     = (double)1.0/(double)xx;
+		oy2     = (double)1.0/(double)yy;
 
 		if (!(method & (METH_MASKED | METH_TRANS))) {
 			bglDisable(GL_BLEND);
@@ -4402,8 +4406,8 @@ static void tessectrap (float *px, float *py, long *point2, long numpoints)
 
 void polymost_fillpolygon (long npoints)
 {
-	pthtyp *pth;
-	float f,a=0.0;
+	PTHead *pth;
+	float f, a=0.0;
 	long i, j, k;
 
 	globalx1 = mulscale16(globalx1,xyaspect);
@@ -4425,8 +4429,8 @@ void polymost_fillpolygon (long npoints)
 	if (gloy1 != -1) setpolymost2dview(); //disables blending, texturing, and depth testing
 	bglEnable(GL_ALPHA_TEST);
 	bglEnable(GL_TEXTURE_2D);
-	pth = gltexcache(globalpicnum,globalpal,0);
-	bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic : 0);
+	pth = PT_GetHead(globalpicnum, globalpal, usehightile ? PTH_HIGHTILE : 0, 0);
+	bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic[ PTHGLPIC_BASE ] : 0);
 
 	f = ((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 	switch ((globalorientation>>7)&3) {
@@ -4446,50 +4450,53 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 #ifdef USE_OPENGL
 	float xdime, ydime, xdimepad, ydimepad, scx, scy;
 	long i;
-	pthtyp *pth;
+	PTHead *pth;
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
-	if (!glinfo.texnpot) {
-		i = (1<<(picsiz[wallnum]&15)); if (i < tilesizx[wallnum]) i += i; xdimepad = (float)i;
-		i = (1<<(picsiz[wallnum]>>4)); if (i < tilesizy[wallnum]) i += i; ydimepad = (float)i;
-	} else {
-		xdimepad = (float)tilesizx[wallnum];
-		ydimepad = (float)tilesizy[wallnum];
-	}
-	xdime = (float)tilesizx[wallnum]; xdimepad = xdime/xdimepad;
-	ydime = (float)tilesizy[wallnum]; ydimepad = ydime/ydimepad;
+	xdime = (float)tilesizx[wallnum];
+	ydime = (float)tilesizy[wallnum];
 
-	if ((xdime <= dimen) && (ydime <= dimen))
-	{
+	if ((xdime <= dimen) && (ydime <= dimen)) {
 		scx = xdime;
 		scy = ydime;
-	}
-	else
-	{
+	} else {
 		scx = (float)dimen;
 		scy = (float)dimen;
-		if (xdime < ydime) scx *= xdime/ydime; else scy *= ydime/xdime;
+		if (xdime < ydime) {
+			scx *= xdime/ydime;
+		} else {
+			scy *= ydime/xdime;
+		}
 	}
 
-	pth = gltexcache(wallnum,0,4);
-	bglBindTexture(GL_TEXTURE_2D,pth ? pth->glpic : 0);
+	pth = PT_GetHead(wallnum, 0, (usehightile ? PTH_HIGHTILE : 0) | PTH_CLAMPED, 0);
+	bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic[ PTHGLPIC_BASE ] : 0);
+
+	if (pth) {
+		xdimepad = (float)pth->tsizx / (float)pth->sizx;
+		ydimepad = (float)pth->tsizy / (float)pth->sizy;
+	} else {
+		xdimepad = 1.0;
+		ydimepad = 1.0;
+	}
 
 	bglDisable(GL_ALPHA_TEST);
 
-	if (!pth || (pth->flags & 8)) {
+	if (!pth || (pth->flags & PTH_HASALPHA)) {
 		bglDisable(GL_TEXTURE_2D);
 		bglBegin(GL_TRIANGLE_FAN);
-		if (gammabrightness)
+		if (gammabrightness) {
 			bglColor4f((float)curpalette[255].r/255.0,
 					   (float)curpalette[255].g/255.0,
 					   (float)curpalette[255].b/255.0,
 					   1);
-		else
+		} else {
 			bglColor4f((float)britable[curbrightness][ curpalette[255].r ] / 255.0,
 					   (float)britable[curbrightness][ curpalette[255].g ] / 255.0,
 					   (float)britable[curbrightness][ curpalette[255].b ] / 255.0,
 					   1);
+		}
 		bglVertex2f((float)tilex    ,(float)tiley    );
 		bglVertex2f((float)tilex+scx,(float)tiley    );
 		bglVertex2f((float)tilex+scx,(float)tiley+scy);
@@ -4796,9 +4803,10 @@ static int debugtexturehash(const osdfuncparm_t *parm)
 	initprintf("// Begin texture hash dump\n");
 	iter = PTIterNew();
 	while ((pth = PTIterNext(iter)) != 0) {
-		initprintf(" picnum:%d palnum:%d effects:%d flags:%04X repldef:%p glpic:%d.%d.%d.%d.%d.%d\n",
-			   pth->picnum, pth->palnum, pth->effects,
-			   pth->flags, pth->repldef,
+		initprintf(" picnum:%d palnum:%d effects:%d flags:%04X sizx/y:%dx%d tsizx/y:%dx%d repldef:%p glpic:%d.%d.%d.%d.%d.%d\n",
+			   pth->picnum, pth->palnum, pth->effects, pth->flags,
+			   pth->sizx, pth->sizy, pth->tsizx, pth->tsizy,
+			   pth->repldef,
 			   pth->glpic[0], pth->glpic[1], pth->glpic[2], pth->glpic[3], pth->glpic[4], pth->glpic[5]);
 	}
 	PTIterFree(iter);
@@ -4845,10 +4853,9 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 	
 	if (!palookup[dapalnum]) return;//dapalnum = 0;
 
+		//FIXME
 	//OSD_Printf("precached %d %d type %d\n", dapicnum, dapalnum, datype);
-	hicprecaching = 1;
-	gltexcache(dapicnum, dapalnum, (datype & 1) << 2);
-	hicprecaching = 0;
+	//gltexcache(dapicnum, dapalnum, (datype & 1) << 2);
 
 	if (datype == 0) return;
 
@@ -4866,6 +4873,8 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 	}
 #endif
 }
+
+#if 0	// DEPRECATED
 
 static unsigned short hicosub (unsigned short c)
 {
@@ -5136,6 +5145,8 @@ int dedxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *p
 #endif
 	return 0;
 }
+
+#endif	// DEPRECATED
 
 #else /* POLYMOST */
 

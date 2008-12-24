@@ -16,6 +16,10 @@
 #define SHIFTMOD32(a) (a)
 #endif
 
+#if 0	//DEPRECATED
+static const char *TEXCACHEDIR = "texcache";
+#endif
+
 #define VOXBORDWIDTH 1 //use 0 to save memory, but has texture artifacts; 1 looks better...
 voxmodel *voxmodels[MAXVOXELS];
 
@@ -397,6 +401,8 @@ static int daskinloader (long filh, long *fptr, long *bpl, long *sizx, long *siz
 	return 0;
 }
 
+#if 0	// DEPRECATED
+
 // JONOF'S COMPRESSED TEXTURE CACHE STUFF ---------------------------------------------------
 long mdloadskin_trytexcache(char *fn, long len, char effect, texcacheheader *head)
 {
@@ -499,6 +505,8 @@ failure:
 }
 // --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
 
+#endif	// DEPRECATED
+
 	//Note: even though it says md2model, it works for both md2model&md3model
 long mdloadskin (md2model *m, int number, int pal, int surf)
 {
@@ -565,7 +573,7 @@ long mdloadskin (md2model *m, int number, int pal, int surf)
 	picfillen = kfilelength(filh);
 	kclose(filh);	// FIXME: shouldn't have to do this. bug in cache1d.c
 
-	cachefil = mdloadskin_trytexcache(fn, picfillen, hictinting[pal].f, &cachead);
+	/*cachefil = mdloadskin_trytexcache(fn, picfillen, hictinting[pal].f, &cachead);
 	if (cachefil >= 0 && !mdloadskin_cached(cachefil, &cachead, &doalloc, texidx, &xsiz, &ysiz)) {
 		osizx = cachead.xdim;
 		osizy = cachead.ydim;
@@ -574,7 +582,7 @@ long mdloadskin (md2model *m, int number, int pal, int surf)
 		//kclose(filh);	// FIXME: uncomment when cache1d.c is fixed
 		// cachefil >= 0, so it won't be rewritten
 	} else {
-		if (cachefil >= 0) kclose(cachefil);
+		if (cachefil >= 0) kclose(cachefil);*/
 		cachefil = -1;	// the compressed version will be saved to disk
 		
 		if ((filh = kopen4load(fn, 0)) < 0) return -1;
@@ -594,9 +602,9 @@ long mdloadskin (md2model *m, int number, int pal, int surf)
 		if (glinfo.texcompr && glusetexcompr) intexfmt = hasalpha ? GL_COMPRESSED_RGBA_ARB : GL_COMPRESSED_RGB_ARB;
 		else if (!hasalpha) intexfmt = GL_RGB;
 		if (glinfo.bgra) texfmt = GL_BGRA;
-		uploadtexture((doalloc&1), xsiz, ysiz, intexfmt, texfmt, (coltype*)fptr, xsiz, ysiz, 0);
+		//uploadtexture((doalloc&1), xsiz, ysiz, intexfmt, texfmt, (coltype*)fptr, xsiz, ysiz, 0);
 		free((void*)fptr);
-	}
+	//}
 
 	if (!m->skinloaded)
 	{
@@ -641,7 +649,7 @@ long mdloadskin (md2model *m, int number, int pal, int surf)
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
 
-	if (cachefil < 0) {
+	/*if (cachefil < 0) {
 		// save off the compressed version
 		cachead.xdim = osizx;
 		cachead.ydim = osizy;
@@ -652,7 +660,7 @@ long mdloadskin (md2model *m, int number, int pal, int surf)
 		}
 		cachead.flags = (i!=3) | (hasalpha ? 2 : 0);
 		writexcache(fn, picfillen, 0, hictinting[pal].f, &cachead);
-	}
+	}*/
 	
 	return(*texidx);
 }

@@ -271,8 +271,10 @@ static int pt_load_art(PTHead * pth)
 		}
 	}
 	
-	pth->sizx = tilesizx[pth->picnum];
-	pth->sizy = tilesizy[pth->picnum];
+	pth->tsizx = tilesizx[pth->picnum];
+	pth->tsizy = tilesizy[pth->picnum];
+	pth->sizx  = tex.sizx;
+	pth->sizy  = tex.sizy;
 	pth->scalex = 1.0;
 	pth->scaley = 1.0;
 	pth->flags &= ~(PTH_DIRTY | PTH_HASALPHA | PTH_SKYBOX);
@@ -418,8 +420,10 @@ static int pt_load_hightile(PTHead * pth)
 		picdata = 0;
 
 		if (texture == 0) {
-			pth->sizx = tex.tsizx;
-			pth->sizy = tex.tsizy;
+			pth->tsizx = tex.tsizx;
+			pth->tsizy = tex.tsizy;
+			pth->sizx  = tex.sizx;
+			pth->sizy  = tex.sizy;
 			if (pth->flags & PTH_SKYBOX) {
 				pth->scalex = (float)tex.tsizx / 64.0;
 				pth->scaley = (float)tex.tsizy / 64.0;

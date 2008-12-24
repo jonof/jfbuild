@@ -28,7 +28,8 @@ struct PTHead_typ {
 	
 	hicreplctyp *repldef;
 
-	long sizx, sizy;	// texture dimensions
+	long sizx, sizy;		// padded texture dimensions
+	long tsizx, tsizy;		// true texture dimensions
 	float scalex, scaley;		// scale factor between texture and ART tile dimensions
 };
 
