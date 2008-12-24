@@ -11,12 +11,19 @@ enum {
 	PTH_DIRTY = 128,
 };
 
+// indices of PTHead.glpic[]
+enum {
+	PTHGLPIC_BASE = 0,
+	PTHGLPIC_FULLBRIGHT = 1,
+	PTHGLPIC_SIZE = 6,
+};
+
 struct PTHead_typ {
-	GLuint glpic;
+	GLuint glpic[PTHGLPIC_SIZE];	// when (flags & PTH_SKYBOX), each is a face of the cube
+					// when !(flags & PTH_SKYBOX), see PTHGLPIC_* constants
 	long picnum;
 	long palnum;
 	unsigned char effects;
-	unsigned char skyface;
 	unsigned short flags;
 	
 	hicreplctyp *repldef;
@@ -51,12 +58,11 @@ void PTClear();
  * disk if need be (if peek!=0).
  * @param picnum
  * @param palnum
- * @param skyface
  * @param flags
  * @param peek if !0, does not try and create a header if none exists
  * @return pointer to the header, or null if peek!=0 and none exists
  */
-PTHead * PT_GetHead(long picnum, long palnum, unsigned char skyface, unsigned short flags, int peek);
+PTHead * PT_GetHead(long picnum, long palnum, unsigned short flags, int peek);
 
 PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned short flagsmask, unsigned short flags);
 

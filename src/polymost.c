@@ -384,7 +384,7 @@ long gltexmayhavealpha (long dapicnum, long dapalnum)
 {
 	PTHead * pth;
 
-	pth = PT_GetHead(dapicnum, dapalnum, 0, 0, 1);
+	pth = PT_GetHead(dapicnum, dapalnum, 0, 1);
 	if (!pth) {
 		return 1;
 	}
@@ -445,11 +445,16 @@ void gltexapplyprops (void)
 	
 	iter = PTIterNew();
 	while ((pth = PTIterNext(iter)) != 0) {
-		bglBindTexture(GL_TEXTURE_2D,pth->glpic);
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
-		if (glinfo.maxanisotropy > 1.0) {
-			bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+		for (i = 0; i < PTHGLPIC_SIZE; i++) {
+			if (pth->glpic[i] == 0) {
+				continue;
+			}
+			bglBindTexture(GL_TEXTURE_2D,pth->glpic[i]);
+			bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+			bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+			if (glinfo.maxanisotropy > 1.0) {
+				bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+			}
 		}
 	}
 	PTIterFree(iter);
@@ -1334,6 +1339,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	{
 		float hackscx, hackscy;
 		unsigned short ptflags = 0;
+		GLuint glpic = 0;
 		
 		if (skyclamphack) method |= METH_CLAMPED;
 		
@@ -1341,24 +1347,20 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		if (method & METH_CLAMPED) ptflags |= PTH_CLAMPED;
 		if (drawingskybox) ptflags |= PTH_SKYBOX;
 		
-		pth = PT_GetHead(globalpicnum, globalpal, drawingskybox, ptflags, 0);
-//		pth = gltexcache(globalpicnum,globalpal,method&(~(METH_MASKED | METH_TRANS)));
-		bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic : 0);
+		pth = PT_GetHead(globalpicnum, globalpal, ptflags, 0);
+		if (pth) {
+			if (drawingskybox) {
+				glpic = pth->glpic[ drawingskybox - 1 ];
+			} else {
+				glpic = pth->glpic[ PTHGLPIC_BASE ];
+			}
+		}
+		bglBindTexture(GL_TEXTURE_2D, glpic);
 
 		hackscx = pth->scalex;
 		hackscy = pth->scaley;
 		tsizx = pth->sizx;
 		tsizy = pth->sizy;
-/*
-		if (pth && (pth->flags & 2))
-		{
-			hackscx = pth->scalex;
-			hackscy = pth->scaley;
-			tsizx = pth->sizx;
-			tsizy = pth->sizy;
-		}
-		else { hackscx = 1.0; hackscy = 1.0; }
-*/
 
 		if (!glinfo.texnpot) {
 			for(xx=1;xx<tsizx;xx+=xx); ox2 = (double)1.0/(double)xx;
@@ -1406,7 +1408,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 			}
 			// tinting happens only to hightile textures, and only if the texture we're
 			// rendering isn't for the same palette as what we asked for
-			if (pth && (pth->flags & 2) && (pth->palnum != globalpal)) {
+			if (pth && (pth->flags & PTH_HIGHTILE) && (pth->palnum != globalpal)) {
 				// apply tinting for replaced textures
 				pc[0] *= (float)hictinting[globalpal].r / 255.0;
 				pc[1] *= (float)hictinting[globalpal].g / 255.0;
@@ -4755,7 +4757,7 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 	return OSDCMD_SHOWHELP;
 }
 
-#if 0
+#if 1
 // because I'm lazy
 static int dumptexturedefs(const osdfuncparm_t *parm)
 {
@@ -4794,9 +4796,10 @@ static int debugtexturehash(const osdfuncparm_t *parm)
 	initprintf("// Begin texture hash dump\n");
 	iter = PTIterNew();
 	while ((pth = PTIterNext(iter)) != 0) {
-		initprintf(" picnum:%d palnum:%d effects:%d skyface:%d flags:%04X repldef:%p glpic:%d\n",
-			   pth->picnum, pth->palnum, pth->effects, pth->skyface,
-			   pth->flags, pth->repldef, pth->glpic);
+		initprintf(" picnum:%d palnum:%d effects:%d flags:%04X repldef:%p glpic:%d.%d.%d.%d.%d.%d\n",
+			   pth->picnum, pth->palnum, pth->effects,
+			   pth->flags, pth->repldef,
+			   pth->glpic[0], pth->glpic[1], pth->glpic[2], pth->glpic[3], pth->glpic[4], pth->glpic[5]);
 	}
 	PTIterFree(iter);
 	initprintf("// End texture hash dump\n");
@@ -4823,7 +4826,7 @@ void polymost_initosdfuncs(void)
 #endif
 	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
-#if 0
+#if 1
 	OSD_RegisterFunction("dumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",dumptexturedefs);
 	OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",debugtexturehash);
 #endif
