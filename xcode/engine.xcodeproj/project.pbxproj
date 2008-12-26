@@ -19,6 +19,8 @@
 		AB3B2C820EE41B9000944CD1 /* textfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C800EE41B9000944CD1 /* textfont.c */; };
 		AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */; };
 		AB7029850AEB2D69004FCD2A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
+		AB726D4C0F046C3B00730EAA /* polymosttex.c in Sources */ = {isa = PBXBuildFile; fileRef = AB726D4A0F046C3B00730EAA /* polymosttex.c */; };
+		AB726D4D0F046C3B00730EAA /* polymosttex_priv.h in Headers */ = {isa = PBXBuildFile; fileRef = AB726D4B0F046C3B00730EAA /* polymosttex_priv.h */; };
 		AB735F600A29A39C003261DC /* a-c.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F4E0A29A39C003261DC /* a-c.c */; };
 		AB735F610A29A39D003261DC /* baselayer.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F4F0A29A39C003261DC /* baselayer.c */; };
 		AB735F620A29A39D003261DC /* cache1d.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F500A29A39C003261DC /* cache1d.c */; };
@@ -85,6 +87,8 @@
 		AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StartupWinController.editor.m; sourceTree = "<group>"; };
 		AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditorsupp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7029840AEB2D69004FCD2A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
+		AB726D4A0F046C3B00730EAA /* polymosttex.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymosttex.c; sourceTree = "<group>"; };
+		AB726D4B0F046C3B00730EAA /* polymosttex_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymosttex_priv.h; sourceTree = "<group>"; };
 		AB735F490A29A2DC003261DC /* libengine.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libengine.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB735F4E0A29A39C003261DC /* a-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "a-c.c"; sourceTree = "<group>"; };
 		AB735F4F0A29A39C003261DC /* baselayer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = baselayer.c; sourceTree = "<group>"; };
@@ -197,6 +201,8 @@
 		AB735F730A29A3AC003261DC /* src */ = {
 			isa = PBXGroup;
 			children = (
+				AB726D4A0F046C3B00730EAA /* polymosttex.c */,
+				AB726D4B0F046C3B00730EAA /* polymosttex_priv.h */,
 				AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */,
 				AB3B2C800EE41B9000944CD1 /* textfont.c */,
 				AB3B2AB50EE402B600944CD1 /* engine_priv.h */,
@@ -320,6 +326,7 @@
 				AB3B2AC20EE4033300944CD1 /* hightile_priv.h in Headers */,
 				AB3B2AC30EE4033300944CD1 /* mdsprite_priv.h in Headers */,
 				AB3B2AC40EE4033300944CD1 /* polymost_priv.h in Headers */,
+				AB726D4D0F046C3B00730EAA /* polymosttex_priv.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -392,6 +399,7 @@
 		AB735F3A0A29A24A003261DC /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = AB735F3B0A29A24B003261DC /* Build configuration list for PBXProject "engine" */;
+			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 0;
 			mainGroup = AB735F380A29A24A003261DC;
 			productRefGroup = AB735F4A0A29A2DC003261DC /* Products */;
@@ -442,6 +450,7 @@
 				AB3B2AE10EE403E000944CD1 /* mdsprite.c in Sources */,
 				AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */,
 				AB3B2C820EE41B9000944CD1 /* textfont.c in Sources */,
+				AB726D4C0F046C3B00730EAA /* polymosttex.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
