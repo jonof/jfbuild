@@ -415,7 +415,7 @@ int loadimage_pcx(unsigned char * data, int datalen, char ** imgdata, int& imgda
 		x = 0;
 		do {
 			repeat = *(rptr++);
-			if (repeat & 192 == 192) {
+			if ((repeat & 192) == 192) {
 				colour = *(rptr++);
 				repeat = repeat & 63;
 			} else {
