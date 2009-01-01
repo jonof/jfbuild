@@ -183,7 +183,7 @@ alldarwin:
 	cd osx/game && xcodebuild -target All -buildstyle $(style)
 endif
 
-UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX)
+UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX) arttool$(EXESUFFIX)
 
 all: game$(EXESUFFIX) build$(EXESUFFIX)
 utils: $(UTILS)
@@ -213,6 +213,8 @@ kgroup$(EXESUFFIX): $(OBJ)/kgroup.$o $(OBJ)/compat.$o
 	$(CC) -o $@ $^
 transpal$(EXESUFFIX): $(OBJ)/transpal.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o
 	$(CC) -o $@ $^
+arttool$(EXESUFFIX): $(OBJ)/arttool.$o
+	$(CXX) -o $@ $^ -lstdc++
 wad2art$(EXESUFFIX): $(OBJ)/wad2art.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o
 	$(CC) -o $@ $^
 wad2map$(EXESUFFIX): $(OBJ)/wad2map.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o
@@ -244,6 +246,9 @@ $(OBJ)/%.$o: $(SRC)/misc/%.rc
 
 $(OBJ)/%.$o: $(SRC)/util/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+
+$(OBJ)/%.$o: $(SRC)/util/%.cc
+	$(CXX) $(CXXFLAGS) -c $< -o $@ 2>&1
 
 $(OBJ)/%.$o: $(RSRC)/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
