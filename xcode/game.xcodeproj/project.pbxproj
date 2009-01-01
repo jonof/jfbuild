@@ -81,6 +81,13 @@
 			remoteGlobalIDString = AB735FCB0A29A916003261DC;
 			remoteInfo = editor;
 		};
+		ABAE9AD50F0B308900A528DC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = ABAE9AD20F0B307500A528DC /* arttool */;
+			remoteInfo = arttool;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -122,11 +129,11 @@
 		AB726D680F046E6E00730EAA /* stuff.dat */ = {isa = PBXFileReference; lastKnownFileType = file; path = stuff.dat; sourceTree = "<group>"; };
 		AB7360140A29AA70003261DC /* engine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = engine.xcodeproj; sourceTree = "<group>"; };
 		AB73602A0A29AB08003261DC /* game.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = game.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AB73602D0A29AB08003261DC /* game-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "game-Info.plist"; sourceTree = "<group>"; };
+		AB73602D0A29AB08003261DC /* game-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "game-Info.plist"; sourceTree = "<group>"; };
 		AB7360310A29AB7E003261DC /* game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = game.c; sourceTree = "<group>"; };
 		AB7360350A29AB93003261DC /* game.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = game.h; sourceTree = "<group>"; };
 		AB7360500A29AD92003261DC /* build.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = build.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AB7360520A29AD92003261DC /* build-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "build-Info.plist"; sourceTree = "<group>"; };
+		AB7360520A29AD92003261DC /* build-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "build-Info.plist"; sourceTree = "<group>"; };
 		AB73605C0A29ADCD003261DC /* bstub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bstub.c; sourceTree = "<group>"; };
 		AB7361220A29B9D4003261DC /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = /Library/Frameworks/SDL.framework; sourceTree = "<absolute>"; };
 		AB7361280A29BA60003261DC /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = /System/Library/Frameworks/CoreFoundation.framework; sourceTree = "<absolute>"; };
@@ -195,6 +202,7 @@
 				AB73601B0A29AA70003261DC /* libengine.a */,
 				AB73601D0A29AA70003261DC /* libeditor.a */,
 				AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */,
+				ABAE9AD60F0B308900A528DC /* arttool */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -319,7 +327,6 @@
 		AB73600B0A29AA64003261DC /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = AB73600C0A29AA64003261DC /* Build configuration list for PBXProject "game" */;
-			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 0;
 			mainGroup = AB7360090A29AA64003261DC;
 			productRefGroup = AB73602B0A29AB08003261DC /* Products */;
@@ -358,6 +365,13 @@
 			fileType = archive.ar;
 			path = libeditor.a;
 			remoteRef = AB73601C0A29AA70003261DC /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ABAE9AD60F0B308900A528DC /* arttool */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = arttool;
+			remoteRef = ABAE9AD50F0B308900A528DC /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */

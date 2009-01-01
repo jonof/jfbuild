@@ -61,6 +61,7 @@
 		AB735FD20A29A99A003261DC /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC30A29A8E5003261DC /* config.c */; };
 		AB7360420A29AD2F003261DC /* osxmain.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7360410A29AD2F003261DC /* osxmain.h */; };
 		AB7360450A29AD3A003261DC /* osxmain.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7360440A29AD3A003261DC /* osxmain.m */; };
+		ABAE9ADF0F0B311E00A528DC /* arttool.cc in Sources */ = {isa = PBXBuildFile; fileRef = ABAE9ADE0F0B311E00A528DC /* arttool.cc */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -130,6 +131,11 @@
 		AB735FCC0A29A916003261DC /* libeditor.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditor.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7360410A29AD2F003261DC /* osxmain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osxmain.h; sourceTree = "<group>"; };
 		AB7360440A29AD3A003261DC /* osxmain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = osxmain.m; sourceTree = "<group>"; };
+		ABAE9AD20F0B307500A528DC /* arttool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = arttool; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABAE9ADB0F0B310900A528DC /* kextract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kextract.c; sourceTree = "<group>"; };
+		ABAE9ADC0F0B310900A528DC /* kgroup.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kgroup.c; sourceTree = "<group>"; };
+		ABAE9ADD0F0B310900A528DC /* transpal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = transpal.c; sourceTree = "<group>"; };
+		ABAE9ADE0F0B311E00A528DC /* arttool.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arttool.cc; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -156,6 +162,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		ABAE9AD00F0B307500A528DC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -174,6 +187,7 @@
 				AB1751260CEF5AF8003AF128 /* SDL.framework */,
 				AB735FBF0A29A89F003261DC /* Editor */,
 				AB735F720A29A3A0003261DC /* Engine */,
+				ABAE9ADA0F0B30D500A528DC /* Tools */,
 				AB735F4A0A29A2DC003261DC /* Products */,
 				AB7029790AEB2D0B004FCD2A /* Frameworks */,
 			);
@@ -185,6 +199,7 @@
 				AB735F490A29A2DC003261DC /* libengine.a */,
 				AB735FCC0A29A916003261DC /* libeditor.a */,
 				AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */,
+				ABAE9AD20F0B307500A528DC /* arttool */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -290,6 +305,18 @@
 			path = ../src;
 			sourceTree = "<group>";
 		};
+		ABAE9ADA0F0B30D500A528DC /* Tools */ = {
+			isa = PBXGroup;
+			children = (
+				ABAE9ADB0F0B310900A528DC /* kextract.c */,
+				ABAE9ADC0F0B310900A528DC /* kgroup.c */,
+				ABAE9ADD0F0B310900A528DC /* transpal.c */,
+				ABAE9ADE0F0B311E00A528DC /* arttool.cc */,
+			);
+			name = Tools;
+			path = ../src/util;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -393,13 +420,28 @@
 			productReference = AB735FCC0A29A916003261DC /* libeditor.a */;
 			productType = "com.apple.product-type.library.static";
 		};
+		ABAE9AD10F0B307500A528DC /* arttool */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ABAE9AD70F0B309500A528DC /* Build configuration list for PBXNativeTarget "arttool" */;
+			buildPhases = (
+				ABAE9ACF0F0B307500A528DC /* Sources */,
+				ABAE9AD00F0B307500A528DC /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = arttool;
+			productName = arttool;
+			productReference = ABAE9AD20F0B307500A528DC /* arttool */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
 		AB735F3A0A29A24A003261DC /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = AB735F3B0A29A24B003261DC /* Build configuration list for PBXProject "engine" */;
-			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 0;
 			mainGroup = AB735F380A29A24A003261DC;
 			productRefGroup = AB735F4A0A29A2DC003261DC /* Products */;
@@ -409,6 +451,7 @@
 				AB735F480A29A2DC003261DC /* engine */,
 				AB735FCB0A29A916003261DC /* editor */,
 				AB3FE44A0C04336F00D5DBDC /* editorsupp */,
+				ABAE9AD10F0B307500A528DC /* arttool */,
 			);
 		};
 /* End PBXProject section */
@@ -460,6 +503,14 @@
 			files = (
 				AB735FD10A29A99A003261DC /* build.c in Sources */,
 				AB735FD20A29A99A003261DC /* config.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ABAE9ACF0F0B307500A528DC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ABAE9ADF0F0B311E00A528DC /* arttool.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -599,6 +650,22 @@
 			};
 			name = Release;
 		};
+		ABAE9AD80F0B309500A528DC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = arttool;
+			};
+			name = Debug;
+		};
+		ABAE9AD90F0B309500A528DC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = arttool;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -634,6 +701,15 @@
 			buildConfigurations = (
 				AB735FCE0A29A965003261DC /* Debug */,
 				AB735FCF0A29A965003261DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ABAE9AD70F0B309500A528DC /* Build configuration list for PBXNativeTarget "arttool" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ABAE9AD80F0B309500A528DC /* Debug */,
+				ABAE9AD90F0B309500A528DC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
