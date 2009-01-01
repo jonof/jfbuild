@@ -576,6 +576,132 @@ public:
 	}
 };
 
+class RmTileOp : public Operation {
+private:
+	int tilenum_;
+public:
+	RmTileOp() : tilenum_(-1) { }
+	
+	virtual Result setOption(string opt, string value)
+	{
+		return ERR_BAD_OPTION;
+	}
+	
+	virtual Result setParameter(int number, string value)
+	{
+		switch (number) {
+			case 0:
+				tilenum_ = atoi(value.c_str());
+				return NO_ERROR;
+			default:
+				return ERR_TOO_MANY_PARAMS;
+		}
+	}
+	
+	virtual Result perform()
+	{
+		int filenum = 0;
+		
+		// open art files until we find one that encompasses the range we need
+		// and when we find it, make the change
+		for (filenum = 0; filenum < 1000; filenum++) {
+			ARTFile art(makefilename(filenum));
+			
+			if (art.getNumTiles() == 0) {
+				// no file exists, so give up
+				break;
+			}
+			
+			if (tilenum_ >= art.getFirstTile() && tilenum_ <= art.getLastTile()) {
+				art.removeTile(tilenum_);
+				art.write();
+				return NO_ERROR;
+			}
+		}
+		
+		return ERR_NO_ART_FILE;
+	}
+};
+
+class TilePropOp : public Operation {
+private:
+	int xofs_, yofs_;
+	int animframes_, animtype_, animspeed_;
+	int tilenum_;
+public:
+	TilePropOp()
+	: xofs_(0), yofs_(0),
+	  animframes_(0), animtype_(0), animspeed_(0),
+	  tilenum_(-1)
+	{ }
+	
+	virtual Result setOption(string opt, string value)
+	{
+		if (opt == "x") {
+			xofs_ = atoi(value.c_str());
+		} else if (opt == "y") {
+			yofs_ = atoi(value.c_str());
+		} else if (opt == "ann") {
+			animframes_ = atoi(value.c_str());
+		} else if (opt == "ant") {
+			animtype_ = atoi(value.c_str());
+		} else if (opt == "ans") {
+			animspeed_ = atoi(value.c_str());
+		} else {
+			return ERR_BAD_OPTION;
+		}
+		if (animtype_ < 0 || animtype_ > 3) {
+			return ERR_BAD_VALUE;
+		}
+		if (animspeed_ < 0 || animspeed_ > 15) {
+			return ERR_BAD_VALUE;
+		}
+		if (animframes_ < 0 || animframes_ > 63) {
+			return ERR_BAD_VALUE;
+		}
+		return NO_ERROR;
+	}
+	
+	virtual Result setParameter(int number, string value)
+	{
+		switch (number) {
+			case 0:
+				tilenum_ = atoi(value.c_str());
+				return NO_ERROR;
+			default:
+				return ERR_TOO_MANY_PARAMS;
+		}
+	}
+	
+	virtual Result perform()
+	{
+		int filenum = 0;
+		
+		// open art files until we find one that encompasses the range we need
+		// and when we find it, make the change
+		for (filenum = 0; filenum < 1000; filenum++) {
+			ARTFile art(makefilename(filenum));
+			
+			if (art.getNumTiles() == 0) {
+				// no file exists, so give up
+				break;
+			}
+			
+			if (tilenum_ >= art.getFirstTile() && tilenum_ <= art.getLastTile()) {
+				art.setXOfs(tilenum_, xofs_);
+				art.setYOfs(tilenum_, yofs_);
+				art.setAnimFrames(tilenum_, animframes_);
+				art.setAnimSpeed(tilenum_, animspeed_);
+				art.setAnimType(tilenum_, animtype_);
+				art.write();
+				return NO_ERROR;
+			}
+		}
+		
+		return ERR_NO_ART_FILE;
+	}
+};
+
 int main(int argc, char ** argv)
 {
 	int showusage = 0;
@@ -593,7 +719,9 @@ int main(int argc, char ** argv)
 		} else if (opt == "addtile") {
 			oper = new AddTileOp;
 		} else if (opt == "rmtile") {
+			oper = new RmTileOp;
 		} else if (opt == "tileprop") {
+			oper = new TilePropOp;
 		} else {
 			showusage = 2;
 		}
