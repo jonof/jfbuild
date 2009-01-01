@@ -62,6 +62,12 @@
 		AB7360420A29AD2F003261DC /* osxmain.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7360410A29AD2F003261DC /* osxmain.h */; };
 		AB7360450A29AD3A003261DC /* osxmain.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7360440A29AD3A003261DC /* osxmain.m */; };
 		ABAE9ADF0F0B311E00A528DC /* arttool.cc in Sources */ = {isa = PBXBuildFile; fileRef = ABAE9ADE0F0B311E00A528DC /* arttool.cc */; };
+		ABAE9C410F0CC83D00A528DC /* kextract.c in Sources */ = {isa = PBXBuildFile; fileRef = ABAE9ADB0F0B310900A528DC /* kextract.c */; };
+		ABAE9C420F0CC84100A528DC /* kgroup.c in Sources */ = {isa = PBXBuildFile; fileRef = ABAE9ADC0F0B310900A528DC /* kgroup.c */; };
+		ABAE9C440F0CC85E00A528DC /* compat.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F510A29A39C003261DC /* compat.c */; };
+		ABAE9C460F0CC86E00A528DC /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
+		ABAE9C4B0F0CCCC700A528DC /* compat.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F510A29A39C003261DC /* compat.c */; };
+		ABAE9C4D0F0CCCCF00A528DC /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -136,6 +142,8 @@
 		ABAE9ADC0F0B310900A528DC /* kgroup.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kgroup.c; sourceTree = "<group>"; };
 		ABAE9ADD0F0B310900A528DC /* transpal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = transpal.c; sourceTree = "<group>"; };
 		ABAE9ADE0F0B311E00A528DC /* arttool.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arttool.cc; sourceTree = "<group>"; };
+		ABAE9C2E0F0CC80200A528DC /* kextract */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = kextract; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABAE9C390F0CC81900A528DC /* kgroup */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = kgroup; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,6 +174,22 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ABAE9C2A0F0CC80200A528DC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ABAE9C460F0CC86E00A528DC /* AppKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ABAE9C350F0CC81900A528DC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ABAE9C4D0F0CCCCF00A528DC /* AppKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -200,6 +224,8 @@
 				AB735FCC0A29A916003261DC /* libeditor.a */,
 				AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */,
 				ABAE9AD20F0B307500A528DC /* arttool */,
+				ABAE9C2E0F0CC80200A528DC /* kextract */,
+				ABAE9C390F0CC81900A528DC /* kgroup */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -436,6 +462,38 @@
 			productReference = ABAE9AD20F0B307500A528DC /* arttool */;
 			productType = "com.apple.product-type.tool";
 		};
+		ABAE9C270F0CC80200A528DC /* kextract */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ABAE9C2B0F0CC80200A528DC /* Build configuration list for PBXNativeTarget "kextract" */;
+			buildPhases = (
+				ABAE9C280F0CC80200A528DC /* Sources */,
+				ABAE9C2A0F0CC80200A528DC /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = kextract;
+			productName = arttool;
+			productReference = ABAE9C2E0F0CC80200A528DC /* kextract */;
+			productType = "com.apple.product-type.tool";
+		};
+		ABAE9C320F0CC81900A528DC /* kgroup */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ABAE9C360F0CC81900A528DC /* Build configuration list for PBXNativeTarget "kgroup" */;
+			buildPhases = (
+				ABAE9C330F0CC81900A528DC /* Sources */,
+				ABAE9C350F0CC81900A528DC /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = kgroup;
+			productName = arttool;
+			productReference = ABAE9C390F0CC81900A528DC /* kgroup */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -452,6 +510,8 @@
 				AB735FCB0A29A916003261DC /* editor */,
 				AB3FE44A0C04336F00D5DBDC /* editorsupp */,
 				ABAE9AD10F0B307500A528DC /* arttool */,
+				ABAE9C270F0CC80200A528DC /* kextract */,
+				ABAE9C320F0CC81900A528DC /* kgroup */,
 			);
 		};
 /* End PBXProject section */
@@ -511,6 +571,24 @@
 			buildActionMask = 2147483647;
 			files = (
 				ABAE9ADF0F0B311E00A528DC /* arttool.cc in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ABAE9C280F0CC80200A528DC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ABAE9C410F0CC83D00A528DC /* kextract.c in Sources */,
+				ABAE9C440F0CC85E00A528DC /* compat.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ABAE9C330F0CC81900A528DC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ABAE9C420F0CC84100A528DC /* kgroup.c in Sources */,
+				ABAE9C4B0F0CCCC700A528DC /* compat.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -666,6 +744,38 @@
 			};
 			name = Release;
 		};
+		ABAE9C2C0F0CC80200A528DC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = kextract;
+			};
+			name = Debug;
+		};
+		ABAE9C2D0F0CC80200A528DC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = kextract;
+			};
+			name = Release;
+		};
+		ABAE9C370F0CC81900A528DC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = kgroup;
+			};
+			name = Debug;
+		};
+		ABAE9C380F0CC81900A528DC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = kgroup;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -710,6 +820,24 @@
 			buildConfigurations = (
 				ABAE9AD80F0B309500A528DC /* Debug */,
 				ABAE9AD90F0B309500A528DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ABAE9C2B0F0CC80200A528DC /* Build configuration list for PBXNativeTarget "kextract" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ABAE9C2C0F0CC80200A528DC /* Debug */,
+				ABAE9C2D0F0CC80200A528DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ABAE9C360F0CC81900A528DC /* Build configuration list for PBXNativeTarget "kgroup" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ABAE9C370F0CC81900A528DC /* Debug */,
+				ABAE9C380F0CC81900A528DC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -85,8 +85,22 @@
 			isa = PBXContainerItemProxy;
 			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
 			proxyType = 2;
-			remoteGlobalIDString = ABAE9AD20F0B307500A528DC /* arttool */;
+			remoteGlobalIDString = ABAE9AD20F0B307500A528DC;
 			remoteInfo = arttool;
+		};
+		ABAE9C3D0F0CC83700A528DC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = ABAE9C2E0F0CC80200A528DC /* kextract */;
+			remoteInfo = kextract;
+		};
+		ABAE9C3F0F0CC83700A528DC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = ABAE9C390F0CC81900A528DC /* kgroup */;
+			remoteInfo = kgroup;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -203,6 +217,8 @@
 				AB73601D0A29AA70003261DC /* libeditor.a */,
 				AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */,
 				ABAE9AD60F0B308900A528DC /* arttool */,
+				ABAE9C3E0F0CC83700A528DC /* kextract */,
+				ABAE9C400F0CC83700A528DC /* kgroup */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -372,6 +388,20 @@
 			fileType = "compiled.mach-o.executable";
 			path = arttool;
 			remoteRef = ABAE9AD50F0B308900A528DC /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ABAE9C3E0F0CC83700A528DC /* kextract */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = kextract;
+			remoteRef = ABAE9C3D0F0CC83700A528DC /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ABAE9C400F0CC83700A528DC /* kgroup */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = kgroup;
+			remoteRef = ABAE9C3F0F0CC83700A528DC /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
