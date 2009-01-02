@@ -23,7 +23,6 @@ struct PTHead_typ {
 					// when !(flags & PTH_SKYBOX), see PTHGLPIC_* constants
 	long picnum;
 	long palnum;
-	unsigned char effects;
 	unsigned short flags;
 	
 	hicreplctyp *repldef;

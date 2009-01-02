@@ -1412,7 +1412,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 			}
 			// tinting happens only to hightile textures, and only if the texture we're
 			// rendering isn't for the same palette as what we asked for
-			if (pth && (pth->flags & PTH_HIGHTILE) && (pth->palnum != globalpal)) {
+			if (pth && (pth->flags & PTH_HIGHTILE) && (globalpal != pth->repldef->palnum)) {
 				// apply tinting for replaced textures
 				pc[0] *= (float)hictinting[globalpal].r / 255.0;
 				pc[1] *= (float)hictinting[globalpal].g / 255.0;
@@ -4803,8 +4803,8 @@ static int debugtexturehash(const osdfuncparm_t *parm)
 	initprintf("// Begin texture hash dump\n");
 	iter = PTIterNew();
 	while ((pth = PTIterNext(iter)) != 0) {
-		initprintf(" picnum:%d palnum:%d effects:%d flags:%04X sizx/y:%dx%d tsizx/y:%dx%d repldef:%p glpic:%d.%d.%d.%d.%d.%d\n",
-			   pth->picnum, pth->palnum, pth->effects, pth->flags,
+		initprintf(" picnum:%d palnum:%d flags:%04X sizx/y:%dx%d tsizx/y:%dx%d repldef:%p glpic:%d.%d.%d.%d.%d.%d\n",
+			   pth->picnum, pth->palnum, pth->flags,
 			   pth->sizx, pth->sizy, pth->tsizx, pth->tsizy,
 			   pth->repldef,
 			   pth->glpic[0], pth->glpic[1], pth->glpic[2], pth->glpic[3], pth->glpic[4], pth->glpic[5]);

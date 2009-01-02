@@ -122,6 +122,9 @@ static PTHash * pt_findhash(long picnum, long palnum, unsigned short flags, int 
 			} else {
 				// we defer to the substitute
 				pth->deferto = pt_findhash(picnum, replc->palnum, flags, create);
+				while (pth->deferto) {
+					pth = pth->deferto;	// find the end of the chain
+				}
 			}
 		} else if ((flags & PTH_HIGHTILE) && !replc) {
 			// there is no replacement, so defer to ART
