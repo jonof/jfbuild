@@ -110,9 +110,17 @@ static PTHash * pt_findhash(long picnum, long palnum, unsigned short flags, int 
 		hashhead[i] = pth;
 		
 		if (replc && replc->palnum != palnum) {
-			// we were given a substitute by hightile, so what we just
-			// created needs to defer to the substitute
-			pth->deferto = pt_findhash(picnum, replc->palnum, flags, create);
+			// we were given a substitute by hightile, so
+			if (hictinting[palnum].f & HICEFFECTMASK) {
+				// if effects are defined for the palette we actually want
+				// we DO NOT defer immediately to the substitute. instead
+				// we apply effects to the replacement and treat it as a
+				// distinct texture
+				;
+			} else {
+				// we defer to the substitute
+				pth->deferto = pt_findhash(picnum, replc->palnum, flags, create);
+			}
 		} else if ((flags & PTH_HIGHTILE) && !replc) {
 			// there is no replacement, so defer to ART
 			if (flags & PTH_SKYBOX) {
@@ -143,6 +151,7 @@ static int pt_load_art(PTHead * pth);
 static int pt_load_hightile(PTHead * pth);
 static int pt_load_cache(PTHead * pth);
 static void pt_load_fixtransparency(PTTexture * tex, int clamped);
+static void pt_load_applyeffects(PTTexture * tex, int effects, int* hassalpha);
 static void pt_load_mipscale(PTTexture * tex);
 static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex);
 static void pt_load_applyparameters(PTHead * pth);
@@ -161,6 +170,9 @@ static int pt_load(PTHash * pth)
 	//FIXME
 	if ((pth->head.flags & PTH_HIGHTILE)) {
 		// try and load from a cached replacement
+		if (pt_load_cache(&pth->head)) {
+			return 1;
+		}
 		
 		// if that failed, try and load from a raw replacement
 		if (pt_load_hightile(&pth->head)) {
@@ -395,6 +407,10 @@ static int pt_load_hightile(PTHead * pth)
 			continue;
 		}
 		
+		pt_load_applyeffects(&tex,
+			(pth->palnum != pth->repldef->palnum) ? hictinting[pth->palnum].f : 0,
+			&hasalpha);
+		
 		if (! (pth->flags & PTH_CLAMPED) || (pth->flags & PTH_SKYBOX)) { //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
 			if (tex.sizx > tex.tsizx) {	//Copy left to right
 				coltype * lptr = tex.pic;
@@ -460,6 +476,16 @@ static int pt_load_hightile(PTHead * pth)
 	}
 }
 
+/**
+ * Load a Hightile texture from the disk cache into an OpenGL texture
+ * @param pth the header to populate
+ * @return !0 on success. Success is defined as all faces of a skybox being loaded,
+ *   or at least the base texture of a regular replacement.
+ */
+static int pt_load_cache(PTHead * pth)
+{
+	return 0;
+}
 
 /**
  * Applies a filter to transparent pixels to improve their appearence when bilinearly filtered
@@ -542,6 +568,59 @@ static void pt_load_fixtransparency(PTTexture * tex, int clamped)
 		}
 	}
 }
+
+/**
+ * Applies brightness (if no gammabrightness is available) and other hightile
+ * effects to a texture. As a bonus, it also checks if there is any transparency
+ * in the texture.
+ * @param tex the texture
+ * @param effects the effects
+ * @param hasalpha receives whether the texture has transparency
+ */
+static void pt_load_applyeffects(PTTexture * tex, int effects, int* hasalpha)
+{
+	int alph = 255;
+	int x, y;
+	coltype * tptr = tex->pic;
+	
+	if (effects == 0 && gammabrightness) {
+		// use a quicker scan for alpha since we don't need
+		// to be swizzling texel components
+		for (y = tex->tsizy - 1; y >= 0; y--, tptr += tex->sizx) {
+			for (x = tex->tsizx - 1; x >= 0; x--) {
+				alph &= tptr[x].a;
+			}
+		}
+	} else {
+		unsigned char *brit = &britable[gammabrightness ? 0 : curbrightness][0];
+		coltype tcol;
+		
+		for (y = tex->tsizy - 1; y >= 0; y--, tptr += tex->sizx) {
+			for (x = tex->tsizx - 1; x >= 0; x--) {
+				tcol.b = brit[tptr[x].b];
+				tcol.g = brit[tptr[x].g];
+				tcol.r = brit[tptr[x].r];
+				tcol.a = tptr[x].a;
+				alph &= tptr[x].a;
+				
+				if (effects & HICEFFECT_GREYSCALE) {
+					tcol.b = max(tcol.b, max(tcol.g, tcol.r));
+					tcol.g = tcol.r = tcol.b;
+				}
+				if (effects & HICEFFECT_INVERT) {
+					tcol.b = 255-tcol.b;
+					tcol.g = 255-tcol.g;
+					tcol.r = 255-tcol.r;
+				}
+				
+				tptr[x] = tcol;
+			}
+		}
+	}
+
+	*hasalpha = (alph != 255);
+}
+
 
 /**
  * Scales down the texture by half in-place

@@ -1,7 +1,12 @@
 #ifndef HIGHTILE_PRIV_H
 #define HIGHTILE_PRIV_H
 
-#define HICEFFECTMASK (1|2)
+enum {
+	HICEFFECT_NONE = 0,
+	HICEFFECT_GREYSCALE = 1,
+	HICEFFECT_INVERT = 2,
+	HICEFFECTMASK = 3,
+};
 
 struct hicskybox_t {
 	long ignore;

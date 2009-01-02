@@ -17,7 +17,9 @@ hicreplctyp *hicreplc[MAXTILES];
 char hicfirstinit = 0;
 
 /**
- * Find a substitute definition which satisfies the given parameters
+ * Find a substitute definition which satisfies the given parameters.
+ * This will try for a perfect match with the requested palette, or if
+ * none is found, try and find a palette 0 equivalent.
  *
  * @param picnum tile number
  * @param palnum palette index
