@@ -56,7 +56,7 @@ static int  osdkey=0x45;		// numlock shows the osd
 static int  keytime=0;
 
 // command prompt editing
-#define EDITLENGTH 512
+#define EDITLENGTH 511
 static int  osdovertype=0;		// insert (0) or overtype (1)
 static char osdeditbuf[EDITLENGTH+1];	// editing buffer
 static char osdedittmp[EDITLENGTH+1];	// editing buffer temporary workspace
@@ -72,7 +72,7 @@ static int  osdeditwinend=60-1-3;
 // command processing
 #define HISTORYDEPTH 16
 static int  osdhistorypos=-1;		// position we are at in the history buffer
-static int  osdhistorybuf[HISTORYDEPTH][EDITLENGTH+1];	// history strings
+static char osdhistorybuf[HISTORYDEPTH][EDITLENGTH+1];	// history strings
 static int  osdhistorysize=0;		// number of entries in history
 
 // execution buffer
@@ -426,7 +426,7 @@ int OSD_HandleKey(int sc, int press)
 		} else if (ch == 13) {	// control m, enter
 			if (osdeditlen>0) {
 				osdeditbuf[osdeditlen] = 0;
-				Bmemmove(osdhistorybuf[1], osdhistorybuf[0], HISTORYDEPTH*(EDITLENGTH+1));
+				Bmemmove(osdhistorybuf[1], osdhistorybuf[0], (HISTORYDEPTH-1)*(EDITLENGTH+1));
 				Bmemmove(osdhistorybuf[0], osdeditbuf, EDITLENGTH+1);
 				if (osdhistorysize < HISTORYDEPTH) osdhistorysize++;
 				if (osdexeccount == HISTORYDEPTH)
