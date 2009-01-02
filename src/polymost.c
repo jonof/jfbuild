@@ -385,7 +385,7 @@ tryart:
 
 #endif	// DEPRECATED
 
-long gltexmayhavealpha (long dapicnum, long dapalnum)
+long polymost_texmayhavealpha (long dapicnum, long dapalnum)
 {
 	PTHead * pth;
 
@@ -397,7 +397,7 @@ long gltexmayhavealpha (long dapicnum, long dapalnum)
 	return (pth->flags & PTH_HASALPHA) == PTH_HASALPHA;
 }
 
-void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
+void polymost_texinvalidate (long dapicnum, long dapalnum, long dameth)
 {
 	PTIter iter;
 	PTHead * pth;
@@ -419,7 +419,7 @@ void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
 	//Make all textures "dirty" so they reload, but not re-allocate
 	//This should be much faster than polymost_glreset()
 	//Use this for palette effects ... but not ones that change every frame!
-void gltexinvalidateall ()
+void polymost_texinvalidateall ()
 {
 	PTIter iter;
 	PTHead * pth;

@@ -3,7 +3,9 @@
 #include "compat.h"
 #include "build.h"
 #include "glbuild.h"
+#include "kplib.h"
 #include "pragmas.h"
+#include "cache1d.h"
 #include "baselayer.h"
 #include "engine_priv.h"
 #include "polymost_priv.h"
@@ -40,7 +42,6 @@ static long maxmodelverts = 0, allocmodelverts = 0;
 static point3d *vertlist = NULL; //temp array to store interpolated vertices for drawing
 
 mdmodel *mdload (const char *);
-int mddraw (spritetype *);
 void mdfree (mdmodel *);
 
 void freeallmodels ()
@@ -2162,7 +2163,7 @@ int mddraw (spritetype *tspr)
 	if (maxmodelverts > allocmodelverts)
 	{
 		point3d *vl = (point3d *)realloc(vertlist,sizeof(point3d)*maxmodelverts);
-		if (!vl) { OSD_Printf("ERROR: Not enough memory to allocate %d vertices!\n",maxmodelverts); return 0; }
+		if (!vl) { initprintf("ERROR: Not enough memory to allocate %d vertices!\n",maxmodelverts); return 0; }
 		vertlist = vl; allocmodelverts = maxmodelverts;
 	}
 

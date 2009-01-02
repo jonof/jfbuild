@@ -84,6 +84,7 @@ ENGINEOBJS+= \
 	$(OBJ)/defs.$o \
 	$(OBJ)/engine.$o \
 	$(OBJ)/polymost.$o \
+	$(OBJ)/polymosttex.$o \
 	$(OBJ)/hightile.$o \
 	$(OBJ)/mdsprite.$o \
 	$(OBJ)/glbuild.$o \

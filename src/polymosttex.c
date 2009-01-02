@@ -2,6 +2,8 @@
 #include "baselayer.h"
 #include "build.h"
 #include "glbuild.h"
+#include "kplib.h"
+#include "cache1d.h"
 #include "pragmas.h"
 #include "engine_priv.h"
 #include "polymost_priv.h"
@@ -352,7 +354,7 @@ static int pt_load_hightile(PTHead * pth)
 			continue;
 		}
 	
-		filh = kopen4load(filename, 0);
+		filh = kopen4load((char *) filename, 0);
 		if (filh < 0) {
 			initprintf("hightile: %s (pic %d pal %d) not found\n",
 				filename, pth->picnum, pth->palnum);
@@ -468,7 +470,7 @@ static int pt_load_hightile(PTHead * pth)
 	pt_load_applyparameters(pth);
 	
 	if (pth->flags & PTH_SKYBOX) {
-		int i;
+		int i = 0;
 		for (texture = 0; texture < 6; texture++) i += loaded[texture];
 		return (i == 6);
 	} else {

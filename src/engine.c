@@ -5767,7 +5767,7 @@ killsprite:
 		for(i=spritesortcnt-1;i>=0;i--)
 			if ((!(tspriteptr[i]->cstat&2))
 #ifdef USE_OPENGL
-			    && (!gltexmayhavealpha(tspriteptr[i]->picnum,tspriteptr[i]->pal))
+			    && (!polymost_texmayhavealpha(tspriteptr[i]->picnum,tspriteptr[i]->pal))
 #endif
 			   )
 				{ drawsprite(i); tspriteptr[i] = 0; } //draw only if it is fully opaque
@@ -5786,7 +5786,7 @@ killsprite:
 			k = thewall[maskwall[i]];
 			if ((!(wall[k].cstat&128))
 #ifdef USE_OPENGL
-			    && (!gltexmayhavealpha(wall[k].overpicnum,wall[k].pal))
+			    && (!polymost_texmayhavealpha(wall[k].overpicnum,wall[k].pal))
 #endif
 			   )
 				{ drawmaskwall(i); maskwall[i] = -1; } //draw only if it is fully opaque
@@ -9148,7 +9148,7 @@ void setbrightness(char dabrightness, char *dapal, char noapply)
 		// either (a) the new palette is different to the last, or (b) the brightness
 		// changed and we couldn't set it using hardware gamma
 		if (!(noapply&2) && (newpalettesum != lastpalettesum))
-			gltexinvalidateall();
+			polymost_texinvalidateall();
 
 		lastpalettesum = newpalettesum;
 	}
@@ -10865,7 +10865,7 @@ void invalidatetile(short tilenume, long pal, long how)
 		if (!(how & pow2long[hp])) continue;
 
 		for (np = firstpal; np < firstpal+numpal; np++) {
-			gltexinvalidate(tilenume, np, hp);
+			polymost_texinvalidate(tilenume, np, hp);
 		}
 	}
 #endif
