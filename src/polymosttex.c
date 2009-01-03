@@ -234,6 +234,10 @@ static int pt_load_art(PTHead * pth)
 		}
 	}
 	
+	if (!waloff[pth->picnum]) {
+		loadtile(pth->picnum);
+	}
+	
 	tex.pic = (coltype *) malloc(tex.sizx * tex.sizy * sizeof(coltype));
 	if (!tex.pic) {
 		return 0;
@@ -288,8 +292,8 @@ static int pt_load_art(PTHead * pth)
 		}
 	}
 	
-	pth->tsizx = tilesizx[pth->picnum];
-	pth->tsizy = tilesizy[pth->picnum];
+	pth->tsizx = tex.tsizx;
+	pth->tsizy = tex.tsizy;
 	pth->sizx  = tex.sizx;
 	pth->sizy  = tex.sizy;
 	pth->scalex = 1.0;
@@ -917,14 +921,11 @@ int PTDoPrime(int* done, int* total)
 	
 	pth = hashhead[primepos];
 	while (pth) {
-		if (pth->primecnt == 0) {
-			// was not in the set to prime
-			continue;
-		}
-		primedone++;
-		if (pth->head.glpic[PTHGLPIC_BASE] == 0) {
-			// load the texture
-			pt_load(pth);
+		if (pth->primecnt > 0) {
+			primedone++;
+			if (pth->head.glpic[PTHGLPIC_BASE] == 0) {
+				pt_load(pth);
+			}
 		}
 		pth = pth->next;
 	}
