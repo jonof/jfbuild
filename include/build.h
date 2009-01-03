@@ -463,7 +463,9 @@ void setpolymost2dview(void);   // sets up GL for 2D drawing
 
 long polymost_drawtilescreen(long tilex, long tiley, long wallnum, long dimen);
 void polymost_glreset(void);
+void polymost_precache_begin();
 void polymost_precache(long dapicnum, long dapalnum, long datype);
+int  polymost_precache_run(int* done, int* total);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 extern long glanisotropy;

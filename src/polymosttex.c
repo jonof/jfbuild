@@ -926,6 +926,7 @@ int PTDoPrime(int* done, int* total)
 			// load the texture
 			pt_load(pth);
 		}
+		pth = pth->next;
 	}
 	
 	*done = primedone;
