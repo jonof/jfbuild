@@ -266,6 +266,12 @@ static inline uint64 B_SWAP64(uint64 l) { return (l>>56)|((l>>40)&0xff00)|((l>>2
 # define ASMSYM(x) x
 #endif
 
+#ifdef __GNUC__
+# define UNUSED(x) UNUSED_ ## x __attribute__((unused))
+#else
+# define UNUSED(x) x
+#endif
+
 #ifndef min
 # define min(a,b) ( ((a) < (b)) ? (a) : (b) )
 #endif

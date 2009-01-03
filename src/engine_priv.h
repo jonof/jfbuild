@@ -37,7 +37,7 @@ extern short searchsector, searchwall, searchstat;
 extern char inpreparemirror;
 
 extern long curbrightness, gammabrightness;
-extern char britable[16][256];
+extern unsigned char britable[16][256];
 extern char picsiz[MAXTILES];
 extern long lastx[MAXYDIM];
 extern char *transluc;

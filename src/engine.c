@@ -111,7 +111,7 @@ long pow2long[32] =
 };
 long reciptable[2048], fpuasm;
 
-char britable[16][256];	// JBF 20040207: full 8bit precision
+unsigned char britable[16][256];
 extern char textfont[2048], smalltextfont[2048];
 
 static char kensmessage[128];

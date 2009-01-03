@@ -609,7 +609,12 @@ static void pt_load_applyeffects(PTTexture * tex, int effects, int* hasalpha)
 				alph &= tptr[x].a;
 				
 				if (effects & HICEFFECT_GREYSCALE) {
-					tcol.b = max(tcol.b, max(tcol.g, tcol.r));
+					float y;
+					y  = 0.3  * (float)tcol.r;
+					y += 0.59 * (float)tcol.g;
+					y += 0.11 * (float)tcol.b;
+					y *= 255.0;
+					tcol.b = (unsigned char)max(0.0, min(255.0, y));
 					tcol.g = tcol.r = tcol.b;
 				}
 				if (effects & HICEFFECT_INVERT) {
@@ -867,11 +872,11 @@ void PTBeginPriming(void)
 /**
  * Flag a texture as required for priming
  */
-void PTMarkPrime(long picnum, long palnum)
+void PTMarkPrime(long picnum, long palnum, unsigned short flags)
 {
 	PTHash * pth;
 	
-	pth = pt_findhash(picnum, palnum, /*FIXME flags*/0, 1);
+	pth = pt_findhash(picnum, palnum, flags, 1);
 	if (pth) {
 		if (pth->primecnt == 0) {
 			primecnt++;

@@ -4766,7 +4766,7 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 
 #if 1
 // because I'm lazy
-static int dumptexturedefs(const osdfuncparm_t *parm)
+static int dumptexturedefs(const osdfuncparm_t * UNUSED(parm))
 {
 	hicreplctyp *hr;
 	int i;
@@ -4791,7 +4791,7 @@ static int dumptexturedefs(const osdfuncparm_t *parm)
 	return OSDCMD_OK;	// no replacement found
 }
 
-static int debugtexturehash(const osdfuncparm_t *parm)
+static int debugtexturehash(const osdfuncparm_t * UNUSED(parm))
 {
 	PTIter iter;
 	PTHead * pth;
@@ -4840,6 +4840,13 @@ void polymost_initosdfuncs(void)
 #endif
 }
 
+void polymost_precache_begin()
+{
+#ifdef USE_OPENGL
+	PTBeginPriming();
+#endif
+}
+
 void polymost_precache(long dapicnum, long dapalnum, long datype)
 {
 #ifdef USE_OPENGL
@@ -4848,6 +4855,7 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 	//    basically this just means walls are repeating
 	//    while sprites are clamped
 	int mid;
+	unsigned short flags;
 
 	if (rendmode < 3) return;
 	
@@ -4855,7 +4863,9 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 
 		//FIXME
 	//OSD_Printf("precached %d %d type %d\n", dapicnum, dapalnum, datype);
-	//gltexcache(dapicnum, dapalnum, (datype & 1) << 2);
+	flags = (datype & 1) ? PTH_CLAMPED :0;
+	if (usehightile) flags |= PTH_HIGHTILE;
+	PTMarkPrime(dapicnum, dapalnum, flags);
 
 	if (datype == 0) return;
 
@@ -4871,6 +4881,15 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 		for (i=0;i<=j;i++)
 			mdloadskin((md2model*)models[mid], 0, dapalnum, i);
 	}
+#endif
+}
+
+int polymost_precache_run(int* done, int* total)
+{
+#ifdef USE_OPENGL
+	return PTDoPrime(done, total);
+#else
+	return 0;
 #endif
 }
 

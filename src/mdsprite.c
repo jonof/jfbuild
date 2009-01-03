@@ -329,7 +329,8 @@ int md_undefinemodel(int modelid)
 static int daskinloader (long filh, long *fptr, long *bpl, long *sizx, long *sizy, long *osizx, long *osizy, char *hasalpha, char effect)
 {
 	long picfillen, j,y,x;
-	char *picfil,*cptr,al=255;
+	char *picfil,al=255;
+	unsigned char *cptr;
 	coltype *pic;
 	long xsiz, ysiz, tsizx, tsizy;
 
@@ -1490,7 +1491,7 @@ static void setrect (long x0, long y0, long dx, long dy)
 #endif
 }
 
-static void cntquad (long x0, long y0, long z0, long x1, long y1, long z1, long x2, long y2, long z2, long face)
+static void cntquad (long x0, long y0, long z0, long UNUSED(x1), long UNUSED(y1), long UNUSED(z1), long x2, long y2, long z2, long UNUSED(face))
 {
 	long x, y, z;
 

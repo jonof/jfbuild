@@ -44,6 +44,24 @@ struct PTIter_typ;	// an opaque iterator type for walking the internal hash
 typedef struct PTIter_typ * PTIter;
 
 /**
+ * Prepare for priming by sweeping through the textures and marking them as all unused
+ */
+void PTBeginPriming(void);
+
+/**
+ * Flag a texture as required for priming
+ */
+void PTMarkPrime(long picnum, long palnum, unsigned short flags);
+
+/**
+ * Runs a cycle of the priming process. Call until nonzero is returned.
+ * @param done receives the number of textures primed so far
+ * @param total receives the total number of textures to be primed
+ * @return 0 when priming is complete
+ */
+int PTDoPrime(int* done, int* total);
+
+/**
  * Resets the texture hash but leaves the headers in memory
  */
 void PTReset();
