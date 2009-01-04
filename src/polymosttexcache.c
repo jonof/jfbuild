@@ -2,6 +2,11 @@
 #include "compat.h"
 #include "baselayer.h"
 
+#include "glbuild.h"
+#include "build.h"
+#include "hightile_priv.h"
+#include "polymosttex_priv.h"
+
 /*
  PolymostTex Cache file formats
  
@@ -11,6 +16,7 @@
    ENTRIES...
      filename  char[BMAX_PATH]
      effects   long
+     flags     long		PTH_CLAMPED
      offset    long		Offset from the start of the STORAGE file
      mtime     long		When kplib can return mtimes from ZIPs, this will be used to spot stale entries
  
@@ -20,6 +26,7 @@
    ENTRIES...
      tsizx     long		Unpadded dimensions
      tsizy     long
+     flags     long		PTH_CLAMPED | PTH_HASALPHA
      format    long		OpenGL compressed format code
      nmipmaps  long		The number of mipmaps following
      MIPMAPS...
@@ -34,6 +41,7 @@
 struct PTCacheIndex_typ {
 	char * filename;
 	int effects;
+	int flags;
 	off_t offset;
 	struct PTCacheIndex_typ * next;
 };
@@ -65,9 +73,10 @@ static unsigned long gethashhead(const char * filename)
  * Adds an item to the cachehead hash.
  * @param filename
  * @param effects
+ * @param flags
  * @param offset
  */
-static void ptcache_addhash(const char * filename, int effects, off_t offset)
+static void ptcache_addhash(const char * filename, int effects, int flags, off_t offset)
 {
 	unsigned long hash = gethashhead(filename);
 	
@@ -77,6 +86,7 @@ static void ptcache_addhash(const char * filename, int effects, off_t offset)
 	pci->filename = (char *) pci + sizeof(PTCacheIndex);
 	strcpy(pci->filename, filename);
 	pci->effects = effects;
+	pci->flags   = flags & (PTH_CLAMPED);
 	pci->offset  = offset;
 	pci->next = cachehead[hash];
 	
@@ -87,9 +97,10 @@ static void ptcache_addhash(const char * filename, int effects, off_t offset)
  * Locates an item in the cachehead hash.
  * @param filename
  * @param effects
+ * @param flags
  * @return the PTCacheIndex item, or null
  */
-static PTCacheIndex * ptcache_findhash(const char * filename, int effects)
+static PTCacheIndex * ptcache_findhash(const char * filename, int effects, int flags)
 {
 	PTCacheIndex * pci;
 	
@@ -98,8 +109,11 @@ static PTCacheIndex * ptcache_findhash(const char * filename, int effects)
 		return 0;
 	}
 	
+	flags &= PTH_CLAMPED;
+	
 	while (pci) {
 		if (effects == pci->effects &&
+		    flags == pci->flags &&
 		    strcmp(pci->filename, filename) == 0) {
 			return pci;
 		}
@@ -121,6 +135,7 @@ void PTCacheLoadIndex(void)
 	
 	char filename[BMAX_PATH+1];
 	long effects;
+	long flags;
 	long offset;
 	long mtime;
 	PTCacheIndex * pci;
@@ -173,6 +188,7 @@ void PTCacheLoadIndex(void)
 			break;
 		}
 		if (fread(&effects, 4,         1, fh) != 1 ||
+		    fread(&flags,   4,         1, fh) != 1 ||
 		    fread(&offset,  4,         1, fh) != 1 ||
 		    fread(&mtime,   4,         1, fh) != 1) {
 			// truncated entry, so throw the whole cache away
@@ -183,15 +199,16 @@ void PTCacheLoadIndex(void)
 		}
 		
 		effects = B_LITTLE32(effects);
-		offset = B_LITTLE32(offset);
-		mtime = B_LITTLE32(mtime);
+		flags   = B_LITTLE32(flags);
+		offset  = B_LITTLE32(offset);
+		mtime   = B_LITTLE32(mtime);
 		
-		pci = ptcache_findhash(filename, (int) effects);
+		pci = ptcache_findhash(filename, (int) effects, (int) flags);
 		if (pci) {
 			// superceding an old hash entry
 			pci->offset = (off_t) offset;
 		} else {
-			ptcache_addhash(filename, (int) effects, (off_t) offset);
+			ptcache_addhash(filename, (int) effects, (int) flags, (off_t) offset);
 		}
 	}
 	
@@ -227,6 +244,7 @@ static PTCacheTile * ptcache_load(off_t offset)
 {
 	long tsizx, tsizy;
 	long sizx, sizy;
+	long flags;
 	long format;
 	long nmipmaps, i;
 	long length;
@@ -250,6 +268,7 @@ static PTCacheTile * ptcache_load(off_t offset)
 	
 	if (fread(&tsizx, 4, 1, fh) != 1 ||
 	    fread(&tsizy, 4, 1, fh) != 1 ||
+	    fread(&flags, 4, 1, fh) != 1 ||
 	    fread(&format, 4, 1, fh) != 1 ||
 	    fread(&nmipmaps, 4, 1, fh) != 1) {
 		// truncated entry, so throw the whole cache away
@@ -258,12 +277,14 @@ static PTCacheTile * ptcache_load(off_t offset)
 	
 	tsizx = B_LITTLE32(tsizx);
 	tsizy = B_LITTLE32(tsizy);
+	flags = B_LITTLE32(flags);
 	format = B_LITTLE32(format);
 	nmipmaps = B_LITTLE32(nmipmaps);
 	
 	tdef = PTCacheAllocNewTile(nmipmaps);
 	tdef->tsizx = tsizx;
 	tdef->tsizy = tsizy;
+	tdef->flags = flags;
 	tdef->format = format;
 	
 	for (i = 0; i < nmipmaps; i++) {
@@ -307,9 +328,10 @@ fail:
  * Loads a tile from the cache.
  * @param filename the filename
  * @param effects the effects bits
+ * @param flags the flags bits
  * @return a PTCacheTile entry fully completed
  */
-PTCacheTile * PTCacheLoadTile(const char * filename, int effects)
+PTCacheTile * PTCacheLoadTile(const char * filename, int effects, int flags)
 {
 	PTCacheIndex * pci;
 	PTCacheTile * tdef;
@@ -318,7 +340,7 @@ PTCacheTile * PTCacheLoadTile(const char * filename, int effects)
 		return 0;
 	}
 	
-	pci = ptcache_findhash(filename, effects);
+	pci = ptcache_findhash(filename, effects, flags);
 	if (!pci) {
 		return 0;
 	}
@@ -335,15 +357,16 @@ PTCacheTile * PTCacheLoadTile(const char * filename, int effects)
  * Checks to see if a tile exists in the cache.
  * @param filename the filename
  * @param effects the effects bits
+ * @param flags the flags bits
  * @return !0 if it exists
  */
-int PTCacheHasTile(const char * filename, int effects)
+int PTCacheHasTile(const char * filename, int effects, int flags)
 {
 	if (cachedisabled) {
 		return 0;
 	}
 	
-	return (ptcache_findhash(filename, effects) != 0);
+	return (ptcache_findhash(filename, effects, flags) != 0);
 }
 
 /**
@@ -429,15 +452,17 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	
 	{
 		long tsizx, tsizy;
-		long format, nmipmaps;
+		long format, flags, nmipmaps;
 
 		tsizx = B_LITTLE32(tdef->tsizx);
 		tsizy = B_LITTLE32(tdef->tsizy);
+		flags = B_LITTLE32(tdef->flags);
 		format = B_LITTLE32(tdef->format);
 		nmipmaps = B_LITTLE32(tdef->nummipmaps);
 		
 		if (fwrite(&tsizx, 4, 1, fh) != 1 ||
 		    fwrite(&tsizy, 4, 1, fh) != 1 ||
+		    fwrite(&flags, 4, 1, fh) != 1 ||
 		    fwrite(&format, 4, 1, fh) != 1 ||
 		    fwrite(&nmipmaps, 4, 1, fh) != 1) {
 			goto fail;
@@ -484,16 +509,18 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	
 	{
 		char filename[BMAX_PATH];
-		long effects, offsett, mtime;
+		long effects, offsett, flags, mtime;
 		
 		memset(filename, 0, sizeof(filename));
 		strncpy(filename, tdef->filename, sizeof(filename));
 		effects = B_LITTLE32(tdef->effects);
+		flags   = B_LITTLE32(tdef->flags);
 		offsett = B_LITTLE32(offset);
 		mtime = 0;
 		
 		if (fwrite(filename, sizeof(filename), 1, fh) != 1 ||
 		    fwrite(&effects, 4, 1, fh) != 1 ||
+		    fwrite(&flags, 4, 1, fh) != 1 ||
 		    fwrite(&offsett, 4, 1, fh) != 1 ||
 		    fwrite(&mtime, 4, 1, fh) != 1) {
 			goto fail;
@@ -503,12 +530,12 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	fclose(fh);
 
 	// stow the data into the index in memory
-	pci = ptcache_findhash(tdef->filename, tdef->effects);
+	pci = ptcache_findhash(tdef->filename, tdef->effects, tdef->flags);
 	if (pci) {
 		// superceding an old hash entry
 		pci->offset = offset;
 	} else {
-		ptcache_addhash(tdef->filename, tdef->effects, offset);
+		ptcache_addhash(tdef->filename, tdef->effects, tdef->flags, offset);
 	}
 	
 	return 1;
@@ -517,4 +544,14 @@ fail:
 	initprintf("Error writing to cache, texture cache disabled\n");
 	if (fh) fclose(fh);
 	return 0;
+}
+
+/**
+* Forces the cache to be rebuilt.
+ */
+void PTCacheForceRebuild(void)
+{
+	PTCacheUnloadIndex();
+	cachedisabled = 0;
+	cachereplace = 1;
 }

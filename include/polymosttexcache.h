@@ -15,6 +15,7 @@ typedef struct PTCacheTileMip_typ PTCacheTileMip;
 struct PTCacheTile_typ {
 	char * filename;
 	int effects;
+	int flags;
 	int format;	// OpenGL format code
 	long tsizx, tsizy;
 	int nummipmaps;
@@ -36,17 +37,19 @@ void PTCacheUnloadIndex(void);
  * Loads a tile from the cache.
  * @param filename the filename
  * @param effects the effects bits
+ * @param flags the flags bits
  * @return a PTCacheTile entry fully completed
  */
-PTCacheTile * PTCacheLoadTile(const char * filename, int effects);
+PTCacheTile * PTCacheLoadTile(const char * filename, int effects, int flags);
 
 /**
  * Checks to see if a tile exists in the cache.
  * @param filename the filename
  * @param effects the effects bits
+ * @param flags the flags bits
  * @return !0 if it exists
  */
-int PTCacheHasTile(const char * filename, int effects);
+int PTCacheHasTile(const char * filename, int effects, int flags);
 
 /**
  * Disposes of the resources allocated for a PTCacheTile
@@ -68,6 +71,11 @@ PTCacheTile * PTCacheAllocNewTile(int nummipmaps);
  * @return !0 on success
  */
 int PTCacheWriteTile(PTCacheTile * tdef);
+
+/**
+ * Forces the cache to be rebuilt.
+ */
+void PTCacheForceRebuild(void);
 
 #ifdef __cplusplus
 }

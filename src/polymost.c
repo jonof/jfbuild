@@ -77,6 +77,7 @@ Low priority:
 #include "polymost_priv.h"
 #include "hightile_priv.h"
 #include "polymosttex_priv.h"
+#include "polymosttexcache.h"
 #include "mdsprite_priv.h"
 extern char textfont[2048], smalltextfont[2048];
 
@@ -4692,6 +4693,14 @@ static int gltextureanisotropy(const osdfuncparm_t *parm)
 
 	return OSDCMD_OK;
 }
+
+static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *parm)
+{
+	PTCacheForceRebuild();
+	OSD_Printf("Compressed texture cache invalidated. Use 'restartvid' to reinitialise it.\n");
+	return OSDCMD_OK;
+}
+
 #endif
 
 static int osdcmd_polymostvars(const osdfuncparm_t *parm)
@@ -4719,7 +4728,7 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 		if (showval) { OSD_Printf("gltexcomprquality is %d\n", gltexcomprquality); }
 		else {
 			if (val < 0 || val > 2) val = 0;
-			glusetexcompr = val;
+			gltexcomprquality = val;
 		}
 		return OSDCMD_OK;
 	}
@@ -4843,6 +4852,7 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("glmultisample","glmultisample: sets the number of samples used for antialiasing (0 = off)",osdcmd_polymostvars);
 	OSD_RegisterFunction("glnvmultisamplehint","glnvmultisamplehint: enable/disable Nvidia multisampling hinting",osdcmd_polymostvars);
 	OSD_RegisterFunction("polymosttexverbosity","polymosttexverbosity: sets the level of chatter during texture loading. 0 = none, 1 = errors (default), 2 = all",osdcmd_polymostvars);
+	OSD_RegisterFunction("forcetexcacherebuild","forcetexcacherebuild: invalidates the compressed texture cache", osdcmd_forcetexcacherebuild);
 #endif
 	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);

@@ -28,7 +28,6 @@
 
 #if defined(__POWERPC__) && defined(__ALTIVEC__)
 #define SQUISH_USE_ALTIVEC 1
-#warning altivec enabled in squish
 #endif
 
 // Set to 1 when building squish to use Altivec instructions.

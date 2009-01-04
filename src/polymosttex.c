@@ -395,7 +395,8 @@ static int pt_load_hightile(PTHead * pth)
 			// already there
 			writetocache = ! PTCacheHasTile(filename,
 					      (pth->palnum != pth->repldef->palnum)
-						? hictinting[pth->palnum].f : 0);
+						? hictinting[pth->palnum].f : 0,
+					      pth->flags & (PTH_CLAMPED));
 		}
 	
 		filh = kopen4load((char *) filename, 0);
@@ -524,14 +525,15 @@ static int pt_load_hightile(PTHead * pth)
 			tdef = PTCacheAllocNewTile(nmips);
 			tdef->filename = strdup(filename);
 			tdef->effects = (pth->palnum != pth->repldef->palnum) ? hictinting[pth->palnum].f : 0;
+			tdef->flags = pth->flags & (PTH_CLAMPED | PTH_HASALPHA);
 		}
 		
 		pt_load_uploadtexture(pth, texture, &tex, tdef);
 		
 		if (cacheable && writetocache) {
 			if (polymosttexverbosity >= 2) {
-				initprintf("PolymostTex: writing %s (effects %d) to cache\n",
-					   tdef->filename, tdef->effects);
+				initprintf("PolymostTex: writing %s (effects %d, flags %d) to cache\n",
+					   tdef->filename, tdef->effects, tdef->flags);
 			}
 			PTCacheWriteTile(tdef);
 			PTCacheFreeTile(tdef);
@@ -566,7 +568,6 @@ static int pt_load_cache(PTHead * pth)
 {
 	const char *filename = 0;
 	int mipmap, i;
-	int hasalpha = 0;
 	int texture = 0, loaded[PTHGLPIC_SIZE] = { 0,0,0,0,0,0, };
 	PTCacheTile * tdef = 0;
 
@@ -607,10 +608,16 @@ static int pt_load_cache(PTHead * pth)
 		
 		tdef = PTCacheLoadTile(filename, 
 			      (pth->palnum != pth->repldef->palnum)
-				? hictinting[pth->palnum].f : 0);
+			         ? hictinting[pth->palnum].f : 0,
+			      pth->flags & (PTH_CLAMPED));
 		
 		if (!tdef) {
 			continue;
+		}
+		
+		if (polymosttexverbosity >= 2) {
+			initprintf("PolymostTex: loaded %s (effects %d, flags %d) from cache\n",
+				   tdef->filename, tdef->effects, tdef->flags);
 		}
 		
 		if (pth->glpic[texture] == 0) {
@@ -631,9 +638,7 @@ static int pt_load_cache(PTHead * pth)
 				pth->scaley = (float)tdef->tsizy / (float)tilesizy[pth->picnum];
 			}
 			pth->flags &= ~(PTH_DIRTY | PTH_NOCOMPRESS | PTH_HASALPHA);
-			/*if (hasalpha) {
-				pth->flags |= PTH_HASALPHA;
-			}*/
+			pth->flags |= tdef->flags;
 		}
 		
 		mipmap = 0;
