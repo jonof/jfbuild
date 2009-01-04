@@ -46,6 +46,13 @@
 			remoteGlobalIDString = AB3FE4550C04336F00D5DBDC;
 			remoteInfo = editorsupp;
 		};
+		AB6728C80F10B547000C7D92 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AB67256E0F0F6622000C7D92 /* texcachegen */;
+			remoteInfo = texcachegen;
+		};
 		AB73601A0A29AA70003261DC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
@@ -92,14 +99,14 @@
 			isa = PBXContainerItemProxy;
 			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
 			proxyType = 2;
-			remoteGlobalIDString = ABAE9C2E0F0CC80200A528DC /* kextract */;
+			remoteGlobalIDString = ABAE9C2E0F0CC80200A528DC;
 			remoteInfo = kextract;
 		};
 		ABAE9C3F0F0CC83700A528DC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
 			proxyType = 2;
-			remoteGlobalIDString = ABAE9C390F0CC81900A528DC /* kgroup */;
+			remoteGlobalIDString = ABAE9C390F0CC81900A528DC;
 			remoteInfo = kgroup;
 		};
 /* End PBXContainerItemProxy section */
@@ -205,8 +212,8 @@
 				AB7360200A29AA88003261DC /* Game */,
 				AB726D600F046E4200730EAA /* KenBuild data */,
 				AB7361210A29B9B1003261DC /* Frameworks */,
-				AB7360140A29AA70003261DC /* engine.xcodeproj */,
 				AB73602B0A29AB08003261DC /* Products */,
+				AB7360140A29AA70003261DC /* engine.xcodeproj */,
 			);
 			sourceTree = "<group>";
 		};
@@ -219,6 +226,7 @@
 				ABAE9AD60F0B308900A528DC /* arttool */,
 				ABAE9C3E0F0CC83700A528DC /* kextract */,
 				ABAE9C400F0CC83700A528DC /* kgroup */,
+				AB6728C90F10B547000C7D92 /* texcachegen */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -369,6 +377,13 @@
 			remoteRef = AB3FE4570C04338D00D5DBDC /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		AB6728C90F10B547000C7D92 /* texcachegen */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = texcachegen;
+			remoteRef = AB6728C80F10B547000C7D92 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		AB73601B0A29AA70003261DC /* libengine.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -493,13 +508,13 @@
 					RENDERTYPESDL,
 				);
 				GCC_VERSION_i386 = 4.0;
-				GCC_VERSION_ppc = 3.3;
+				GCC_VERSION_ppc = 4.0;
 				HEADER_SEARCH_PATHS = ../include;
 				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
+				MACOSX_DEPLOYMENT_TARGET_ppc = 10.3;
 				PREBINDING = NO;
 				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
-				SDKROOT_ppc = /Developer/SDKs/MacOSX10.2.8.sdk;
+				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
 			};
 			name = Debug;
 		};
@@ -525,13 +540,13 @@
 					RENDERTYPESDL,
 				);
 				GCC_VERSION_i386 = 4.0;
-				GCC_VERSION_ppc = 3.3;
+				GCC_VERSION_ppc = 4.0;
 				HEADER_SEARCH_PATHS = ../include;
 				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
+				MACOSX_DEPLOYMENT_TARGET_ppc = 10.3;
 				PREBINDING = NO;
 				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
-				SDKROOT_ppc = /Developer/SDKs/MacOSX10.2.8.sdk;
+				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
 			};
 			name = Release;
 		};
@@ -572,6 +587,7 @@
 			buildSettings = {
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
+				OTHER_LDFLAGS = "-lstdc++";
 				PRODUCT_NAME = build;
 				WRAPPER_EXTENSION = app;
 			};
@@ -582,6 +598,7 @@
 			buildSettings = {
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
+				OTHER_LDFLAGS = "-lstdc++";
 				PRODUCT_NAME = build;
 				WRAPPER_EXTENSION = app;
 			};

@@ -18,6 +18,7 @@ struct glfiltermodes {
 #define numglfiltermodes 6
 extern struct glfiltermodes glfiltermodes[numglfiltermodes];
 
+extern long gltexcomprquality;	// 0 = fast, 1 = slow and pretty, 2 = very slow and pretty
 extern long gltexmaxsize;	// 0 means autodetection on first run
 extern long gltexmiplevel;	// discards this many mipmap levels
 

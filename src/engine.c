@@ -5430,6 +5430,7 @@ int initengine(void)
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (!hicfirstinit) hicinit();
 	if (!mdinited) mdinit();
+	PTCacheLoadIndex();
 #endif
 
 	return 0;
