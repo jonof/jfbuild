@@ -84,6 +84,32 @@ static void ptcache_addhash(char * filename, int effects, off_t offset)
 }
 
 /**
+ * Locates an item in the cachehead hash.
+ * @param filename
+ * @param effects
+ * @return the PTCacheIndex item, or null
+ */
+static PTCacheIndex * ptcache_findhash(char * filename, int effects)
+{
+	PTCacheIndex * pci;
+	
+	pci = cachehead[ gethashhead(filename) ];
+	if (!pci) {
+		return 0;
+	}
+	
+	while (pci) {
+		if (effects == pci->effects &&
+		    strcmp(pci->filename, filename) == 0) {
+			return pci;
+		}
+		pci = pci->next;
+	}
+	
+	return 0;
+}
+
+/**
  * Loads the cache index file into memory
  */
 void PTCacheLoadIndex(void)
@@ -97,13 +123,14 @@ void PTCacheLoadIndex(void)
 	long effects;
 	long offset;
 	long mtime;
+	PTCacheIndex * pci;
 	
 	memset(filename, 0, sizeof(filename));
 	
 	// first, check the cache storage file's signature.
-	fh = fopen(CACHESTORAGEFILE, "rb");
+	// we open for reading and writing to test permission
+	fh = fopen(CACHESTORAGEFILE, "r+b");
 	if (fh) {
-		fseek(fh, 0, SEEK_SET);
 		if (fread(sig, 16, 1, fh) != 1 || memcmp(sig, storagesig, 16)) {
 			cachereplace = 1;
 			initprintf("Texture cache will be replaced\n");
@@ -121,9 +148,8 @@ void PTCacheLoadIndex(void)
 	}
 		
 	// next, check the index
-	fh = fopen(CACHEINDEXFILE, "rb");
+	fh = fopen(CACHEINDEXFILE, "r+b");
 	if (fh) {
-		fseek(fh, 0, SEEK_SET);
 		if (fread(sig, 16, 1, fh) != 1 || memcmp(sig, indexsig, 16)) {
 			if (!cachereplace) {
 				cachereplace = 1;
@@ -133,7 +159,7 @@ void PTCacheLoadIndex(void)
 	} else {
 		if (errno == ENOENT) {
 			// it's cool
-			;
+			return;
 		} else {
 			initprintf("Error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
 			cachedisabled = 1;
@@ -143,8 +169,10 @@ void PTCacheLoadIndex(void)
 	
 	// now that the index is sitting at the first entry, load everything
 	while (!feof(fh)) {
-		if (fread(filename, BMAX_PATH, 1, fh) != 1 ||
-		    fread(&effects, 4,         1, fh) != 1 ||
+		if (fread(filename, BMAX_PATH, 1, fh) != 1 && feof(fh)) {
+			break;
+		}
+		if (fread(&effects, 4,         1, fh) != 1 ||
 		    fread(&offset,  4,         1, fh) != 1 ||
 		    fread(&mtime,   4,         1, fh) != 1) {
 			// truncated entry, so throw the whole cache away
@@ -158,7 +186,13 @@ void PTCacheLoadIndex(void)
 		offset = B_LITTLE32(offset);
 		mtime = B_LITTLE32(mtime);
 		
-		ptcache_addhash(filename, (int) effects, (off_t) offset);
+		pci = ptcache_findhash(filename, (int) effects);
+		if (pci) {
+			// superceding an old hash entry
+			pci->offset = (off_t) offset;
+		} else {
+			ptcache_addhash(filename, (int) effects, (off_t) offset);
+		}
 	}
 	
 	fclose(fh);
@@ -214,10 +248,10 @@ static PTCacheTile * ptcache_load(off_t offset)
 	
 	fseek(fh, offset, SEEK_SET);
 	
-	if (!fread(&tsizx, 4, 1, fh) != 1 ||
-	    !fread(&tsizy, 4, 1, fh) != 1 ||
-	    !fread(&format, 4, 1, fh) != 1 ||
-	    !fread(&nmipmaps, 4, 1, fh) != 1) {
+	if (fread(&tsizx, 4, 1, fh) != 1 ||
+	    fread(&tsizy, 4, 1, fh) != 1 ||
+	    fread(&format, 4, 1, fh) != 1 ||
+	    fread(&nmipmaps, 4, 1, fh) != 1) {
 		// truncated entry, so throw the whole cache away
 		goto fail;
 	}
@@ -233,9 +267,9 @@ static PTCacheTile * ptcache_load(off_t offset)
 	tdef->format = format;
 	
 	for (i = 0; i < nmipmaps; i++) {
-		if (!fread(&sizx, 4, 1, fh) != 1 ||
-		    !fread(&sizy, 4, 1, fh) != 1 ||
-		    !fread(&length, 4, 1, fh) != 1) {
+		if (fread(&sizx, 4, 1, fh) != 1 ||
+		    fread(&sizy, 4, 1, fh) != 1 ||
+		    fread(&length, 4, 1, fh) != 1) {
 			// truncated entry, so throw the whole cache away
 			goto fail;
 		}
@@ -249,7 +283,7 @@ static PTCacheTile * ptcache_load(off_t offset)
 		tdef->mipmap[i].length = length;
 		tdef->mipmap[i].data = (unsigned char *) malloc(length);
 		
-		if (!fread(tdef->mipmap[i].data, length, 1, fh) != 1) {
+		if (fread(tdef->mipmap[i].data, length, 1, fh) != 1) {
 			// truncated data
 			goto fail;
 		}
@@ -282,25 +316,17 @@ PTCacheTile * PTCacheLoadTile(char * filename, int effects)
 		return 0;
 	}
 	
-	pci = cachehead[ gethashhead(filename) ];
+	pci = ptcache_findhash(filename, effects);
 	if (!pci) {
 		return 0;
 	}
 	
-	while (pci) {
-		if (effects == pci->effects &&
-		    strcmp(pci->filename, filename) == 0) {
-			tdef = ptcache_load(pci->offset);
-			if (tdef) {
-				tdef->filename = strdup(filename);
-				tdef->effects  = effects;
-			}
-			return tdef;
-		}
-		pci = pci->next;
+	tdef = ptcache_load(pci->offset);
+	if (tdef) {
+		tdef->filename = strdup(filename);
+		tdef->effects  = effects;
 	}
-	
-	return 0;
+	return tdef;
 }
 
 /**
@@ -311,26 +337,11 @@ PTCacheTile * PTCacheLoadTile(char * filename, int effects)
  */
 int PTCacheHasTile(char * filename, int effects)
 {
-	PTCacheIndex * pci;
-
 	if (cachedisabled) {
 		return 0;
 	}
 	
-	pci = cachehead[ gethashhead(filename) ];
-	if (!pci) {
-		return 0;
-	}
-	
-	while (pci) {
-		if (effects == pci->effects &&
-		    strcmp(pci->filename, filename) == 0) {
-			return 1;
-		}
-		pci = pci->next;
-	}
-	
-	return 0;
+	return (ptcache_findhash(filename, effects) != 0);
 }
 
 /**
@@ -374,10 +385,133 @@ PTCacheTile * PTCacheAllocNewTile(int nummipmaps)
 /**
  * Stores a PTCacheTile into the cache.
  * @param tdef a PTCacheTile entry fully completed
+ * @return !0 on success
  */
-void PTCacheWriteTile(PTCacheTile * tdef)
+int PTCacheWriteTile(PTCacheTile * tdef)
 {
+	long i;
+	PTCacheIndex * pci;
+
+	FILE * fh;
+	off_t offset;
+	char createmode[] = "ab";
+	
 	if (cachedisabled) {
-		return;
+		return 0;
 	}
+	
+	if (cachereplace) {
+		createmode[0] = 'w';
+	}
+	
+	// 1. write the tile data to the storage file
+	fh = fopen(CACHESTORAGEFILE, createmode);
+	if (!fh) {
+		cachedisabled = 1;
+		initprintf("Error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
+		return 0;
+	}
+	
+	offset = ftell(fh);
+	
+	if (offset == 0) {
+		// new file
+		const char storagesig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','S','t','o','r',CACHEVER };
+		if (fwrite(storagesig, 16, 1, fh) != 1) {
+			goto fail;
+		}
+		
+		offset = 16;
+	}
+	
+	{
+		long tsizx, tsizy;
+		long format, nmipmaps;
+
+		tsizx = B_LITTLE32(tdef->tsizx);
+		tsizy = B_LITTLE32(tdef->tsizy);
+		format = B_LITTLE32(tdef->format);
+		nmipmaps = B_LITTLE32(tdef->nummipmaps);
+		
+		if (fwrite(&tsizx, 4, 1, fh) != 1 ||
+		    fwrite(&tsizy, 4, 1, fh) != 1 ||
+		    fwrite(&format, 4, 1, fh) != 1 ||
+		    fwrite(&nmipmaps, 4, 1, fh) != 1) {
+			goto fail;
+		}
+	}
+
+	for (i = 0; i < tdef->nummipmaps; i++) {
+		long sizx, sizy;
+		long length;
+
+		sizx = B_LITTLE32(tdef->mipmap[i].sizx);
+		sizy = B_LITTLE32(tdef->mipmap[i].sizy);
+		length = B_LITTLE32(tdef->mipmap[i].length);
+		
+		if (fwrite(&sizx, 4, 1, fh) != 1 ||
+		    fwrite(&sizy, 4, 1, fh) != 1 ||
+		    fwrite(&length, 4, 1, fh) != 1) {
+			goto fail;
+		}
+		
+		if (fwrite(tdef->mipmap[i].data, tdef->mipmap[i].length, 1, fh) != 1) {
+			// truncated data
+			goto fail;
+		}
+	}
+	
+	fclose(fh);
+	
+	// 2. append to the index
+	fh = fopen(CACHEINDEXFILE, createmode);
+	if (!fh) {
+		cachedisabled = 1;
+		initprintf("Error opening %s, texture cache disabled\n", CACHEINDEXFILE);
+		return 0;
+	}
+	
+	if (ftell(fh) == 0) {
+		// new file
+		const char indexsig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','I','n','d','x',CACHEVER };
+		if (fwrite(indexsig, 16, 1, fh) != 1) {
+			goto fail;
+		}
+	}
+	
+	{
+		char filename[BMAX_PATH];
+		long effects, offsett, mtime;
+		
+		memset(filename, 0, sizeof(filename));
+		strncpy(filename, tdef->filename, sizeof(filename));
+		effects = B_LITTLE32(tdef->effects);
+		offsett = B_LITTLE32(offset);
+		mtime = 0;
+		
+		if (fwrite(filename, sizeof(filename), 1, fh) != 1 ||
+		    fwrite(&effects, 4, 1, fh) != 1 ||
+		    fwrite(&offsett, 4, 1, fh) != 1 ||
+		    fwrite(&mtime, 4, 1, fh) != 1) {
+			goto fail;
+		}
+	}
+	
+	fclose(fh);
+
+	// stow the data into the index in memory
+	pci = ptcache_findhash(tdef->filename, tdef->effects);
+	if (pci) {
+		// superceding an old hash entry
+		pci->offset = offset;
+	} else {
+		ptcache_addhash(tdef->filename, tdef->effects, offset);
+	}
+	
+	return 1;
+fail:
+	cachedisabled = 1;
+	initprintf("Error writing to cache, texture cache disabled\n");
+	if (fh) fclose(fh);
+	return 0;
 }

@@ -65,8 +65,9 @@ PTCacheTile * PTCacheAllocNewTile(int nummipmaps);
 /**
  * Stores a PTCacheTile into the cache.
  * @param tdef a PTCacheTile entry fully completed
+ * @return !0 on success
  */
-void PTCacheWriteTile(PTCacheTile * tdef);
+int PTCacheWriteTile(PTCacheTile * tdef);
 
 #ifdef __cplusplus
 }
