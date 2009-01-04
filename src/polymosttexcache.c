@@ -67,7 +67,7 @@ static unsigned long gethashhead(const char * filename)
  * @param effects
  * @param offset
  */
-static void ptcache_addhash(char * filename, int effects, off_t offset)
+static void ptcache_addhash(const char * filename, int effects, off_t offset)
 {
 	unsigned long hash = gethashhead(filename);
 	
@@ -89,7 +89,7 @@ static void ptcache_addhash(char * filename, int effects, off_t offset)
  * @param effects
  * @return the PTCacheIndex item, or null
  */
-static PTCacheIndex * ptcache_findhash(char * filename, int effects)
+static PTCacheIndex * ptcache_findhash(const char * filename, int effects)
 {
 	PTCacheIndex * pci;
 	
@@ -288,7 +288,9 @@ static PTCacheTile * ptcache_load(off_t offset)
 			goto fail;
 		}
 	}
-	
+
+	fclose(fh);
+
 	return tdef;
 fail:
 	cachereplace = 1;
@@ -307,7 +309,7 @@ fail:
  * @param effects the effects bits
  * @return a PTCacheTile entry fully completed
  */
-PTCacheTile * PTCacheLoadTile(char * filename, int effects)
+PTCacheTile * PTCacheLoadTile(const char * filename, int effects)
 {
 	PTCacheIndex * pci;
 	PTCacheTile * tdef;
@@ -335,7 +337,7 @@ PTCacheTile * PTCacheLoadTile(char * filename, int effects)
  * @param effects the effects bits
  * @return !0 if it exists
  */
-int PTCacheHasTile(char * filename, int effects)
+int PTCacheHasTile(const char * filename, int effects)
 {
 	if (cachedisabled) {
 		return 0;
@@ -402,6 +404,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	
 	if (cachereplace) {
 		createmode[0] = 'w';
+		cachereplace = 0;
 	}
 	
 	// 1. write the tile data to the storage file

@@ -62,6 +62,22 @@ static inline int gethashhead(long picnum)
 	return picnum & (PTHASHHEADSIZ-1);
 }
 
+static void detect_texture_size()
+{
+	if (gltexmaxsize <= 0) {
+		GLint siz = 0;
+		bglGetIntegerv(GL_MAX_TEXTURE_SIZE, &siz);
+		if (siz == 0) {
+			gltexmaxsize = 6;   // 2^6 = 64 == default GL max texture size
+		} else {
+			gltexmaxsize = 0;
+			for (; siz > 1; siz >>= 1) {
+				gltexmaxsize++;
+			}
+		}
+	}
+}
+
 /**
  * Finds the pthash entry for a tile, possibly creating it if one doesn't exist
  * @param picnum tile number
@@ -498,11 +514,12 @@ static int pt_load_hightile(PTHead * pth)
 		}
 		
 		if (cacheable && writetocache) {
-			int nmips = 1;
+			int nmips = 0;
 			while (max(1, (tex.sizx >> nmips)) > 1 ||
 			       max(1, (tex.sizy >> nmips)) > 1) {
 				nmips++;
 			}
+			nmips++;
 
 			tdef = PTCacheAllocNewTile(nmips);
 			tdef->filename = strdup(filename);
@@ -547,7 +564,114 @@ static int pt_load_hightile(PTHead * pth)
  */
 static int pt_load_cache(PTHead * pth)
 {
-	return 0;
+	const char *filename = 0;
+	int mipmap, i;
+	int hasalpha = 0;
+	int texture = 0, loaded[PTHGLPIC_SIZE] = { 0,0,0,0,0,0, };
+	PTCacheTile * tdef = 0;
+
+	if (!pth->repldef) {
+		return 0;
+	} else if ((pth->repldef->flags & 1) || !glinfo.texcompr || !glusetexcache || !glusetexcompr) {
+		return 0;
+	} else if ((pth->flags & PTH_SKYBOX) && (pth->repldef->skybox == 0 || pth->repldef->skybox->ignore)) {
+		return 0;
+	} else if (pth->repldef->ignore) {
+		return 0;
+	}
+
+	detect_texture_size();
+	
+	for (texture = 0; texture < PTHGLPIC_SIZE; texture++) {
+		if (pth->flags & PTH_SKYBOX) {
+			if (texture >= 6) {
+				texture = PTHGLPIC_SIZE;
+				continue;
+			}
+			filename = pth->repldef->skybox->face[texture];
+		} else {
+			switch (texture) {
+				case PTHGLPIC_BASE:
+					filename = pth->repldef->filename;
+					break;
+				default:
+					// future developments may use the other indices
+					texture = PTHGLPIC_SIZE;
+					continue;
+			}
+		}
+	
+		if (!filename) {
+			continue;
+		}
+		
+		tdef = PTCacheLoadTile(filename, 
+			      (pth->palnum != pth->repldef->palnum)
+				? hictinting[pth->palnum].f : 0);
+		
+		if (!tdef) {
+			continue;
+		}
+		
+		if (pth->glpic[texture] == 0) {
+			bglGenTextures(1, &pth->glpic[texture]);
+		}
+		bglBindTexture(GL_TEXTURE_2D, pth->glpic[texture]);
+		
+		if (texture == 0) {
+			pth->tsizx = tdef->tsizx;
+			pth->tsizy = tdef->tsizy;
+			pth->sizx  = tdef->mipmap[0].sizx;
+			pth->sizy  = tdef->mipmap[0].sizy;
+			if (pth->flags & PTH_SKYBOX) {
+				pth->scalex = (float)tdef->tsizx / 64.0;
+				pth->scaley = (float)tdef->tsizy / 64.0;
+			} else {
+				pth->scalex = (float)tdef->tsizx / (float)tilesizx[pth->picnum];
+				pth->scaley = (float)tdef->tsizy / (float)tilesizy[pth->picnum];
+			}
+			pth->flags &= ~(PTH_DIRTY | PTH_NOCOMPRESS | PTH_HASALPHA);
+			/*if (hasalpha) {
+				pth->flags |= PTH_HASALPHA;
+			}*/
+		}
+		
+		mipmap = 0;
+		if (! (pth->flags & PTH_NOMIPLEVEL)) {
+			// if we aren't instructed to preserve all mipmap levels,
+			// immediately throw away gltexmiplevel mipmaps
+			mipmap = max(0, gltexmiplevel);
+		}
+		while (tdef->mipmap[mipmap].sizx > (1 << gltexmaxsize) ||
+		       tdef->mipmap[mipmap].sizy > (1 << gltexmaxsize)) {
+			// throw away additional mipmaps until the texture fits within
+			// the maximum size permitted by the GL driver
+			mipmap++;
+		}
+		
+		for (i = 0; i + mipmap < tdef->nummipmaps; i++) {
+			bglCompressedTexImage2DARB(GL_TEXTURE_2D, i,
+					tdef->format,
+					tdef->mipmap[i + mipmap].sizx,
+					tdef->mipmap[i + mipmap].sizy,
+					0, tdef->mipmap[i + mipmap].length,
+					(const GLvoid *) tdef->mipmap[i + mipmap].data);
+		}
+		
+		PTCacheFreeTile(tdef);
+		
+		loaded[texture] = 1;
+	}
+
+	pt_load_applyparameters(pth);
+	
+	if (pth->flags & PTH_SKYBOX) {
+		int i = 0;
+		for (texture = 0; texture < 6; texture++) i += loaded[texture];
+		return (i == 6);
+	} else {
+		return loaded[PTHGLPIC_BASE];
+	}
 }
 
 /**
@@ -788,20 +912,9 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 	unsigned char * comprdata = 0;
 	int tdefmip = 0, comprsize = 0;
 	int starttime;
+
+	detect_texture_size();
 	
-	if (gltexmaxsize <= 0) {
-		GLint siz = 0;
-		bglGetIntegerv(GL_MAX_TEXTURE_SIZE, &siz);
-		if (siz == 0) {
-			gltexmaxsize = 6;   // 2^6 = 64 == default GL max texture size
-		} else {
-			gltexmaxsize = 0;
-			for (; siz > 1; siz >>= 1) {
-				gltexmaxsize++;
-			}
-		}
-	}
-		
 	if (!(pth->flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcompr) {
 		intexfmt = (pth->flags & PTH_HASALPHA)
 		         ? GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
@@ -812,7 +925,13 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 		         ? GL_RGBA
 		         : GL_RGB;
 	}
-	
+
+	if (compress && tdef) {
+		tdef->format = intexfmt;
+		tdef->tsizx  = tex->tsizx;
+		tdef->tsizy  = tex->tsizy;
+	}
+
 	if (pth->glpic[index] == 0) {
 		bglGenTextures(1, &pth->glpic[index]);
 	}

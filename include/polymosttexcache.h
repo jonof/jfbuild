@@ -38,7 +38,7 @@ void PTCacheUnloadIndex(void);
  * @param effects the effects bits
  * @return a PTCacheTile entry fully completed
  */
-PTCacheTile * PTCacheLoadTile(char * filename, int effects);
+PTCacheTile * PTCacheLoadTile(const char * filename, int effects);
 
 /**
  * Checks to see if a tile exists in the cache.
@@ -46,7 +46,7 @@ PTCacheTile * PTCacheLoadTile(char * filename, int effects);
  * @param effects the effects bits
  * @return !0 if it exists
  */
-int PTCacheHasTile(char * filename, int effects);
+int PTCacheHasTile(const char * filename, int effects);
 
 /**
  * Disposes of the resources allocated for a PTCacheTile
