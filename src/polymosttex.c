@@ -48,7 +48,7 @@ static int primedone  = 0;	// running total of how many textures have been prime
 static int primepos   = 0;	// the position in hashhead where we are up to in priming
 
 #define PTHASHHEADSIZ 8192
-static PTHash * hashhead[PTHASHHEADSIZ];
+static PTHash * hashhead[PTHASHHEADSIZ];	// will be initialised 0 by .bss segment
 
 static inline int gethashhead(long picnum)
 {

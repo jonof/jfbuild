@@ -18,6 +18,12 @@
 		AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */; };
 		AB3B2C820EE41B9000944CD1 /* textfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C800EE41B9000944CD1 /* textfont.c */; };
 		AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */; };
+		AB6725800F0F6670000C7D92 /* texcachegen.cc in Sources */ = {isa = PBXBuildFile; fileRef = AB67257F0F0F6670000C7D92 /* texcachegen.cc */; };
+		AB6725810F0F6674000C7D92 /* texcachegen.cc in Sources */ = {isa = PBXBuildFile; fileRef = AB67257F0F0F6670000C7D92 /* texcachegen.cc */; };
+		AB67258E0F0F66DD000C7D92 /* polymosttexcache.h in Headers */ = {isa = PBXBuildFile; fileRef = AB67258D0F0F66DD000C7D92 /* polymosttexcache.h */; };
+		AB6725BB0F0F6A4E000C7D92 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
+		AB6725F90F0F8114000C7D92 /* polymosttexcache.c in Sources */ = {isa = PBXBuildFile; fileRef = AB6725F80F0F8114000C7D92 /* polymosttexcache.c */; };
+		AB6725FA0F0F81D4000C7D92 /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB735F490A29A2DC003261DC /* libengine.a */; };
 		AB7029850AEB2D69004FCD2A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
 		AB726D4C0F046C3B00730EAA /* polymosttex.c in Sources */ = {isa = PBXBuildFile; fileRef = AB726D4A0F046C3B00730EAA /* polymosttex.c */; };
 		AB726D4D0F046C3B00730EAA /* polymosttex_priv.h in Headers */ = {isa = PBXBuildFile; fileRef = AB726D4B0F046C3B00730EAA /* polymosttex_priv.h */; };
@@ -93,6 +99,10 @@
 		AB3B2C800EE41B9000944CD1 /* textfont.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = textfont.c; sourceTree = "<group>"; };
 		AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StartupWinController.editor.m; sourceTree = "<group>"; };
 		AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditorsupp.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB67256E0F0F6622000C7D92 /* texcachegen */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = texcachegen; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB67257F0F0F6670000C7D92 /* texcachegen.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = texcachegen.cc; sourceTree = "<group>"; };
+		AB67258D0F0F66DD000C7D92 /* polymosttexcache.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymosttexcache.h; sourceTree = "<group>"; };
+		AB6725F80F0F8114000C7D92 /* polymosttexcache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymosttexcache.c; sourceTree = "<group>"; };
 		AB7029840AEB2D69004FCD2A /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		AB726D4A0F046C3B00730EAA /* polymosttex.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymosttex.c; sourceTree = "<group>"; };
 		AB726D4B0F046C3B00730EAA /* polymosttex_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymosttex_priv.h; sourceTree = "<group>"; };
@@ -143,7 +153,7 @@
 		ABAE9ADD0F0B310900A528DC /* transpal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = transpal.c; sourceTree = "<group>"; };
 		ABAE9ADE0F0B311E00A528DC /* arttool.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arttool.cc; sourceTree = "<group>"; };
 		ABAE9C2E0F0CC80200A528DC /* kextract */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = kextract; sourceTree = BUILT_PRODUCTS_DIR; };
-		ABAE9C390F0CC81900A528DC /* kgroup */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = kgroup; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABAE9C390F0CC81900A528DC /* kgroup */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "compiled.mach-o.executable"; path = kgroup; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -151,6 +161,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB67256C0F0F6622000C7D92 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB6725BB0F0F6A4E000C7D92 /* AppKit.framework in Frameworks */,
+				AB6725FA0F0F81D4000C7D92 /* libengine.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -226,6 +245,7 @@
 				ABAE9AD20F0B307500A528DC /* arttool */,
 				ABAE9C2E0F0CC80200A528DC /* kextract */,
 				ABAE9C390F0CC81900A528DC /* kgroup */,
+				AB67256E0F0F6622000C7D92 /* texcachegen */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -272,6 +292,7 @@
 				AB735F5D0A29A39C003261DC /* pragmas.c */,
 				AB735F5E0A29A39C003261DC /* scriptfile.c */,
 				AB735F5F0A29A39C003261DC /* sdlayer.c */,
+				AB6725F80F0F8114000C7D92 /* polymosttexcache.c */,
 			);
 			name = src;
 			path = ../src;
@@ -297,6 +318,7 @@
 				AB735F850A29A44C003261DC /* pragmas.h */,
 				AB735F860A29A44C003261DC /* scriptfile.h */,
 				AB735F870A29A44C003261DC /* sdlayer.h */,
+				AB67258D0F0F66DD000C7D92 /* polymosttexcache.h */,
 			);
 			name = include;
 			path = ../include;
@@ -338,6 +360,7 @@
 				ABAE9ADC0F0B310900A528DC /* kgroup.c */,
 				ABAE9ADD0F0B310900A528DC /* transpal.c */,
 				ABAE9ADE0F0B311E00A528DC /* arttool.cc */,
+				AB67257F0F0F6670000C7D92 /* texcachegen.cc */,
 			);
 			name = Tools;
 			path = ../src/util;
@@ -380,6 +403,7 @@
 				AB3B2AC30EE4033300944CD1 /* mdsprite_priv.h in Headers */,
 				AB3B2AC40EE4033300944CD1 /* polymost_priv.h in Headers */,
 				AB726D4D0F046C3B00730EAA /* polymosttex_priv.h in Headers */,
+				AB67258E0F0F66DD000C7D92 /* polymosttexcache.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -410,6 +434,22 @@
 			productName = editor;
 			productReference = AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */;
 			productType = "com.apple.product-type.library.static";
+		};
+		AB67256D0F0F6622000C7D92 /* texcachegen */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB67257C0F0F6647000C7D92 /* Build configuration list for PBXNativeTarget "texcachegen" */;
+			buildPhases = (
+				AB67256B0F0F6622000C7D92 /* Sources */,
+				AB67256C0F0F6622000C7D92 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = texcachegen;
+			productName = texcachegen;
+			productReference = AB67256E0F0F6622000C7D92 /* texcachegen */;
+			productType = "com.apple.product-type.tool";
 		};
 		AB735F480A29A2DC003261DC /* engine */ = {
 			isa = PBXNativeTarget;
@@ -512,6 +552,7 @@
 				ABAE9AD10F0B307500A528DC /* arttool */,
 				ABAE9C270F0CC80200A528DC /* kextract */,
 				ABAE9C320F0CC81900A528DC /* kgroup */,
+				AB67256D0F0F6622000C7D92 /* texcachegen */,
 			);
 		};
 /* End PBXProject section */
@@ -522,6 +563,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB67256B0F0F6622000C7D92 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB6725810F0F6674000C7D92 /* texcachegen.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -554,6 +603,7 @@
 				AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */,
 				AB3B2C820EE41B9000944CD1 /* textfont.c in Sources */,
 				AB726D4C0F046C3B00730EAA /* polymosttex.c in Sources */,
+				AB6725F90F0F8114000C7D92 /* polymosttexcache.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -571,6 +621,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				ABAE9ADF0F0B311E00A528DC /* arttool.cc in Sources */,
+				AB6725800F0F6670000C7D92 /* texcachegen.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -619,6 +670,22 @@
 				PREBINDING = NO;
 				PRODUCT_NAME = editorsupp;
 				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		AB67257D0F0F6647000C7D92 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = texcachegen;
+			};
+			name = Debug;
+		};
+		AB67257E0F0F6647000C7D92 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = texcachegen;
 			};
 			name = Release;
 		};
@@ -796,6 +863,15 @@
 			buildConfigurations = (
 				AB3FE4530C04336F00D5DBDC /* Debug */,
 				AB3FE4540C04336F00D5DBDC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AB67257C0F0F6647000C7D92 /* Build configuration list for PBXNativeTarget "texcachegen" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB67257D0F0F6647000C7D92 /* Debug */,
+				AB67257E0F0F6647000C7D92 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
