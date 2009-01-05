@@ -15,24 +15,24 @@
    version    0x00
    ENTRIES...
      filename  char[BMAX_PATH]
-     effects   long
-     flags     long		PTH_CLAMPED
-     offset    long		Offset from the start of the STORAGE file
-     mtime     long		When kplib can return mtimes from ZIPs, this will be used to spot stale entries
+     effects   int32
+     flags     int32		PTH_CLAMPED
+     offset    int32		Offset from the start of the STORAGE file
+     mtime     int32		When kplib can return mtimes from ZIPs, this will be used to spot stale entries
  
  STORAGE (texture.cache):
    signature  "PolymostTexStor"
    version    0x00
    ENTRIES...
-     tsizx     long		Unpadded dimensions
-     tsizy     long
-     flags     long		PTH_CLAMPED | PTH_HASALPHA
-     format    long		OpenGL compressed format code
-     nmipmaps  long		The number of mipmaps following
+     tsizx     int32		Unpadded dimensions
+     tsizy     int32
+     flags     int32		PTH_CLAMPED | PTH_HASALPHA
+     format    int32		OpenGL compressed format code
+     nmipmaps  int32		The number of mipmaps following
      MIPMAPS...
-       sizx    long		Padded dimensions
-       sizy    long
-       length  long
+       sizx    int32		Padded dimensions
+       sizy    int32
+       length  int32
        data    char[length]
 
  All multibyte values are little-endian.
@@ -55,7 +55,7 @@ static const int CACHEVER = 0;
 
 static int cachedisabled = 0, cachereplace = 0;
 
-static unsigned long gethashhead(const char * filename)
+static unsigned int gethashhead(const char * filename)
 {
 	// implements the djb2 hash, constrained to the hash table size
 	// http://www.cse.yorku.ca/~oz/hash.html
@@ -78,7 +78,7 @@ static unsigned long gethashhead(const char * filename)
  */
 static void ptcache_addhash(const char * filename, int effects, int flags, off_t offset)
 {
-	unsigned long hash = gethashhead(filename);
+	unsigned int hash = gethashhead(filename);
 	
 	// to reduce memory fragmentation we tack the filename onto the end of the block
 	PTCacheIndex * pci = (PTCacheIndex *) malloc(sizeof(PTCacheIndex) + strlen(filename) + 1);
@@ -129,15 +129,15 @@ static PTCacheIndex * ptcache_findhash(const char * filename, int effects, int f
 void PTCacheLoadIndex(void)
 {
 	FILE * fh = 0;
-	char sig[16];
-	const char indexsig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','I','n','d','x',CACHEVER };
-	const char storagesig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','S','t','o','r',CACHEVER };
+	int8_t sig[16];
+	const int8_t indexsig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','I','n','d','x',CACHEVER };
+	const int8_t storagesig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','S','t','o','r',CACHEVER };
 	
-	char filename[BMAX_PATH+1];
-	long effects;
-	long flags;
-	long offset;
-	long mtime;
+	int8_t filename[BMAX_PATH+1];
+	int32_t effects;
+	int32_t flags;
+	int32_t offset;
+	int32_t mtime;
 	PTCacheIndex * pci;
 	
 	memset(filename, 0, sizeof(filename));
@@ -203,12 +203,12 @@ void PTCacheLoadIndex(void)
 		offset  = B_LITTLE32(offset);
 		mtime   = B_LITTLE32(mtime);
 		
-		pci = ptcache_findhash(filename, (int) effects, (int) flags);
+		pci = ptcache_findhash((char *) filename, (int) effects, (int) flags);
 		if (pci) {
 			// superceding an old hash entry
 			pci->offset = (off_t) offset;
 		} else {
-			ptcache_addhash(filename, (int) effects, (int) flags, (off_t) offset);
+			ptcache_addhash((char *) filename, (int) effects, (int) flags, (off_t) offset);
 		}
 	}
 	
@@ -242,12 +242,12 @@ void PTCacheUnloadIndex(void)
  */
 static PTCacheTile * ptcache_load(off_t offset)
 {
-	long tsizx, tsizy;
-	long sizx, sizy;
-	long flags;
-	long format;
-	long nmipmaps, i;
-	long length;
+	int32_t tsizx, tsizy;
+	int32_t sizx, sizy;
+	int32_t flags;
+	int32_t format;
+	int32_t nmipmaps, i;
+	int32_t length;
 	
 	PTCacheTile * tdef = 0;
 	FILE * fh;
@@ -442,7 +442,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	
 	if (offset == 0) {
 		// new file
-		const char storagesig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','S','t','o','r',CACHEVER };
+		const int8_t storagesig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','S','t','o','r',CACHEVER };
 		if (fwrite(storagesig, 16, 1, fh) != 1) {
 			goto fail;
 		}
@@ -451,8 +451,8 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	}
 	
 	{
-		long tsizx, tsizy;
-		long format, flags, nmipmaps;
+		int32_t tsizx, tsizy;
+		int32_t format, flags, nmipmaps;
 
 		tsizx = B_LITTLE32(tdef->tsizx);
 		tsizy = B_LITTLE32(tdef->tsizy);
@@ -470,8 +470,8 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	}
 
 	for (i = 0; i < tdef->nummipmaps; i++) {
-		long sizx, sizy;
-		long length;
+		int32_t sizx, sizy;
+		int32_t length;
 
 		sizx = B_LITTLE32(tdef->mipmap[i].sizx);
 		sizy = B_LITTLE32(tdef->mipmap[i].sizy);
@@ -501,18 +501,18 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	
 	if (ftell(fh) == 0) {
 		// new file
-		const char indexsig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','I','n','d','x',CACHEVER };
+		const int8_t indexsig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','I','n','d','x',CACHEVER };
 		if (fwrite(indexsig, 16, 1, fh) != 1) {
 			goto fail;
 		}
 	}
 	
 	{
-		char filename[BMAX_PATH];
-		long effects, offsett, flags, mtime;
+		int8_t filename[BMAX_PATH];
+		int32_t effects, offsett, flags, mtime;
 		
 		memset(filename, 0, sizeof(filename));
-		strncpy(filename, tdef->filename, sizeof(filename));
+		strncpy((char *) filename, tdef->filename, sizeof(filename));
 		effects = B_LITTLE32(tdef->effects);
 		flags   = B_LITTLE32(tdef->flags);
 		offsett = B_LITTLE32(offset);

@@ -57,6 +57,9 @@
 # endif
 #endif
 
+#include <stdint.h>
+#include <limits.h>
+
 #ifdef EFENCE
 # include <efence.h>
 #endif

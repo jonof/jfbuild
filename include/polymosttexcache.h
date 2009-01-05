@@ -6,8 +6,8 @@ extern "C" {
 #endif
 
 struct PTCacheTileMip_typ {
-	long sizx, sizy;
-	long length;
+	int sizx, sizy;
+	int length;
 	unsigned char * data;
 };
 typedef struct PTCacheTileMip_typ PTCacheTileMip;
@@ -17,7 +17,7 @@ struct PTCacheTile_typ {
 	int effects;
 	int flags;
 	int format;	// OpenGL format code
-	long tsizx, tsizy;
+	int tsizx, tsizy;
 	int nummipmaps;
 	PTCacheTileMip mipmap[1];
 };
