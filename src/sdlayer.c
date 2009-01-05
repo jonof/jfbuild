@@ -1,6 +1,6 @@
 // SDL interface layer
 // for the Build Engine
-// by Jonathon Fowler (jonof@edgenetwk.com)
+// by Jonathon Fowler (jf@jonof.id.au)
 //
 // Use SDL1.2 from http://www.libsdl.org
 
