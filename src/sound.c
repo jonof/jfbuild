@@ -1,6 +1,6 @@
 // FMOD Sound Interface
 // for the Build Engine
-// by Jonathon Fowler (jonof@edgenetwk.com)
+// by Jonathon Fowler (jf@jonof.id.au)
 
 #include "fmod.h"
 #include "fmod_errors.h"

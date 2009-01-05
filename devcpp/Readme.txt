@@ -10,5 +10,5 @@ so you will probably have to change that path in the project options of each pro
 to suit your system.
 
 Jonathon Fowler
-jonof@edgenetwork.org
-http://jonof.edgenetwork.org/
+jf@jonof.id.au
+http://jonof.id.au/
