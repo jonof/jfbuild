@@ -472,7 +472,7 @@ extern long glanisotropy;
 extern long glusetexcompr;
 extern long gltexfiltermode;
 extern long glredbluemode;
-extern long glusetexcache, glusetexcachecompression;
+extern long glusetexcache;
 extern long glmultisample, glnvmultisamplehint;
 void gltexapplyprops (void);
 #endif
