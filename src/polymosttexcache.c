@@ -438,6 +438,11 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 		return 0;
 	}
 	
+	// apparently opening in append doesn't actually put the
+	// file pointer at the end of the file like you would
+	// imagine, so the ftell doesn't return the length of the
+	// file like you'd expect it should
+	fseek(fh, 0, SEEK_END);		
 	offset = ftell(fh);
 	
 	if (offset == 0) {
@@ -514,7 +519,8 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 		memset(filename, 0, sizeof(filename));
 		strncpy((char *) filename, tdef->filename, sizeof(filename));
 		effects = B_LITTLE32(tdef->effects);
-		flags   = B_LITTLE32(tdef->flags);
+		flags   = tdef->flags & (PTH_CLAMPED);	// we don't want the informational flags in the index
+		flags   = B_LITTLE32(flags);
 		offsett = B_LITTLE32(offset);
 		mtime = 0;
 		
