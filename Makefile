@@ -53,7 +53,7 @@ else
 endif
 
 CC=gcc
-CXX=gcc
+CXX=g++
 AS=nasm
 RC=windres
 AR=ar
@@ -62,9 +62,9 @@ OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-fno-pic -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
 	-DKSFORBUILD -I$(INC)
 OURCXXFLAGS=-fno-exceptions -fno-rtti
-GAMECFLAGS=-I../jfaud/inc -I$(GAME)
+GAMECFLAGS=-I$(GAME)
 LIBS=
-GAMELIBS=../jfaud/libjfaud.a #../jfaud/mpadec/libmpadec/libmpadec.a
+GAMELIBS=
 ASFLAGS=-s #-g
 EXESUFFIX=
 
@@ -85,6 +85,8 @@ ENGINEOBJS+= \
 	$(OBJ)/engine.$o \
 	$(OBJ)/polymost.$o \
 	$(OBJ)/polymosttex.$o \
+	$(OBJ)/polymosttex-squish.$o \
+	$(OBJ)/polymosttexcache.$o \
 	$(OBJ)/hightile.$o \
 	$(OBJ)/mdsprite.$o \
 	$(OBJ)/glbuild.$o \
@@ -103,13 +105,24 @@ EDITOROBJS=$(OBJ)/build.$o \
 	$(OBJ)/config.$o
 
 GAMEEXEOBJS=$(OBJ)/game.$o \
-	$(OBJ)/jfaud_sound.$o \
+	$(OBJ)/sound_stub.$o \
 	$(OBJ)/config.$o \
 	$(OBJ)/$(ENGINELIB)
 
 EDITOREXEOBJS=$(OBJ)/bstub.$o \
 	$(OBJ)/$(EDITORLIB) \
 	$(OBJ)/$(ENGINELIB)
+
+ENGINEOBJS+= \
+	$(OBJ)/libsquish/alpha.$o \
+	$(OBJ)/libsquish/clusterfit.$o \
+	$(OBJ)/libsquish/colourblock.$o \
+	$(OBJ)/libsquish/colourfit.$o \
+	$(OBJ)/libsquish/colourset.$o \
+	$(OBJ)/libsquish/maths.$o \
+	$(OBJ)/libsquish/rangefit.$o \
+	$(OBJ)/libsquish/singlecolourfit.$o \
+	$(OBJ)/libsquish/squish.$o
 
 # detect the platform
 ifeq ($(PLATFORM),LINUX)
@@ -200,10 +213,10 @@ $(OBJ)/$(EDITORLIB): $(EDITOROBJS)
 	$(RANLIB) $@
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(CC) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(GAMELIBS) $(LIBS) $(STDCPPLIB)
+	$(CXX) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(GAMELIBS) $(LIBS)
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS)
-	$(CC) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(LIBS)
+	$(CXX) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(LIBS)
 
 pragmacheck$(EXESUFFIX): $(OBJ)/pragmacheck.$o $(OBJ)/pragmas.$o
 	$(CC) $(subst -Dmain=app_main,,$(OURCFLAGS)) -o $@ $^
@@ -215,7 +228,7 @@ kgroup$(EXESUFFIX): $(OBJ)/kgroup.$o $(OBJ)/compat.$o
 transpal$(EXESUFFIX): $(OBJ)/transpal.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o
 	$(CC) -o $@ $^
 arttool$(EXESUFFIX): $(OBJ)/arttool.$o
-	$(CXX) -o $@ $^ -lstdc++
+	$(CXX) -o $@ $^
 wad2art$(EXESUFFIX): $(OBJ)/wad2art.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o
 	$(CC) -o $@ $^
 wad2map$(EXESUFFIX): $(OBJ)/wad2map.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o
@@ -239,8 +252,15 @@ $(OBJ)/%.$o: $(SRC)/%.nasm
 $(OBJ)/%.$o: $(SRC)/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
+$(OBJ)/%.$o: $(SRC)/%.cc
+	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+
 $(OBJ)/%.$o: $(SRC)/%.cpp
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+
+$(OBJ)/libsquish/%.$o: $(LIBSQUISH)/%.cpp
+	test -d $(OBJ)/libsquish || mkdir $(OBJ)/libsquish
+	$(CXX) $(CXXFLAGS) -O2 -I$(LIBSQUISH) -c $< -o $@ 2>&1
 
 $(OBJ)/%.$o: $(SRC)/misc/%.rc
 	$(RC) -i $< -o $@ --include-dir=$(INC) --include-dir=$(SRC) --include-dir=$(GAME)
