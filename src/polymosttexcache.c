@@ -218,7 +218,7 @@ void PTCacheLoadIndex(void)
 	
 	fclose(fh);
 
-	initprintf("PolymostTexCache: cache index loaded (%d entries, %d old entries skipped)\n");
+	initprintf("PolymostTexCache: cache index loaded (%d entries, %d old entries skipped)\n", total, dups);
 }
 
 /**
