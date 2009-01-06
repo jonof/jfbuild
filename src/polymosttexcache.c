@@ -205,7 +205,7 @@ void PTCacheLoadIndex(void)
 		
 		pci = ptcache_findhash((char *) filename, (int) effects, (int) flags);
 		if (pci) {
-			// superceding an old hash entry
+			// superseding an old hash entry
 			pci->offset = (off_t) offset;
 		} else {
 			ptcache_addhash((char *) filename, (int) effects, (int) flags, (off_t) offset);
@@ -532,7 +532,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	// stow the data into the index in memory
 	pci = ptcache_findhash(tdef->filename, tdef->effects, tdef->flags);
 	if (pci) {
-		// superceding an old hash entry
+		// superseding an old hash entry
 		pci->offset = offset;
 	} else {
 		ptcache_addhash(tdef->filename, tdef->effects, tdef->flags, offset);

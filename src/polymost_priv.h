@@ -2,6 +2,14 @@
 
 #define PI 3.14159265358979323
 
+enum {
+	METH_SOLID   = 0,
+	METH_MASKED  = 1,
+	METH_TRANS   = 2,
+	METH_INTRANS = 3,
+	METH_CLAMPED = 4
+};
+
 typedef struct { unsigned char r, g, b, a; } coltype;
 
 extern long rendmode;
