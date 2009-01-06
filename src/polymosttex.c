@@ -48,7 +48,7 @@ static int primecnt   = 0;	// expected number of textures to load during priming
 static int primedone  = 0;	// running total of how many textures have been primed
 static int primepos   = 0;	// the position in hashhead where we are up to in priming
 
-int polymosttexverbosity = 2;	// 0 = none, 1 = errors, 2 = all
+int polymosttexverbosity = 1;	// 0 = none, 1 = errors, 2 = all
 
 #define PTHASHHEADSIZ 8192
 static PTHash * hashhead[PTHASHHEADSIZ];	// will be initialised 0 by .bss segment

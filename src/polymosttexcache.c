@@ -139,6 +139,8 @@ void PTCacheLoadIndex(void)
 	int32_t offset;
 	int32_t mtime;
 	PTCacheIndex * pci;
+
+	int total = 0, dups = 0;
 	
 	memset(filename, 0, sizeof(filename));
 	
@@ -148,7 +150,7 @@ void PTCacheLoadIndex(void)
 	if (fh) {
 		if (fread(sig, 16, 1, fh) != 1 || memcmp(sig, storagesig, 16)) {
 			cachereplace = 1;
-			initprintf("Texture cache will be replaced\n");
+			initprintf("PolymostTexCache: texture cache will be replaced\n");
 		}
 		fclose(fh);
 	} else {
@@ -156,7 +158,7 @@ void PTCacheLoadIndex(void)
 			// it's cool
 			;
 		} else {
-			initprintf("Error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
+			initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
 			cachedisabled = 1;
 			return;
 		}
@@ -168,7 +170,7 @@ void PTCacheLoadIndex(void)
 		if (fread(sig, 16, 1, fh) != 1 || memcmp(sig, indexsig, 16)) {
 			if (!cachereplace) {
 				cachereplace = 1;
-				initprintf("Texture cache will be replaced\n");
+				initprintf("PolymostTexCache: texture cache will be replaced\n");
 			}
 		}
 	} else {
@@ -176,7 +178,7 @@ void PTCacheLoadIndex(void)
 			// it's cool
 			return;
 		} else {
-			initprintf("Error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
+			initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
 			cachedisabled = 1;
 			return;
 		}
@@ -193,7 +195,7 @@ void PTCacheLoadIndex(void)
 		    fread(&mtime,   4,         1, fh) != 1) {
 			// truncated entry, so throw the whole cache away
 			cachereplace = 1;
-			initprintf("Corrupt texture cache index detected, cache will be replaced\n");
+			initprintf("PolymostTexCache: corrupt texture cache index detected, cache will be replaced\n");
 			PTCacheUnloadIndex();
 			break;
 		}
@@ -207,12 +209,16 @@ void PTCacheLoadIndex(void)
 		if (pci) {
 			// superseding an old hash entry
 			pci->offset = (off_t) offset;
+			dups++;
 		} else {
 			ptcache_addhash((char *) filename, (int) effects, (int) flags, (off_t) offset);
 		}
+		total++;
 	}
 	
 	fclose(fh);
+
+	initprintf("PolymostTexCache: cache index loaded (%d entries, %d old entries skipped)\n");
 }
 
 /**
@@ -233,6 +239,8 @@ void PTCacheUnloadIndex(void)
 		}
 		cachehead[i] = 0;
 	}
+
+	initprintf("PolymostTexCache: cache index unloaded\n");
 }
 
 /**
@@ -260,7 +268,7 @@ static PTCacheTile * ptcache_load(off_t offset)
 	fh = fopen(CACHESTORAGEFILE, "rb");
 	if (!fh) {
 		cachedisabled = 1;
-		initprintf("Error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
+		initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
 		return 0;
 	}
 	
@@ -315,7 +323,7 @@ static PTCacheTile * ptcache_load(off_t offset)
 	return tdef;
 fail:
 	cachereplace = 1;
-	initprintf("Corrupt texture cache detected, cache will be replaced\n");
+	initprintf("PolymostTexCache: corrupt texture cache detected, cache will be replaced\n");
 	PTCacheUnloadIndex();
 	fclose(fh);
 	if (tdef) {
@@ -434,7 +442,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	fh = fopen(CACHESTORAGEFILE, createmode);
 	if (!fh) {
 		cachedisabled = 1;
-		initprintf("Error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
+		initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
 		return 0;
 	}
 	
@@ -500,10 +508,11 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	fh = fopen(CACHEINDEXFILE, createmode);
 	if (!fh) {
 		cachedisabled = 1;
-		initprintf("Error opening %s, texture cache disabled\n", CACHEINDEXFILE);
+		initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHEINDEXFILE);
 		return 0;
 	}
 	
+	fseek(fh, 0, SEEK_END);		
 	if (ftell(fh) == 0) {
 		// new file
 		const int8_t indexsig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','I','n','d','x',CACHEVER };
@@ -547,7 +556,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	return 1;
 fail:
 	cachedisabled = 1;
-	initprintf("Error writing to cache, texture cache disabled\n");
+	initprintf("PolymostTexCache: error writing to cache, texture cache disabled\n");
 	if (fh) fclose(fh);
 	return 0;
 }
