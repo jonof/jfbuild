@@ -14,7 +14,8 @@ enum {
 // indices of PTHead.glpic[]
 enum {
 	PTHGLPIC_BASE = 0,
-	PTHGLPIC_FULLBRIGHT = 1,
+	PTHGLPIC_GLOW = 1,
+	PTHGLPIC_DETAIL = 2,
 	PTHGLPIC_SIZE = 6,
 };
 

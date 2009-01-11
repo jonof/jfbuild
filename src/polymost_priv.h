@@ -7,7 +7,9 @@ enum {
 	METH_MASKED  = 1,
 	METH_TRANS   = 2,
 	METH_INTRANS = 3,
-	METH_CLAMPED = 4
+	
+	METH_CLAMPED = 4,
+	METH_LAYERS  = 8,	// when given to drawpoly, renders the additional layers
 };
 
 typedef struct { unsigned char r, g, b, a; } coltype;

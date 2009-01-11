@@ -41,6 +41,7 @@ struct PTTexture_typ {
 	GLsizei sizx, sizy;	// padded size
 	GLsizei tsizx, tsizy;	// true size
 	GLenum rawfmt;		// raw format of the data (GL_RGBA, GL_BGRA)
+	int hasalpha;
 };
 typedef struct PTTexture_typ PTTexture;
 
@@ -49,6 +50,7 @@ static int primedone  = 0;	// running total of how many textures have been prime
 static int primepos   = 0;	// the position in hashhead where we are up to in priming
 
 int polymosttexverbosity = 1;	// 0 = none, 1 = errors, 2 = all
+int polymosttexfullbright = 256;	// first index of the fullbright palette entries
 
 #define PTHASHHEADSIZ 8192
 static PTHash * hashhead[PTHASHHEADSIZ];	// will be initialised 0 by .bss segment
@@ -235,13 +237,15 @@ static int pt_load(PTHash * pth)
  */
 static int pt_load_art(PTHead * pth)
 {
-	// TODO: implement fullbrights by copying fullbright texels to
-	//   a second buffer and uploading to a secondary texture
-	PTTexture tex;
-	coltype * wpptr;
+	PTTexture tex, fbtex;
+	coltype * wpptr, * fpptr;
 	long x, y, x2, y2;
 	long dacol;
-	int hasalpha = 0;
+	int hasalpha = 0, hasfullbright = 0;
+	
+	{
+		initprintf("(%d) loading %d\n", totalclock, pth->picnum);
+	}
 	
 	tex.tsizx = tilesizx[pth->picnum];
 	tex.tsizy = tilesizy[pth->picnum];
@@ -257,6 +261,10 @@ static int pt_load_art(PTHead * pth)
 		}
 	}
 	
+	tex.rawfmt = GL_RGBA;
+
+	memcpy(&fbtex, &tex, sizeof(PTTexture));
+
 	if (!waloff[pth->picnum]) {
 		loadtile(pth->picnum);
 	}
@@ -266,7 +274,13 @@ static int pt_load_art(PTHead * pth)
 		return 0;
 	}
 	
-	tex.rawfmt = GL_RGBA;
+	// fullbright is initialised transparent
+	fbtex.pic = (coltype *) malloc(tex.sizx * tex.sizy * sizeof(coltype));
+	if (!fbtex.pic) {
+		free(tex.pic);
+		return 0;
+	}
+	memset(fbtex.pic, 0, tex.sizx * tex.sizy * sizeof(coltype));
 	
 	if (!waloff[pth->picnum]) {
 		// Force invalid textures to draw something - an almost purely transparency texture
@@ -282,7 +296,8 @@ static int pt_load_art(PTHead * pth)
 				y2 = y-tex.tsizy;
 			}
 			wpptr = &tex.pic[y*tex.sizx];
-			for (x = 0; x < tex.sizx; x++, wpptr++) {
+			fpptr = &fbtex.pic[y*tex.sizx];
+			for (x = 0; x < tex.sizx; x++, wpptr++, fpptr++) {
 				if ((pth->flags & PTH_CLAMPED) && (x >= tex.tsizx || y >= tex.tsizy)) {
 					// Clamp texture
 					wpptr->r = wpptr->g = wpptr->b = wpptr->a = 0;
@@ -311,6 +326,11 @@ static int pt_load_art(PTHead * pth)
 					wpptr->g = britable[curbrightness][ curpalette[dacol].g ];
 					wpptr->b = britable[curbrightness][ curpalette[dacol].b ];
 				}
+				
+				if (dacol >= polymosttexfullbright && dacol < 255) {
+					*fpptr = *wpptr;
+					hasfullbright = 1;
+				}
 			}
 		}
 	}
@@ -323,15 +343,30 @@ static int pt_load_art(PTHead * pth)
 	pth->scaley = 1.0;
 	pth->flags &= ~(PTH_DIRTY | PTH_HASALPHA | PTH_SKYBOX);
 	pth->flags |= (PTH_NOCOMPRESS | PTH_NOMIPLEVEL);
+	tex.hasalpha = hasalpha;
 	if (hasalpha) {
 		pth->flags |= PTH_HASALPHA;
 	}
 	
 	pt_load_uploadtexture(pth, PTHGLPIC_BASE, &tex, 0);
+	if (hasfullbright) {
+		fbtex.hasalpha = 1;
+		pt_load_uploadtexture(pth, PTHGLPIC_GLOW, &fbtex, 0);
+	} else {
+		// it might be that after reloading an invalidated texture, the
+		// glow map might not be needed anymore, so release it
+		if (pth->glpic[PTHGLPIC_GLOW]) {
+			bglDeleteTextures(1, &pth->glpic[PTHGLPIC_GLOW]);
+			pth->glpic[PTHGLPIC_GLOW] = 0;
+		}
+	}
 	pt_load_applyparameters(pth);
 	
 	if (tex.pic) {
 		free(tex.pic);
+	}
+	if (fbtex.pic) {
+		free(fbtex.pic);
 	}
 	
 	return 1;
@@ -467,7 +502,8 @@ static int pt_load_hightile(PTHead * pth)
 		pt_load_applyeffects(&tex,
 			(pth->palnum != pth->repldef->palnum) ? hictinting[pth->palnum].f : 0,
 			&hasalpha);
-		
+		tex.hasalpha = hasalpha;
+
 		if (! (pth->flags & PTH_CLAMPED) || (pth->flags & PTH_SKYBOX)) { //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
 			if (tex.sizx > tex.tsizx) {	//Copy left to right
 				coltype * lptr = tex.pic;
@@ -921,12 +957,12 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 	detect_texture_size();
 	
 	if (!(pth->flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcompr) {
-		intexfmt = (pth->flags & PTH_HASALPHA)
+		intexfmt = tex->hasalpha
 		         ? GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
 		         : GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
 		compress = 1;
 	} else {
-		intexfmt = (pth->flags & PTH_HASALPHA)
+		intexfmt = tex->hasalpha
 		         ? GL_RGBA
 		         : GL_RGB;
 	}

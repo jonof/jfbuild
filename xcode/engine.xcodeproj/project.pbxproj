@@ -189,7 +189,7 @@
 		AB735FCC0A29A916003261DC /* libeditor.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditor.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7360410A29AD2F003261DC /* osxmain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osxmain.h; sourceTree = "<group>"; };
 		AB7360440A29AD3A003261DC /* osxmain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = osxmain.m; sourceTree = "<group>"; };
-		ABAE9AD20F0B307500A528DC /* arttool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = arttool; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABAE9AD20F0B307500A528DC /* arttool */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "compiled.mach-o.executable"; path = arttool; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABAE9ADB0F0B310900A528DC /* kextract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kextract.c; sourceTree = "<group>"; };
 		ABAE9ADC0F0B310900A528DC /* kgroup.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kgroup.c; sourceTree = "<group>"; };
 		ABAE9ADD0F0B310900A528DC /* transpal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = transpal.c; sourceTree = "<group>"; };

@@ -41,6 +41,10 @@ struct glinfo {
 	char texnpot;
 	char multisample;
 	char nvmultisamplehint;
+	char multitex;
+	char envcombine;
+	
+	char hack_nofog;
 };
 extern struct glinfo glinfo;
 #endif
@@ -123,6 +127,9 @@ void wm_setapptitle(char *name);
 
 // baselayer.c
 int baselayer_init();
+#ifdef USE_OPENGL
+void baselayer_setupopengl();
+#endif
 
 void makeasmwriteable(void);
 
