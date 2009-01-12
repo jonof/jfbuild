@@ -2809,57 +2809,8 @@ static int SetupOpenGL(int width, int height, int bitspp)
 	}
 
 	polymost_glreset();
-
-	bglEnable(GL_TEXTURE_2D);
-	bglShadeModel(GL_SMOOTH); //GL_FLAT
-	bglClearColor(0,0,0,0.5); //Black Background
-	bglHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
-	bglHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
-	bglHint(GL_TEXTURE_COMPRESSION_HINT, GL_NICEST);
-	bglDisable(GL_DITHER);
+	baselayer_setupopengl();
 	
-	{
-		GLubyte *p,*p2,*p3;
-		int i;
-
-		glinfo.vendor     = bglGetString(GL_VENDOR);
-		glinfo.renderer   = bglGetString(GL_RENDERER);
-		glinfo.version    = bglGetString(GL_VERSION);
-		glinfo.extensions = bglGetString(GL_EXTENSIONS);
-		
-		glinfo.maxanisotropy = 1.0;
-		glinfo.bgra = 0;
-		glinfo.texcompr = 0;
-
-		// process the extensions string and flag stuff we recognize
-		p = Bstrdup(glinfo.extensions);
-		p3 = p;
-		while ((p2 = Bstrtoken(p3==p?p:NULL, " ", (char**)&p3, 1)) != NULL) {
-			if (!Bstrcmp(p2, "GL_EXT_texture_filter_anisotropic")) {
-				// supports anisotropy. get the maximum anisotropy level
-				bglGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glinfo.maxanisotropy);
-			} else if (!Bstrcmp(p2, "GL_EXT_texture_edge_clamp") ||
-			           !Bstrcmp(p2, "GL_SGIS_texture_edge_clamp")) {
-				// supports GL_CLAMP_TO_EDGE or GL_CLAMP_TO_EDGE_SGIS
-				glinfo.clamptoedge = 1;
-			} else if (!Bstrcmp(p2, "GL_EXT_bgra")) {
-				// support bgra textures
-				glinfo.bgra = 1;
-			} else if (!Bstrcmp(p2, "GL_ARB_texture_compression")) {
-				// support texture compression
-				glinfo.texcompr = 1;
-			} else if (!Bstrcmp(p2, "GL_ARB_texture_non_power_of_two")) {
-				// support non-power-of-two texture sizes
-				glinfo.texnpot = 1;
-			} else if (!Bstrcmp(p2, "WGL_3DFX_gamma_control")) {
-				// 3dfx cards have issues with fog
-				nofog = 1;
-				if (!(warnonce&1)) initprintf("3dfx card detected: OpenGL fog disabled\n");
-				warnonce |= 1;
-			}
-		}
-		Bfree(p);
-	}
 	numpages = 2;	// KJS 20031225: tell rotatesprite that it's double buffered!
 
 	return FALSE;
