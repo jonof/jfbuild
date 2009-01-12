@@ -187,14 +187,14 @@ OURCFLAGS+= $(BUILDCFLAGS)
 # Invoking Make from the terminal in OSX just chains the build on to xcode
 ifeq ($(PLATFORM),DARWIN)
 ifeq ($(RELEASE),0)
-style=Development
+style=Debug
 else
-style=Deployment
+style=Release
 endif
 .PHONY: alldarwin
 alldarwin:
-	cd osx/engine && xcodebuild -target All -buildstyle $(style)
-	cd osx/game && xcodebuild -target All -buildstyle $(style)
+	cd xcode && xcodebuild -project engine.xcodeproj -alltargets -configuration $(style)
+	cd xcode && xcodebuild -project game.xcodeproj -alltargets -configuration $(style)
 endif
 
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX) arttool$(EXESUFFIX)
@@ -292,8 +292,8 @@ $(RSRC)/editor_banner.c: $(RSRC)/build.bmp
 # PHONIES	
 clean:
 ifeq ($(PLATFORM),DARWIN)
-	cd osx/engine && xcodebuild -target All clean
-	cd osx/game && xcodebuild -target All clean
+	cd xcode && xcodebuild -project engine.xcodeproj -alltargets -configuration $(style) clean
+	cd xcode && xcodebuild -project game.xcodeproj -alltargets -configuration $(style) clean
 else
 	-rm -f $(OBJ)/*
 endif

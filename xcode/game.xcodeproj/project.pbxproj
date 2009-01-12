@@ -561,6 +561,7 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
+				OTHER_LDFLAGS = "-lstdc++";
 				PRODUCT_NAME = game;
 				WRAPPER_EXTENSION = app;
 			};
@@ -577,6 +578,7 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
+				OTHER_LDFLAGS = "-lstdc++";
 				PRODUCT_NAME = game;
 				WRAPPER_EXTENSION = app;
 			};

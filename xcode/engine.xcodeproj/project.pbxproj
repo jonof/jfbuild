@@ -18,7 +18,6 @@
 		AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */; };
 		AB3B2C820EE41B9000944CD1 /* textfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C800EE41B9000944CD1 /* textfont.c */; };
 		AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */; };
-		AB6725800F0F6670000C7D92 /* texcachegen.cc in Sources */ = {isa = PBXBuildFile; fileRef = AB67257F0F0F6670000C7D92 /* texcachegen.cc */; };
 		AB6725810F0F6674000C7D92 /* texcachegen.cc in Sources */ = {isa = PBXBuildFile; fileRef = AB67257F0F0F6670000C7D92 /* texcachegen.cc */; };
 		AB67258E0F0F66DD000C7D92 /* polymosttexcache.h in Headers */ = {isa = PBXBuildFile; fileRef = AB67258D0F0F66DD000C7D92 /* polymosttexcache.h */; };
 		AB6725BB0F0F6A4E000C7D92 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
@@ -189,7 +188,7 @@
 		AB735FCC0A29A916003261DC /* libeditor.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditor.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7360410A29AD2F003261DC /* osxmain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osxmain.h; sourceTree = "<group>"; };
 		AB7360440A29AD3A003261DC /* osxmain.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = osxmain.m; sourceTree = "<group>"; };
-		ABAE9AD20F0B307500A528DC /* arttool */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "compiled.mach-o.executable"; path = arttool; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABAE9AD20F0B307500A528DC /* arttool */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = arttool; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABAE9ADB0F0B310900A528DC /* kextract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kextract.c; sourceTree = "<group>"; };
 		ABAE9ADC0F0B310900A528DC /* kgroup.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kgroup.c; sourceTree = "<group>"; };
 		ABAE9ADD0F0B310900A528DC /* transpal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = transpal.c; sourceTree = "<group>"; };
@@ -716,7 +715,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				ABAE9ADF0F0B311E00A528DC /* arttool.cc in Sources */,
-				AB6725800F0F6670000C7D92 /* texcachegen.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
