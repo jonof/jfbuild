@@ -260,7 +260,7 @@ $(OBJ)/%.$o: $(SRC)/%.cpp
 
 $(OBJ)/libsquish/%.$o: $(LIBSQUISH)/%.cpp
 	test -d $(OBJ)/libsquish || mkdir $(OBJ)/libsquish
-	$(CXX) $(CXXFLAGS) -O2 -I$(LIBSQUISH) -c $< -o $@ 2>&1
+	$(CXX) $(CXXFLAGS) $(BUILDCFLAGS) -O2 -c $< -o $@ 2>&1
 
 $(OBJ)/%.$o: $(SRC)/misc/%.rc
 	$(RC) -i $< -o $@ --include-dir=$(INC) --include-dir=$(SRC) --include-dir=$(GAME)
