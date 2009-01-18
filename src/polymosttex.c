@@ -42,6 +42,8 @@ struct PTTexture_typ {
 	GLsizei tsizx, tsizy;	// true size
 	GLenum rawfmt;		// raw format of the data (GL_RGBA, GL_BGRA)
 	int hasalpha;
+	
+	int cacheable, writetocache;
 };
 typedef struct PTTexture_typ PTTexture;
 
@@ -180,7 +182,8 @@ static void pt_unload(PTHash * pth)
 static int pt_load_art(PTHead * pth);
 static int pt_load_hightile(PTHead * pth);
 static int pt_load_cache(PTHead * pth);
-static int pt_load_imagefile(const char * filename, PTTexture * tex, int flags, int effects, int cacheable);
+static int pt_load_imagefile(const char * filename, PTTexture * tex, int flags, int effects);
+static void pt_load_finishupload(PTTexture * tex, int texture, PTHead * pth, const char * filename, int flags, int effects);
 static void pt_load_fixtransparency(PTTexture * tex, int clamped);
 static void pt_load_applyeffects(PTTexture * tex, int effects, int* hassalpha);
 static void pt_load_mipscale(PTTexture * tex);
@@ -198,7 +201,6 @@ static int pt_load(PTHash * pth)
 		return 1;	// loaded
 	}
 	
-	//FIXME
 	if ((pth->head.flags & PTH_HIGHTILE)) {
 		// try and load from a cached replacement
 		if (pt_load_cache(&pth->head)) {
@@ -383,13 +385,9 @@ static int pt_load_hightile(PTHead * pth)
 {
 	PTTexture tex;
 	const char *filename = 0;
-	int hasalpha = 0;
 	long x, y;
 	int texture = 0, loaded[PTHGLPIC_SIZE] = { 0,0,0,0,0,0, };
-	PTCacheTile * tdef = 0;
-
-	int cacheable = (!(pth->flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcache && glusetexcompr);
-	int writetocache = 0, effects;
+	int effects;
 	
 	if (!pth->repldef) {
 		return 0;
@@ -425,18 +423,9 @@ static int pt_load_hightile(PTHead * pth)
 		effects = (pth->palnum != pth->repldef->palnum)
 				? hictinting[pth->palnum].f : 0;
 		
-		if (cacheable) {
-			// don't write this texture to the cache if it already
-			// exists in there. Once kplib can return mtimes, a date
-			// test will be done to see if we should supersede the one
-			// already there
-			writetocache = ! PTCacheHasTile(filename, effects, pth->flags & (PTH_CLAMPED));
-		}
-		
-		if (!pt_load_imagefile(filename, &tex, pth->flags, effects, cacheable)) {
+		if (!pt_load_imagefile(filename, &tex, pth->flags, effects)) {
 			continue;
 		}
-	///////
 
 		if (texture == 0) {
 			pth->tsizx = tex.tsizx;
@@ -454,36 +443,12 @@ static int pt_load_hightile(PTHead * pth)
 			if (pth->repldef->flags & 1) {
 				pth->flags |= PTH_NOCOMPRESS;
 			}
-			if (hasalpha) {
+			if (tex.hasalpha) {
 				pth->flags |= PTH_HASALPHA;
 			}
 		}
 		
-		if (cacheable && writetocache) {
-			int nmips = 0;
-			while (max(1, (tex.sizx >> nmips)) > 1 ||
-			       max(1, (tex.sizy >> nmips)) > 1) {
-				nmips++;
-			}
-			nmips++;
-
-			tdef = PTCacheAllocNewTile(nmips);
-			tdef->filename = strdup(filename);
-			tdef->effects = effects;
-			tdef->flags = pth->flags & (PTH_CLAMPED | PTH_HASALPHA);
-		}
-		
-		pt_load_uploadtexture(pth, texture, &tex, tdef);
-		
-		if (cacheable && writetocache) {
-			if (polymosttexverbosity >= 2) {
-				initprintf("PolymostTex: writing %s (effects %d, flags %d) to cache\n",
-					   tdef->filename, tdef->effects, tdef->flags);
-			}
-			PTCacheWriteTile(tdef);
-			PTCacheFreeTile(tdef);
-			tdef = 0;
-		}
+		pt_load_finishupload(&tex, texture, pth, filename, pth->flags, effects);
 		
 		loaded[texture] = 1;
 		
@@ -631,13 +596,24 @@ static int pt_load_cache(PTHead * pth)
  * @param flags PTH_* flags
  * @param effects effects flags
  */
-static int pt_load_imagefile(const char * filename, PTTexture * tex, int flags, int effects, int cacheable)
+static int pt_load_imagefile(const char * filename, PTTexture * tex, int flags, int effects)
 {
 	int filh = -1, picdatalen = 0;
 	char * picdata = 0;
 	int hasalpha = 0;
 	int y;
 
+	tex->cacheable = (!(flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcache && glusetexcompr);
+	tex->writetocache = 0;
+
+	if (tex->cacheable) {
+		// don't write this texture to the cache if it already
+		// exists in there. Once kplib can return mtimes, a date
+		// test will be done to see if we should supersede the one
+		// already there
+		tex->writetocache = ! PTCacheHasTile(filename, effects, flags & (PTH_CLAMPED));
+	}
+		
 	filh = kopen4load((char *) filename, 0);
 	if (filh < 0) {
 		if (polymosttexverbosity >= 1) {
@@ -675,7 +651,7 @@ static int pt_load_imagefile(const char * filename, PTTexture * tex, int flags, 
 		return 0;
 	}
 
-	if (!glinfo.texnpot || cacheable) {
+	if (!glinfo.texnpot || tex->cacheable) {
 		for (tex->sizx = 1; tex->sizx < tex->tsizx; tex->sizx += tex->sizx) ;
 		for (tex->sizy = 1; tex->sizy < tex->tsizy; tex->sizy += tex->sizy) ;
 	} else {
@@ -726,6 +702,40 @@ static int pt_load_imagefile(const char * filename, PTTexture * tex, int flags, 
 	picdata = 0;
 
 	return 1;
+}
+
+/**
+ * Does the final cache write and texture upload
+ */
+static void pt_load_finishupload(PTTexture * tex, int texture, PTHead * pth, const char * filename, int flags, int effects)
+{
+	PTCacheTile * tdef = 0;
+
+	if (tex->cacheable && tex->writetocache) {
+		int nmips = 0;
+		while (max(1, (tex->sizx >> nmips)) > 1 ||
+		       max(1, (tex->sizy >> nmips)) > 1) {
+			nmips++;
+		}
+		nmips++;
+
+		tdef = PTCacheAllocNewTile(nmips);
+		tdef->filename = strdup(filename);
+		tdef->effects = effects;
+		tdef->flags = (flags & PTH_CLAMPED);
+		tdef->flags |= tex->hasalpha ? PTH_HASALPHA : 0;
+	}
+	
+	pt_load_uploadtexture(pth, texture, tex, tdef);
+	
+	if (tex->cacheable && tex->writetocache) {
+		if (polymosttexverbosity >= 2) {
+			initprintf("PolymostTex: writing %s (effects %d, flags %d) to cache\n",
+				   tdef->filename, tdef->effects, tdef->flags);
+		}
+		PTCacheWriteTile(tdef);
+		PTCacheFreeTile(tdef);
+	}
 }
 
 /**

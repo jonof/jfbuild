@@ -32,25 +32,6 @@ extern long gltexcomprquality;	// 0 = fast, 1 = slow and pretty, 2 = very slow a
 extern long gltexmaxsize;	// 0 means autodetection on first run
 extern long gltexmiplevel;	// discards this many mipmap levels
 
-
-typedef struct {
-	char magic[8];	// 'Polymost'
-	long xdim, ydim;	// of image, unpadded
-	long flags;		// 1 = !2^x, 2 = has alpha, 4 = lzw compressed
-} texcacheheader;
-typedef struct {
-	long size;
-	long format;
-	long xdim, ydim;	// of mipmap (possibly padded)
-	long border, depth;
-} texcachepicture;
-
-#if 0 //DEPRECATED
-extern const char *TEXCACHEDIR;
-void phex(unsigned char v, char *s);
-void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth);
-#endif
-
 long polymost_texmayhavealpha (long dapicnum, long dapalnum);
 void polymost_texinvalidate (long dapicnum, long dapalnum, long dameth);
 void polymost_texinvalidateall ();

@@ -531,7 +531,6 @@ long mdloadskin (md2model *m, int number, int pal, int surf)
 	long doalloc = 1, filh;
 
 	long picfillen;
-	texcacheheader cachead;
 	
 	if (m->mdnum == 2) surf = 0;
 
