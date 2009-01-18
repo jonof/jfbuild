@@ -54,13 +54,6 @@
 			remoteGlobalIDString = AB3FE4550C04336F00D5DBDC;
 			remoteInfo = editorsupp;
 		};
-		AB6728C80F10B547000C7D92 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = AB67256E0F0F6622000C7D92;
-			remoteInfo = texcachegen;
-		};
 		AB73601A0A29AA70003261DC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
@@ -175,11 +168,11 @@
 		AB726D680F046E6E00730EAA /* stuff.dat */ = {isa = PBXFileReference; lastKnownFileType = file; path = stuff.dat; sourceTree = "<group>"; };
 		AB7360140A29AA70003261DC /* engine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = engine.xcodeproj; sourceTree = "<group>"; };
 		AB73602A0A29AB08003261DC /* game.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = game.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AB73602D0A29AB08003261DC /* game-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "game-Info.plist"; sourceTree = "<group>"; };
+		AB73602D0A29AB08003261DC /* game-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "game-Info.plist"; sourceTree = "<group>"; };
 		AB7360310A29AB7E003261DC /* game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = game.c; sourceTree = "<group>"; };
 		AB7360350A29AB93003261DC /* game.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = game.h; sourceTree = "<group>"; };
 		AB7360500A29AD92003261DC /* build.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = build.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		AB7360520A29AD92003261DC /* build-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "build-Info.plist"; sourceTree = "<group>"; };
+		AB7360520A29AD92003261DC /* build-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "build-Info.plist"; sourceTree = "<group>"; };
 		AB73605C0A29ADCD003261DC /* bstub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = bstub.c; sourceTree = "<group>"; };
 		AB7361220A29B9D4003261DC /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = /Library/Frameworks/SDL.framework; sourceTree = "<absolute>"; };
 		AB7361280A29BA60003261DC /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = /System/Library/Frameworks/CoreFoundation.framework; sourceTree = "<absolute>"; };
@@ -251,7 +244,6 @@
 				ABAE9AD60F0B308900A528DC /* arttool */,
 				ABAE9C3E0F0CC83700A528DC /* kextract */,
 				ABAE9C400F0CC83700A528DC /* kgroup */,
-				AB6728C90F10B547000C7D92 /* texcachegen */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -377,6 +369,7 @@
 		AB73600B0A29AA64003261DC /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = AB73600C0A29AA64003261DC /* Build configuration list for PBXProject "game" */;
+			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 0;
 			mainGroup = AB7360090A29AA64003261DC;
 			productRefGroup = AB73602B0A29AB08003261DC /* Products */;
@@ -401,13 +394,6 @@
 			fileType = archive.ar;
 			path = libeditorsupp.a;
 			remoteRef = AB3FE4570C04338D00D5DBDC /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		AB6728C90F10B547000C7D92 /* texcachegen */ = {
-			isa = PBXReferenceProxy;
-			fileType = "compiled.mach-o.executable";
-			path = texcachegen;
-			remoteRef = AB6728C80F10B547000C7D92 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		AB73601B0A29AA70003261DC /* libengine.a */ = {

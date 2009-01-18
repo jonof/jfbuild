@@ -180,6 +180,7 @@ static void pt_unload(PTHash * pth)
 static int pt_load_art(PTHead * pth);
 static int pt_load_hightile(PTHead * pth);
 static int pt_load_cache(PTHead * pth);
+static int pt_load_imagefile(const char * filename, PTTexture * tex, int flags, int effects, int cacheable);
 static void pt_load_fixtransparency(PTTexture * tex, int clamped);
 static void pt_load_applyeffects(PTTexture * tex, int effects, int* hassalpha);
 static void pt_load_mipscale(PTTexture * tex);
@@ -382,16 +383,14 @@ static int pt_load_hightile(PTHead * pth)
 {
 	PTTexture tex;
 	const char *filename = 0;
-	long filh, picdatalen;
-	char * picdata = 0;
 	int hasalpha = 0;
 	long x, y;
 	int texture = 0, loaded[PTHGLPIC_SIZE] = { 0,0,0,0,0,0, };
 	PTCacheTile * tdef = 0;
 
 	int cacheable = (!(pth->flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcache && glusetexcompr);
-	int writetocache = 0;
-
+	int writetocache = 0, effects;
+	
 	if (!pth->repldef) {
 		return 0;
 	} else if ((pth->flags & PTH_SKYBOX) && (pth->repldef->skybox == 0 || pth->repldef->skybox->ignore)) {
@@ -423,111 +422,21 @@ static int pt_load_hightile(PTHead * pth)
 			continue;
 		}
 		
+		effects = (pth->palnum != pth->repldef->palnum)
+				? hictinting[pth->palnum].f : 0;
+		
 		if (cacheable) {
 			// don't write this texture to the cache if it already
 			// exists in there. Once kplib can return mtimes, a date
 			// test will be done to see if we should supersede the one
 			// already there
-			writetocache = ! PTCacheHasTile(filename,
-					      (pth->palnum != pth->repldef->palnum)
-						? hictinting[pth->palnum].f : 0,
-					      pth->flags & (PTH_CLAMPED));
+			writetocache = ! PTCacheHasTile(filename, effects, pth->flags & (PTH_CLAMPED));
 		}
-	
-		filh = kopen4load((char *) filename, 0);
-		if (filh < 0) {
-			if (polymosttexverbosity >= 1) {
-				initprintf("PolymostTex: %s (pic %d pal %d) not found\n",
-					filename, pth->picnum, pth->palnum);
-			}
+		
+		if (!pt_load_imagefile(filename, &tex, pth->flags, effects, cacheable)) {
 			continue;
 		}
-		picdatalen = kfilelength(filh);
-		
-		picdata = (char *) malloc(picdatalen);
-		if (!picdata) {
-			if (polymosttexverbosity >= 1) {
-				initprintf("PolymostTex: %s (pic %d pal %d) out of memory\n",
-					   filename, pth->picnum, pth->palnum, picdatalen);
-			}
-			kclose(filh);
-			continue;
-		}
-		
-		if (kread(filh, picdata, picdatalen) != picdatalen) {
-			if (polymosttexverbosity >= 1) {
-				initprintf("PolymostTex: %s (pic %d pal %d) truncated read\n",
-					   filename, pth->picnum, pth->palnum);
-			}
-			kclose(filh);
-			continue;
-		}
-		
-		kclose(filh);
-		
-		kpgetdim(picdata, picdatalen, (long *) &tex.tsizx, (long *) &tex.tsizy);
-		if (tex.tsizx == 0 || tex.tsizy == 0) {
-			if (polymosttexverbosity >= 1) {
-				initprintf("PolymostTex: %s (pic %d pal %d) unrecognised format\n",
-					   filename, pth->picnum, pth->palnum);
-			}
-			free(picdata);
-			continue;
-		}
-
-		if (!glinfo.texnpot || cacheable) {
-			for (tex.sizx = 1; tex.sizx < tex.tsizx; tex.sizx += tex.sizx) ;
-			for (tex.sizy = 1; tex.sizy < tex.tsizy; tex.sizy += tex.sizy) ;
-		} else {
-			tex.sizx = tex.tsizx;
-			tex.sizy = tex.tsizy;
-		}
-		
-		tex.pic = (coltype *) malloc(tex.sizx * tex.sizy * sizeof(coltype));
-		if (!tex.pic) {
-			continue;
-		}
-		memset(tex.pic, 0, tex.sizx * tex.sizy * sizeof(coltype));
-		
-		if (kprender(picdata, picdatalen, (long) tex.pic, tex.sizx * sizeof(coltype), tex.sizx, tex.sizy, 0, 0)) {
-			if (polymosttexverbosity >= 1) {
-				initprintf("PolymostTex: %s (pic %d pal %d) decode error\n",
-					   filename, pth->picnum, pth->palnum);
-			}
-			free(picdata);
-			free(tex.pic);
-			continue;
-		}
-		
-		pt_load_applyeffects(&tex,
-			(pth->palnum != pth->repldef->palnum) ? hictinting[pth->palnum].f : 0,
-			&hasalpha);
-		tex.hasalpha = hasalpha;
-
-		if (! (pth->flags & PTH_CLAMPED) || (pth->flags & PTH_SKYBOX)) { //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
-			if (tex.sizx > tex.tsizx) {	//Copy left to right
-				coltype * lptr = tex.pic;
-				for (y = 0; y < tex.tsizy; y++, lptr += tex.sizx) {
-					memcpy(&lptr[tex.tsizx], lptr, (tex.sizx - tex.tsizx) << 2);
-				}
-			}
-			if (tex.sizy > tex.tsizy) {	//Copy top to bottom
-				memcpy(&tex.pic[tex.sizx * tex.tsizy], tex.pic, (tex.sizy - tex.tsizy) * tex.sizx << 2);
-			}
-		}
-		
-		tex.rawfmt = GL_BGRA;
-		if (!glinfo.bgra || glusetexcompr) {
-			// texture compression requires rgba ordering for libsquish
-			long j;
-			for (j = tex.sizx * tex.sizy - 1; j >= 0; j--) {
-				swapchar(&tex.pic[j].r, &tex.pic[j].b);
-			}
-			tex.rawfmt = GL_RGBA;
-		}
-		
-		free(picdata);
-		picdata = 0;
+	///////
 
 		if (texture == 0) {
 			pth->tsizx = tex.tsizx;
@@ -560,7 +469,7 @@ static int pt_load_hightile(PTHead * pth)
 
 			tdef = PTCacheAllocNewTile(nmips);
 			tdef->filename = strdup(filename);
-			tdef->effects = (pth->palnum != pth->repldef->palnum) ? hictinting[pth->palnum].f : 0;
+			tdef->effects = effects;
 			tdef->flags = pth->flags & (PTH_CLAMPED | PTH_HASALPHA);
 		}
 		
@@ -713,6 +622,110 @@ static int pt_load_cache(PTHead * pth)
 	} else {
 		return loaded[PTHGLPIC_BASE];
 	}
+}
+
+/**
+ * Load a picture from an image file.
+ * @param filename the image filename
+ * @param tex the texture
+ * @param flags PTH_* flags
+ * @param effects effects flags
+ */
+static int pt_load_imagefile(const char * filename, PTTexture * tex, int flags, int effects, int cacheable)
+{
+	int filh = -1, picdatalen = 0;
+	char * picdata = 0;
+	int hasalpha = 0;
+	int y;
+
+	filh = kopen4load((char *) filename, 0);
+	if (filh < 0) {
+		if (polymosttexverbosity >= 1) {
+			initprintf("PolymostTex: %s not found\n", filename);
+		}
+		return 0;
+	}
+	picdatalen = kfilelength(filh);
+	
+	picdata = (char *) malloc(picdatalen);
+	if (!picdata) {
+		if (polymosttexverbosity >= 1) {
+			initprintf("PolymostTex: %s out of memory\n", filename);
+		}
+		kclose(filh);
+		return 0;
+	}
+		
+	if (kread(filh, picdata, picdatalen) != picdatalen) {
+		if (polymosttexverbosity >= 1) {
+			initprintf("PolymostTex: %s truncated read\n", filename);
+		}
+		kclose(filh);
+		return 0;
+	}
+	
+	kclose(filh);
+		
+	kpgetdim(picdata, picdatalen, (long *) &tex->tsizx, (long *) &tex->tsizy);
+	if (tex->tsizx == 0 || tex->tsizy == 0) {
+		if (polymosttexverbosity >= 1) {
+			initprintf("PolymostTex: %s unrecognised format\n", filename);
+		}
+		free(picdata);
+		return 0;
+	}
+
+	if (!glinfo.texnpot || cacheable) {
+		for (tex->sizx = 1; tex->sizx < tex->tsizx; tex->sizx += tex->sizx) ;
+		for (tex->sizy = 1; tex->sizy < tex->tsizy; tex->sizy += tex->sizy) ;
+	} else {
+		tex->sizx = tex->tsizx;
+		tex->sizy = tex->tsizy;
+	}
+	
+	tex->pic = (coltype *) malloc(tex->sizx * tex->sizy * sizeof(coltype));
+	if (!tex->pic) {
+		return 0;
+	}
+	memset(tex->pic, 0, tex->sizx * tex->sizy * sizeof(coltype));
+	
+	if (kprender(picdata, picdatalen, (long) tex->pic, tex->sizx * sizeof(coltype), tex->sizx, tex->sizy, 0, 0)) {
+		if (polymosttexverbosity >= 1) {
+			initprintf("PolymostTex: %s decode error\n", filename);
+		}
+		free(picdata);
+		free(tex->pic);
+		return 0;
+	}
+	
+	pt_load_applyeffects(tex, effects, &tex->hasalpha);
+
+	if (! (flags & PTH_CLAMPED) || (flags & PTH_SKYBOX)) { //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
+		if (tex->sizx > tex->tsizx) {	//Copy left to right
+			coltype * lptr = tex->pic;
+			for (y = 0; y < tex->tsizy; y++, lptr += tex->sizx) {
+				memcpy(&lptr[tex->tsizx], lptr, (tex->sizx - tex->tsizx) << 2);
+			}
+		}
+		if (tex->sizy > tex->tsizy) {	//Copy top to bottom
+			memcpy(&tex->pic[tex->sizx * tex->tsizy], tex->pic, (tex->sizy - tex->tsizy) * tex->sizx << 2);
+		}
+	}
+	
+	tex->rawfmt = GL_BGRA;
+	if (!glinfo.bgra || glusetexcompr) {
+		// texture compression requires rgba ordering for libsquish
+		long j;
+		for (j = tex->sizx * tex->sizy - 1; j >= 0; j--) {
+			swapchar(&tex->pic[j].r, &tex->pic[j].b);
+		}
+		tex->rawfmt = GL_RGBA;
+	}
+	
+	free(picdata);
+	picdata = 0;
+
+	return 1;
 }
 
 /**
