@@ -25,6 +25,14 @@
 		AB726D6E0F046E7800730EAA /* nsnoal.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D660F046E6E00730EAA /* nsnoal.map */; };
 		AB726D6F0F046E7800730EAA /* nukeland.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D670F046E6E00730EAA /* nukeland.map */; };
 		AB726D700F046E7800730EAA /* stuff.dat in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D680F046E6E00730EAA /* stuff.dat */; };
+		AB726D910F046F8000730EAA /* ascboard.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D610F046E6E00730EAA /* ascboard.map */; };
+		AB726D920F046F8000730EAA /* boards.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D620F046E6E00730EAA /* boards.map */; };
+		AB726D930F046F8000730EAA /* evilal.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D630F046E6E00730EAA /* evilal.map */; };
+		AB726D940F046F8000730EAA /* kensig.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D640F046E6E00730EAA /* kensig.map */; };
+		AB726D950F046F8000730EAA /* names.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D650F046E6E00730EAA /* names.h */; };
+		AB726D960F046F8000730EAA /* nsnoal.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D660F046E6E00730EAA /* nsnoal.map */; };
+		AB726D970F046F8000730EAA /* nukeland.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D670F046E6E00730EAA /* nukeland.map */; };
+		AB726D980F046F8000730EAA /* stuff.dat in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D680F046E6E00730EAA /* stuff.dat */; };
 		AB7360330A29AB7E003261DC /* game.c in Sources */ = {isa = PBXBuildFile; fileRef = AB7360310A29AB7E003261DC /* game.c */; };
 		AB73604B0A29AD5F003261DC /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601B0A29AA70003261DC /* libengine.a */; };
 		AB73605A0A29ADB5003261DC /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601B0A29AA70003261DC /* libengine.a */; };
@@ -126,6 +134,23 @@
 				AB726D6E0F046E7800730EAA /* nsnoal.map in CopyFiles */,
 				AB726D6F0F046E7800730EAA /* nukeland.map in CopyFiles */,
 				AB726D700F046E7800730EAA /* stuff.dat in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB726D9C0F046F8A00730EAA /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 16;
+			files = (
+				AB726D910F046F8000730EAA /* ascboard.map in CopyFiles */,
+				AB726D920F046F8000730EAA /* boards.map in CopyFiles */,
+				AB726D930F046F8000730EAA /* evilal.map in CopyFiles */,
+				AB726D940F046F8000730EAA /* kensig.map in CopyFiles */,
+				AB726D950F046F8000730EAA /* names.h in CopyFiles */,
+				AB726D960F046F8000730EAA /* nsnoal.map in CopyFiles */,
+				AB726D970F046F8000730EAA /* nukeland.map in CopyFiles */,
+				AB726D980F046F8000730EAA /* stuff.dat in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -333,6 +358,7 @@
 				AB73604C0A29AD92003261DC /* Resources */,
 				AB73604D0A29AD92003261DC /* Sources */,
 				AB73604E0A29AD92003261DC /* Frameworks */,
+				AB726D9C0F046F8A00730EAA /* CopyFiles */,
 			);
 			buildRules = (
 			);
