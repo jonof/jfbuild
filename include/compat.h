@@ -57,6 +57,9 @@
 # endif
 #endif
 
+#include <stdint.h>
+#include <limits.h>
+
 #ifdef EFENCE
 # include <efence.h>
 #endif
@@ -264,6 +267,12 @@ static inline uint64 B_SWAP64(uint64 l) { return (l>>56)|((l>>40)&0xff00)|((l>>2
 # define ASMSYM(x) "_" x
 #else
 # define ASMSYM(x) x
+#endif
+
+#ifdef __GNUC__
+# define UNUSED(x) UNUSED_ ## x __attribute__((unused))
+#else
+# define UNUSED(x) x
 #endif
 
 #ifndef min

@@ -268,13 +268,13 @@ SPRITE VARIABLES:
 	EXTERN short nextspritesect[MAXSPRITES], nextspritestat[MAXSPRITES];
 
 	Example: if the linked lists look like the following:
-		 ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-		 ³      Sector lists:               Status lists:               ³
-		 ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
-		 ³  Sector0:  4, 5, 8             Status0:  2, 0, 8             ³
-		 ³  Sector1:  16, 2, 0, 7         Status1:  4, 5, 16, 7, 3, 9   ³
-		 ³  Sector2:  3, 9                                              ³
-		 ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		 â„Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Ã¸
+		 â‰¥      Sector lists:               Status lists:               â‰¥
+		 âˆšÆ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Â¥
+		 â‰¥  Sector0:  4, 5, 8             Status0:  2, 0, 8             â‰¥
+		 â‰¥  Sector1:  16, 2, 0, 7         Status1:  4, 5, 16, 7, 3, 9   â‰¥
+		 â‰¥  Sector2:  3, 9                                              â‰¥
+		 Â¿Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Æ’Å¸
 	Notice that each number listed above is shown exactly once on both the
 		left and right side.  This is because any sprite that exists must
 		be in some sector, and must have some kind of status that you define.
@@ -463,16 +463,20 @@ void setpolymost2dview(void);   // sets up GL for 2D drawing
 
 long polymost_drawtilescreen(long tilex, long tiley, long wallnum, long dimen);
 void polymost_glreset(void);
+void polymost_precache_begin();
 void polymost_precache(long dapicnum, long dapalnum, long datype);
+int  polymost_precache_run(int* done, int* total);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 extern long glanisotropy;
 extern long glusetexcompr;
 extern long gltexfiltermode;
 extern long glredbluemode;
-extern long glusetexcache, glusetexcachecompression;
+extern long glusetexcache;
 extern long glmultisample, glnvmultisamplehint;
 void gltexapplyprops (void);
+
+extern int polymosttexfullbright;	// set to the first index of the fullbright palette
 #endif
 
 void hicinit(void);

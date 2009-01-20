@@ -182,5 +182,6 @@ int voxdraw (voxmodel *m, spritetype *tspr);
 
 void mdinit ();
 long mdloadskin (md2model *m, int number, int pal, int surf);
+int mddraw (spritetype *);
 
 #endif

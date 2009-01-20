@@ -3,7 +3,9 @@
 #include "compat.h"
 #include "build.h"
 #include "glbuild.h"
+#include "kplib.h"
 #include "pragmas.h"
+#include "cache1d.h"
 #include "baselayer.h"
 #include "engine_priv.h"
 #include "polymost_priv.h"
@@ -36,7 +38,6 @@ static long maxmodelverts = 0, allocmodelverts = 0;
 static point3d *vertlist = NULL; //temp array to store interpolated vertices for drawing
 
 mdmodel *mdload (const char *);
-int mddraw (spritetype *);
 void mdfree (mdmodel *);
 
 void freeallmodels ()
@@ -321,10 +322,11 @@ int md_undefinemodel(int modelid)
 	return 0;
 }
 
-static int daskinloader (long filh, long *fptr, long *bpl, long *sizx, long *sizy, long *osizx, long *osizy, char *hasalpha, char effect)
+static int daskinloader (long filh, coltype ** fptr, long *bpl, long *sizx, long *sizy, long *osizx, long *osizy, char *hasalpha, char effect)
 {
 	long picfillen, j,y,x;
-	char *picfil,*cptr,al=255;
+	char *picfil,al=255;
+	unsigned char *cptr;
 	coltype *pic;
 	long xsiz, ysiz, tsizx, tsizy;
 
@@ -392,124 +394,143 @@ static int daskinloader (long filh, long *fptr, long *bpl, long *sizx, long *siz
 	*sizx = xsiz;
 	*sizy = ysiz;
 	*bpl = xsiz;
-	*fptr = (long)pic;
+	*fptr = pic;
 	*hasalpha = (al != 255);
 	return 0;
 }
 
-// JONOF'S COMPRESSED TEXTURE CACHE STUFF ---------------------------------------------------
-long mdloadskin_trytexcache(char *fn, long len, char effect, texcacheheader *head)
+
+static void fixtransparency (coltype *dapic, long daxsiz, long daysiz, long daxsiz2, long daysiz2, long dameth)
 {
-	long fil, fp;
-	char cachefn[BMAX_PATH], *cp;
-	unsigned char mdsum[16];
+	coltype *wpptr;
+	long j, x, y, r, g, b, dox, doy, naxsiz2;
 	
-	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return -1;
-	if (!bglCompressedTexImage2DARB || !bglGetCompressedTexImageARB) {
-		// lacking the necessary extensions to do this
-		initprintf("Warning: the GL driver lacks necessary functions to use caching\n");
-		glusetexcache = 0;
-		return -1;
-	}
+	dox = daxsiz2-1; doy = daysiz2-1;
+	if (dameth & METH_CLAMPED) { dox = min(dox,daxsiz); doy = min(doy,daysiz); }
+	else { daxsiz = daxsiz2; daysiz = daysiz2; } //Make repeating textures duplicate top/left parts
 	
-	md4once((unsigned char *)fn, strlen(fn), mdsum);
-	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
-	*(cp++) = '/';
-	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
-	sprintf(cp, "-%lx-0%x", len, effect);
+	daxsiz--; daysiz--; naxsiz2 = -daxsiz2; //Hacks for optimization inside loop
 	
-	fil = kopen4load(cachefn, 0);
-	if (fil < 0) return -1;
-	
-	initprintf("Loading cached skin: %s\n", cachefn);
-	
-	if (kread(fil, head, sizeof(texcacheheader)) < (int)sizeof(texcacheheader)) goto failure;
-	if (memcmp(head->magic, "Polymost", 8)) goto failure;
-
-	head->xdim = B_LITTLE32(head->xdim);
-	head->ydim = B_LITTLE32(head->ydim);
-	head->flags = B_LITTLE32(head->flags);
-
-	if (!glinfo.texnpot && (head->flags & 1)) goto failure;
-	
-	return fil;
-failure:
-	kclose(fil);
-	return -1;
-}
-
-static long mdloadskin_cached(long fil, texcacheheader *head, long *doalloc, GLuint *glpic, long *xsiz, long *ysiz)
-{
-	int level, r;
-	texcachepicture pict;
-	void *pic = NULL, *packbuf = NULL;
-	void *midbuf = NULL;
-	long alloclen=0;
-		
-	if (*doalloc&1) {
-		bglGenTextures(1,glpic);  //# of textures (make OpenGL allocate structure)
-		*doalloc |= 2;	// prevents bglGenTextures being called again if we fail in here
-	}
-	bglBindTexture(GL_TEXTURE_2D,*glpic);
-		
-	bglGetError();
-		
-	// load the mipmaps
-	for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
-		r = kread(fil, &pict, sizeof(texcachepicture));
-		if (r < (int)sizeof(texcachepicture)) goto failure;
-
-		pict.size = B_LITTLE32(pict.size);
-		pict.format = B_LITTLE32(pict.format);
-		pict.xdim = B_LITTLE32(pict.xdim);
-		pict.ydim = B_LITTLE32(pict.ydim);
-		pict.border = B_LITTLE32(pict.border);
-		pict.depth = B_LITTLE32(pict.depth);
-
-		if (level == 0) { *xsiz = pict.xdim; *ysiz = pict.ydim; }
-			
-		if (alloclen < pict.size) {
-			void *picc = realloc(pic, pict.size);
-			if (!picc) goto failure; else pic = picc;
-			alloclen = pict.size;
-			
-			picc = realloc(packbuf, alloclen+16);
-			if (!picc) goto failure; else packbuf = picc;
-			
-			picc = realloc(midbuf, pict.size);
-			if (!picc) goto failure; else midbuf = picc;
+		//Set transparent pixels to average color of neighboring opaque pixels
+		//Doing this makes bilinear filtering look much better for masked textures (I.E. sprites)
+	for(y=doy;y>=0;y--)
+	{
+		wpptr = &dapic[y*daxsiz2+dox];
+		for(x=dox;x>=0;x--,wpptr--)
+		{
+			if (wpptr->a) continue;
+			r = g = b = j = 0;
+			if ((x>     0) && (wpptr[     -1].a)) { r += (long)wpptr[     -1].r; g += (long)wpptr[     -1].g; b += (long)wpptr[     -1].b; j++; }
+			if ((x<daxsiz) && (wpptr[     +1].a)) { r += (long)wpptr[     +1].r; g += (long)wpptr[     +1].g; b += (long)wpptr[     +1].b; j++; }
+			if ((y>     0) && (wpptr[naxsiz2].a)) { r += (long)wpptr[naxsiz2].r; g += (long)wpptr[naxsiz2].g; b += (long)wpptr[naxsiz2].b; j++; }
+			if ((y<daysiz) && (wpptr[daxsiz2].a)) { r += (long)wpptr[daxsiz2].r; g += (long)wpptr[daxsiz2].g; b += (long)wpptr[daxsiz2].b; j++; }
+			switch(j)
+			{
+				case 1: wpptr->r =   r            ; wpptr->g =   g            ; wpptr->b =   b            ; break;
+				case 2: wpptr->r = ((r   +  1)>>1); wpptr->g = ((g   +  1)>>1); wpptr->b = ((b   +  1)>>1); break;
+				case 3: wpptr->r = ((r*85+128)>>8); wpptr->g = ((g*85+128)>>8); wpptr->b = ((b*85+128)>>8); break;
+				case 4: wpptr->r = ((r   +  2)>>2); wpptr->g = ((g   +  2)>>2); wpptr->b = ((b   +  2)>>2); break;
+				default: break;
+			}
 		}
-			
-		if (dedxtfilter(fil, &pict, pic, midbuf, packbuf, (head->flags&4)==4)) goto failure; 
-		
-		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,
-								   pict.size,pic);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
 	}
-		
-	if (midbuf) free(midbuf);
-	if (pic) free(pic);
-	if (packbuf) free(packbuf);
-	return 0;
-failure:
-	if (midbuf) free(midbuf);
-	if (pic) free(pic);
-	if (packbuf) free(packbuf);
-	return -1;
 }
-// --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
+
+static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth)
+{
+	coltype *wpptr, *rpptr;
+	long x2, y2, j, js=0, x3, y3, y, x, r, g, b, a, k;
+	
+	if (gltexmaxsize <= 0) {
+		GLint i = 0;
+		bglGetIntegerv(GL_MAX_TEXTURE_SIZE, &i);
+		if (!i) gltexmaxsize = 6;   // 2^6 = 64 == default GL max texture size
+		else {
+			gltexmaxsize = 0;
+			for (; i>1; i>>=1) gltexmaxsize++;
+		}
+	}
+	
+	js = max(0,min(gltexmaxsize-1,gltexmiplevel));
+	gltexmiplevel = js;
+	while ((xsiz>>js) > (1<<gltexmaxsize) || (ysiz>>js) > (1<<gltexmaxsize)) js++;
+	
+	/*
+	 OSD_Printf("Uploading %dx%d %s as %s\n", xsiz,ysiz,
+		    (texfmt==GL_RGBA?"GL_RGBA":
+		     texfmt==GL_RGB?"GL_RGB":
+		     texfmt==GL_BGR?"GL_BGR":
+		     texfmt==GL_BGRA?"GL_BGRA":"other"),
+		    (intexfmt==GL_RGBA?"GL_RGBA":
+		     intexfmt==GL_RGB?"GL_RGB":
+		     intexfmt==GL_COMPRESSED_RGBA_ARB?"GL_COMPRESSED_RGBA_ARB":
+		     intexfmt==GL_COMPRESSED_RGB_ARB?"GL_COMPRESSED_RGB_ARB":"other"));
+	 */
+	
+	if (js == 0) {
+		if (doalloc&1)
+			bglTexImage2D(GL_TEXTURE_2D,0,intexfmt,xsiz,ysiz,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
+		else
+			bglTexSubImage2D(GL_TEXTURE_2D,0,0,0,xsiz,ysiz,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
+	}
+	
+#if 0
+	gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGBA8,xsiz,ysiz,texfmt,GL_UNSIGNED_BYTE,pic); //Needs C++ to link?
+#elif 1
+	x2 = xsiz; y2 = ysiz;
+	for(j=1;(x2 > 1) || (y2 > 1);j++)
+	{
+		//x3 = ((x2+1)>>1); y3 = ((y2+1)>>1);
+		x3 = max(1, x2 >> 1); y3 = max(1, y2 >> 1);		// this came from the GL_ARB_texture_non_power_of_two spec
+		for(y=0;y<y3;y++)
+		{
+			wpptr = &pic[y*x3]; rpptr = &pic[(y<<1)*x2];
+			for(x=0;x<x3;x++,wpptr++,rpptr+=2)
+			{
+				r = g = b = a = k = 0;
+				if  (rpptr[0].a)                  { r += (long)rpptr[0].r; g += (long)rpptr[0].g; b += (long)rpptr[0].b; a += (long)rpptr[0].a; k++; }
+				if ((x+x+1 < x2) && (rpptr[1].a)) { r += (long)rpptr[1].r; g += (long)rpptr[1].g; b += (long)rpptr[1].b; a += (long)rpptr[1].a; k++; }
+				if (y+y+1 < y2)
+				{
+					if ((rpptr[x2].a)                  ) { r += (long)rpptr[x2  ].r; g += (long)rpptr[x2  ].g; b += (long)rpptr[x2  ].b; a += (long)rpptr[x2  ].a; k++; }
+					if ((x+x+1 < x2) && (rpptr[x2+1].a)) { r += (long)rpptr[x2+1].r; g += (long)rpptr[x2+1].g; b += (long)rpptr[x2+1].b; a += (long)rpptr[x2+1].a; k++; }
+				}
+				switch(k)
+				{
+					case 0:
+					case 1: wpptr->r = r; wpptr->g = g; wpptr->b = b; wpptr->a = a; break;
+					case 2: wpptr->r = ((r+1)>>1); wpptr->g = ((g+1)>>1); wpptr->b = ((b+1)>>1); wpptr->a = ((a+1)>>1); break;
+					case 3: wpptr->r = ((r*85+128)>>8); wpptr->g = ((g*85+128)>>8); wpptr->b = ((b*85+128)>>8); wpptr->a = ((a*85+128)>>8); break;
+					case 4: wpptr->r = ((r+2)>>2); wpptr->g = ((g+2)>>2); wpptr->b = ((b+2)>>2); wpptr->a = ((a+2)>>2); break;
+					default: break;
+				}
+				//if (wpptr->a) wpptr->a = 255;
+			}
+		}
+		if (tsizx >= 0) fixtransparency(pic,(tsizx+(1<<j)-1)>>j,(tsizy+(1<<j)-1)>>j,x3,y3,dameth);
+		if (j >= js) {
+			if (doalloc&1)
+				bglTexImage2D(GL_TEXTURE_2D,j-js,intexfmt,x3,y3,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
+			else
+				bglTexSubImage2D(GL_TEXTURE_2D,j-js,0,0,x3,y3,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
+		}
+		x2 = x3; y2 = y3;
+	}
+#endif
+}
+
 
 	//Note: even though it says md2model, it works for both md2model&md3model
 long mdloadskin (md2model *m, int number, int pal, int surf)
 {
-	long i,j, fptr=0, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
+	long i,j, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
 	char *skinfile, hasalpha, fn[BMAX_PATH+65];
+	coltype * fptr = 0;
 	GLuint *texidx = NULL;
 	mdskinmap_t *sk, *skzero = NULL;
 	long doalloc = 1, filh;
 
-	long cachefil = -1, picfillen;
-	texcacheheader cachead;
+	long picfillen;
 	
 	if (m->mdnum == 2) surf = 0;
 
@@ -563,40 +584,25 @@ long mdloadskin (md2model *m, int number, int pal, int surf)
 	}
 
 	picfillen = kfilelength(filh);
-	kclose(filh);	// FIXME: shouldn't have to do this. bug in cache1d.c
 
-	cachefil = mdloadskin_trytexcache(fn, picfillen, hictinting[pal].f, &cachead);
-	if (cachefil >= 0 && !mdloadskin_cached(cachefil, &cachead, &doalloc, texidx, &xsiz, &ysiz)) {
-		osizx = cachead.xdim;
-		osizy = cachead.ydim;
-		m->usesalpha = hasalpha = (cachead.flags & 2) ? 1 : 0;
-		kclose(cachefil);
-		//kclose(filh);	// FIXME: uncomment when cache1d.c is fixed
-		// cachefil >= 0, so it won't be rewritten
-	} else {
-		if (cachefil >= 0) kclose(cachefil);
-		cachefil = -1;	// the compressed version will be saved to disk
-		
-		if ((filh = kopen4load(fn, 0)) < 0) return -1;
-		if (daskinloader(filh,&fptr,&bpl,&xsiz,&ysiz,&osizx,&osizy,&hasalpha,hictinting[pal].f))
-		{
-			kclose(filh);
-			initprintf("Failed loading skin file \"%s\"\n", fn);
-			skinfile[0] = 0;
-			return(0);
-		} else kclose(filh);
-		m->usesalpha = hasalpha;
+	if (daskinloader(filh,&fptr,&bpl,&xsiz,&ysiz,&osizx,&osizy,&hasalpha,hictinting[pal].f))
+	{
+		kclose(filh);
+		initprintf("Failed loading skin file \"%s\"\n", fn);
+		skinfile[0] = 0;
+		return(0);
+	} else kclose(filh);
+	m->usesalpha = hasalpha;
 
-		if ((doalloc&3)==1) bglGenTextures(1,(GLuint*)texidx);
-		bglBindTexture(GL_TEXTURE_2D,*texidx);
+	if ((doalloc&3)==1) bglGenTextures(1,(GLuint*)texidx);
+	bglBindTexture(GL_TEXTURE_2D,*texidx);
 
-		//gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGBA,xsiz,ysiz,GL_BGRA_EXT,GL_UNSIGNED_BYTE,(char *)fptr);
-		if (glinfo.texcompr && glusetexcompr) intexfmt = hasalpha ? GL_COMPRESSED_RGBA_ARB : GL_COMPRESSED_RGB_ARB;
-		else if (!hasalpha) intexfmt = GL_RGB;
-		if (glinfo.bgra) texfmt = GL_BGRA;
-		uploadtexture((doalloc&1), xsiz, ysiz, intexfmt, texfmt, (coltype*)fptr, xsiz, ysiz, 0);
-		free((void*)fptr);
-	}
+	//gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGBA,xsiz,ysiz,GL_BGRA_EXT,GL_UNSIGNED_BYTE,(char *)fptr);
+	if (glinfo.texcompr && glusetexcompr) intexfmt = hasalpha ? GL_COMPRESSED_RGBA_ARB : GL_COMPRESSED_RGB_ARB;
+	else if (!hasalpha) intexfmt = GL_RGB;
+	if (glinfo.bgra) texfmt = GL_BGRA;
+	uploadtexture((doalloc&1), xsiz, ysiz, intexfmt, texfmt, fptr, xsiz, ysiz, 0);
+	free(fptr);
 
 	if (!m->skinloaded)
 	{
@@ -641,19 +647,6 @@ long mdloadskin (md2model *m, int number, int pal, int surf)
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
 
-	if (cachefil < 0) {
-		// save off the compressed version
-		cachead.xdim = osizx;
-		cachead.ydim = osizy;
-		i = 0;
-		for (j=0;j<31;j++) {
-			if (xsiz == pow2long[j]) { i |= 1; }
-			if (ysiz == pow2long[j]) { i |= 2; }
-		}
-		cachead.flags = (i!=3) | (hasalpha ? 2 : 0);
-		writexcache(fn, picfillen, 0, hictinting[pal].f, &cachead);
-	}
-	
 	return(*texidx);
 }
 
@@ -1481,7 +1474,7 @@ static void setrect (long x0, long y0, long dx, long dy)
 #endif
 }
 
-static void cntquad (long x0, long y0, long z0, long x1, long y1, long z1, long x2, long y2, long z2, long face)
+static void cntquad (long x0, long y0, long z0, long UNUSED(x1), long UNUSED(y1), long UNUSED(z1), long x2, long y2, long z2, long UNUSED(face))
 {
 	long x, y, z;
 
@@ -2154,7 +2147,7 @@ int mddraw (spritetype *tspr)
 	if (maxmodelverts > allocmodelverts)
 	{
 		point3d *vl = (point3d *)realloc(vertlist,sizeof(point3d)*maxmodelverts);
-		if (!vl) { OSD_Printf("ERROR: Not enough memory to allocate %d vertices!\n",maxmodelverts); return 0; }
+		if (!vl) { initprintf("ERROR: Not enough memory to allocate %d vertices!\n",maxmodelverts); return 0; }
 		vertlist = vl; allocmodelverts = maxmodelverts;
 	}
 

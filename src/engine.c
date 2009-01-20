@@ -26,6 +26,8 @@
 # endif
 # include "polymost_priv.h"
 # include "hightile_priv.h"
+# include "polymosttex_priv.h"
+# include "polymosttexcache.h"
 # include "mdsprite_priv.h"
 # ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
@@ -110,7 +112,7 @@ long pow2long[32] =
 };
 long reciptable[2048], fpuasm;
 
-char britable[16][256];	// JBF 20040207: full 8bit precision
+unsigned char britable[16][256];
 extern char textfont[2048], smalltextfont[2048];
 
 static char kensmessage[128];
@@ -5428,6 +5430,7 @@ int initengine(void)
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (!hicfirstinit) hicinit();
 	if (!mdinited) mdinit();
+	PTCacheLoadIndex();
 #endif
 
 	return 0;
@@ -5444,6 +5447,8 @@ void uninitengine(void)
 	//OSD_Printf("cacheresets = %d, cacheinvalidates = %d\n", cacheresets, cacheinvalidates);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
+	PTClear();
+	PTCacheUnloadIndex();
 	polymost_glreset();
 	hicinit();
 	freeallmodels();
@@ -5765,7 +5770,7 @@ killsprite:
 		for(i=spritesortcnt-1;i>=0;i--)
 			if ((!(tspriteptr[i]->cstat&2))
 #ifdef USE_OPENGL
-			    && (!gltexmayhavealpha(tspriteptr[i]->picnum,tspriteptr[i]->pal))
+			    && (!polymost_texmayhavealpha(tspriteptr[i]->picnum,tspriteptr[i]->pal))
 #endif
 			   )
 				{ drawsprite(i); tspriteptr[i] = 0; } //draw only if it is fully opaque
@@ -5784,7 +5789,7 @@ killsprite:
 			k = thewall[maskwall[i]];
 			if ((!(wall[k].cstat&128))
 #ifdef USE_OPENGL
-			    && (!gltexmayhavealpha(wall[k].overpicnum,wall[k].pal))
+			    && (!polymost_texmayhavealpha(wall[k].overpicnum,wall[k].pal))
 #endif
 			   )
 				{ drawmaskwall(i); maskwall[i] = -1; } //draw only if it is fully opaque
@@ -9146,7 +9151,7 @@ void setbrightness(char dabrightness, char *dapal, char noapply)
 		// either (a) the new palette is different to the last, or (b) the brightness
 		// changed and we couldn't set it using hardware gamma
 		if (!(noapply&2) && (newpalettesum != lastpalettesum))
-			gltexinvalidateall();
+			polymost_texinvalidateall();
 
 		lastpalettesum = newpalettesum;
 	}
@@ -10863,7 +10868,7 @@ void invalidatetile(short tilenume, long pal, long how)
 		if (!(how & pow2long[hp])) continue;
 
 		for (np = firstpal; np < firstpal+numpal; np++) {
-			gltexinvalidate(tilenume, np, hp);
+			polymost_texinvalidate(tilenume, np, hp);
 		}
 	}
 #endif

@@ -76,12 +76,13 @@ Low priority:
 #include "engine_priv.h"
 #include "polymost_priv.h"
 #include "hightile_priv.h"
+#include "polymosttex_priv.h"
+#include "polymosttexcache.h"
 #include "mdsprite_priv.h"
 extern char textfont[2048], smalltextfont[2048];
 
 long rendmode = 0;
 long usemodels=1, usehightile=1, usegoodalpha=0;
-
 
 #include <math.h> //<-important!
 typedef struct { float x, cy[2], fy[2]; long n, p, tag, ctag, ftag; } vsptyp;
@@ -124,18 +125,17 @@ struct glfiltermodes glfiltermodes[numglfiltermodes] = {
 	{"GL_LINEAR_MIPMAP_LINEAR",GL_LINEAR_MIPMAP_LINEAR,GL_LINEAR}
 };
 
-long glanisotropy = 1;            // 0 = maximum supported by card
+long glanisotropy = 0;            // 0 = maximum supported by card
 long glusetexcompr = 1;
-long gltexfiltermode = 3;   // GL_LINEAR_MIPMAP_NEAREST
-long glusetexcache = 0;
-long glusetexcachecompression = 1;
+long gltexcomprquality = 0;	// 0 = fast, 1 = slow and pretty, 2 = very slow and pretty
+long gltexfiltermode = 5;   // GL_LINEAR_MIPMAP_LINEAR
+long glusetexcache = 1;
 long glmultisample = 0, glnvmultisamplehint = 0;
 long gltexmaxsize = 0;      // 0 means autodetection on first run
 long gltexmiplevel = 0;		// discards this many mipmap levels
 static long lastglpolygonmode = 0; //FUK
 long glpolygonmode = 0;     // 0:GL_FILL,1:GL_LINE,2:GL_POINT //FUK
 static GLuint polymosttext = 0;
-extern char nofog;
 #endif
 
 #if defined(USE_MSC_PRAGMAS)
@@ -209,7 +209,7 @@ static inline long imod (long a, long b)
 	return(((a+1)%b)+b-1);
 }
 
-void drawline2d (float x0, float y0, float x1, float y1, char col)
+static void drawline2d (float x0, float y0, float x1, float y1, char col)
 {
 	float f, dx, dy, fxres, fyres;
 	long e, inc, x, y;
@@ -250,183 +250,63 @@ void drawline2d (float x0, float y0, float x1, float y1, char col)
 
 #ifdef USE_OPENGL
 
-#include "md4.h"
-
-#define USELZF
-#define USEKENFILTER 1
-
-#ifdef USELZF
-#	include "lzf.h"
-#else
-#	include "lzwnew.h"
-#endif
-
-const char *TEXCACHEDIR = "texcache";
-
-int dxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, unsigned long miplen);
-int dedxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, int ispacked);
-
-void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *head);
-
-//--------------------------------------------------------------------------------------------------
-//TEXTURE MANAGEMENT: treats same texture with different .PAL as a separate texture. This makes the
-//   max number of virtual textures very large (MAXTILES*256). Instead of allocating a handle for
-//   every virtual texture, I use a cache where indexing is managed through a hash table.
-//
-
-typedef struct pthtyp_t
-{
-	struct pthtyp_t *next;
-	GLuint glpic;
-	short picnum;
-	char palnum;
-	char effects;
-	char flags;      // 1 = clamped (dameth&4), 2 = hightile, 4 = skybox face, 8 = hasalpha, 128 = invalidated
-	char skyface;
-	hicreplctyp *hicr;
-
-	unsigned short sizx, sizy;
-	float scalex, scaley;
-} pthtyp;
-
-#define GLTEXCACHEADSIZ 8192
-static pthtyp *gltexcachead[GLTEXCACHEADSIZ];
-
 static long drawingskybox = 0;
+static int fog_is_on = 0;
 
-int gloadtile_art(long,long,long,pthtyp*,long);
-int gloadtile_hi(long,long,hicreplctyp*,long,pthtyp*,long,char);
-static int hicprecaching = 0;
-static pthtyp * gltexcache (long dapicnum, long dapalnum, long dameth)
+long polymost_texmayhavealpha (long dapicnum, long dapalnum)
 {
-	long i, j;
-	hicreplctyp *si;
-	pthtyp *pth;
+	PTHead * pth;
 
-	j = (dapicnum&(GLTEXCACHEADSIZ-1));
-
-	if (usehightile) si = hicfindsubst(dapicnum,dapalnum,drawingskybox);
-	else si = NULL;
-	if (!si) {
-		if (drawingskybox) return NULL;
-		goto tryart;
+	pth = PT_GetHead(dapicnum, dapalnum, 0, 1);
+	if (!pth) {
+		return 1;
 	}
-
-	/* if palette > 0 && replacement found
-	 *    no effects are applied to the texture
-	 * else if palette > 0 && no replacement found
-	 *    effects are applied to the palette 0 texture if it exists
-	 */
-
-	// load a replacement
-	for(pth=gltexcachead[j]; pth; pth=pth->next) {
-		if (pth->picnum == dapicnum &&
-			pth->palnum == si->palnum &&
-			(si->palnum>0 ? 1 : (pth->effects == hictinting[dapalnum].f)) &&
-			(pth->flags & (1+2+4)) == (((dameth&4)>>2)+2+((drawingskybox>0)<<2)) &&
-			(drawingskybox>0 ? (pth->skyface == drawingskybox) : 1)
-			)
-		{
-			if (pth->flags & 128)
-			{
-				pth->flags &= ~128;
-				if (gloadtile_hi(dapicnum,drawingskybox,si,dameth,pth,0,
-							(si->palnum>0) ? 0 : hictinting[dapalnum].f)) {  // reload tile
-					if (drawingskybox) return NULL;
-					goto tryart;   // failed, so try for ART
-				}
-			}
-			return(pth);
-		}
-	}
-
-	pth = (pthtyp *)calloc(1,sizeof(pthtyp));
-	if (!pth) return NULL;
-
-	if (gloadtile_hi(dapicnum,drawingskybox,si,dameth,pth,1, (si->palnum>0) ? 0 : hictinting[dapalnum].f)) {
-		free(pth);
-		if (drawingskybox) return NULL;
-		goto tryart;   // failed, so try for ART
-	}
-	pth->palnum = si->palnum;
-	pth->next = gltexcachead[j];
-	gltexcachead[j] = pth;
-	return(pth);
-
-tryart:
-	if (hicprecaching) return NULL;
-
-	// load from art
-	for(pth=gltexcachead[j]; pth; pth=pth->next)
-		if (pth->picnum == dapicnum &&
-			pth->palnum == dapalnum &&
-			(pth->flags & (1+2)) == ((dameth&4)>>2)
-			)
-		{
-			if (pth->flags & 128)
-			{
-				pth->flags &= ~128;
-				if (gloadtile_art(dapicnum,dapalnum,dameth,pth,0)) return NULL; //reload tile (for animations)
-			}
-			return(pth);
-		}
-
-	pth = (pthtyp *)calloc(1,sizeof(pthtyp));
-	if (!pth) return NULL;
-
-	if (gloadtile_art(dapicnum,dapalnum,dameth,pth,1)) {
-		free(pth);
-		return NULL;
-	}
-	pth->next = gltexcachead[j];
-	gltexcachead[j] = pth;
-	return(pth);
+	
+	return (pth->flags & PTH_HASALPHA) == PTH_HASALPHA;
 }
 
-long gltexmayhavealpha (long dapicnum, long dapalnum)
+void polymost_texinvalidate (long dapicnum, long dapalnum, long dameth)
 {
-	long j = (dapicnum&(GLTEXCACHEADSIZ-1));
-	pthtyp *pth;
-
-	for(pth=gltexcachead[j]; pth; pth=pth->next)
-		if ((pth->picnum == dapicnum) && (pth->palnum == dapalnum))
-			return((pth->flags&8) != 0);
-	return(1);
-}
-
-void gltexinvalidate (long dapicnum, long dapalnum, long dameth)
-{
-	long i, j;
-	pthtyp *pth;
-
-	j = (dapicnum&(GLTEXCACHEADSIZ-1));
-	for(pth=gltexcachead[j]; pth; pth=pth->next)
-		if (pth->picnum == dapicnum && pth->palnum == dapalnum && (pth->flags & 1) == ((dameth&4)>>2) )
-			{ pth->flags |= 128; }
+	PTIter iter;
+	PTHead * pth;
+	
+	iter = PTIterNewMatch(
+		PTITER_PICNUM | PTITER_PALNUM | PTITER_FLAGS,
+		dapicnum, dapalnum, PTH_CLAMPED, (dameth & METH_CLAMPED) ? PTH_CLAMPED : 0
+		);
+	while ((pth = PTIterNext(iter)) != 0) {
+		pth->flags |= PTH_DIRTY;
+		/*initprintf("invalidating picnum:%d palnum:%d effects:%d skyface:%d flags:%04X repldef:%p glpic:%d\n",
+			   pth->picnum, pth->palnum, pth->effects, pth->skyface,
+			   pth->flags, pth->repldef, pth->glpic);*/
+	}
+	//initprintf("done\n");
+	PTIterFree(iter);
 }
 
 	//Make all textures "dirty" so they reload, but not re-allocate
 	//This should be much faster than polymost_glreset()
 	//Use this for palette effects ... but not ones that change every frame!
-void gltexinvalidateall ()
+void polymost_texinvalidateall ()
 {
-	long j;
-	pthtyp *pth;
+	PTIter iter;
+	PTHead * pth;
 
-	for(j=GLTEXCACHEADSIZ-1;j>=0;j--)
-		for(pth=gltexcachead[j];pth;pth=pth->next)
-			pth->flags |= 128;
+	iter = PTIterNew();
+	while ((pth = PTIterNext(iter)) != 0) {
+		pth->flags |= PTH_DIRTY;
+	}
+	PTIterFree(iter);
 	clearskins();
-#ifdef DEBUGGINGAIDS
-	OSD_Printf("gltexinvalidateall()\n");
-#endif
+	//initprintf("gltexinvalidateall()\n");
 }
 
 
 void gltexapplyprops (void)
 {
 	long i;
-	pthtyp *pth;
+	PTIter iter;
+	PTHead * pth;
 	
 	if (glinfo.maxanisotropy > 1.0)
 	{
@@ -435,15 +315,22 @@ void gltexapplyprops (void)
 	
 	if (gltexfiltermode < 0) gltexfiltermode = 0;
 	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
-	for(i=GLTEXCACHEADSIZ-1;i>=0;i--) {
-		for(pth=gltexcachead[i];pth;pth=pth->next) {
-			bglBindTexture(GL_TEXTURE_2D,pth->glpic);
+	
+	iter = PTIterNew();
+	while ((pth = PTIterNext(iter)) != 0) {
+		for (i = 0; i < PTHGLPIC_SIZE; i++) {
+			if (pth->glpic[i] == 0) {
+				continue;
+			}
+			bglBindTexture(GL_TEXTURE_2D,pth->glpic[i]);
 			bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 			bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
-			if (glinfo.maxanisotropy > 1.0)
+			if (glinfo.maxanisotropy > 1.0) {
 				bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+			}
 		}
 	}
+	PTIterFree(iter);
 
 	{
 		int j;
@@ -487,7 +374,7 @@ static int gltexcacnum = -1;
 void polymost_glreset ()
 {
 	long i;
-	pthtyp *pth, *next;
+
 	//Reset if this is -1 (meaning 1st texture call ever), or > 0 (textures in memory)
 	if (gltexcacnum < 0)
 	{
@@ -499,22 +386,13 @@ void polymost_glreset ()
 	}
 	else
 	{
-		for (i=GLTEXCACHEADSIZ-1; i>=0; i--) {
-			for (pth=gltexcachead[i]; pth;) {
-				next = pth->next;
-				bglDeleteTextures(1,&pth->glpic);
-				free(pth);
-				pth = next;
-			}
-			gltexcachead[i] = NULL;
-		}
+		PTReset();
 		clearskins();
 	}
 	
 	if (polymosttext) bglDeleteTextures(1,&polymosttext);
 	polymosttext=0;
 	
-	memset(gltexcachead,0,sizeof(gltexcachead));
 	glox1 = -1;
 }
 
@@ -592,644 +470,11 @@ void resizeglcheck ()
 		bglMatrixMode(GL_MODELVIEW);
 		bglLoadIdentity();
 
-		if (!nofog) bglEnable(GL_FOG);
-
-		//bglEnable(GL_TEXTURE_2D);
-	}
-}
-
-void fixtransparency (coltype *dapic, long daxsiz, long daysiz, long daxsiz2, long daysiz2, long dameth)
-{
-	coltype *wpptr;
-	long j, x, y, r, g, b, dox, doy, naxsiz2;
-
-	dox = daxsiz2-1; doy = daysiz2-1;
-	if (dameth&4) { dox = min(dox,daxsiz); doy = min(doy,daysiz); }
-				else { daxsiz = daxsiz2; daysiz = daysiz2; } //Make repeating textures duplicate top/left parts
-
-	daxsiz--; daysiz--; naxsiz2 = -daxsiz2; //Hacks for optimization inside loop
-
-		//Set transparent pixels to average color of neighboring opaque pixels
-		//Doing this makes bilinear filtering look much better for masked textures (I.E. sprites)
-	for(y=doy;y>=0;y--)
-	{
-		wpptr = &dapic[y*daxsiz2+dox];
-		for(x=dox;x>=0;x--,wpptr--)
-		{
-			if (wpptr->a) continue;
-			r = g = b = j = 0;
-			if ((x>     0) && (wpptr[     -1].a)) { r += (long)wpptr[     -1].r; g += (long)wpptr[     -1].g; b += (long)wpptr[     -1].b; j++; }
-			if ((x<daxsiz) && (wpptr[     +1].a)) { r += (long)wpptr[     +1].r; g += (long)wpptr[     +1].g; b += (long)wpptr[     +1].b; j++; }
-			if ((y>     0) && (wpptr[naxsiz2].a)) { r += (long)wpptr[naxsiz2].r; g += (long)wpptr[naxsiz2].g; b += (long)wpptr[naxsiz2].b; j++; }
-			if ((y<daysiz) && (wpptr[daxsiz2].a)) { r += (long)wpptr[daxsiz2].r; g += (long)wpptr[daxsiz2].g; b += (long)wpptr[daxsiz2].b; j++; }
-			switch(j)
-			{
-				case 1: wpptr->r =   r            ; wpptr->g =   g            ; wpptr->b =   b            ; break;
-				case 2: wpptr->r = ((r   +  1)>>1); wpptr->g = ((g   +  1)>>1); wpptr->b = ((b   +  1)>>1); break;
-				case 3: wpptr->r = ((r*85+128)>>8); wpptr->g = ((g*85+128)>>8); wpptr->b = ((b*85+128)>>8); break;
-				case 4: wpptr->r = ((r   +  2)>>2); wpptr->g = ((g   +  2)>>2); wpptr->b = ((b   +  2)>>2); break;
-				default: break;
-			}
+		if (!glinfo.hack_nofog) {
+			bglEnable(GL_FOG);
+			fog_is_on = 1;
 		}
 	}
-}
-
-void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth)
-{
-	coltype *wpptr, *rpptr;
-	long x2, y2, j, js=0, x3, y3, y, x, r, g, b, a, k;
-
-	if (gltexmaxsize <= 0) {
-		GLint i = 0;
-		bglGetIntegerv(GL_MAX_TEXTURE_SIZE, &i);
-		if (!i) gltexmaxsize = 6;   // 2^6 = 64 == default GL max texture size
-		else {
-			gltexmaxsize = 0;
-			for (; i>1; i>>=1) gltexmaxsize++;
-		}
-	}
-	
-	js = max(0,min(gltexmaxsize-1,gltexmiplevel));
-	gltexmiplevel = js;
-	while ((xsiz>>js) > (1<<gltexmaxsize) || (ysiz>>js) > (1<<gltexmaxsize)) js++;
-
-	/*
-	OSD_Printf("Uploading %dx%d %s as %s\n", xsiz,ysiz,
-			(texfmt==GL_RGBA?"GL_RGBA":
-			 texfmt==GL_RGB?"GL_RGB":
-			 texfmt==GL_BGR?"GL_BGR":
-			 texfmt==GL_BGRA?"GL_BGRA":"other"),
-			(intexfmt==GL_RGBA?"GL_RGBA":
-			 intexfmt==GL_RGB?"GL_RGB":
-			 intexfmt==GL_COMPRESSED_RGBA_ARB?"GL_COMPRESSED_RGBA_ARB":
-			 intexfmt==GL_COMPRESSED_RGB_ARB?"GL_COMPRESSED_RGB_ARB":"other"));
-	*/
-	
-	if (js == 0) {
-		if (doalloc&1)
-			bglTexImage2D(GL_TEXTURE_2D,0,intexfmt,xsiz,ysiz,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
-		else
-			bglTexSubImage2D(GL_TEXTURE_2D,0,0,0,xsiz,ysiz,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
-	}
-
-#if 0
-	gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGBA8,xsiz,ysiz,texfmt,GL_UNSIGNED_BYTE,pic); //Needs C++ to link?
-#elif 1
-	x2 = xsiz; y2 = ysiz;
-	for(j=1;(x2 > 1) || (y2 > 1);j++)
-	{
-		//x3 = ((x2+1)>>1); y3 = ((y2+1)>>1);
-		x3 = max(1, x2 >> 1); y3 = max(1, y2 >> 1);		// this came from the GL_ARB_texture_non_power_of_two spec
-		for(y=0;y<y3;y++)
-		{
-			wpptr = &pic[y*x3]; rpptr = &pic[(y<<1)*x2];
-			for(x=0;x<x3;x++,wpptr++,rpptr+=2)
-			{
-				r = g = b = a = k = 0;
-				if  (rpptr[0].a)                  { r += (long)rpptr[0].r; g += (long)rpptr[0].g; b += (long)rpptr[0].b; a += (long)rpptr[0].a; k++; }
-				if ((x+x+1 < x2) && (rpptr[1].a)) { r += (long)rpptr[1].r; g += (long)rpptr[1].g; b += (long)rpptr[1].b; a += (long)rpptr[1].a; k++; }
-				if (y+y+1 < y2)
-				{
-					if ((rpptr[x2].a)                  ) { r += (long)rpptr[x2  ].r; g += (long)rpptr[x2  ].g; b += (long)rpptr[x2  ].b; a += (long)rpptr[x2  ].a; k++; }
-					if ((x+x+1 < x2) && (rpptr[x2+1].a)) { r += (long)rpptr[x2+1].r; g += (long)rpptr[x2+1].g; b += (long)rpptr[x2+1].b; a += (long)rpptr[x2+1].a; k++; }
-				}
-				switch(k)
-				{
-					case 0:
-					case 1: wpptr->r = r; wpptr->g = g; wpptr->b = b; wpptr->a = a; break;
-					case 2: wpptr->r = ((r+1)>>1); wpptr->g = ((g+1)>>1); wpptr->b = ((b+1)>>1); wpptr->a = ((a+1)>>1); break;
-					case 3: wpptr->r = ((r*85+128)>>8); wpptr->g = ((g*85+128)>>8); wpptr->b = ((b*85+128)>>8); wpptr->a = ((a*85+128)>>8); break;
-					case 4: wpptr->r = ((r+2)>>2); wpptr->g = ((g+2)>>2); wpptr->b = ((b+2)>>2); wpptr->a = ((a+2)>>2); break;
-					default: break;
-				}
-				//if (wpptr->a) wpptr->a = 255;
-			}
-		}
-		if (tsizx >= 0) fixtransparency(pic,(tsizx+(1<<j)-1)>>j,(tsizy+(1<<j)-1)>>j,x3,y3,dameth);
-		if (j >= js) {
-			if (doalloc&1)
-				bglTexImage2D(GL_TEXTURE_2D,j-js,intexfmt,x3,y3,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
-			else
-				bglTexSubImage2D(GL_TEXTURE_2D,j-js,0,0,x3,y3,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
-		}
-		x2 = x3; y2 = y3;
-	}
-#endif
-}
-
-int gloadtile_art (long dapic, long dapal, long dameth, pthtyp *pth, long doalloc)
-{
-	coltype *pic, *wpptr;
-	long j, x, y, x2, y2, xsiz, ysiz, dacol, tsizx, tsizy;
-	char hasalpha = 0;
-
-	tsizx = tilesizx[dapic];
-	tsizy = tilesizy[dapic];
-	if (!glinfo.texnpot) {
-		for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
-		for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
-	} else {
-		if ((tsizx|tsizy) == 0) {
-			xsiz = ysiz = 1;
-		} else {
-			xsiz = tsizx;
-			ysiz = tsizy;
-		}
-	}
-
-	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype));
-	if (!pic) return 1;
-
-	if (!waloff[dapic])
-	{
-			//Force invalid textures to draw something - an almost purely transparency texture
-			//This allows the Z-buffer to be updated for mirrors (which are invalidated textures)
-		pic[0].r = pic[0].g = pic[0].b = 0; pic[0].a = 1;
-		tsizx = tsizy = 1; hasalpha = 1;
-	}
-	else
-	{
-		for(y=0;y<ysiz;y++)
-		{
-			if (y < tsizy) y2 = y; else y2 = y-tsizy;
-			wpptr = &pic[y*xsiz];
-			for(x=0;x<xsiz;x++,wpptr++)
-			{
-				if ((dameth&4) && ((x >= tsizx) || (y >= tsizy))) //Clamp texture
-					{ wpptr->r = wpptr->g = wpptr->b = wpptr->a = 0; continue; }
-				if (x < tsizx) x2 = x; else x2 = x-tsizx;
-				dacol = (long)(*(unsigned char *)(waloff[dapic]+x2*tsizy+y2));
-				if (dacol == 255) {
-					wpptr->a = 0; hasalpha = 1;
-				} else {
-					wpptr->a = 255;
-					dacol = (long)((unsigned char)palookup[dapal][dacol]);
-				}
-				if (gammabrightness) {
-					wpptr->r = curpalette[dacol].r;
-					wpptr->g = curpalette[dacol].g;
-					wpptr->b = curpalette[dacol].b;
-				} else {
-					wpptr->r = britable[curbrightness][ curpalette[dacol].r ];
-					wpptr->g = britable[curbrightness][ curpalette[dacol].g ];
-					wpptr->b = britable[curbrightness][ curpalette[dacol].b ];
-				}
-			}
-		}
-	}
-
-	if (doalloc) bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
-	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
-
-	fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);
-	uploadtexture(doalloc,xsiz,ysiz,hasalpha?GL_RGBA:GL_RGB,GL_RGBA,pic,tsizx,tsizy,dameth);
-
-	if (gltexfiltermode < 0) gltexfiltermode = 0;
-	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
-
-	if (glinfo.maxanisotropy > 1.0)
-	{
-		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = (long)glinfo.maxanisotropy;
-		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
-	}
-
-	if (!(dameth&4))
-	{
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-	}
-	else
-	{     //For sprite textures, clamping looks better than wrapping
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
-	}
-
-	if (pic) free(pic);
-
-	pth->picnum = dapic;
-	pth->palnum = dapal;
-	pth->effects = 0;
-	pth->flags = ((dameth&4)>>2) | (hasalpha<<3);
-	pth->hicr = NULL;
-	
-	return 0;
-}
-
-// JONOF'S COMPRESSED TEXTURE CACHE STUFF ---------------------------------------------------
-void phex(unsigned char v, char *s)
-{
-	int x;
-	x = v>>4;
-	s[0] = x<10 ? (x+'0') : (x-10+'a');
-	x = v&15;
-	s[1] = x<10 ? (x+'0') : (x-10+'a');
-}
-
-long trytexcache(char *fn, long len, long dameth, char effect, texcacheheader *head)
-{
-	long fil, fp;
-	char cachefn[BMAX_PATH], *cp;
-	unsigned char mdsum[16];
-	
-	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return -1;
-	if (!bglCompressedTexImage2DARB || !bglGetCompressedTexImageARB) {
-		// lacking the necessary extensions to do this
-		initprintf("Warning: the GL driver lacks necessary functions to use caching\n");
-		glusetexcache = 0;
-		return -1;
-	}
-	
-	md4once((unsigned char *)fn, strlen(fn), mdsum);
-	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
-	*(cp++) = '/';
-	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
-	sprintf(cp, "-%lx-%lx%x", len, dameth, effect);
-	
-	fil = kopen4load(cachefn, 0);
-	if (fil < 0) return -1;
-	
-	initprintf("Loading cached tex: %s\n", cachefn);
-	
-	if (kread(fil, head, sizeof(texcacheheader)) < (int)sizeof(texcacheheader)) goto failure;
-	if (memcmp(head->magic, "Polymost", 8)) goto failure;
-	
-	head->xdim = B_LITTLE32(head->xdim);
-	head->ydim = B_LITTLE32(head->ydim);
-	head->flags = B_LITTLE32(head->flags);
-	
-	if (!glinfo.texnpot && (head->flags & 1)) goto failure;
-	
-	return fil;
-failure:
-	kclose(fil);
-	return -1;
-}
-
-void writexcache(char *fn, long len, long dameth, char effect, texcacheheader *head)
-{
-	long fil=-1, fp;
-	char cachefn[BMAX_PATH], *cp;
-	unsigned char mdsum[16];
-	texcachepicture pict;
-	char *pic = NULL, *packbuf = NULL;
-	void *midbuf = NULL;
-	unsigned long alloclen=0, level, miplen;
-	unsigned long padx, pady;
-	GLint gi;
-	long j, k;
-
-	if (!glinfo.texcompr || !glusetexcompr || !glusetexcache) return;
-	if (!bglCompressedTexImage2DARB || !bglGetCompressedTexImageARB) {
-		// lacking the necessary extensions to do this
-		initprintf("Warning: the GL driver lacks necessary functions to use caching\n");
-		glusetexcache = 0;
-		return;
-	}
-
-	{
-		struct stat st;
-		if (stat(TEXCACHEDIR, &st) < 0) {
-			if (errno == ENOENT) {   // path doesn't exist
-				// try to create the cache directory
-				if (Bmkdir(TEXCACHEDIR, S_IRWXU) < 0) {
-					initprintf("Failed to create texture cache directory %s\n", TEXCACHEDIR);
-					glusetexcache = 0;
-					return;
-				} else initprintf("Created texture cache directory %s\n", TEXCACHEDIR);
-			} else {
-				// another type of failure
-				glusetexcache = 0;
-				return;
-			}
-		} else if ((st.st_mode & S_IFDIR) != S_IFDIR) {
-			// cache directory isn't a directory
-			glusetexcache = 0;
-			return;
-		}
-	}
-
-	gi = GL_FALSE;
-	bglGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_ARB, &gi);
-	if (gi != GL_TRUE) return;
-
-	md4once((unsigned char *)fn, strlen(fn), mdsum);
-	for (cp = cachefn, fp = 0; (*cp = TEXCACHEDIR[fp]); cp++,fp++);
-	*(cp++) = '/';
-	for (fp = 0; fp < 16; phex(mdsum[fp++], cp), cp+=2);
-	sprintf(cp, "-%lx-%lx%x", len, dameth, effect);
-
-	initprintf("Writing cached tex: %s\n", cachefn);
-
-	fil = Bopen(cachefn,BO_BINARY|BO_CREAT|BO_TRUNC|BO_RDWR,BS_IREAD|BS_IWRITE);
-	if (fil < 0) return;
-
-	memcpy(head->magic, "Polymost", 8);   // sizes are set by caller
-
-	if (glusetexcachecompression) head->flags |= 4;
-
-	head->xdim = B_LITTLE32(head->xdim);
-	head->ydim = B_LITTLE32(head->ydim);
-	head->flags = B_LITTLE32(head->flags);
-
-	if (Bwrite(fil, head, sizeof(texcacheheader)) != sizeof(texcacheheader)) goto failure;
-
-	bglGetError();
-	for (level = 0; level==0 || (padx > 1 || pady > 1); level++) {
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_ARB, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		if (gi != GL_TRUE) goto failure;   // an uncompressed mipmap
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_INTERNAL_FORMAT, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		pict.format = B_LITTLE32(gi);
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_WIDTH, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		padx = gi; pict.xdim = B_LITTLE32(gi);
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_HEIGHT, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		pady = gi; pict.ydim = B_LITTLE32(gi);
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_BORDER, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		pict.border = B_LITTLE32(gi);
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_DEPTH, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		pict.depth = B_LITTLE32(gi);
-		bglGetTexLevelParameteriv(GL_TEXTURE_2D, level, GL_TEXTURE_COMPRESSED_IMAGE_SIZE_ARB, &gi);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-		miplen = (long)gi; pict.size = B_LITTLE32(gi);
-
-		if (alloclen < miplen) {
-			void *picc = realloc(pic, miplen);
-			if (!picc) goto failure; else pic = picc;
-			alloclen = miplen;
-
-			picc = realloc(packbuf, alloclen+16);
-			if (!picc) goto failure; else packbuf = picc;
-
-			picc = realloc(midbuf, miplen);
-			if (!picc) goto failure; else midbuf = picc;
-		}
-
-		bglGetCompressedTexImageARB(GL_TEXTURE_2D, level, pic);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-
-		if (Bwrite(fil, &pict, sizeof(texcachepicture)) != sizeof(texcachepicture)) goto failure;
-		if (dxtfilter(fil, &pict, pic, midbuf, packbuf, miplen)) goto failure;
-	}
-
-failure:
-   if (fil>=0) Bclose(fil);
-   if (midbuf) free(midbuf);
-   if (pic) free(pic);
-   if (packbuf) free(packbuf);
-}
-
-int gloadtile_cached(long fil, texcacheheader *head, long *doalloc, pthtyp *pth)
-{
-	int level, r;
-	texcachepicture pict;
-	char *pic = NULL, *packbuf = NULL;
-	void *midbuf = NULL;
-	long alloclen=0;
-
-	if (*doalloc&1) {
-		bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
-		*doalloc |= 2;   // prevents bglGenTextures being called again if we fail in here
-	}
-	bglBindTexture(GL_TEXTURE_2D,pth->glpic);
-
-	pth->sizx = head->xdim;
-	pth->sizy = head->ydim;
-
-	bglGetError();
-
-	// load the mipmaps
-	for (level = 0; level==0 || (pict.xdim > 1 || pict.ydim > 1); level++) {
-		r = kread(fil, &pict, sizeof(texcachepicture));
-		if (r < (int)sizeof(texcachepicture)) goto failure;
-
-		pict.size = B_LITTLE32(pict.size);
-		pict.format = B_LITTLE32(pict.format);
-		pict.xdim = B_LITTLE32(pict.xdim);
-		pict.ydim = B_LITTLE32(pict.ydim);
-		pict.border = B_LITTLE32(pict.border);
-		pict.depth = B_LITTLE32(pict.depth);
-
-		if (alloclen < pict.size) {
-			void *picc = realloc(pic, pict.size);
-			if (!picc) goto failure; else pic = picc;
-			alloclen = pict.size;
-
-			picc = realloc(packbuf, alloclen+16);
-			if (!picc) goto failure; else packbuf = picc;
-
-			picc = realloc(midbuf, pict.size);
-			if (!picc) goto failure; else midbuf = picc;
-		}
-
-		if (dedxtfilter(fil, &pict, pic, midbuf, packbuf, (head->flags&4)==4)) goto failure; 
-
-		bglCompressedTexImage2DARB(GL_TEXTURE_2D,level,pict.format,pict.xdim,pict.ydim,pict.border,
-								   pict.size,pic);
-		if (bglGetError() != GL_NO_ERROR) goto failure;
-	}
-
-	if (midbuf) free(midbuf);
-	if (pic) free(pic);
-	if (packbuf) free(packbuf);
-	return 0;
-failure:
-	if (midbuf) free(midbuf);
-	if (pic) free(pic);
-	if (packbuf) free(packbuf);
-	return -1;
-}
-// --------------------------------------------------- JONOF'S COMPRESSED TEXTURE CACHE STUFF
-
-int gloadtile_hi(long dapic, long facen, hicreplctyp *hicr, long dameth, pthtyp *pth, long doalloc, char effect)
-{
-	coltype *pic = NULL, *rpptr;
-	long j, x, y, x2, y2, xsiz=0, ysiz=0, tsizx, tsizy;
-
-	char *picfil = NULL, *fn, hasalpha = 255;
-	long picfillen, texfmt = GL_RGBA, intexfmt = GL_RGBA, filh;
-
-	long cachefil = -1;
-	texcacheheader cachead;
-
-	if (!hicr) return -1;
-	if (facen > 0) {
-		if (!hicr->skybox) return -1;
-		if (facen > 6) return -1;
-		if (!hicr->skybox->face[facen-1]) return -1;
-		fn = hicr->skybox->face[facen-1];
-	} else {
-		if (!hicr->filename) return -1;
-		fn = hicr->filename;
-	}
-
-	if ((filh = kopen4load(fn, 0)) < 0) {
-		initprintf("hightile: %s (pic %d) not found\n", fn, dapic);
-		if (facen > 0)
-			hicr->skybox->ignore = 1;
-		else
-			hicr->ignore = 1;
-		return -1;
-	}
-	picfillen = kfilelength(filh);
-
-	kclose(filh);	// FIXME: shouldn't have to do this. bug in cache1d.c
-
-	cachefil = trytexcache(fn, picfillen, dameth, effect, &cachead);
-	if (cachefil >= 0 && !gloadtile_cached(cachefil, &cachead, &doalloc, pth)) {
-		tsizx = cachead.xdim;
-		tsizy = cachead.ydim;
-		hasalpha = (cachead.flags & 2) ? 0 : 255;
-		kclose(cachefil);
-		//kclose(filh);	// FIXME: uncomment when cache1d.c is fixed
-		// cachefil >= 0, so it won't be rewritten
-	} else {
-		if (cachefil >= 0) kclose(cachefil);
-		cachefil = -1;	// the compressed version will be saved to disk
-		
-		if ((filh = kopen4load(fn, 0)) < 0) return -1;
-
-		picfil = (char *)malloc(picfillen); if (!picfil) { kclose(filh); return 1; }
-		kread(filh, picfil, picfillen);
-		kclose(filh);
-
-		// tsizx/y = replacement texture's natural size
-		// xsiz/y = 2^x size of replacement
-
-		kpgetdim(picfil,picfillen,&tsizx,&tsizy);
-		if (tsizx == 0 || tsizy == 0) { free(picfil); return -1; }
-		pth->sizx = tsizx;
-		pth->sizy = tsizy;
-
-		if (!glinfo.texnpot) {
-			for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
-			for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
-		} else {
-			xsiz = tsizx;
-			ysiz = tsizy;
-		}
-		pic = (coltype *)calloc(xsiz,ysiz*sizeof(coltype)); if (!pic) { free(picfil); return 1; }
-
-		if (kprender(picfil,picfillen,(long)pic,xsiz*sizeof(coltype),xsiz,ysiz,0,0)) { free(picfil); free(pic); return -2; }
-		for(y=0,j=0;y<tsizy;y++,j+=xsiz)
-		{
-			coltype tcol;
-			char *cptr = &britable[gammabrightness ? 0 : curbrightness][0];
-			rpptr = &pic[j];
-
-			for(x=0;x<tsizx;x++)
-			{
-				tcol.b = cptr[rpptr[x].b];
-				tcol.g = cptr[rpptr[x].g];
-				tcol.r = cptr[rpptr[x].r];
-				tcol.a = rpptr[x].a; hasalpha &= rpptr[x].a;
-
-				if (effect & 1) {
-					// greyscale
-					tcol.b = max(tcol.b, max(tcol.g, tcol.r));
-					tcol.g = tcol.r = tcol.b;
-				}
-				if (effect & 2) {
-					// invert
-					tcol.b = 255-tcol.b;
-					tcol.g = 255-tcol.g;
-					tcol.r = 255-tcol.r;
-				}
-
-				rpptr[x].b = tcol.b;
-				rpptr[x].g = tcol.g;
-				rpptr[x].r = tcol.r;
-				rpptr[x].a = tcol.a;
-			}
-		}
-		if ((!(dameth&4)) || (facen)) //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
-		{
-			if (xsiz > tsizx) //Copy left to right
-			{
-				long *lptr = (long *)pic;
-				for(y=0;y<tsizy;y++,lptr+=xsiz)
-					memcpy(&lptr[tsizx],lptr,(xsiz-tsizx)<<2);
-			}
-			if (ysiz > tsizy)  //Copy top to bottom
-				memcpy(&pic[xsiz*tsizy],pic,(ysiz-tsizy)*xsiz<<2);
-		}
-		if (!glinfo.bgra) {
-			for(j=xsiz*ysiz-1;j>=0;j--) {
-				swapchar(&pic[j].r, &pic[j].b);
-			}
-		} else texfmt = GL_BGRA;
-		free(picfil); picfil = 0;
-
-		if (glinfo.texcompr && glusetexcompr && !(hicr->flags & 1))
-			intexfmt = (hasalpha == 255) ? GL_COMPRESSED_RGB_ARB : GL_COMPRESSED_RGBA_ARB;
-		else if (hasalpha == 255) intexfmt = GL_RGB;
-
-		if ((doalloc&3)==1) bglGenTextures(1,(GLuint*)&pth->glpic);  //# of textures (make OpenGL allocate structure)
-		bglBindTexture(GL_TEXTURE_2D,pth->glpic);
-
-		fixtransparency(pic,tsizx,tsizy,xsiz,ysiz,dameth);
-		uploadtexture(doalloc,xsiz,ysiz,intexfmt,texfmt,pic,-1,tsizy,dameth);
-	}
-
-	// precalculate scaling parameters for replacement
-	if (facen > 0) {
-		pth->scalex = ((float)tsizx) / 64.0;
-		pth->scaley = ((float)tsizy) / 64.0;
-	} else {
-		pth->scalex = ((float)tsizx) / ((float)tilesizx[dapic]);
-		pth->scaley = ((float)tsizy) / ((float)tilesizy[dapic]);
-	}
-	
-	if (gltexfiltermode < 0) gltexfiltermode = 0;
-	else if (gltexfiltermode >= (long)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
-
-	if (glinfo.maxanisotropy > 1.0)
-	{
-		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = (long)glinfo.maxanisotropy;
-		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
-	}
-
-	if (!(dameth&4))
-	{
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-	}
-	else
-	{     //For sprite textures, clamping looks better than wrapping
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,glinfo.clamptoedge?GL_CLAMP_TO_EDGE:GL_CLAMP);
-	}
-
-	if (pic) free(pic);
-
-	pth->picnum = dapic;
-	pth->effects = effect;
-	pth->flags = ((dameth&4)>>2) + 2 + ((facen>0)<<2); if (hasalpha != 255) pth->flags |= 8;
-	pth->skyface = facen;
-	pth->hicr = hicr;
-	
-	if (cachefil < 0) {
-		// save off the compressed version
-		cachead.xdim = tsizx;
-		cachead.ydim = tsizy;
-		x = 0;
-		for (j=0;j<31;j++) {
-			if (xsiz == pow2long[j]) { x |= 1; }
-			if (ysiz == pow2long[j]) { x |= 2; }
-		}
-		cachead.flags = (x!=3) | (hasalpha != 255 ? 2 : 0);
-		writexcache(fn, picfillen, dameth, effect, &cachead);
-	}
-
-	return 0;
 }
 
 #endif
@@ -1250,7 +495,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	long xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0, ymulnice = 0, dorot;
 	char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
 #ifdef USE_OPENGL
-	pthtyp *pth;
+	PTHead * pth = 0;
 #endif
 
 	if (method == -1) return;
@@ -1278,7 +523,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		if (!waloff[globalpicnum])
 		{
 			if (rendmode != 3) return;
-			tsizx = tsizy = 1; method = 1; //Hack to update Z-buffer for invalid mirror textures
+			tsizx = tsizy = 1; method = METH_MASKED; //Hack to update Z-buffer for invalid mirror textures
 		}
 	}
 	walptr = (char *)waloff[globalpicnum];
@@ -1331,35 +576,50 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 #ifdef USE_OPENGL
 	if (rendmode == 3)
 	{
-		float hackscx, hackscy;
-
-		if (skyclamphack) method |= 4;
-		pth = gltexcache(globalpicnum,globalpal,method&(~3));
-		bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic : 0);
-
-		if (pth && (pth->flags & 2))
-		{
-			hackscx = pth->scalex;
-			hackscy = pth->scaley;
-			tsizx = pth->sizx;
-			tsizy = pth->sizy;
+		float hackscx, hackscy, alphac;
+		unsigned short ptflags = 0;
+		int drawlayers = 1 << PTHGLPIC_BASE, drawinglayer = PTHGLPIC_BASE;
+		GLuint glpic = 0;
+		
+		if (skyclamphack) method |= METH_CLAMPED;
+		
+		if (usehightile) ptflags |= PTH_HIGHTILE;
+		if (method & METH_CLAMPED) ptflags |= PTH_CLAMPED;
+		if (drawingskybox) ptflags |= PTH_SKYBOX;
+		
+		pth = PT_GetHead(globalpicnum, globalpal, ptflags, 0);
+		if (pth) {
+			if (drawingskybox) {
+				glpic = pth->glpic[ drawingskybox - 1 ];
+			} else {
+				glpic = pth->glpic[ PTHGLPIC_BASE ];
+			}
 		}
-		else { hackscx = 1.0; hackscy = 1.0; }
-
-		if (!glinfo.texnpot) {
-			for(xx=1;xx<tsizx;xx+=xx); ox2 = (double)1.0/(double)xx;
-			for(yy=1;yy<tsizy;yy+=yy); oy2 = (double)1.0/(double)yy;
-		} else {
-			xx = tsizx; ox2 = (double)1.0/(double)xx;
-			yy = tsizy; oy2 = (double)1.0/(double)yy;
+		bglBindTexture(GL_TEXTURE_2D, glpic);
+		
+		if ((method & METH_LAYERS) && pth && !drawingskybox) {
+			if (pth->glpic[ PTHGLPIC_GLOW ]) {
+				drawlayers |= (1 << PTHGLPIC_GLOW);
+			}
 		}
 
-		if (!(method&3)) {
+		hackscx = pth->scalex;
+		hackscy = pth->scaley;
+		tsizx   = pth->tsizx;
+		tsizy   = pth->tsizy;
+		xx      = pth->sizx;
+		yy      = pth->sizy;
+		ox2     = (double)1.0/(double)xx;
+		oy2     = (double)1.0/(double)yy;
+
+		if (!(method & (METH_MASKED | METH_TRANS))) {
 			bglDisable(GL_BLEND);
 			bglDisable(GL_ALPHA_TEST);
 		} else {
 			float al = 0.32;
-			if (pth && pth->hicr && pth->hicr->alphacut >= 0.0) al = pth->hicr->alphacut;
+			if (pth && pth->repldef && pth->repldef->alphacut >= 0.0) {
+				al = pth->repldef->alphacut;
+			}
 			if (usegoodalpha) al = 0.0;
 			if (!waloff[globalpicnum]) al = 0.0;	// invalid textures ignore the alpha cutoff settings
 			bglEnable(GL_BLEND);
@@ -1378,25 +638,25 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		}
 
 		{
-			float pc[4];
+			float pc[3];
 			f = ((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 			pc[0] = pc[1] = pc[2] = f;
-			switch(method&3)
+			switch(method & (METH_MASKED | METH_TRANS))
 			{
-				case 0: pc[3] = 1.0; break;
-				case 1: pc[3] = 1.0; break;
-				case 2: pc[3] = 0.66; break;
-				case 3: pc[3] = 0.33; break;
+				case METH_SOLID:   alphac = 1.0; break;
+				case METH_MASKED:  alphac = 1.0; break;
+				case METH_TRANS:   alphac = 0.66; break;
+				case METH_INTRANS: alphac = 0.33; break;
 			}
 			// tinting happens only to hightile textures, and only if the texture we're
 			// rendering isn't for the same palette as what we asked for
-			if (pth && (pth->flags & 2) && (pth->palnum != globalpal)) {
+			if (pth && (pth->flags & PTH_HIGHTILE) && (globalpal != pth->repldef->palnum)) {
 				// apply tinting for replaced textures
 				pc[0] *= (float)hictinting[globalpal].r / 255.0;
 				pc[1] *= (float)hictinting[globalpal].g / 255.0;
 				pc[2] *= (float)hictinting[globalpal].b / 255.0;
 			}
-			bglColor4f(pc[0],pc[1],pc[2],pc[3]);
+			bglColor4f(pc[0],pc[1],pc[2],alphac);
 		}
 
 			//Hack for walls&masked walls which use textures that are not a power of 2
@@ -1505,30 +765,104 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 				} while (i);
 				if (nn < 3) continue;
 
-				bglBegin(GL_TRIANGLE_FAN);
-				for(i=0;i<nn;i++)
-				{
-					ox = uu[i]; oy = vv[i];
-					dp = ox*ngdx + oy*ngdy + ngdo;
-					up = ox*ngux + oy*nguy + nguo;
-					vp = ox*ngvx + oy*ngvy + ngvo;
-					r = 1.0/dp; bglTexCoord2d((up*r-du0+uoffs)*ox2,vp*r*oy2);
-					bglVertex3d((ox-ghalfx)*r*grhalfxdown10x,(ghoriz-oy)*r*grhalfxdown10,r*(1.0/1024.0));
-				}
-				bglEnd();
+				do {
+					if ((drawlayers & (1 << drawinglayer)) == 0) {
+						drawinglayer++;
+						continue;
+					}
+					
+					switch (drawinglayer) {
+						case PTHGLPIC_BASE:
+							bglDepthMask(GL_TRUE);
+							break;
+						case PTHGLPIC_GLOW:
+							bglColor4f(1.f,1.f,1.f,alphac);
+							if (fog_is_on) bglDisable(GL_FOG);
+							bglEnable(GL_BLEND);	// blend with what's under us
+							bglDepthMask(GL_FALSE);	// don't update the Z buffer
+							bglBindTexture(GL_TEXTURE_2D, pth->glpic[PTHGLPIC_GLOW]);
+							break;
+						default:
+							break;
+					}
+					
+					bglBegin(GL_TRIANGLE_FAN);
+					for(i=0;i<nn;i++)
+					{
+						ox = uu[i]; oy = vv[i];
+						dp = ox*ngdx + oy*ngdy + ngdo;
+						up = ox*ngux + oy*nguy + nguo;
+						vp = ox*ngvx + oy*ngvy + ngvo;
+						r = 1.0/dp;
+						bglTexCoord2d((up*r-du0+uoffs)*ox2,vp*r*oy2);
+						bglVertex3d((ox-ghalfx)*r*grhalfxdown10x,(ghoriz-oy)*r*grhalfxdown10,r*(1.0/1024.0));
+					}
+					bglEnd();
+					
+					switch (drawinglayer) {
+						case PTHGLPIC_BASE:
+							break;
+						case PTHGLPIC_GLOW:
+							if (fog_is_on) bglEnable(GL_FOG);
+							break;
+						default:
+							break;
+					}
+					
+					drawlayers &= ~(1 << drawinglayer);
+					drawinglayer++;
+				} while (drawlayers);
 			}
 		}
 		else
 		{
 			ox2 *= hackscx; oy2 *= hackscy;
-			bglBegin(GL_TRIANGLE_FAN);
-			for(i=0;i<n;i++)
-			{
-				r = 1.0/dd[i]; bglTexCoord2d(uu[i]*r*ox2,vv[i]*r*oy2);
-				bglVertex3d((px[i]-ghalfx)*r*grhalfxdown10x,(ghoriz-py[i])*r*grhalfxdown10,r*(1.0/1024.0));
-			}
-			bglEnd();
+
+			do {
+				if ((drawlayers & (1 << drawinglayer)) == 0) {
+					drawinglayer++;
+					continue;
+				}
+				
+				switch (drawinglayer) {
+					case PTHGLPIC_BASE:
+						bglDepthMask(GL_TRUE);
+						break;
+					case PTHGLPIC_GLOW:
+						bglColor4f(1.f,1.f,1.f,alphac);
+						if (fog_is_on) bglDisable(GL_FOG);
+						bglEnable(GL_BLEND);	// blend with what's under us
+						bglDepthMask(GL_FALSE);	// don't update the Z buffer
+						bglBindTexture(GL_TEXTURE_2D, pth->glpic[PTHGLPIC_GLOW]);
+						break;
+					default:
+						break;
+				}
+				
+				bglBegin(GL_TRIANGLE_FAN);
+				for(i=0;i<n;i++)
+				{
+					r = 1.0/dd[i];
+					bglTexCoord2d(uu[i]*r*ox2,vv[i]*r*oy2);
+					bglVertex3d((px[i]-ghalfx)*r*grhalfxdown10x,(ghoriz-py[i])*r*grhalfxdown10,r*(1.0/1024.0));
+				}
+				bglEnd();
+				
+				switch (drawinglayer) {
+					case PTHGLPIC_BASE:
+						break;
+					case PTHGLPIC_GLOW:
+						if (fog_is_on) bglEnable(GL_FOG);
+						break;
+					default:
+						break;
+				}
+				
+				drawlayers &= ~(1 << drawinglayer);
+				drawinglayer++;
+			} while (drawlayers);
 		}
+		
 		return;
 	}
 #endif
@@ -1544,7 +878,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		}
 		zbufoff = (long *)(zbufmem-(frameplace<<2));
 #endif
-		if ((!transluc)) method = (method&~3)+1; //In case translucent table doesn't exist
+		if ((!transluc)) method = (method & ~(METH_MASKED | METH_TRANS)) + METH_MASKED; //In case translucent table doesn't exist
 
 		if (!dorot)
 		{
@@ -1588,7 +922,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 
 		tsizxm1 = tsizx-1; xmodnice = (!(tsizxm1&tsizx));
 		tsizym1 = tsizy-1; ymulnice = (!(tsizym1&tsizy));
-		if ((method&4) && (!xmodnice)) //Sprites don't need a mod on texture coordinates
+		if ((method & METH_CLAMPED) && (!xmodnice)) //Sprites don't need a mod on texture coordinates
 			{ xmodnice = 1; for(tsizxm1=1;tsizxm1<tsizx;tsizxm1=(tsizxm1<<1)+1); }
 		if (!ymulnice) { for(tsizym1=1;tsizym1+1<tsizy;tsizym1=(tsizym1<<1)+1); }
 		ltsizy = (picsiz[globalpicnum]>>4);
@@ -1662,9 +996,9 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 						dtol(vp*rdp,&v0); vp += ngvx2;
 						rdp = 65536.0/dp;
 
-						switch (method&3)
+						switch (method & (METH_MASKED | METH_TRANS))
 						{
-							case 0:
+							case METH_SOLID:
 								if (xmodnice&ymulnice) //both u&v texture sizes are powers of 2 :)
 								{
 									for(xx=ix0;xx<ix1;xx+=(1<<LINTERPSIZ))
@@ -1710,7 +1044,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 									}
 								}
 								break;
-							case 1:
+							case METH_MASKED:
 								if (xmodnice) //both u&v texture sizes are powers of 2 :)
 								{
 									for(xx=ix0;xx<ix1;xx+=(1<<LINTERPSIZ))
@@ -1768,7 +1102,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 									}
 								}
 								break;
-							case 2: //Transluscence #1
+							case METH_TRANS: //Transluscence #1
 								for(xx=ix0;xx<ix1;xx+=(1<<LINTERPSIZ))
 								{
 									dtol(   rdp,&d1); dp += ngdx2; d1 = ((d1-d0)>>LINTERPSIZ);
@@ -1797,7 +1131,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 									}
 								}
 								break;
-							case 3: //Transluscence #2
+							case METH_INTRANS: //Transluscence #2
 								for(xx=ix0;xx<ix1;xx+=(1<<LINTERPSIZ))
 								{
 									dtol(   rdp,&d1); dp += ngdx2; d1 = ((d1-d0)>>LINTERPSIZ);
@@ -1836,7 +1170,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 
 	if (rendmode == 1)
 	{
-		if (method&3) //Only draw border around sprites/maskwalls
+		if (method & (METH_MASKED | METH_TRANS)) //Only draw border around sprites/maskwalls
 		{
 		for(i=0,j=n-1;i<n;j=i,i++) drawline2d(px[i],py[i],px[j],py[j],31); //hopefully color index 31 is white
 		}
@@ -1998,7 +1332,7 @@ void domost (float x0, float y0, float x1, float y1)
 		dir = 0; //clip umost (ceiling)
 		//y0 += .01; y1 += .01; //necessary?
 	}
-
+	
 	slop = (y1-y0)/(x1-x0);
 	for(i=vsp[0].n;i;i=newi)
 	{
@@ -2097,24 +1431,24 @@ void domost (float x0, float y0, float x1, float y1)
 					case 1: case 2:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
-						dpx[2] = dx0; dpy[2] = ny0; drawpoly(dpx,dpy,3,domostpolymethod);
+						dpx[2] = dx0; dpy[2] = ny0; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
 						vsp[i].cy[0] = ny0; vsp[i].ctag = gtag; break;
 					case 3: case 6:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
-						dpx[2] = dx1; dpy[2] = ny1; drawpoly(dpx,dpy,3,domostpolymethod);
+						dpx[2] = dx1; dpy[2] = ny1; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
 						vsp[i].cy[1] = ny1; vsp[i].ctag = gtag; break;
 					case 4: case 5: case 7:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = ny1;
-						dpx[3] = dx0; dpy[3] = ny0; drawpoly(dpx,dpy,4,domostpolymethod);
+						dpx[3] = dx0; dpy[3] = ny0; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
 						vsp[i].cy[0] = ny0; vsp[i].cy[1] = ny1; vsp[i].ctag = gtag; break;
 					case 8:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
 						vsp[i].ctag = vsp[i].ftag = -1; break;
 					default: break;
 				}
@@ -2126,31 +1460,31 @@ void domost (float x0, float y0, float x1, float y1)
 					case 7: case 6:
 						dpx[0] = dx0; dpy[0] = ny0;
 						dpx[1] = dx1; dpy[1] = vsp[i].fy[1];
-						dpx[2] = dx0; dpy[2] = vsp[i].fy[0]; drawpoly(dpx,dpy,3,domostpolymethod);
+						dpx[2] = dx0; dpy[2] = vsp[i].fy[0]; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
 						vsp[i].fy[0] = ny0; vsp[i].ftag = gtag; break;
 					case 5: case 2:
 						dpx[0] = dx0; dpy[0] = vsp[i].fy[0];
 						dpx[1] = dx1; dpy[1] = ny1;
-						dpx[2] = dx1; dpy[2] = vsp[i].fy[1]; drawpoly(dpx,dpy,3,domostpolymethod);
+						dpx[2] = dx1; dpy[2] = vsp[i].fy[1]; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
 						vsp[i].fy[1] = ny1; vsp[i].ftag = gtag; break;
 					case 4: case 3: case 1:
 						dpx[0] = dx0; dpy[0] = ny0;
 						dpx[1] = dx1; dpy[1] = ny1;
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
 						vsp[i].fy[0] = ny0; vsp[i].fy[1] = ny1; vsp[i].ftag = gtag; break;
 					case 0:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
 						vsp[i].ctag = vsp[i].ftag = -1; break;
 					default: break;
 				}
 			}
 		}
 	}
-
+	
 	gtag++;
 
 		//Combine neighboring vertical strips with matching collinear top&bottom edges
@@ -2181,16 +1515,14 @@ static void polymost_drawalls (long bunch)
 	sectnum = thesector[bunchfirst[bunch]]; sec = &sector[sectnum];
 
 #ifdef USE_OPENGL
-	if (!nofog) {
-		if (rendmode == 3) {
-			float col[4];
-			col[0] = (float)palookupfog[sec->floorpal].r / 63.f;
-			col[1] = (float)palookupfog[sec->floorpal].g / 63.f;
-			col[2] = (float)palookupfog[sec->floorpal].b / 63.f;
-			col[3] = 0;
-			bglFogfv(GL_FOG_COLOR,col);
-			bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
-		}
+	if (!glinfo.hack_nofog && rendmode == 3) {
+		float col[4];
+		col[0] = (float)palookupfog[sec->floorpal].r / 63.f;
+		col[1] = (float)palookupfog[sec->floorpal].g / 63.f;
+		col[2] = (float)palookupfog[sec->floorpal].b / 63.f;
+		col[3] = 0;
+		bglFogfv(GL_FOG_COLOR,col);
+		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
 	}
 #endif
 
@@ -2356,11 +1688,9 @@ static void polymost_drawalls (long bunch)
 #ifdef USE_OPENGL
 			if (rendmode == 3)
 			{
-				if (!nofog) {
+				if (!glinfo.hack_nofog) {
 					bglDisable(GL_FOG);
-					//r = ((float)globalpisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE;
-					//r *= ((double)xdimscale*(double)viewingrange*gdo) / (65536.0*65536.0);
-					//bglFogf(GL_FOG_DENSITY,r);
+					fog_is_on = 0;
 				}
 
 					//Use clamping for tiled sky textures
@@ -2591,9 +1921,9 @@ static void polymost_drawalls (long bunch)
 			if (rendmode == 3)
 			{
 				skyclamphack = 0;
-				if (!nofog) {
+				if (!glinfo.hack_nofog) {
 					bglEnable(GL_FOG);
-					//bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
+					fog_is_on = 1;
 				}
 			}
 #endif
@@ -2708,11 +2038,9 @@ static void polymost_drawalls (long bunch)
 #ifdef USE_OPENGL
 			if (rendmode == 3)
 			{
-				if (!nofog) {
+				if (!glinfo.hack_nofog) {
 					bglDisable(GL_FOG);
-					//r = ((float)globalpisibility)*((float)((unsigned char)(sec->visibility+16)))*FOGSCALE;
-					//r *= ((double)xdimscale*(double)viewingrange*gdo) / (65536.0*65536.0);
-					//bglFogf(GL_FOG_DENSITY,r);
+					fog_is_on = 0;
 				}
 
 					//Use clamping for tiled sky textures
@@ -2942,9 +2270,9 @@ static void polymost_drawalls (long bunch)
 			if (rendmode == 3)
 			{
 				skyclamphack = 0;
-				if (!nofog) {
+				if (!glinfo.hack_nofog) {
 					bglEnable(GL_FOG);
-					//bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
+					fog_is_on = 1;
 				}
 			}
 #endif
@@ -3531,20 +2859,18 @@ void polymost_drawmaskwall (long damaskwallcnt)
 	}
 	if (wal->cstat&256) { gvx = -gvx; gvy = -gvy; gvo = -gvo; } //yflip
 
-	method = 1; pow2xsplit = 1;
-	if (wal->cstat&128) { if (!(wal->cstat&512)) method = 2; else method = 3; }
+	method = METH_MASKED; pow2xsplit = 1;
+	if (wal->cstat&128) { if (!(wal->cstat&512)) method = METH_TRANS; else method = METH_INTRANS; }
 
 #ifdef USE_OPENGL
-	if (!nofog) {
-		if (rendmode == 3) {
-			float col[4];
-			col[0] = (float)palookupfog[sec->floorpal].r / 63.f;
-			col[1] = (float)palookupfog[sec->floorpal].g / 63.f;
-			col[2] = (float)palookupfog[sec->floorpal].b / 63.f;
-			col[3] = 0;
-			bglFogfv(GL_FOG_COLOR,col);
-			bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
-		}
+	if (!glinfo.hack_nofog && rendmode == 3) {
+		float col[4];
+		col[0] = (float)palookupfog[sec->floorpal].r / 63.f;
+		col[1] = (float)palookupfog[sec->floorpal].g / 63.f;
+		col[2] = (float)palookupfog[sec->floorpal].b / 63.f;
+		col[3] = 0;
+		bglFogfv(GL_FOG_COLOR,col);
+		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
 	}
 #endif
 
@@ -3612,7 +2938,7 @@ void polymost_drawmaskwall (long damaskwallcnt)
 	}
 	if (n < 3) return;
 
-	drawpoly(dpx,dpy,n,method);
+	drawpoly(dpx,dpy,n,method | METH_LAYERS);
 }
 
 void polymost_drawsprite (long snum)
@@ -3639,11 +2965,11 @@ void polymost_drawsprite (long snum)
 		yoff = (long)((signed char)((picanm[globalpicnum]>>16)&255))+((long)tspr->yoffset);
 	}
 
-	method = 1+4;
-	if (tspr->cstat&2) { if (!(tspr->cstat&512)) method = 2+4; else method = 3+4; }
+	method = METH_MASKED + METH_CLAMPED;
+	if (tspr->cstat&2) { if (!(tspr->cstat&512)) method = METH_TRANS + METH_CLAMPED; else method = METH_INTRANS + METH_CLAMPED; }
 
 #ifdef USE_OPENGL
-	if (!nofog && rendmode == 3) {
+	if (!glinfo.hack_nofog && rendmode == 3) {
 		float col[4];
 		col[0] = (float)palookupfog[sector[tspr->sectnum].floorpal].r / 63.f;
 		col[1] = (float)palookupfog[sector[tspr->sectnum].floorpal].g / 63.f;
@@ -3716,7 +3042,7 @@ void polymost_drawsprite (long snum)
 				if (py[2] > sy0) py[2] = py[3] = sy0;
 			}
 
-			pow2xsplit = 0; drawpoly(px,py,4,method);
+			pow2xsplit = 0; drawpoly(px,py,4,method | METH_LAYERS);
 			break;
 		case 1: //Wall sprite
 			
@@ -3832,7 +3158,7 @@ void polymost_drawsprite (long snum)
 			px[1] = sx1; py[1] = sc1;
 			px[2] = sx1; py[2] = sf1;
 			px[3] = sx0; py[3] = sf0;
-			pow2xsplit = 0; drawpoly(px,py,4,method);
+			pow2xsplit = 0; drawpoly(px,py,4,method | METH_LAYERS);
 			break;
 		case 2: //Floor sprite
 			
@@ -3920,7 +3246,7 @@ void polymost_drawsprite (long snum)
 				guo = ((float)tilesizx[globalpicnum])*gdo - guo;
 			}
 
-			pow2xsplit = 0; drawpoly(px,py,npoints,method);
+			pow2xsplit = 0; drawpoly(px,py,npoints,method | METH_LAYERS);
 			break;
 
 		case 3: //Voxel sprite
@@ -4094,13 +3420,13 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 	}
 #endif
 
-	method = 0;
+	method = METH_SOLID;
 	if (!(dastat&64))
 	{
-		 method = 1;
-		 if (dastat&1) { if (!(dastat&32)) method = 2; else method = 3; }
+		 method = METH_MASKED;
+		 if (dastat&1) { if (!(dastat&32)) method = METH_TRANS; else method = METH_INTRANS; }
 	}
-	method |= 4; //Use OpenGL clamping - dorotatesprite never repeats 
+	method |= METH_CLAMPED; //Use OpenGL clamping - dorotatesprite never repeats 
 
 	xsiz = tilesizx[globalpicnum]; ysiz = tilesizy[globalpicnum];
 	if (dastat&16) { xoff = 0; yoff = 0; }
@@ -4384,8 +3710,8 @@ static void tessectrap (float *px, float *py, long *point2, long numpoints)
 
 void polymost_fillpolygon (long npoints)
 {
-	pthtyp *pth;
-	float f,a=0.0;
+	PTHead *pth;
+	float f, a=0.0;
 	long i, j, k;
 
 	globalx1 = mulscale16(globalx1,xyaspect);
@@ -4407,8 +3733,8 @@ void polymost_fillpolygon (long npoints)
 	if (gloy1 != -1) setpolymost2dview(); //disables blending, texturing, and depth testing
 	bglEnable(GL_ALPHA_TEST);
 	bglEnable(GL_TEXTURE_2D);
-	pth = gltexcache(globalpicnum,globalpal,0);
-	bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic : 0);
+	pth = PT_GetHead(globalpicnum, globalpal, usehightile ? PTH_HIGHTILE : 0, 0);
+	bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic[ PTHGLPIC_BASE ] : 0);
 
 	f = ((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 	switch ((globalorientation>>7)&3) {
@@ -4428,50 +3754,53 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 #ifdef USE_OPENGL
 	float xdime, ydime, xdimepad, ydimepad, scx, scy;
 	long i;
-	pthtyp *pth;
+	PTHead *pth;
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
-	if (!glinfo.texnpot) {
-		i = (1<<(picsiz[wallnum]&15)); if (i < tilesizx[wallnum]) i += i; xdimepad = (float)i;
-		i = (1<<(picsiz[wallnum]>>4)); if (i < tilesizy[wallnum]) i += i; ydimepad = (float)i;
-	} else {
-		xdimepad = (float)tilesizx[wallnum];
-		ydimepad = (float)tilesizy[wallnum];
-	}
-	xdime = (float)tilesizx[wallnum]; xdimepad = xdime/xdimepad;
-	ydime = (float)tilesizy[wallnum]; ydimepad = ydime/ydimepad;
+	xdime = (float)tilesizx[wallnum];
+	ydime = (float)tilesizy[wallnum];
 
-	if ((xdime <= dimen) && (ydime <= dimen))
-	{
+	if ((xdime <= dimen) && (ydime <= dimen)) {
 		scx = xdime;
 		scy = ydime;
-	}
-	else
-	{
+	} else {
 		scx = (float)dimen;
 		scy = (float)dimen;
-		if (xdime < ydime) scx *= xdime/ydime; else scy *= ydime/xdime;
+		if (xdime < ydime) {
+			scx *= xdime/ydime;
+		} else {
+			scy *= ydime/xdime;
+		}
 	}
 
-	pth = gltexcache(wallnum,0,4);
-	bglBindTexture(GL_TEXTURE_2D,pth ? pth->glpic : 0);
+	pth = PT_GetHead(wallnum, 0, (usehightile ? PTH_HIGHTILE : 0) | PTH_CLAMPED, 0);
+	bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic[ PTHGLPIC_BASE ] : 0);
+
+	if (pth) {
+		xdimepad = (float)pth->tsizx / (float)pth->sizx;
+		ydimepad = (float)pth->tsizy / (float)pth->sizy;
+	} else {
+		xdimepad = 1.0;
+		ydimepad = 1.0;
+	}
 
 	bglDisable(GL_ALPHA_TEST);
 
-	if (!pth || (pth->flags & 8)) {
+	if (!pth || (pth->flags & PTH_HASALPHA)) {
 		bglDisable(GL_TEXTURE_2D);
 		bglBegin(GL_TRIANGLE_FAN);
-		if (gammabrightness)
+		if (gammabrightness) {
 			bglColor4f((float)curpalette[255].r/255.0,
 					   (float)curpalette[255].g/255.0,
 					   (float)curpalette[255].b/255.0,
 					   1);
-		else
+		} else {
 			bglColor4f((float)britable[curbrightness][ curpalette[255].r ] / 255.0,
 					   (float)britable[curbrightness][ curpalette[255].g ] / 255.0,
 					   (float)britable[curbrightness][ curpalette[255].b ] / 255.0,
 					   1);
+		}
 		bglVertex2f((float)tilex    ,(float)tiley    );
 		bglVertex2f((float)tilex+scx,(float)tiley    );
 		bglVertex2f((float)tilex+scx,(float)tiley+scy);
@@ -4667,6 +3996,14 @@ static int gltextureanisotropy(const osdfuncparm_t *parm)
 
 	return OSDCMD_OK;
 }
+
+static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *parm)
+{
+	PTCacheForceRebuild();
+	OSD_Printf("Compressed texture cache invalidated. Use 'restartvid' to reinitialise it.\n");
+	return OSDCMD_OK;
+}
+
 #endif
 
 static int osdcmd_polymostvars(const osdfuncparm_t *parm)
@@ -4688,6 +4025,14 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 	else if (!Bstrcasecmp(parm->name, "glusetexcompr")) {
 		if (showval) { OSD_Printf("glusetexcompr is %d\n", glusetexcompr); }
 		else glusetexcompr = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "gltexcomprquality")) {
+		if (showval) { OSD_Printf("gltexcomprquality is %d\n", gltexcomprquality); }
+		else {
+			if (val < 0 || val > 2) val = 0;
+			gltexcomprquality = val;
+		}
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "glredbluemode")) {
@@ -4720,11 +4065,6 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 		else glusetexcache = (val != 0);
 		return OSDCMD_OK;
 	}
-	else if (!Bstrcasecmp(parm->name, "glusetexcachecompression")) {
-		if (showval) { OSD_Printf("glusetexcachecompression is %d\n", glusetexcachecompression); }
-		else glusetexcachecompression = (val != 0);
-		return OSDCMD_OK;
-	}
 	else if (!Bstrcasecmp(parm->name, "glmultisample")) {
 		if (showval) { OSD_Printf("glmultisample is %d\n", glmultisample); }
 		else glmultisample = max(0,val);
@@ -4735,13 +4075,21 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 		else glnvmultisamplehint = (val != 0);
 		return OSDCMD_OK;
 	}
+	else if (!Bstrcasecmp(parm->name, "polymosttexverbosity")) {
+		if (showval) { OSD_Printf("polymosttexverbosity is %d\n", polymosttexverbosity); }
+		else {
+			if (val < 0 || val > 2) val = 1;
+			polymosttexverbosity = val;
+		}
+		return OSDCMD_OK;
+	}
 #endif
 	return OSDCMD_SHOWHELP;
 }
 
-#if 0
+#if 1
 // because I'm lazy
-static int dumptexturedefs(const osdfuncparm_t *parm)
+static int dumptexturedefs(const osdfuncparm_t * UNUSED(parm))
 {
 	hicreplctyp *hr;
 	int i;
@@ -4765,12 +4113,37 @@ static int dumptexturedefs(const osdfuncparm_t *parm)
 	
 	return OSDCMD_OK;	// no replacement found
 }
+
+static int debugtexturehash(const osdfuncparm_t * UNUSED(parm))
+{
+	PTIter iter;
+	PTHead * pth;
+	
+	if (!hicfirstinit) {
+		return OSDCMD_OK;
+	}
+	
+	initprintf("// Begin texture hash dump\n");
+	iter = PTIterNew();
+	while ((pth = PTIterNext(iter)) != 0) {
+		initprintf(" picnum:%d palnum:%d flags:%04X sizx/y:%dx%d tsizx/y:%dx%d repldef:%p glpic:%d.%d.%d.%d.%d.%d\n",
+			   pth->picnum, pth->palnum, pth->flags,
+			   pth->sizx, pth->sizy, pth->tsizx, pth->tsizy,
+			   pth->repldef,
+			   pth->glpic[0], pth->glpic[1], pth->glpic[2], pth->glpic[3], pth->glpic[4], pth->glpic[5]);
+	}
+	PTIterFree(iter);
+	initprintf("// End texture hash dump\n");
+		
+	return OSDCMD_OK;	// no replacement found
+}
 #endif
 
 void polymost_initosdfuncs(void)
 {
 #ifdef USE_OPENGL
 	OSD_RegisterFunction("glusetexcompr","glusetexcompr: enable/disable OpenGL texture compression",osdcmd_polymostvars);
+	OSD_RegisterFunction("gltexcomprquality","gltexcomprquality: sets texture compression quality. 0 = fast (default), 1 = slow, 2 = very slow",osdcmd_polymostvars);
 	OSD_RegisterFunction("glredbluemode","glredbluemode: enable/disable experimental OpenGL red-blue glasses mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("gltexturemode", "gltexturemode: changes the texture filtering settings", gltexturemode);
 	OSD_RegisterFunction("gltextureanisotropy", "gltextureanisotropy: changes the OpenGL texture anisotropy setting", gltextureanisotropy);
@@ -4779,13 +4152,24 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("usegoodalpha","usegoodalpha: enable/disable better looking OpenGL alpha hack",osdcmd_polymostvars);
 	OSD_RegisterFunction("glpolygonmode","glpolygonmode: debugging feature",osdcmd_polymostvars); //FUK
 	OSD_RegisterFunction("glusetexcache","glusetexcache: enable/disable OpenGL compressed texture cache",osdcmd_polymostvars);
-	OSD_RegisterFunction("glusetexcachecompression","usetexcachecompression: enable/disable compression of files in the OpenGL compressed texture cache",osdcmd_polymostvars);
 	OSD_RegisterFunction("glmultisample","glmultisample: sets the number of samples used for antialiasing (0 = off)",osdcmd_polymostvars);
 	OSD_RegisterFunction("glnvmultisamplehint","glnvmultisamplehint: enable/disable Nvidia multisampling hinting",osdcmd_polymostvars);
+	OSD_RegisterFunction("polymosttexverbosity","polymosttexverbosity: sets the level of chatter during texture loading. 0 = none, 1 = errors (default), 2 = all",osdcmd_polymostvars);
+	OSD_RegisterFunction("forcetexcacherebuild","forcetexcacherebuild: invalidates the compressed texture cache", osdcmd_forcetexcacherebuild);
 #endif
 	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
-	//OSD_RegisterFunction("dumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",dumptexturedefs);
+#if 1
+	OSD_RegisterFunction("dumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",dumptexturedefs);
+	OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",debugtexturehash);
+#endif
+}
+
+void polymost_precache_begin()
+{
+#ifdef USE_OPENGL
+	PTBeginPriming();
+#endif
 }
 
 void polymost_precache(long dapicnum, long dapalnum, long datype)
@@ -4796,15 +4180,17 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 	//    basically this just means walls are repeating
 	//    while sprites are clamped
 	int mid;
+	unsigned short flags;
 
 	if (rendmode < 3) return;
 	
 	if (!palookup[dapalnum]) return;//dapalnum = 0;
 
+		//FIXME
 	//OSD_Printf("precached %d %d type %d\n", dapicnum, dapalnum, datype);
-	hicprecaching = 1;
-	gltexcache(dapicnum, dapalnum, (datype & 1) << 2);
-	hicprecaching = 0;
+	flags = (datype & 1) ? PTH_CLAMPED :0;
+	if (usehightile) flags |= PTH_HIGHTILE;
+	PTMarkPrime(dapicnum, dapalnum, flags);
 
 	if (datype == 0) return;
 
@@ -4823,274 +4209,13 @@ void polymost_precache(long dapicnum, long dapalnum, long datype)
 #endif
 }
 
-static unsigned short hicosub (unsigned short c)
+int polymost_precache_run(int* done, int* total)
 {
-	long r, g, b;
-	g = ((c>> 5)&63);
-	r = ((c>>11)-(g>>1))&31;
-	b = ((c>> 0)-(g>>1))&31;
-	return((r<<11)+(g<<5)+b);
-}
-
-static unsigned short hicoadd (unsigned short c)
-{
-	long r, g, b;
-	g = ((c>> 5)&63);
-	r = ((c>>11)+(g>>1))&31;
-	b = ((c>> 0)+(g>>1))&31;
-	return((r<<11)+(g<<5)+b);
-}
-
-/*
-Description of Ken's filter to improve LZW compression of DXT1 format by ~15%: (as tested with the HRP)
- 
- To increase LZW patterns, I store each field of the DXT block structure separately.
- Here are the 3 DXT fields:
- 1.  __int64 alpha_4x4; //DXT3 only (16 byte structure size when included)
- 2.  short rgb0, rgb1;
- 3.  long index_4x4;
- 
- Each field is then stored with its own specialized algorithm.
- 1. I haven't done much testing with this field - I just copy it raw without any transform for now.
- 
- 2. For rgb0 and rgb1, I use a "green" filter like this:
- g = g;
- r = r-g;
- b = b-g;
- For grayscale, this makes the stream: x,0,0,x,0,0,x,0,0,... instead of x,x,x,x,x,x,x,x,...
- Q:what was the significance of choosing green? A:largest/most dominant component
- Believe it or not, this gave 1% better compression :P
- I tried subtracting each componenet with the previous pixel, but strangely it hurt compression.
- Oh, the joy of trial & error. :)
- 
- 3. For index_4x4, I transform the ordering of 2-bit indices in the DXT blocks from this:
- 0123 0123 0123  ---- ---- ----
- 4567 4567 4567  ---- ---- ----
- 89ab 89ab 89ab  ---- ---- ----
- cdef cdef cdef  ---- ---- ----
- To this: (I swap x & y axes)
- 048c 048c 048c  |||| |||| ||||
- 159d 159d 159d  |||| |||| ||||
- 26ae 26ae 26ae  |||| |||| ||||
- 37bf 37bf 37bf  |||| |||| ||||
- The trick is: going from the bottom of the 4th line to the top of the 5th line
- is the exact same jump (geometrically) as from 5th to 6th, etc.. This is not true in the top case.
- These silly tricks will increase patterns and therefore make LZW compress better.
- I think this improved compression by a few % :)
- */
-
-int dxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, unsigned long miplen)
-{
-	void *writebuf;
-#if (USEKENFILTER == 0)
-	unsigned long cleng,j;
-	if (glusetexcachecompression) {
-#ifdef USELZF
-		cleng = lzf_compress(pic, miplen, packbuf, miplen-1);
-		if (cleng == 0)	{
-			// failed to compress
-			cleng = miplen;
-			writebuf = pic;
-		} else writebuf = packbuf;
+#ifdef USE_OPENGL
+	return PTDoPrime(done, total);
 #else
-		cleng = lzwcompress(pic,miplen,packbuf);
-		writebuf = packbuf;
-#endif
-	} else {
-		cleng = miplen;
-		writebuf = pic;
-	}
-	if (cleng < 0) return -1; j = B_LITTLE32(cleng);
-	if (Bwrite(fil, &j, sizeof(unsigned long)) != sizeof(unsigned long)) return -1;
-	if (Bwrite(fil, writebuf, cleng) != cleng) return -1;
-#else
-	unsigned long j, k, offs, stride, cleng;
-	char *cptr;
-	
-	if ((pict->format == B_LITTLE32(GL_COMPRESSED_RGB_S3TC_DXT1_EXT)) ||
-		(pict->format == B_LITTLE32(GL_COMPRESSED_RGBA_S3TC_DXT1_EXT))) { offs = 0; stride = 8; }
-	else if ((pict->format == B_LITTLE32(GL_COMPRESSED_RGBA_S3TC_DXT3_EXT)) ||
-			 (pict->format == B_LITTLE32(GL_COMPRESSED_RGBA_S3TC_DXT5_EXT))) { offs = 8; stride = 16; }
-	else { offs = 0; stride = 8; }
-	
-	if (stride == 16) //If DXT3...
-	{
-		//alpha_4x4
-		cptr = midbuf;
-		for(k=0;k<8;k++) *cptr++ = pic[k];
-		for(j=stride;j<miplen;j+=stride)
-			for(k=0;k<8;k++) *cptr++ = pic[j+k];
-		if (glusetexcachecompression) {
-#ifdef USELZF
-			j = (miplen/stride)*8;
-			cleng = lzf_compress(midbuf,j,packbuf,j-1);
-			if (cleng == 0) {
-				cleng = j;
-				writebuf = midbuf;
-			} else writebuf = packbuf;
-#else
-			cleng = lzwcompress(midbuf,(miplen/stride)*8,packbuf);
-			writebuf = packbuf;
-#endif
-		} else {
-			cleng = (miplen/stride)*8;
-			writebuf = midbuf;
-		}
-		j = B_LITTLE32(cleng);
-		Bwrite(fil,&j,4);
-		Bwrite(fil,writebuf,cleng);
-	}
-	
-	//rgb0,rgb1
-	cptr = midbuf;
-	for(k=0;k<=2;k+=2)
-		for(j=0;j<miplen;j+=stride)
-			{ *(short *)cptr = hicosub(*(short *)(&pic[offs+j+k])); cptr += 2; }
-	if (glusetexcachecompression) {
-#ifdef USELZF
-		j = (miplen/stride)*4;
-		cleng = lzf_compress(midbuf,j,packbuf,j-1);
-		if (cleng == 0) {
-			cleng = j;
-			writebuf = midbuf;
-		} else writebuf = packbuf;
-#else
-		cleng = lzwcompress(midbuf,(miplen/stride)*4,packbuf);
-		writebuf = packbuf;
-#endif
-	} else {
-		cleng = (miplen/stride)*4;
-		writebuf = midbuf;
-	}
-	j = B_LITTLE32(cleng);
-	Bwrite(fil,&j,4);
-	Bwrite(fil,writebuf,cleng);
-	
-	//index_4x4
-	cptr = midbuf;
-	for(j=0;j<miplen;j+=stride)
-	{
-		char *c2 = &pic[j+offs+4];
-		cptr[0] = ((c2[0]>>0)&3) + (((c2[1]>>0)&3)<<2) + (((c2[2]>>0)&3)<<4) + (((c2[3]>>0)&3)<<6);
-		cptr[1] = ((c2[0]>>2)&3) + (((c2[1]>>2)&3)<<2) + (((c2[2]>>2)&3)<<4) + (((c2[3]>>2)&3)<<6);
-		cptr[2] = ((c2[0]>>4)&3) + (((c2[1]>>4)&3)<<2) + (((c2[2]>>4)&3)<<4) + (((c2[3]>>4)&3)<<6);
-		cptr[3] = ((c2[0]>>6)&3) + (((c2[1]>>6)&3)<<2) + (((c2[2]>>6)&3)<<4) + (((c2[3]>>6)&3)<<6);
-		cptr += 4;
-	}
-	if (glusetexcachecompression) {
-#ifdef USELZF
-		j = (miplen/stride)*4;
-		cleng = lzf_compress(midbuf,j,packbuf,j-1);
-		if (cleng == 0) {
-			cleng = j;
-			writebuf = midbuf;
-		} else writebuf = packbuf;
-#else
-		cleng = lzwcompress(midbuf,(miplen/stride)*4,packbuf);
-		writebuf = packbuf;
-#endif
-	} else {
-		cleng = (miplen/stride)*4;
-		writebuf = midbuf;
-	}
-	j = B_LITTLE32(cleng);
-	Bwrite(fil,&j,4);
-	Bwrite(fil,writebuf,cleng);
-#endif
 	return 0;
-}
-
-int dedxtfilter(int fil, texcachepicture *pict, char *pic, void *midbuf, char *packbuf, int ispacked)
-{
-	void *inbuf;
-#if (USEKENFILTER == 0)
-	unsigned long cleng;
-	if (kread(fil, &cleng, sizeof(unsigned long)) != sizeof(unsigned long)) return -1; cleng = B_LITTLE32(cleng);
-#ifdef USELZF
-	if (ispacked && cleng < pict->size) inbuf = packbuf; else inbuf = pic;
-	if (kread(fil, inbuf, cleng) != cleng) return -1;
-	if (ispacked && cleng < pict->size)
-		if (lzf_decompress(packbuf, cleng, pic, pict->size) == 0) return -1;
-#else
-	if (ispacked) inbuf = packbuf; else inbuf = pic;
-	if (kread(fil, inbuf, cleng) != cleng) return -1;
-	if (ispacked && lzwuncompress(packbuf, cleng, pic, pict->size) != pict->size) return -1;
 #endif
-#else
-	long j, k, offs, stride, cleng;
-	char *cptr;
-
-	if (ispacked) inbuf = packbuf; else inbuf = midbuf;
-
-	if ((pict->format == GL_COMPRESSED_RGB_S3TC_DXT1_EXT) ||
-		(pict->format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT)) { offs = 0; stride = 8; }
-	else if ((pict->format == GL_COMPRESSED_RGBA_S3TC_DXT3_EXT) ||
-			 (pict->format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT)) { offs = 8; stride = 16; }
-	else { offs = 0; stride = 8; }
-	
-	if (stride == 16) //If DXT3...
-	{
-		//alpha_4x4
-		if (kread(fil,&cleng,4) < 4) return -1; cleng = B_LITTLE32(cleng);
-		j = (pict->size/stride)*8;
-#ifdef USELZF
-		if (ispacked && cleng < j) inbuf = packbuf; else inbuf = midbuf;
-		if (kread(fil,inbuf,cleng) < cleng) return -1;
-		if (ispacked && cleng < j)
-			if (lzf_decompress(packbuf,cleng,midbuf,j) == 0) return -1;
-#else
-		if (kread(fil,inbuf,cleng) < cleng) return -1;
-		if (ispacked && lzwuncompress(packbuf,cleng,midbuf,j) != j) return -1;
-#endif
-		cptr = midbuf;
-		for(k=0;k<8;k++) pic[k] = *cptr++;
-		for(j=stride;j<pict->size;j+=stride)
-			for(k=0;k<8;k++) pic[j+k] = (*cptr++);
-	}
-	
-	//rgb0,rgb1
-	if (kread(fil,&cleng,4) < 4) return -1; cleng = B_LITTLE32(cleng);
-	j = (pict->size/stride)*4;
-#ifdef USELZF
-	if (ispacked && cleng < j) inbuf = packbuf; else inbuf = midbuf;
-	if (kread(fil,inbuf,cleng) < cleng) return -1;
-	if (ispacked && cleng < j)
-		if (lzf_decompress(packbuf,cleng,midbuf,j) == 0) return -1;
-#else
-	if (kread(fil,inbuf,cleng) < cleng) return -1;
-	if (ispacked && lzwuncompress(packbuf,cleng,midbuf,j) != j) return -1;
-#endif
-	cptr = midbuf;
-	for(k=0;k<=2;k+=2)
-		for(j=0;j<pict->size;j+=stride)
-		{
-			*(short *)(&pic[offs+j+k]) = hicoadd(*(short *)cptr);
-			cptr += 2;
-		}
-			
-	//index_4x4:
-    if (kread(fil,&cleng,4) < 4) return -1; cleng = B_LITTLE32(cleng);
-	j = (pict->size/stride)*4;
-#ifdef USELZF
-	if (ispacked && cleng < j) inbuf = packbuf; else inbuf = midbuf;
-	if (kread(fil,inbuf,cleng) < cleng) return -1;
-	if (ispacked && cleng < j)
-		if (lzf_decompress(packbuf,cleng,midbuf,j) == 0) return -1;
-#else
-	if (kread(fil,inbuf,cleng) < cleng) return -1;
-	if (ispacked && lzwuncompress(packbuf,cleng,midbuf,j) != j) return -1;
-#endif
-	cptr = midbuf;
-	for(j=0;j<pict->size;j+=stride)
-	{
-		pic[j+offs+4] = ((cptr[0]>>0)&3) + (((cptr[1]>>0)&3)<<2) + (((cptr[2]>>0)&3)<<4) + (((cptr[3]>>0)&3)<<6);
-		pic[j+offs+5] = ((cptr[0]>>2)&3) + (((cptr[1]>>2)&3)<<2) + (((cptr[2]>>2)&3)<<4) + (((cptr[3]>>2)&3)<<6);
-		pic[j+offs+6] = ((cptr[0]>>4)&3) + (((cptr[1]>>4)&3)<<2) + (((cptr[2]>>4)&3)<<4) + (((cptr[3]>>4)&3)<<6);
-		pic[j+offs+7] = ((cptr[0]>>6)&3) + (((cptr[1]>>6)&3)<<2) + (((cptr[2]>>6)&3)<<4) + (((cptr[3]>>6)&3)<<6);
-		cptr += 4;
-	}
-#endif
-	return 0;
 }
 
 #else /* POLYMOST */

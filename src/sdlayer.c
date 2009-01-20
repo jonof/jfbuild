@@ -52,7 +52,6 @@ long frameplace=0, lockcount=0;
 char modechange=1;
 char offscreenrendering=0;
 char videomodereset = 0;
-char nofog=0;
 static unsigned short sysgamma[3][256];
 extern long curbrightness, gammabrightness;
 
@@ -812,7 +811,6 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 int setvideomode(int x, int y, int c, int fs)
 {
 	int modenum, regrab = 0;
-	static int warnonce = 0;
 	
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
 	    !videomodereset) {
@@ -937,61 +935,8 @@ int setvideomode(int x, int y, int c, int fs)
 
 #ifdef USE_OPENGL
 	if (c > 8) {
-		char *p,*p2,*p3;
-		int i;
-
 		polymost_glreset();
-		
-		bglEnable(GL_TEXTURE_2D);
-		bglShadeModel(GL_SMOOTH); //GL_FLAT
-		bglClearColor(0,0,0,0.5); //Black Background
-		bglHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
-		bglHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
-		bglDisable(GL_DITHER);
-	
-		glinfo.vendor     = (const char *)bglGetString(GL_VENDOR);
-		glinfo.renderer   = (const char *)bglGetString(GL_RENDERER);
-		glinfo.version    = (const char *)bglGetString(GL_VERSION);
-		glinfo.extensions = (const char *)bglGetString(GL_EXTENSIONS);
-		
-		glinfo.maxanisotropy = 1.0;
-		glinfo.bgra = 0;
-		glinfo.texcompr = 0;
-
-		// process the extensions string and flag stuff we recognize
-		p = Bstrdup(glinfo.extensions);
-		p3 = p;
-		while ((p2 = Bstrtoken(p3==p?p:NULL, " ", (char**)&p3, 1)) != NULL) {
-			if (!Bstrcmp(p2, "GL_EXT_texture_filter_anisotropic")) {
-				// supports anisotropy. get the maximum anisotropy level
-				bglGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glinfo.maxanisotropy);
-			} else if (!Bstrcmp(p2, "GL_EXT_texture_edge_clamp") ||
-			           !Bstrcmp(p2, "GL_SGIS_texture_edge_clamp")) {
-				// supports GL_CLAMP_TO_EDGE or GL_CLAMP_TO_EDGE_SGIS
-				glinfo.clamptoedge = 1;
-			} else if (!Bstrcmp(p2, "GL_EXT_bgra")) {
-				// support bgra textures
-				glinfo.bgra = 1;
-			} else if (!Bstrcmp(p2, "GL_ARB_texture_compression")) {
-				// support texture compression
-				glinfo.texcompr = 1;
-			} else if (!Bstrcmp(p2, "GL_ARB_texture_non_power_of_two")) {
-				// support non-power-of-two texture sizes
-				glinfo.texnpot = 1;
-			} else if (!Bstrcmp(p2, "WGL_3DFX_gamma_control")) {
-				// 3dfx cards have issues with fog
-				nofog = 1;
-				if (!(warnonce&1)) initprintf("3dfx card detected: OpenGL fog disabled\n");
-				warnonce |= 1;
-			} else if (!Bstrcmp(p2, "GL_ARB_multisample")) {
-				// supports multisampling
-				glinfo.multisample = 1;
-			} else if (!Bstrcmp(p2, "GL_NV_multisample_filter_hint")) {
-				// supports nvidia's multisample hint extension
-				glinfo.nvmultisamplehint = 1;
-			}
-		}
-		Bfree(p);
+		baselayer_setupopengl();
 	}
 #endif
 	
@@ -1001,7 +946,7 @@ int setvideomode(int x, int y, int c, int fs)
 	fullscreen = fs;
 	//bytesperline = sdl_surface->pitch;
 	//imageSize = bytesperline*yres;
-	numpages = c>8?2:1;
+	numpages = c > 8 ? 2 : 1;
 	frameplace = 0;
 	lockcount = 0;
 	modechange=1;

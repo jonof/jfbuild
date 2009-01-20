@@ -10,9 +10,12 @@ $(OBJ)/config.$o: $(SRC)/config.c $(INC)/compat.h $(INC)/osd.h $(INC)/editor.h
 $(OBJ)/crc32.$o: $(SRC)/crc32.c $(INC)/crc32.h
 $(OBJ)/defs.$o: $(SRC)/defs.c $(INC)/build.h $(INC)/baselayer.h $(INC)/scriptfile.h $(INC)/compat.h
 $(OBJ)/engine.$o: $(SRC)/engine.c $(INC)/compat.h $(INC)/build.h $(INC)/pragmas.h $(INC)/cache1d.h $(INC)/a.h $(INC)/osd.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
-$(OBJ)/polymost.$o: $(SRC)/polymost.c $(INC)/md4.h $(INC)/lzf.h $(INC)/lzwnew.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
+$(OBJ)/polymost.$o: $(SRC)/polymost.c $(INC)/compat.h $(INC)/build.h $(INC)/glbuild.h $(INC)/pragmas.h $(INC)/baselayer.h $(INC)/osd.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(INC)/polymosttexcache.h $(SRC)/mdsprite_priv.h
+$(OBJ)/polymosttex.$o: $(SRC)/polymosttex.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/glbuild.h $(INC)/kplib.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(INC)/polymosttexcache.h
+$(OBJ)/polymosttex-squish.$o: $(SRC)/polymosttex-squish.cc $(LIBSQUISH)/squish.h $(INC)/glbuild.h $(SRC)/polymost_priv.h
+$(OBJ)/polymosttexcache.$o: $(SRC)/polymosttexcache.c $(INC)/polymosttexcache.h $(INC)/compat.h $(INC)/baselayer.h $(INC)/glbuild.h $(INC)/build.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h
 $(OBJ)/hightile.$o: $(SRC)/hightile.c $(INC)/kplib.h $(SRC)/hightile_priv.h
-$(OBJ)/mdsprite.$o: $(SRC)/mdsprite.c $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
+$(OBJ)/mdsprite.$o: $(SRC)/mdsprite.c $(INC)/compat.h $(INC)/build.h $(INC)/glbuild.h $(INC)/kplib.h $(INC)/pragmas.h $(INC)/cache1d.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
 $(OBJ)/textfont.$o: $(SRC)/textfont.c
 $(OBJ)/smalltextfont.$o: $(SRC)/smalltextfont.c
 $(OBJ)/glbuild.$o: $(SRC)/glbuild.c $(INC)/glbuild.h $(INC)/baselayer.h
@@ -47,6 +50,7 @@ $(OBJ)/startgtk.editor.$o: $(SRC)/startgtk.editor.c $(INC)/baselayer.h $(INC)/bu
 $(OBJ)/game_icon.$o: $(RSRC)/game_icon.c
 $(OBJ)/build_icon.$o: $(RSRC)/build_icon.c
 
+$(OBJ)/arttool.$o: $(SRC)/util/arttool.cc
 $(OBJ)/kextract.$o: $(SRC)/util/kextract.c $(INC)/compat.h
 $(OBJ)/kgroup.$o: $(SRC)/util/kgroup.c $(INC)/compat.h
 $(OBJ)/transpal.$o: $(SRC)/util/transpal.c $(INC)/compat.h $(INC)/pragmas.h

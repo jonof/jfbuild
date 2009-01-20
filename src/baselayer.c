@@ -8,6 +8,8 @@
 #endif
 
 #ifdef USE_OPENGL
+#include "glbuild.h"
+
 struct glinfo glinfo = {
 	"Unknown",	// vendor
 	"Unknown",	// renderer
@@ -21,6 +23,10 @@ struct glinfo glinfo = {
 	0,		// non-power-of-two textures
 	0,		// multisampling
 	0,		// nvidia multisampling hint
+	0,		// multitexturing
+	0,		// envcombine
+	
+	0,		// no fog hack flag
 };
 #endif
 
@@ -89,6 +95,8 @@ static int osdcmd_glinfo(const osdfuncparm_t *parm)
 		   " Clamp-to-edge:           %s\n"
 		   " Multisampling:           %s\n"
 		   " Nvidia multisample hint: %s\n"
+		   " Multitexturing:          %s\n"
+		   " Env combine extension:   %s\n"
 		   " Extensions:\n",
 		   	glinfo.version,
 			glinfo.vendor,
@@ -99,7 +107,9 @@ static int osdcmd_glinfo(const osdfuncparm_t *parm)
 			glinfo.texcompr ? "supported": "not supported",
 			glinfo.clamptoedge ? "supported": "not supported",
 			glinfo.multisample ? "supported": "not supported",
-			glinfo.nvmultisamplehint ? "supported": "not supported"
+			glinfo.nvmultisamplehint ? "supported": "not supported",
+			glinfo.multitex ? "supported": "not supported",
+			glinfo.envcombine ? "supported": "not supported"
 		);
 
 	s = Bstrdup(glinfo.extensions);
@@ -184,3 +194,66 @@ int baselayer_init(void)
 	return 0;
 }
 
+#ifdef USE_OPENGL
+void baselayer_setupopengl()
+{
+	char *p,*p2,*p3;
+	static int warnonce = 0;
+	int i;
+
+	bglEnable(GL_TEXTURE_2D);
+	bglShadeModel(GL_SMOOTH); //GL_FLAT
+	bglClearColor(0,0,0,0.5); //Black Background
+	bglHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
+	bglHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
+	bglDisable(GL_DITHER);
+
+	glinfo.vendor     = bglGetString(GL_VENDOR);
+	glinfo.renderer   = bglGetString(GL_RENDERER);
+	glinfo.version    = bglGetString(GL_VERSION);
+	glinfo.extensions = bglGetString(GL_EXTENSIONS);
+	
+	glinfo.maxanisotropy = 1.0;
+	glinfo.bgra = 0;
+	glinfo.texcompr = 0;
+	
+	// process the extensions string and flag stuff we recognize
+	p = strdup(glinfo.extensions);
+	p3 = p;
+	while ((p2 = Bstrtoken(p3 == p ? p : NULL, " ", (char **) &p3, 1)) != NULL) {
+		if (!Bstrcmp(p2, "GL_EXT_texture_filter_anisotropic")) {
+				// supports anisotropy. get the maximum anisotropy level
+			bglGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glinfo.maxanisotropy);
+		} else if (!Bstrcmp(p2, "GL_EXT_texture_edge_clamp") ||
+			   !Bstrcmp(p2, "GL_SGIS_texture_edge_clamp")) {
+				// supports GL_CLAMP_TO_EDGE or GL_CLAMP_TO_EDGE_SGIS
+			glinfo.clamptoedge = 1;
+		} else if (!Bstrcmp(p2, "GL_EXT_bgra")) {
+				// support bgra textures
+			glinfo.bgra = 1;
+		} else if (!Bstrcmp(p2, "GL_ARB_texture_compression")) {
+				// support texture compression
+			glinfo.texcompr = 1;
+		} else if (!Bstrcmp(p2, "GL_ARB_texture_non_power_of_two")) {
+				// support non-power-of-two texture sizes
+			glinfo.texnpot = 1;
+		} else if (!Bstrcmp(p2, "WGL_3DFX_gamma_control")) {
+				// 3dfx cards have issues with fog
+			glinfo.hack_nofog = 1;
+			if (!(warnonce&1)) initprintf("3dfx card detected: OpenGL fog disabled\n");
+			warnonce |= 1;
+		} else if (!Bstrcmp(p2, "GL_ARB_multisample")) {
+				// supports multisampling
+			glinfo.multisample = 1;
+		} else if (!Bstrcmp(p2, "GL_NV_multisample_filter_hint")) {
+				// supports nvidia's multisample hint extension
+			glinfo.nvmultisamplehint = 1;
+		} else if (!strcmp(p2, "GL_ARB_multitexture")) {
+			glinfo.multitex = 1;
+		} else if (!strcmp(p2, "GL_ARB_texture_env_combine")) {
+			glinfo.envcombine = 1;
+		}
+	}
+	free(p);
+}
+#endif

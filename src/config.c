@@ -193,7 +193,6 @@ int writesetup(const char *fn)
 	"\n"
 	"; OpenGL mode options\n"
 	"glusetexcache = %ld\n"
-	"glusetexcachecompression = %ld\n"
 	"\n"
 #ifdef RENDERTYPEWIN
 	"; Maximum OpenGL mode refresh rate (Windows only, in Hertz)\n"
@@ -273,7 +272,7 @@ int writesetup(const char *fn)
 	"\n",
 	
 	forcesetup, fullscreen, xdim2d, ydim2d, xdimgame, ydimgame, bppgame,
-	glusetexcache, glusetexcachecompression,
+	glusetexcache,
 #ifdef RENDERTYPEWIN
 	maxrefreshfreq,
 #endif
