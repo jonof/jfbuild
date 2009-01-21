@@ -118,8 +118,15 @@ endif
 
 ifeq ($(RENDERTYPE),SDL)
 	ifneq ($(SDLCONFIG),)
-		LIBS+= $(shell $(SDLCONFIG) --libs)
 		SDLCONFIG_CFLAGS+=$(shell $(SDLCONFIG) --cflags)
+
+		ifeq ($(findstring x86_64,$(shell uname -m)),x86_64)
+			SDLCONFIG_LIBS=$(subst lib,lib32,$(shell $(SDLCONFIG) --libs))
+		else
+			SDLCONFIG_LIBS=$(shell $(SDLCONFIG) --libs)
+		endif
+
+		LIBS+= $(SDLCONFIG_LIBS)
 	endif
 
 	ifeq (1,$(WITHOUT_GTK))
