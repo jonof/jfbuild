@@ -243,10 +243,6 @@ static int pt_load_art(PTHead * pth)
 	long dacol;
 	int hasalpha = 0, hasfullbright = 0;
 	
-	{
-		initprintf("(%d) loading %d\n", totalclock, pth->picnum);
-	}
-	
 	tex.tsizx = tilesizx[pth->picnum];
 	tex.tsizy = tilesizy[pth->picnum];
 	if (!glinfo.texnpot) {

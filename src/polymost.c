@@ -662,6 +662,8 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 			//Hack for walls&masked walls which use textures that are not a power of 2
 		if ((pow2xsplit) && (tsizx != xx))
 		{
+			int odrawlayers = drawlayers;
+
 			if (!dorot)
 			{
 				ngdx = gdx; ngdy = gdy; ngdo = gdo+(ngdx+ngdy)*.5;
@@ -765,6 +767,8 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 				} while (i);
 				if (nn < 3) continue;
 
+				drawlayers = odrawlayers;
+				drawinglayer = PTHGLPIC_BASE;
 				do {
 					if ((drawlayers & (1 << drawinglayer)) == 0) {
 						drawinglayer++;
@@ -785,7 +789,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 						default:
 							break;
 					}
-					
+
 					bglBegin(GL_TRIANGLE_FAN);
 					for(i=0;i<nn;i++)
 					{
@@ -798,7 +802,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 						bglVertex3d((ox-ghalfx)*r*grhalfxdown10x,(ghoriz-oy)*r*grhalfxdown10,r*(1.0/1024.0));
 					}
 					bglEnd();
-					
+
 					switch (drawinglayer) {
 						case PTHGLPIC_BASE:
 							break;
