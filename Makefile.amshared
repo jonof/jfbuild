@@ -27,6 +27,8 @@ if RENDERTYPESDL
 optionflags += -DRENDERTYPESDL
 endif
 
-SUFFIXES = .nasm
+SUFFIXES = .nasm .rc
 .nasm.o:
 	$(NASM) $(NASMFLAGS) -o $@ $<
+.rc.o:
+	$(WINDRES) $(WINDRESFLAGS) -i $< -o $@

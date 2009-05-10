@@ -107,6 +107,11 @@ if test x$host_platform = xwindows; then
 	AC_SUBST([WINDOWS_CPPFLAGS])
 	AC_SUBST([WINDOWS_LDADD])
 
+	AC_CHECK_PROG([WINDRES], [windres], [windres])
+	if test x$WINDRES = x; then
+		AC_MSG_ERROR([WINDRES could not be found in the path. You're kinda screwed without it.])
+	fi
+
 else
 
 	AM_PATH_SDL([1.2.0], [
