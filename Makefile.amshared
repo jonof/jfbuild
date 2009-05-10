@@ -7,18 +7,18 @@ optionflags += -DPOLYMOST
 endif
 if USE_OPENGL
 optionflags += -DUSE_OPENGL
-endif
 if DYNAMIC_OPENGL
 optionflags += -DDYNAMIC_OPENGL
+endif
 endif
 if NOASM
 optionflags += -DNOASM
 endif
+if HAVE_GTK2
+optionflags += -DHAVE_GTK2
 if LINKED_GTK
 optionflags += -DLINKED_GTK
 endif
-if HAVE_GTK2
-optionflags += -DHAVE_GTK2
 endif
 if RENDERTYPEWIN
 optionflags += -DRENDERTYPEWIN
@@ -27,3 +27,6 @@ if RENDERTYPESDL
 optionflags += -DRENDERTYPESDL
 endif
 
+SUFFIXES = .nasm
+.nasm.o:
+	$(NASM) $(NASMFLAGS) -o $@ $<

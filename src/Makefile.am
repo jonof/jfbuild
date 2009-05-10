@@ -1,35 +1,8 @@
+include $(top_srcdir)/Makefile.amshared
+
 noinst_LIBRARIES=libengine.a libeditor.a
 
-optionflags=
-if SUPERBUILD
-optionflags += -DSUPERBUILD
-endif
-if POLYMOST
-optionflags += -DPOLYMOST
-endif
-if USE_OPENGL
-optionflags += -DUSE_OPENGL
-endif
-if DYNAMIC_OPENGL
-optionflags += -DDYNAMIC_OPENGL
-endif
-if NOASM
-optionflags += -DNOASM
-endif
-if LINKED_GTK
-optionflags += -DLINKED_GTK
-endif
-if HAVE_GTK2
-optionflags += -DHAVE_GTK2
-endif
-if RENDERTYPEWIN
-optionflags += -DRENDERTYPEWIN
-endif
-if RENDERTYPESDL
-optionflags += -DRENDERTYPESDL
-endif
-
-AM_CPPFLAGS=$(optionflags) -I$(srcdir)/../include
+AM_CPPFLAGS=$(optionflags) -I$(srcdir)/../include $(WINDOWS_CPPFLAGS)
 AM_CFLAGS=-W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	  -funsigned-char -fno-pic -fno-strict-aliasing
 
@@ -40,12 +13,18 @@ libengine_a_SOURCES=a-c.c baselayer.c cache1d.c compat.c crc32.c defs.c \
 		    kplib.c lzf_c.c lzf_d.c md4.c mmulti.c osd.c pragmas.c \
 		    scriptfile.c textfont.c smalltextfont.c
 
+if !NOASM
+libengine_a_SOURCES += a.nasm
+endif
+
 libeditor_a_SOURCES=build.c config.c
 
 if RENDERTYPEWIN
+libengine_a_CPPFLAGS += $(DIRECTX_SDK_CPPFLAGS)
 libengine_a_SOURCES += winlayer.c
 libeditor_a_SOURCES += startwin.editor.c
 endif
+
 if RENDERTYPESDL
 AM_CPPFLAGS += $(SDL_CFLAGS)
 

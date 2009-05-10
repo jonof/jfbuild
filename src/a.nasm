@@ -10,78 +10,23 @@
 SECTION .text
 	
 %ifdef UNDERSCORES
-%define asm1 _asm1
-%define asm2 _asm2
-%define asm3 _asm3
-%define asm4 _asm4
-%define reciptable _reciptable
-%define fpuasm _fpuasm
-%define globalx3 _globalx3
-%define globaly3 _globaly3
-%define ylookup _ylookup
-%define vplce _vplce
-%define vince _vince
-%define palookupoffse _palookupoffse
-%define bufplce _bufplce
-%define ebpbak _ebpbak
-%define espbak _espbak
-%define pow2char _pow2char
-%define pow2long _pow2long
-
-%define sethlinesizes		_sethlinesizes
-%define prosethlinesizes	_prosethlinesizes
-%define setvlinebpl		_setvlinebpl
-%define setpalookupaddress	_setpalookupaddress
-%define prosetpalookupaddress	_prosetpalookupaddress
-%define setuphlineasm4		_setuphlineasm4
-%define hlineasm4		_hlineasm4
-%define prohlineasm4		_prohlineasm4
-%define prosetuphlineasm4	_prosetupvlineasm
-%define setupmvlineasm		_setupmvlineasm
-%define setuptvlineasm		_setuptvlineasm
-%define prevlineasm1		_prevlineasm1
-%define vlineasm1		_vlineasm1
-%define mvlineasm1		_mvlineasm1
-%define fixtransluscence	_fixtransluscence
-%define settransnormal		_settransnormal
-%define settransreverse		_settransreverse
-%define tvlineasm1		_tvlineasm1
-%define vlineasm4		_vlineasm4
-%define provlineasm4		_provlineasm4
-%define setupvlineasm		_setupvlineasm
-%define mvlineasm4		_mvlineasm4
-%define setupspritevline	_setupspritevline
-%define spritevline		_spritevline
-%define msetupspritevline	_msetupspritevline
-%define mspritevline		_mspritevline
-%define tsetupspritevline	_tsetupspritevline
-%define tspritevline		_tspritevline
-%define msethlineshift		_msethlineshift
-%define mhline			_mhline
-%define mhlineskipmodify	_mhlineskipmodify
-%define tsethlineshift		_tsethlineshift
-%define thline			_thline
-%define thlineskipmodify	_thlineskipmodify
-%define setuptvlineasm2		_setuptvlineasm2
-%define tvlineasm2		_tvlineasm2
-%define setupslopevlin2		_setupslopevlin2
-%define slopevlin2		_slopevlin2
-%define setupslopevlin		_setupslopevlin
-%define slopevlin		_slopevlin
-%define setuprhlineasm4		_setuprhlineasm4
-%define rhlineasm4		_rhlineasm4
-%define setuprmhlineasm4	_setuprmhlineasm4
-%define rmhlineasm4		_rmhlineasm4
-%define setupqrhlineasm4	_setupqrhlineasm4
-%define qrhlineasm4		_qrhlineasm4
-%define setupdrawslab		_setupdrawslab
-%define drawslab		_drawslab
-%define stretchhline		_stretchhline
-%define mmxoverlay		_mmxoverlay
-
-%define dep_begin		_dep_begin
-%define dep_end			_dep_end
+  %macro CGLOBAL 1
+    global _%1
+    %define %1 _%1
+  %endmacro
+  %macro CEXTERN 1
+    extern _%1
+    %define %1 _%1
+  %endmacro
+%else
+  %macro CGLOBAL 1
+    global %1
+  %endmacro
+  %macro CEXTERN 1
+    extern %1
+  %endmacro
 %endif
+
 
 ; Some macros to help make cdecl calling easier to manage
 %macro CDECLBEGIN 1
@@ -155,80 +100,80 @@ SECTION .text
 %endmacro
 
 
-	EXTERN asm1
-	EXTERN asm2
-	EXTERN asm3
-	EXTERN asm4
-	EXTERN reciptable
-	EXTERN fpuasm
-	EXTERN globalx3
-	EXTERN globaly3
-	EXTERN ylookup
+	CEXTERN asm1
+	CEXTERN asm2
+	CEXTERN asm3
+	CEXTERN asm4
+	CEXTERN reciptable
+	CEXTERN fpuasm
+	CEXTERN globalx3
+	CEXTERN globaly3
+	CEXTERN ylookup
 
-	EXTERN vplce
-	EXTERN vince
-	EXTERN palookupoffse
-	EXTERN bufplce
+	CEXTERN vplce
+	CEXTERN vince
+	CEXTERN palookupoffse
+	CEXTERN bufplce
 
-	EXTERN ebpbak
-	EXTERN espbak
+	CEXTERN ebpbak
+	CEXTERN espbak
 
-	EXTERN pow2char
-	EXTERN pow2long
+	CEXTERN pow2char
+	CEXTERN pow2long
 
-	GLOBAL sethlinesizes
-	GLOBAL prosethlinesizes
-	GLOBAL setvlinebpl
-	GLOBAL setpalookupaddress
-	GLOBAL prosetpalookupaddress
-	GLOBAL setuphlineasm4
-	GLOBAL hlineasm4
-	GLOBAL prohlineasm4
-	GLOBAL prosetupvlineasm
-	GLOBAL setupmvlineasm
-	GLOBAL setuptvlineasm
-	GLOBAL prevlineasm1
-	GLOBAL vlineasm1
-	GLOBAL mvlineasm1			;Masked vline
-	GLOBAL fixtransluscence
-	GLOBAL settransnormal
-	GLOBAL settransreverse
-	GLOBAL tvlineasm1			;Masked & transluscent vline
-	GLOBAL vlineasm4
-	GLOBAL provlineasm4
-	GLOBAL setupvlineasm
-	GLOBAL mvlineasm4
-	GLOBAL setupspritevline
-	GLOBAL spritevline
-	GLOBAL msetupspritevline
-	GLOBAL mspritevline
-	GLOBAL tsetupspritevline
-	GLOBAL tspritevline
-	GLOBAL msethlineshift
-	GLOBAL mhline
-	GLOBAL mhlineskipmodify
-	GLOBAL tsethlineshift
-	GLOBAL thline
-	GLOBAL thlineskipmodify
-	GLOBAL setuptvlineasm2
-	GLOBAL tvlineasm2
-	GLOBAL setupslopevlin2
-	GLOBAL slopevlin2
-	GLOBAL setupslopevlin
-	GLOBAL slopevlin
-	GLOBAL setuprhlineasm4
-	GLOBAL rhlineasm4
-	GLOBAL setuprmhlineasm4
-	GLOBAL rmhlineasm4
-	GLOBAL setupqrhlineasm4
-	GLOBAL qrhlineasm4			;4 pixels in 9 cycles!  2.25 cycles/pixel
-	GLOBAL setupdrawslab
-	GLOBAL drawslab
-	GLOBAL stretchhline
-	GLOBAL mmxoverlay
+	CGLOBAL sethlinesizes
+	CGLOBAL prosethlinesizes
+	CGLOBAL setvlinebpl
+	CGLOBAL setpalookupaddress
+	CGLOBAL prosetpalookupaddress
+	CGLOBAL setuphlineasm4
+	CGLOBAL hlineasm4
+	CGLOBAL prohlineasm4
+	CGLOBAL prosetupvlineasm
+	CGLOBAL setupmvlineasm
+	CGLOBAL setuptvlineasm
+	CGLOBAL prevlineasm1
+	CGLOBAL vlineasm1
+	CGLOBAL mvlineasm1			;Masked vline
+	CGLOBAL fixtransluscence
+	CGLOBAL settransnormal
+	CGLOBAL settransreverse
+	CGLOBAL tvlineasm1			;Masked & transluscent vline
+	CGLOBAL vlineasm4
+	CGLOBAL provlineasm4
+	CGLOBAL setupvlineasm
+	CGLOBAL mvlineasm4
+	CGLOBAL setupspritevline
+	CGLOBAL spritevline
+	CGLOBAL msetupspritevline
+	CGLOBAL mspritevline
+	CGLOBAL tsetupspritevline
+	CGLOBAL tspritevline
+	CGLOBAL msethlineshift
+	CGLOBAL mhline
+	CGLOBAL mhlineskipmodify
+	CGLOBAL tsethlineshift
+	CGLOBAL thline
+	CGLOBAL thlineskipmodify
+	CGLOBAL setuptvlineasm2
+	CGLOBAL tvlineasm2
+	CGLOBAL setupslopevlin2
+	CGLOBAL slopevlin2
+	CGLOBAL setupslopevlin
+	CGLOBAL slopevlin
+	CGLOBAL setuprhlineasm4
+	CGLOBAL rhlineasm4
+	CGLOBAL setuprmhlineasm4
+	CGLOBAL rmhlineasm4
+	CGLOBAL setupqrhlineasm4
+	CGLOBAL qrhlineasm4			;4 pixels in 9 cycles!  2.25 cycles/pixel
+	CGLOBAL setupdrawslab
+	CGLOBAL drawslab
+	CGLOBAL stretchhline
+	CGLOBAL mmxoverlay
 
-	GLOBAL dep_begin
-	GLOBAL dep_end
+	CGLOBAL dep_begin
+	CGLOBAL dep_end
 
 dep_begin:
 
