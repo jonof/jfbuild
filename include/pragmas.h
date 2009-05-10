@@ -33,7 +33,6 @@ void copybufbyte(void *S, void *D, long c);
 void copybufreverse(void *S, void *D, long c);
 
 
-#ifdef NO_GCC_BUILTINS
 #define sqr(a) \
 	({ long __a=(a); \
 	   __asm__ __volatile__ ("imull %0, %0" \
@@ -41,9 +40,6 @@ void copybufreverse(void *S, void *D, long c);
 		: "0" (__a) \
 		: "cc"); \
 	 __a; })
-#else
-#define sqr(a) __builtin_sqr(a)
-#endif
 
 #define scale(a,d,c) \
 	({ long __a=(a), __d=(d), __c=(c); \

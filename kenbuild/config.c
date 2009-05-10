@@ -112,14 +112,11 @@ int loadsetup(const char *fn)
 		i = Batoi(val) & 0x0f;
 		if ((unsigned)i<13) { xdimgame = xdim2d = vesares[i][0]; ydimgame = ydim2d = vesares[i][1]; }
 	}
-	if (readconfig(fp, "2dresolution", val, VL) > 0) {
-		i = Batoi(val) & 0x0f;
-		if ((unsigned)i<13) { xdim2d = vesares[i][0]; ydim2d = vesares[i][1]; }
-	}
-	if (readconfig(fp, "xdim2d", val, VL) > 0) xdim2d = Batoi(val);
-	if (readconfig(fp, "ydim2d", val, VL) > 0) ydim2d = Batoi(val);
-	if (readconfig(fp, "xdim3d", val, VL) > 0) xdimgame = Batoi(val);
-	if (readconfig(fp, "ydim3d", val, VL) > 0) ydimgame = Batoi(val);
+	if (readconfig(fp, "xdim", val, VL) > 0) xdimgame = xdim2d = Batoi(val);
+	if (readconfig(fp, "ydim", val, VL) > 0) ydimgame = xdim2d = Batoi(val);
+	if (readconfig(fp, "samplerate", val, VL) > 0) option[7] = (Batoi(val) & 0x0f) << 4;
+	if (readconfig(fp, "music", val, VL) > 0) { if (Batoi(val) != 0) option[2] = 1; else option[2] = 0; }
+	if (readconfig(fp, "mouse", val, VL) > 0) { if (Batoi(val) != 0) option[3] = 1; else option[3] = 0; }
 	if (readconfig(fp, "bpp", val, VL) > 0) bppgame = Batoi(val);
 	if (readconfig(fp, "renderer", val, VL) > 0) { i = Batoi(val); setrendermode(i); }
 	if (readconfig(fp, "brightness", val, VL) > 0) brightness = min(max(Batoi(val),0),15);
@@ -180,10 +177,8 @@ int writesetup(const char *fn)
 	"fullscreen = %ld\n"
 	"\n"
 	"; Video resolution\n"
-	"xdim2d = %ld\n"
-	"ydim2d = %ld\n"
-	"xdim3d = %ld\n"
-	"ydim3d = %ld\n"
+	"xdim = %ld\n"
+	"ydim = %ld\n"
 	"\n"
 	"; 3D-mode colour depth\n"
 	"bpp = %ld\n"
@@ -202,6 +197,26 @@ int writesetup(const char *fn)
 	";   0  - lowest\n"
 	";   15 - highest\n"
 	"brightness = %d\n"
+	"\n"
+	"; Sound sample frequency\n"
+	";   0 - 6 KHz\n"
+	";   1 - 8 KHz\n"
+	";   2 - 11.025 KHz\n"
+	";   3 - 16 KHz\n"
+	";   4 - 22.05 KHz\n"
+	";   5 - 32 KHz\n"
+	";   6 - 44.1 KHz\n"
+	"samplerate = %d\n"
+	"\n"
+	"; Music playback\n"
+	";   0 - Off\n"
+	";   1 - On\n"
+	"music = %d\n"
+	"\n"
+	"; Enable mouse\n"
+	";   0 - No\n"
+	";   1 - Yes\n"
+	"mouse = %d\n"
 	"\n"
 	"; Mouse sensitivity\n"
 	"mousesensitivity = %g\n"
@@ -250,14 +265,15 @@ int writesetup(const char *fn)
 	"keyconsole = %X\n"
 	"\n",
 	
-	forcesetup, fullscreen, xdim2d, ydim2d, xdimgame, ydimgame, bppgame,
+	forcesetup, fullscreen, xdimgame, ydimgame, bppgame,
 #ifdef USE_OPENGL
 	glusetexcache,
 #endif
 #ifdef RENDERTYPEWIN
 	maxrefreshfreq,
 #endif
-	brightness, msens,
+	brightness, option[7]>>4, option[2],
+	option[3], msens,
 	keys[0], keys[1], keys[2], keys[3], keys[4], keys[5],
 	keys[6], keys[7], keys[8], keys[9], keys[10], keys[11],
 	keys[12], keys[13], keys[14], keys[15], keys[16], keys[17],
