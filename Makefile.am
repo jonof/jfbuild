@@ -1,1 +1,1 @@
-SUBDIRS=src kenbuild tools
+SUBDIRS=libsquish src kenbuild tools

@@ -1,0 +1,29 @@
+optionflags=
+if SUPERBUILD
+optionflags += -DSUPERBUILD
+endif
+if POLYMOST
+optionflags += -DPOLYMOST
+endif
+if USE_OPENGL
+optionflags += -DUSE_OPENGL
+endif
+if DYNAMIC_OPENGL
+optionflags += -DDYNAMIC_OPENGL
+endif
+if NOASM
+optionflags += -DNOASM
+endif
+if LINKED_GTK
+optionflags += -DLINKED_GTK
+endif
+if HAVE_GTK2
+optionflags += -DHAVE_GTK2
+endif
+if RENDERTYPEWIN
+optionflags += -DRENDERTYPEWIN
+endif
+if RENDERTYPESDL
+optionflags += -DRENDERTYPESDL
+endif
+
