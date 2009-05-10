@@ -1,3 +1,5 @@
+#ifdef USE_OPENGL
+
 #include "compat.h"
 #include "baselayer.h"
 #include "build.h"
@@ -1423,3 +1425,4 @@ void PTIterFree(PTIter iter)
 	free(iter);
 }
 
+#endif //USE_OPENGL
