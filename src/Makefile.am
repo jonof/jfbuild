@@ -3,6 +3,7 @@ include $(top_srcdir)/Makefile.amshared
 AM_CPPFLAGS = $(optionflags) -I$(srcdir)/../include $(WINDOWS_CPPFLAGS)
 AM_CFLAGS = -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	    -funsigned-char -fno-pic -fno-strict-aliasing
+AM_CXXFLAGS = -fno-exceptions -fno-rtti
 
 if RENDERTYPESDL
 AM_CPPFLAGS += $(SDL_CFLAGS)
@@ -10,7 +11,6 @@ if HAVE_GTK2
 AM_CPPFLAGS += $(GTK_CFLAGS)
 endif
 endif
-
 
 noinst_LTLIBRARIES = libengine-base.la
 libengine_base_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(srcdir)/../libsquish

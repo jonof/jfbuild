@@ -28,6 +28,9 @@ optionflags += -DRENDERTYPESDL
 endif
 
 SUFFIXES = .nasm .rc
+.nasm.lo:
+	$(LIBTOOL) --tag=NASM $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
+	--mode=compile $(NASM) $(NASMFLAGS) -o $@ $<
 .nasm.o:
 	$(NASM) $(NASMFLAGS) -o $@ $<
 .rc.o:
