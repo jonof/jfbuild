@@ -8,11 +8,11 @@ AM_CFLAGS=-W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 WINDRESFLAGS=--include-dir=. --include-dir=.. --include-dir=$(srcdir)/../include
 
 kenbuild_SOURCES=game.c sound_stub.c config.c
-kenbuild_LDADD=../src/libengine.a ../libsquish/libsquish.a
+kenbuild_LDADD=../src/libengine.la
 nodist_EXTRA_kenbuild_SOURCES=dummy.cxx
 
 kenbuild_build_SOURCES=bstub.c
-kenbuild_build_LDADD=../src/libeditor.a ../src/libengine.a ../libsquish/libsquish.a
+kenbuild_build_LDADD=../src/libeditor.a ../src/libengine.la
 nodist_EXTRA_kenbuild_build_SOURCES=dummy.cxx
 
 if RENDERTYPEWIN
@@ -37,8 +37,4 @@ kenbuild_SOURCES += startgtk.game.c rsrc/game_banner.c
 kenbuild_build_SOURCES += rsrc/editor_banner.c
 endif
 
-if USE_OPENGL
-kenbuild_LDADD += ../libsquish/libsquish.a
-kenbuild_build_LDADD += ../libsquish/libsquish.a
-endif
 endif

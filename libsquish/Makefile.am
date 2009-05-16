@@ -1,3 +1,3 @@
-noinst_LIBRARIES=libsquish.a
+noinst_LTLIBRARIES=libsquish.la
 
-libsquish_a_SOURCES=alpha.cpp clusterfit.cpp colourblock.cpp colourfit.cpp colourset.cpp maths.cpp rangefit.cpp singlecolourfit.cpp squish.cpp
+libsquish_la_SOURCES=alpha.cpp clusterfit.cpp colourblock.cpp colourfit.cpp colourset.cpp maths.cpp rangefit.cpp singlecolourfit.cpp squish.cpp
