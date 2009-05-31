@@ -5,8 +5,11 @@
 #ifdef USE_OPENGL
 
 #include "squish.h"
+
+extern "C" {
 #include "glbuild.h"
 #include "polymost_priv.h"
+}
 
 static int getflags(int format)
 {

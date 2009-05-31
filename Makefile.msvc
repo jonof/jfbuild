@@ -4,11 +4,10 @@
 !endif
 
 SRC=src
-GAME=testgame
-!ifndef OBJ
-OBJ=obj.msc
-!endif
+GAME=kenbuild
+TOOLS=tools
 INC=include
+LIBSQUISH=libsquish
 !ifndef CFLAGS
 CFLAGS=/DSUPERBUILD /DPOLYMOST /DUSE_OPENGL /DDYNAMIC_OPENGL /DKSFORBUILD
 !endif
@@ -20,8 +19,8 @@ asm=masm
 ENGINELIB=engine.lib
 EDITORLIB=build.lib
 
-DXROOT=c:\sdks\directx\dx7
-FMODROOT=c:\sdks\fmodapi374win\api
+DXROOT=z:\sdks\directx\dx7
+FMODROOT=z:\sdks\fmodapi374win\api
 
 # /D these to enable certain features of the port's compile process
 # NOASM     When defined, uses C instead of assembly code
@@ -42,82 +41,95 @@ CC=cl
 AS=ml
 RC=rc
 LINK=link /opt:nowin98 /opt:ref /nologo
-CFLAGS=$(CFLAGS) /nologo /MD /J $(flags_cl) $(TARGETOPTS) /I$(INC) /I$(DXROOT)\include /I$(FMODROOT)\inc
-GAMECFLAGS=/I$(GAME)
+CFLAGS=$(CFLAGS) /nologo /MD /J $(flags_cl) $(TARGETOPTS) /I$(INC)
+ENGINECFLAGS=/I$(DXROOT)\include /I$(LIBSQUISH)
+GAMECFLAGS=/I$(GAME) /I$(FMODROOT)\inc
 LIBS=fmodvc.lib #opengl32.lib
 ASFLAGS=/nologo /coff
 EXESUFFIX=.exe
 
-ENGINEOBJS=$(OBJ)\a.$o \
-	$(OBJ)\baselayer.$o \
-	$(OBJ)\cache1d.$o \
-	$(OBJ)\compat.$o \
-	$(OBJ)\crc32.$o \
-	$(OBJ)\defs.$o \
-	$(OBJ)\engine.$o \
-	$(OBJ)\polymost.$o \
-	$(OBJ)\hightile.$o \
-	$(OBJ)\mdsprite.$o \
-	$(OBJ)\glbuild.$o \
-	$(OBJ)\kplib.$o \
-	$(OBJ)\lzf_c.$o \
-	$(OBJ)\lzf_d.$o \
-	$(OBJ)\lzwnew.$o \
-	$(OBJ)\md4.$o \
-	$(OBJ)\mmulti.$o \
-	$(OBJ)\osd.$o \
-	$(OBJ)\pragmas.$o \
-	$(OBJ)\scriptfile.$o \
-	$(OBJ)\textfont.$o \
-	$(OBJ)\smalltextfont.$o \
-	$(OBJ)\winlayer.$o
+ENGINEOBJS=$(SRC)\a.$o \
+	$(SRC)\baselayer.$o \
+	$(SRC)\cache1d.$o \
+	$(SRC)\compat.$o \
+	$(SRC)\crc32.$o \
+	$(SRC)\defs.$o \
+	$(SRC)\engine.$o \
+	$(SRC)\polymost.$o \
+	$(SRC)\polymosttex.$o \
+	$(SRC)\polymosttex-squish.$o \
+	$(SRC)\polymosttexcache.$o \
+	$(SRC)\hightile.$o \
+	$(SRC)\mdsprite.$o \
+	$(SRC)\glbuild.$o \
+	$(SRC)\kplib.$o \
+	$(SRC)\lzf_c.$o \
+	$(SRC)\lzf_d.$o \
+	$(SRC)\lzwnew.$o \
+	$(SRC)\md4.$o \
+	$(SRC)\mmulti.$o \
+	$(SRC)\osd.$o \
+	$(SRC)\pragmas.$o \
+	$(SRC)\scriptfile.$o \
+	$(SRC)\textfont.$o \
+	$(SRC)\smalltextfont.$o \
+	$(SRC)\winlayer.$o
 
-EDITOROBJS=$(OBJ)\build.$o \
-	$(OBJ)\startwin.editor.$o \
-	$(OBJ)\config.$o
+LIBSQUISHOBJS=$(LIBSQUISH)\alpha.$o $(LIBSQUISH)\clusterfit.$o \
+	      $(LIBSQUISH)\colourblock.$o $(LIBSQUISH)\colourfit.$o \
+	      $(LIBSQUISH)\colourset.$o $(LIBSQUISH)\maths.$o \
+	      $(LIBSQUISH)\rangefit.$o $(LIBSQUISH)\singlecolourfit.$o \
+	      $(LIBSQUISH)\squish.$o $(LIBSQUISH)\msvc.$o
 
-GAMEEXEOBJS=$(OBJ)\config.$o \
-	$(OBJ)\game.$o \
-	$(OBJ)\gameres.$(res) \
-	$(OBJ)\startwin.game.$o \
-	$(OBJ)\sound.$o \
-	$(OBJ)\$(ENGINELIB)
+EDITOROBJS=$(SRC)\build.$o \
+	$(SRC)\startwin.editor.$o \
+	$(SRC)\config.$o
 
-EDITOREXEOBJS=$(OBJ)\bstub.$o \
-	$(OBJ)\buildres.$(res) \
-	$(OBJ)\$(EDITORLIB) \
-	$(OBJ)\$(ENGINELIB)
+GAMEEXEOBJS=$(GAME)\config.$o \
+	$(GAME)\game.$o \
+	$(GAME)\gameres.$(res) \
+	$(GAME)\startwin.game.$o \
+	$(GAME)\sound.$o \
+	$(SRC)\$(ENGINELIB)
+
+EDITOREXEOBJS=$(GAME)\bstub.$o \
+	$(GAME)\buildres.$(res) \
+	$(SRC)\$(EDITORLIB) \
+	$(SRC)\$(ENGINELIB)
 	
 RENDERTYPE=WIN
 LIBS=$(LIBS) user32.lib gdi32.lib shell32.lib dxguid.lib wsock32.lib comctl32.lib
 CFLAGS=$(CFLAGS) /DRENDERTYPE$(RENDERTYPE)=1
 
 # RULES
-.SUFFIXES: .masm
+.SUFFIXES: .masm .cc
 
-{$(SRC)}.masm{$(OBJ)}.$o:
+{$(SRC)}.masm{$(SRC)}.$o:
 	$(AS) /c $(ASFLAGS) /Fo$@ $<
 
-{$(SRC)\tmp}.c{$(OBJ)}.$o:
+{$(SRC)}.c{$(SRC)}.$o:
+	$(CC) /c $(CFLAGS) $(ENGINECFLAGS) /Fo$@ $<
+
+{$(SRC)}.cc{$(SRC)}.$o:
+	$(CC) /TP /c $(CFLAGS) $(ENGINECFLAGS) /Fo$@ $<
+
+{$(SRC)}.cpp{$(SRC)}.$o:
+	$(CC) /c $(CFLAGS) $(ENGINECFLAGS) /Fo$@ $<
+
+{$(LIBSQUISH)}.cpp{$(LIBSQUISH)}.$o:
+	$(CC) /TP /c $(CFLAGS) /I$(LIBSQUISH) /Fo$@ $<
+
+{$(TOOLS)}.c{$(TOOLS)}.$o:
 	$(CC) /c $(CFLAGS) /Fo$@ $<
 
-{$(SRC)\util}.c{$(OBJ)}.$o:
-	$(CC) /c $(CFLAGS) /Fo$@ $<
+{$(GAME)}.c{$(GAME)}.$o:
+	$(CC) /c $(CFLAGS) $(GAMECFLAGS) /Fo$@ $<
 
-{$(SRC)\misc}.rc{$(OBJ)}.$(res):
+{$(GAME)}.cpp{$(GAME)}.$o:
+	$(CC) /c $(CFLAGS) $(GAMECFLAGS) /Fo$@ $<
+
+{$(GAME)\rsrc}.rc{$(GAME)}.$(res):
 	$(RC) /i$(INC) /i$(GAME) /fo$@ /r $<
-
-{$(SRC)}.c{$(OBJ)}.$o:
-	$(CC) /c $(CFLAGS) /Fo$@ $<
-
-{$(SRC)}.cpp{$(OBJ)}.$o:
-	$(CC) /c $(CFLAGS) /Fo$@ $<
-
-{$(GAME)}.c{$(OBJ)}.$o:
-	$(CC) /c $(CFLAGS) $(GAMECFLAGS) /Fo$@ $<
-
-{$(GAME)}.cpp{$(OBJ)}.$o:
-	$(CC) /c $(CFLAGS) $(GAMECFLAGS) /Fo$@ $<
 
 # TARGETS
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2map$(EXESUFFIX) wad2map$(EXESUFFIX)
@@ -125,12 +137,12 @@ UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2map$(EXES
 all: game$(EXESUFFIX) build$(EXESUFFIX) ;
 utils: $(UTILS) ;
 
-enginelib: $(OBJ)\$(ENGINELIB) ;
-$(OBJ)\$(ENGINELIB): $(ENGINEOBJS)
+enginelib: $(SRC)\$(ENGINELIB) ;
+$(SRC)\$(ENGINELIB): $(ENGINEOBJS) $(LIBSQUISHOBJS)
 	lib /out:$@ /nologo $**
 
-editorlib: $(OBJ)\$(EDITORLIB) ;
-$(OBJ)\$(EDITORLIB): $(EDITOROBJS)
+editorlib: $(SRC)\$(EDITORLIB) ;
+$(SRC)\$(EDITORLIB): $(EDITOROBJS)
 	lib /out:$@ /nologo $**
 
 
@@ -141,19 +153,19 @@ build$(EXESUFFIX): $(EDITOREXEOBJS)
 	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS /LIBPATH:$(DXROOT)\lib /LIBPATH:$(FMODROOT)\lib $(flags_link) /MAP $** $(LIBS) msvcrt.lib
 
 # the tools
-kextract$(EXESUFFIX): $(OBJ)\kextract.$o $(OBJ)\compat.$o
+kextract$(EXESUFFIX): $(TOOLS)\kextract.$o $(SRC)\compat.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 
-kgroup$(EXESUFFIX): $(OBJ)\kgroup.$o $(OBJ)\compat.$o
+kgroup$(EXESUFFIX): $(TOOLS)\kgroup.$o $(SRC)\compat.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 
-transpal$(EXESUFFIX): $(OBJ)\transpal.$o $(OBJ)\pragmas.$o $(OBJ)\compat.$o
+transpal$(EXESUFFIX): $(TOOLS)\transpal.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 
-wad2map$(EXESUFFIX): $(OBJ)\wad2map.$o $(OBJ)\pragmas.$o $(OBJ)\compat.$o
+wad2map$(EXESUFFIX): $(TOOLS)\wad2map.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 
-wad2art$(EXESUFFIX): $(OBJ)\wad2art.$o $(OBJ)\pragmas.$o $(OBJ)\compat.$o
+wad2art$(EXESUFFIX): $(TOOLS)\wad2art.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(flags_link) /MAP $** msvcrt.lib
 
 # DEPENDENCIES
@@ -161,7 +173,7 @@ wad2art$(EXESUFFIX): $(OBJ)\wad2art.$o $(OBJ)\pragmas.$o $(OBJ)\compat.$o
 
 # PHONIES	
 clean:
-	-del /q $(ENGINEOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS)
+	-del /q $(ENGINEOBJS) $(LIBSQUISHOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS)
 veryclean: clean
-	-del /q $(OBJ)\$(ENGINELIB) $(OBJ)\$(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS)
+	-del /q $(SRC)\$(ENGINELIB) $(SRC)\$(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS)
 
