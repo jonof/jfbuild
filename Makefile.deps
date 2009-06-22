@@ -51,6 +51,8 @@ $(GAME)/buildres.$(res): $(GAME)/rsrc/buildres.rc $(INC)/startwin.editor.h
 
 $(GAME)/game_icon.$o: $(GAME)/rsrc/game_icon.c
 $(GAME)/build_icon.$o: $(GAME)/rsrc/build_icon.c
+$(GAME)/game_banner.$o: $(GAME)/rsrc/game_banner.c
+$(GAME)/editor_banner.$o: $(GAME)/rsrc/editor_banner.c
 
 # Tools
 $(TOOLS)/arttool.$o: $(TOOLS)/arttool.cc

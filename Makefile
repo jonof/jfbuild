@@ -28,14 +28,14 @@ RELEASE?=1
 EFENCE?=0
 
 # SDK locations - adjust to match your setup
-DXROOT=c:/sdks/directx/dx61
+DXROOT=z:/sdks/directx/dx7
 FMODROOTWIN=c:/sdks/fmodapi374win/api
 
 # build locations - OBJ gets overridden to the game-specific objects dir
 OBJ?=obj.gnu
 SRC=src
-GAME=testgame
-RSRC=rsrc
+GAME=kenbuild
+TOOLS=tools
 INC=include
 
 # filename extensions - these won't need to change
@@ -60,9 +60,9 @@ AR=ar
 RANLIB=ranlib
 OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-char-subscripts -Wno-unused \
 	-fno-pic -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
-	-DKSFORBUILD -I$(INC)
+	-DKSFORBUILD -I$(INC) -I$(SRC)
 OURCXXFLAGS=-fno-exceptions -fno-rtti
-GAMECFLAGS=-I$(GAME)
+GAMECFLAGS=-I$(GAME) -I$(INC)
 LIBS=
 GAMELIBS=
 ASFLAGS=-s #-g
@@ -72,57 +72,57 @@ include Makefile.shared
 
 ENGINEOBJS=
 ifeq (0,$(NOASM))
-  ENGINEOBJS+= $(OBJ)/a.$o
+  ENGINEOBJS+= $(SRC)/a.$o
 endif
 
 ENGINEOBJS+= \
-	$(OBJ)/a-c.$o \
-	$(OBJ)/baselayer.$o \
-	$(OBJ)/cache1d.$o \
-	$(OBJ)/compat.$o \
-	$(OBJ)/crc32.$o \
-	$(OBJ)/defs.$o \
-	$(OBJ)/engine.$o \
-	$(OBJ)/polymost.$o \
-	$(OBJ)/polymosttex.$o \
-	$(OBJ)/polymosttex-squish.$o \
-	$(OBJ)/polymosttexcache.$o \
-	$(OBJ)/hightile.$o \
-	$(OBJ)/mdsprite.$o \
-	$(OBJ)/glbuild.$o \
-	$(OBJ)/kplib.$o \
-	$(OBJ)/lzf_c.$o \
-	$(OBJ)/lzf_d.$o \
-	$(OBJ)/md4.$o \
-	$(OBJ)/mmulti.$o \
-	$(OBJ)/osd.$o \
-	$(OBJ)/pragmas.$o \
-	$(OBJ)/scriptfile.$o \
-	$(OBJ)/textfont.$o \
-	$(OBJ)/smalltextfont.$o
+	$(SRC)/a-c.$o \
+	$(SRC)/baselayer.$o \
+	$(SRC)/cache1d.$o \
+	$(SRC)/compat.$o \
+	$(SRC)/crc32.$o \
+	$(SRC)/defs.$o \
+	$(SRC)/engine.$o \
+	$(SRC)/polymost.$o \
+	$(SRC)/polymosttex.$o \
+	$(SRC)/polymosttex-squish.$o \
+	$(SRC)/polymosttexcache.$o \
+	$(SRC)/hightile.$o \
+	$(SRC)/mdsprite.$o \
+	$(SRC)/glbuild.$o \
+	$(SRC)/kplib.$o \
+	$(SRC)/lzf_c.$o \
+	$(SRC)/lzf_d.$o \
+	$(SRC)/md4.$o \
+	$(SRC)/mmulti.$o \
+	$(SRC)/osd.$o \
+	$(SRC)/pragmas.$o \
+	$(SRC)/scriptfile.$o \
+	$(SRC)/textfont.$o \
+	$(SRC)/smalltextfont.$o
 
-EDITOROBJS=$(OBJ)/build.$o \
-	$(OBJ)/config.$o
+EDITOROBJS=$(SRC)/build.$o \
+	$(SRC)/config.$o
 
-GAMEEXEOBJS=$(OBJ)/game.$o \
-	$(OBJ)/sound_stub.$o \
-	$(OBJ)/config.$o \
-	$(OBJ)/$(ENGINELIB)
+GAMEEXEOBJS=$(GAME)/game.$o \
+	$(GAME)/sound_stub.$o \
+	$(GAME)/config.$o \
+	$(ENGINELIB)
 
-EDITOREXEOBJS=$(OBJ)/bstub.$o \
-	$(OBJ)/$(EDITORLIB) \
-	$(OBJ)/$(ENGINELIB)
+EDITOREXEOBJS=$(GAME)/bstub.$o \
+	$(EDITORLIB) \
+	$(ENGINELIB)
 
 ENGINEOBJS+= \
-	$(OBJ)/libsquish/alpha.$o \
-	$(OBJ)/libsquish/clusterfit.$o \
-	$(OBJ)/libsquish/colourblock.$o \
-	$(OBJ)/libsquish/colourfit.$o \
-	$(OBJ)/libsquish/colourset.$o \
-	$(OBJ)/libsquish/maths.$o \
-	$(OBJ)/libsquish/rangefit.$o \
-	$(OBJ)/libsquish/singlecolourfit.$o \
-	$(OBJ)/libsquish/squish.$o
+	$(LIBSQUISH)/alpha.$o \
+	$(LIBSQUISH)/clusterfit.$o \
+	$(LIBSQUISH)/colourblock.$o \
+	$(LIBSQUISH)/colourfit.$o \
+	$(LIBSQUISH)/colourset.$o \
+	$(LIBSQUISH)/maths.$o \
+	$(LIBSQUISH)/rangefit.$o \
+	$(LIBSQUISH)/singlecolourfit.$o \
+	$(LIBSQUISH)/squish.$o
 
 # detect the platform
 ifeq ($(PLATFORM),LINUX)
@@ -157,20 +157,20 @@ ifeq ($(RENDERTYPE),SDL)
 	
 	ifeq (1,$(HAVE_GTK2))
 		OURCFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
-		ENGINEOBJS+= $(OBJ)/gtkbits.$o $(OBJ)/dynamicgtk.$o
-		EDITOROBJS+= $(OBJ)/startgtk.editor.$o
-		GAMEEXEOBJS+= $(OBJ)/game_banner.$o $(OBJ)/startgtk.game.$o
-		EDITOREXEOBJS+= $(OBJ)/editor_banner.$o
+		ENGINEOBJS+= $(SRC)/gtkbits.$o $(SRC)/dynamicgtk.$o
+		EDITOROBJS+= $(SRC)/startgtk.editor.$o
+		GAMEEXEOBJS+= $(GAME)/game_banner.$o $(GAME)/startgtk.game.$o
+		EDITOREXEOBJS+= $(GAME)/editor_banner.$o
 	endif
 
-	GAMEEXEOBJS+= $(OBJ)/game_icon.$o
-	EDITOREXEOBJS+= $(OBJ)/build_icon.$o
+	GAMEEXEOBJS+= $(GAME)/game_icon.$o
+	EDITOREXEOBJS+= $(GAME)/build_icon.$o
 endif
 ifeq ($(RENDERTYPE),WIN)
-	ENGINEOBJS+= $(OBJ)/winlayer.$o
-	EDITOROBJS+= $(OBJ)/startwin.editor.$o
-	GAMEEXEOBJS+= $(OBJ)/gameres.$(res) $(OBJ)/startwin.game.$o
-	EDITOREXEOBJS+= $(OBJ)/buildres.$(res)
+	ENGINEOBJS+= $(SRC)/winlayer.$o
+	EDITOROBJS+= $(SRC)/startwin.editor.$o
+	GAMEEXEOBJS+= $(GAME)/gameres.$(res) $(GAME)/startwin.game.$o
+	EDITOREXEOBJS+= $(GAME)/buildres.$(res)
 endif
 
 ifneq (0,$(EFENCE))
@@ -201,14 +201,14 @@ UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXES
 
 all: game$(EXESUFFIX) build$(EXESUFFIX)
 utils: $(UTILS)
+enginelib: $(ENGINELIB)
+editorlib: $(EDITORLIB)
 
-enginelib: $(OBJ)/$(ENGINELIB)
-$(OBJ)/$(ENGINELIB): $(ENGINEOBJS)
+$(ENGINELIB): $(ENGINEOBJS)
 	$(AR) rc $@ $^
 	$(RANLIB) $@
 
-editorlib: $(OBJ)/$(EDITORLIB)
-$(OBJ)/$(EDITORLIB): $(EDITOROBJS)
+$(EDITORLIB): $(EDITOROBJS)
 	$(AR) rc $@ $^
 	$(RANLIB) $@
 
@@ -217,71 +217,55 @@ game$(EXESUFFIX): $(GAMEEXEOBJS)
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS)
 	$(CXX) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(LIBS)
-
-pragmacheck$(EXESUFFIX): $(OBJ)/pragmacheck.$o $(OBJ)/pragmas.$o
-	$(CC) $(subst -Dmain=app_main,,$(OURCFLAGS)) -o $@ $^
 	
-kextract$(EXESUFFIX): $(OBJ)/kextract.$o $(OBJ)/compat.$o
-	$(CC) -o $@ $^
-kgroup$(EXESUFFIX): $(OBJ)/kgroup.$o $(OBJ)/compat.$o
-	$(CC) -o $@ $^
-transpal$(EXESUFFIX): $(OBJ)/transpal.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o
-	$(CC) -o $@ $^
-arttool$(EXESUFFIX): $(OBJ)/arttool.$o
+kextract$(EXESUFFIX): $(TOOLS)/kextract.$o $(ENGINELIB)
+	$(CC) -o $@ $^ $(ENGINELIB)
+kgroup$(EXESUFFIX): $(TOOLS)/kgroup.$o $(ENGINELIB)
+	$(CC) -o $@ $^ $(ENGINELIB)
+transpal$(EXESUFFIX): $(TOOLS)/transpal.$o $(ENGINELIB)
+	$(CC) -o $@ $^ $(ENGINELIB)
+arttool$(EXESUFFIX): $(TOOLS)/arttool.$o
 	$(CXX) -o $@ $^
-wad2art$(EXESUFFIX): $(OBJ)/wad2art.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o
-	$(CC) -o $@ $^
-wad2map$(EXESUFFIX): $(OBJ)/wad2map.$o $(OBJ)/pragmas.$o $(OBJ)/compat.$o
-	$(CC) -o $@ $^
-generateicon$(EXESUFFIX): $(OBJ)/generateicon.$o $(OBJ)/kplib.$o
-	$(CC) -o $@ $^
-cacheinfo$(EXESUFFIX): $(OBJ)/cacheinfo.$o $(OBJ)/compat.$o
-	$(CC) -o $@ $^
-enumdisplay$(EXESUFFIX): src/misc/enumdisplay.c
-	$(CC) -g -Os -o $@ $^ -I$(DXROOT)/include -lgdi32
-mapdump$(EXESUFFIX): $(OBJ)/mapdump.$o
-	$(CC) -o $@ $^
+wad2art$(EXESUFFIX): $(TOOLS)/wad2art.$o $(ENGINELIB)
+	$(CC) -o $@ $^ $(ENGINELIB)
+wad2map$(EXESUFFIX): $(TOOLS)/wad2map.$o $(ENGINELIB)
+	$(CC) -o $@ $^ $(ENGINELIB)
+generateicon$(EXESUFFIX): $(TOOLS)/generateicon.$o $(ENGINELIB)
+	$(CC) -o $@ $^ $(ENGINELIB)
+cacheinfo$(EXESUFFIX): $(TOOLS)/cacheinfo.$o $(ENGINELIB)
+	$(CC) -o $@ $^ $(ENGINELIB)
 
 # DEPENDENCIES
 include Makefile.deps
 
 # RULES
-$(OBJ)/%.$o: $(SRC)/%.nasm
+$(SRC)/%.$o: $(SRC)/%.$(asm)
 	$(AS) $(ASFLAGS) $< -o $@
 
-$(OBJ)/%.$o: $(SRC)/%.c
+$(SRC)/%.$o: $(SRC)/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
-$(OBJ)/%.$o: $(SRC)/%.cc
+$(SRC)/%.$o: $(SRC)/%.cc
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
-$(OBJ)/%.$o: $(SRC)/%.cpp
+$(SRC)/%.$o: $(SRC)/%.cpp
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
 
-$(OBJ)/libsquish/%.$o: $(LIBSQUISH)/%.cpp
-	test -d $(OBJ)/libsquish || mkdir $(OBJ)/libsquish
+$(LIBSQUISH)/%.$o: $(LIBSQUISH)/%.cpp
 	$(CXX) $(CXXFLAGS) $(BUILDCFLAGS) -O2 -c $< -o $@ 2>&1
 
-$(OBJ)/%.$o: $(SRC)/misc/%.rc
-	$(RC) -i $< -o $@ --include-dir=$(INC) --include-dir=$(SRC) --include-dir=$(GAME)
-
-$(OBJ)/%.$o: $(SRC)/util/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
-
-$(OBJ)/%.$o: $(SRC)/util/%.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@ 2>&1
-
-$(OBJ)/%.$o: $(RSRC)/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
-
-$(OBJ)/%.$o: $(GAME)/%.c
+$(GAME)/%.$o: $(GAME)/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@ 2>&1
 
-$(OBJ)/%.$o: $(GAME)/%.cpp
+$(GAME)/%.$o: $(GAME)/%.cpp
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@ 2>&1
 
-$(OBJ)/game_banner.$o: $(RSRC)/game_banner.c
-$(OBJ)/editor_banner.$o: $(RSRC)/editor_banner.c
+$(GAME)/%.$o: $(GAME)/rsrc/%.c
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+
+$(GAME)/%.$(res): $(GAME)/rsrc/%.rc
+	$(RC) -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
+
 $(RSRC)/game_banner.c: $(RSRC)/game.bmp
 	echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
 	gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
@@ -289,13 +273,19 @@ $(RSRC)/editor_banner.c: $(RSRC)/build.bmp
 	echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
 	gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
 
+$(TOOLS)/%.$o: $(TOOLS)/%.c
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+
+$(TOOLS)/%.$o: $(TOOLS)/%.cc
+	$(CXX) $(CXXFLAGS) -c $< -o $@ 2>&1
+
 # PHONIES	
 clean:
 ifeq ($(PLATFORM),DARWIN)
 	cd xcode && xcodebuild -project engine.xcodeproj -alltargets -configuration $(style) clean
 	cd xcode && xcodebuild -project game.xcodeproj -alltargets -configuration $(style) clean
 else
-	-rm -f $(OBJ)/*
+	-rm -f $(SRC)/*.$o $(GAME)/*.$o $(LIBSQUISH)/*.$o
 endif
 
 veryclean: clean
