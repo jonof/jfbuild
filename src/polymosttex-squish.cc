@@ -2,9 +2,14 @@
  * libsquish bridging interface
  */
 
+#ifdef USE_OPENGL
+
 #include "squish.h"
+
+extern "C" {
 #include "glbuild.h"
 #include "polymost_priv.h"
+}
 
 static int getflags(int format)
 {
@@ -38,3 +43,5 @@ extern "C" int squish_CompressImage(coltype * rgba, int width, int height, unsig
 	squish::CompressImage( (squish::u8 const *) rgba, width, height, output, getflags(format));
 	return 0;
 }
+
+#endif

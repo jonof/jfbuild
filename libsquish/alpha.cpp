@@ -27,6 +27,8 @@
 #include <algorithm>
 #include <climits>
 
+#include "msvc.h"
+
 namespace squish {
 
 static int FloatToInt( float a, int limit )

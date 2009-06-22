@@ -52,7 +52,6 @@ long usevoxels = 1;
 #define kloadvoxel loadvoxel
 
 long novoxmips = 0;
-long editorgridextent = 131072;
 
 	//These variables need to be copied into BUILD
 #define MAXXSIZ 256
@@ -95,6 +94,7 @@ long lastageclock;
 long tilefileoffs[MAXTILES];
 
 long artsize = 0, cachesize = 0;
+long editorgridextent = 131072;
 
 static short radarang[1280], radarang2[MAXXDIM];
 static unsigned short sqrtable[4096], shlookup[4096+256];

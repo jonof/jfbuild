@@ -6,7 +6,6 @@
 // by Jonathon Fowler (jf@jonof.id.au)
 
 #include "compat.h"
-#include "a.h"
 #include "build.h"
 #include "editor.h"
 #include "pragmas.h"

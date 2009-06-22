@@ -1,60 +1,63 @@
 # Build Engine dependencies
 #
-$(OBJ)/a-c.$o: $(SRC)/a-c.c $(INC)/a.h
-$(OBJ)/a.$o: $(SRC)/a.$(asm)
-$(OBJ)/baselayer.$o: $(SRC)/baselayer.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/osd.h
-$(OBJ)/build.$o: $(SRC)/build.c $(INC)/build.h $(INC)/pragmas.h $(INC)/compat.h $(INC)/baselayer.h $(INC)/editor.h
-$(OBJ)/cache1d.$o: $(SRC)/cache1d.c $(INC)/compat.h $(INC)/cache1d.h $(INC)/pragmas.h $(INC)/baselayer.h
-$(OBJ)/compat.$o: $(SRC)/compat.c $(INC)/compat.h
-$(OBJ)/config.$o: $(SRC)/config.c $(INC)/compat.h $(INC)/osd.h $(INC)/editor.h
-$(OBJ)/crc32.$o: $(SRC)/crc32.c $(INC)/crc32.h
-$(OBJ)/defs.$o: $(SRC)/defs.c $(INC)/build.h $(INC)/baselayer.h $(INC)/scriptfile.h $(INC)/compat.h
-$(OBJ)/engine.$o: $(SRC)/engine.c $(INC)/compat.h $(INC)/build.h $(INC)/pragmas.h $(INC)/cache1d.h $(INC)/a.h $(INC)/osd.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
-$(OBJ)/polymost.$o: $(SRC)/polymost.c $(INC)/compat.h $(INC)/build.h $(INC)/glbuild.h $(INC)/pragmas.h $(INC)/baselayer.h $(INC)/osd.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(INC)/polymosttexcache.h $(SRC)/mdsprite_priv.h
-$(OBJ)/polymosttex.$o: $(SRC)/polymosttex.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/glbuild.h $(INC)/kplib.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(INC)/polymosttexcache.h
-$(OBJ)/polymosttex-squish.$o: $(SRC)/polymosttex-squish.cc $(LIBSQUISH)/squish.h $(INC)/glbuild.h $(SRC)/polymost_priv.h
-$(OBJ)/polymosttexcache.$o: $(SRC)/polymosttexcache.c $(INC)/polymosttexcache.h $(INC)/compat.h $(INC)/baselayer.h $(INC)/glbuild.h $(INC)/build.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h
-$(OBJ)/hightile.$o: $(SRC)/hightile.c $(INC)/kplib.h $(SRC)/hightile_priv.h
-$(OBJ)/mdsprite.$o: $(SRC)/mdsprite.c $(INC)/compat.h $(INC)/build.h $(INC)/glbuild.h $(INC)/kplib.h $(INC)/pragmas.h $(INC)/cache1d.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
-$(OBJ)/textfont.$o: $(SRC)/textfont.c
-$(OBJ)/smalltextfont.$o: $(SRC)/smalltextfont.c
-$(OBJ)/glbuild.$o: $(SRC)/glbuild.c $(INC)/glbuild.h $(INC)/baselayer.h
-$(OBJ)/kplib.$o: $(SRC)/kplib.c $(INC)/compat.h
-$(OBJ)/lzf_c.$o: $(SRC)/lzf_c.c $(SRC)/lzfP.h
-$(OBJ)/lzf_d.$o: $(SRC)/lzf_d.c $(SRC)/lzfP.h
-$(OBJ)/lzwnew.$o: $(SRC)/lzwnew.c
-$(OBJ)/md4.$o: $(SRC)/md4.c $(INC)/md4.h $(INC)/compat.h
-$(OBJ)/mmulti_null.$o: $(SRC)/mmulti_null.c $(INC)/mmulti.h
-$(OBJ)/mmulti.$o: $(SRC)/mmulti.c
-$(OBJ)/osd.$o: $(SRC)/osd.c $(INC)/build.h $(INC)/osd.h $(INC)/compat.h $(INC)/baselayer.h
-$(OBJ)/pragmas.$o: $(SRC)/pragmas.c $(INC)/compat.h
-$(OBJ)/scriptfile.$o: $(SRC)/scriptfile.c $(INC)/scriptfile.h $(INC)/cache1d.h $(INC)/compat.h
-$(OBJ)/sdlayer.$o: $(SRC)/sdlayer.c $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(INC)/cache1d.h $(INC)/pragmas.h $(INC)/a.h $(INC)/build.h $(INC)/osd.h $(INC)/glbuild.h
-$(OBJ)/sound.$o: $(SRC)/sound.c $(INC)/osd.h $(INC)/compat.h $(INC)/cache1d.h
-$(OBJ)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/baselayer.h $(INC)/pragmas.h $(INC)/build.h $(INC)/a.h $(INC)/osd.h $(INC)/dxdidf.h $(INC)/glbuild.h
-$(OBJ)/gtkbits.$o: $(SRC)/gtkbits.c $(INC)/baselayer.h $(INC)/build.h $(INC)/dynamicgtk.h
-$(OBJ)/dynamicgtk.$o: $(SRC)/dynamicgtk.c $(INC)/dynamicgtk.h
+$(SRC)/a-c.$o: $(SRC)/a-c.c $(SRC)/a.h
+$(SRC)/a.$o: $(SRC)/a.$(asm)
+$(SRC)/baselayer.$o: $(SRC)/baselayer.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/osd.h
+$(SRC)/build.$o: $(SRC)/build.c $(INC)/build.h $(INC)/pragmas.h $(INC)/compat.h $(INC)/baselayer.h $(INC)/editor.h
+$(SRC)/cache1d.$o: $(SRC)/cache1d.c $(INC)/compat.h $(INC)/cache1d.h $(INC)/pragmas.h $(INC)/baselayer.h
+$(SRC)/compat.$o: $(SRC)/compat.c $(INC)/compat.h
+$(SRC)/config.$o: $(SRC)/config.c $(INC)/compat.h $(INC)/osd.h $(INC)/editor.h
+$(SRC)/crc32.$o: $(SRC)/crc32.c $(INC)/crc32.h
+$(SRC)/defs.$o: $(SRC)/defs.c $(INC)/build.h $(INC)/baselayer.h $(INC)/scriptfile.h $(INC)/compat.h
+$(SRC)/engine.$o: $(SRC)/engine.c $(INC)/compat.h $(INC)/build.h $(INC)/pragmas.h $(INC)/cache1d.h $(SRC)/a.h $(INC)/osd.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
+$(SRC)/polymost.$o: $(SRC)/polymost.c $(INC)/compat.h $(INC)/build.h $(INC)/glbuild.h $(INC)/pragmas.h $(INC)/baselayer.h $(INC)/osd.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h $(SRC)/mdsprite_priv.h
+$(SRC)/polymosttex.$o: $(SRC)/polymosttex.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/glbuild.h $(SRC)/kplib.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h
+$(SRC)/polymosttex-squish.$o: $(SRC)/polymosttex-squish.cc $(LIBSQUISH)/squish.h $(INC)/glbuild.h $(SRC)/polymost_priv.h
+$(SRC)/polymosttexcache.$o: $(SRC)/polymosttexcache.c $(SRC)/polymosttexcache.h $(INC)/compat.h $(INC)/baselayer.h $(INC)/glbuild.h $(INC)/build.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h
+$(SRC)/hightile.$o: $(SRC)/hightile.c $(SRC)/kplib.h $(SRC)/hightile_priv.h
+$(SRC)/mdsprite.$o: $(SRC)/mdsprite.c $(INC)/compat.h $(INC)/build.h $(INC)/glbuild.h $(SRC)/kplib.h $(INC)/pragmas.h $(INC)/cache1d.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
+$(SRC)/textfont.$o: $(SRC)/textfont.c
+$(SRC)/smalltextfont.$o: $(SRC)/smalltextfont.c
+$(SRC)/glbuild.$o: $(SRC)/glbuild.c $(INC)/glbuild.h $(INC)/baselayer.h
+$(SRC)/kplib.$o: $(SRC)/kplib.c $(INC)/compat.h
+$(SRC)/lzf_c.$o: $(SRC)/lzf_c.c $(SRC)/lzfP.h
+$(SRC)/lzf_d.$o: $(SRC)/lzf_d.c $(SRC)/lzfP.h
+$(SRC)/lzwnew.$o: $(SRC)/lzwnew.c
+$(SRC)/md4.$o: $(SRC)/md4.c $(INC)/md4.h $(INC)/compat.h
+$(SRC)/mmulti_null.$o: $(SRC)/mmulti_null.c $(INC)/mmulti.h
+$(SRC)/mmulti.$o: $(SRC)/mmulti.c
+$(SRC)/osd.$o: $(SRC)/osd.c $(INC)/build.h $(INC)/osd.h $(INC)/compat.h $(INC)/baselayer.h
+$(SRC)/pragmas.$o: $(SRC)/pragmas.c $(INC)/compat.h
+$(SRC)/scriptfile.$o: $(SRC)/scriptfile.c $(INC)/scriptfile.h $(INC)/cache1d.h $(INC)/compat.h
+$(SRC)/sdlayer.$o: $(SRC)/sdlayer.c $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/build.h $(INC)/osd.h $(INC)/glbuild.h
+$(SRC)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/baselayer.h $(INC)/pragmas.h $(INC)/build.h $(SRC)/a.h $(INC)/osd.h $(SRC)/dxdidf.h $(INC)/glbuild.h
+$(SRC)/gtkbits.$o: $(SRC)/gtkbits.c $(INC)/baselayer.h $(INC)/build.h $(INC)/dynamicgtk.h
+$(SRC)/dynamicgtk.$o: $(SRC)/dynamicgtk.c $(INC)/dynamicgtk.h
+
+$(SRC)/startwin.editor.$o: $(SRC)/startwin.editor.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(INC)/startwin.editor.h
+$(SRC)/startgtk.editor.$o: $(SRC)/startgtk.editor.c $(INC)/baselayer.h $(INC)/build.h $(INC)/editor.h $(INC)/compat.h
 
 # KenBuild test game
-$(OBJ)/game.$o: $(GAME)/game.c $(INC)/compat.h $(INC)/build.h $(GAME)/names.h $(INC)/pragmas.h $(INC)/cache1d.h $(GAME)/game.h $(INC)/osd.h $(INC)/baselayer.h
-$(OBJ)/bstub.$o: $(GAME)/bstub.c $(INC)/compat.h $(INC)/a.h $(INC)/build.h $(INC)/pragmas.h $(INC)/baselayer.h $(GAME)/names.h $(INC)/osd.h $(INC)/cache1d.h $(INC)/editor.h
-$(OBJ)/jfaud_sound.$o: $(GAME)/jfaud_sound.cpp $(INC)/osd.h $(INC)/compat.h $(INC)/cache1d.h
-$(OBJ)/startwin.game.$o: $(GAME)/startwin.game.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(GAME)/startwin.game.h
-$(OBJ)/startgtk.game.$o: $(GAME)/startgtk.game.c $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h
+$(GAME)/game.$o: $(GAME)/game.c $(INC)/compat.h $(INC)/build.h $(GAME)/names.h $(INC)/pragmas.h $(INC)/cache1d.h $(GAME)/game.h $(INC)/osd.h $(INC)/baselayer.h
+$(GAME)/bstub.$o: $(GAME)/bstub.c $(INC)/compat.h $(INC)/build.h $(INC)/pragmas.h $(INC)/baselayer.h $(GAME)/names.h $(INC)/osd.h $(INC)/cache1d.h $(INC)/editor.h
+$(GAME)/config.$o: $(GAME)/config.c $(INC)/compat.h $(INC)/osd.h $(INC)/editor.h
+$(GAME)/sound.$o: $(GAME)/sound.c $(INC)/osd.h $(INC)/compat.h $(INC)/cache1d.h
+$(GAME)/jfaud_sound.$o: $(GAME)/jfaud_sound.cpp $(INC)/osd.h $(INC)/compat.h $(INC)/cache1d.h
+$(GAME)/startwin.game.$o: $(GAME)/startwin.game.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(GAME)/startwin.game.h
+$(GAME)/startgtk.game.$o: $(GAME)/startgtk.game.c $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h
 
-$(OBJ)/gameres.$(res): $(SRC)/misc/gameres.rc $(GAME)/startwin.game.h
-$(OBJ)/buildres.$(res): $(SRC)/misc/buildres.rc $(INC)/startwin.editor.h
-$(OBJ)/startwin.editor.$o: $(SRC)/startwin.editor.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(INC)/startwin.editor.h
-$(OBJ)/startgtk.editor.$o: $(SRC)/startgtk.editor.c $(INC)/baselayer.h $(INC)/build.h $(INC)/editor.h $(INC)/compat.h
+$(GAME)/gameres.$(res): $(GAME)/rsrc/gameres.rc $(GAME)/startwin.game.h
+$(GAME)/buildres.$(res): $(GAME)/rsrc/buildres.rc $(INC)/startwin.editor.h
 
-$(OBJ)/game_icon.$o: $(RSRC)/game_icon.c
-$(OBJ)/build_icon.$o: $(RSRC)/build_icon.c
+$(GAME)/game_icon.$o: $(GAME)/rsrc/game_icon.c
+$(GAME)/build_icon.$o: $(GAME)/rsrc/build_icon.c
 
-$(OBJ)/arttool.$o: $(SRC)/util/arttool.cc
-$(OBJ)/kextract.$o: $(SRC)/util/kextract.c $(INC)/compat.h
-$(OBJ)/kgroup.$o: $(SRC)/util/kgroup.c $(INC)/compat.h
-$(OBJ)/transpal.$o: $(SRC)/util/transpal.c $(INC)/compat.h $(INC)/pragmas.h
-$(OBJ)/wad2art.$o: $(SRC)/util/wad2art.c $(INC)/compat.h $(INC)/pragmas.h
-$(OBJ)/wad2map.$o: $(SRC)/util/wad2map.c $(INC)/compat.h $(INC)/pragmas.h
-$(OBJ)/generateicon.$o: $(SRC)/util/generateicon.c
-$(OBJ)/cacheinfo.$o: $(SRC)/util/cacheinfo.c $(INC)/compat.h
+# Tools
+$(TOOLS)/arttool.$o: $(TOOLS)/arttool.cc
+$(TOOLS)/kextract.$o: $(TOOLS)/kextract.c $(INC)/compat.h
+$(TOOLS)/kgroup.$o: $(TOOLS)/kgroup.c $(INC)/compat.h
+$(TOOLS)/transpal.$o: $(TOOLS)/transpal.c $(INC)/compat.h $(INC)/pragmas.h
+$(TOOLS)/wad2art.$o: $(TOOLS)/wad2art.c $(INC)/compat.h $(INC)/pragmas.h
+$(TOOLS)/wad2map.$o: $(TOOLS)/wad2map.c $(INC)/compat.h $(INC)/pragmas.h
+$(TOOLS)/generateicon.$o: $(TOOLS)/generateicon.c
+$(TOOLS)/cacheinfo.$o: $(TOOLS)/cacheinfo.c $(INC)/compat.h

@@ -1,3 +1,5 @@
+#ifdef USE_OPENGL
+
 #include "polymosttexcache.h"
 #include "compat.h"
 #include "baselayer.h"
@@ -570,3 +572,5 @@ void PTCacheForceRebuild(void)
 	cachedisabled = 0;
 	cachereplace = 1;
 }
+
+#endif //USE_OPENGL
