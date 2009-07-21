@@ -1,7 +1,7 @@
 # Shared make information between Build engine and games
 
-ENGINELIB=$(SRC)/libengine.a
-EDITORLIB=$(SRC)/libbuild.a
+ENGINELIB=src/libengine.a
+EDITORLIB=src/libbuild.a
 
 # These are used when DYNAMIC_OPENGL is false
 GLLIBWIN=-lopengl32

@@ -152,7 +152,7 @@ ifeq ($(PLATFORM),SYLLABLE)
 endif
 
 ifeq ($(RENDERTYPE),SDL)
-	ENGINEOBJS+= $(OBJ)/sdlayer.$o
+	ENGINEOBJS+= $(SRC)/sdlayer.$o
 	OURCFLAGS+= $(subst -Dmain=SDL_main,,$(SDLCONFIG_CFLAGS))
 	
 	ifeq (1,$(HAVE_GTK2))
