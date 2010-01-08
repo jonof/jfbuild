@@ -750,7 +750,7 @@ unsigned int Bgetsysmemsize(void)
         //WinNT
         MEMORYSTATUSEX memst;
         memst.dwLength = sizeof(MEMORYSTATUSEX);
-        if (GlobalMemoryStatusEx(&memst)) {
+        if (aGlobalMemoryStatusEx(&memst)) {
             siz = (unsigned int)min(longlong(0x7fffffff), memst.ullTotalPhys);
         }
 	} else {
