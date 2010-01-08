@@ -15,6 +15,7 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #define _WIN32_IE 0x0400
+#define _WIN32_WINNT 0x0500
 #include <windows.h>
 #include <shlobj.h>
 #endif
@@ -738,9 +739,30 @@ char *Bstrupr(char *s)
 unsigned int Bgetsysmemsize(void)
 {
 #ifdef _WIN32
-	MEMORYSTATUS memst;
-	GlobalMemoryStatus(&memst);
-	return (unsigned int)memst.dwTotalPhys;
+    unsigned int siz = 0x7fffffff;
+	HMODULE lib;
+	WINBASEAPI BOOL WINAPI (*aGlobalMemoryStatusEx)(LPMEMORYSTATUSEX) = 0;
+	
+	lib = LoadLibrary("KERNEL32.DLL");
+	if (lib) aGlobalMemoryStatusEx = (void *)GetProcAddress(lib, "GlobalMemoryStatusEx");
+	
+	if (aGlobalMemoryStatusEx) {
+        //WinNT
+        MEMORYSTATUSEX memst;
+        memst.dwLength = sizeof(MEMORYSTATUSEX);
+        if (GlobalMemoryStatusEx(&memst)) {
+            siz = (unsigned int)min(longlong(0x7fffffff), memst.ullTotalPhys);
+        }
+	} else {
+        //Win9x
+        MEMORYSTATUS memst;
+        GlobalMemoryStatus(&memst);
+        siz = (unsigned int)memst.dwTotalPhys;
+	}
+	
+	if (lib) FreeLibrary(lib);
+	
+	return siz;
 #elif (defined(_SC_PAGE_SIZE) || defined(_SC_PAGESIZE)) && defined(_SC_PHYS_PAGES)
 	unsigned int siz = 0x7fffffff;
 	long scpagesiz, scphyspages;
