@@ -3443,17 +3443,17 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 
 	if (dastat&2)  //Auto window size scaling
 	{
+            int ys = mulscale16(200, pixelaspect);
 		if (!(dastat&8))
 		{
-			x = xdimenscale;   //= scale(xdimen,yxaspect,320);
-			sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),oxdimen,320);
+			x = ydimenscale;   //= scale(xdimen,yxaspect,320);
+			sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),oydimen,ys);
 			sy = ((cy1+cy2+2)<<15)+mulscale16(sy-(200<<15),x);
 		}
 		else
 		{
 				//If not clipping to startmosts, & auto-scaling on, as a
 				//hard-coded bonus, scale to full screen instead
-			int ys = mulscale16(200, pixelaspect);
 			x = scale(ydim,yxaspect,ys);
 			sx = (xdim<<15)+32768+scale(sx-(320<<15),ydim,ys);
 			sy = (ydim<<15)+32768+mulscale16(sy-(200<<15),x);

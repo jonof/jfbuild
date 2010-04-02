@@ -505,7 +505,7 @@ static short uwall[MAXXDIM], dwall[MAXXDIM];
 static long swplc[MAXXDIM], lplc[MAXXDIM];
 static long swall[MAXXDIM], lwall[MAXXDIM+4];
 long xdimen = -1, xdimenrecip, halfxdimen, xdimenscale, xdimscale;
-long wx1, wy1, wx2, wy2, ydimen;
+long wx1, wy1, wx2, wy2, ydimen, ydimenscale;
 long /*viewoffset,*/ frameoffset;
 
 static long nrx1[8], nry1[8], nrx2[8], nry2[8];	// JBF 20031206: Thanks Ken
@@ -4416,17 +4416,17 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
 
 	if ((dastat&2) != 0)  //Auto window size scaling
 	{
+            int ys = mulscale16(200, pixelaspect);
 		if ((dastat&8) == 0)
 		{
-			x = xdimenscale;   //= scale(xdimen,yxaspect,320);
-			sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),xdimen,320);
+			x = ydimenscale;   //= scale(xdimen,yxaspect,320);
+			sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),ydimen,ys);
 			sy = ((cy1+cy2+2)<<15)+mulscale16(sy-(200<<15),x);
 		}
 		else
 		{
 			  //If not clipping to startmosts, & auto-scaling on, as a
 			  //hard-coded bonus, scale to full screen instead
-			int ys = mulscale16(200, pixelaspect);
 			x = scale(ydim,yxaspect,ys);
 			sx = (xdim<<15)+32768+scale(sx-(320<<15),ydim,ys);
 			sy = (ydim<<15)+32768+mulscale16(sy-(200<<15),x);
@@ -8956,13 +8956,17 @@ void setview(long x1, long y1, long x2, long y2)
 //
 void setaspect(long daxrange, long daaspect)
 {
-	viewingrange = daxrange;
-	viewingrangerecip = divscale32(1L,daxrange);
+    int ys = mulscale16(200, pixelaspect);
 
-	yxaspect = daaspect;
-	xyaspect = divscale32(1,yxaspect);
-	xdimenscale = scale(xdimen,yxaspect,320);
-	xdimscale = scale(320,xyaspect,xdimen);
+    viewingrange = daxrange;
+    viewingrangerecip = divscale32(1L,daxrange);
+
+    yxaspect = daaspect;
+    xyaspect = divscale32(1,yxaspect);
+    xdimenscale = scale(xdimen,yxaspect,320);
+    xdimscale = scale(320,xyaspect,xdimen);
+    
+    ydimenscale = scale(ydimen, yxaspect, ys);
 }
 
 

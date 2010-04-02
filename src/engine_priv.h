@@ -16,7 +16,7 @@ extern short thesector[MAXWALLSB], thewall[MAXWALLSB];
 extern short bunchfirst[MAXWALLSB], bunchlast[MAXWALLSB];
 extern short maskwall[MAXWALLSB], maskwallcnt;
 extern spritetype *tspriteptr[MAXSPRITESONSCREEN];
-extern long xdimen, xdimenrecip, halfxdimen, xdimenscale, xdimscale, ydimen;
+extern long xdimen, xdimenrecip, halfxdimen, xdimenscale, xdimscale, ydimen, ydimenscale;
 extern long frameoffset;
 extern long globalposx, globalposy, globalposz, globalhoriz;
 extern short globalang, globalcursectnum;
