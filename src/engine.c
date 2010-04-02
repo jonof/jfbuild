@@ -8912,6 +8912,20 @@ void getzrange(long x, long y, long z, short sectnum,
 void setview(long x1, long y1, long x2, long y2)
 {
 	long i;
+	float pixelaspect;
+	float xfov;
+	
+	// determine the corrective factor for pixel-squareness. Build
+	// is built around the non-square pixels of Mode 13h, so to get
+	// things back square on VGA screens, things need to be "compressed"
+	// vertically a little.
+	if ((xdim == 320 && ydim == 200) || (xdim == 640 && ydim == 400)) {
+		pixelaspect = 1.0f;
+	} else {
+		pixelaspect = 1.2f;
+	}
+	
+	xfov = ((float)xdim / (float)ydim) / (4.f / 3.f);
 
 	windowx1 = x1; wx1 = (x1<<12);
 	windowy1 = y1; wy1 = (y1<<12);
@@ -8922,7 +8936,7 @@ void setview(long x1, long y1, long x2, long y2)
 	xdimenrecip = divscale32(1L,xdimen);
 	ydimen = (y2-y1)+1;
 
-	setaspect(65536L,(long)divscale16(ydim*320L,xdim*200L));
+	setaspect((long)(65536.f * xfov), (long)(65536.f * pixelaspect));
 
 	for(i=0;i<windowx1;i++) { startumost[i] = 1, startdmost[i] = 0; }
 	for(i=windowx1;i<=windowx2;i++)
