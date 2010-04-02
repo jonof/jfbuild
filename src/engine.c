@@ -522,7 +522,7 @@ long globaluclip, globaldclip, globvis;
 long globalvisibility, globalhisibility, globalpisibility, globalcisibility;
 char globparaceilclip, globparaflorclip;
 
-long xyaspect, viewingrangerecip;
+long xyaspect, viewingrangerecip, pixelaspect;
 
 long asm1, asm2, asm3, asm4;
 long vplce[4], vince[4], palookupoffse[4], bufplce[4];
@@ -4426,8 +4426,9 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
 		{
 			  //If not clipping to startmosts, & auto-scaling on, as a
 			  //hard-coded bonus, scale to full screen instead
-			x = scale(xdim,yxaspect,320);
-			sx = (xdim<<15)+32768+scale(sx-(320<<15),xdim,320);
+			int ys = mulscale16(200, pixelaspect);
+			x = scale(ydim,yxaspect,ys);
+			sx = (xdim<<15)+32768+scale(sx-(320<<15),ydim,ys);
 			sy = (ydim<<15)+32768+mulscale16(sy-(200<<15),x);
 		}
 		z = mulscale16(z,x);
@@ -6933,7 +6934,17 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 #endif
 
 	xdim = daxdim; ydim = daydim;
-
+	
+	// determine the corrective factor for pixel-squareness. Build
+	// is built around the non-square pixels of Mode 13h, so to get
+	// things back square on VGA screens, things need to be "compressed"
+	// vertically a little.
+	if ((xdim == 320 && ydim == 200) || (xdim == 640 && ydim == 400)) {
+		pixelaspect = 65536;
+	} else {
+		pixelaspect = divscale16(240*320L,320*200L);
+	}
+	
 	j = ydim*4*sizeof(long);  //Leave room for horizlookup&horizlookup2
 
 	if (lookups != NULL)
@@ -8912,18 +8923,7 @@ void getzrange(long x, long y, long z, short sectnum,
 void setview(long x1, long y1, long x2, long y2)
 {
 	long i;
-	float pixelaspect;
 	float xfov;
-	
-	// determine the corrective factor for pixel-squareness. Build
-	// is built around the non-square pixels of Mode 13h, so to get
-	// things back square on VGA screens, things need to be "compressed"
-	// vertically a little.
-	if ((xdim == 320 && ydim == 200) || (xdim == 640 && ydim == 400)) {
-		pixelaspect = 1.0f;
-	} else {
-		pixelaspect = 1.2f;
-	}
 	
 	xfov = ((float)xdim / (float)ydim) / (4.f / 3.f);
 
@@ -8936,7 +8936,7 @@ void setview(long x1, long y1, long x2, long y2)
 	xdimenrecip = divscale32(1L,xdimen);
 	ydimen = (y2-y1)+1;
 
-	setaspect((long)(65536.f * xfov), (long)(65536.f * pixelaspect));
+	setaspect((long)(65536.f * xfov), pixelaspect);
 
 	for(i=0;i<windowx1;i++) { startumost[i] = 1, startdmost[i] = 0; }
 	for(i=windowx1;i<=windowx2;i++)
@@ -9999,6 +9999,7 @@ void qsetmode640350(void)
 
 		xdim = xres;
 		ydim = yres;
+		pixelaspect = 65536;
 
 		setvgapalette();
 
@@ -10029,6 +10030,7 @@ void qsetmode640480(void)
 
 		xdim = xres;
 		ydim = yres;
+		pixelaspect = 65536;
 
 		setvgapalette();
 
@@ -10060,6 +10062,7 @@ void qsetmodeany(long daxdim, long daydim)
 
 		xdim = xres;
 		ydim = yres;
+		pixelaspect = 65536;
 
 		setvgapalette();
 
