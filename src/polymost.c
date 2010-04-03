@@ -3446,7 +3446,7 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
         int ys = mulscale16(200, pixelaspect);
 		if (!(dastat&8))
 		{
-			if (widescreen || tallscreen) {
+			if (widescreen) {
 				x = ydimenscale;   //= scale(xdimen,yxaspect,320);
 				sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),oydimen,ys);
 			} else {
@@ -3459,7 +3459,7 @@ void polymost_dorotatesprite (long sx, long sy, long z, short a, short picnum,
 		{
 				//If not clipping to startmosts, & auto-scaling on, as a
 				//hard-coded bonus, scale to full screen instead
-			if (widescreen || tallscreen) {
+			if (widescreen) {
 				x = scale(ydim,yxaspect,ys);
 				sx = (xdim<<15)+32768+scale(sx-(320<<15),ydim,ys);
 			} else {

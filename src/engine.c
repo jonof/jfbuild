@@ -4421,7 +4421,7 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
         int ys = mulscale16(200, pixelaspect);
 		if ((dastat&8) == 0)
 		{
-			if (widescreen || tallscreen) {
+			if (widescreen) {
 				x = ydimenscale;   //= scale(xdimen,yxaspect,320);
 				sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),ydimen,ys);
 			} else {
@@ -4434,7 +4434,7 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
 		{
 			  //If not clipping to startmosts, & auto-scaling on, as a
 			  //hard-coded bonus, scale to full screen instead
-			if (widescreen || tallscreen) {
+			if (widescreen) {
 				x = scale(ydim,yxaspect,ys);
 				sx = (xdim<<15)+32768+scale(sx-(320<<15),ydim,ys);
 			} else {
@@ -6963,6 +6963,10 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 			widescreen = 1;
 		} else if (ratio > 65536) {
 			tallscreen = 1;
+			
+			// let tall screens (eg. 1280x1024) stretch the 2D elements
+			// vertically a little until something better is thought of
+			pixelaspect = divscale16(ydim*320L,xdim*200L);
 		}
 	}
 	
