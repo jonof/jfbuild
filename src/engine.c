@@ -523,7 +523,7 @@ long globaluclip, globaldclip, globvis;
 long globalvisibility, globalhisibility, globalpisibility, globalcisibility;
 char globparaceilclip, globparaflorclip;
 
-long xyaspect, viewingrangerecip, pixelaspect, widescreen;
+long xyaspect, viewingrangerecip, pixelaspect, widescreen = 0, tallscreen = 0;
 
 long asm1, asm2, asm3, asm4;
 long vplce[4], vince[4], palookupoffse[4], bufplce[4];
@@ -4421,7 +4421,7 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
         int ys = mulscale16(200, pixelaspect);
 		if ((dastat&8) == 0)
 		{
-			if (widescreen) {
+			if (widescreen || tallscreen) {
 				x = ydimenscale;   //= scale(xdimen,yxaspect,320);
 				sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),ydimen,ys);
 			} else {
@@ -4434,7 +4434,7 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
 		{
 			  //If not clipping to startmosts, & auto-scaling on, as a
 			  //hard-coded bonus, scale to full screen instead
-			if (widescreen) {
+			if (widescreen || tallscreen) {
 				x = scale(ydim,yxaspect,ys);
 				sx = (xdim<<15)+32768+scale(sx-(320<<15),ydim,ys);
 			} else {
@@ -6952,12 +6952,17 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 	// things back square on VGA screens, things need to be "compressed"
 	// vertically a little.
 	widescreen = 0;
+	tallscreen = 0;
 	if ((xdim == 320 && ydim == 200) || (xdim == 640 && ydim == 400)) {
 		pixelaspect = 65536;
 	} else {
+		int ratio = divscale16(ydim*320, xdim*240);
 		pixelaspect = divscale16(240*320L,320*200L);
-		if (divscale16(ydim*320, xdim*240) < 65536) {
+		
+		if (ratio < 65536) {
 			widescreen = 1;
+		} else if (ratio > 65536) {
+			tallscreen = 1;
 		}
 	}
 	
