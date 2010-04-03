@@ -36,6 +36,7 @@
 #endif
 
 #include <math.h>
+#include <assert.h>
 
 #include "engine_priv.h"
 
@@ -81,7 +82,7 @@ static short *dotp1[MAXYDIM], *dotp2[MAXYDIM];
 static unsigned char tempbuf[MAXWALLS];
 
 long ebpbak, espbak;
-long slopalookup[16384];	// was 2048
+long slopalookup[2048];	// was 2048
 #if defined(USE_OPENGL)
 palette_t palookupfog[MAXPALOOKUPS];
 #endif
@@ -522,7 +523,7 @@ long globaluclip, globaldclip, globvis;
 long globalvisibility, globalhisibility, globalpisibility, globalcisibility;
 char globparaceilclip, globparaflorclip;
 
-long xyaspect, viewingrangerecip, pixelaspect;
+long xyaspect, viewingrangerecip, pixelaspect, widescreen;
 
 long asm1, asm2, asm3, asm4;
 long vplce[4], vince[4], palookupoffse[4], bufplce[4];
@@ -2207,7 +2208,8 @@ static void grouscan(long dax1, long dax2, long sectnum, char dastat)
 	l = (globalzd>>16);
 
 	shinc = mulscale16(globalz,xdimenscale);
-	if (shinc > 0) shoffs = (4<<15); else shoffs = ((16380-ydimen)<<15);	// JBF: was 2044
+	assert((int)(sizeof(slopalookup) / sizeof(long)) - 4 - ydimen > 0);
+	if (shinc > 0) shoffs = (4<<15); else shoffs = ((sizeof(slopalookup) / sizeof(long) - 4 - ydimen)<<15);
 	if (dastat == 0) y1 = umost[dax1]; else y1 = max(umost[dax1],dplc[dax1]);
 	m1 = mulscale16(y1,globalzd) + (globalzx>>6);
 		//Avoid visibility overflow by crossing horizon
@@ -4416,19 +4418,29 @@ static void dorotatesprite(long sx, long sy, long z, short a, short picnum, sign
 
 	if ((dastat&2) != 0)  //Auto window size scaling
 	{
-            int ys = mulscale16(200, pixelaspect);
+        int ys = mulscale16(200, pixelaspect);
 		if ((dastat&8) == 0)
 		{
-			x = ydimenscale;   //= scale(xdimen,yxaspect,320);
-			sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),ydimen,ys);
+			if (widescreen) {
+				x = ydimenscale;   //= scale(xdimen,yxaspect,320);
+				sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),ydimen,ys);
+			} else {
+				x = xdimenscale;   //= scale(xdimen,yxaspect,320);
+				sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),xdimen,320);
+			}
 			sy = ((cy1+cy2+2)<<15)+mulscale16(sy-(200<<15),x);
 		}
 		else
 		{
 			  //If not clipping to startmosts, & auto-scaling on, as a
 			  //hard-coded bonus, scale to full screen instead
-			x = scale(ydim,yxaspect,ys);
-			sx = (xdim<<15)+32768+scale(sx-(320<<15),ydim,ys);
+			if (widescreen) {
+				x = scale(ydim,yxaspect,ys);
+				sx = (xdim<<15)+32768+scale(sx-(320<<15),ydim,ys);
+			} else {
+				x = scale(xdim,yxaspect,320);
+				sx = (xdim<<15)+32768+scale(sx-(320<<15),xdim,320);
+			}
 			sy = (ydim<<15)+32768+mulscale16(sy-(200<<15),x);
 		}
 		z = mulscale16(z,x);
@@ -6939,10 +6951,14 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 	// is built around the non-square pixels of Mode 13h, so to get
 	// things back square on VGA screens, things need to be "compressed"
 	// vertically a little.
+	widescreen = 0;
 	if ((xdim == 320 && ydim == 200) || (xdim == 640 && ydim == 400)) {
 		pixelaspect = 65536;
 	} else {
 		pixelaspect = divscale16(240*320L,320*200L);
+		if (divscale16(ydim*320, xdim*240) < 65536) {
+			widescreen = 1;
+		}
 	}
 	
 	j = ydim*4*sizeof(long);  //Leave room for horizlookup&horizlookup2

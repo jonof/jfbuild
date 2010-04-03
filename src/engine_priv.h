@@ -25,6 +25,7 @@ extern long cosviewingrangeglobalang, sinviewingrangeglobalang;
 extern long globalvisibility;
 extern long xyaspect;
 extern long pixelaspect;
+extern long widescreen;
 extern long asm1, asm2, asm3, asm4;
 extern long globalshade;
 extern short globalpicnum;
