@@ -577,7 +577,14 @@
 			isa = PBXProject;
 			buildConfigurationList = AB735F3B0A29A24B003261DC /* Build configuration list for PBXProject "engine" */;
 			compatibilityVersion = "Xcode 3.0";
+			developmentRegion = English;
 			hasScannedForEncodings = 0;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
 			mainGroup = AB735F380A29A24A003261DC;
 			productRefGroup = AB735F4A0A29A2DC003261DC /* Products */;
 			projectDirPath = "";
@@ -733,8 +740,6 @@
 					RENDERTYPESDL,
 				);
 				GCC_VERSION = 4.0;
-				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.3;
 				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
 				WARNING_CFLAGS = (
 					"-W",
@@ -768,8 +773,6 @@
 					RENDERTYPESDL,
 				);
 				GCC_VERSION = 4.0;
-				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.3;
 				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
 				WARNING_CFLAGS = (
 					"-W",

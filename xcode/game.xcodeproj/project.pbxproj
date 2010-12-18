@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 42;
+	objectVersion = 44;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -169,7 +169,7 @@
 		AB73602D0A29AB08003261DC /* game-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "game-Info.plist"; sourceTree = "<group>"; };
 		AB7360500A29AD92003261DC /* build.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = build.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7360520A29AD92003261DC /* build-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "build-Info.plist"; sourceTree = "<group>"; };
-		AB7361220A29B9D4003261DC /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = /Library/Frameworks/SDL.framework; sourceTree = "<absolute>"; };
+		AB7361220A29B9D4003261DC /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = /Users/jonof/Library/Frameworks/SDL.framework; sourceTree = "<absolute>"; };
 		AB7361280A29BA60003261DC /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = /System/Library/Frameworks/CoreFoundation.framework; sourceTree = "<absolute>"; };
 		AB73612C0A29BA7A003261DC /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		ABA9E3290FEF9DD00024231F /* bstub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bstub.c; path = ../kenbuild/bstub.c; sourceTree = SOURCE_ROOT; };
@@ -342,8 +342,15 @@
 		AB73600B0A29AA64003261DC /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = AB73600C0A29AA64003261DC /* Build configuration list for PBXProject "game" */;
-			compatibilityVersion = "Xcode 2.4";
+			compatibilityVersion = "Xcode 3.0";
+			developmentRegion = English;
 			hasScannedForEncodings = 0;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
 			mainGroup = AB7360090A29AA64003261DC;
 			productRefGroup = AB73602B0A29AB08003261DC /* Products */;
 			projectDirPath = "";
@@ -478,7 +485,10 @@
 					i386,
 				);
 				COPY_PHASE_STRIP = NO;
-				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(HOME)/Library/Frameworks",
+					/Library/Frameworks,
+				);
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -492,14 +502,10 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				GCC_VERSION_i386 = 4.0;
-				GCC_VERSION_ppc = 4.0;
+				GCC_VERSION = 4.0;
 				HEADER_SEARCH_PATHS = ../include;
-				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.3;
 				PREBINDING = NO;
-				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
-				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
 			};
 			name = Debug;
 		};
@@ -511,7 +517,10 @@
 					i386,
 				);
 				COPY_PHASE_STRIP = YES;
-				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(HOME)/Library/Frameworks",
+					/Library/Frameworks,
+				);
 				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -524,14 +533,10 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				GCC_VERSION_i386 = 4.0;
-				GCC_VERSION_ppc = 4.0;
+				GCC_VERSION = 4.0;
 				HEADER_SEARCH_PATHS = ../include;
-				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
-				MACOSX_DEPLOYMENT_TARGET_ppc = 10.3;
 				PREBINDING = NO;
-				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
-				SDKROOT_ppc = /Developer/SDKs/MacOSX10.3.9.sdk;
+				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
 			};
 			name = Release;
 		};
