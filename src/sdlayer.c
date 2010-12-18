@@ -1188,6 +1188,7 @@ int handleevents(void)
 {
 	int code, rv=0, j;
 	SDL_Event ev;
+	static int firstcall = 1;
 
 #define SetKey(key,state) { \
 	keystatus[key] = state; \
@@ -1264,9 +1265,11 @@ int handleevents(void)
 				break;
 				
 			case SDL_MOUSEMOTION:
-				if (appactive) {
-					mousex += ev.motion.xrel;
-					mousey += ev.motion.yrel;
+				if (!firstcall) {
+					if (appactive) {
+						mousex += ev.motion.xrel;
+						mousey += ev.motion.yrel;
+					}
 				}
 				break;
 
@@ -1324,6 +1327,8 @@ int handleevents(void)
 	startwin_idle(NULL);
 #undef SetKey
 
+	firstcall = 0;
+	
 	return rv;
 }
 
