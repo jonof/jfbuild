@@ -6940,6 +6940,9 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 	j = bpp;
 	if (setvideomode(daxdim,daydim,dabpp,davidoption) < 0) return(-1);
 
+        // it's possible the previous call protected our code sections again
+        makeasmwriteable();
+
 #ifdef POLYMOST
 	if (dabpp > 8) rendmode = 3;	// GL renderer
 	else if (dabpp == 8 && j > 8) rendmode = 0;	// going from GL to software activates softpolymost
