@@ -1,3 +1,5 @@
+*.o
+*.a
 /xcode/*.xcodeproj/*.mode1v3
 /xcode/*.xcodeproj/*.pbxuser
 /xcode/build

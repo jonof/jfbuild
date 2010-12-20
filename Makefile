@@ -285,7 +285,7 @@ ifeq ($(PLATFORM),DARWIN)
 	cd xcode && xcodebuild -project engine.xcodeproj -alltargets -configuration $(style) clean
 	cd xcode && xcodebuild -project game.xcodeproj -alltargets -configuration $(style) clean
 else
-	-rm -f $(SRC)/*.$o $(GAME)/*.$o $(LIBSQUISH)/*.$o
+	-rm -f $(ENGINEOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS)
 endif
 
 veryclean: clean
