@@ -11,25 +11,35 @@ enum {
 	PTH_DIRTY = 128,
 };
 
-// indices of PTHead.glpic[]
+// indices of PTHead.pic[]
 enum {
-	PTHGLPIC_BASE = 0,
-	PTHGLPIC_GLOW = 1,
-	PTHGLPIC_DETAIL = 2,
-	PTHGLPIC_SIZE = 6,
+	PTHPIC_BASE = 0,
+	PTHPIC_GLOW = 1,
+	PTHPIC_DETAIL = 2,
+	PTHPIC_SIZE = 6,
 };
 
+
+/** PolymostTex texture manager header */
+struct PTMHead_typ {
+	GLuint glpic;
+	
+	long sizx, sizy;		// padded texture dimensions
+	long tsizx, tsizy;		// true texture dimensions
+};
+
+typedef struct PTMHead_typ PTMHead;
+
+/** PolymostTex texture header */
 struct PTHead_typ {
-	GLuint glpic[PTHGLPIC_SIZE];	// when (flags & PTH_SKYBOX), each is a face of the cube
-					// when !(flags & PTH_SKYBOX), see PTHGLPIC_* constants
+	PTMHead *pic[PTHPIC_SIZE];	// when (flags & PTH_SKYBOX), each is a face of the cube
+					// when !(flags & PTH_SKYBOX), see PTHPIC_* constants
 	long picnum;
 	long palnum;
 	unsigned short flags;
 	
 	hicreplctyp *repldef;
 
-	long sizx, sizy;		// padded texture dimensions
-	long tsizx, tsizy;		// true texture dimensions
 	float scalex, scaley;		// scale factor between texture and ART tile dimensions
 };
 

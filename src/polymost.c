@@ -276,9 +276,9 @@ void polymost_texinvalidate (long dapicnum, long dapalnum, long dameth)
 		);
 	while ((pth = PTIterNext(iter)) != 0) {
 		pth->flags |= PTH_DIRTY;
-		/*initprintf("invalidating picnum:%d palnum:%d effects:%d skyface:%d flags:%04X repldef:%p glpic:%d\n",
+		/*initprintf("invalidating picnum:%d palnum:%d effects:%d skyface:%d flags:%04X repldef:%p\n",
 			   pth->picnum, pth->palnum, pth->effects, pth->skyface,
-			   pth->flags, pth->repldef, pth->glpic);*/
+			   pth->flags, pth->repldef);*/
 	}
 	//initprintf("done\n");
 	PTIterFree(iter);
@@ -318,11 +318,11 @@ void gltexapplyprops (void)
 	
 	iter = PTIterNew();
 	while ((pth = PTIterNext(iter)) != 0) {
-		for (i = 0; i < PTHGLPIC_SIZE; i++) {
-			if (pth->glpic[i] == 0) {
+		for (i = 0; i < PTHPIC_SIZE; i++) {
+			if (pth->pic[i] == 0 || pth->pic[i]->glpic == 0) {
 				continue;
 			}
-			bglBindTexture(GL_TEXTURE_2D,pth->glpic[i]);
+			bglBindTexture(GL_TEXTURE_2D,pth->pic[i]->glpic);
 			bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 			bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 			if (glinfo.maxanisotropy > 1.0) {
@@ -578,7 +578,7 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 	{
 		float hackscx, hackscy, alphac;
 		unsigned short ptflags = 0;
-		int drawlayers = 1 << PTHGLPIC_BASE, drawinglayer = PTHGLPIC_BASE;
+		int drawlayers = 1 << PTHPIC_BASE, drawinglayer = PTHPIC_BASE, picidx = PTHPIC_BASE;
 		GLuint glpic = 0;
 		
 		if (skyclamphack) method |= METH_CLAMPED;
@@ -590,25 +590,26 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 		pth = PT_GetHead(globalpicnum, globalpal, ptflags, 0);
 		if (pth) {
 			if (drawingskybox) {
-				glpic = pth->glpic[ drawingskybox - 1 ];
-			} else {
-				glpic = pth->glpic[ PTHGLPIC_BASE ];
+				picidx = drawingskybox - 1;
+			}
+			if (pth->pic[picidx]) {
+				glpic = pth->pic[picidx]->glpic;
 			}
 		}
 		bglBindTexture(GL_TEXTURE_2D, glpic);
 		
 		if ((method & METH_LAYERS) && pth && !drawingskybox) {
-			if (pth->glpic[ PTHGLPIC_GLOW ]) {
-				drawlayers |= (1 << PTHGLPIC_GLOW);
+			if (pth->pic[ PTHPIC_GLOW ]) {
+				drawlayers |= (1 << PTHPIC_GLOW);
 			}
 		}
 
 		hackscx = pth->scalex;
 		hackscy = pth->scaley;
-		tsizx   = pth->tsizx;
-		tsizy   = pth->tsizy;
-		xx      = pth->sizx;
-		yy      = pth->sizy;
+		tsizx   = pth->pic[picidx]->tsizx;
+		tsizy   = pth->pic[picidx]->tsizy;
+		xx      = pth->pic[picidx]->sizx;
+		yy      = pth->pic[picidx]->sizy;
 		ox2     = (double)1.0/(double)xx;
 		oy2     = (double)1.0/(double)yy;
 
@@ -768,23 +769,27 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 				if (nn < 3) continue;
 
 				drawlayers = odrawlayers;
-				drawinglayer = PTHGLPIC_BASE;
+				drawinglayer = PTHPIC_BASE;
 				do {
 					if ((drawlayers & (1 << drawinglayer)) == 0) {
 						drawinglayer++;
 						continue;
 					}
 					
+					if (pth->pic[drawinglayer] == 0) {
+						continue;
+					}
+					
 					switch (drawinglayer) {
-						case PTHGLPIC_BASE:
+						case PTHPIC_BASE:
 							bglDepthMask(GL_TRUE);
 							break;
-						case PTHGLPIC_GLOW:
+						case PTHPIC_GLOW:
 							bglColor4f(1.f,1.f,1.f,alphac);
 							if (fog_is_on) bglDisable(GL_FOG);
 							bglEnable(GL_BLEND);	// blend with what's under us
 							bglDepthMask(GL_FALSE);	// don't update the Z buffer
-							bglBindTexture(GL_TEXTURE_2D, pth->glpic[PTHGLPIC_GLOW]);
+							bglBindTexture(GL_TEXTURE_2D, pth->pic[PTHPIC_GLOW]->glpic);
 							break;
 						default:
 							break;
@@ -804,9 +809,9 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 					bglEnd();
 
 					switch (drawinglayer) {
-						case PTHGLPIC_BASE:
+						case PTHPIC_BASE:
 							break;
-						case PTHGLPIC_GLOW:
+						case PTHPIC_GLOW:
 							if (fog_is_on) bglEnable(GL_FOG);
 							break;
 						default:
@@ -827,17 +832,21 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 					drawinglayer++;
 					continue;
 				}
+
+				if (pth->pic[drawinglayer] == 0) {
+					continue;
+				}
 				
 				switch (drawinglayer) {
-					case PTHGLPIC_BASE:
+					case PTHPIC_BASE:
 						bglDepthMask(GL_TRUE);
 						break;
-					case PTHGLPIC_GLOW:
+					case PTHPIC_GLOW:
 						bglColor4f(1.f,1.f,1.f,alphac);
 						if (fog_is_on) bglDisable(GL_FOG);
 						bglEnable(GL_BLEND);	// blend with what's under us
 						bglDepthMask(GL_FALSE);	// don't update the Z buffer
-						bglBindTexture(GL_TEXTURE_2D, pth->glpic[PTHGLPIC_GLOW]);
+						bglBindTexture(GL_TEXTURE_2D, pth->pic[PTHPIC_GLOW]->glpic);
 						break;
 					default:
 						break;
@@ -853,9 +862,9 @@ void drawpoly (double *dpx, double *dpy, long n, long method)
 				bglEnd();
 				
 				switch (drawinglayer) {
-					case PTHGLPIC_BASE:
+					case PTHPIC_BASE:
 						break;
-					case PTHGLPIC_GLOW:
+					case PTHPIC_GLOW:
 						if (fog_is_on) bglEnable(GL_FOG);
 						break;
 					default:
@@ -3749,7 +3758,7 @@ void polymost_fillpolygon (long npoints)
 	bglEnable(GL_ALPHA_TEST);
 	bglEnable(GL_TEXTURE_2D);
 	pth = PT_GetHead(globalpicnum, globalpal, usehightile ? PTH_HIGHTILE : 0, 0);
-	bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic[ PTHGLPIC_BASE ] : 0);
+	bglBindTexture(GL_TEXTURE_2D, (pth && pth->pic[PTHPIC_BASE]) ? pth->pic[ PTHPIC_BASE ]->glpic : 0);
 
 	f = ((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 	switch ((globalorientation>>7)&3) {
@@ -3790,11 +3799,16 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 	}
 
 	pth = PT_GetHead(wallnum, 0, (usehightile ? PTH_HIGHTILE : 0) | PTH_CLAMPED, 0);
-	bglBindTexture(GL_TEXTURE_2D, pth ? pth->glpic[ PTHGLPIC_BASE ] : 0);
+	
+	if (!pth || !pth->pic[PTHPIC_BASE]) {
+		return 0;
+	}
+	
+	bglBindTexture(GL_TEXTURE_2D, pth->pic[PTHPIC_BASE]->glpic);
 
 	if (pth) {
-		xdimepad = (float)pth->tsizx / (float)pth->sizx;
-		ydimepad = (float)pth->tsizy / (float)pth->sizy;
+		xdimepad = (float)pth->pic[PTHPIC_BASE]->tsizx / (float)pth->pic[PTHPIC_BASE]->sizx;
+		ydimepad = (float)pth->pic[PTHPIC_BASE]->tsizy / (float)pth->pic[PTHPIC_BASE]->sizy;
 	} else {
 		xdimepad = 1.0;
 		ydimepad = 1.0;
@@ -4128,30 +4142,6 @@ static int dumptexturedefs(const osdfuncparm_t * UNUSED(parm))
 	
 	return OSDCMD_OK;	// no replacement found
 }
-
-static int debugtexturehash(const osdfuncparm_t * UNUSED(parm))
-{
-	PTIter iter;
-	PTHead * pth;
-	
-	if (!hicfirstinit) {
-		return OSDCMD_OK;
-	}
-	
-	initprintf("// Begin texture hash dump\n");
-	iter = PTIterNew();
-	while ((pth = PTIterNext(iter)) != 0) {
-		initprintf(" picnum:%d palnum:%d flags:%04X sizx/y:%dx%d tsizx/y:%dx%d repldef:%p glpic:%d.%d.%d.%d.%d.%d\n",
-			   pth->picnum, pth->palnum, pth->flags,
-			   pth->sizx, pth->sizy, pth->tsizx, pth->tsizy,
-			   pth->repldef,
-			   pth->glpic[0], pth->glpic[1], pth->glpic[2], pth->glpic[3], pth->glpic[4], pth->glpic[5]);
-	}
-	PTIterFree(iter);
-	initprintf("// End texture hash dump\n");
-		
-	return OSDCMD_OK;	// no replacement found
-}
 #endif
 
 void polymost_initosdfuncs(void)
@@ -4176,7 +4166,6 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
 #if 1
 	OSD_RegisterFunction("dumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",dumptexturedefs);
-	OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",debugtexturehash);
 #endif
 }
 

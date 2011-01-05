@@ -7,6 +7,7 @@
 #include "kplib.h"
 #include "cache1d.h"
 #include "pragmas.h"
+#include "md4.h"
 #include "engine_priv.h"
 #include "polymost_priv.h"
 #include "hightile_priv.h"
@@ -23,6 +24,14 @@ struct PTHash_typ {
 	int primecnt;	// a count of how many times the texture is touched when priming
 };
 typedef struct PTHash_typ PTHash;
+
+/** a texture manager hash entry */
+struct PTMHash_typ {
+	struct PTMHash_typ *next;
+	PTMHead head;
+	unsigned char id[16];
+};
+typedef struct PTMHash_typ PTMHash;
 
 /** an iterator for walking the hash */
 struct PTIter_typ {
@@ -49,21 +58,30 @@ typedef struct PTTexture_typ PTTexture;
 
 static int primecnt   = 0;	// expected number of textures to load during priming
 static int primedone  = 0;	// running total of how many textures have been primed
-static int primepos   = 0;	// the position in hashhead where we are up to in priming
+static int primepos   = 0;	// the position in pthashhead where we are up to in priming
 
 int polymosttexverbosity = 1;	// 0 = none, 1 = errors, 2 = all
 int polymosttexfullbright = 256;	// first index of the fullbright palette entries
 
 #define PTHASHHEADSIZ 8192
-static PTHash * hashhead[PTHASHHEADSIZ];	// will be initialised 0 by .bss segment
+static PTHash * pthashhead[PTHASHHEADSIZ];	// will be initialised 0 by .bss segment
+
+#define PTMHASHHEADSIZ 4096
+static PTMHash * ptmhashhead[PTMHASHHEADSIZ];	// will be initialised 0 by .bss segment
 
 // from polymosttex-squish.cc
 int squish_GetStorageRequirements(int width, int height, int format);
 int squish_CompressImage(coltype * rgba, int width, int height, unsigned char * output, int format);
 
-static inline int gethashhead(long picnum)
+static inline int pt_gethashhead(const long picnum)
 {
 	return picnum & (PTHASHHEADSIZ-1);
+}
+
+static inline int ptm_gethashhead(const unsigned char id[16])
+{
+	int bytes = (int)id[0] | ((int)id[1] << 8);
+	return bytes & (PTMHASHHEADSIZ-1);
 }
 
 static void detect_texture_size()
@@ -82,6 +100,100 @@ static void detect_texture_size()
 	}
 }
 
+
+/**
+ * Returns a PTMHead pointer for the given texture id
+ * @param id the texture id
+ * @return the PTMHead item, or null if it couldn't be created
+ */
+static PTMHead * ptm_gethead(const unsigned char id[16])
+{
+	PTMHash * ptmh;
+	int i;
+	
+	i = ptm_gethashhead(id);
+	ptmh = ptmhashhead[i];
+	
+	while (ptmh) {
+		if (memcmp(id, ptmh->id, 16) == 0) {
+			return &ptmh->head;
+		}
+	}
+	
+	ptmh = (PTMHash *) malloc(sizeof(PTMHash));
+	if (ptmh) {
+		memset(ptmh, 0, sizeof(PTMHash));
+		
+		memcpy(ptmh->id, id, 16);
+		ptmh->next = ptmhashhead[i];
+		ptmhashhead[i] = ptmh;
+	}
+	
+	return ptmh;
+}
+
+
+/**
+ * Calculates a texture id from the information in a PTHead structure
+ * @param pth the PTHead structure
+ * @param extra for ART this is the layer number, otherwise 0
+ * @param id the 16 bytes into which the id will be written
+ */
+static void ptm_calculateid(const PTHead * pth, int extra, unsigned char id[16])
+{
+	struct {
+		int type;
+		int flags;
+		int palnum;
+		int picnum;
+		int extra;
+	} artid;
+	struct {
+		int type;
+		int flags;
+		int effects;
+		char filename[BMAX_PATH];
+		int extra;
+	} hightileid;
+	
+	unsigned char * md4ptr = 0;
+	int md4len = 0;
+	
+	if (pth->flags & PTH_HIGHTILE) {
+		if (!pth->repldef) {
+			if (polymosttexverbosity >= 1) {
+				initprintf("PolymostTex: cannot calculate texture id for pth with no repldef\n");
+			}
+			memset(id, 0, 16);
+			return;
+		}
+		
+		memset(&hightileid, 0, sizeof(hightileid));
+		hightileid.type = 1;
+		hightileid.flags = pth->flags & (PTH_CLAMPED);
+		hightileid.effects = 0;//FIXME!
+		strncpy(hightileid.filename, pth->repldef->filename, BMAX_PATH);
+		hightileid.extra = extra;
+		
+		md4ptr = (unsigned char *) &hightileid;
+		md4len = sizeof(hightileid);
+
+	} else {
+		memset(&artid, 0, sizeof(artid));
+		artid.type = 0;
+		artid.flags = pth->flags & (PTH_CLAMPED);
+		artid.palnum = pth->palnum;
+		artid.picnum = pth->picnum;
+		artid.extra = extra;
+		
+		md4ptr = (unsigned char *) &artid;
+		md4len = sizeof(artid);
+	}
+	
+	md4once(md4ptr, md4len, id);
+}
+
+
 /**
  * Finds the pthash entry for a tile, possibly creating it if one doesn't exist
  * @param picnum tile number
@@ -92,14 +204,14 @@ static void detect_texture_size()
  */
 static PTHash * pt_findhash(long picnum, long palnum, unsigned short flags, int create)
 {
-	int i = gethashhead(picnum);
+	int i = pt_gethashhead(picnum);
 	PTHash * pth;
 	PTHash * basepth;	// palette 0 in case we find we need it
 	
 	unsigned short flagmask = flags & (PTH_HIGHTILE | PTH_CLAMPED | PTH_SKYBOX);
 	
 	// first, try and find an existing match for our parameters
-	pth = hashhead[i];
+	pth = pthashhead[i];
 	while (pth) {
 		if (pth->head.picnum == picnum &&
 		    pth->head.palnum == palnum &&
@@ -130,13 +242,13 @@ static PTHash * pt_findhash(long picnum, long palnum, unsigned short flags, int 
 		}
 		memset(pth, 0, sizeof(PTHash));
 		
-		pth->next = hashhead[i];
+		pth->next = pthashhead[i];
 		pth->head.picnum  = picnum;
 		pth->head.palnum  = palnum;
 		pth->head.flags   = flagmask;
 		pth->head.repldef = replc;
 		
-		hashhead[i] = pth;
+		pthashhead[i] = pth;
 		
 		if (replc && replc->palnum != palnum) {
 			// we were given a substitute by hightile, so
@@ -175,8 +287,13 @@ static PTHash * pt_findhash(long picnum, long palnum, unsigned short flags, int 
  */
 static void pt_unload(PTHash * pth)
 {
-	bglDeleteTextures(PTHGLPIC_SIZE, pth->head.glpic);
-	memset(&pth->head.glpic, 0, sizeof(pth->head.glpic));
+	int i;
+	for (i = PTHPIC_SIZE - 1; i>=0; i--) {
+		if (pth->head.pic[i]) {
+			bglDeleteTextures(1, &pth->head.pic[i]->glpic);
+			pth->head.pic[i]->glpic = 0;
+		}
+	}
 }
 
 static int pt_load_art(PTHead * pth);
@@ -185,7 +302,7 @@ static int pt_load_cache(PTHead * pth);
 static void pt_load_fixtransparency(PTTexture * tex, int clamped);
 static void pt_load_applyeffects(PTTexture * tex, int effects, int* hassalpha);
 static void pt_load_mipscale(PTTexture * tex);
-static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCacheTile * tdef);
+static void pt_load_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * tex, PTCacheTile * tdef);
 static void pt_load_applyparameters(PTHead * pth);
 
 /**
@@ -195,11 +312,12 @@ static void pt_load_applyparameters(PTHead * pth);
  */
 static int pt_load(PTHash * pth)
 {
-	if (pth->head.glpic[PTHGLPIC_BASE] != 0 && (pth->head.flags & PTH_DIRTY) == 0) {
+	if (pth->head.pic[PTHPIC_BASE] &&
+		pth->head.pic[PTHPIC_BASE]->glpic != 0 &&
+		(pth->head.flags & PTH_DIRTY) == 0) {
 		return 1;	// loaded
 	}
 	
-	//FIXME
 	if ((pth->head.flags & PTH_HIGHTILE)) {
 		// try and load from a cached replacement
 		if (pt_load_cache(&pth->head)) {
@@ -244,6 +362,7 @@ static int pt_load_art(PTHead * pth)
 	long x, y, x2, y2;
 	long dacol;
 	int hasalpha = 0, hasfullbright = 0;
+	unsigned char id[16];
 	
 	tex.tsizx = tilesizx[pth->picnum];
 	tex.tsizy = tilesizy[pth->picnum];
@@ -333,10 +452,6 @@ static int pt_load_art(PTHead * pth)
 		}
 	}
 	
-	pth->tsizx = tex.tsizx;
-	pth->tsizy = tex.tsizy;
-	pth->sizx  = tex.sizx;
-	pth->sizy  = tex.sizy;
 	pth->scalex = 1.0;
 	pth->scaley = 1.0;
 	pth->flags &= ~(PTH_DIRTY | PTH_HASALPHA | PTH_SKYBOX);
@@ -346,17 +461,27 @@ static int pt_load_art(PTHead * pth)
 		pth->flags |= PTH_HASALPHA;
 	}
 	
-	pt_load_uploadtexture(pth, PTHGLPIC_BASE, &tex, 0);
+	ptm_calculateid(pth, PTHPIC_BASE, id);
+	pth->pic[PTHPIC_BASE] = ptm_gethead(id);
+	pth->pic[PTHPIC_BASE]->tsizx = tex.tsizx;
+	pth->pic[PTHPIC_BASE]->tsizy = tex.tsizy;
+	pth->pic[PTHPIC_BASE]->sizx  = tex.sizx;
+	pth->pic[PTHPIC_BASE]->sizy  = tex.sizy;
+	pt_load_uploadtexture(pth->pic[PTHPIC_BASE], pth->flags, &tex, 0);
+	
 	if (hasfullbright) {
+		ptm_calculateid(pth, PTHPIC_GLOW, id);
+		pth->pic[PTHPIC_GLOW] = ptm_gethead(id);
+		pth->pic[PTHPIC_GLOW]->tsizx = tex.tsizx;
+		pth->pic[PTHPIC_GLOW]->tsizy = tex.tsizy;
+		pth->pic[PTHPIC_GLOW]->sizx  = tex.sizx;
+		pth->pic[PTHPIC_GLOW]->sizy  = tex.sizy;
 		fbtex.hasalpha = 1;
-		pt_load_uploadtexture(pth, PTHGLPIC_GLOW, &fbtex, 0);
+		pt_load_uploadtexture(pth->pic[PTHPIC_GLOW], pth->flags, &fbtex, 0);
 	} else {
 		// it might be that after reloading an invalidated texture, the
 		// glow map might not be needed anymore, so release it
-		if (pth->glpic[PTHGLPIC_GLOW]) {
-			bglDeleteTextures(1, &pth->glpic[PTHGLPIC_GLOW]);
-			pth->glpic[PTHGLPIC_GLOW] = 0;
-		}
+		pth->pic[PTHPIC_GLOW] = 0;//FIXME should really call a disposal function
 	}
 	pt_load_applyparameters(pth);
 	
@@ -384,8 +509,9 @@ static int pt_load_hightile(PTHead * pth)
 	char * picdata = 0;
 	int hasalpha = 0;
 	long x, y;
-	int texture = 0, loaded[PTHGLPIC_SIZE] = { 0,0,0,0,0,0, };
+	int texture = 0, loaded[PTHPIC_SIZE] = { 0,0,0,0,0,0, };
 	PTCacheTile * tdef = 0;
+	unsigned char id[16];
 
 	int cacheable = (!(pth->flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcache && glusetexcompr);
 	int writetocache = 0;
@@ -398,21 +524,21 @@ static int pt_load_hightile(PTHead * pth)
 		return 0;
 	}
 	
-	for (texture = 0; texture < PTHGLPIC_SIZE; texture++) {
+	for (texture = 0; texture < PTHPIC_SIZE; texture++) {
 		if (pth->flags & PTH_SKYBOX) {
 			if (texture >= 6) {
-				texture = PTHGLPIC_SIZE;
+				texture = PTHPIC_SIZE;
 				continue;
 			}
 			filename = pth->repldef->skybox->face[texture];
 		} else {
 			switch (texture) {
-				case PTHGLPIC_BASE:
+				case PTHPIC_BASE:
 					filename = pth->repldef->filename;
 					break;
 				default:
 					// future developments may use the other indices
-					texture = PTHGLPIC_SIZE;
+					texture = PTHPIC_SIZE;
 					continue;
 			}
 		}
@@ -528,10 +654,6 @@ static int pt_load_hightile(PTHead * pth)
 		picdata = 0;
 
 		if (texture == 0) {
-			pth->tsizx = tex.tsizx;
-			pth->tsizy = tex.tsizy;
-			pth->sizx  = tex.sizx;
-			pth->sizy  = tex.sizy;
 			if (pth->flags & PTH_SKYBOX) {
 				pth->scalex = (float)tex.tsizx / 64.0;
 				pth->scaley = (float)tex.tsizy / 64.0;
@@ -562,7 +684,13 @@ static int pt_load_hightile(PTHead * pth)
 			tdef->flags = pth->flags & (PTH_CLAMPED | PTH_HASALPHA);
 		}
 		
-		pt_load_uploadtexture(pth, texture, &tex, tdef);
+		ptm_calculateid(pth, 0, id);
+		pth->pic[texture] = ptm_gethead(id);
+		pth->pic[texture]->tsizx = tex.tsizx;
+		pth->pic[texture]->tsizy = tex.tsizy;
+		pth->pic[texture]->sizx  = tex.sizx;
+		pth->pic[texture]->sizy  = tex.sizy;
+		pt_load_uploadtexture(pth->pic[texture], pth->flags, &tex, tdef);
 		
 		if (cacheable && writetocache) {
 			if (polymosttexverbosity >= 2) {
@@ -588,7 +716,7 @@ static int pt_load_hightile(PTHead * pth)
 		for (texture = 0; texture < 6; texture++) i += loaded[texture];
 		return (i == 6);
 	} else {
-		return loaded[PTHGLPIC_BASE];
+		return loaded[PTHPIC_BASE];
 	}
 }
 
@@ -602,8 +730,9 @@ static int pt_load_cache(PTHead * pth)
 {
 	const char *filename = 0;
 	int mipmap, i;
-	int texture = 0, loaded[PTHGLPIC_SIZE] = { 0,0,0,0,0,0, };
+	int texture = 0, loaded[PTHPIC_SIZE] = { 0,0,0,0,0,0, };
 	PTCacheTile * tdef = 0;
+	unsigned char id[16];
 
 	if (!pth->repldef) {
 		return 0;
@@ -617,21 +746,21 @@ static int pt_load_cache(PTHead * pth)
 
 	detect_texture_size();
 	
-	for (texture = 0; texture < PTHGLPIC_SIZE; texture++) {
+	for (texture = 0; texture < PTHPIC_SIZE; texture++) {
 		if (pth->flags & PTH_SKYBOX) {
 			if (texture >= 6) {
-				texture = PTHGLPIC_SIZE;
+				texture = PTHPIC_SIZE;
 				continue;
 			}
 			filename = pth->repldef->skybox->face[texture];
 		} else {
 			switch (texture) {
-				case PTHGLPIC_BASE:
+				case PTHPIC_BASE:
 					filename = pth->repldef->filename;
 					break;
 				default:
 					// future developments may use the other indices
-					texture = PTHGLPIC_SIZE;
+					texture = PTHPIC_SIZE;
 					continue;
 			}
 		}
@@ -654,16 +783,18 @@ static int pt_load_cache(PTHead * pth)
 				   tdef->filename, tdef->effects, tdef->flags);
 		}
 		
-		if (pth->glpic[texture] == 0) {
-			bglGenTextures(1, &pth->glpic[texture]);
+		ptm_calculateid(pth, 0, id);
+		pth->pic[texture] = ptm_gethead(id);
+		if (pth->pic[texture]->glpic == 0) {
+			bglGenTextures(1, &pth->pic[texture]->glpic);
 		}
-		bglBindTexture(GL_TEXTURE_2D, pth->glpic[texture]);
+		pth->pic[texture]->tsizx = tdef->tsizx;
+		pth->pic[texture]->tsizy = tdef->tsizy;
+		pth->pic[texture]->sizx  = tdef->mipmap[0].sizx;
+		pth->pic[texture]->sizy  = tdef->mipmap[0].sizy;
+		bglBindTexture(GL_TEXTURE_2D, pth->pic[texture]->glpic);
 		
 		if (texture == 0) {
-			pth->tsizx = tdef->tsizx;
-			pth->tsizy = tdef->tsizy;
-			pth->sizx  = tdef->mipmap[0].sizx;
-			pth->sizy  = tdef->mipmap[0].sizy;
 			if (pth->flags & PTH_SKYBOX) {
 				pth->scalex = (float)tdef->tsizx / 64.0;
 				pth->scaley = (float)tdef->tsizy / 64.0;
@@ -709,7 +840,7 @@ static int pt_load_cache(PTHead * pth)
 		for (texture = 0; texture < 6; texture++) i += loaded[texture];
 		return (i == 6);
 	} else {
-		return loaded[PTHGLPIC_BASE];
+		return loaded[PTHPIC_BASE];
 	}
 }
 
@@ -937,12 +1068,12 @@ static void pt_load_mipscale(PTTexture * tex)
 
 /**
  * Sends texture data to GL
- * @param pth the cache header
- * @param index the glpic index to load into
+ * @param ptm the texture management header
+ * @param flags extra flags to modify how the texture is uploaded
  * @param tex the texture to upload
  * @param tdef the polymosttexcache definition to receive compressed mipmaps, or null
  */
-static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCacheTile * tdef)
+static void pt_load_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * tex, PTCacheTile * tdef)
 {
 	int i;
 	GLint mipmap;
@@ -954,7 +1085,7 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 
 	detect_texture_size();
 	
-	if (!(pth->flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcompr) {
+	if (!(flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcompr) {
 		intexfmt = tex->hasalpha
 		         ? GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
 		         : GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
@@ -971,15 +1102,15 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 		tdef->tsizy  = tex->tsizy;
 	}
 
-	if (pth->glpic[index] == 0) {
-		bglGenTextures(1, &pth->glpic[index]);
+	if (ptm->glpic == 0) {
+		bglGenTextures(1, &ptm->glpic);
 	}
-	bglBindTexture(GL_TEXTURE_2D, pth->glpic[index]);
+	bglBindTexture(GL_TEXTURE_2D, ptm->glpic);
 
-	pt_load_fixtransparency(tex, (pth->flags & PTH_CLAMPED));
+	pt_load_fixtransparency(tex, (flags & PTH_CLAMPED));
 	
 	mipmap = 0;
-	if (! (pth->flags & PTH_NOMIPLEVEL)) {
+	if (! (flags & PTH_NOMIPLEVEL)) {
 		// if we aren't instructed to preserve all mipmap levels,
 		// immediately throw away gltexmiplevel mipmaps
 		mipmap = max(0, gltexmiplevel);
@@ -1001,10 +1132,10 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 			starttime = getticks();
 			squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
 			if (polymosttexverbosity >= 2) {
-				initprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) of %s took %f sec\n",
+				initprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
 					   tex->sizx, tex->sizy,
 					   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
-					   pth->repldef->filename, (float)(getticks() - starttime) / 1000.f);
+					   (float)(getticks() - starttime) / 1000.f);
 			}
 			
 			tdef->mipmap[tdefmip].sizx = tex->sizx;
@@ -1017,7 +1148,7 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 		}
 		
 		pt_load_mipscale(tex);
-		pt_load_fixtransparency(tex, (pth->flags & PTH_CLAMPED));
+		pt_load_fixtransparency(tex, (flags & PTH_CLAMPED));
 	}
 	
 	if (compress) {
@@ -1027,10 +1158,10 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 		starttime = getticks();
 		squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
 		if (polymosttexverbosity >= 2) {
-			initprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) of %s took %f sec\n",
+			initprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
 				   tex->sizx, tex->sizy,
 				   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
-				   pth->repldef->filename, (float)(getticks() - starttime) / 1000.f);
+				   (float)(getticks() - starttime) / 1000.f);
 		}
 		
 		if (tdef) {
@@ -1058,7 +1189,7 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 	
 	for (mipmap = 1; tex->sizx > 1 || tex->sizy > 1; mipmap++) {
 		pt_load_mipscale(tex);
-		pt_load_fixtransparency(tex, (pth->flags & PTH_CLAMPED));
+		pt_load_fixtransparency(tex, (flags & PTH_CLAMPED));
 
 		if (compress) {
 			comprsize = squish_GetStorageRequirements(tex->sizx, tex->sizy, intexfmt);
@@ -1069,10 +1200,10 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 			starttime = getticks();
 			squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
 			if (polymosttexverbosity >= 2) {
-				initprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) of %s took %f sec\n",
+				initprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
 					   tex->sizx, tex->sizy,
 					   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
-					   pth->repldef->filename, (float)(getticks() - starttime) / 1000.f);
+					   (float)(getticks() - starttime) / 1000.f);
 			}
 			
 			if (tdef) {
@@ -1111,13 +1242,13 @@ static void pt_load_uploadtexture(PTHead * pth, int index, PTTexture * tex, PTCa
 static void pt_load_applyparameters(PTHead * pth)
 {
 	int i;
-	
-	for (i = 0; i < PTHGLPIC_SIZE; i++) {
-		if (pth->glpic[i] == 0) {
+
+	for (i = 0; i < PTHPIC_SIZE; i++) {
+		if (pth->pic[i] == 0 || pth->pic[i]->glpic == 0) {
 			continue;
 		}
 
-		bglBindTexture(GL_TEXTURE_2D, pth->glpic[i]);
+		bglBindTexture(GL_TEXTURE_2D, pth->pic[i]->glpic);
 
 		if (gltexfiltermode < 0) {
 			gltexfiltermode = 0;
@@ -1155,7 +1286,7 @@ void PTBeginPriming(void)
 	int i;
 	
 	for (i=PTHASHHEADSIZ-1; i>=0; i--) {
-		pth = hashhead[i];
+		pth = pthashhead[i];
 		while (pth) {
 			pth->primecnt = 0;
 			pth = pth->next;
@@ -1203,7 +1334,7 @@ int PTDoPrime(int* done, int* total)
 		
 		// first, unload all the textures that are not marked
 		for (i=PTHASHHEADSIZ-1; i>=0; i--) {
-			pth = hashhead[i];
+			pth = pthashhead[i];
 			while (pth) {
 				if (pth->primecnt == 0) {
 					pt_unload(pth);
@@ -1213,13 +1344,11 @@ int PTDoPrime(int* done, int* total)
 		}
 	}
 	
-	pth = hashhead[primepos];
+	pth = pthashhead[primepos];
 	while (pth) {
 		if (pth->primecnt > 0) {
 			primedone++;
-			if (pth->head.glpic[PTHGLPIC_BASE] == 0) {
-				pt_load(pth);
-			}
+			pt_load(pth);
 		}
 		pth = pth->next;
 	}
@@ -1240,7 +1369,7 @@ void PTReset()
 	int i;
 	
 	for (i=PTHASHHEADSIZ-1; i>=0; i--) {
-		pth = hashhead[i];
+		pth = pthashhead[i];
 		while (pth) {
 			pt_unload(pth);
 			pth = pth->next;
@@ -1254,17 +1383,28 @@ void PTReset()
 void PTClear()
 {
 	PTHash * pth, * next;
+	PTMHash * ptmh, * mnext;
 	int i;
 	
 	for (i=PTHASHHEADSIZ-1; i>=0; i--) {
-		pth = hashhead[i];
+		pth = pthashhead[i];
 		while (pth) {
 			next = pth->next;
 			pt_unload(pth);
 			free(pth);
 			pth = next;
 		}
-		hashhead[i] = 0;
+		pthashhead[i] = 0;
+	}
+	
+	for (i=PTMHASHHEADSIZ-1; i>=0; i--) {
+		ptmh = ptmhashhead[i];
+		while (ptmh) {
+			mnext = ptmh->next;
+			free(ptmh);
+			ptmh = mnext;
+		}
+		ptmhashhead[i] = 0;
 	}
 }
 
@@ -1298,6 +1438,10 @@ PTHead * PT_GetHead(long picnum, long palnum, unsigned short flags, int peek)
 	
 	return &pth->head;
 }
+
+
+
+
 
 static inline int ptiter_matches(PTIter iter)
 {
@@ -1335,7 +1479,7 @@ static void ptiter_seekforward(PTIter iter)
 				break;
 			}
 			iter->i++;
-			iter->pth = hashhead[iter->i];
+			iter->pth = pthashhead[iter->i];
 		} else {
 			iter->pth = iter->pth->next;
 		}
@@ -1362,7 +1506,7 @@ PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned short flagsm
 	}
 	
 	iter->i = 0;
-	iter->pth = hashhead[0];
+	iter->pth = pthashhead[0];
 	iter->match = match;
 	iter->picnum = picnum;
 	iter->palnum = palnum;
@@ -1370,8 +1514,8 @@ PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned short flagsm
 	iter->flags = flags;
 	
 	if ((match & PTITER_PICNUM)) {
-		iter->i = gethashhead(picnum);
-		iter->pth = hashhead[iter->i];
+		iter->i = pt_gethashhead(picnum);
+		iter->pth = pthashhead[iter->i];
 		if (iter->pth == 0) {
 			iter->pth = 0;
 			return iter;

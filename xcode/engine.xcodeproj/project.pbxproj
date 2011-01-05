@@ -344,13 +344,13 @@
 				AB3B2AC10EE4033300944CD1 /* polymost_priv.h */,
 				AB726D4A0F046C3B00730EAA /* polymosttex.c */,
 				AB726D4B0F046C3B00730EAA /* polymosttex_priv.h */,
+				AB6727E30F1093DC000C7D92 /* polymosttex-squish.cc */,
 				AB6725F80F0F8114000C7D92 /* polymosttexcache.c */,
 				AB735F5D0A29A39C003261DC /* pragmas.c */,
 				AB735F5E0A29A39C003261DC /* scriptfile.c */,
 				AB735F5F0A29A39C003261DC /* sdlayer.c */,
 				AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */,
 				AB3B2C800EE41B9000944CD1 /* textfont.c */,
-				AB6727E30F1093DC000C7D92 /* polymosttex-squish.cc */,
 			);
 			name = src;
 			path = ../src;
@@ -577,7 +577,6 @@
 			isa = PBXProject;
 			buildConfigurationList = AB735F3B0A29A24B003261DC /* Build configuration list for PBXProject "engine" */;
 			compatibilityVersion = "Xcode 3.0";
-			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				English,
