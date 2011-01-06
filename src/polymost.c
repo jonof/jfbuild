@@ -4142,6 +4142,37 @@ static int dumptexturedefs(const osdfuncparm_t * UNUSED(parm))
 	
 	return OSDCMD_OK;	// no replacement found
 }
+
+static int debugtexturehash(const osdfuncparm_t * UNUSED(parm))
+{
+	PTIter iter;
+	PTHead * pth;
+	int i;
+	
+	if (!hicfirstinit) {
+		return OSDCMD_OK;
+	}
+	
+	initprintf("// Begin texture hash dump\n");
+	iter = PTIterNew();
+	while ((pth = PTIterNext(iter)) != 0) {
+		initprintf(" picnum:%d palnum:%d flags:%04X repldef:%p\n",
+			   pth->picnum, pth->palnum, pth->flags,
+			   pth->repldef);
+		for (i=0; i<6; i++) {
+			if (pth->pic[i]) {
+				initprintf("   pic[%d]: %p => glpic:%d sizx/y:%d/%d tsizx/y:%d/%d\n",
+					   i, pth->pic[i], pth->pic[i]->glpic,
+					   pth->pic[i]->sizx, pth->pic[i]->sizy,
+					   pth->pic[i]->tsizx, pth->pic[i]->tsizy);
+			}
+		}
+	}
+	PTIterFree(iter);
+	initprintf("// End texture hash dump\n");
+		
+	return OSDCMD_OK;	// no replacement found
+}
 #endif
 
 void polymost_initosdfuncs(void)
@@ -4166,6 +4197,7 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
 #if 1
 	OSD_RegisterFunction("dumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",dumptexturedefs);
+	OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",debugtexturehash);
 #endif
 }
 

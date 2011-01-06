@@ -118,6 +118,7 @@ static PTMHead * ptm_gethead(const unsigned char id[16])
 		if (memcmp(id, ptmh->id, 16) == 0) {
 			return &ptmh->head;
 		}
+		ptmh = ptmh->next;
 	}
 	
 	ptmh = (PTMHash *) malloc(sizeof(PTMHash));
@@ -129,7 +130,7 @@ static PTMHead * ptm_gethead(const unsigned char id[16])
 		ptmhashhead[i] = ptmh;
 	}
 	
-	return ptmh;
+	return &ptmh->head;
 }
 
 
@@ -141,25 +142,14 @@ static PTMHead * ptm_gethead(const unsigned char id[16])
  */
 static void ptm_calculateid(const PTHead * pth, int extra, unsigned char id[16])
 {
-	struct {
-		int type;
-		int flags;
-		int palnum;
-		int picnum;
-		int extra;
-	} artid;
-	struct {
-		int type;
-		int flags;
-		int effects;
-		char filename[BMAX_PATH];
-		int extra;
-	} hightileid;
-	
-	unsigned char * md4ptr = 0;
-	int md4len = 0;
-	
 	if (pth->flags & PTH_HIGHTILE) {
+		struct {
+			int type;
+			int flags;
+			int effects;
+			char filename[BMAX_PATH];
+		} hightileid;
+		
 		if (!pth->repldef) {
 			if (polymosttexverbosity >= 1) {
 				initprintf("PolymostTex: cannot calculate texture id for pth with no repldef\n");
@@ -171,14 +161,21 @@ static void ptm_calculateid(const PTHead * pth, int extra, unsigned char id[16])
 		memset(&hightileid, 0, sizeof(hightileid));
 		hightileid.type = 1;
 		hightileid.flags = pth->flags & (PTH_CLAMPED);
-		hightileid.effects = 0;//FIXME!
+		hightileid.effects = (pth->palnum != pth->repldef->palnum)
+				? hictinting[pth->palnum].f : 0;
 		strncpy(hightileid.filename, pth->repldef->filename, BMAX_PATH);
-		hightileid.extra = extra;
 		
-		md4ptr = (unsigned char *) &hightileid;
-		md4len = sizeof(hightileid);
+		md4once((unsigned char *) &hightileid, sizeof(hightileid), id);
 
 	} else {
+		struct {
+			int type;
+			int flags;
+			int palnum;
+			int picnum;
+			int extra;
+		} artid;
+		
 		memset(&artid, 0, sizeof(artid));
 		artid.type = 0;
 		artid.flags = pth->flags & (PTH_CLAMPED);
@@ -186,11 +183,8 @@ static void ptm_calculateid(const PTHead * pth, int extra, unsigned char id[16])
 		artid.picnum = pth->picnum;
 		artid.extra = extra;
 		
-		md4ptr = (unsigned char *) &artid;
-		md4len = sizeof(artid);
+		md4once((unsigned char *) &artid, sizeof(artid), id);
 	}
-	
-	md4once(md4ptr, md4len, id);
 }
 
 
