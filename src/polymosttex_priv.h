@@ -85,26 +85,25 @@ void PTReset();
 void PTClear();
 
 /**
- * Fetches a texture header. This also means loading the texture from
- * disk if need be (if peek!=0).
- * @param picnum
- * @param palnum
- * @param flags
- * @param peek if !0, does not try and create a header if none exists
- * @return pointer to the header, or null if peek!=0 and none exists
+ * Creates a new iterator for walking the header hash looking for particular
+ * parameters that match.
+ * @param match PTITER_* flags indicating which parameters to test
+ * @param picnum when (match&PTITER_PICNUM), specifies the picnum
+ * @param palnum when (match&PTITER_PALNUM), specifies the palnum
+ * @param flagsmask when (match&PTITER_FLAGS), specifies the mask to apply to flags
+ * @param flags when (match&PTITER_FLAGS), specifies the flags to test
+ * @return an iterator
  */
-PTHead * PT_GetHead(long picnum, long palnum, unsigned short flags, int peek);
-
 PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned short flagsmask, unsigned short flags);
 
 /**
- * Creates a new iterator for walking the header hash
+ * Creates a new iterator for walking the entire header hash
  * @return an iterator
  */
 PTIter PTIterNew(void);
 
 /**
- * Gets the next header from an iterator
+ * Gets the next matching header from an iterator
  * @param iter the iterator
  * @return the next header, or null if at the end
  */
@@ -115,5 +114,52 @@ PTHead * PTIterNext(PTIter iter);
  * @param iter the iterator
  */
 void PTIterFree(PTIter iter);
+
+
+
+/**
+ * Fetches a texture header. This also means loading the texture from
+ * disk if need be (if peek!=0).
+ * @param picnum
+ * @param palnum
+ * @param flags
+ * @param peek if !0, does not try and create a header if none exists
+ * @return pointer to the header, or null if peek!=0 and none exists
+ *
+ * Shared method for polymost.c to call.
+ */
+PTHead * PT_GetHead(long picnum, long palnum, unsigned short flags, int peek);
+
+
+/**
+ * Returns a PTMHead pointer for the given texture id
+ * @param id the texture id
+ * @return the PTMHead item, or null if it couldn't be created
+ *
+ * Shared method for polymost.c and mdsprite.c to call.
+ */
+PTMHead * PTM_GetHead(const unsigned char id[16]);
+
+/**
+ * Loads a texture file into OpenGL
+ * @param filename the texture filename
+ * @param ptmh the PTMHead structure to receive the texture details
+ * @param flags PTH_* flags to tune the load process. Is also updated by the load.
+ * @param effects HICEFFECT_* effects to apply
+ * @return 0 on success, <0 on error
+ *
+ * Shared method for mdsprite.c to call.
+ */
+int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, unsigned short* flags, int effects)
+
+/**
+ * Returns a string describing the error returned by PTM_LoadTextureFile
+ * @param err the error code
+ * @return the error string
+ *
+ * Shared method for mdsprite.c to call.
+ */
+const char * PTM_GetLoadTextureFileErrorString(int err)
+
 
 #endif
