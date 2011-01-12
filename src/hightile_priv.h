@@ -8,6 +8,10 @@ enum {
 	HICEFFECTMASK = 3,
 };
 
+enum {
+	HIC_NOCOMPRESS = 1,
+};
+
 struct hicskybox_t {
 	long ignore;
 	char *face[6];

@@ -256,13 +256,21 @@ static int fog_is_on = 0;
 long polymost_texmayhavealpha (long dapicnum, long dapalnum)
 {
 	PTHead * pth;
+	int i;
 
 	pth = PT_GetHead(dapicnum, dapalnum, 0, 1);
 	if (!pth) {
 		return 1;
 	}
-	
-	return (pth->flags & PTH_HASALPHA) == PTH_HASALPHA;
+
+	if (!pth->pic[PTHPIC_BASE]) {
+		// we haven't got a PTMHead reference yet for the base layer, so we
+		// don't know if the texture actually does have alpha, so err on
+		// the side of caution
+		return 1;
+	}
+
+	return ((pth->pic[PTHPIC_BASE]->flags & PTH_HASALPHA) == PTH_HASALPHA);
 }
 
 void polymost_texinvalidate (long dapicnum, long dapalnum, long dameth)
@@ -343,8 +351,8 @@ void gltexapplyprops (void)
 			if (m->mdnum < 2) continue;
 			for (j=0;j<m->numskins*(HICEFFECTMASK+1);j++)
 			{
-				if (!m->texid[j]) continue;
-				bglBindTexture(GL_TEXTURE_2D,m->texid[j]);
+				if (!m->tex[j] || !m->tex[j]->glpic) continue;
+				bglBindTexture(GL_TEXTURE_2D,m->tex[j]->glpic);
 				bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 				bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 				if (glinfo.maxanisotropy > 1.0)
@@ -354,8 +362,8 @@ void gltexapplyprops (void)
 			for (sk=m->skinmap;sk;sk=sk->next)
 				for (j=0;j<(HICEFFECTMASK+1);j++)
 				{
-					if (!sk->texid[j]) continue;
-					bglBindTexture(GL_TEXTURE_2D,sk->texid[j]);
+					if (!sk->tex[j] || !sk->tex[j]->glpic) continue;
+					bglBindTexture(GL_TEXTURE_2D,sk->tex[j]->glpic);
 					bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 					bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 					if (glinfo.maxanisotropy > 1.0)
@@ -3816,7 +3824,7 @@ long polymost_drawtilescreen (long tilex, long tiley, long wallnum, long dimen)
 
 	bglDisable(GL_ALPHA_TEST);
 
-	if (!pth || (pth->flags & PTH_HASALPHA)) {
+	if (!pth || (pth->pic[PTHPIC_BASE]->flags & PTH_HASALPHA)) {
 		bglDisable(GL_TEXTURE_2D);
 		bglBegin(GL_TRIANGLE_FAN);
 		if (gammabrightness) {
@@ -4161,8 +4169,8 @@ static int debugtexturehash(const osdfuncparm_t * UNUSED(parm))
 			   pth->repldef);
 		for (i=0; i<6; i++) {
 			if (pth->pic[i]) {
-				initprintf("   pic[%d]: %p => glpic:%d sizx/y:%d/%d tsizx/y:%d/%d\n",
-					   i, pth->pic[i], pth->pic[i]->glpic,
+				initprintf("   pic[%d]: %p => glpic:%d flags:%x sizx/y:%d/%d tsizx/y:%d/%d\n",
+					   i, pth->pic[i], pth->pic[i]->glpic, pth->pic[i]->flags,
 					   pth->pic[i]->sizx, pth->pic[i]->sizy,
 					   pth->pic[i]->tsizx, pth->pic[i]->tsizy);
 			}

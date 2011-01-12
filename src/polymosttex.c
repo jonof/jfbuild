@@ -199,11 +199,11 @@ static void ptm_calculateid(const PTHead * pth, int extra, unsigned char id[16])
  * Loads a texture file into OpenGL
  * @param filename the texture filename
  * @param ptmh the PTMHead structure to receive the texture details
- * @param flags PTH_* flags to tune the load process. Is also updated by the load.
+ * @param flags PTH_* flags to tune the load process
  * @param effects HICEFFECT_* effects to apply
  * @return 0 on success, <0 on error
  */
-int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, unsigned short* flags, int effects)
+int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effects)
 {
 	PTTexture tex;
 	long filh, picdatalen;
@@ -211,7 +211,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, unsigned short* fla
 	char * picdata = 0;
 	PTCacheTile * tdef = 0;
 
-	int cacheable = (!(*flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcache && glusetexcompr);
+	int cacheable = (!(flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcache && glusetexcompr);
 	int writetocache = 0;
 	
 	if (cacheable) {
@@ -219,7 +219,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, unsigned short* fla
 		// exists in there. Once kplib can return mtimes, a date
 		// test will be done to see if we should supersede the one
 		// already there
-		writetocache = ! PTCacheHasTile(filename, effects, *flags & (PTH_CLAMPED));
+		writetocache = ! PTCacheHasTile(filename, effects, (flags & PTH_CLAMPED));
 	}
 
 	filh = kopen4load((char *) filename, 0);
@@ -272,11 +272,12 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, unsigned short* fla
 	
 	ptm_applyeffects(&tex, effects);	// updates tex.hasalpha
 	
+	ptmh->flags = 0;
 	if (tex.hasalpha) {
-		*flags |= PTH_HASALPHA;
+		ptmh->flags |= PTH_HASALPHA;
 	}
 	
-	if (! (*flags & PTH_CLAMPED) || (*flags & PTH_SKYBOX)) { //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
+	if (! (flags & PTH_CLAMPED) || (flags & PTH_SKYBOX)) { //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
 		if (tex.sizx > tex.tsizx) {	//Copy left to right
 			coltype * lptr = tex.pic;
 			for (y = 0; y < tex.tsizy; y++, lptr += tex.sizx) {
@@ -314,10 +315,10 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, unsigned short* fla
 		tdef = PTCacheAllocNewTile(nmips);
 		tdef->filename = strdup(filename);
 		tdef->effects = effects;
-		tdef->flags = *flags & (PTH_CLAMPED | PTH_HASALPHA);
+		tdef->flags = (flags | ptmh->flags) & (PTH_CLAMPED | PTH_HASALPHA);
 	}
 	
-	ptm_uploadtexture(ptmh, *flags, &tex, tdef);
+	ptm_uploadtexture(ptmh, flags, &tex, tdef);
 	
 	if (cacheable && writetocache) {
 		if (polymosttexverbosity >= 2) {
@@ -623,9 +624,6 @@ static int pt_load_art(PTHead * pth)
 	pth->flags &= ~(PTH_DIRTY | PTH_HASALPHA | PTH_SKYBOX);
 	pth->flags |= (PTH_NOCOMPRESS | PTH_NOMIPLEVEL);
 	tex.hasalpha = hasalpha;
-	if (hasalpha) {
-		pth->flags |= PTH_HASALPHA;
-	}
 	
 	ptm_calculateid(pth, PTHPIC_BASE, id);
 	pth->pic[PTHPIC_BASE] = PTM_GetHead(id);
@@ -687,7 +685,7 @@ static int pt_load_hightile(PTHead * pth)
 	effects = (pth->palnum != pth->repldef->palnum) ? hictinting[pth->palnum].f : 0;
 
 	pth->flags &= ~(PTH_DIRTY | PTH_NOCOMPRESS | PTH_HASALPHA);
-	if (pth->repldef->flags & 1) {
+	if (pth->repldef->flags & HIC_NOCOMPRESS) {
 		pth->flags |= PTH_NOCOMPRESS;
 	}
 	
@@ -717,7 +715,7 @@ static int pt_load_hightile(PTHead * pth)
 		ptm_calculateid(pth, 0, id);
 		pth->pic[texture] = PTM_GetHead(id);
 		
-		if ((err = PTM_LoadTextureFile(filename, pth->pic[texture], &pth->flags, effects))) {
+		if ((err = PTM_LoadTextureFile(filename, pth->pic[texture], pth->flags, effects))) {
 			if (polymosttexverbosity >= 1) {
 				const char * errstr = PTM_GetLoadTextureFileErrorString(err);
 				initprintf("PolymostTex: %s (pic %d pal %d) %s\n",
@@ -766,7 +764,7 @@ static int pt_load_cache(PTHead * pth)
 
 	if (!pth->repldef) {
 		return 0;
-	} else if ((pth->repldef->flags & 1) || !glinfo.texcompr || !glusetexcache || !glusetexcompr) {
+	} else if ((pth->repldef->flags & HIC_NOCOMPRESS) || !glinfo.texcompr || !glusetexcache || !glusetexcompr) {
 		return 0;
 	} else if ((pth->flags & PTH_SKYBOX) && (pth->repldef->skybox == 0 || pth->repldef->skybox->ignore)) {
 		return 0;
@@ -822,6 +820,7 @@ static int pt_load_cache(PTHead * pth)
 		pth->pic[texture]->tsizy = tdef->tsizy;
 		pth->pic[texture]->sizx  = tdef->mipmap[0].sizx;
 		pth->pic[texture]->sizy  = tdef->mipmap[0].sizy;
+		pth->pic[texture]->flags = tdef->flags & PTH_HASALPHA;
 		bglBindTexture(GL_TEXTURE_2D, pth->pic[texture]->glpic);
 		
 		if (texture == 0) {
@@ -833,7 +832,7 @@ static int pt_load_cache(PTHead * pth)
 				pth->scaley = (float)tdef->tsizy / (float)tilesizy[pth->picnum];
 			}
 			pth->flags &= ~(PTH_DIRTY | PTH_NOCOMPRESS | PTH_HASALPHA);
-			pth->flags |= tdef->flags;
+			pth->flags |= (tdef->flags & ~PTH_HASALPHA);	// PTH_HASALPHA is applied to the pic
 		}
 		
 		mipmap = 0;
@@ -1300,6 +1299,9 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 				GL_UNSIGNED_BYTE, (const GLvoid *) tex->pic);
 		}
 	}
+	
+	ptm->flags = 0;
+	ptm->flags |= (tex->hasalpha ? PTH_HASALPHA : 0);
 	
 	if (comprdata) {
 		free(comprdata);

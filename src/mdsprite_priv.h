@@ -6,7 +6,7 @@ typedef struct _mdskinmap_t
 	unsigned char palette, filler[3]; // Build palette number
 	int skinnum, surfnum;   // Skin identifier, surface number
 	char *fn;   // Skin filename
-	GLuint texid[HICEFFECTMASK+1];   // OpenGL texture numbers for effect variations
+	PTMHead *tex[HICEFFECTMASK+1];
 	struct _mdskinmap_t *next;
 } mdskinmap_t;
 
@@ -15,7 +15,7 @@ typedef struct
 	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
 	long shadeoff;
 	float scale, bscale, zadd;
-	GLuint *texid;	// skins
+	PTMHead *tex;	// skins
 } mdmodel;
 
 typedef struct _mdanim_t
@@ -56,7 +56,7 @@ typedef struct
 	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
 	long shadeoff;
 	float scale, bscale, zadd;
-	GLuint *texid;   // texture ids for base skin if no mappings defined
+	PTMHead **tex;   // textures for base skin if no mappings defined
 	
 	long numframes, cframe, nframe, fpssc, usesalpha;
 	float oldtime, curtime, interpol;
@@ -121,7 +121,7 @@ typedef struct
 	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
 	long shadeoff;
 	float scale, bscale, zadd;
-	unsigned int *texid;   // texture ids for base skin if no mappings defined
+	PTMHead **tex;   // textures for base skin if no mappings defined
 	
 	long numframes, cframe, nframe, fpssc, usesalpha;
 	float oldtime, curtime, interpol;
@@ -157,7 +157,7 @@ typedef struct
 	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
 	long shadeoff;
 	float scale, bscale, zadd;
-	unsigned int *texid;	// skins for palettes
+	GLuint *texid;	// skins for palettes
 	
 		//VOX specific stuff:
 	voxrect_t *quad; long qcnt, qfacind[7];
@@ -181,7 +181,7 @@ voxmodel *voxload (const char *filnam);
 int voxdraw (voxmodel *m, spritetype *tspr);
 
 void mdinit ();
-long mdloadskin (md2model *m, int number, int pal, int surf);
+PTMHead * mdloadskin (md2model *m, int number, int pal, int surf);
 int mddraw (spritetype *);
 
 #endif

@@ -14,7 +14,7 @@
  
  INDEX (texture.cacheindex):
    signature  "PolymostTexIndx"
-   version    0x00
+   version    CACHEVER
    ENTRIES...
      filename  char[BMAX_PATH]
      effects   int32
@@ -24,7 +24,7 @@
  
  STORAGE (texture.cache):
    signature  "PolymostTexStor"
-   version    0x00
+   version    CACHEVER
    ENTRIES...
      tsizx     int32		Unpadded dimensions
      tsizy     int32
@@ -184,6 +184,10 @@ void PTCacheLoadIndex(void)
 			cachedisabled = 1;
 			return;
 		}
+	}
+	
+	if (cachereplace) {
+		return;
 	}
 	
 	// now that the index is sitting at the first entry, load everything
@@ -471,7 +475,8 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 
 		tsizx = B_LITTLE32(tdef->tsizx);
 		tsizy = B_LITTLE32(tdef->tsizy);
-		flags = B_LITTLE32(tdef->flags);
+		flags = tdef->flags & (PTH_CLAMPED | PTH_HASALPHA);
+		flags = B_LITTLE32(flags);
 		format = B_LITTLE32(tdef->format);
 		nmipmaps = B_LITTLE32(tdef->nummipmaps);
 		

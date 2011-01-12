@@ -5,7 +5,7 @@ enum {
 	PTH_CLAMPED = 1,
 	PTH_HIGHTILE = 2,
 	PTH_SKYBOX = 4,
-	PTH_HASALPHA = 8,
+	PTH_HASALPHA = 8,		// NOTE: only seen in PTMHead.flags, not in PTHead.flags
 	PTH_NOCOMPRESS = 16,	// prevents texture compression from being used
 	PTH_NOMIPLEVEL = 32,	// prevents gltexmiplevel from being applied
 	PTH_DIRTY = 128,
@@ -24,6 +24,7 @@ enum {
 struct PTMHead_typ {
 	GLuint glpic;
 	
+	int flags;
 	long sizx, sizy;		// padded texture dimensions
 	long tsizx, tsizy;		// true texture dimensions
 };
@@ -144,13 +145,13 @@ PTMHead * PTM_GetHead(const unsigned char id[16]);
  * Loads a texture file into OpenGL
  * @param filename the texture filename
  * @param ptmh the PTMHead structure to receive the texture details
- * @param flags PTH_* flags to tune the load process. Is also updated by the load.
+ * @param flags PTH_* flags to tune the load process
  * @param effects HICEFFECT_* effects to apply
  * @return 0 on success, <0 on error
  *
  * Shared method for mdsprite.c to call.
  */
-int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, unsigned short* flags, int effects)
+int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effects);
 
 /**
  * Returns a string describing the error returned by PTM_LoadTextureFile
@@ -159,7 +160,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, unsigned short* fla
  *
  * Shared method for mdsprite.c to call.
  */
-const char * PTM_GetLoadTextureFileErrorString(int err)
+const char * PTM_GetLoadTextureFileErrorString(int err);
 
 
 #endif

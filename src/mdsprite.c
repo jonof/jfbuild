@@ -8,9 +8,11 @@
 #include "pragmas.h"
 #include "cache1d.h"
 #include "baselayer.h"
+#include "md4.h"
 #include "engine_priv.h"
 #include "polymost_priv.h"
 #include "hightile_priv.h"
+#include "polymosttex_priv.h"
 #include "mdsprite_priv.h"
 
 #ifdef __POWERPC__
@@ -74,23 +76,29 @@ void clearskins ()
 		if (m->mdnum == 1) {
 			voxmodel *v = (voxmodel*)m;
 			for(j=0;j<MAXPALOOKUPS;j++) {
-				if (v->texid[j]) bglDeleteTextures(1,(GLuint*)&v->texid[j]);
-				v->texid[j] = 0;
+				if (v->texid) {
+					bglDeleteTextures(1, &v->texid[j]);
+					v->texid = 0;
+				}
 			}
 		} else if (m->mdnum == 2 || m->mdnum == 3) {
 			md2model *m2 = (md2model*)m;
 			mdskinmap_t *sk;
 			for(j=0;j<m2->numskins*(HICEFFECTMASK+1);j++)
 			{
-				if (m2->texid[j]) bglDeleteTextures(1,(GLuint*)&m2->texid[j]);
-				m2->texid[j] = 0;
+				if (m2->tex[j] && m2->tex[j]->glpic) {
+					bglDeleteTextures(1, &m2->tex[j]->glpic);
+					m2->tex[j]->glpic = 0;
+				}
 			}
 
 			for(sk=m2->skinmap;sk;sk=sk->next)
 				for(j=0;j<(HICEFFECTMASK+1);j++)
 				{
-					if (sk->texid[j]) bglDeleteTextures(1,(GLuint*)&sk->texid[j]);
-					sk->texid[j] = 0;
+					if (sk->tex[j] && sk->tex[j]->glpic) {
+						bglDeleteTextures(1, &sk->tex[j]->glpic);
+						sk->tex[j]->glpic = 0;
+					}
 				}
 		}
 	}
@@ -323,231 +331,47 @@ int md_undefinemodel(int modelid)
 	return 0;
 }
 
-static int daskinloader (long filh, coltype ** fptr, long *bpl, long *sizx, long *sizy, long *osizx, long *osizy, char *hasalpha, char effect)
+static void md_calculateskinid(const char * filename, int effects, unsigned char id[16])
 {
-	long picfillen, j,y,x;
-	char *picfil,al=255;
-	unsigned char *cptr;
-	coltype *pic;
-	long xsiz, ysiz, tsizx, tsizy;
-
-	picfillen = kfilelength(filh);
-	picfil = (char *)malloc(picfillen); if (!picfil) { return -1; }
-	kread(filh, picfil, picfillen);
-
-	// tsizx/y = replacement texture's natural size
-	// xsiz/y = 2^x size of replacement
-
-	kpgetdim(picfil,picfillen,&tsizx,&tsizy);
-	if (tsizx == 0 || tsizy == 0) { free(picfil); return -1; }
-
-	if (!glinfo.texnpot) {
-		for(xsiz=1;xsiz<tsizx;xsiz+=xsiz);
-		for(ysiz=1;ysiz<tsizy;ysiz+=ysiz);
-	} else {
-		xsiz = tsizx;
-		ysiz = tsizy;
-	}
-	*osizx = tsizx; *osizy = tsizy;
-	pic = (coltype *)malloc(xsiz*ysiz*sizeof(coltype));
-	if (!pic) { free(picfil); return -1; }
-	memset(pic,0,xsiz*ysiz*sizeof(coltype));
-
-	if (kprender(picfil,picfillen,(long)pic,xsiz*sizeof(coltype),xsiz,ysiz,0,0))
-		{ free(picfil); free(pic); return -1; }
-	free(picfil);
-
-	cptr = &britable[gammabrightness ? 0 : curbrightness][0];
-	for(y=0,j=0;y<tsizy;y++,j+=xsiz)
-	{
-		coltype *rpptr = &pic[j], tcol;
-
-		for(x=0;x<tsizx;x++)
-		{
-			tcol.b = cptr[rpptr[x].b];
-			tcol.g = cptr[rpptr[x].g];
-			tcol.r = cptr[rpptr[x].r];
-
-			if (effect & 1) {
-				// greyscale
-				tcol.b = max(tcol.b, max(tcol.g, tcol.r));
-				tcol.g = tcol.r = tcol.b;
-			}
-			if (effect & 2) {
-				// invert
-				tcol.b = 255-tcol.b;
-				tcol.g = 255-tcol.g;
-				tcol.r = 255-tcol.r;
-			}
-
-			rpptr[x].b = tcol.b;
-			rpptr[x].g = tcol.g;
-			rpptr[x].r = tcol.r;
-			al &= rpptr[x].a;
-		}
-	}
-	if (!glinfo.bgra) {
-		for(j=xsiz*ysiz-1;j>=0;j--) {
-			swapchar(&pic[j].r, &pic[j].b);
-		}
-	}
-
-	*sizx = xsiz;
-	*sizy = ysiz;
-	*bpl = xsiz;
-	*fptr = pic;
-	*hasalpha = (al != 255);
-	return 0;
+	struct {
+		int effects;
+		char filename[BMAX_PATH];
+	} skinid;
+	
+	memset(&skinid, 0, sizeof(skinid));
+	skinid.effects = effects;
+	strncpy(skinid.filename, filename, BMAX_PATH);
+	
+	md4once((unsigned char *) &skinid, sizeof(skinid), id);
 }
 
-
-static void fixtransparency (coltype *dapic, long daxsiz, long daysiz, long daxsiz2, long daysiz2, long dameth)
+//Note: even though it says md2model, it works for both md2model&md3model
+PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 {
-	coltype *wpptr;
-	long j, x, y, r, g, b, dox, doy, naxsiz2;
+	int i, err = 0;
+	char *skinfile = 0, fn[BMAX_PATH+65];
+	unsigned char id[16];
+	PTMHead **tex = 0;
+	mdskinmap_t *sk, *skzero = 0;
 	
-	dox = daxsiz2-1; doy = daysiz2-1;
-	if (dameth & METH_CLAMPED) { dox = min(dox,daxsiz); doy = min(doy,daysiz); }
-	else { daxsiz = daxsiz2; daysiz = daysiz2; } //Make repeating textures duplicate top/left parts
-	
-	daxsiz--; daysiz--; naxsiz2 = -daxsiz2; //Hacks for optimization inside loop
-	
-		//Set transparent pixels to average color of neighboring opaque pixels
-		//Doing this makes bilinear filtering look much better for masked textures (I.E. sprites)
-	for(y=doy;y>=0;y--)
-	{
-		wpptr = &dapic[y*daxsiz2+dox];
-		for(x=dox;x>=0;x--,wpptr--)
-		{
-			if (wpptr->a) continue;
-			r = g = b = j = 0;
-			if ((x>     0) && (wpptr[     -1].a)) { r += (long)wpptr[     -1].r; g += (long)wpptr[     -1].g; b += (long)wpptr[     -1].b; j++; }
-			if ((x<daxsiz) && (wpptr[     +1].a)) { r += (long)wpptr[     +1].r; g += (long)wpptr[     +1].g; b += (long)wpptr[     +1].b; j++; }
-			if ((y>     0) && (wpptr[naxsiz2].a)) { r += (long)wpptr[naxsiz2].r; g += (long)wpptr[naxsiz2].g; b += (long)wpptr[naxsiz2].b; j++; }
-			if ((y<daysiz) && (wpptr[daxsiz2].a)) { r += (long)wpptr[daxsiz2].r; g += (long)wpptr[daxsiz2].g; b += (long)wpptr[daxsiz2].b; j++; }
-			switch(j)
-			{
-				case 1: wpptr->r =   r            ; wpptr->g =   g            ; wpptr->b =   b            ; break;
-				case 2: wpptr->r = ((r   +  1)>>1); wpptr->g = ((g   +  1)>>1); wpptr->b = ((b   +  1)>>1); break;
-				case 3: wpptr->r = ((r*85+128)>>8); wpptr->g = ((g*85+128)>>8); wpptr->b = ((b*85+128)>>8); break;
-				case 4: wpptr->r = ((r   +  2)>>2); wpptr->g = ((g   +  2)>>2); wpptr->b = ((b   +  2)>>2); break;
-				default: break;
-			}
-		}
-	}
-}
-
-static void uploadtexture(long doalloc, long xsiz, long ysiz, long intexfmt, long texfmt, coltype *pic, long tsizx, long tsizy, long dameth)
-{
-	coltype *wpptr, *rpptr;
-	long x2, y2, j, js=0, x3, y3, y, x, r, g, b, a, k;
-	
-	if (gltexmaxsize <= 0) {
-		GLint i = 0;
-		bglGetIntegerv(GL_MAX_TEXTURE_SIZE, &i);
-		if (!i) gltexmaxsize = 6;   // 2^6 = 64 == default GL max texture size
-		else {
-			gltexmaxsize = 0;
-			for (; i>1; i>>=1) gltexmaxsize++;
-		}
+	if (m->mdnum == 2) {
+		surf = 0;
 	}
 	
-	js = max(0,min(gltexmaxsize-1,gltexmiplevel));
-	gltexmiplevel = js;
-	while ((xsiz>>js) > (1<<gltexmaxsize) || (ysiz>>js) > (1<<gltexmaxsize)) js++;
-	
-	/*
-	 OSD_Printf("Uploading %dx%d %s as %s\n", xsiz,ysiz,
-		    (texfmt==GL_RGBA?"GL_RGBA":
-		     texfmt==GL_RGB?"GL_RGB":
-		     texfmt==GL_BGR?"GL_BGR":
-		     texfmt==GL_BGRA?"GL_BGRA":"other"),
-		    (intexfmt==GL_RGBA?"GL_RGBA":
-		     intexfmt==GL_RGB?"GL_RGB":
-		     intexfmt==GL_COMPRESSED_RGBA_ARB?"GL_COMPRESSED_RGBA_ARB":
-		     intexfmt==GL_COMPRESSED_RGB_ARB?"GL_COMPRESSED_RGB_ARB":"other"));
-	 */
-	
-	if (js == 0) {
-		if (doalloc&1)
-			bglTexImage2D(GL_TEXTURE_2D,0,intexfmt,xsiz,ysiz,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
-		else
-			bglTexSubImage2D(GL_TEXTURE_2D,0,0,0,xsiz,ysiz,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
+	if ((unsigned)pal >= (unsigned)MAXPALOOKUPS) {
+		return 0;
 	}
 	
-#if 0
-	gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGBA8,xsiz,ysiz,texfmt,GL_UNSIGNED_BYTE,pic); //Needs C++ to link?
-#elif 1
-	x2 = xsiz; y2 = ysiz;
-	for(j=1;(x2 > 1) || (y2 > 1);j++)
-	{
-		//x3 = ((x2+1)>>1); y3 = ((y2+1)>>1);
-		x3 = max(1, x2 >> 1); y3 = max(1, y2 >> 1);		// this came from the GL_ARB_texture_non_power_of_two spec
-		for(y=0;y<y3;y++)
-		{
-			wpptr = &pic[y*x3]; rpptr = &pic[(y<<1)*x2];
-			for(x=0;x<x3;x++,wpptr++,rpptr+=2)
-			{
-				r = g = b = a = k = 0;
-				if  (rpptr[0].a)                  { r += (long)rpptr[0].r; g += (long)rpptr[0].g; b += (long)rpptr[0].b; a += (long)rpptr[0].a; k++; }
-				if ((x+x+1 < x2) && (rpptr[1].a)) { r += (long)rpptr[1].r; g += (long)rpptr[1].g; b += (long)rpptr[1].b; a += (long)rpptr[1].a; k++; }
-				if (y+y+1 < y2)
-				{
-					if ((rpptr[x2].a)                  ) { r += (long)rpptr[x2  ].r; g += (long)rpptr[x2  ].g; b += (long)rpptr[x2  ].b; a += (long)rpptr[x2  ].a; k++; }
-					if ((x+x+1 < x2) && (rpptr[x2+1].a)) { r += (long)rpptr[x2+1].r; g += (long)rpptr[x2+1].g; b += (long)rpptr[x2+1].b; a += (long)rpptr[x2+1].a; k++; }
-				}
-				switch(k)
-				{
-					case 0:
-					case 1: wpptr->r = r; wpptr->g = g; wpptr->b = b; wpptr->a = a; break;
-					case 2: wpptr->r = ((r+1)>>1); wpptr->g = ((g+1)>>1); wpptr->b = ((b+1)>>1); wpptr->a = ((a+1)>>1); break;
-					case 3: wpptr->r = ((r*85+128)>>8); wpptr->g = ((g*85+128)>>8); wpptr->b = ((b*85+128)>>8); wpptr->a = ((a*85+128)>>8); break;
-					case 4: wpptr->r = ((r+2)>>2); wpptr->g = ((g+2)>>2); wpptr->b = ((b+2)>>2); wpptr->a = ((a+2)>>2); break;
-					default: break;
-				}
-				//if (wpptr->a) wpptr->a = 255;
-			}
-		}
-		if (tsizx >= 0) fixtransparency(pic,(tsizx+(1<<j)-1)>>j,(tsizy+(1<<j)-1)>>j,x3,y3,dameth);
-		if (j >= js) {
-			if (doalloc&1)
-				bglTexImage2D(GL_TEXTURE_2D,j-js,intexfmt,x3,y3,0,texfmt,GL_UNSIGNED_BYTE,pic); //loading 1st time
-			else
-				bglTexSubImage2D(GL_TEXTURE_2D,j-js,0,0,x3,y3,texfmt,GL_UNSIGNED_BYTE,pic); //overwrite old texture
-		}
-		x2 = x3; y2 = y3;
-	}
-#endif
-}
-
-
-	//Note: even though it says md2model, it works for both md2model&md3model
-long mdloadskin (md2model *m, int number, int pal, int surf)
-{
-	long i,j, bpl, xsiz, ysiz, osizx, osizy, texfmt = GL_RGBA, intexfmt = GL_RGBA;
-	char *skinfile, hasalpha, fn[BMAX_PATH+65];
-	coltype * fptr = 0;
-	GLuint *texidx = NULL;
-	mdskinmap_t *sk, *skzero = NULL;
-	long doalloc = 1, filh;
-
-	long picfillen;
-	
-	if (m->mdnum == 2) surf = 0;
-
-	if ((unsigned)pal >= (unsigned)MAXPALOOKUPS) return 0;
 	i = -1;
-	for (sk = m->skinmap; sk; sk = sk->next)
-	{
-		if ((int)sk->palette == pal && sk->skinnum == number && sk->surfnum == surf)
-		{
+	for (sk = m->skinmap; sk; sk = sk->next) {
+		if ((int)sk->palette == pal && sk->skinnum == number && sk->surfnum == surf) {
+			tex = &sk->tex[ hictinting[pal].f ];
 			skinfile = sk->fn;
-			texidx = &sk->texid[ hictinting[pal].f ];
 			strcpy(fn,skinfile);
 			//OSD_Printf("Using exact match skin (pal=%d,skinnum=%d,surfnum=%d) %s\n",pal,number,surf,skinfile);
 			break;
 		}
-			//If no match, give highest priority to number, then pal.. (Parkar's request, 02/27/2005)
+		//If no match, give highest priority to number, then pal.. (Parkar's request, 02/27/2005)
 		else if (((int)sk->palette ==   0) && (sk->skinnum == number) && (sk->surfnum == surf) && (i < 5)) { i = 5; skzero = sk; }
 		else if (((int)sk->palette == pal) && (sk->skinnum ==      0) && (sk->surfnum == surf) && (i < 4)) { i = 4; skzero = sk; }
 		else if (((int)sk->palette ==   0) && (sk->skinnum ==      0) && (sk->surfnum == surf) && (i < 3)) { i = 3; skzero = sk; }
@@ -555,63 +379,62 @@ long mdloadskin (md2model *m, int number, int pal, int surf)
 		else if (((int)sk->palette == pal) && (sk->skinnum ==      0) && (i < 1)) { i = 1; skzero = sk; }
 		else if (((int)sk->palette ==   0) && (sk->skinnum ==      0) && (i < 0)) { i = 0; skzero = sk; }
 	}
-	if (!sk)
-	{
-		if (skzero)
-		{
+	if (!sk) {
+		if (skzero) {
+			tex = &skzero->tex[ hictinting[pal].f ];
 			skinfile = skzero->fn;
-			texidx = &skzero->texid[ hictinting[pal].f ];
 			strcpy(fn,skinfile);
 			//OSD_Printf("Using def skin 0,0 as fallback, pal=%d\n", pal);
-		}
-		else
-		{
-			if ((unsigned)number >= (unsigned)m->numskins) number = 0;
+		} else {
+			if ((unsigned)number >= (unsigned)m->numskins) {
+				number = 0;
+			}
+			tex = &m->tex[ number * (HICEFFECTMASK+1) + hictinting[pal].f ];
 			skinfile = m->skinfn + number*64;
-			texidx = &m->texid[ number * (HICEFFECTMASK+1) + hictinting[pal].f ];
-			strcpy(fn,m->basepath); strcat(fn,skinfile);
+			strcpy(fn,m->basepath);
+			strcat(fn,skinfile);
 			//OSD_Printf("Using MD2/MD3 skin (%d) %s, pal=%d\n",number,skinfile,pal);
 		}
 	}
-	if (!skinfile[0]) return 0;
-
-	if (*texidx) return *texidx;
-	*texidx = 0;
-
-	if ((filh = kopen4load(fn, 0)) < 0) {
-		initprintf("Skin %s not found.\n",fn);
-		skinfile[0] = 0;
+	
+	if (!skinfile[0]) {
 		return 0;
 	}
-
-	picfillen = kfilelength(filh);
-
-	if (daskinloader(filh,&fptr,&bpl,&xsiz,&ysiz,&osizx,&osizy,&hasalpha,hictinting[pal].f))
-	{
-		kclose(filh);
-		initprintf("Failed loading skin file \"%s\"\n", fn);
-		skinfile[0] = 0;
-		return(0);
-	} else kclose(filh);
-	m->usesalpha = hasalpha;
-
-	if ((doalloc&3)==1) bglGenTextures(1,(GLuint*)texidx);
-	bglBindTexture(GL_TEXTURE_2D,*texidx);
-
-	//gluBuild2DMipmaps(GL_TEXTURE_2D,GL_RGBA,xsiz,ysiz,GL_BGRA_EXT,GL_UNSIGNED_BYTE,(char *)fptr);
-	if (glinfo.texcompr && glusetexcompr) intexfmt = hasalpha ? GL_COMPRESSED_RGBA_ARB : GL_COMPRESSED_RGB_ARB;
-	else if (!hasalpha) intexfmt = GL_RGB;
-	if (glinfo.bgra) texfmt = GL_BGRA;
-	uploadtexture((doalloc&1), xsiz, ysiz, intexfmt, texfmt, fptr, xsiz, ysiz, 0);
-	free(fptr);
+	
+	if (*tex && (*tex)->glpic) {
+		// texture already loaded
+		return *tex;
+	}
+	
+	if (!(*tex)) {
+		// no PTMHead referenced yet at *tex
+		md_calculateskinid(skinfile, hictinting[pal].f, id);
+		*tex = PTM_GetHead(id);
+		if (!(*tex)) {
+			return 0;
+		}
+	}
+	
+	if (!(*tex)->glpic) {
+		// no texture loaded in the PTMHead yet
+		if ((err = PTM_LoadTextureFile(skinfile, *tex, PTH_CLAMPED, hictinting[pal].f))) {
+			if (polymosttexverbosity >= 1) {
+				const char * errstr = PTM_GetLoadTextureFileErrorString(err);
+				initprintf("MDSprite: %s %s\n",
+						   skinfile, errstr);
+			}
+			return 0;
+		}
+		m->usesalpha = (((*tex)->flags & PTH_HASALPHA) == PTH_HASALPHA);
+	}
 
 	if (!m->skinloaded)
 	{
-		if (xsiz != osizx || ysiz != osizy)
+		if ((*tex)->sizx != (*tex)->tsizx || (*tex)->sizy != (*tex)->tsizy)
 		{
 			float fx, fy;
-			fx = ((float)osizx)/((float)xsiz);
-			fy = ((float)osizy)/((float)ysiz);
+			fx = ((float)(*tex)->tsizx)/((float)(*tex)->sizx);
+			fy = ((float)(*tex)->tsizy)/((float)(*tex)->sizy);
 			if (m->mdnum == 2)
 			{
 				long *lptr;
@@ -647,9 +470,9 @@ long mdloadskin (md2model *m, int number, int pal, int surf)
 		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-
-	return(*texidx);
-}
+	
+	return (*tex);
+}	
 
 	//Note: even though it says md2model, it works for both md2model&md3model
 static void updateanimation (md2model *m, spritetype *tspr)
@@ -718,7 +541,7 @@ static void md2free (md2model *m)
 	if (m->basepath) free(m->basepath);
 	if (m->skinfn) free(m->skinfn);
 
-	if (m->texid) free(m->texid);
+	if (m->tex) free(m->tex);
 }
 
 static md2model *md2load (int fil, const char *filnam)
@@ -790,8 +613,8 @@ static md2model *md2load (int fil, const char *filnam)
 	if (kread(fil,m->skinfn,64*m->numskins) != 64*m->numskins)
 		{ free(m->glcmds); free(m->frames); free(m); return(0); }
 
-	m->texid = (GLuint *)calloc(m->numskins, sizeof(GLuint) * (HICEFFECTMASK+1));
-	if (!m->texid) { free(m->skinfn); free(m->basepath); free(m->glcmds); free(m->frames); free(m); return(0); }
+	m->tex = (PTMHead **)calloc(m->numskins, sizeof(PTMHead *) * (HICEFFECTMASK+1));
+	if (!m->tex) { free(m->skinfn); free(m->basepath); free(m->glcmds); free(m->frames); free(m); return(0); }
 
 	maxmodelverts = max(maxmodelverts, m->numverts);
 
@@ -805,6 +628,7 @@ static int md2draw (md2model *m, spritetype *tspr)
 	unsigned char *c0, *c1;
 	long i, *lptr;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
+	PTMHead *ptmh = 0;
 
 	updateanimation(m,tspr);
 
@@ -909,7 +733,8 @@ static int md2draw (md2model *m, spritetype *tspr)
 	mat[3] = mat[7] = mat[11] = 0.f; mat[15] = 1.f; bglLoadMatrixf(mat);
 #endif
 
-	i = mdloadskin(m,tile2model[tspr->picnum].skinnum,globalpal,0); if (!i) return 0;
+	ptmh = mdloadskin(m,tile2model[tspr->picnum].skinnum,globalpal,0);
+	if (!ptmh || !ptmh->glpic) return 0;
 
 	//bit 10 is an ugly hack in game.c\animatesprites telling MD2SPRITE
 	//to use Z-buffer hacks to hide overdraw problems with the shadows
@@ -924,7 +749,7 @@ static int md2draw (md2model *m, spritetype *tspr)
 	bglCullFace(GL_BACK);
 
 	bglEnable(GL_TEXTURE_2D);
-	bglBindTexture(GL_TEXTURE_2D, i);
+	bglBindTexture(GL_TEXTURE_2D, ptmh->glpic);
 
 	pc[0] = pc[1] = pc[2] = ((float)(numpalookups-min(max(globalshade+m->shadeoff,0),numpalookups)))/((float)numpalookups);
 	pc[0] *= (float)hictinting[globalpal].r / 255.0;
@@ -978,7 +803,7 @@ static md3model *md3load (int fil)
 	md3surf_t *s;
 
 	m = (md3model *)calloc(1,sizeof(md3model)); if (!m) return(0);
-	m->mdnum = 3; m->texid = 0; m->scale = .01;
+	m->mdnum = 3; m->tex = 0; m->scale = .01;
 
 	kread(fil,&m->head,sizeof(md3head_t));
 	m->head.id = B_LITTLE32(m->head.id);             m->head.vers = B_LITTLE32(m->head.vers);
@@ -1086,27 +911,6 @@ static md3model *md3load (int fil)
 		ofsurf += s->ofsend;
 	}
 
-#if 0
-	strcpy(st,filnam);
-	for(i=0,j=0;st[i];i++) if ((st[i] == '/') || (st[i] == '\\')) j = i+1;
-	st[j] = '*'; st[j+1] = 0;
-	kzfindfilestart(st); bsc = -1;
-	while (kzfindfile(st))
-	{
-		if (st[0] == '\\') continue;
-
-		for(i=0,j=0;st[i];i++) if (st[i] == '.') j = i+1;
-		if ((!stricmp(&st[j],"JPG")) || (!stricmp(&st[j],"PNG")) || (!stricmp(&st[j],"GIF")) ||
-			 (!stricmp(&st[j],"PCX")) || (!stricmp(&st[j],"TGA")) || (!stricmp(&st[j],"BMP")) ||
-			 (!stricmp(&st[j],"CEL")))
-		{
-			for(i=0;st[i];i++) if (st[i] != filnam[i]) break;
-			if (i > bsc) { bsc = i; strcpy(bst,st); }
-		}
-	}
-	if (!mdloadskin(&m->texid,&m->usesalpha,bst)) ;//bad!
-#endif
-
 	return(m);
 }
 
@@ -1117,6 +921,7 @@ static int md3draw (md3model *m, spritetype *tspr)
 	long i, j, k, surfi, *lptr;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
 	md3surf_t *s;
+	PTMHead * ptmh = 0;
 
 	updateanimation((md2model *)m,tspr);
 
@@ -1264,9 +1069,10 @@ static int md3draw (md3model *m, spritetype *tspr)
 	z = sinlut256[mv->nlng];
 #endif
 
-		i = mdloadskin((md2model *)m,tile2model[tspr->picnum].skinnum,globalpal,surfi); if (!i) continue;
-		//i = mdloadskin((md2model *)m,tile2model[tspr->picnum].skinnum,surfi); //hack for testing multiple surfaces per MD3
-		bglBindTexture(GL_TEXTURE_2D, i);
+		ptmh = mdloadskin((md2model *)m,tile2model[tspr->picnum].skinnum,globalpal,surfi);
+		//ptmh = mdloadskin((md2model *)m,tile2model[tspr->picnum].skinnum,surfi); //hack for testing multiple surfaces per MD3
+		if (!ptmh || !ptmh->glpic) continue;
+		bglBindTexture(GL_TEXTURE_2D, ptmh->glpic);
 
 		bglBegin(GL_TRIANGLES);
 		for(i=s->numtris-1;i>=0;i--)
@@ -1326,7 +1132,7 @@ static void md3free (md3model *m)
 	if (m->head.tags) free(m->head.tags);
 	if (m->head.frames) free(m->head.frames);
 
-	if (m->texid) free(m->texid);
+	if (m->tex) free(m->tex);
 
 	free(m);
 }
