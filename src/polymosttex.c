@@ -195,6 +195,68 @@ static void ptm_calculateid(const PTHead * pth, int extra, unsigned char id[16])
 	}
 }
 
+
+/**
+ * Loads a texture file into OpenGL from the PolymostTex cache
+ * @param filename the texture filename
+ * @param ptmh the PTMHead structure to receive the texture details
+ * @param flags PTH_* flags to tune the load process
+ * @param effects HICEFFECT_* effects
+ * @return 0 on success, <0 on error
+ */
+static int ptm_loadcachedtexturefile(const char* filename, PTMHead* ptmh, int flags, int effects)
+{
+	int mipmap = 0, i = 0;
+	PTCacheTile * tdef = 0;
+
+	tdef = PTCacheLoadTile(filename, effects, flags & (PTH_CLAMPED));
+	if (!tdef) {
+		return -6;
+	}
+	
+	if (polymosttexverbosity >= 2) {
+		initprintf("PolymostTex: loaded %s (effects %d, flags %d) from cache\n",
+				   tdef->filename, tdef->effects, tdef->flags);
+	}
+
+	if (ptmh->glpic == 0) {
+		bglGenTextures(1, &ptmh->glpic);
+	}
+	ptmh->tsizx = tdef->tsizx;
+	ptmh->tsizy = tdef->tsizy;
+	ptmh->sizx  = tdef->mipmap[0].sizx;
+	ptmh->sizy  = tdef->mipmap[0].sizy;
+	ptmh->flags = tdef->flags & PTH_HASALPHA;
+	bglBindTexture(GL_TEXTURE_2D, ptmh->glpic);
+
+	mipmap = 0;
+	if (! (flags & PTH_NOMIPLEVEL)) {
+		// if we aren't instructed to preserve all mipmap levels,
+		// immediately throw away gltexmiplevel mipmaps
+		mipmap = max(0, gltexmiplevel);
+	}
+	while (tdef->mipmap[mipmap].sizx > (1 << gltexmaxsize) ||
+		   tdef->mipmap[mipmap].sizy > (1 << gltexmaxsize)) {
+		// throw away additional mipmaps until the texture fits within
+		// the maximum size permitted by the GL driver
+		mipmap++;
+	}
+	
+	for (i = 0; i + mipmap < tdef->nummipmaps; i++) {
+		bglCompressedTexImage2DARB(GL_TEXTURE_2D, i,
+								   tdef->format,
+								   tdef->mipmap[i + mipmap].sizx,
+								   tdef->mipmap[i + mipmap].sizy,
+								   0, tdef->mipmap[i + mipmap].length,
+								   (const GLvoid *) tdef->mipmap[i + mipmap].data);
+	}
+	
+	PTCacheFreeTile(tdef);
+	
+	return 0;
+}
+
+
 /**
  * Loads a texture file into OpenGL
  * @param filename the texture filename
@@ -210,16 +272,24 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	int x, y;
 	char * picdata = 0;
 	PTCacheTile * tdef = 0;
-
-	int cacheable = (!(flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcache && glusetexcompr);
-	int writetocache = 0;
+	int writetocache = 0, iscached = 0;
 	
-	if (cacheable) {
-		// don't write this texture to the cache if it already
-		// exists in there. Once kplib can return mtimes, a date
-		// test will be done to see if we should supersede the one
-		// already there
-		writetocache = ! PTCacheHasTile(filename, effects, (flags & PTH_CLAMPED));
+	if (!(flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcache && glusetexcompr) {
+		iscached = PTCacheHasTile(filename, effects, (flags & PTH_CLAMPED));
+		
+		// if the texture exists in the cache but the original file is newer,
+		// ignore what's in the cache and overwrite it
+		/*if (iscached && filemtime(filename) > filemtime(cacheitem)) {
+			iscached = 0;
+		}*/
+		
+		if (!iscached) {
+			writetocache = 1;
+		}
+	}
+	
+	if (iscached) {
+		return ptm_loadcachedtexturefile(filename, ptmh, flags, effects);
 	}
 
 	filh = kopen4load((char *) filename, 0);
@@ -247,7 +317,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 		return -4;
 	}
 	
-	if (!glinfo.texnpot || cacheable) {
+	if (!glinfo.texnpot || writetocache) {
 		for (tex.sizx = 1; tex.sizx < tex.tsizx; tex.sizx += tex.sizx) ;
 		for (tex.sizy = 1; tex.sizy < tex.tsizy; tex.sizy += tex.sizy) ;
 	} else {
@@ -304,7 +374,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	ptmh->sizx  = tex.sizx;
 	ptmh->sizy  = tex.sizy;
 	
-	if (cacheable && writetocache) {
+	if (writetocache) {
 		int nmips = 0;
 		while (max(1, (tex.sizx >> nmips)) > 1 ||
 			   max(1, (tex.sizy >> nmips)) > 1) {
@@ -320,7 +390,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	
 	ptm_uploadtexture(ptmh, flags, &tex, tdef);
 	
-	if (cacheable && writetocache) {
+	if (writetocache) {
 		if (polymosttexverbosity >= 2) {
 			initprintf("PolymostTex: writing %s (effects %d, flags %d) to cache\n",
 					   tdef->filename, tdef->effects, tdef->flags);
@@ -359,6 +429,8 @@ const char * PTM_GetLoadTextureFileErrorString(int err)
 			return "unrecognised format";
 		case -5:
 			return "decode error";
+		case -6:
+			return "cache load error";
 		default:
 			return "unknown error";
 	}
@@ -486,12 +558,7 @@ static int pt_load(PTHash * pth)
 	}
 	
 	if ((pth->head.flags & PTH_HIGHTILE)) {
-		// try and load from a cached replacement
-		if (pt_load_cache(&pth->head)) {
-			return 1;
-		}
-		
-		// if that failed, try and load from a raw replacement
+		// try and load from a replacement
 		if (pt_load_hightile(&pth->head)) {
 			return 1;
 		}
@@ -733,131 +800,6 @@ static int pt_load_hightile(PTHead * pth)
 				pth->scaley = (float)pth->pic[texture]->tsizy / (float)tilesizy[pth->picnum];
 			}
 		}
-		
-		loaded[texture] = 1;
-	}
-
-	pt_load_applyparameters(pth);
-	
-	if (pth->flags & PTH_SKYBOX) {
-		int i = 0;
-		for (texture = 0; texture < 6; texture++) i += loaded[texture];
-		return (i == 6);
-	} else {
-		return loaded[PTHPIC_BASE];
-	}
-}
-
-/**
- * Load a Hightile texture from the disk cache into an OpenGL texture
- * @param pth the header to populate
- * @return !0 on success. Success is defined as all faces of a skybox being loaded,
- *   or at least the base texture of a regular replacement.
- */
-static int pt_load_cache(PTHead * pth)
-{
-	const char *filename = 0;
-	int mipmap, i;
-	int texture = 0, loaded[PTHPIC_SIZE] = { 0,0,0,0,0,0, };
-	PTCacheTile * tdef = 0;
-	unsigned char id[16];
-
-	if (!pth->repldef) {
-		return 0;
-	} else if ((pth->repldef->flags & HIC_NOCOMPRESS) || !glinfo.texcompr || !glusetexcache || !glusetexcompr) {
-		return 0;
-	} else if ((pth->flags & PTH_SKYBOX) && (pth->repldef->skybox == 0 || pth->repldef->skybox->ignore)) {
-		return 0;
-	} else if (pth->repldef->ignore) {
-		return 0;
-	}
-
-	detect_texture_size();
-	
-	for (texture = 0; texture < PTHPIC_SIZE; texture++) {
-		if (pth->flags & PTH_SKYBOX) {
-			if (texture >= 6) {
-				texture = PTHPIC_SIZE;
-				continue;
-			}
-			filename = pth->repldef->skybox->face[texture];
-		} else {
-			switch (texture) {
-				case PTHPIC_BASE:
-					filename = pth->repldef->filename;
-					break;
-				default:
-					// future developments may use the other indices
-					texture = PTHPIC_SIZE;
-					continue;
-			}
-		}
-	
-		if (!filename) {
-			continue;
-		}
-		
-		tdef = PTCacheLoadTile(filename, 
-			      (pth->palnum != pth->repldef->palnum)
-			         ? hictinting[pth->palnum].f : 0,
-			      pth->flags & (PTH_CLAMPED));
-		
-		if (!tdef) {
-			continue;
-		}
-		
-		if (polymosttexverbosity >= 2) {
-			initprintf("PolymostTex: loaded %s (effects %d, flags %d) from cache\n",
-				   tdef->filename, tdef->effects, tdef->flags);
-		}
-		
-		ptm_calculateid(pth, 0, id);
-		pth->pic[texture] = PTM_GetHead(id);
-		if (pth->pic[texture]->glpic == 0) {
-			bglGenTextures(1, &pth->pic[texture]->glpic);
-		}
-		pth->pic[texture]->tsizx = tdef->tsizx;
-		pth->pic[texture]->tsizy = tdef->tsizy;
-		pth->pic[texture]->sizx  = tdef->mipmap[0].sizx;
-		pth->pic[texture]->sizy  = tdef->mipmap[0].sizy;
-		pth->pic[texture]->flags = tdef->flags & PTH_HASALPHA;
-		bglBindTexture(GL_TEXTURE_2D, pth->pic[texture]->glpic);
-		
-		if (texture == 0) {
-			if (pth->flags & PTH_SKYBOX) {
-				pth->scalex = (float)tdef->tsizx / 64.0;
-				pth->scaley = (float)tdef->tsizy / 64.0;
-			} else {
-				pth->scalex = (float)tdef->tsizx / (float)tilesizx[pth->picnum];
-				pth->scaley = (float)tdef->tsizy / (float)tilesizy[pth->picnum];
-			}
-			pth->flags &= ~(PTH_DIRTY | PTH_NOCOMPRESS | PTH_HASALPHA);
-			pth->flags |= (tdef->flags & ~PTH_HASALPHA);	// PTH_HASALPHA is applied to the pic
-		}
-		
-		mipmap = 0;
-		if (! (pth->flags & PTH_NOMIPLEVEL)) {
-			// if we aren't instructed to preserve all mipmap levels,
-			// immediately throw away gltexmiplevel mipmaps
-			mipmap = max(0, gltexmiplevel);
-		}
-		while (tdef->mipmap[mipmap].sizx > (1 << gltexmaxsize) ||
-		       tdef->mipmap[mipmap].sizy > (1 << gltexmaxsize)) {
-			// throw away additional mipmaps until the texture fits within
-			// the maximum size permitted by the GL driver
-			mipmap++;
-		}
-		
-		for (i = 0; i + mipmap < tdef->nummipmaps; i++) {
-			bglCompressedTexImage2DARB(GL_TEXTURE_2D, i,
-					tdef->format,
-					tdef->mipmap[i + mipmap].sizx,
-					tdef->mipmap[i + mipmap].sizy,
-					0, tdef->mipmap[i + mipmap].length,
-					(const GLvoid *) tdef->mipmap[i + mipmap].data);
-		}
-		
-		PTCacheFreeTile(tdef);
 		
 		loaded[texture] = 1;
 	}
