@@ -143,6 +143,7 @@ void PTCacheLoadIndex(void)
 	PTCacheIndex * pci;
 
 	int total = 0, dups = 0;
+	int haveindex = 0, havestore = 0;
 	
 	memset(filename, 0, sizeof(filename));
 	
@@ -150,14 +151,15 @@ void PTCacheLoadIndex(void)
 	// we open for reading and writing to test permission
 	fh = fopen(CACHESTORAGEFILE, "r+b");
 	if (fh) {
+		havestore = 1;
+		
 		if (fread(sig, 16, 1, fh) != 1 || memcmp(sig, storagesig, 16)) {
 			cachereplace = 1;
-			initprintf("PolymostTexCache: texture cache will be replaced\n");
 		}
 		fclose(fh);
 	} else {
 		if (errno == ENOENT) {
-			// it's cool
+			// file doesn't exist, which is fine
 			;
 		} else {
 			initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
@@ -169,24 +171,33 @@ void PTCacheLoadIndex(void)
 	// next, check the index
 	fh = fopen(CACHEINDEXFILE, "r+b");
 	if (fh) {
+		haveindex = 1;
+
 		if (fread(sig, 16, 1, fh) != 1 || memcmp(sig, indexsig, 16)) {
-			if (!cachereplace) {
-				cachereplace = 1;
-				initprintf("PolymostTexCache: texture cache will be replaced\n");
-			}
+			cachereplace = 1;
 		}
 	} else {
 		if (errno == ENOENT) {
-			// it's cool
+			// file doesn't exist, which is fine
 			return;
 		} else {
-			initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
+			initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHEINDEXFILE);
 			cachedisabled = 1;
 			return;
 		}
 	}
 	
+	// if we're missing either the index or the store, but not both at the same
+	// time, the cache is broken and should be replaced
+	if ((!haveindex || !havestore) && !(!haveindex && !havestore)) {
+		cachereplace = 1;
+	}
+	
 	if (cachereplace) {
+		initprintf("PolymostTexCache: texture cache will be replaced\n");
+		if (fh) {
+			fclose(fh);
+		}
 		return;
 	}
 	
@@ -200,8 +211,8 @@ void PTCacheLoadIndex(void)
 		    fread(&offset,  4,         1, fh) != 1 ||
 		    fread(&mtime,   4,         1, fh) != 1) {
 			// truncated entry, so throw the whole cache away
-			cachereplace = 1;
 			initprintf("PolymostTexCache: corrupt texture cache index detected, cache will be replaced\n");
+			cachereplace = 1;
 			PTCacheUnloadIndex();
 			break;
 		}

@@ -211,7 +211,7 @@ static int ptm_loadcachedtexturefile(const char* filename, PTMHead* ptmh, int fl
 
 	tdef = PTCacheLoadTile(filename, effects, flags & (PTH_CLAMPED));
 	if (!tdef) {
-		return -6;
+		return -1;
 	}
 	
 	if (polymosttexverbosity >= 2) {
@@ -289,7 +289,9 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	}
 	
 	if (iscached) {
-		return ptm_loadcachedtexturefile(filename, ptmh, flags, effects);
+		if (ptm_loadcachedtexturefile(filename, ptmh, flags, effects) == 0) {
+			return 0;
+		}
 	}
 
 	filh = kopen4load((char *) filename, 0);
@@ -429,8 +431,6 @@ const char * PTM_GetLoadTextureFileErrorString(int err)
 			return "unrecognised format";
 		case -5:
 			return "decode error";
-		case -6:
-			return "cache load error";
 		default:
 			return "unknown error";
 	}
@@ -541,7 +541,6 @@ static void pt_unload(PTHash * pth)
 
 static int pt_load_art(PTHead * pth);
 static int pt_load_hightile(PTHead * pth);
-static int pt_load_cache(PTHead * pth);
 static void pt_load_applyparameters(PTHead * pth);
 
 /**
