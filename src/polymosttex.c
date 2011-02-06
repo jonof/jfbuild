@@ -552,7 +552,7 @@ static int pt_load(PTHash * pth)
 {
 	if (pth->head.pic[PTHPIC_BASE] &&
 		pth->head.pic[PTHPIC_BASE]->glpic != 0 &&
-		(pth->head.flags & PTH_DIRTY) == 0) {
+		(pth->head.pic[PTHPIC_BASE]->flags & PTH_DIRTY) == 0) {
 		return 1;	// loaded
 	}
 	
@@ -687,7 +687,7 @@ static int pt_load_art(PTHead * pth)
 	
 	pth->scalex = 1.0;
 	pth->scaley = 1.0;
-	pth->flags &= ~(PTH_DIRTY | PTH_HASALPHA | PTH_SKYBOX);
+	pth->flags &= ~(PTH_HASALPHA | PTH_SKYBOX);
 	pth->flags |= (PTH_NOCOMPRESS | PTH_NOMIPLEVEL);
 	tex.hasalpha = hasalpha;
 	
@@ -750,7 +750,7 @@ static int pt_load_hightile(PTHead * pth)
 	
 	effects = (pth->palnum != pth->repldef->palnum) ? hictinting[pth->palnum].f : 0;
 
-	pth->flags &= ~(PTH_DIRTY | PTH_NOCOMPRESS | PTH_HASALPHA);
+	pth->flags &= ~(PTH_NOCOMPRESS | PTH_HASALPHA);
 	if (pth->repldef->flags & HIC_NOCOMPRESS) {
 		pth->flags |= PTH_NOCOMPRESS;
 	}

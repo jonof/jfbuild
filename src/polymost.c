@@ -283,7 +283,9 @@ void polymost_texinvalidate (long dapicnum, long dapalnum, long dameth)
 		dapicnum, dapalnum, PTH_CLAMPED, (dameth & METH_CLAMPED) ? PTH_CLAMPED : 0
 		);
 	while ((pth = PTIterNext(iter)) != 0) {
-		pth->flags |= PTH_DIRTY;
+		if (pth->pic[PTHPIC_BASE]) {
+			pth->pic[PTHPIC_BASE]->flags |= PTH_DIRTY;
+		}
 		/*initprintf("invalidating picnum:%d palnum:%d effects:%d skyface:%d flags:%04X repldef:%p\n",
 			   pth->picnum, pth->palnum, pth->effects, pth->skyface,
 			   pth->flags, pth->repldef);*/
@@ -302,7 +304,9 @@ void polymost_texinvalidateall ()
 
 	iter = PTIterNew();
 	while ((pth = PTIterNext(iter)) != 0) {
-		pth->flags |= PTH_DIRTY;
+		if (pth->pic[PTHPIC_BASE]) {
+			pth->pic[PTHPIC_BASE]->flags |= PTH_DIRTY;
+		}
 	}
 	PTIterFree(iter);
 	clearskins();

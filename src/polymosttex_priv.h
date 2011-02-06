@@ -8,7 +8,7 @@ enum {
 	PTH_HASALPHA = 8,		// NOTE: only seen in PTMHead.flags, not in PTHead.flags
 	PTH_NOCOMPRESS = 16,	// prevents texture compression from being used
 	PTH_NOMIPLEVEL = 32,	// prevents gltexmiplevel from being applied
-	PTH_DIRTY = 128,
+	PTH_DIRTY = 128,		// NOTE: only seen in PTMHead.flags, not in PTHead.flags
 };
 
 // indices of PTHead.pic[]
