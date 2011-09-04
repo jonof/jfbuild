@@ -6,6 +6,10 @@
 #  try again. If things are still going wrong, call me.
 #   
 
+# Create Makefile.user yourself to provide your own overrides
+# for configurable values
+-include Makefile.user
+
 # Engine options - these may be overridden by game makefiles
 #  SUPERBUILD     - enables voxels
 #  POLYMOST       - enables Polymost renderer
@@ -28,8 +32,8 @@ RELEASE?=1
 EFENCE?=0
 
 # SDK locations - adjust to match your setup
-DXROOT=z:/sdks/directx/dx7
-FMODROOTWIN=c:/sdks/fmodapi374win/api
+DXROOT ?= $(HOME)/sdks/directx/dx7
+FMODROOTWIN ?= $(HOME)/sdks/fmodapi374win/api
 
 # build locations - OBJ gets overridden to the game-specific objects dir
 OBJ?=obj.gnu
