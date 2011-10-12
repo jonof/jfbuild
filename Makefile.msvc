@@ -19,8 +19,8 @@ asm=masm
 ENGINELIB=engine.lib
 EDITORLIB=build.lib
 
-DXROOT=z:\sdks\directx\dx7
-FMODROOT=z:\sdks\fmodapi374win\api
+DXROOT=$(USERPROFILE)\sdks\directx\dx7
+FMODROOT=$(USERPROFILE)\sdks\fmodapi374win\api
 
 # /D these to enable certain features of the port's compile process
 # NOASM     When defined, uses C instead of assembly code
@@ -42,8 +42,8 @@ AS=ml
 RC=rc
 LINK=link /opt:nowin98 /opt:ref /nologo
 CFLAGS=$(CFLAGS) /nologo /MD /J $(flags_cl) $(TARGETOPTS) /I$(INC)
-ENGINECFLAGS=/I$(DXROOT)\include /I$(LIBSQUISH)
-GAMECFLAGS=/I$(GAME) /I$(FMODROOT)\inc
+ENGINECFLAGS="/I$(DXROOT)\include" /I$(LIBSQUISH)
+GAMECFLAGS=/I$(GAME) "/I$(FMODROOT)\inc"
 LIBS=fmodvc.lib #opengl32.lib
 ASFLAGS=/nologo /coff
 EXESUFFIX=.exe
