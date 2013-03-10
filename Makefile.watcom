@@ -21,7 +21,7 @@ asm=wasm
 ENGINELIB=engine.lib
 EDITORLIB=build.lib
 
-DXROOT=c:\sdks\directx\dx7
+DXROOT=c:\sdks\directx\dx81
 
 !ifdef __LOADDLL__
 ! loaddll wcc386 wccd386

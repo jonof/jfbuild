@@ -32,7 +32,7 @@ RELEASE?=1
 EFENCE?=0
 
 # SDK locations - adjust to match your setup
-DXROOT ?= $(HOME)/sdks/directx/dx7
+DXROOT ?= $(HOME)/sdks/directx/dx81
 FMODROOTWIN ?= $(HOME)/sdks/fmodapi374win/api
 
 # build locations - OBJ gets overridden to the game-specific objects dir

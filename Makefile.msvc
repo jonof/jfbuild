@@ -19,7 +19,7 @@ asm=masm
 ENGINELIB=engine.lib
 EDITORLIB=build.lib
 
-DXROOT=$(USERPROFILE)\sdks\directx\dx7
+DXROOT=$(USERPROFILE)\sdks\directx\dx81
 FMODROOT=$(USERPROFILE)\sdks\fmodapi374win\api
 
 # /D these to enable certain features of the port's compile process
