@@ -741,10 +741,13 @@ unsigned int Bgetsysmemsize(void)
 #ifdef _WIN32
     unsigned int siz = 0x7fffffff;
 	HMODULE lib;
-	WINBASEAPI BOOL WINAPI (*aGlobalMemoryStatusEx)(LPMEMORYSTATUSEX) = 0;
+	BOOL (WINAPI *aGlobalMemoryStatusEx)(LPMEMORYSTATUSEX) = 0;
 	
 	lib = LoadLibrary("KERNEL32.DLL");
-	if (lib) aGlobalMemoryStatusEx = (void *)GetProcAddress(lib, "GlobalMemoryStatusEx");
+	if (lib) {
+		aGlobalMemoryStatusEx = (BOOL (WINAPI *)(LPMEMORYSTATUSEX)) \
+				GetProcAddress(lib, "GlobalMemoryStatusEx");
+	}
 	
 	if (aGlobalMemoryStatusEx) {
         //WinNT
