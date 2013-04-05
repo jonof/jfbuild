@@ -8,12 +8,7 @@
 #else
 #include <unistd.h>
 #include <netinet/in.h>
-#ifndef __BEOS__
 #include <arpa/inet.h>
-#endif
-#ifdef __sun
-#include <sys/filio.h>
-#endif
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -98,11 +93,7 @@ long netinit (long portnum)
 #endif
 
 	mysock = socket(AF_INET,SOCK_DGRAM,0); if (mysock == INVALID_SOCKET) return(0);
-#ifdef __BEOS__
-	i = 1; if (setsockopt(mysock,SOL_SOCKET,SO_NONBLOCK,&i,sizeof(i)) < 0) return(0);
-#else
 	i = 1; if (ioctlsocket(mysock,FIONBIO,(unsigned long *)&i) == SOCKET_ERROR) return(0);
-#endif
 
 	ip.sin_family = AF_INET;
 	ip.sin_addr.s_addr = INADDR_ANY;

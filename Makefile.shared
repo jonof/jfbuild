@@ -9,7 +9,6 @@ GLLIBBSD=-lopengl32
 GLLIBLIN=-lGL
 
 SDLCONFIG=sdl-config
-#SDLCONFIG=/usr/local/bin/sdl11-config
 
 # Path to the included libsquish
 LIBSQUISH=libsquish
@@ -36,21 +35,6 @@ ifndef PLATFORM
 	endif
 	ifeq ($(findstring Darwin,$(uname)),Darwin)
 		PLATFORM=DARWIN
-	endif
-	ifeq ($(findstring BeOS,$(uname)),BeOS)
-		PLATFORM=BEOS
-	endif
-	ifeq ($(findstring skyos,$(uname)),skyos)
-		PLATFORM=SKYOS
-	endif
-	ifeq ($(findstring QNX,$(uname)),QNX)
-		PLATFORM=QNX
-	endif
-	ifeq ($(findstring SunOS,$(uname)),SunOS)
-		PLATFORM=SUNOS
-	endif
-	ifeq ($(findstring syllable,$(uname)),syllable)
-		PLATFORM=SYLLABLE
 	endif
 endif
 
@@ -82,38 +66,6 @@ ifeq ($(PLATFORM),BSD)
 	ifneq ($(DYNAMIC_OPENGL),1)
 		LIBS+= $(GLLIBBSD)
 	endif
-endif
-ifeq ($(PLATFORM),BEOS)
-	RENDERTYPE=SDL
-	STDCPPLIB=-lstdc++
-endif
-ifeq ($(PLATFORM),SKYOS)
-	RENDERTYPE=SDL
-	EXESUFFIX=.app
-	override NOASM=1
-	BUILDCFLAGS+= -DUNDERSCORES
-	SDLCONFIG=
-	SDLCONFIG_CFLAGS=-I/boot/programs/sdk/include/sdl
-	LIBS+= -lSDL -lnet
-endif
-ifeq ($(PLATFORM),QNX)
-	RENDERTYPE=SDL
-	override USE_OPENGL=0
-	override NOASM=1
-	STDCPPLIB=-lstdc++
-	LIBS+= -lsocket
-endif
-ifeq ($(PLATFORM),SUNOS)
-	RENDERTYPE=SDL
-	override USE_OPENGL=0
-	override NOASM=1
-	STDCPPLIB=-lstdc++
-	LIBS+= -lsocket -lnsl
-endif
-ifeq ($(PLATFORM),SYLLABLE)
-	RENDERTYPE=SDL
-	override USE_OPENGL=0
-	override NOASM=1
 endif
 
 ifeq ($(RENDERTYPE),SDL)

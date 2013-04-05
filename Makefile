@@ -144,16 +144,6 @@ ifeq ($(PLATFORM),WINDOWS)
 	GAMELIBS+= -L$(FMODROOTWIN)/lib
 	ASFLAGS+= -DUNDERSCORES -f win32
 endif
-ifeq ($(PLATFORM),BEOS)
-	ASFLAGS+= -f elf
-	TARGETOPTS+= -DNOASM
-endif
-ifeq ($(PLATFORM),SUNOS)
-	LIBS+= -lm
-endif
-ifeq ($(PLATFORM),SYLLABLE)
-	ASFLAGS+= -f elf
-endif
 
 ifeq ($(RENDERTYPE),SDL)
 	ENGINEOBJS+= $(SRC)/sdlayer.$o

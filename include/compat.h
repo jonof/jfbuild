@@ -132,38 +132,7 @@ typedef unsigned long long uint64;
 # define B_SWAP32(x) OSSwapConstInt32(x)
 # define B_SWAP16(x) OSSwapConstInt16(x)
 
-#elif defined(__BEOS__)
-# include <posix/endian.h>
-# if LITTLE_ENDIAN != 0
-#  define B_LITTLE_ENDIAN 1
-#  define B_BIG_ENDIAN    0
-# elif BIG_ENDIAN != 0
-#  define B_LITTLE_ENDIAN 0
-#  define B_BIG_ENDIAN    1
-# endif
-# define B_ENDIAN_C_INLINE 1
-
-#elif defined(__QNX__)
-# if defined __LITTLEENDIAN__
-#  define B_LITTLE_ENDIAN 1
-#  define B_BIG_ENDIAN    0
-# elif defined __BIGENDIAN__
-#  define B_LITTLE_ENDIAN 0
-#  define B_BIG_ENDIAN    1
-# endif
-# define B_ENDIAN_C_INLINE 1
-
-#elif defined(__sun)
-# if defined _LITTLE_ENDIAN
-#  define B_LITTLE_ENDIAN 1
-#  define B_BIG_ENDIAN    0
-# elif defined _BIG_ENDIAN
-#  define B_LITTLE_ENDIAN 0
-#  define B_BIG_ENDIAN    1
-# endif
-# define B_ENDIAN_C_INLINE 1
-
-#elif defined(_WIN32) || defined(SKYOS) || defined(__SYLLABLE__)
+#elif defined(_WIN32)
 # define B_LITTLE_ENDIAN 1
 # define B_BIG_ENDIAN    0
 # define B_ENDIAN_C_INLINE 1
@@ -357,7 +326,7 @@ int		Bclosedir(BDIR *dir);
 # define Bstrncpy strncpy
 # define Bstrcmp strcmp
 # define Bstrncmp strncmp
-# if defined(__WATCOMC__) || defined(_MSC_VER) || defined(__QNX__)
+# if defined(__WATCOMC__) || defined(_MSC_VER)
 #  define Bstrcasecmp stricmp
 #  define Bstrncasecmp strnicmp
 # else
