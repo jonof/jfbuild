@@ -19,13 +19,6 @@ extern long dmval;
 
 //{{{
 
-#ifndef UNDERSCORES
-#define _DMVAL "dmval"
-#else
-#define _DMVAL "_dmval"
-#endif
-
-
 // maybe one day I'll make these into macros
 long boundmulscale(long a, long b, long c);
 void clearbufbyte(void *D, long c, long a);
@@ -952,14 +945,14 @@ void copybufreverse(void *S, void *D, long c);
 //returns eax/ebx, dmval = eax%edx;
 #define divmod(a,b) \
 	({ long __a=(a), __b=(b); \
-	   __asm__ __volatile__ ("xorl %%edx, %%edx; divl %%ebx; movl %%edx, "_DMVAL \
-		: "+a" (__a) : "b" (__b) : "edx", "memory", "cc"); \
+	   __asm__ __volatile__ ("xorl %%edx, %%edx; divl %%ebx; movl %%edx, %[dmval]" \
+		: "+a" (__a) : "b" (__b), [dmval] "m" (dmval) : "edx", "memory", "cc"); \
 	 __a; })
 //returns eax%ebx, dmval = eax/edx;
 #define moddiv(a,b) \
 	({ long __a=(a), __b=(b), __d; \
-	   __asm__ __volatile__ ("xorl %%edx, %%edx; divl %%ebx; movl %%eax, "_DMVAL \
-		: "=d" (__d) : "a" (__a), "b" (__b) : "eax", "memory", "cc"); \
+	   __asm__ __volatile__ ("xorl %%edx, %%edx; divl %%ebx; movl %%eax, %[dmval]" \
+		: "=d" (__d) : "a" (__a), "b" (__b), [dmval] "m" (dmval) : "eax", "memory", "cc"); \
 	 __d; })
 
 #define klabs(a) \

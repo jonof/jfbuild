@@ -8,25 +8,6 @@
 ;CPU 586
 
 SECTION .text
-	
-%ifdef UNDERSCORES
-  %macro CGLOBAL 1
-    global _%1
-    %define %1 _%1
-  %endmacro
-  %macro CEXTERN 1
-    extern _%1
-    %define %1 _%1
-  %endmacro
-%else
-  %macro CGLOBAL 1
-    global %1
-  %endmacro
-  %macro CEXTERN 1
-    extern %1
-  %endmacro
-%endif
-
 
 ; Some macros to help make cdecl calling easier to manage
 %macro CDECLBEGIN 1
@@ -100,80 +81,80 @@ SECTION .text
 %endmacro
 
 
-	CEXTERN asm1
-	CEXTERN asm2
-	CEXTERN asm3
-	CEXTERN asm4
-	CEXTERN reciptable
-	CEXTERN fpuasm
-	CEXTERN globalx3
-	CEXTERN globaly3
-	CEXTERN ylookup
+	extern asm1
+	extern asm2
+	extern asm3
+	extern asm4
+	extern reciptable
+	extern fpuasm
+	extern globalx3
+	extern globaly3
+	extern ylookup
 
-	CEXTERN vplce
-	CEXTERN vince
-	CEXTERN palookupoffse
-	CEXTERN bufplce
+	extern vplce
+	extern vince
+	extern palookupoffse
+	extern bufplce
 
-	CEXTERN ebpbak
-	CEXTERN espbak
+	extern ebpbak
+	extern espbak
 
-	CEXTERN pow2char
-	CEXTERN pow2long
+	extern pow2char
+	extern pow2long
 
-	CGLOBAL sethlinesizes
-	CGLOBAL prosethlinesizes
-	CGLOBAL setvlinebpl
-	CGLOBAL setpalookupaddress
-	CGLOBAL prosetpalookupaddress
-	CGLOBAL setuphlineasm4
-	CGLOBAL hlineasm4
-	CGLOBAL prohlineasm4
-	CGLOBAL prosetupvlineasm
-	CGLOBAL setupmvlineasm
-	CGLOBAL setuptvlineasm
-	CGLOBAL prevlineasm1
-	CGLOBAL vlineasm1
-	CGLOBAL mvlineasm1			;Masked vline
-	CGLOBAL fixtransluscence
-	CGLOBAL settransnormal
-	CGLOBAL settransreverse
-	CGLOBAL tvlineasm1			;Masked & transluscent vline
-	CGLOBAL vlineasm4
-	CGLOBAL provlineasm4
-	CGLOBAL setupvlineasm
-	CGLOBAL mvlineasm4
-	CGLOBAL setupspritevline
-	CGLOBAL spritevline
-	CGLOBAL msetupspritevline
-	CGLOBAL mspritevline
-	CGLOBAL tsetupspritevline
-	CGLOBAL tspritevline
-	CGLOBAL msethlineshift
-	CGLOBAL mhline
-	CGLOBAL mhlineskipmodify
-	CGLOBAL tsethlineshift
-	CGLOBAL thline
-	CGLOBAL thlineskipmodify
-	CGLOBAL setuptvlineasm2
-	CGLOBAL tvlineasm2
-	CGLOBAL setupslopevlin2
-	CGLOBAL slopevlin2
-	CGLOBAL setupslopevlin
-	CGLOBAL slopevlin
-	CGLOBAL setuprhlineasm4
-	CGLOBAL rhlineasm4
-	CGLOBAL setuprmhlineasm4
-	CGLOBAL rmhlineasm4
-	CGLOBAL setupqrhlineasm4
-	CGLOBAL qrhlineasm4			;4 pixels in 9 cycles!  2.25 cycles/pixel
-	CGLOBAL setupdrawslab
-	CGLOBAL drawslab
-	CGLOBAL stretchhline
-	CGLOBAL mmxoverlay
+	global sethlinesizes
+	global prosethlinesizes
+	global setvlinebpl
+	global setpalookupaddress
+	global prosetpalookupaddress
+	global setuphlineasm4
+	global hlineasm4
+	global prohlineasm4
+	global prosetupvlineasm
+	global setupmvlineasm
+	global setuptvlineasm
+	global prevlineasm1
+	global vlineasm1
+	global mvlineasm1			;Masked vline
+	global fixtransluscence
+	global settransnormal
+	global settransreverse
+	global tvlineasm1			;Masked & transluscent vline
+	global vlineasm4
+	global provlineasm4
+	global setupvlineasm
+	global mvlineasm4
+	global setupspritevline
+	global spritevline
+	global msetupspritevline
+	global mspritevline
+	global tsetupspritevline
+	global tspritevline
+	global msethlineshift
+	global mhline
+	global mhlineskipmodify
+	global tsethlineshift
+	global thline
+	global thlineskipmodify
+	global setuptvlineasm2
+	global tvlineasm2
+	global setupslopevlin2
+	global slopevlin2
+	global setupslopevlin
+	global slopevlin
+	global setuprhlineasm4
+	global rhlineasm4
+	global setuprmhlineasm4
+	global rmhlineasm4
+	global setupqrhlineasm4
+	global qrhlineasm4			;4 pixels in 9 cycles!  2.25 cycles/pixel
+	global setupdrawslab
+	global drawslab
+	global stretchhline
+	global mmxoverlay
 
-	CGLOBAL dep_begin
-	CGLOBAL dep_end
+	global dep_begin
+	global dep_end
 
 dep_begin:
 

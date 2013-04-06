@@ -198,18 +198,6 @@ long krecipasm(long);
 	modify exact [eax ebx ecx edx]
 long getclipmask(long,long,long,long);
 
-#pragma aux getkensmessagecrc =\
-	"xor eax, eax",\
-	"mov ecx, 32",\
-	"beg: mov edx, dword ptr [ebx+ecx*4-4]",\
-	"ror edx, cl",\
-	"adc eax, edx",\
-	"bswap eax",\
-	"loop short beg",\
-	parm [ebx]\
-	modify exact [eax ebx ecx edx]
-long getkensmessagecrc(long);
-
 #elif defined(_MSC_VER) && !defined(NOASM)	// __WATCOMC__
 
 //
@@ -310,23 +298,6 @@ static inline long getclipmask(long a, long b, long c, long d)
 	}
 }
 
-static inline long getkensmessagecrc(void *b)
-{
-	_asm {
-		push ebx
-		mov ebx, b
-		xor eax, eax
-		mov ecx, 32
-	beg:
-		mov edx, dword ptr [ebx+ecx*4-4]
-		ror edx, cl
-		adc eax, edx
-		bswap eax
-		loop short beg
-		pop ebx
-	}
-}
-
 #elif defined(__GNUC__) && defined(__i386__) && !defined(NOASM)	// _MSC_VER
 
 //
@@ -340,17 +311,19 @@ static inline long getkensmessagecrc(void *b)
 		"movl %%eax, %%ebx\n\t" \
 		"jnz 0f\n\t" \
 		"shrl $12, %%ebx\n\t" \
-		"movw "ASMSYM("shlookup")"(,%%ebx,2), %%cx\n\t" \
+		"movw %[shlookup](,%%ebx,2), %%cx\n\t" \
 		"jmp 1f\n\t" \
 		"0:\n\t" \
 		"shrl $24, %%ebx\n\t" \
-		"movw ("ASMSYM("shlookup")"+8192)(,%%ebx,2), %%cx\n\t" \
+		"movw (%[shlookup]+8192)(,%%ebx,2), %%cx\n\t" \
 		"1:\n\t" \
 		"shrl %%cl, %%eax\n\t" \
 		"movb %%ch, %%cl\n\t" \
-		"movw "ASMSYM("sqrtable")"(,%%eax,2), %%ax\n\t" \
+		"movw %[sqrtable](,%%eax,2), %%ax\n\t" \
 		"shrl %%cl, %%eax" \
-		: "=a" (__r) : "a" (__a) : "ebx", "ecx", "cc"); \
+		: "=a" (__r) \
+		: "a" (__a), [shlookup] "m" (shlookup[0]), [sqrtable] "m" (sqrtable[0]) \
+		: "ebx", "ecx", "cc"); \
 	 __r; })
 
 	// edx is blown by this code somehow?!
@@ -378,13 +351,15 @@ static inline long getkensmessagecrc(void *b)
 #define krecipasm(a) \
 	({ long __a=(a); \
 	   __asm__ __volatile__ ( \
-			"movl %%eax, ("ASMSYM("fpuasm")"); fildl ("ASMSYM("fpuasm")"); " \
-			"addl %%eax, %%eax; fstps ("ASMSYM("fpuasm")"); sbbl %%ebx, %%ebx; " \
-			"movl ("ASMSYM("fpuasm")"), %%eax; movl %%eax, %%ecx; " \
+			"movl %%eax, (%[fpuasm]); fildl (%[fpuasm]); " \
+			"addl %%eax, %%eax; fstps (%[fpuasm]); sbbl %%ebx, %%ebx; " \
+			"movl (%[fpuasm]), %%eax; movl %%eax, %%ecx; " \
 			"andl $0x007ff000, %%eax; shrl $10, %%eax; subl $0x3f800000, %%ecx; " \
-			"shrl $23, %%ecx; movl "ASMSYM("reciptable")"(%%eax), %%eax; " \
+			"shrl $23, %%ecx; movl %[reciptable](%%eax), %%eax; " \
 			"sarl %%cl, %%eax; xorl %%ebx, %%eax" \
-		: "=a" (__a) : "a" (__a) : "ebx", "ecx", "memory", "cc"); \
+		: "=a" (__a) \
+		: "a" (__a), [fpuasm] "m" (fpuasm), [reciptable] "m" (reciptable[0]) \
+		: "ebx", "ecx", "memory", "cc"); \
 	 __a; })
 
 #define getclipmask(a,b,c,d) \
@@ -395,21 +370,6 @@ static inline long getkensmessagecrc(void *b)
 				"orb $0xf0, %%al; xorl %%ebx, %%eax" \
 		: "=a" (__a), "=b" (__b), "=c" (__c), "=d" (__d) \
 		: "a" (__a), "b" (__b), "c" (__c), "d" (__d) : "cc"); \
-	 __a; })
-
-
-#define getkensmessagecrc(b) \
-	({ long __a, __b=(b); \
-	   __asm__ __volatile__ ( \
-		"xorl %%eax, %%eax\n\t" \
-		"movl $32, %%ecx\n\t" \
-		"0:\n\t" \
-		"movl -4(%%ebx,%%ecx,4), %%edx\n\t" \
-		"rorl %%cl, %%edx\n\t" \
-		"adcl %%edx, %%eax\n\t" \
-		"bswapl %%eax\n\t" \
-		"loop 0b" \
-		: "=a" (__a) : "b" (__b) : "ecx", "edx" \
 	 __a; })
 
 #else	// __GNUC__ && __i386__
@@ -468,12 +428,6 @@ static inline long getclipmask(long a, long b, long c, long d)
 { // Ken did this
 	d = ((a<0)*8) + ((b<0)*4) + ((c<0)*2) + (d<0);
 	return(((d<<4)^0xf0)|d);
-}
-
-inline long getkensmessagecrc(long b)
-{
-	return 0x56c764d4l;
-	b=b;
 }
 
 #endif
@@ -5578,10 +5532,6 @@ void drawrooms(long daposx, long daposy, long daposz,
 	//frameoffset = frameplace + viewoffset;
 	frameoffset = frameplace + windowy1*bytesperline + windowx1;
 
-	//if (smostwallcnt < 0)
-	//	if (getkensmessagecrc(FP_OFF(kensmessage)) != 0x56c764d4)
-	//		{ /* setvmode(0x3);*/ printOSD("Nice try.\n"); exit(0); }
-
 	numhits = xdimen; numscans = 0; numbunches = 0;
 	maskwallcnt = 0; smostwallcnt = 0; smostcnt = 0; spritesortcnt = 0;
 
@@ -6931,8 +6881,6 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 		return(0);
 	
 	strcpy(kensmessage,"!!!! BUILD engine&tools programmed by Ken Silverman of E.G. RI.  (c) Copyright 1995 Ken Silverman.  Summary:  BUILD = Ken. !!!!");
-//	if (getkensmessagecrc(FP_OFF(kensmessage)) != 0x56c764d4)
-//		{ printOSD("Nice try.\n"); exit(0); }
 
 	//if (checkvideomode(&daxdim, &daydim, dabpp, davidoption)<0) return (-1);
 

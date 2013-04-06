@@ -10,7 +10,7 @@ Libs=
 PrivateResource=
 ResourceIncludes=
 MakeIncludes=
-Compiler=-DRENDERTYPEWIN=1_@@_-DSUPERBUILD_@@_-DPOLYMOST_@@_-DUSE_OPENGL_@@_-DDYNAMIC_OPENGL_@@_-DNO_GCC_BUILTINS_@@_-DUNDERSCORES_@@_-funsigned-char_@@_
+Compiler=-DRENDERTYPEWIN=1_@@_-DSUPERBUILD_@@_-DPOLYMOST_@@_-DUSE_OPENGL_@@_-DDYNAMIC_OPENGL_@@_-DNO_GCC_BUILTINS_@@_-funsigned-char_@@_
 CppCompiler=
 Linker=
 IsCpp=0

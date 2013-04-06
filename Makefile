@@ -139,10 +139,10 @@ ifeq ($(PLATFORM),BSD)
 	LIBS+= -lm
 endif
 ifeq ($(PLATFORM),WINDOWS)
-	OURCFLAGS+= -DUNDERSCORES -I$(DXROOT)/include -I$(FMODROOTWIN)/inc
+	OURCFLAGS+= -I$(DXROOT)/include -I$(FMODROOTWIN)/inc
 	LIBS+= -lm
 	GAMELIBS+= -L$(FMODROOTWIN)/lib
-	ASFLAGS+= -DUNDERSCORES -f win32
+	ASFLAGS+= -f win32 --prefix _
 endif
 
 ifeq ($(RENDERTYPE),SDL)

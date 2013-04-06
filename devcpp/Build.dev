@@ -10,7 +10,7 @@ Libs=C:\sdks\directx\dx81\include
 PrivateResource=Build_private.rc
 ResourceIncludes=..\;..\include
 MakeIncludes=
-Compiler=-DRENDERTYPEWIN=1_@@_-DSUPERBUILD_@@_-DPOLYMOST_@@_-DUSE_OPENGL_@@_-DDYNAMIC_OPENGL_@@_-DNO_GCC_BUILTINS_@@_-DUNDERSCORES_@@_-funsigned-char_@@_-fno-strict-aliasing_@@_
+Compiler=-DRENDERTYPEWIN=1_@@_-DSUPERBUILD_@@_-DPOLYMOST_@@_-DUSE_OPENGL_@@_-DDYNAMIC_OPENGL_@@_-DNO_GCC_BUILTINS_@@_-funsigned-char_@@_-fno-strict-aliasing_@@_
 CppCompiler=
 Linker=libeditor.a_@@_libengine.a_@@_-ldxguid_@@_-lws2_32_@@_-lcomctl32_@@_
 IsCpp=0

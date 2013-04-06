@@ -10,7 +10,7 @@ Libs=
 PrivateResource=
 ResourceIncludes=
 MakeIncludes=
-Compiler=-DRENDERTYPEWIN=1_@@_-DSUPERBUILD_@@_-DPOLYMOST_@@_-DUSE_OPENGL_@@_-DDYNAMIC_OPENGL_@@_-DNO_GCC_BUILTINS_@@_-DUNDERSCORES_@@_-DKSFORBUILD_@@_-funsigned-char_@@_-fno-strict-aliasing_@@_
+Compiler=-DRENDERTYPEWIN=1_@@_-DSUPERBUILD_@@_-DPOLYMOST_@@_-DUSE_OPENGL_@@_-DDYNAMIC_OPENGL_@@_-DNO_GCC_BUILTINS_@@_-DKSFORBUILD_@@_-funsigned-char_@@_-fno-strict-aliasing_@@_
 CppCompiler=
 Linker=
 IsCpp=0
@@ -86,7 +86,7 @@ Compile=1
 Link=1
 Priority=1000
 OverrideBuildCmd=1
-BuildCmd=nasm -s -DUNDERSCORES -f win32 ../src/a.nasm -o ../devcpp/a.o
+BuildCmd=nasm -s -f win32 --prefix _ ../src/a.nasm -o ../devcpp/a.o
 
 [Unit7]
 FileName=engineinfo.c
