@@ -68,6 +68,7 @@ typedef signed __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 #else 
 # include <stdint.h>
+# include <inttypes.h>
 # include <limits.h>
 #endif
 
@@ -245,8 +246,10 @@ static inline uint64 B_SWAP64(uint64 l) { return (l>>56)|((l>>40)&0xff00)|((l>>2
 
 #ifdef __GNUC__
 # define UNUSED(x) UNUSED_ ## x __attribute__((unused))
+# define PRINTF_FORMAT(stringindex, firstargindex) __attribute__((format (printf, stringindex, firstargindex)))
 #else
 # define UNUSED(x) x
+# define PRINTF_FORMAT(stringindex, firstargindex)
 #endif
 
 #ifndef min

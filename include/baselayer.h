@@ -69,8 +69,8 @@ extern long joyaxespresent;
 int initsystem(void);
 void uninitsystem(void);
 
-void initprintf(const char *, ...);
-void debugprintf(const char *,...);
+void initprintf(const char *, ...) PRINTF_FORMAT(1, 2);
+void debugprintf(const char *,...) PRINTF_FORMAT(1, 2);
 
 int handleevents(void);
 
@@ -121,8 +121,8 @@ int setgamma(float ro, float go, float bo);
 
 int switchrendermethod(int,int);	// 0 = software, 1 = opengl | bool = reinit
 
-int wm_msgbox(char *name, char *fmt, ...);
-int wm_ynbox(char *name, char *fmt, ...);
+int wm_msgbox(char *name, char *fmt, ...) PRINTF_FORMAT(2, 3);
+int wm_ynbox(char *name, char *fmt, ...) PRINTF_FORMAT(2, 3);
 void wm_setapptitle(char *name);
 
 // baselayer.c
