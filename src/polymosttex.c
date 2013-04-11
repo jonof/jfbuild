@@ -40,8 +40,8 @@ struct PTIter_typ {
 	
 	// criteria for doing selective matching
 	int match;
-	long picnum;
-	long palnum;
+	int picnum;
+	int palnum;
 	unsigned short flagsmask;
 	unsigned short flags;
 };
@@ -81,7 +81,7 @@ int squish_CompressImage(coltype * rgba, int width, int height, unsigned char * 
 
 
 
-static inline int pt_gethashhead(const long picnum)
+static inline int pt_gethashhead(const int picnum)
 {
 	return picnum & (PTHASHHEADSIZ-1);
 }
@@ -268,7 +268,7 @@ static int ptm_loadcachedtexturefile(const char* filename, PTMHead* ptmh, int fl
 int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effects)
 {
 	PTTexture tex;
-	long filh, picdatalen;
+	int filh, picdatalen;
 	int x, y;
 	char * picdata = 0;
 	PTCacheTile * tdef = 0;
@@ -313,7 +313,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	
 	kclose(filh);
 	
-	kpgetdim(picdata, picdatalen, (long *) &tex.tsizx, (long *) &tex.tsizy);
+	kpgetdim(picdata, picdatalen, (int *) &tex.tsizx, (int *) &tex.tsizy);
 	if (tex.tsizx == 0 || tex.tsizy == 0) {
 		free(picdata);
 		return -4;
@@ -333,7 +333,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	}
 	memset(tex.pic, 0, tex.sizx * tex.sizy * sizeof(coltype));
 	
-	if (kprender(picdata, picdatalen, (long) tex.pic, tex.sizx * sizeof(coltype), tex.sizx, tex.sizy, 0, 0)) {
+	if (kprender(picdata, picdatalen, tex.pic, tex.sizx * sizeof(coltype), tex.sizx, tex.sizy, 0, 0)) {
 		free(picdata);
 		free(tex.pic);
 		return -5;
@@ -364,7 +364,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	tex.rawfmt = GL_BGRA;
 	if (!glinfo.bgra || glusetexcompr) {
 		// texture compression requires rgba ordering for libsquish
-		long j;
+		int j;
 		for (j = tex.sizx * tex.sizy - 1; j >= 0; j--) {
 			swapchar(&tex.pic[j].r, &tex.pic[j].b);
 		}
@@ -445,7 +445,7 @@ const char * PTM_GetLoadTextureFileErrorString(int err)
  * @param create !0 = create if none found
  * @return the PTHash item, or null if none was found
  */
-static PTHash * pt_findhash(long picnum, long palnum, unsigned short flags, int create)
+static PTHash * pt_findhash(int picnum, int palnum, unsigned short flags, int create)
 {
 	int i = pt_gethashhead(picnum);
 	PTHash * pth;
@@ -592,8 +592,8 @@ static int pt_load_art(PTHead * pth)
 {
 	PTTexture tex, fbtex;
 	coltype * wpptr, * fpptr;
-	long x, y, x2, y2;
-	long dacol;
+	int x, y, x2, y2;
+	int dacol;
 	int hasalpha = 0, hasfullbright = 0;
 	unsigned char id[16];
 	
@@ -659,13 +659,13 @@ static int pt_load_art(PTHead * pth)
 					// wrap around to fill the repeated region
 					x2 = x-tex.tsizx;
 				}
-				dacol = (long) (*(unsigned char *)(waloff[pth->picnum]+x2*tex.tsizy+y2));
+				dacol = (int) (*(unsigned char *)(waloff[pth->picnum]+x2*tex.tsizy+y2));
 				if (dacol == 255) {
 					wpptr->a = 0;
 					hasalpha = 1;
 				} else {
 					wpptr->a = 255;
-					dacol = (long) ((unsigned char)palookup[pth->palnum][dacol]);
+					dacol = (int) ((unsigned char)palookup[pth->palnum][dacol]);
 				}
 				if (gammabrightness) {
 					wpptr->r = curpalette[dacol].r;
@@ -831,7 +831,7 @@ static void pt_load_applyparameters(PTHead * pth)
 		
 		if (gltexfiltermode < 0) {
 			gltexfiltermode = 0;
-		} else if (gltexfiltermode >= (long)numglfiltermodes) {
+		} else if (gltexfiltermode >= (int)numglfiltermodes) {
 			gltexfiltermode = numglfiltermodes-1;
 		}
 		bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glfiltermodes[gltexfiltermode].mag);
@@ -839,7 +839,7 @@ static void pt_load_applyparameters(PTHead * pth)
 		
 		if (glinfo.maxanisotropy > 1.0) {
 			if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) {
-				glanisotropy = (long)glinfo.maxanisotropy;
+				glanisotropy = (int)glinfo.maxanisotropy;
 			}
 			bglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, glanisotropy);
 		}
@@ -864,10 +864,10 @@ static void pt_load_applyparameters(PTHead * pth)
 static void ptm_fixtransparency(PTTexture * tex, int clamped)
 {
 	coltype *wpptr;
-	long j, x, y, r, g, b;
-	long dox, doy, naxsiz2;
-	long daxsiz = tex->tsizx, daysiz = tex->tsizy;
-	long daxsiz2 = tex->sizx, daysiz2 = tex->sizy;
+	int j, x, y, r, g, b;
+	int dox, doy, naxsiz2;
+	int daxsiz = tex->tsizx, daysiz = tex->tsizy;
+	int daxsiz2 = tex->sizx, daysiz2 = tex->sizy;
 	
 	dox = daxsiz2-1;
 	doy = daysiz2-1;
@@ -892,27 +892,27 @@ static void ptm_fixtransparency(PTTexture * tex, int clamped)
 			}
 			r = g = b = j = 0;
 			if ((x>     0) && (wpptr[     -1].a)) {
-				r += (long)wpptr[     -1].r;
-				g += (long)wpptr[     -1].g;
-				b += (long)wpptr[     -1].b;
+				r += (int)wpptr[     -1].r;
+				g += (int)wpptr[     -1].g;
+				b += (int)wpptr[     -1].b;
 				j++;
 			}
 			if ((x<daxsiz) && (wpptr[     +1].a)) {
-				r += (long)wpptr[     +1].r;
-				g += (long)wpptr[     +1].g;
-				b += (long)wpptr[     +1].b;
+				r += (int)wpptr[     +1].r;
+				g += (int)wpptr[     +1].g;
+				b += (int)wpptr[     +1].b;
 				j++;
 			}
 			if ((y>     0) && (wpptr[naxsiz2].a)) {
-				r += (long)wpptr[naxsiz2].r;
-				g += (long)wpptr[naxsiz2].g;
-				b += (long)wpptr[naxsiz2].b;
+				r += (int)wpptr[naxsiz2].r;
+				g += (int)wpptr[naxsiz2].g;
+				b += (int)wpptr[naxsiz2].b;
 				j++;
 			}
 			if ((y<daysiz) && (wpptr[daxsiz2].a)) {
-				r += (long)wpptr[daxsiz2].r;
-				g += (long)wpptr[daxsiz2].g;
-				b += (long)wpptr[daxsiz2].b;
+				r += (int)wpptr[daxsiz2].r;
+				g += (int)wpptr[daxsiz2].g;
+				b += (int)wpptr[daxsiz2].b;
 				j++;
 			}
 			switch (j) {
@@ -1003,7 +1003,7 @@ static void ptm_mipscale(PTTexture * tex)
 	GLsizei newx, newy;
 	GLsizei x, y;
 	coltype *wpptr, *rpptr;
-	long r, g, b, a, k;
+	int r, g, b, a, k;
 	
 	newx = max(1, (tex->sizx >> 1));
 	newy = max(1, (tex->sizy >> 1));
@@ -1015,32 +1015,32 @@ static void ptm_mipscale(PTTexture * tex)
 		for (x = 0; x < newx; x++, wpptr++, rpptr += 2) {
 			r = g = b = a = k = 0;
 			if (rpptr[0].a) {
-				r += (long)rpptr[0].r;
-				g += (long)rpptr[0].g;
-				b += (long)rpptr[0].b;
-				a += (long)rpptr[0].a;
+				r += (int)rpptr[0].r;
+				g += (int)rpptr[0].g;
+				b += (int)rpptr[0].b;
+				a += (int)rpptr[0].a;
 				k++;
 			}
 			if ((x+x+1 < tex->sizx) && (rpptr[1].a)) {
-				r += (long)rpptr[1].r;
-				g += (long)rpptr[1].g;
-				b += (long)rpptr[1].b;
-				a += (long)rpptr[1].a;
+				r += (int)rpptr[1].r;
+				g += (int)rpptr[1].g;
+				b += (int)rpptr[1].b;
+				a += (int)rpptr[1].a;
 				k++;
 			}
 			if (y+y+1 < tex->sizy) {
 				if (rpptr[tex->sizx].a) {
-					r += (long)rpptr[tex->sizx  ].r;
-					g += (long)rpptr[tex->sizx  ].g;
-					b += (long)rpptr[tex->sizx  ].b;
-					a += (long)rpptr[tex->sizx  ].a;
+					r += (int)rpptr[tex->sizx  ].r;
+					g += (int)rpptr[tex->sizx  ].g;
+					b += (int)rpptr[tex->sizx  ].b;
+					a += (int)rpptr[tex->sizx  ].a;
 					k++;
 				}
 				if ((x+x+1 < tex->sizx) && (rpptr[tex->sizx+1].a)) {
-					r += (long)rpptr[tex->sizx+1].r;
-					g += (long)rpptr[tex->sizx+1].g;
-					b += (long)rpptr[tex->sizx+1].b;
-					a += (long)rpptr[tex->sizx+1].a;
+					r += (int)rpptr[tex->sizx+1].r;
+					g += (int)rpptr[tex->sizx+1].g;
+					b += (int)rpptr[tex->sizx+1].b;
+					a += (int)rpptr[tex->sizx+1].a;
 					k++;
 				}
 			}
@@ -1274,7 +1274,7 @@ void PTBeginPriming(void)
 /**
  * Flag a texture as required for priming
  */
-void PTMarkPrime(long picnum, long palnum, unsigned short flags)
+void PTMarkPrime(int picnum, int palnum, unsigned short flags)
 {
 	PTHash * pth;
 	
@@ -1391,7 +1391,7 @@ void PTClear()
  * @param peek if !0, does not try and create a header if none exists
  * @return pointer to the header, or null if peek!=0 and none exists
  */
-PTHead * PT_GetHead(long picnum, long palnum, unsigned short flags, int peek)
+PTHead * PT_GetHead(int picnum, int palnum, unsigned short flags, int peek)
 {
 	PTHash * pth;
 	
@@ -1469,7 +1469,7 @@ static void ptiter_seekforward(PTIter iter)
  * @param flags when (match&PTITER_FLAGS), specifies the flags to test
  * @return an iterator
  */
-PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned short flagsmask, unsigned short flags)
+PTIter PTIterNewMatch(int match, int picnum, int palnum, unsigned short flagsmask, unsigned short flags)
 {
 	PTIter iter;
 	

@@ -58,7 +58,7 @@ static int osdfunc_setrendermode(const osdfuncparm_t *parm)
 #ifdef DEBUGGINGAIDS
 static int osdcmd_hicsetpalettetint(const osdfuncparm_t *parm)
 {
-	long pal, cols[3], eff;
+	int pal, cols[3], eff;
 	char *p;
 	
 	if (parm->numparms != 5) return OSDCMD_SHOWHELP;
@@ -208,10 +208,10 @@ void baselayer_setupopengl()
 	bglHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
 	bglDisable(GL_DITHER);
 
-	glinfo.vendor     = bglGetString(GL_VENDOR);
-	glinfo.renderer   = bglGetString(GL_RENDERER);
-	glinfo.version    = bglGetString(GL_VERSION);
-	glinfo.extensions = bglGetString(GL_EXTENSIONS);
+	glinfo.vendor     = (const char *) bglGetString(GL_VENDOR);
+	glinfo.renderer   = (const char *) bglGetString(GL_RENDERER);
+	glinfo.version    = (const char *) bglGetString(GL_VERSION);
+	glinfo.extensions = (const char *) bglGetString(GL_EXTENSIONS);
 	
 	glinfo.maxanisotropy = 1.0;
 	glinfo.bgra = 0;

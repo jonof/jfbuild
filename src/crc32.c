@@ -2,7 +2,7 @@
 
 /*
 // this table of numbers is borrowed from the InfoZip source.
-static unsigned long crc32table[256] = {
+static unsigned int crc32table[256] = {
   0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
   0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
   0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
@@ -58,11 +58,11 @@ static unsigned long crc32table[256] = {
 };
 */
 
-static unsigned long crc32table[256];
+static unsigned int crc32table[256];
 
 void initcrc32table(void)
 {
-	unsigned long i,j,k;
+	unsigned int i,j,k;
 	
 	// algorithm and polynomial same as that used by infozip's zip
 	for (i=0; i<256; i++) {
@@ -74,29 +74,29 @@ void initcrc32table(void)
 }
 
 
-unsigned long crc32once(unsigned char *blk, unsigned long len)
+unsigned int crc32once(unsigned char *blk, unsigned int len)
 {
-	unsigned long crc;
+	unsigned int crc;
 	
 	crc32init(&crc);
 	crc32block(&crc, blk, len);
 	return crc32finish(&crc);
 }
 
-void crc32init(unsigned long *crcvar)
+void crc32init(unsigned int *crcvar)
 {
 	if (!crcvar) return;
 	*crcvar = 0xffffffffl;
 }
 
-void crc32block(unsigned long *crcvar, unsigned char *blk, unsigned long len)
+void crc32block(unsigned int *crcvar, unsigned char *blk, unsigned int len)
 {
-	unsigned long crc = *crcvar;
+	unsigned int crc = *crcvar;
 	while (len--) crc = crc32table[(crc ^ *(blk++)) & 0xffl] ^ (crc >> 8);
 	*crcvar = crc;
 }
 
-unsigned long crc32finish(unsigned long *crcvar)
+unsigned int crc32finish(unsigned int *crcvar)
 {
 	*crcvar = *crcvar ^ 0xffffffffl;
 	return *crcvar;

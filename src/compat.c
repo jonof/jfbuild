@@ -96,7 +96,7 @@ bssize_t Bread(int fd, void *buf, bsize_t count)
 	return read(fd,buf,count);
 }
 
-int Blseek(int fildes, int offset, int whence)
+boff_t Blseek(int fildes, boff_t offset, int whence)
 {
 	switch (whence) {
 		case BSEEK_SET: whence=SEEK_SET; break;
@@ -524,11 +524,11 @@ char *Bgetsystemdrives(void)
 }
 
 
-long Bfilelength(int fd)
+boff_t Bfilelength(int fd)
 {
 	struct stat st;
 	if (fstat(fd, &st) < 0) return -1;
-	return(long)(st.st_size);
+	return(boff_t)(st.st_size);
 }
 
 
@@ -683,7 +683,7 @@ char *Bstrtoken(char *s, char *delim, char **ptrptr, int chop)
 	//Brute-force case-insensitive, slash-insensitive, * and ? wildcard matcher
 	//Given: string i and string j. string j can have wildcards
 	//Returns: 1:matches, 0:doesn't match
-long Bwildmatch (const char *i, const char *j)
+int Bwildmatch (const char *i, const char *j)
 {
 	const char *k;
 	char c0, c1;
@@ -732,20 +732,20 @@ char *Bstrupr(char *s)
 //
 // getsysmemsize() -- gets the amount of system memory in the machine
 //
-unsigned int Bgetsysmemsize(void)
+size_t Bgetsysmemsize(void)
 {
 #ifdef _WIN32
-	unsigned int siz = 0x7fffffff;
+	size_t siz = 0x7fffffff;
 	
         MEMORYSTATUSEX memst;
         memst.dwLength = sizeof(MEMORYSTATUSEX);
         if (GlobalMemoryStatusEx(&memst)) {
-            siz = (unsigned int)min(longlong(0x7fffffff), memst.ullTotalPhys);
+            siz = (size_t)min(INT64_C(0x7fffffff), memst.ullTotalPhys);
         }
 	
 	return siz;
 #elif (defined(_SC_PAGE_SIZE) || defined(_SC_PAGESIZE)) && defined(_SC_PHYS_PAGES)
-	unsigned int siz = 0x7fffffff;
+	size_t siz = 0x7fffffff;
 	long scpagesiz, scphyspages;
 
 #ifdef _SC_PAGE_SIZE
@@ -755,7 +755,7 @@ unsigned int Bgetsysmemsize(void)
 #endif
 	scphyspages = sysconf(_SC_PHYS_PAGES);
 	if (scpagesiz >= 0 && scphyspages >= 0)
-		siz = (unsigned int)min(longlong(0x7fffffff), (int64)scpagesiz * (int64)scphyspages);
+		siz = (size_t)min(INT64_C(0x7fffffff), (int64_t)scpagesiz * (int64_t)scphyspages);
 
 	//initprintf("Bgetsysmemsize(): %d pages of %d bytes, %d bytes of system memory\n",
 	//		scphyspages, scpagesiz, siz);

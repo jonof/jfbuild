@@ -19,7 +19,7 @@ struct hicskybox_t {
 
 typedef struct hicreplc_t {
 	struct hicreplc_t *next;
-	char palnum, ignore, flags, filler;
+	unsigned char palnum, ignore, flags, filler;
 	char *filename;
 	float alphacut;
 	struct hicskybox_t *skybox;
@@ -27,8 +27,8 @@ typedef struct hicreplc_t {
 
 extern palette_t hictinting[MAXPALOOKUPS];
 extern hicreplctyp *hicreplc[MAXTILES];
-extern char hicfirstinit;
+extern int hicfirstinit;
 
-hicreplctyp * hicfindsubst(long picnum, long palnum, long skybox);
+hicreplctyp * hicfindsubst(int picnum, int palnum, int skybox);
 
 #endif

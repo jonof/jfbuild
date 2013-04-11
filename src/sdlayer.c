@@ -41,19 +41,20 @@ int startwin_settitle(const char *s) { s=s; return 0; }
 
 int   _buildargc = 1;
 const char **_buildargv = NULL;
-extern long app_main(long argc, char *argv[]);
+extern int app_main(int argc, char *argv[]);
 
 char quitevent=0, appactive=1;
 
 // video
 static SDL_Surface *sdl_surface;
-long xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
-long frameplace=0, lockcount=0;
+int xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
+int lockcount=0;
+intptr_t frameplace=0;
 char modechange=1;
 char offscreenrendering=0;
 char videomodereset = 0;
 static unsigned short sysgamma[3][256];
-extern long curbrightness, gammabrightness;
+extern int curbrightness, gammabrightness;
 
 #ifdef USE_OPENGL
 // OpenGL stuff
@@ -61,19 +62,21 @@ static char nogl=0;
 #endif
 
 // input
-char inputdevices=0;
-char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
-unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
-static unsigned char keynames[256][24];
-long mousex=0,mousey=0,mouseb=0;
-long *joyaxis = NULL, joyb=0, *joyhat = NULL;
-char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
-long joyaxespresent=0;
+int inputdevices=0;
+char keystatus[256];
+int keyfifo[KEYFIFOSIZ];
+unsigned char keyasciififo[KEYFIFOSIZ];
+int keyfifoplc, keyfifoend;
+int keyasciififoplc, keyasciififoend;
+static char keynames[256][24];
+int mousex=0,mousey=0,mouseb=0;
+int *joyaxis = NULL, joyb=0, *joyhat = NULL;
+char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0, joyaxespresent=0;
 
 
-void (*keypresscallback)(long,long) = 0;
-void (*mousepresscallback)(long,long) = 0;
-void (*joypresscallback)(long,long) = 0;
+void (*keypresscallback)(int,int) = 0;
+void (*mousepresscallback)(int,int) = 0;
+void (*joypresscallback)(int,int) = 0;
 
 static unsigned char keytranslation[SDLK_LAST];
 static int buildkeytranslationtable(void);
@@ -311,7 +314,7 @@ void debugprintf(const char *f, ...)
 //
 
 static char mouseacquired=0,moustat=0;
-static long joyblast=0;
+static int joyblast=0;
 static SDL_Joystick *joydev = NULL;
 
 //
@@ -335,7 +338,7 @@ int initinput(void)
 	memset(keynames,0,sizeof(keynames));
 	for (i=0; i<SDLK_LAST; i++) {
 		if (!keytranslation[i]) continue;
-		strncpy((char *)keynames[ keytranslation[i] ], SDL_GetKeyName(i), sizeof(keynames[i])-1);
+		strncpy(keynames[ keytranslation[i] ], SDL_GetKeyName(i), sizeof(keynames[i])-1);
 	}
 
 	if (!SDL_InitSubSystem(SDL_INIT_JOYSTICK)) {
@@ -353,8 +356,8 @@ int initinput(void)
 			initprintf("Joystick 1 has %d axes, %d buttons, and %d hat(s).\n",
 				joynumaxes,joynumbuttons,joynumhats);
 
-			joyaxis = (long *)Bcalloc(joynumaxes, sizeof(long));
-			joyhat = (long *)Bcalloc(joynumhats, sizeof(long));
+			joyaxis = (int *)Bcalloc(joynumaxes, sizeof(int));
+			joyhat = (int *)Bcalloc(joynumhats, sizeof(int));
 		}
 	}
 
@@ -374,13 +377,13 @@ void uninitinput(void)
 	}
 }
 
-const unsigned char *getkeyname(int num)
+const char *getkeyname(int num)
 {
 	if ((unsigned)num >= 256) return NULL;
 	return keynames[num];
 }
 
-const unsigned char *getjoyname(int what, int num)
+const char *getjoyname(int what, int num)
 {
 	static char tmp[64];
 
@@ -388,17 +391,17 @@ const unsigned char *getjoyname(int what, int num)
 		case 0:	// axis
 			if ((unsigned)num > (unsigned)joynumaxes) return NULL;
 			sprintf(tmp,"Axis %d",num);
-			return (unsigned char *)tmp;
+			return tmp;
 
 		case 1: // button
 			if ((unsigned)num > (unsigned)joynumbuttons) return NULL;
 			sprintf(tmp,"Button %d",num);
-			return (unsigned char *)tmp;
+			return tmp;
 
 		case 2: // hat
 			if ((unsigned)num > (unsigned)joynumhats) return NULL;
 			sprintf(tmp,"Hat %d",num);
-			return (unsigned char *)tmp;
+			return tmp;
 
 		default:
 			return NULL;
@@ -431,9 +434,9 @@ void bflushchars(void)
 //
 // set{key|mouse|joy}presscallback() -- sets a callback which gets notified when keys are pressed
 //
-void setkeypresscallback(void (*callback)(long, long)) { keypresscallback = callback; }
-void setmousepresscallback(void (*callback)(long, long)) { mousepresscallback = callback; }
-void setjoypresscallback(void (*callback)(long, long)) { joypresscallback = callback; }
+void setkeypresscallback(void (*callback)(int, int)) { keypresscallback = callback; }
+void setmousepresscallback(void (*callback)(int, int)) { mousepresscallback = callback; }
+void setjoypresscallback(void (*callback)(int, int)) { joypresscallback = callback; }
 
 //
 // initmouse() -- init mouse input
@@ -458,7 +461,7 @@ void uninitmouse(void)
 //
 // grabmouse() -- show/hide mouse cursor
 //
-void grabmouse(char a)
+void grabmouse(int a)
 {
 	if (appactive && moustat) {
 		if (a != mouseacquired) {
@@ -483,7 +486,7 @@ void grabmouse(char a)
 //
 // readmousexy() -- return mouse motion information
 //
-void readmousexy(long *x, long *y)
+void readmousexy(int *x, int *y)
 {
 	if (!mouseacquired || !appactive || !moustat) { *x = *y = 0; return; }
 	*x = mousex;
@@ -494,7 +497,7 @@ void readmousexy(long *x, long *y)
 //
 // readmousebstatus() -- return mouse button information
 //
-void readmousebstatus(long *b)
+void readmousebstatus(int *b)
 {
 	if (!mouseacquired || !appactive || !moustat) *b = 0;
 	else *b = mouseb;
@@ -575,12 +578,12 @@ void uninittimer(void)
 void sampletimer(void)
 {
 	Uint32 i;
-	long n;
+	int n;
 	
 	if (!timerfreq) return;
 	
 	i = SDL_GetTicks();
-	n = (long)(i * timerticspersec / timerfreq) - timerlastsample;
+	n = (int)(i * timerticspersec / timerfreq) - timerlastsample;
 	if (n>0) {
 		totalclock += n;
 		timerlastsample += n;
@@ -592,17 +595,17 @@ void sampletimer(void)
 //
 // getticks() -- returns a millisecond ticks count
 //
-unsigned long getticks(void)
+unsigned int getticks(void)
 {
-	return (unsigned long)SDL_GetTicks();
+	return (unsigned int)SDL_GetTicks();
 }
 
 //
 // getusecticks() -- returns a microsecond ticks count
 //
-unsigned long getusecticks(void)
+unsigned int getusecticks(void)
 {
-	return (unsigned long)SDL_GetTicks() * 1000;
+	return (unsigned int)SDL_GetTicks() * 1000;
 }
 
 
@@ -991,7 +994,7 @@ void resetvideomode(void)
 //
 void begindrawing(void)
 {
-	long i,j;
+	int i,j;
 
 	if (bpp > 8) {
 		if (offscreenrendering) return;
@@ -1009,7 +1012,7 @@ void begindrawing(void)
 	if (offscreenrendering) return;
 	
 	if (SDL_MUSTLOCK(sdl_surface)) SDL_LockSurface(sdl_surface);
-	frameplace = (long)sdl_surface->pixels;
+	frameplace = (intptr_t)sdl_surface->pixels;
 	
 	if (sdl_surface->pitch != bytesperline || modechange) {
 		bytesperline = sdl_surface->pitch;
@@ -1050,7 +1053,7 @@ void enddrawing(void)
 //
 void showframe(int w)
 {
-	long i,j;
+	int i,j;
 
 #ifdef USE_OPENGL
 	if (bpp > 8) {
@@ -1090,7 +1093,7 @@ void showframe(int w)
 	if (offscreenrendering) return;
 
 	if (lockcount) {
-		printf("Frame still locked %ld times when showframe() called.\n", lockcount);
+		printf("Frame still locked %d times when showframe() called.\n", lockcount);
 		while (lockcount) enddrawing();
 	}
 
@@ -1101,7 +1104,7 @@ void showframe(int w)
 //
 // setpalette() -- set palette values
 //
-int setpalette(int start, int num, char *dapal)
+int setpalette(int start, int num, unsigned char *dapal)
 {
 	SDL_Color pal[256];
 	int i,n;

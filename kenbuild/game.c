@@ -22,11 +22,11 @@
 #define EYEHEIGHT (32<<8)   //Normally (32<<8), (51<<8) to make mirrors happy
 
 // declared in sound.c
-void initsb(char,char,long,char,char,char,char);
+void initsb(char,char,int,char,char,char,char);
 void uninitsb(void);
-void setears(long,long,long,long);
-void wsayfollow(char *,long,long,long *,long *,char);
-void wsay(char *,long,long,long);
+void setears(int,int,int,int);
+void wsayfollow(char *,int,int,int *,int *,char);
+void wsay(char *,int,int,int);
 void loadwaves(void);
 void loadsong(char *);
 void musicon(void);
@@ -106,7 +106,7 @@ KEN'S STATUS DEFINITIONS:  (Please define your own statuses for your games)
 
 typedef struct
 {
-	long x, y, z;
+	int x, y, z;
 } point3d;
 
 typedef struct
@@ -115,59 +115,55 @@ typedef struct
 	short bits;
 } input;
 
-static long screentilt = 0, oscreentilt = 0;
+static int screentilt = 0, oscreentilt = 0;
 
 
-static long fvel, svel, avel;
-static long fvel2, svel2, avel2;
+static int fvel, svel, avel;
+static int fvel2, svel2, avel2;
 
 #define NUMOPTIONS 8
 #define NUMKEYS 19
-char option[NUMOPTIONS] = {0,0,0,0,0,0,1,0};
-char keys[NUMKEYS] =
+unsigned char option[NUMOPTIONS] = {0,0,0,0,0,0,1,0};
+unsigned char keys[NUMKEYS] =
 {
 	0xc8,0xd0,0xcb,0xcd,0x2a,0x9d,0x1d,0x39,
 	0x1e,0x2c,0xd1,0xc9,0x33,0x34,
 	0x9c,0x1c,0xd,0xc,0xf
 };
-long xdimgame = 320, ydimgame = 200, bppgame = 8, xdim2d = 640, ydim2d = 480;	// JBF 20050318: config.c expects to find these
-long forcesetup = 1;
+int xdimgame = 320, ydimgame = 200, bppgame = 8, xdim2d = 640, ydim2d = 480;	// JBF 20050318: config.c expects to find these
+int forcesetup = 1;
 
-static long digihz[8] = {6000,8000,11025,16000,22050,32000,44100,48000};
+static int digihz[8] = {6000,8000,11025,16000,22050,32000,44100,48000};
 
-static char frame2draw[MAXPLAYERS];
-static long frameskipcnt[MAXPLAYERS];
+static unsigned char frame2draw[MAXPLAYERS];
+static int frameskipcnt[MAXPLAYERS];
 
 #define LAVASIZ 128
 #define LAVALOGSIZ 7
 #define LAVAMAXDROPS 32
-static char lavabakpic[(LAVASIZ+4)*(LAVASIZ+4)], lavainc[LAVASIZ];
-static long lavanumdrops, lavanumframes;
-static long lavadropx[LAVAMAXDROPS], lavadropy[LAVAMAXDROPS];
-static long lavadropsiz[LAVAMAXDROPS], lavadropsizlookup[LAVAMAXDROPS];
-static long lavaradx[24][96], lavarady[24][96], lavaradcnt[32];
+static unsigned char lavabakpic[(LAVASIZ+4)*(LAVASIZ+4)], lavainc[LAVASIZ];
+static int lavanumdrops, lavanumframes;
+static int lavadropx[LAVAMAXDROPS], lavadropy[LAVAMAXDROPS];
+static int lavadropsiz[LAVAMAXDROPS], lavadropsizlookup[LAVAMAXDROPS];
+static int lavaradx[24][96], lavarady[24][96], lavaradcnt[32];
 
 	//Shared player variables
-static long posx[MAXPLAYERS], posy[MAXPLAYERS], posz[MAXPLAYERS];
-static long horiz[MAXPLAYERS], zoom[MAXPLAYERS], hvel[MAXPLAYERS];
+static int posx[MAXPLAYERS], posy[MAXPLAYERS], posz[MAXPLAYERS];
+static int horiz[MAXPLAYERS], zoom[MAXPLAYERS], hvel[MAXPLAYERS];
 static short ang[MAXPLAYERS], cursectnum[MAXPLAYERS], ocursectnum[MAXPLAYERS];
 static short playersprite[MAXPLAYERS], deaths[MAXPLAYERS];
-static long lastchaingun[MAXPLAYERS];
-static long health[MAXPLAYERS], flytime[MAXPLAYERS];
+static int lastchaingun[MAXPLAYERS];
+static int health[MAXPLAYERS], flytime[MAXPLAYERS];
 static short oflags[MAXPLAYERS];
 static short numbombs[MAXPLAYERS];
 static short numgrabbers[MAXPLAYERS];   // Andy did this
 static short nummissiles[MAXPLAYERS];   // Andy did this
-static char dimensionmode[MAXPLAYERS];
-static char revolvedoorstat[MAXPLAYERS];
+static unsigned char dimensionmode[MAXPLAYERS];
+static unsigned char revolvedoorstat[MAXPLAYERS];
 static short revolvedoorang[MAXPLAYERS], revolvedoorrotang[MAXPLAYERS];
-static long revolvedoorx[MAXPLAYERS], revolvedoory[MAXPLAYERS];
+static int revolvedoorx[MAXPLAYERS], revolvedoory[MAXPLAYERS];
 
-	//ENGINE CONTROLLED MULTIPLAYER VARIABLES:
-extern long numplayers, myconnectindex;
-extern long connecthead, connectpoint2[MAXPLAYERS];   //Player linked list variables (indeces, not connection numbers)
-
-static long nummoves;
+static int nummoves;
 // Bug: NUMSTATS used to be equal to the greatest tag number,
 // so that the last statrate[] entry was random memory junk
 // because stats 0-NUMSTATS required NUMSTATS+1 bytes.   -Andy
@@ -175,67 +171,66 @@ static long nummoves;
 static signed char statrate[NUMSTATS] = {-1,0,-1,0,0,0,1,3,0,3,15,-1,-1};
 
 	//Input structures
-static char networkmode;     //0 is 2(n-1) mode, 1 is n(n-1) mode
-static long locselectedgun, locselectedgun2;
+static unsigned char networkmode;     //0 is 2(n-1) mode, 1 is n(n-1) mode
+static int locselectedgun, locselectedgun2;
 static input loc, oloc, loc2;
 static input ffsync[MAXPLAYERS], osync[MAXPLAYERS], ssync[MAXPLAYERS];
 	//Input faketimerhandler -> movethings fifo
-static long movefifoplc, movefifoend[MAXPLAYERS];
+static int movefifoplc, movefifoend[MAXPLAYERS];
 static input baksync[MOVEFIFOSIZ][MAXPLAYERS];
 	//Game recording variables
-static long reccnt, recstat = 1;
+static int reccnt, recstat = 1;
 static input recsync[16384][2];
 
-//static long myminlag[MAXPLAYERS], mymaxlag, otherminlag, bufferjitter = 1;
+//static int myminlag[MAXPLAYERS], mymaxlag, otherminlag, bufferjitter = 1;
 static signed char otherlag[MAXPLAYERS] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
-static long averagelag[MAXPLAYERS] = {512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512};
+static int averagelag[MAXPLAYERS] = {512,512,512,512,512,512,512,512,512,512,512,512,512,512,512,512};
 
-static long fakemovefifoplc;
-static long myx, myy, myz, omyx, omyy, omyz, myzvel;
-static long myhoriz, omyhoriz;
+static int fakemovefifoplc;
+static int myx, myy, myz, omyx, omyy, omyz, myzvel;
+static int myhoriz, omyhoriz;
 static short myang, omyang, mycursectnum;
-static long myxbak[MOVEFIFOSIZ], myybak[MOVEFIFOSIZ], myzbak[MOVEFIFOSIZ];
-static long myhorizbak[MOVEFIFOSIZ];
+static int myxbak[MOVEFIFOSIZ], myybak[MOVEFIFOSIZ], myzbak[MOVEFIFOSIZ];
+static int myhorizbak[MOVEFIFOSIZ];
 static short myangbak[MOVEFIFOSIZ];
 
-	//MULTI.OBJ sync state variables
-extern char syncstate;
 	//GAME.C sync state variables
-static char syncstat, syncval[MOVEFIFOSIZ], othersyncval[MOVEFIFOSIZ];
-static long syncvaltottail, syncvalhead, othersyncvalhead, syncvaltail;
+static unsigned char syncstat, syncval[MOVEFIFOSIZ], othersyncval[MOVEFIFOSIZ];
+static int syncvaltottail, syncvalhead, othersyncvalhead, syncvaltail;
 
-static char detailmode = 0, ready2send = 0;
-static long ototalclock = 0, gotlastpacketclock = 0, smoothratio;
-static long oposx[MAXPLAYERS], oposy[MAXPLAYERS], oposz[MAXPLAYERS];
-static long ohoriz[MAXPLAYERS], ozoom[MAXPLAYERS];
+static unsigned char detailmode = 0, ready2send = 0;
+static int ototalclock = 0, gotlastpacketclock = 0, smoothratio;
+static int oposx[MAXPLAYERS], oposy[MAXPLAYERS], oposz[MAXPLAYERS];
+static int ohoriz[MAXPLAYERS], ozoom[MAXPLAYERS];
 static short oang[MAXPLAYERS];
 
 static point3d osprite[MAXSPRITES];
 
 #define MAXINTERPOLATIONS 1024
-static long numinterpolations = 0, startofdynamicinterpolations = 0;
-static long oldipos[MAXINTERPOLATIONS];
-static long bakipos[MAXINTERPOLATIONS];
-static long *curipos[MAXINTERPOLATIONS];
+static int numinterpolations = 0, startofdynamicinterpolations = 0;
+static int oldipos[MAXINTERPOLATIONS];
+static int bakipos[MAXINTERPOLATIONS];
+static int *curipos[MAXINTERPOLATIONS];
 
-extern long cachecount;
+extern int cachecount;
 
-static char playerreadyflag[MAXPLAYERS];
+static unsigned char playerreadyflag[MAXPLAYERS];
 
 	//Miscellaneous variables
-static char packbuf[MAXXDIM];
-static char tempbuf[MAXXDIM], boardfilename[80];
+static unsigned char packbuf[MAXXDIM];
+static unsigned char tempbuf[MAXXDIM];
+static char boardfilename[BMAX_PATH];
 static short tempshort[MAXSECTORS];
 static short screenpeek = 0, oldmousebstatus = 0;
 short brightness = 0;
 static short screensize, screensizeflag = 0;
 static short neartagsector, neartagwall, neartagsprite;
-static long lockclock, neartagdist, neartaghitdist;
-extern long pageoffset, ydim16;
-static long globhiz, globloz, globhihit, globlohit;
+static int lockclock, neartagdist, neartaghitdist;
+extern int pageoffset, ydim16;
+static int globhiz, globloz, globhihit, globlohit;
 
 	//Over the shoulder mode variables
-static long cameradist = -1, cameraang = 0, cameraclock = 0;
+static int cameradist = -1, cameraang = 0, cameraclock = 0;
 
 	//Board animation variables
 #define MAXMIRRORS 64
@@ -247,28 +242,28 @@ static short xpanningsectorlist[16], xpanningsectorcnt;
 static short ypanningwalllist[64], ypanningwallcnt;
 static short floorpanninglist[64], floorpanningcnt;
 static short dragsectorlist[16], dragxdir[16], dragydir[16], dragsectorcnt;
-static long dragx1[16], dragy1[16], dragx2[16], dragy2[16], dragfloorz[16];
+static int dragx1[16], dragy1[16], dragx2[16], dragy2[16], dragfloorz[16];
 static short swingcnt, swingwall[32][5], swingsector[32];
 static short swingangopen[32], swingangclosed[32], swingangopendir[32];
 static short swingang[32], swinganginc[32];
-static long swingx[32][8], swingy[32][8];
+static int swingx[32][8], swingy[32][8];
 static short revolvesector[4], revolveang[4], revolvecnt;
-static long revolvex[4][16], revolvey[4][16];
-static long revolvepivotx[4], revolvepivoty[4];
+static int revolvex[4][16], revolvey[4][16];
+static int revolvepivotx[4], revolvepivoty[4];
 static short subwaytracksector[4][128], subwaynumsectors[4], subwaytrackcnt;
-static long subwaystop[4][8], subwaystopcnt[4];
-static long subwaytrackx1[4], subwaytracky1[4];
-static long subwaytrackx2[4], subwaytracky2[4];
-static long subwayx[4], subwaygoalstop[4], subwayvel[4], subwaypausetime[4];
+static int subwaystop[4][8], subwaystopcnt[4];
+static int subwaytrackx1[4], subwaytracky1[4];
+static int subwaytrackx2[4], subwaytracky2[4];
+static int subwayx[4], subwaygoalstop[4], subwayvel[4], subwaypausetime[4];
 static short waterfountainwall[MAXPLAYERS], waterfountaincnt[MAXPLAYERS];
 static short slimesoundcnt[MAXPLAYERS];
 
 	//Variables that let you type messages to other player
-static char getmessage[162], getmessageleng;
-static long getmessagetimeoff;
-static char typemessage[162], typemessageleng = 0, typemode = 0;
+static unsigned char getmessage[162], getmessageleng;
+static int getmessagetimeoff;
+static unsigned char typemessage[162], typemessageleng = 0, typemode = 0;
 /*
-static char scantoasc[128] =
+static unsigned char scantoasc[128] =
 {
 	0,0,'1','2','3','4','5','6','7','8','9','0','-','=',0,0,
 	'q','w','e','r','t','y','u','i','o','p','[',']',0,0,'a','s',
@@ -279,7 +274,7 @@ static char scantoasc[128] =
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 };
-static char scantoascwithshift[128] =
+static unsigned char scantoascwithshift[128] =
 {
 	0,0,'!','@','#','$','%','^','&','*','(',')','_','+',0,0,
 	'Q','W','E','R','T','Y','U','I','O','P','{','}',0,0,'A','S',
@@ -296,8 +291,8 @@ static char scantoascwithshift[128] =
 	//walls, or sprites (They are NOT to be used for changing the [].picnum's)
 	//See the setanimation(), and getanimategoal() functions for more details.
 #define MAXANIMATES 512
-static long *animateptr[MAXANIMATES], animategoal[MAXANIMATES];
-static long animatevel[MAXANIMATES], animateacc[MAXANIMATES], animatecnt = 0;
+static int *animateptr[MAXANIMATES], animategoal[MAXANIMATES];
+static int animatevel[MAXANIMATES], animateacc[MAXANIMATES], animatecnt = 0;
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	//These parameters are in exact order of sprite structure in BUILD.H
@@ -360,7 +355,7 @@ static int osdcmd_restartvid(const osdfuncparm_t *parm)
 
 static int osdcmd_vidmode(const osdfuncparm_t *parm)
 {
-	long newx = xdim, newy = ydim, newbpp = bpp, newfullscreen = fullscreen;
+	int newx = xdim, newy = ydim, newbpp = bpp, newfullscreen = fullscreen;
 
 	if (parm->numparms < 1 || parm->numparms > 4) return OSDCMD_SHOWHELP;
 
@@ -390,10 +385,10 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 
 extern int startwin_run(void);
 
-long app_main(long argc, const char *argv[])
+int app_main(int argc, const char *argv[])
 {
-	long cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
-	long other, packleng, netparm;
+	int cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
+	int other, packleng, netparm;
 
 #ifdef USE_OPENGL
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
@@ -672,8 +667,8 @@ long app_main(long argc, const char *argv[])
 
 void operatesector(short dasector)
 {     //Door code
-	long i, j, k, s, nexti, good, cnt, datag;
-	long dax, day, daz, dax2, day2, daz2, centx, centy;
+	int i, j, k, s, nexti, good, cnt, datag;
+	int dax, day, daz, dax2, day2, daz2, centx, centy;
 	short startwall, endwall, wallfind[2];
 
 	datag = sector[dasector].lotag;
@@ -692,7 +687,7 @@ void operatesector(short dasector)
 		//Simple door that moves up  (tag 8 is a combination of tags 6 & 7)
 	if ((datag == 6) || (datag == 8))    //If the sector in front is a door
 	{
-		i = getanimationgoal((long)&sector[dasector].ceilingz);
+		i = getanimationgoal(&sector[dasector].ceilingz);
 		if (i >= 0)      //If door already moving, reverse its direction
 		{
 			if (datag == 8)
@@ -724,7 +719,7 @@ void operatesector(short dasector)
 		//Simple door that moves down
 	if ((datag == 7) || (datag == 8)) //If the sector in front's elevator
 	{
-		i = getanimationgoal((long)&sector[dasector].floorz);
+		i = getanimationgoal(&sector[dasector].floorz);
 		if (i >= 0)      //If elevator already moving, reverse its direction
 		{
 			if (datag == 8)
@@ -915,7 +910,7 @@ void operatesector(short dasector)
 
 void operatesprite(short dasprite)
 {
-	long datag;
+	int datag;
 
 	datag = sprite[dasprite].lotag;
 
@@ -927,9 +922,9 @@ void operatesprite(short dasprite)
 	}
 }
 
-long changehealth(short snum, short deltahealth)
+int changehealth(short snum, short deltahealth)
 {
-	long dax, day;
+	int dax, day;
 	short good, k, startwall, endwall, s;
 
 	if (health[snum] > 0)
@@ -947,11 +942,11 @@ long changehealth(short snum, short deltahealth)
 		if ((snum == screenpeek) && (screensize <= xdim))
 		{
 			if (health[snum] > 0)
-				sprintf(tempbuf,"Health:%3ld",health[snum]);
+				sprintf((char *)tempbuf,"Health:%3d",health[snum]);
 			else
-				sprintf(tempbuf,"YOU STINK!");
+				sprintf((char *)tempbuf,"YOU STINK!");
 
-			printext((xdim>>1)-(Bstrlen(tempbuf)<<2),ydim-24,tempbuf,ALPHABET,80);
+			printext((xdim>>1)-(Bstrlen((char *)tempbuf)<<2),ydim-24,(char *)tempbuf,ALPHABET,80);
 		}
 	}
 	return(health[snum] <= 0);      //You were just injured
@@ -966,8 +961,8 @@ void changenumbombs(short snum, short deltanumbombs) {   // Andy did this
 	}
 
 	if ((snum == screenpeek) && (screensize <= xdim)) {
-		sprintf(tempbuf,"B:%3d",numbombs[snum]);
-		printext(8L,(ydim - 28L),tempbuf,ALPHABET,80);
+		sprintf((char *)tempbuf,"B:%3d",numbombs[snum]);
+		printext(8L,(ydim - 28L),(char *)tempbuf,ALPHABET,80);
 	}
 }
 
@@ -980,8 +975,8 @@ void changenummissiles(short snum, short deltanummissiles) {   // Andy did this
 	}
 
 	if ((snum == screenpeek) && (screensize <= xdim)) {
-		sprintf(tempbuf,"M:%3d",nummissiles[snum]);
-		printext(8L,(ydim - 20L),tempbuf,ALPHABET,80);
+		sprintf((char *)tempbuf,"M:%3d",nummissiles[snum]);
+		printext(8L,(ydim - 20L),(char *)tempbuf,ALPHABET,80);
 	}
 }
 
@@ -994,65 +989,65 @@ void changenumgrabbers(short snum, short deltanumgrabbers) {   // Andy did this
 	}
 
 	if ((snum == screenpeek) && (screensize <= xdim)) {
-		sprintf(tempbuf,"G:%3d",numgrabbers[snum]);
-		printext(8L,(ydim - 12L),tempbuf,ALPHABET,80);
+		sprintf((char *)tempbuf,"G:%3d",numgrabbers[snum]);
+		printext(8L,(ydim - 12L),(char *)tempbuf,ALPHABET,80);
 	}
 }
 
-static long ostatusflytime = 0x80000000;
+static int ostatusflytime = 0x80000000;
 void drawstatusflytime(short snum) {   // Andy did this
-	long nstatusflytime;
+	int nstatusflytime;
 
 	if ((snum == screenpeek) && (screensize <= xdim)) {
 		nstatusflytime = (((flytime[snum] + 119) - lockclock) / 120);
 		if (nstatusflytime > 1000) nstatusflytime = 1000;
 		else if (nstatusflytime < 0) nstatusflytime = 0;
 		if (nstatusflytime != ostatusflytime) {
-			if (nstatusflytime > 999) sprintf(tempbuf,"FT:BIG");
-			else sprintf(tempbuf,"FT:%3ld",nstatusflytime);
-			printext((xdim - 56L),(ydim - 20L),tempbuf,ALPHABET,80);
+			if (nstatusflytime > 999) sprintf((char *)tempbuf,"FT:BIG");
+			else sprintf((char *)tempbuf,"FT:%3d",nstatusflytime);
+			printext((xdim - 56L),(ydim - 20L),(char *)tempbuf,ALPHABET,80);
 			ostatusflytime = nstatusflytime;
 		}
 	}
 }
 
 void drawstatusbar(short snum) {   // Andy did this
-	long nstatusflytime;
+	int nstatusflytime;
 
 	if ((snum == screenpeek) && (screensize <= xdim)) {
-		Bsprintf(tempbuf,"Deaths:%d",deaths[snum]);
-		printext((xdim>>1)-(Bstrlen(tempbuf)<<2),ydim-16,tempbuf,ALPHABET,80);
-		Bsprintf(tempbuf,"Health:%3ld",health[snum]);
-		printext((xdim>>1)-(Bstrlen(tempbuf)<<2),ydim-24,tempbuf,ALPHABET,80);
+		sprintf((char *)tempbuf,"Deaths:%d",deaths[snum]);
+		printext((xdim>>1)-(strlen((char *)tempbuf)<<2),ydim-16,(char *)tempbuf,ALPHABET,80);
+		sprintf((char *)tempbuf,"Health:%3d",health[snum]);
+		printext((xdim>>1)-(strlen((char *)tempbuf)<<2),ydim-24,(char *)tempbuf,ALPHABET,80);
 
-		Bsprintf(tempbuf,"B:%3d",numbombs[snum]);
-		printext(8L,(ydim - 28L),tempbuf,ALPHABET,80);
-		Bsprintf(tempbuf,"M:%3d",nummissiles[snum]);
-		printext(8L,(ydim - 20L),tempbuf,ALPHABET,80);
-		Bsprintf(tempbuf,"G:%3d",numgrabbers[snum]);
-		printext(8L,(ydim - 12L),tempbuf,ALPHABET,80);
+		sprintf((char *)tempbuf,"B:%3d",numbombs[snum]);
+		printext(8L,(ydim - 28L),(char *)tempbuf,ALPHABET,80);
+		sprintf((char *)tempbuf,"M:%3d",nummissiles[snum]);
+		printext(8L,(ydim - 20L),(char *)tempbuf,ALPHABET,80);
+		sprintf((char *)tempbuf,"G:%3d",numgrabbers[snum]);
+		printext(8L,(ydim - 12L),(char *)tempbuf,ALPHABET,80);
 
 		nstatusflytime = (((flytime[snum] + 119) - lockclock) / 120);
 		if (nstatusflytime < 0) {
-			Bsprintf(tempbuf,"FT:  0");
+			sprintf((char *)tempbuf,"FT:  0");
 			ostatusflytime = 0;
 		}
 		else if (nstatusflytime > 999) {
-			Bsprintf(tempbuf,"FT:BIG");
+			sprintf((char *)tempbuf,"FT:BIG");
 			ostatusflytime = 999;
 		}
 		else {
-			Bsprintf(tempbuf,"FT:%3ld",nstatusflytime);
+			sprintf((char *)tempbuf,"FT:%3d",nstatusflytime);
 			ostatusflytime = nstatusflytime;
 		}
-		printext((xdim - 56L),(ydim - 20L),tempbuf,ALPHABET,80);
+		printext((xdim - 56L),(ydim - 20L),(char *)tempbuf,ALPHABET,80);
 	}
 }
 
 void prepareboard(char *daboardfilename)
 {
 	short startwall, endwall, dasector;
-	long i, j, k=0, s, dax, day, daz, dax2, day2;
+	int i, j, k=0, s, dax, day, daz, dax2, day2;
 
 	getmessageleng = 0;
 	typemessageleng = 0;
@@ -1077,14 +1072,18 @@ void prepareboard(char *daboardfilename)
 		printf("Board not found\n");
 		exit(0);
 	} else {
-		char *fp;
+		char tempfn[BMAX_PATH + 1], *fp;
 
-		strcpy(tempbuf, daboardfilename);
-		fp = strrchr(tempbuf,'.');
+		strncpy(tempfn, daboardfilename, BMAX_PATH);
+		tempfn[BMAX_PATH] = 0;
+
+		fp = strrchr(tempfn,'.');
 		if (fp) *fp = 0;
-		strcat(tempbuf,".mhk");
 
-		loadmaphack(tempbuf);
+		if (strlen(tempfn) <= BMAX_PATH-4) {
+			strcat(tempfn,".mhk");
+			loadmaphack(tempfn);
+		}
 	}
 
 	setup3dscreen();
@@ -1146,8 +1145,8 @@ void prepareboard(char *daboardfilename)
 	{
 		waterfountainwall[i] = -1;
 		waterfountaincnt[i] = 0;
+		slimesoundcnt[i] = 0;
 	}
-	slimesoundcnt[i] = 0;
 	warpsectorcnt = 0;      //Make a list of warping sectors
 	xpanningsectorcnt = 0;  //Make a list of wall x-panning sectors
 	floorpanningcnt = 0;    //Make a list of slime sectors
@@ -1510,7 +1509,7 @@ void prepareboard(char *daboardfilename)
 
 void checktouchsprite(short snum, short sectnum)
 {
-	long i, nexti;
+	int i, nexti;
 
 	if ((sectnum < 0) || (sectnum >= numsectors)) return;
 
@@ -1614,7 +1613,7 @@ void checktouchsprite(short snum, short sectnum)
 
 void checkgrabbertouchsprite(short snum, short sectnum)   // Andy did this
 {
-	long i, nexti;
+	int i, nexti;
 	short onum;
 
 	if ((sectnum < 0) || (sectnum >= numsectors)) return;
@@ -1718,11 +1717,11 @@ void checkgrabbertouchsprite(short snum, short sectnum)   // Andy did this
 	}
 }
 
-void shootgun(short snum, long x, long y, long z,
-	short daang, long dahoriz, short dasectnum, char guntype)
+void shootgun(short snum, int x, int y, int z,
+	short daang, int dahoriz, short dasectnum, unsigned char guntype)
 {
 	short hitsect, hitwall, hitsprite, daang2;
-	long i, j, daz2, hitx, hity, hitz;
+	int i, j, daz2, hitx, hity, hitz;
 
 	switch(guntype)
 	{
@@ -1805,7 +1804,7 @@ void shootgun(short snum, long x, long y, long z,
 
 					//Sprite starts out with center exactly on wall.
 					//This moves it back enough to see it at all angles.
-				movesprite((short)j,-(((long)sintable[(512+daang)&2047]*TICSPERFRAME)<<4),-(((long)sintable[daang]*TICSPERFRAME)<<4),0L,4L<<8,4L<<8,CLIPMASK1);
+				movesprite((short)j,-(((int)sintable[(512+daang)&2047]*TICSPERFRAME)<<4),-(((int)sintable[daang]*TICSPERFRAME)<<4),0L,4L<<8,4L<<8,CLIPMASK1);
 			}
 			break;
 		case 1:    //Shoot silver sphere bullet
@@ -1836,10 +1835,10 @@ void shootgun(short snum, long x, long y, long z,
 }
 
 #define MAXVOXMIPS 5
-extern char *voxoff[][MAXVOXMIPS];
-void analyzesprites(long dax, long day)
+extern unsigned char *voxoff[][MAXVOXMIPS];
+void analyzesprites(int dax, int day)
 {
-	long i, j=0, k, *intptr;
+	int i, j=0, k, *intptr;
 	point3d *ospr;
 	spritetype *tspr;
 
@@ -1872,7 +1871,7 @@ void analyzesprites(long dax, long day)
 				if ((tspr->cstat&2) == 0)
 				{
 					//tspr->cstat |= 48; tspr->picnum = tiletovox[tspr->picnum];
-					intptr = (long *)voxoff[ tiletovox[PLAYER] ][0];
+					intptr = (int *)voxoff[ tiletovox[PLAYER] ][0];
 					tspr->xrepeat = scale(tspr->xrepeat,56,intptr[2]);
 					tspr->yrepeat = scale(tspr->yrepeat,56,intptr[2]);
 					tspr->shade -= 6;
@@ -1921,7 +1920,7 @@ void analyzesprites(long dax, long day)
 
 void tagcode(void)
 {
-	long i, nexti, j, k, l, s, dax, day, daz, dax2, day2, cnt, good;
+	int i, nexti, j, k, l, s, dax, day, daz, dax2, day2, cnt, good;
 	short startwall, endwall, dasector, p, oldang;
 
 	for(p=connecthead;p>=0;p=connectpoint2[p])
@@ -2222,8 +2221,8 @@ void tagcode(void)
 void statuslistcode(void)
 {
 	short p, target, hitobject, daang, osectnum, movestat;
-	long i, nexti, j, nextj, k, l, dax, day, daz, dist, ox, oy, mindist;
-	long doubvel, xvect, yvect;
+	int i, nexti, j, nextj, k, l, dax, day, daz, dist=0, ox, oy, mindist;
+	int doubvel, xvect, yvect;
 
 		//Go through active BROWNMONSTER list
 	for(i=headspritestat[1];i>=0;i=nexti)
@@ -2255,13 +2254,13 @@ void statuslistcode(void)
 				xvect = 0, yvect = 0;
 				if (ssync[target].fvel != 0)
 				{
-					xvect += ((((long)ssync[target].fvel)*doubvel*(long)sintable[(ang[target]+512)&2047])>>3);
-					yvect += ((((long)ssync[target].fvel)*doubvel*(long)sintable[ang[target]&2047])>>3);
+					xvect += ((((int)ssync[target].fvel)*doubvel*(int)sintable[(ang[target]+512)&2047])>>3);
+					yvect += ((((int)ssync[target].fvel)*doubvel*(int)sintable[ang[target]&2047])>>3);
 				}
 				if (ssync[target].svel != 0)
 				{
-					xvect += ((((long)ssync[target].svel)*doubvel*(long)sintable[ang[target]&2047])>>3);
-					yvect += ((((long)ssync[target].svel)*doubvel*(long)sintable[(ang[target]+1536)&2047])>>3);
+					xvect += ((((int)ssync[target].svel)*doubvel*(int)sintable[ang[target]&2047])>>3);
+					yvect += ((((int)ssync[target].svel)*doubvel*(int)sintable[(ang[target]+1536)&2047])>>3);
 				}
 
 				ox = posx[target]; oy = posy[target];
@@ -2308,7 +2307,7 @@ void statuslistcode(void)
 		doubvel = max(mulscale7(sprite[i].xrepeat,sprite[i].yrepeat),4);
 
 		osectnum = sprite[i].sectnum;
-		movestat = movesprite((short)i,(long)sintable[(sprite[i].ang+512)&2047]*doubvel,(long)sintable[sprite[i].ang]*doubvel,0L,4L<<8,4L<<8,CLIPMASK0);
+		movestat = movesprite((short)i,(int)sintable[(sprite[i].ang+512)&2047]*doubvel,(int)sintable[sprite[i].ang]*doubvel,0L,4L<<8,4L<<8,CLIPMASK0);
 		if (globloz > sprite[i].z+(48<<8))
 			{ sprite[i].x = dax; sprite[i].y = day; movestat = 1; }
 		else
@@ -2486,9 +2485,9 @@ void statuslistcode(void)
 			 //If the sprite is a bullet then...
 		if ((sprite[i].picnum == BULLET) || (sprite[i].picnum == GRABBER) || (sprite[i].picnum == MISSILE) || (sprite[i].picnum == BOMB))
 		{
-			dax = ((((long)sprite[i].xvel)*TICSPERFRAME)<<12);
-			day = ((((long)sprite[i].yvel)*TICSPERFRAME)<<12);
-			daz = ((((long)sprite[i].zvel)*TICSPERFRAME)>>2);
+			dax = ((((int)sprite[i].xvel)*TICSPERFRAME)<<12);
+			day = ((((int)sprite[i].yvel)*TICSPERFRAME)<<12);
+			daz = ((((int)sprite[i].zvel)*TICSPERFRAME)>>2);
 			if (sprite[i].picnum == BOMB) daz = 0;
 
 			osectnum = sprite[i].sectnum;
@@ -2977,7 +2976,7 @@ bulletisdeletedskip: continue;
 
 void activatehitag(short dahitag)
 {
-	long i, nexti;
+	int i, nexti;
 
 	for(i=0;i<numsectors;i++)
 		if (sector[i].hitag == dahitag) operatesector(i);
@@ -2989,9 +2988,9 @@ void activatehitag(short dahitag)
 	}
 }
 
-void bombexplode(long i)
+void bombexplode(int i)
 {
-	long j, nextj, k, daang, dax, day, dist;
+	int j, nextj, k, daang, dax, day, dist;
 
 	spawnsprite(j,sprite[i].x,sprite[i].y,sprite[i].z,0,-4,0,
 		32,64,64,0,0,EXPLOSION,sprite[i].ang,
@@ -3075,11 +3074,11 @@ void bombexplode(long i)
 
 void processinput(short snum)
 {
-	long oldposx, oldposy, nexti;
-	long i, j, k, doubvel, xvect, yvect, goalz;
-	long dax, day, dax2, day2, odax, oday, odax2, oday2;
+	int oldposx, oldposy, nexti;
+	int i, j, k, doubvel, xvect, yvect, goalz;
+	int dax, day, dax2, day2, odax, oday, odax2, oday2;
 	short startwall, endwall;
-	char *ptr;
+	unsigned char *ptr;
 
 		//SHARED KEYS:
 		//Movement code
@@ -3090,13 +3089,13 @@ void processinput(short snum)
 		xvect = 0, yvect = 0;
 		if (ssync[snum].fvel != 0)
 		{
-			xvect += ((((long)ssync[snum].fvel)*doubvel*(long)sintable[(ang[snum]+512)&2047])>>3);
-			yvect += ((((long)ssync[snum].fvel)*doubvel*(long)sintable[ang[snum]&2047])>>3);
+			xvect += ((((int)ssync[snum].fvel)*doubvel*(int)sintable[(ang[snum]+512)&2047])>>3);
+			yvect += ((((int)ssync[snum].fvel)*doubvel*(int)sintable[ang[snum]&2047])>>3);
 		}
 		if (ssync[snum].svel != 0)
 		{
-			xvect += ((((long)ssync[snum].svel)*doubvel*(long)sintable[ang[snum]&2047])>>3);
-			yvect += ((((long)ssync[snum].svel)*doubvel*(long)sintable[(ang[snum]+1536)&2047])>>3);
+			xvect += ((((int)ssync[snum].svel)*doubvel*(int)sintable[ang[snum]&2047])>>3);
+			yvect += ((((int)ssync[snum].svel)*doubvel*(int)sintable[(ang[snum]+1536)&2047])>>3);
 		}
 		if (flytime[snum] > lockclock) { xvect += xvect; yvect += yvect; }   // DOuble flying speed
 		clipmove(&posx[snum],&posy[snum],&posz[snum],&cursectnum[snum],xvect,yvect,128L,4<<8,4<<8,CLIPMASK0);
@@ -3123,7 +3122,7 @@ void processinput(short snum)
 		doubvel = TICSPERFRAME;
 		if ((ssync[snum].bits&256) > 0)  //Lt. shift makes turn velocity 50% faster
 			doubvel += (TICSPERFRAME>>1);
-		ang[snum] += ((((long)ssync[snum].avel)*doubvel)>>4);
+		ang[snum] += ((((int)ssync[snum].avel)*doubvel)>>4);
 		ang[snum] &= 2047;
 	}
 
@@ -3471,10 +3470,10 @@ void processinput(short snum)
 	oflags[snum] = ssync[snum].bits;
 }
 
-void view(short snum, long *vx, long *vy, long *vz, short *vsectnum, short ang, long horiz)
+void view(short snum, int *vx, int *vy, int *vz, short *vsectnum, short ang, int horiz)
 {
 	spritetype *sp;
-	long i, nx, ny, nz, hx, hy, hz, hitx, hity, hitz;
+	int i, nx, ny, nz, hx, hy, hz, hitx, hity, hitz;
 	short bakcstat, hitsect, hitwall, hitsprite, daang;
 
 	nx = (sintable[(ang+1536)&2047]>>4);
@@ -3519,54 +3518,14 @@ void view(short snum, long *vx, long *vy, long *vz, short *vsectnum, short ang, 
 	sp->cstat = bakcstat;
 }
 
-#if 0	// JBF: now in the engine
-void updatesectorz(long x, long y, long z, short *sectnum)
+void drawscreen(short snum, int dasmoothratio)
 {
-	walltype *wal;
-	long i, j, cz, fz;
-
-	getzsofslope(*sectnum,x,y,&cz,&fz);
-	if ((z >= cz) && (z <= fz))
-		if (inside(x,y,*sectnum) != 0) return;
-
-	if ((*sectnum >= 0) && (*sectnum < numsectors))
-	{
-		wal = &wall[sector[*sectnum].wallptr];
-		j = sector[*sectnum].wallnum;
-		do
-		{
-			i = wal->nextsector;
-			if (i >= 0)
-			{
-				getzsofslope(i,x,y,&cz,&fz);
-				if ((z >= cz) && (z <= fz))
-					if (inside(x,y,(short)i) == 1)
-						{ *sectnum = i; return; }
-			}
-			wal++; j--;
-		} while (j != 0);
-	}
-
-	for(i=numsectors-1;i>=0;i--)
-	{
-		getzsofslope(i,x,y,&cz,&fz);
-		if ((z >= cz) && (z <= fz))
-			if (inside(x,y,(short)i) == 1)
-				{ *sectnum = i; return; }
-	}
-
-	*sectnum = -1;
-}
-#endif
-
-void drawscreen(short snum, long dasmoothratio)
-{
-	long i, j, k=0, l, charsperline, tempint;
-	long x1, y1, x2, y2, ox1, oy1, ox2, oy2, dist, maxdist;
-	long cposx, cposy, cposz, choriz, czoom, tposx, tposy;
-	long tiltlock, *intptr, ovisibility, oparallaxvisibility;
+	int i, j, k=0, l, charsperline, tempint;
+	int x1, y1, x2, y2, ox1, oy1, ox2, oy2, dist, maxdist;
+	int cposx, cposy, cposz, choriz, czoom, tposx, tposy;
+	int tiltlock, *intptr, ovisibility, oparallaxvisibility;
 	short cang, tang, csect;
-	char ch, *ptr, *ptr2, *ptr3, *ptr4;
+	unsigned char ch, *ptr, *ptr2, *ptr3, *ptr4;
 	spritetype *tspr;
 
 	smoothratio = max(min(dasmoothratio,65536),0);
@@ -3579,7 +3538,7 @@ void drawscreen(short snum, long dasmoothratio)
 		cposy = omyy+mulscale16(myy-omyy,smoothratio);
 		cposz = omyz+mulscale16(myz-omyz,smoothratio);
 		choriz = omyhoriz+mulscale16(myhoriz-omyhoriz,smoothratio);
-		cang = omyang+mulscale16((long)(((myang+1024-omyang)&2047)-1024),smoothratio);
+		cang = omyang+mulscale16((int)(((myang+1024-omyang)&2047)-1024),smoothratio);
 	}
 	else
 	{
@@ -3591,7 +3550,7 @@ void drawscreen(short snum, long dasmoothratio)
 	}
 	czoom = ozoom[snum]+mulscale16(zoom[snum]-ozoom[snum],smoothratio);
 
-	setears(cposx,cposy,(long)sintable[(cang+512)&2047]<<14,(long)sintable[cang&2047]<<14);
+	setears(cposx,cposy,(int)sintable[(cang+512)&2047]<<14,(int)sintable[cang&2047]<<14);
 
 	if (dimensionmode[myconnectindex] == 3)
 	{
@@ -3790,7 +3749,7 @@ void drawscreen(short snum, long dasmoothratio)
 				{
 					walock[MAXTILES-2] = 255;
 					if (waloff[MAXTILES-2] == 0)
-						allocache(&waloff[MAXTILES-2],320L*320L,&walock[MAXTILES-2]);
+						allocache((void **)&waloff[MAXTILES-2],320L*320L,&walock[MAXTILES-2]);
 					if ((tiltlock&1023) == 0)
 						setviewtotile(MAXTILES-2,200L>>detailmode,320L>>detailmode);
 					else
@@ -3842,8 +3801,8 @@ void drawscreen(short snum, long dasmoothratio)
 					begindrawing();   //{{{
 					for(y1=windowy1,y2=windowy2;y1<y2;y1++,y2--)
 					{
-						ptr = (char *)(frameplace+ylookup[y1]);
-						ptr2 = (char *)(frameplace+ylookup[y2]);
+						ptr = (unsigned char *)(frameplace+ylookup[y1]);
+						ptr2 = (unsigned char *)(frameplace+ylookup[y2]);
 						ptr3 = palookup[18];
 						ptr3 += (min(klabs(y1-l)>>2,31)<<8);
 						ptr4 = palookup[18];
@@ -3898,7 +3857,7 @@ void drawscreen(short snum, long dasmoothratio)
 			}
 
 				//WARNING!  Assuming (MIRRORLABEL&31) = 0 and MAXMIRRORS = 64
-			intptr = (long *)&gotpic[MIRRORLABEL>>3];   // CHECK!
+			intptr = (int *)&gotpic[MIRRORLABEL>>3];   // CHECK!
 			if (intptr[0]|intptr[1])
 				for(i=MAXMIRRORS-1;i>=0;i--)
 					if (gotpic[(i+MIRRORLABEL)>>3]&(1<<(i&7)))
@@ -3992,7 +3951,7 @@ void drawscreen(short snum, long dasmoothratio)
 	{
 		gotpic[SLIME>>3] &= ~(1<<(SLIME&7));
 		if (waloff[SLIME] != 0) {
-			movelava((char *)waloff[SLIME]);
+			movelava((unsigned char *)waloff[SLIME]);
 			invalidatetile(SLIME,0,1);   // JBF 20031228
 		}
 	}
@@ -4029,9 +3988,9 @@ void drawscreen(short snum, long dasmoothratio)
 			else
 				tempbuf[charsperline] = 0;
 			//if (dimensionmode[snum] == 3)
-				printext256(0L,(i/charsperline)<<3,31/*183*/,-1,tempbuf,0);
+				printext256(0L,(i/charsperline)<<3,31/*183*/,-1,(char *)tempbuf,0);
 			//else
-			//   printext16(0L,((i/charsperline)<<3)+(pageoffset/640),10,-1,tempbuf,0);
+			//   printext16(0L,((i/charsperline)<<3)+(pageoffset/640),10,-1,(char *)tempbuf,0);
 		}
 	}
 
@@ -4049,7 +4008,7 @@ void drawscreen(short snum, long dasmoothratio)
 			else
 				tempbuf[charsperline] = 0;
 
-			printext256(0L,((i/charsperline)<<3)+(ydim-32-8)-(((getmessageleng-1)/charsperline)<<3),31/*151*/,-1,tempbuf,0);
+			printext256(0L,((i/charsperline)<<3)+(ydim-32-8)-(((getmessageleng-1)/charsperline)<<3),31/*151*/,-1,(char *)tempbuf,0);
 		}
 		if (totalclock > getmessagetimeoff)
 			getmessageleng = 0;
@@ -4062,16 +4021,16 @@ void drawscreen(short snum, long dasmoothratio)
 			if (i == screenpeek) break;
 			j++;
 		}
-		Bsprintf(tempbuf,"(Player %ld's view)",j);
-		printext256((xdim>>1)-(Bstrlen(tempbuf)<<2),0,24,-1,tempbuf,0);
+		Bsprintf((char *)tempbuf,"(Player %d's view)",j);
+		printext256((xdim>>1)-(Bstrlen((char *)tempbuf)<<2),0,24,-1,(char *)tempbuf,0);
 	}
 
 	if (syncstat != 0) printext256(68L,84L,31,0,"OUT OF SYNC!",0);
 	if (syncstate != 0) printext256(68L,92L,31,0,"Missed Network packet!",0);
 
 //   //Uncomment this to test cache locks
-//extern long cacnum;
-//typedef struct { long *hand, leng; char *lock; } cactype;
+//extern int cacnum;
+//typedef struct { int *hand, leng; unsigned char *lock; } cactype;
 //extern cactype cac[];
 //
 //   j = 0;
@@ -4129,8 +4088,8 @@ void drawscreen(short snum, long dasmoothratio)
 		}
 		screensize = xdim+1;
 
-		Bsprintf(getmessage,"Video mode: %ld x %ld",xdim,ydim);
-		getmessageleng = Bstrlen(getmessage);
+		Bsprintf((char *)getmessage,"Video mode: %d x %d",xdim,ydim);
+		getmessageleng = Bstrlen((char *)getmessage);
 		getmessagetimeoff = totalclock+120*5;
 	}
 	if (keystatus[0x57])  //F11 - brightness
@@ -4138,7 +4097,7 @@ void drawscreen(short snum, long dasmoothratio)
 		keystatus[0x57] = 0;
 		brightness++;
 		if (brightness > 8) brightness = 0;
-		setbrightness(brightness,(char *)&palette[0],0);
+		setbrightness(brightness,&palette[0],0);
 	}
 
 	if (option[4] == 0)           //Single player only keys
@@ -4195,7 +4154,7 @@ void drawscreen(short snum, long dasmoothratio)
 
 void movethings(void)
 {
-	long i;
+	int i;
 
 	gotlastpacketclock = totalclock;
 	for(i=connecthead;i>=0;i=connectpoint2[i])
@@ -4208,7 +4167,7 @@ void movethings(void)
 void fakedomovethings(void)
 {
 	input *syn;
-	long i, j, k, doubvel, xvect, yvect, goalz;
+	int i, j, k, doubvel, xvect, yvect, goalz;
 	short bakcstat;
 
 	syn = (input *)&baksync[fakemovefifoplc][myconnectindex];
@@ -4229,13 +4188,13 @@ void fakedomovethings(void)
 		xvect = 0, yvect = 0;
 		if (syn->fvel != 0)
 		{
-			xvect += ((((long)syn->fvel)*doubvel*(long)sintable[(myang+512)&2047])>>3);
-			yvect += ((((long)syn->fvel)*doubvel*(long)sintable[myang&2047])>>3);
+			xvect += ((((int)syn->fvel)*doubvel*(int)sintable[(myang+512)&2047])>>3);
+			yvect += ((((int)syn->fvel)*doubvel*(int)sintable[myang&2047])>>3);
 		}
 		if (syn->svel != 0)
 		{
-			xvect += ((((long)syn->svel)*doubvel*(long)sintable[myang&2047])>>3);
-			yvect += ((((long)syn->svel)*doubvel*(long)sintable[(myang+1536)&2047])>>3);
+			xvect += ((((int)syn->svel)*doubvel*(int)sintable[myang&2047])>>3);
+			yvect += ((((int)syn->svel)*doubvel*(int)sintable[(myang+1536)&2047])>>3);
 		}
 		if (flytime[myconnectindex] > lockclock) { xvect += xvect; yvect += yvect; }   // DOuble flying speed
 		clipmove(&myx,&myy,&myz,&mycursectnum,xvect,yvect,128L,4<<8,4<<8,CLIPMASK0);
@@ -4249,7 +4208,7 @@ void fakedomovethings(void)
 		doubvel = TICSPERFRAME;
 		if ((syn->bits&256) > 0)  //Lt. shift makes turn velocity 50% faster
 			doubvel += (TICSPERFRAME>>1);
-		myang += ((((long)syn->avel)*doubvel)>>4);
+		myang += ((((int)syn->avel)*doubvel)>>4);
 		myang &= 2047;
 	}
 
@@ -4330,7 +4289,7 @@ void fakedomovethings(void)
 	//Prediction correction
 void fakedomovethingscorrect(void)
 {
-	long i;
+	int i;
 
 	if ((networkmode == 0) && (myconnectindex == connecthead)) return;
 
@@ -4370,7 +4329,7 @@ void domovethings(void)
 
 	if (option[4] != 0)
 	{
-		syncval[syncvalhead] = (char)(randomseed&255);
+		syncval[syncvalhead] = (unsigned char)(randomseed&255);
 		syncvalhead = ((syncvalhead+1)&(MOVEFIFOSIZ-1));
 	}
 
@@ -4441,9 +4400,9 @@ void domovethings(void)
 
 void getinput(void)
 {
-	char ch, keystate, *ptr;
-	long i, j, k;
-	long mousx, mousy, bstatus;
+	unsigned char ch, keystate, *ptr;
+	int i, j, k;
+	int mousx, mousy, bstatus;
 
 	if (typemode == 0)           //if normal game keys active
 	{
@@ -4629,7 +4588,7 @@ void getinput(void)
 
 void initplayersprite(short snum)
 {
-	long i;
+	int i;
 
 	if (playersprite[snum] >= 0) return;
 
@@ -4653,7 +4612,7 @@ void initplayersprite(short snum)
 
 void playback(void)
 {
-	long i, j, k;
+	int i, j, k;
 
 	ready2send = 0;
 	recstat = 0; i = reccnt;
@@ -4718,7 +4677,7 @@ void playback(void)
 
 void setup3dscreen(void)
 {
-	long i, dax, day, dax2, day2;
+	int i, dax, day, dax2, day2;
 
 	i = setgamemode(fullscreen,xdimgame,ydimgame,bppgame);
 	if (i < 0)
@@ -4737,7 +4696,7 @@ void setup3dscreen(void)
 
 	  //Make that ugly pink into black in case it ever shows up!
 	i = 0L;
-	setpalette(255,1,(char *)&i);
+	setpalette(255,1,(unsigned char *)&i);
 	//outp(0x3c8,255); outp(0x3c9,0); outp(0x3c9,0); outp(0x3c9,0);
 
 	screensize = xdim;
@@ -4774,10 +4733,10 @@ void setup3dscreen(void)
 	}
 }
 
-void findrandomspot(long *x, long *y, short *sectnum)
+void findrandomspot(int *x, int *y, short *sectnum)
 {
 	short startwall, endwall, s, dasector;
-	long dax, day, daz, minx, maxx, miny, maxy, cnt;
+	int dax, day, daz, minx, maxx, miny, maxy, cnt;
 
 	for(cnt=256;cnt>=0;cnt--)
 	{
@@ -4820,10 +4779,10 @@ void findrandomspot(long *x, long *y, short *sectnum)
 	}
 }
 
-void warp(long *x, long *y, long *z, short *daang, short *dasector)
+void warp(int *x, int *y, int *z, short *daang, short *dasector)
 {
 	short startwall, endwall, s;
-	long i, j, dax, day, ox, oy;
+	int i, j, dax, day, ox, oy;
 
 	ox = *x; oy = *y;
 
@@ -4880,7 +4839,7 @@ void warpsprite(short spritenum)
 
 void initlava(void)
 {
-	long x, y, z, r;
+	int x, y, z, r;
 
 	for(z=0;z<32;z++) lavaradcnt[z] = 0;
 	for(x=-16;x<=16;x++)
@@ -4914,9 +4873,9 @@ void initlava(void)
 	"add al, dl",\
 	parm [ebx]\
 	modify exact [eax edx]
-long addlava(long);
+int addlava(int);
 #elif defined(_MSC_VER) && !defined(NOASM)
-inline long addlava(long b)
+inline int addlava(int b)
 {
 	_asm {
 	mov ebx, b
@@ -4931,9 +4890,9 @@ inline long addlava(long b)
 	}
 }
 #elif defined(__GNUC__) && defined(__i386__) && !defined(NOASM)
-inline long addlava(long b)
+inline int addlava(void *b)
 {
-	long r;
+	int r;
 	__asm__ __volatile__ (
 		"movb -133(%%ebx), %%al\n\t"
 		"movb -1(%%ebx), %%dl\n\t"
@@ -4949,17 +4908,18 @@ inline long addlava(long b)
 	return r;
 }
 #else
-inline long addlava(long bx)
+inline int addlava(void *bx)
 {
-	char *b = (char *)bx;
+	unsigned char *b = (unsigned char *)bx;
 	return b[-133] + b[-132] + b[-131] + b[1] + b[-1] + b[131] + b[132];
 }
 #endif
 
-void movelava(char *dapic)
+void movelava(unsigned char *dapic)
 {
-	long i, j, x, y, z, zz, dalavadropsiz, dadropsizlookup;
-	long dalavax, dalavay, *ptr, *ptr2;
+	int i, j, x, y, z, zz, dalavadropsiz, dadropsizlookup;
+	int dalavax, dalavay, *ptr, *ptr2;
+	unsigned char *pi, *pj, *py;
 
 	for(z=min(LAVAMAXDROPS-lavanumdrops-1,3);z>=0;z--)
 	{
@@ -4994,8 +4954,8 @@ void movelava(char *dapic)
 
 		//Back up dapic with 1 pixel extra on each boundary
 		//(to prevent anding for wrap-around)
-	ptr = (long *)dapic;
-	ptr2 = (long *)((LAVASIZ+4)+1+((long)lavabakpic));
+	ptr = (int *)dapic;
+	ptr2 = (int *)((LAVASIZ+4)+1+((intptr_t)lavabakpic));
 	for(x=0;x<LAVASIZ;x++)
 	{
 		for(y=(LAVASIZ>>2);y>0;y--) *ptr2++ = ((*ptr++)&0x1f1f1f1f);
@@ -5016,17 +4976,17 @@ void movelava(char *dapic)
 	lavabakpic[(LAVASIZ+4)*(LAVASIZ+1)] = (dapic[LAVASIZ-1]&31);
 	lavabakpic[(LAVASIZ+4)*(LAVASIZ+2)-1] = (dapic[0]&31);
 
-	ptr = (long *)dapic;
+	ptr = (int *)dapic;
 	for(x=0;x<LAVASIZ;x++)
 	{
-		i = (long)&lavabakpic[(x+1)*(LAVASIZ+4)+1];
-		j = i+LAVASIZ;
-		for(y=i;y<j;y+=4)
+		pi = &lavabakpic[(x+1)*(LAVASIZ+4)+1];
+		pj = pi+LAVASIZ;
+		for(py=pi;py<pj;py+=4)
 		{
-			*ptr++ = ((addlava(y+0)&0xf8)>>3)+
-				((addlava(y+1)&0xf8)<<5)+
-				((addlava(y+2)&0xf8)<<13)+
-				((addlava(y+3)&0xf8)<<21)+
+			*ptr++ = ((addlava(&py[0])&0xf8)>>3)+
+				((addlava(&py[1])&0xf8)<<5)+
+				((addlava(&py[2])&0xf8)<<13)+
+				((addlava(&py[3])&0xf8)<<21)+
 				0xc2c2c2c2;
 		}
 	}
@@ -5036,7 +4996,7 @@ void movelava(char *dapic)
 
 void doanimations(void)
 {
-	long i, j;
+	int i, j;
 
 	for(i=animatecnt-1;i>=0;i--)
 	{
@@ -5065,18 +5025,18 @@ void doanimations(void)
 	}
 }
 
-long getanimationgoal(long animptr)
+int getanimationgoal(int *animptr)
 {
-	long i;
+	int i;
 
 	for(i=animatecnt-1;i>=0;i--)
-		if ((long *)animptr == animateptr[i]) return(i);
+		if (animptr == animateptr[i]) return(i);
 	return(-1);
 }
 
-long setanimation(long *animptr, long thegoal, long thevel, long theacc)
+int setanimation(int *animptr, int thegoal, int thevel, int theacc)
 {
-	long i, j;
+	int i, j;
 
 	if (animatecnt >= MAXANIMATES) return(-1);
 
@@ -5097,7 +5057,7 @@ long setanimation(long *animptr, long thegoal, long thevel, long theacc)
 
 void checkmasterslaveswitch(void)
 {
-	long i, j;
+	int i, j;
 
 	if (option[4] == 0) return;
 
@@ -5137,10 +5097,10 @@ void checkmasterslaveswitch(void)
 				j++;
 			}
 			if (j == 1)
-				Bstrcpy(getmessage,"Player 1 (Master)");
+				Bstrcpy((char *)getmessage,"Player 1 (Master)");
 			else
-				Bsprintf(getmessage,"Player %ld (Slave)",j);
-			getmessageleng = Bstrlen(getmessage);
+				Bsprintf((char *)getmessage,"Player %d (Slave)",j);
+			getmessageleng = Bstrlen((char *)getmessage);
 			getmessagetimeoff = totalclock+120;
 
 			return;
@@ -5150,7 +5110,7 @@ void checkmasterslaveswitch(void)
 }
 
 
-long testneighborsectors(short sect1, short sect2)
+int testneighborsectors(short sect1, short sect2)
 {
 	short i, startwall, num1, num2;
 
@@ -5173,10 +5133,11 @@ long testneighborsectors(short sect1, short sect2)
 	return(0);
 }
 
-long loadgame(void)
+int loadgame(void)
 {
-	long i;
-	long fil;
+	int i;
+	int fil;
+	int tmpanimateptr[MAXANIMATES];
 
 	if ((fil = kopen4load("save0000.gam",0)) == -1) return(-1);
 
@@ -5311,9 +5272,9 @@ long loadgame(void)
 	kdfread(slimesoundcnt,2,MAXPLAYERS,fil);
 
 		//Warning: only works if all pointers are in sector structures!
-	kdfread(animateptr,4,MAXANIMATES,fil);
+	kdfread(tmpanimateptr,4,MAXANIMATES,fil);
 	for(i=MAXANIMATES-1;i>=0;i--)
-		animateptr[i] = (long *)(animateptr[i]+((long)sector));
+		animateptr[i] = (int *)(tmpanimateptr[i]+(intptr_t)sector);
 
 	kdfread(animategoal,4,MAXANIMATES,fil);
 	kdfread(animatevel,4,MAXANIMATES,fil);
@@ -5347,16 +5308,17 @@ long loadgame(void)
 	totalclock = lockclock;
 	ototalclock = lockclock;
 
-	Bstrcpy(getmessage,"Game loaded.");
-	getmessageleng = Bstrlen(getmessage);
+	Bstrcpy((char *)getmessage,"Game loaded.");
+	getmessageleng = Bstrlen((char *)getmessage);
 	getmessagetimeoff = totalclock+360+(getmessageleng<<4);
 	return(0);
 }
 
-long savegame(void)
+int savegame(void)
 {
-	long i;
+	int i;
 	BFILE *fil;
+	int tmpanimateptr[MAXANIMATES];
 
 	if ((fil = Bfopen("save0000.gam","wb")) == 0) return(-1);
 
@@ -5489,10 +5451,8 @@ long savegame(void)
 
 		//Warning: only works if all pointers are in sector structures!
 	for(i=MAXANIMATES-1;i>=0;i--)
-		animateptr[i] = (long *)(animateptr[i]-((long)sector));
-	dfwrite(animateptr,4,MAXANIMATES,fil);
-	for(i=MAXANIMATES-1;i>=0;i--)
-		animateptr[i] = (long *)(animateptr[i]+((long)sector));
+		tmpanimateptr[i] = (int)((intptr_t)animateptr[i]-(intptr_t)sector);
+	dfwrite(tmpanimateptr,4,MAXANIMATES,fil);
 
 	dfwrite(animategoal,4,MAXANIMATES,fil);
 	dfwrite(animatevel,4,MAXANIMATES,fil);
@@ -5517,8 +5477,8 @@ long savegame(void)
 
 	Bfclose(fil);
 
-	Bstrcpy(getmessage,"Game saved.");
-	getmessageleng = Bstrlen(getmessage);
+	Bstrcpy((char *)getmessage,"Game saved.");
+	getmessageleng = Bstrlen((char *)getmessage);
 	getmessagetimeoff = totalclock+360+(getmessageleng<<4);
 	return(0);
 }
@@ -5526,7 +5486,7 @@ long savegame(void)
 void faketimerhandler(void)
 {
 	short other, packbufleng;
-	long i, j, k, l;
+	int i, j, k, l;
 
 	sampletimer();
 	if ((totalclock < ototalclock+(TIMERINTSPERSECOND/MOVESPERSECOND)) || (ready2send == 0)) return;
@@ -5570,7 +5530,7 @@ void faketimerhandler(void)
 			if (i != myconnectindex)
 			{
 				packbuf[0] = 17;
-				packbuf[1] = (char)((movefifoend[myconnectindex]-movefifoend[i])&(MOVEFIFOSIZ-1));
+				packbuf[1] = (unsigned char)((movefifoend[myconnectindex]-movefifoend[i])&(MOVEFIFOSIZ-1));
 
 				k = j;
 				if ((myconnectindex == connecthead) || ((i == connecthead) && (myconnectindex == connectpoint2[connecthead])))
@@ -5670,8 +5630,8 @@ void faketimerhandler(void)
 
 void getpackets(void)
 {
-	long i, j, k, l;
-	long other, packbufleng, movecnt;
+	int i, j, k, l;
+	int other, packbufleng, movecnt;
 
 	if (option[4] == 0) return;
 
@@ -5781,13 +5741,13 @@ void getpackets(void)
 	}
 }
 
-void drawoverheadmap(long cposx, long cposy, long czoom, short cang)
+void drawoverheadmap(int cposx, int cposy, int czoom, short cang)
 {
-	long i, j, k, l=0, x1, y1, x2=0, y2=0, x3, y3, x4, y4, ox, oy, xoff, yoff;
-	long dax, day, cosang, sinang, xspan, yspan, sprx, spry;
-	long xrepeat, yrepeat, z1, z2, startwall, endwall, tilenum, daang;
-	long xvect, yvect, xvect2, yvect2;
-	char col;
+	int i, j, k, l=0, x1, y1, x2=0, y2=0, x3, y3, x4, y4, ox, oy, xoff, yoff;
+	int dax, day, cosang, sinang, xspan, yspan, sprx, spry;
+	int xrepeat, yrepeat, z1, z2, startwall, endwall, tilenum, daang;
+	int xvect, yvect, xvect2, yvect2;
+	unsigned char col;
 	walltype *wal, *wal2;
 	spritetype *spr;
 
@@ -5912,7 +5872,7 @@ void drawoverheadmap(long cposx, long cposy, long czoom, short cang)
 					case 16:
 						x1 = sprx; y1 = spry;
 						tilenum = spr->picnum;
-						xoff = (long)((signed char)((picanm[tilenum]>>8)&255))+((long)spr->xoffset);
+						xoff = (int)((signed char)((picanm[tilenum]>>8)&255))+((int)spr->xoffset);
 						if ((spr->cstat&4) > 0) xoff = -xoff;
 						k = spr->ang; l = spr->xrepeat;
 						dax = sintable[k&2047]*l; day = sintable[(k+1536)&2047]*l;
@@ -5936,8 +5896,8 @@ void drawoverheadmap(long cposx, long cposy, long czoom, short cang)
 						if (dimensionmode[screenpeek] == 1)
 						{
 							tilenum = spr->picnum;
-							xoff = (long)((signed char)((picanm[tilenum]>>8)&255))+((long)spr->xoffset);
-							yoff = (long)((signed char)((picanm[tilenum]>>16)&255))+((long)spr->yoffset);
+							xoff = (int)((signed char)((picanm[tilenum]>>8)&255))+((int)spr->xoffset);
+							yoff = (int)((signed char)((picanm[tilenum]>>16)&255))+((int)spr->yoffset);
 							if ((spr->cstat&4) > 0) xoff = -xoff;
 							if ((spr->cstat&8) > 0) yoff = -yoff;
 
@@ -6028,9 +5988,9 @@ void drawoverheadmap(long cposx, long cposy, long czoom, short cang)
 	//parameters global (&globhiz,&globhihit,&globloz,&globlohit) so they
 	//don't need to be passed everywhere.  Also this should make this
 	//movesprite function compatible with the older movesprite functions.
-long movesprite(short spritenum, long dx, long dy, long dz, long ceildist, long flordist, long clipmask)
+int movesprite(short spritenum, int dx, int dy, int dz, int ceildist, int flordist, int clipmask)
 {
-	long daz, zoffs, tempint;
+	int daz, zoffs, tempint;
 	short retval, dasectnum, datempshort;
 	spritetype *spr;
 
@@ -6044,7 +6004,7 @@ long movesprite(short spritenum, long dx, long dy, long dz, long ceildist, long 
 	dasectnum = spr->sectnum;  //Can't modify sprite sectors directly becuase of linked lists
 	daz = spr->z+zoffs;  //Must do this if not using the new centered centering (of course)
 	retval = clipmove(&spr->x,&spr->y,&daz,&dasectnum,dx,dy,
-				((long)spr->clipdist)<<2,ceildist,flordist,clipmask);
+				((int)spr->clipdist)<<2,ceildist,flordist,clipmask);
 
 	if (dasectnum < 0) retval = -1;
 
@@ -6056,7 +6016,7 @@ long movesprite(short spritenum, long dx, long dy, long dz, long ceildist, long 
 	datempshort = spr->cstat; spr->cstat &= ~1;
 	getzrange(spr->x,spr->y,spr->z-1,spr->sectnum,
 				 &globhiz,&globhihit,&globloz,&globlohit,
-				 ((long)spr->clipdist)<<2,clipmask);
+				 ((int)spr->clipdist)<<2,clipmask);
 	spr->cstat = datempshort;
 
 	daz = spr->z+zoffs + dz;
@@ -6072,7 +6032,7 @@ long movesprite(short spritenum, long dx, long dy, long dz, long ceildist, long 
 
 void waitforeverybody ()
 {
-	long i;
+	int i;
 	if (numplayers < 2) return;
 	packbuf[0] = 250;
 	for(i=connecthead;i>=0;i=connectpoint2[i])
@@ -6087,11 +6047,11 @@ void waitforeverybody ()
 		refreshaudio();
 
 		drawrooms(posx[myconnectindex],posy[myconnectindex],posz[myconnectindex],ang[myconnectindex],horiz[myconnectindex],cursectnum[myconnectindex]);
-		if (!networkmode) Bsprintf(tempbuf,"Master/slave mode");
-						 else Bsprintf(tempbuf,"Peer-peer mode");
-		printext256((xdim>>1)-(strlen(tempbuf)<<2),(ydim>>1)-24,31,0,tempbuf,0);
-		Bsprintf(tempbuf,"Waiting for players");
-		printext256((xdim>>1)-(strlen(tempbuf)<<2),(ydim>>1)-16,31,0,tempbuf,0);
+		if (!networkmode) Bsprintf((char *)tempbuf,"Master/slave mode");
+						 else Bsprintf((char *)tempbuf,"Peer-peer mode");
+		printext256((xdim>>1)-(strlen((char *)tempbuf)<<2),(ydim>>1)-24,31,0,(char *)tempbuf,0);
+		Bsprintf((char *)tempbuf,"Waiting for players");
+		printext256((xdim>>1)-(strlen((char *)tempbuf)<<2),(ydim>>1)-16,31,0,(char *)tempbuf,0);
 		for(i=connecthead;i>=0;i=connectpoint2[i])
 		{
 			if (playerreadyflag[i] < playerreadyflag[myconnectindex])
@@ -6099,24 +6059,24 @@ void waitforeverybody ()
 					//slaves in M/S mode only wait for master
 				if ((!networkmode) && (myconnectindex != connecthead) && (i != connecthead))
 				{
-					Bsprintf(tempbuf,"Player %ld",i);
-					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,15,0,tempbuf,0);
+					Bsprintf((char *)tempbuf,"Player %d",i);
+					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,15,0,(char *)tempbuf,0);
 				}
 				else
 				{
-					Bsprintf(tempbuf,"Player %ld NOT ready",i);
-					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,127,0,tempbuf,0);
+					Bsprintf((char *)tempbuf,"Player %d NOT ready",i);
+					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,127,0,(char *)tempbuf,0);
 				}
 			}
 			else
 			{
-				Bsprintf(tempbuf,"Player %ld ready",i);
-				printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,31,0,tempbuf,0);
+				Bsprintf((char *)tempbuf,"Player %d ready",i);
+				printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,31,0,(char *)tempbuf,0);
 			}
 			if (i == myconnectindex)
 			{
-				Bsprintf(tempbuf,"You->");
-				printext256((xdim>>1)-(26<<2),(ydim>>1)+i*8,95,0,tempbuf,0);
+				Bsprintf((char *)tempbuf,"You->");
+				printext256((xdim>>1)-(26<<2),(ydim>>1)+i*8,95,0,(char *)tempbuf,0);
 			}
 		}
 		nextpage();
@@ -6148,7 +6108,7 @@ void waitforeverybody ()
 
 void searchmap(short startsector)
 {
-	long i, j, dasect, splc, send, startwall, endwall;
+	int i, j, dasect, splc, send, startwall, endwall;
 	short dapic;
 	walltype *wal;
 
@@ -6202,9 +6162,9 @@ void searchmap(short startsector)
 	}
 }
 
-void setinterpolation(long *posptr)
+void setinterpolation(int *posptr)
 {
-	long i;
+	int i;
 
 	if (numinterpolations >= MAXINTERPOLATIONS) return;
 	for(i=numinterpolations-1;i>=0;i--)
@@ -6214,9 +6174,9 @@ void setinterpolation(long *posptr)
 	numinterpolations++;
 }
 
-void stopinterpolation(long *posptr)
+void stopinterpolation(int *posptr)
 {
-	long i;
+	int i;
 
 	for(i=numinterpolations-1;i>=startofdynamicinterpolations;i--)
 		if (curipos[i] == posptr)
@@ -6230,14 +6190,14 @@ void stopinterpolation(long *posptr)
 
 void updateinterpolations(void)  //Stick at beginning of domovethings
 {
-	long i;
+	int i;
 
 	for(i=numinterpolations-1;i>=0;i--) oldipos[i] = *curipos[i];
 }
 
 void dointerpolations(void)       //Stick at beginning of drawscreen
 {
-	long i, j, odelta, ndelta;
+	int i, j, odelta, ndelta;
 
 	ndelta = 0; j = 0;
 	for(i=numinterpolations-1;i>=0;i--)
@@ -6251,30 +6211,30 @@ void dointerpolations(void)       //Stick at beginning of drawscreen
 
 void restoreinterpolations(void)  //Stick at end of drawscreen
 {
-	long i;
+	int i;
 
 	for(i=numinterpolations-1;i>=0;i--) *curipos[i] = bakipos[i];
 }
 
-void printext(long x, long y, char *buffer, short tilenum, char invisiblecol)
+void printext(int x, int y, char *buffer, short tilenum, unsigned char invisiblecol)
 {
-	long i;
-	char ch;
+	int i;
+	unsigned char ch;
 
 	for(i=0;buffer[i]!=0;i++)
 	{
-		ch = buffer[i];
+		ch = (unsigned char)buffer[i];
 		rotatesprite((x-((8&15)<<3))<<16,(y-((8>>4)<<3))<<16,65536L,0,tilenum,0,0,8+16+64+128,x,y,x+7,y+7);
 		rotatesprite((x-((ch&15)<<3))<<16,(y-((ch>>4)<<3))<<16,65536L,0,tilenum,0,0,8+16+128,x,y,x+7,y+7);
 		x += 8;
 	}
 }
 
-void drawtilebackground (long thex, long they, short tilenum,
-			  signed char shade, long cx1, long cy1,
-			  long cx2, long cy2, char dapalnum)
+void drawtilebackground (int thex, int they, short tilenum,
+			  signed char shade, int cx1, int cy1,
+			  int cx2, int cy2, unsigned char dapalnum)
 {
-	long x, y, xsiz, ysiz, tx1, ty1, tx2, ty2;
+	int x, y, xsiz, ysiz, tx1, ty1, tx2, ty2;
 
 	xsiz = tilesizx[tilenum]; tx1 = cx1/xsiz; tx2 = cx2/xsiz;
 	ysiz = tilesizy[tilenum]; ty1 = cy1/ysiz; ty2 = cy2/ysiz;

@@ -25,8 +25,8 @@ struct PTMHead_typ {
 	GLuint glpic;
 	
 	int flags;
-	long sizx, sizy;		// padded texture dimensions
-	long tsizx, tsizy;		// true texture dimensions
+	int sizx, sizy;		// padded texture dimensions
+	int tsizx, tsizy;		// true texture dimensions
 };
 
 typedef struct PTMHead_typ PTMHead;
@@ -35,8 +35,8 @@ typedef struct PTMHead_typ PTMHead;
 struct PTHead_typ {
 	PTMHead *pic[PTHPIC_SIZE];	// when (flags & PTH_SKYBOX), each is a face of the cube
 					// when !(flags & PTH_SKYBOX), see PTHPIC_* constants
-	long picnum;
-	long palnum;
+	int picnum;
+	int palnum;
 	unsigned short flags;
 	
 	hicreplctyp *repldef;
@@ -65,7 +65,7 @@ void PTBeginPriming(void);
 /**
  * Flag a texture as required for priming
  */
-void PTMarkPrime(long picnum, long palnum, unsigned short flags);
+void PTMarkPrime(int picnum, int palnum, unsigned short flags);
 
 /**
  * Runs a cycle of the priming process. Call until nonzero is returned.
@@ -95,7 +95,7 @@ void PTClear();
  * @param flags when (match&PTITER_FLAGS), specifies the flags to test
  * @return an iterator
  */
-PTIter PTIterNewMatch(int match, long picnum, long palnum, unsigned short flagsmask, unsigned short flags);
+PTIter PTIterNewMatch(int match, int picnum, int palnum, unsigned short flagsmask, unsigned short flags);
 
 /**
  * Creates a new iterator for walking the entire header hash
@@ -129,7 +129,7 @@ void PTIterFree(PTIter iter);
  *
  * Shared method for polymost.c to call.
  */
-PTHead * PT_GetHead(long picnum, long palnum, unsigned short flags, int peek);
+PTHead * PT_GetHead(int picnum, int palnum, unsigned short flags, int peek);
 
 
 /**

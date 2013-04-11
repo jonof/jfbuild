@@ -11,7 +11,7 @@
 #endif
 #include "baselayer.h"
 
-static long vesares[13][2] = {{320,200},{360,200},{320,240},{360,240},{320,400},
+static int vesares[13][2] = {{320,200},{360,200},{320,240},{360,240},{320,400},
 				{360,400},{640,350},{640,400},{640,480},{800,600},
 				{1024,768},{1280,1024},{1600,1200}};
 
@@ -54,9 +54,9 @@ static int readconfig(BFILE *fp, const char *key, char *value, unsigned len)
 }
 
 extern short brightness;
-extern long fullscreen;
-extern char option[8];
-extern char keys[NUMBUILDKEYS];
+extern int fullscreen;
+extern unsigned char option[8];
+extern unsigned char keys[NUMBUILDKEYS];
 extern double msens;
 
 /*
@@ -169,23 +169,23 @@ int writesetup(const char *fn)
 	"; Always show configuration options on startup\n"
 	";   0 - No\n"
 	";   1 - Yes\n"
-	"forcesetup = %ld\n"
+	"forcesetup = %d\n"
 	"\n"
 	"; Video mode selection\n"
 	";   0 - Windowed\n"
 	";   1 - Fullscreen\n"
-	"fullscreen = %ld\n"
+	"fullscreen = %d\n"
 	"\n"
 	"; Video resolution\n"
-	"xdim = %ld\n"
-	"ydim = %ld\n"
+	"xdim = %d\n"
+	"ydim = %d\n"
 	"\n"
 	"; 3D-mode colour depth\n"
-	"bpp = %ld\n"
+	"bpp = %d\n"
 	"\n"
 #ifdef USE_OPENGL
 	"; OpenGL mode options\n"
-	"glusetexcache = %ld\n"
+	"glusetexcache = %d\n"
 	"\n"
 #endif
 #ifdef RENDERTYPEWIN

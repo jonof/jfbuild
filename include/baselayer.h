@@ -22,8 +22,9 @@ extern int startwin_settitle(const char *);
 extern int startwin_idle(void *);
 
 // video
-extern long xres, yres, bpp, fullscreen, bytesperline, imageSize, frameplace;
+extern int xres, yres, bpp, fullscreen, bytesperline, imageSize;
 extern char offscreenrendering;
+extern intptr_t frameplace;
 
 extern void (*baselayer_onvideomodechange)(int);
 
@@ -49,20 +50,22 @@ struct glinfo {
 extern struct glinfo glinfo;
 #endif
 
-extern char inputdevices;
+extern int inputdevices;
 
 // keys
 #define KEYFIFOSIZ 64
-extern char keystatus[256], keyfifo[KEYFIFOSIZ], keyfifoplc, keyfifoend;
-extern unsigned char keyasciififo[KEYFIFOSIZ], keyasciififoplc, keyasciififoend;
+extern char keystatus[256];
+extern int keyfifo[KEYFIFOSIZ];
+extern unsigned char keyasciififo[KEYFIFOSIZ];
+extern int keyfifoplc, keyfifoend;
+extern int keyasciififoplc, keyasciififoend;
 
 // mouse
-extern long mousex, mousey, mouseb;
+extern int mousex, mousey, mouseb;
 
 // joystick
-extern long *joyaxis, *joyhat, joyb;
-extern char joyisgamepad, joynumaxes, joynumbuttons, joynumhats;
-extern long joyaxespresent;
+extern int *joyaxis, *joyhat, joyb;
+extern char joyisgamepad, joynumaxes, joynumbuttons, joynumhats, joyaxespresent;
 
 
 
@@ -74,17 +77,17 @@ void debugprintf(const char *,...) PRINTF_FORMAT(1, 2);
 
 int handleevents(void);
 
-typedef void (*KeyPressCallback)(long,long);
-typedef void (*MousePressCallback)(long,long);
-typedef void (*JoyPressCallback)(long,long);
+typedef void (*KeyPressCallback)(int,int);
+typedef void (*MousePressCallback)(int,int);
+typedef void (*JoyPressCallback)(int,int);
 int initinput(void);
 void uninitinput(void);
 void releaseallbuttons(void);
-void setkeypresscallback(void (*callback)(long,long));
-void setmousepresscallback(void (*callback)(long,long));
-void setjoypresscallback(void (*callback)(long,long));
-const unsigned char *getkeyname(int num);
-const unsigned char *getjoyname(int what, int num);	// what: 0=axis, 1=button, 2=hat
+void setkeypresscallback(void (*callback)(int,int));
+void setmousepresscallback(void (*callback)(int,int));
+void setjoypresscallback(void (*callback)(int,int));
+const char *getkeyname(int num);
+const char *getjoyname(int what, int num);	// what: 0=axis, 1=button, 2=hat
 
 unsigned char bgetchar(void);
 int bkbhit(void);
@@ -92,17 +95,17 @@ void bflushchars(void);
 
 int initmouse(void);
 void uninitmouse(void);
-void grabmouse(char a);
-void readmousexy(long *x, long *y);
-void readmousebstatus(long *b);
+void grabmouse(int a);
+void readmousexy(int *x, int *y);
+void readmousebstatus(int *b);
 void setjoydeadzone(int axis, unsigned short dead, unsigned short satur);
 void getjoydeadzone(int axis, unsigned short *dead, unsigned short *satur);
 
 int inittimer(int);
 void uninittimer(void);
 void sampletimer(void);
-unsigned long getticks(void);
-unsigned long getusecticks(void);
+unsigned int getticks(void);
+unsigned int getusecticks(void);
 int gettimerfreq(void);
 void (*installusertimercallback(void (*callback)(void)))(void);
 
@@ -115,11 +118,8 @@ void begindrawing(void);
 void enddrawing(void);
 void showframe(int);
 
-int setpalette(int start, int num, char *dapal);
-//int getpalette(int start, int num, char *dapal);
+int setpalette(int start, int num, unsigned char *dapal);
 int setgamma(float ro, float go, float bo);
-
-int switchrendermethod(int,int);	// 0 = software, 1 = opengl | bool = reinit
 
 int wm_msgbox(char *name, char *fmt, ...) PRINTF_FORMAT(2, 3);
 int wm_ynbox(char *name, char *fmt, ...) PRINTF_FORMAT(2, 3);

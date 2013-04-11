@@ -16,6 +16,10 @@
 #endif
 
 #ifdef __cplusplus
+
+// have stdint.h declare the C99 INTxx_C macros
+# define __STDC_CONSTANT_MACROS
+
 # ifdef SCREWED_UP_CPP
 // Old OpenWatcoms need some help
 #  include "watcomhax/cstdarg"
@@ -86,10 +90,6 @@ typedef unsigned __int64 uint64_t;
 # define int64 __int64
 # define uint64 unsigned __int64
 # define longlong(x) x##i64
-#else
-# define longlong(x) x##ll
-typedef long long int64;
-typedef unsigned long long uint64;
 #endif
 
 #ifndef NULL
@@ -161,9 +161,9 @@ extern "C" {
 	// inline asm using bswap/xchg
 # endif
 #elif defined B_ENDIAN_C_INLINE
-static inline unsigned short B_SWAP16(unsigned short s) { return (s>>8)|(s<<8); }
-static inline unsigned long  B_SWAP32(unsigned long  l) { return ((l>>8)&0xff00)|((l&0xff00)<<8)|(l<<24)|(l>>24); }
-static inline uint64 B_SWAP64(uint64 l) { return (l>>56)|((l>>40)&0xff00)|((l>>24)&0xff0000)|((l>>8)&0xff000000)|((l&255)<<56)|((l&0xff00)<<40)|((l&0xff0000)<<24)|((l&0xff000000)<<8); }
+static inline uint16_t B_SWAP16(uint16_t s) { return (s>>8)|(s<<8); }
+static inline uint32_t B_SWAP32(uint32_t l) { return ((l>>8)&0xff00)|((l&0xff00)<<8)|(l<<24)|(l>>24); }
+static inline uint64_t B_SWAP64(uint64_t l) { return (l>>56)|((l>>40)&0xff00)|((l>>24)&0xff0000)|((l>>8)&0xff000000)|((l&255)<<56)|((l&0xff00)<<40)|((l&0xff0000)<<24)|((l&0xff000000)<<8); }
 #endif
 
 #if B_LITTLE_ENDIAN == 1
@@ -180,10 +180,6 @@ static inline uint64 B_SWAP64(uint64 l) { return (l>>56)|((l>>40)&0xff00)|((l>>2
 # define B_BIG32(x)    (x)
 # define B_LITTLE16(x) B_SWAP16(x)
 # define B_BIG16(x)    (x)
-#endif
-
-#ifndef FP_OFF
-# define FP_OFF(__p) ((unsigned)(__p))
 #endif
 
 #ifdef __compat_h_macrodef__
@@ -273,19 +269,21 @@ struct Bdirent {
 };
 typedef void BDIR;
 
-BDIR*		Bopendir(const char *name);
+BDIR* Bopendir(const char *name);
 struct Bdirent*	Breaddir(BDIR *dir);
-int		Bclosedir(BDIR *dir);
+int Bclosedir(BDIR *dir);
 
 
 #ifdef __compat_h_macrodef__
   typedef FILE BFILE;
 # define bsize_t size_t
 # define bssize_t ssize_t
+# define boff_t off_t
 #else
-  typedef void          BFILE;
-  typedef unsigned long bsize_t;
-  typedef signed   long bssize_t;
+  typedef void     BFILE;
+  typedef uint32_t bsize_t;
+  typedef int32_t  bssize_t;
+  typedef int32_t  boff_t;
 #endif
 
 
@@ -377,7 +375,7 @@ int Bopen(const char *pathname, int flags, unsigned mode);
 int Bclose(int fd);
 bssize_t Bwrite(int fd, const void *buf, bsize_t count);
 bssize_t Bread(int fd, void *buf, bsize_t count);
-int Blseek(int fildes, int offset, int whence);
+boff_t Blseek(int fildes, boff_t offset, int whence);
 BFILE *Bfopen(const char *path, const char *mode);
 int Bfclose(BFILE *stream);
 int Bfeof(BFILE *stream);
@@ -419,13 +417,13 @@ char *Bgetenv(const char *name);
 
 char *Bgethomedir(void);
 char *Bgetsupportdir(int global);
-unsigned int Bgetsysmemsize(void);
+size_t Bgetsysmemsize(void);
 int Bcorrectfilename(char *filename, int removefn);
 int Bcanonicalisefilename(char *filename, int removefn);
 char *Bgetsystemdrives(void);
-long Bfilelength(int fd);
+boff_t Bfilelength(int fd);
 char *Bstrtoken(char *s, char *delim, char **ptrptr, int chop);
-long Bwildmatch (const char *i, const char *j);
+int Bwildmatch (const char *i, const char *j);
 
 #if !defined(_WIN32)
 char *Bstrlwr(char *);

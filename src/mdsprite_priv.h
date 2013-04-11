@@ -12,8 +12,8 @@ typedef struct _mdskinmap_t
 
 typedef struct
 {
-	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
-	long shadeoff;
+	int mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
+	int shadeoff;
 	float scale, bscale, zadd;
 	PTMHead *tex;	// skins
 } mdmodel;
@@ -37,9 +37,9 @@ typedef struct { float x, y, z; } point3d;
 
 typedef struct
 {
-	long id, vers, skinxsiz, skinysiz, framebytes; //id:"IPD2", vers:8
-	long numskins, numverts, numuv, numtris, numglcmds, numframes;
-	long ofsskins, ofsuv, ofstris, ofsframes, ofsglcmds, ofseof; //ofsskins: skin names (64 bytes each)
+	int id, vers, skinxsiz, skinysiz, framebytes; //id:"IPD2", vers:8
+	int numskins, numverts, numuv, numtris, numglcmds, numframes;
+	int ofsskins, ofsuv, ofstris, ofsframes, ofsglcmds, ofseof; //ofsskins: skin names (64 bytes each)
 } md2head_t;
 
 typedef struct { unsigned char v[3], ni; } md2vert_t; //compressed vertex coords (x,y,z)
@@ -53,27 +53,27 @@ typedef struct
 typedef struct
 {
 		//WARNING: This top block is a union between md2model&md3model: Make sure it matches!
-	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
-	long shadeoff;
+	int mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
+	int shadeoff;
 	float scale, bscale, zadd;
 	PTMHead **tex;   // textures for base skin if no mappings defined
 	
-	long numframes, cframe, nframe, fpssc, usesalpha;
+	int numframes, cframe, nframe, fpssc, usesalpha;
 	float oldtime, curtime, interpol;
 	mdanim_t *animations;
 	mdskinmap_t *skinmap;
-	long numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
+	int numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
 	
 		//MD2 specific stuff:
-	long numverts, numglcmds, framebytes, *glcmds;
+	int numverts, numglcmds, framebytes, *glcmds;
 	char *frames;
 	char *basepath;   // pointer to string of base path
 	char *skinfn;   // pointer to first of numskins 64-char strings
 } md2model;
 
 
-typedef struct { char nam[64]; long i; } md3shader_t; //ascz path of shader, shader index
-typedef struct { long i[3]; } md3tri_t; //indices of tri
+typedef struct { char nam[64]; int i; } md3shader_t; //ascz path of shader, shader index
+typedef struct { int i[3]; } md3tri_t; //indices of tri
 typedef struct { float u, v; } md3uv_t;
 typedef struct { signed short x, y, z; unsigned char nlat, nlng; } md3xyzn_t; //xyz are [10:6] ints
 
@@ -92,42 +92,67 @@ typedef struct
 
 typedef struct
 {
-	long id; //IDP3(0x33806873)
+	int id; //IDP3(0x33806873)
 	char nam[64]; //ascz surface name
-	long flags; //?
-	long numframes, numshaders, numverts, numtris; //numframes same as md3head,max shade=~256,vert=~4096,tri=~8192
+	int flags; //?
+	int numframes, numshaders, numverts, numtris; //numframes same as md3head,max shade=~256,vert=~4096,tri=~8192
 	md3tri_t *tris;       //file format: rel offs from md3surf
 	md3shader_t *shaders; //file format: rel offs from md3surf
 	md3uv_t *uv;          //file format: rel offs from md3surf
 	md3xyzn_t *xyzn;      //file format: rel offs from md3surf
-	long ofsend;
+	int ofsend;
 } md3surf_t;
 
 typedef struct
 {
-	long id, vers; //id=IDP3(0x33806873), vers=15
+	int id; //IDP3(0x33806873)
+	char nam[64]; //ascz surface name
+	int flags; //?
+	int numframes, numshaders, numverts, numtris; //numframes same as md3head,max shade=~256,vert=~4096,tri=~8192
+	int tris;       //file format: rel offs from md3surf
+	int shaders;    //file format: rel offs from md3surf
+	int uv;         //file format: rel offs from md3surf
+	int xyzn;       //file format: rel offs from md3surf
+	int ofsend;
+} md3filesurf_t;
+
+typedef struct
+{
+	int id, vers; //id=IDP3(0x33806873), vers=15
 	char nam[64]; //ascz path in PK3
-	long flags; //?
-	long numframes, numtags, numsurfs, numskins; //max=~1024,~16,~32,numskins=artifact of MD2; use shader field instead
+	int flags; //?
+	int numframes, numtags, numsurfs, numskins; //max=~1024,~16,~32,numskins=artifact of MD2; use shader field instead
 	md3frame_t *frames; //file format: abs offs
 	md3tag_t *tags;     //file format: abs offs
 	md3surf_t *surfs;   //file format: abs offs
-	long eof;           //file format: abs offs
+	int eof;           //file format: abs offs
 } md3head_t;
 
 typedef struct
 {
+	int id, vers; //id=IDP3(0x33806873), vers=15
+	char nam[64]; //ascz path in PK3
+	int flags; //?
+	int numframes, numtags, numsurfs, numskins; //max=~1024,~16,~32,numskins=artifact of MD2; use shader field instead
+	int frames; //file format: abs offs
+	int tags;     //file format: abs offs
+	int surfs;   //file format: abs offs
+	int eof;           //file format: abs offs
+} md3filehead_t;
+
+typedef struct
+{
 		//WARNING: This top block is a union between md2model&md3model: Make sure it matches!
-	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
-	long shadeoff;
+	int mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
+	int shadeoff;
 	float scale, bscale, zadd;
 	PTMHead **tex;   // textures for base skin if no mappings defined
 	
-	long numframes, cframe, nframe, fpssc, usesalpha;
+	int numframes, cframe, nframe, fpssc, usesalpha;
 	float oldtime, curtime, interpol;
 	mdanim_t *animations;
 	mdskinmap_t *skinmap;
-	long numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
+	int numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
 	
 		//MD3 specific
 	md3head_t head;
@@ -154,25 +179,25 @@ typedef struct { vert_t v[4]; } voxrect_t;
 typedef struct
 {
 		//WARNING: This top block is a union of md2model,md3model,voxmodel: Make sure it matches!
-	long mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
-	long shadeoff;
+	int mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
+	int shadeoff;
 	float scale, bscale, zadd;
 	GLuint *texid;	// skins for palettes
 	
 		//VOX specific stuff:
-	voxrect_t *quad; long qcnt, qfacind[7];
-	long *mytex, mytexx, mytexy;
-	long xsiz, ysiz, zsiz;
+	voxrect_t *quad; int qcnt, qfacind[7];
+	int *mytex, mytexx, mytexy;
+	int xsiz, ysiz, zsiz;
 	float xpiv, ypiv, zpiv;
-	long is8bit;
+	int is8bit;
 } voxmodel;
 
 extern voxmodel *voxmodels[MAXVOXELS];
 extern mdmodel **models;
 
 extern char mdinited;
-extern long mdtims, omdtims;
-extern long nextmodelid;
+extern int mdtims, omdtims;
+extern int nextmodelid;
 
 void freeallmodels ();
 void clearskins ();

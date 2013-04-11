@@ -6,15 +6,15 @@
 
 #ifdef POLYMOST
 
+#include "compat.h"
 #include "kplib.h"
 #include "build.h"
-#include "compat.h"
 #include "hightile_priv.h"
 
 palette_t hictinting[MAXPALOOKUPS];
 
 hicreplctyp *hicreplc[MAXTILES];
-char hicfirstinit = 0;
+int hicfirstinit = 0;
 
 /**
  * Find a substitute definition which satisfies the given parameters.
@@ -26,12 +26,12 @@ char hicfirstinit = 0;
  * @param skybox 'true' to find a substitute that defines a skybox
  * @return the substitute header, or null
  */
-hicreplctyp * hicfindsubst(long picnum, long palnum, long skybox)
+hicreplctyp * hicfindsubst(int picnum, int palnum, int skybox)
 {
 	hicreplctyp *hr;
 
 	if (!hicfirstinit) return NULL;
-	if ((unsigned long)picnum >= (unsigned long)MAXTILES) return NULL;
+	if ((unsigned int)picnum >= (unsigned int)MAXTILES) return NULL;
 
 	do {
 		for (hr = hicreplc[picnum]; hr; hr = hr->next) {
@@ -57,7 +57,7 @@ hicreplctyp * hicfindsubst(long picnum, long palnum, long skybox)
  */
 void hicinit(void)
 {
-	long i,j;
+	int i,j;
 	hicreplctyp *hr, *next;
 	
 	for (i=0;i<MAXPALOOKUPS;i++) {	// all tints should be 100%
@@ -97,9 +97,9 @@ void hicinit(void)
 //   palette shifts on true-colour textures and only true-colour textures.
 //   effect bitset: 1 = greyscale, 2 = invert
 //
-void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect)
+void hicsetpalettetint(int palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect)
 {
-	if ((unsigned long)palnum >= (unsigned long)MAXPALOOKUPS) return;
+	if ((unsigned int)palnum >= (unsigned int)MAXPALOOKUPS) return;
 	if (!hicfirstinit) hicinit();
 
 	hictinting[palnum].r = r;
@@ -113,12 +113,12 @@ void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned c
 // hicsetsubsttex(picnum,pal,filen,alphacut)
 //   Specifies a replacement graphic file for an ART tile.
 //
-int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut, char flags)
+int hicsetsubsttex(int picnum, int palnum, char *filen, float alphacut, unsigned char flags)
 {
 	hicreplctyp *hr, *hrn;
 
-	if ((unsigned long)picnum >= (unsigned long)MAXTILES) return -1;
-	if ((unsigned long)palnum >= (unsigned long)MAXPALOOKUPS) return -1;
+	if ((unsigned int)picnum >= (unsigned int)MAXTILES) return -1;
+	if ((unsigned int)palnum >= (unsigned int)MAXPALOOKUPS) return -1;
 	if (!hicfirstinit) hicinit();
 
 	for (hr = hicreplc[picnum]; hr; hr = hr->next) {
@@ -160,13 +160,13 @@ int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut, char f
 // hicsetskybox(picnum,pal,faces[6])
 //   Specifies a graphic files making up a skybox.
 //
-int hicsetskybox(long picnum, long palnum, char *faces[6])
+int hicsetskybox(int picnum, int palnum, char *faces[6])
 {
 	hicreplctyp *hr, *hrn;
-	long j;
+	int j;
 
-	if ((unsigned long)picnum >= (unsigned long)MAXTILES) return -1;
-	if ((unsigned long)palnum >= (unsigned long)MAXPALOOKUPS) return -1;
+	if ((unsigned int)picnum >= (unsigned int)MAXTILES) return -1;
+	if ((unsigned int)palnum >= (unsigned int)MAXPALOOKUPS) return -1;
 	for (j=5;j>=0;j--) if (!faces[j]) return -1;
 	if (!hicfirstinit) hicinit();
 
@@ -222,12 +222,12 @@ int hicsetskybox(long picnum, long palnum, char *faces[6])
 // hicclearsubst(picnum,pal)
 //   Clears a replacement for an ART tile, including skybox faces.
 //
-int hicclearsubst(long picnum, long palnum)
+int hicclearsubst(int picnum, int palnum)
 {
 	hicreplctyp *hr, *hrn = NULL;
 
-	if ((unsigned long)picnum >= (unsigned long)MAXTILES) return -1;
-	if ((unsigned long)palnum >= (unsigned long)MAXPALOOKUPS) return -1;
+	if ((unsigned int)picnum >= (unsigned int)MAXTILES) return -1;
+	if ((unsigned int)palnum >= (unsigned int)MAXPALOOKUPS) return -1;
 	if (!hicfirstinit) return 0;
 
 	for (hr = hicreplc[picnum]; hr; hrn = hr, hr = hr->next) {
@@ -256,9 +256,9 @@ int hicclearsubst(long picnum, long palnum)
 
 #else /* POLYMOST */
 
-void hicsetpalettetint(long palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect) { }
-int hicsetsubsttex(long picnum, long palnum, char *filen, float alphacut) { return 0; }
-int hicsetskybox(long picnum, long palnum, char *faces[6]) { return 0; }
-int hicclearsubst(long picnum, long palnum) { return 0; }
+void hicsetpalettetint(int palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect) { }
+int hicsetsubsttex(int picnum, int palnum, char *filen, float alphacut) { return 0; }
+int hicsetskybox(int picnum, int palnum, char *faces[6]) { return 0; }
+int hicclearsubst(int picnum, int palnum) { return 0; }
 
 #endif

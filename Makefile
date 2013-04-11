@@ -63,7 +63,7 @@ RC=windres
 AR=ar
 RANLIB=ranlib
 OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-unused \
-	-fno-pic -funsigned-char -fno-strict-aliasing -DNO_GCC_BUILTINS \
+	-fno-pic -fno-strict-aliasing -DNO_GCC_BUILTINS \
 	-DKSFORBUILD -I$(INC) -I$(SRC)
 OURCXXFLAGS=-fno-exceptions -fno-rtti
 GAMECFLAGS=-I$(GAME) -I$(INC)
@@ -237,25 +237,25 @@ $(SRC)/%.$o: $(SRC)/%.$(asm)
 	$(AS) $(ASFLAGS) $< -o $@
 
 $(SRC)/%.$o: $(SRC)/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(SRC)/%.$o: $(SRC)/%.cc
-	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(SRC)/%.$o: $(SRC)/%.cpp
-	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(LIBSQUISH)/%.$o: $(LIBSQUISH)/%.cpp
-	$(CXX) $(CXXFLAGS) $(BUILDCFLAGS) -O2 -c $< -o $@ 2>&1
+	$(CXX) $(CXXFLAGS) $(BUILDCFLAGS) -O2 -c $< -o $@
 
 $(GAME)/%.$o: $(GAME)/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@ 2>&1
+	$(CC) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@
 
 $(GAME)/%.$o: $(GAME)/%.cpp
-	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@ 2>&1
+	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@
 
 $(GAME)/%.$o: $(GAME)/rsrc/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(GAME)/%.$(res): $(GAME)/rsrc/%.rc
 	$(RC) -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
@@ -268,10 +268,10 @@ $(RSRC)/editor_banner.c: $(RSRC)/build.bmp
 	gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
 
 $(TOOLS)/%.$o: $(TOOLS)/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@ 2>&1
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(TOOLS)/%.$o: $(TOOLS)/%.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@ 2>&1
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # PHONIES	
 clean:

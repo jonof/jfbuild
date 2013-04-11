@@ -5,25 +5,25 @@
 
 #define MAXMULTIPLAYERS 16
 
-extern long myconnectindex, numplayers;
-extern long connecthead, connectpoint2[MAXMULTIPLAYERS];
-extern char syncstate;
+extern int myconnectindex, numplayers;
+extern int connecthead, connectpoint2[MAXMULTIPLAYERS];
+extern unsigned char syncstate;
 
-long initmultiplayersparms(long argc, char **argv);
-long initmultiplayerscycle(void);
+int initmultiplayersparms(int argc, const char **argv);
+int initmultiplayerscycle(void);
 
-void initmultiplayers(long argc, char **argv, char damultioption, char dacomrateoption, char dapriority);
-void setpackettimeout(long datimeoutcount, long daresendagaincount);
+void initmultiplayers(int argc, const char **argv, unsigned char damultioption, unsigned char dacomrateoption, unsigned char dapriority);
+void setpackettimeout(int datimeoutcount, int daresendagaincount);
 void uninitmultiplayers(void);
 void sendlogon(void);
 void sendlogoff(void);
-long getoutputcirclesize(void);
-void setsocket(short newsocket);
-void sendpacket(long other, char *bufptr, long messleng);
-long getpacket(long *other, char *bufptr);
+int getoutputcirclesize(void);
+void setsocket(int newsocket);
+void sendpacket(int other, unsigned char *bufptr, int messleng);
+int getpacket(int *other, unsigned char *bufptr);
 void flushpackets(void);
-void genericmultifunction(long other, char *bufptr, long messleng, long command);
-long isvalidipaddress(char *st);
+void genericmultifunction(int other, unsigned char *bufptr, int messleng, int command);
+int isvalidipaddress(const char *st);
 
 #endif	// __mmulti_h__
 

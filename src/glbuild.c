@@ -1,6 +1,7 @@
 #if defined DYNAMIC_OPENGL && defined USE_OPENGL
 
 #include "glbuild.h"
+#include "compat.h"
 #include "baselayer.h"
 #include <stdlib.h>
 #include <string.h>

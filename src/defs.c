@@ -5,8 +5,8 @@
  * See the included license file "BUILDLIC.TXT" for license info.
  */
 
-#include "build.h"
 #include "compat.h"
+#include "build.h"
 #include "baselayer.h"
 #include "scriptfile.h"
 
@@ -717,7 +717,7 @@ static int defsparser(scriptfile *script)
 							case T_TILE:  
 								scriptfile_getsymbol(script,&tilex);
 #ifdef SUPERBUILD
-								if ((unsigned long)tilex < MAXTILES) tiletovox[tilex] = lastvoxid;
+								if ((unsigned int)tilex < MAXTILES) tiletovox[tilex] = lastvoxid;
 								else initprintf("Invalid tile number on line %s:%d\n",script->filename, scriptfile_getlinum(script,voxeltokptr));
 #endif
 								break;
