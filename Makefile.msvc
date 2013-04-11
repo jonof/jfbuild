@@ -65,7 +65,6 @@ ENGINEOBJS=$(SRC)\a.$o \
 	$(SRC)\kplib.$o \
 	$(SRC)\lzf_c.$o \
 	$(SRC)\lzf_d.$o \
-	$(SRC)\lzwnew.$o \
 	$(SRC)\md4.$o \
 	$(SRC)\mmulti.$o \
 	$(SRC)\osd.$o \

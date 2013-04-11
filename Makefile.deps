@@ -22,7 +22,6 @@ $(SRC)/glbuild.$o: $(SRC)/glbuild.c $(INC)/glbuild.h $(INC)/baselayer.h
 $(SRC)/kplib.$o: $(SRC)/kplib.c $(INC)/compat.h
 $(SRC)/lzf_c.$o: $(SRC)/lzf_c.c $(SRC)/lzfP.h
 $(SRC)/lzf_d.$o: $(SRC)/lzf_d.c $(SRC)/lzfP.h
-$(SRC)/lzwnew.$o: $(SRC)/lzwnew.c
 $(SRC)/md4.$o: $(SRC)/md4.c $(INC)/md4.h $(INC)/compat.h
 $(SRC)/mmulti_null.$o: $(SRC)/mmulti_null.c $(INC)/mmulti.h
 $(SRC)/mmulti.$o: $(SRC)/mmulti.c
