@@ -225,7 +225,7 @@ EXTERN char automapping;
 EXTERN char gotpic[(MAXTILES+7)>>3];
 EXTERN char gotsector[(MAXSECTORS+7)>>3];
 
-EXTERN char captureformat;
+EXTERN int captureformat;
 extern char vgapalette[5*256];
 extern unsigned long drawlinepat;
 

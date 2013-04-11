@@ -273,7 +273,7 @@ int addsearchpath(const char *p)
 		return -1;
 	}
 	strcpy(srch->path, p);
-	for (s=srch->path; *s; s++) ; s--; if (s<srch->path || toupperlookup[*s] != '/') strcat(srch->path, "/");
+	for (s=srch->path; *s; s++) ; s--; if (s<srch->path || toupperlookup[(int)(unsigned char)*s] != '/') strcat(srch->path, "/");
 
 	searchpathhead = srch;
 	if (srch->pathlen > maxsearchpathlen) maxsearchpathlen = srch->pathlen;
@@ -299,8 +299,8 @@ int findfrompath(const char *fn, char **where)
 		}
 	}
 
-	for (pfn = (char*)fn; toupperlookup[*pfn] == '/'; pfn++);
-	ffn = strdup(pfn);
+	for (; toupperlookup[(int)(unsigned char)*fn] == '/'; fn++);
+	ffn = strdup(fn);
 	if (!ffn) return -1;
 	Bcorrectfilename(ffn,0);	// compress relative paths
 	
@@ -578,7 +578,7 @@ long kopen4load(char *filename, char searchfirst)
 			return(newhandle);
 		}
 
-	for (; toupperlookup[*filename] == '/'; filename++);
+	for (; toupperlookup[(int)(unsigned char)*filename] == '/'; filename++);
 	
 #ifdef WITHKPLIB
 	if ((kzcurhand != newhandle) && (kztell() >= 0))
@@ -609,7 +609,7 @@ long kopen4load(char *filename, char searchfirst)
 				for(j=0;j<13;j++)
 				{
 					if (!filename[j]) break;
-					if (toupperlookup[filename[j]] != toupperlookup[gfileptr[j]])
+					if (toupperlookup[(int)(unsigned char)filename[j]] != toupperlookup[(int)(unsigned char)gfileptr[j]])
 						{ bad = 1; break; }
 				}
 				if (bad) continue;
@@ -860,9 +860,9 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 	// we don't need any leading dots and slashes or trailing slashes either
 	{
 		int i,j;
-		for (i=0; path[i] == '.' || toupperlookup[path[i]] == '/'; ) i++;
+		for (i=0; path[i] == '.' || toupperlookup[(int)(unsigned char)path[i]] == '/'; ) i++;
 		for (j=0; (path[j] = path[i]); j++,i++) ;
-		while (j>0 && toupperlookup[path[j-1]] == '/') j--;
+		while (j>0 && toupperlookup[(int)(unsigned char)path[j-1]] == '/') j--;
 		path[j] = 0;
 		//initprintf("Cleaned up path = \"%s\"\n",path);
 	}
@@ -935,25 +935,25 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 			for (i=1; (buf[i-1]=buf[i]); i++) ; i-=2;
 
 			// if there's a slash at the end, this is a directory entry
-			if (toupperlookup[buf[i]] == '/') { ftype = CACHE1D_FIND_DIR; buf[i] = 0; }
+			if (toupperlookup[(int)(unsigned char)buf[i]] == '/') { ftype = CACHE1D_FIND_DIR; buf[i] = 0; }
 			else ftype = CACHE1D_FIND_FILE;
 
 			// skip over the common characters at the beginning of the base path and the zip entry
 			for (j=0; buf[j] && path[j]; j++) {
-				if (toupperlookup[ path[j] ] == toupperlookup[ buf[j] ]) continue;
+				if (toupperlookup[(int)(unsigned char)path[j] ] == toupperlookup[(int)(unsigned char)buf[j] ]) continue;
 				break;
 			}
 			// we've now hopefully skipped the common path component at the beginning.
 			// if that's true, we should be staring at a null byte in path and either any character in buf
 			// if j==0, or a slash if j>0
-			if ((!path[0] && buf[j]) || (!path[j] && toupperlookup[ buf[j] ] == '/')) {
+			if ((!path[0] && buf[j]) || (!path[j] && toupperlookup[(int)(unsigned char)buf[j] ] == '/')) {
 				if (j>0) j++;
 				
 				// yep, so now we shift what follows back to the start of buf and while we do that,
 				// keep an eye out for any more slashes which would mean this entry has sub-entities
 				// and is useless to us.
-				for (i = 0; (buf[i] = buf[j]) && toupperlookup[buf[j]] != '/'; i++,j++) ;
-				if (toupperlookup[buf[j]] == '/') continue;	// damn, try next entry
+				for (i = 0; (buf[i] = buf[j]) && toupperlookup[(int)(unsigned char)buf[j]] != '/'; i++,j++) ;
+				if (toupperlookup[(int)(unsigned char)buf[j]] == '/') continue;	// damn, try next entry
 			} else {
 				// if we're here it means we have a situation where:
 				//   path = foo
