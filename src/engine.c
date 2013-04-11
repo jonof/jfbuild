@@ -41,10 +41,7 @@
 #include "engine_priv.h"
 
 void *kmalloc(bsize_t size) { return(Bmalloc(size)); }
-#define kkmalloc kmalloc
-
 void kfree(void *buffer) { Bfree(buffer); }
-#define kkfree kfree
 
 #ifdef SUPERBUILD
 void loadvoxel(long voxindex) { voxindex=0; }
@@ -68,7 +65,6 @@ static unsigned long distrecip[65536];
 #endif
 
 static long *lookups = NULL;
-static char lookupsalloctype = 255;
 long dommxoverlay = 1, beforedrawrooms = 1;
 
 static long oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
@@ -87,7 +83,6 @@ long slopalookup[2048];	// was 2048
 palette_t palookupfog[MAXPALOOKUPS];
 #endif
 
-static char permanentlock = 255;
 long artversion, mapversion=7L;	// JBF 20040211: default mapversion to 7
 void *pic = NULL;
 char picsiz[MAXTILES], tilefilenum[MAXTILES];
@@ -117,7 +112,7 @@ unsigned char britable[16][256];
 extern char textfont[2048], smalltextfont[2048];
 
 static char kensmessage[128];
-char *engineerrstr = "No error";
+char *engineerrstr = NULL;
 
 //unsigned long ratelimitlast[32], ratelimitn = 0, ratelimit = 60;
 
@@ -489,13 +484,12 @@ long globalx1, globaly1, globalx2, globaly2, globalx3, globaly3, globalzx;
 long globalx, globaly, globalz;
 
 short sectorborder[256], sectorbordercnt;
-static char tablesloaded = 0;
 long pageoffset, ydim16, qsetmode = 0;
 long startposx, startposy, startposz;
 short startang, startsectnum;
 short pointhighlight, linehighlight, highlightcnt;
 long lastx[MAXYDIM];
-char *transluc = NULL, paletteloaded = 0;
+char *transluc = NULL;
 
 long halfxdim16, midydim16;
 
@@ -4887,29 +4881,24 @@ static int loadtables(void)
 {
 	long i, fil;
 
-	if (tablesloaded == 0)
+	initksqrt();
+
+	for(i=0;i<2048;i++) reciptable[i] = divscale30(2048L,i+2048);
+
+	if ((fil = kopen4load("tables.dat",0)) != -1)
 	{
-		initksqrt();
+		kread(fil,sintable,2048*2); for (i=2048-1; i>=0; i--) sintable[i] = B_LITTLE16(sintable[i]);
+		kread(fil,radarang,640*2);  for (i=640-1;  i>=0; i--) radarang[i] = B_LITTLE16(radarang[i]);
+		for(i=0;i<640;i++) radarang[1279-i] = -radarang[i];
+		//kread(fil,textfont,1024);
+		//kread(fil,smalltextfont,1024);
+		//kread(fil,britable,1024);
+		calcbritable();
 
-		for(i=0;i<2048;i++) reciptable[i] = divscale30(2048L,i+2048);
-
-		if ((fil = kopen4load("tables.dat",0)) != -1)
-		{
-			kread(fil,sintable,2048*2); for (i=2048-1; i>=0; i--) sintable[i] = B_LITTLE16(sintable[i]);
-			kread(fil,radarang,640*2);  for (i=640-1;  i>=0; i--) radarang[i] = B_LITTLE16(radarang[i]);
-			for(i=0;i<640;i++) radarang[1279-i] = -radarang[i];
-			//kread(fil,textfont,1024);
-			//kread(fil,smalltextfont,1024);
-			//kread(fil,britable,1024);
-			calcbritable();
-
-			kclose(fil);
-		} else {
-			engineerrstr = "Failed to load TABLES.DAT!";
-			initprintf("ERROR: %s\n", engineerrstr);
-			return 1;
-		}
-		tablesloaded = 1;
+		kclose(fil);
+	} else {
+		engineerrstr = "Failed to load TABLES.DAT!";
+		return 1;
 	}
 
 	return 0;
@@ -4960,20 +4949,26 @@ static void initfastcolorlookup(long rscale, long gscale, long bscale)
 //
 // loadpalette (internal)
 //
-static void loadpalette(void)
+static int loadpalette(void)
 {
 	long fil,i;
 
-	if (paletteloaded != 0) return;
-	if ((fil = kopen4load("palette.dat",0)) == -1) return;
+	if ((fil = kopen4load("palette.dat",0)) < 0) {
+		engineerrstr = "Failed to load PALETTE.DAT!";
+		return 1;
+	}
 
 	kread(fil,palette,768);
 	kread(fil,&numpalookups,2); numpalookups = B_LITTLE16(numpalookups);
 
-	if ((palookup[0] = (char *)kkmalloc(numpalookups<<8)) == NULL)
-		allocache((long*)&palookup[0],numpalookups<<8,&permanentlock);
-	if ((transluc = (char *)kkmalloc(65536L)) == NULL)
-		allocache((long*)&transluc,65536,&permanentlock);
+	if ((palookup[0] = (char *)kmalloc(numpalookups<<8)) == NULL) {
+		engineerrstr = "Failed to allocate palette memory";
+		return 1;
+	}
+	if ((transluc = (char *)kmalloc(65536L)) == NULL) {
+		engineerrstr = "Failed to allocate translucency memory";
+		return 1;
+	}
 
 	globalpalwritten = palookup[0]; globalpal = 0;
 	setpalookupaddress(globalpalwritten);
@@ -4986,7 +4981,7 @@ static void loadpalette(void)
 
 	initfastcolorlookup(30L,59L,11L);
 
-	paletteloaded = 1;
+	return 0;
 }
 
 
@@ -5343,8 +5338,6 @@ int initengine(void)
 		i = preinitengine();
 		if (i) return i;
 	}
-	
-	if (loadtables()) return 1;
 
 	xyaspect = -1;
 
@@ -5370,8 +5363,6 @@ int initengine(void)
 	polymost_initosdfuncs();
 #endif
 
-	paletteloaded = 0;
-
 	searchit = 0; searchstat = -1;
 
 	for(i=0;i<MAXPALOOKUPS;i++) palookup[i] = NULL;
@@ -5393,7 +5384,9 @@ int initengine(void)
 
 	captureformat = 0;
 
-	loadpalette();
+	if (loadtables()) return 1;
+	if (loadpalette()) return 1;
+
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (!hicfirstinit) hicinit();
 	if (!mdinited) mdinit();
@@ -5424,16 +5417,11 @@ void uninitengine(void)
 	uninitsystem();
 	if (artfil != -1) kclose(artfil);
 
-	if (transluc != NULL) { kkfree(transluc); transluc = NULL; }
-	if (pic != NULL) { kkfree(pic); pic = NULL; }
-	if (lookups != NULL)
-	{
-		if (lookupsalloctype == 0) kkfree((void *)lookups);
-		//if (lookupsalloctype == 1) suckcache(lookups);  //Cache already gone
-		lookups = NULL;
-	}
+	if (transluc != NULL) { kfree(transluc); transluc = NULL; }
+	if (pic != NULL) { kfree(pic); pic = NULL; }
+	if (lookups != NULL) { kfree(lookups); lookups = NULL; }
 	for(i=0;i<MAXPALOOKUPS;i++)
-		if (palookup[i] != NULL) { kkfree(palookup[i]); palookup[i] = NULL; }
+		if (palookup[i] != NULL) { kfree(palookup[i]); palookup[i] = NULL; }
 }
 
 
@@ -6923,17 +6911,10 @@ long setgamemode(char davidoption, long daxdim, long daydim, long dabpp)
 	
 	j = ydim*4*sizeof(long);  //Leave room for horizlookup&horizlookup2
 
-	if (lookups != NULL)
-	{
-		if (lookupsalloctype == 0) kkfree((void *)lookups);
-		if (lookupsalloctype == 1) suckcache((long *)lookups);
-		lookups = NULL;
-	}
-	lookupsalloctype = 0;
-	if ((lookups = (long *)kkmalloc(j<<1)) == NULL)
-	{
-		 allocache((long *)&lookups,j<<1,&permanentlock);
-		 lookupsalloctype = 1;
+	if (lookups != NULL) { kfree((void *)lookups); lookups = NULL; }
+	if ((lookups = (long *)kmalloc(j<<1)) == NULL) {
+		engineerrstr = "Failed to allocate lookups memory";
+		return -1;
 	}
 
 	horizlookup = (long *)(lookups);
@@ -7132,7 +7113,7 @@ long loadpics(char *filename, long askedsize)
 		cachesize = (Bgetsysmemsize()/100)*60;
 	else
 		cachesize = askedsize;
-	while ((pic = kkmalloc(cachesize)) == NULL)
+	while ((pic = kmalloc(cachesize)) == NULL)
 	{
 		cachesize -= 65536L;
 		if (cachesize < 65536) return(-1);
@@ -9036,22 +9017,22 @@ void rotatesprite(long sx, long sy, long z, short a, short picnum, signed char d
 //
 // makepalookup
 //
-void makepalookup(long palnum, char *remapbuf, signed char r, signed char g, signed char b, char dastat)
+int makepalookup(long palnum, char *remapbuf, signed char r, signed char g, signed char b, char dastat)
 {
 	long i, j, palscale;
 	char *ptr, *ptr2;
 
-	if (paletteloaded == 0) return;
-
 	if (palookup[palnum] == NULL)
 	{
 			//Allocate palookup buffer
-		if ((palookup[palnum] = (char *)kkmalloc(numpalookups<<8)) == NULL)
-			allocache((long*)&palookup[palnum],numpalookups<<8,&permanentlock);
+		if ((palookup[palnum] = (char *)kmalloc(numpalookups<<8)) == NULL) {
+			engineerrstr = "Failed to allocate palette lookup memory";
+			return 1;
+		}
 	}
 
-	if (dastat == 0) return;
-	if ((r|g|b|63) != 63) return;
+	if (dastat == 0) return 0;
+	if ((r|g|b|63) != 63) return 0;
 
 	if ((r|g|b) == 0)
 	{
@@ -9088,6 +9069,8 @@ void makepalookup(long palnum, char *remapbuf, signed char r, signed char g, sig
 		palookupfog[palnum].b = b;
 #endif
 	}
+
+	return 0;
 }
 
 

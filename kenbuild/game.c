@@ -425,7 +425,7 @@ long app_main(long argc, const char *argv[])
 
 	initgroupfile("stuff.dat");
 	if (initengine()) {
-		initprintf("There was a problem initialising the engine.\n");
+		initprintf("There was a problem initialising the engine: %s.\n", engineerrstr);
 		return -1;
 	}
 
