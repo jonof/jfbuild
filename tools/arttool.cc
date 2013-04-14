@@ -47,11 +47,11 @@ void usage()
 class ARTFile {
 private:
 	string filename_;
-	long localtilestart_;
-	long localtileend_;
+	int localtilestart_;
+	int localtileend_;
 	short * tilesizx_;
 	short * tilesizy_;
-	long * picanm_;
+	int * picanm_;
 	
 	// for removing or replacing tile data
 	int markprelength_, markskiplength_, markpostlength_;
@@ -64,7 +64,7 @@ private:
 		ofs.write(d, 2);
 	}
 	
-	void writeLong(ofstream &ofs, long l)
+	void writeLong(ofstream &ofs, int l)
 	{
 		char d[4] = { l&255, (l>>8)&255, (l>>16)&255, (l>>24)&255 };
 		ofs.write(d, 4);
@@ -80,16 +80,16 @@ private:
 		return (short)s;
 	}
 	
-	long readLong(ifstream &ifs)
+	int readLong(ifstream &ifs)
 	{
 		unsigned char d[4];
-		unsigned long l;
+		unsigned int l;
 		ifs.read((char *) d, 4);
-		l = (unsigned long)d[0];
-		l |= (unsigned long)d[1] << 8;
-		l |= (unsigned long)d[2] << 16;
-		l |= (unsigned long)d[3] << 24;
-		return (long)l;
+		l = (unsigned int)d[0];
+		l |= (unsigned int)d[1] << 8;
+		l |= (unsigned int)d[2] << 16;
+		l |= (unsigned int)d[3] << 24;
+		return (int)l;
 	}
 	
 	void dispose()
@@ -122,7 +122,7 @@ private:
 				
 				tilesizx_ = new short[ntiles];
 				tilesizy_ = new short[ntiles];
-				picanm_   = new long[ntiles];
+				picanm_   = new int[ntiles];
 				
 				for (i = 0; i < ntiles; i++) {
 					tilesizx_[i] = readShort(infile);
@@ -168,11 +168,11 @@ public:
 		localtileend_ = start + ntiles - 1;
 		tilesizx_ = new short[ntiles];
 		tilesizy_ = new short[ntiles];
-		picanm_   = new long[ntiles];
+		picanm_   = new int[ntiles];
 		
 		memset(tilesizx_, 0, sizeof(short)*ntiles);
 		memset(tilesizy_, 0, sizeof(short)*ntiles);
-		memset(picanm_, 0, sizeof(long)*ntiles);
+		memset(picanm_, 0, sizeof(int)*ntiles);
 		
 		markprelength_ = 0;
 		markskiplength_ = 0;
@@ -255,7 +255,7 @@ public:
 		
 		tile -= localtilestart_;
 		picanm_[tile] &= ~(255<<8);
-		picanm_[tile] |= ((long)((unsigned char)x) << 8);
+		picanm_[tile] |= ((int)((unsigned char)x) << 8);
 	}
 	
 	void setYOfs(int tile, int y)
@@ -266,7 +266,7 @@ public:
 		
 		tile -= localtilestart_;
 		picanm_[tile] &= ~(255<<16);
-		picanm_[tile] |= ((long)((unsigned char)y) << 16);
+		picanm_[tile] |= ((int)((unsigned char)y) << 16);
 	}
 	
 	void setAnimType(int tile, int type)
@@ -277,7 +277,7 @@ public:
 		
 		tile -= localtilestart_;
 		picanm_[tile] &= ~(3<<6);
-		picanm_[tile] |= ((long)(type&3) << 6);
+		picanm_[tile] |= ((int)(type&3) << 6);
 	}
 	
 	void setAnimFrames(int tile, int frames)
@@ -288,7 +288,7 @@ public:
 		
 		tile -= localtilestart_;
 		picanm_[tile] &= ~(63);
-		picanm_[tile] |= ((long)(frames&63));
+		picanm_[tile] |= ((int)(frames&63));
 	}
 	
 	void setAnimSpeed(int tile, int speed)
@@ -299,7 +299,7 @@ public:
 		
 		tile -= localtilestart_;
 		picanm_[tile] &= ~(15<<24);
-		picanm_[tile] |= ((long)(speed&15) << 24);
+		picanm_[tile] |= ((int)(speed&15) << 24);
 	}
 	
 	int write()

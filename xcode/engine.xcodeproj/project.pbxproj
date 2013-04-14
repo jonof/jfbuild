@@ -6,6 +6,22 @@
 	objectVersion = 44;
 	objects = {
 
+/* Begin PBXAggregateTarget section */
+		AB77B4D2171AC3E800982712 /* tools */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = AB77B4EB171AC41C00982712 /* Build configuration list for PBXAggregateTarget "tools" */;
+			buildPhases = (
+			);
+			dependencies = (
+				AB77B4D6171AC3F700982712 /* PBXTargetDependency */,
+				AB77B4D8171AC3F700982712 /* PBXTargetDependency */,
+				AB77B4DA171AC3F700982712 /* PBXTargetDependency */,
+			);
+			name = tools;
+			productName = tools;
+		};
+/* End PBXAggregateTarget section */
+
 /* Begin PBXBuildFile section */
 		AB1751270CEF5AF8003AF128 /* SDL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB1751260CEF5AF8003AF128 /* SDL.framework */; };
 		AB3B2A0E0EE3FC0400944CD1 /* hightile.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2A0D0EE3FC0400944CD1 /* hightile.c */; };
@@ -89,6 +105,27 @@
 			proxyType = 1;
 			remoteGlobalIDString = AB3FE44A0C04336F00D5DBDC;
 			remoteInfo = editorsupp;
+		};
+		AB77B4D5171AC3F700982712 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB735F3A0A29A24A003261DC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ABAE9AD10F0B307500A528DC;
+			remoteInfo = arttool;
+		};
+		AB77B4D7171AC3F700982712 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB735F3A0A29A24A003261DC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ABAE9C270F0CC80200A528DC;
+			remoteInfo = kextract;
+		};
+		AB77B4D9171AC3F700982712 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB735F3A0A29A24A003261DC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ABAE9C320F0CC81900A528DC;
+			remoteInfo = kgroup;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -596,6 +633,7 @@
 				ABAE9AD10F0B307500A528DC /* arttool */,
 				ABAE9C270F0CC80200A528DC /* kextract */,
 				ABAE9C320F0CC81900A528DC /* kgroup */,
+				AB77B4D2171AC3E800982712 /* tools */,
 			);
 		};
 /* End PBXProject section */
@@ -695,6 +733,21 @@
 			target = AB3FE44A0C04336F00D5DBDC /* editorsupp */;
 			targetProxy = AB3FE4660C0433A600D5DBDC /* PBXContainerItemProxy */;
 		};
+		AB77B4D6171AC3F700982712 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ABAE9AD10F0B307500A528DC /* arttool */;
+			targetProxy = AB77B4D5171AC3F700982712 /* PBXContainerItemProxy */;
+		};
+		AB77B4D8171AC3F700982712 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ABAE9C270F0CC80200A528DC /* kextract */;
+			targetProxy = AB77B4D7171AC3F700982712 /* PBXContainerItemProxy */;
+		};
+		AB77B4DA171AC3F700982712 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ABAE9C320F0CC81900A528DC /* kgroup */;
+			targetProxy = AB77B4D9171AC3F700982712 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -741,7 +794,7 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				GCC_VERSION = 4.2;
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				VALID_ARCHS = "x86_64 i386 ppc";
 				WARNING_CFLAGS = (
@@ -775,7 +828,7 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				GCC_VERSION = 4.2;
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				VALID_ARCHS = "x86_64 i386 ppc";
 				WARNING_CFLAGS = (
@@ -830,6 +883,20 @@
 				PREBINDING = NO;
 				PRODUCT_NAME = editor;
 				ZERO_LINK = NO;
+			};
+			name = Release;
+		};
+		AB77B4D3171AC3E900982712 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = Tools;
+			};
+			name = Debug;
+		};
+		AB77B4D4171AC3E900982712 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = Tools;
 			};
 			name = Release;
 		};
@@ -916,6 +983,15 @@
 			buildConfigurations = (
 				AB735FCE0A29A965003261DC /* Debug */,
 				AB735FCF0A29A965003261DC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AB77B4EB171AC41C00982712 /* Build configuration list for PBXAggregateTarget "tools" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB77B4D3171AC3E900982712 /* Debug */,
+				AB77B4D4171AC3E900982712 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
