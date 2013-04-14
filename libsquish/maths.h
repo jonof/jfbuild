@@ -30,8 +30,6 @@
 #include <algorithm>
 #include "config.h"
 
-#include "msvc.h"
-
 namespace squish {
 
 class Vec3

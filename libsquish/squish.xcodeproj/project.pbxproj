@@ -80,7 +80,7 @@
 		133427870ACC587F00F54FA3 /* squish-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = "squish-Info.plist"; sourceTree = "<group>"; };
 		133FA0DA096A7B8E0050752E /* alpha.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = alpha.h; sourceTree = "<group>"; };
 		133FA0DB096A7B8E0050752E /* alpha.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = alpha.cpp; sourceTree = "<group>"; };
-		1342B4110999DE7F00152915 /* squishpng */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "compiled.mach-o.executable"; path = squishpng; sourceTree = BUILT_PRODUCTS_DIR; };
+		1342B4110999DE7F00152915 /* squishpng */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = squishpng; sourceTree = BUILT_PRODUCTS_DIR; };
 		1342B4190999DF7000152915 /* squishpng.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = squishpng.cpp; path = extra/squishpng.cpp; sourceTree = "<group>"; };
 		1342B4370999E07C00152915 /* squishtest */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = squishtest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1342B43E0999E0CC00152915 /* squishtest.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = squishtest.cpp; path = extra/squishtest.cpp; sourceTree = "<group>"; };
@@ -353,6 +353,7 @@
 		08FB7793FE84155DC02AAC07 /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = 1DEB91EF08733DB70010E9CD /* Build configuration list for PBXProject "squish" */;
+			compatibilityVersion = "Xcode 2.4";
 			hasScannedForEncodings = 1;
 			mainGroup = 08FB7794FE84155DC02AAC07 /* squish */;
 			projectDirPath = "";
@@ -573,10 +574,6 @@
 		1DEB91EC08733DB70010E9CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					ppc,
-					i386,
-				);
 				COPY_PHASE_STRIP = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = "$(SQUISH_CPP_$(CURRENT_ARCH))";
 				INSTALL_PATH = /usr/local/lib;
@@ -593,10 +590,6 @@
 		1DEB91ED08733DB70010E9CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					ppc,
-					i386,
-				);
 				GCC_PREPROCESSOR_DEFINITIONS = "$(SQUISH_CPP_$(CURRENT_ARCH))";
 				INSTALL_PATH = /usr/local/lib;
 				OTHER_CFLAGS = "$(SQUISH_CFLAGS_$(CURRENT_ARCH))";
