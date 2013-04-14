@@ -2156,7 +2156,6 @@ static void grouscan(int dax1, int dax2, int sectnum, unsigned char dastat)
 	if (sec->visibility != 0) globvis = mulscale4(globvis,(int)((unsigned char)(sec->visibility+16)));
 	globvis = mulscale13(globvis,daz);
 	globvis = mulscale16(globvis,xdimscale);
-	j = (intptr_t)palookup[globalpal];
 
 	setupslopevlin(((int)(picsiz[globalpicnum]&15))+(((int)(picsiz[globalpicnum]>>4))<<8),(void *)waloff[globalpicnum],-ylookup[1]);
 
@@ -2182,12 +2181,12 @@ static void grouscan(int dax1, int dax2, int sectnum, unsigned char dastat)
 			nptr2 = &slopalookup[y2+(shoffs>>15)];
 			while (nptr1 <= mptr1)
 			{
-				*mptr1-- = j + (getpalookup((int)mulscale24(krecipasm(m1),globvis),globalshade)<<8);
+				*mptr1-- = (intptr_t)palookup[globalpal] + (getpalookup((int)mulscale24(krecipasm(m1),globvis),globalshade)<<8);
 				m1 -= l;
 			}
 			while (nptr2 >= mptr2)
 			{
-				*mptr2++ = j + (getpalookup((int)mulscale24(krecipasm(m2),globvis),globalshade)<<8);
+				*mptr2++ = (intptr_t)palookup[globalpal] + (getpalookup((int)mulscale24(krecipasm(m2),globvis),globalshade)<<8);
 				m2 += l;
 			}
 
