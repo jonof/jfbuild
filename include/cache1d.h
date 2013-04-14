@@ -18,10 +18,10 @@ int		findfrompath(const char *fn, char **where);
 int     openfrompath(const char *fn, int flags, int mode);
 BFILE  *fopenfrompath(const char *fn, const char *mode);
 
-int 	initgroupfile(char *filename);
+int 	initgroupfile(const char *filename);
 void	uninitsinglegroupfile(int grphandle);
 void	uninitgroupfile(void);
-int 	kopen4load(char *filename, char searchfirst);	// searchfirst: 0 = anywhere, 1 = first group, 2 = any group
+int 	kopen4load(const char *filename, char searchfirst);	// searchfirst: 0 = anywhere, 1 = first group, 2 = any group
 int 	kread(int handle, void *buffer, int leng);
 int 	klseek(int handle, int offset, int whence);
 int 	kfilelength(int handle);

@@ -3334,7 +3334,7 @@ static __inline void copybufreverse(void *s, void *d, int c)
 	}
 }
 
-static __inline void qinterpolatedown16(int a, int c, int d, int s)
+static __inline void qinterpolatedown16(void *a, int c, int d, int s)
 {
 	_asm {
 		mov eax, a
@@ -3363,7 +3363,7 @@ static __inline void qinterpolatedown16(int a, int c, int d, int s)
 	}
 }
 
-static __inline void qinterpolatedown16short(int a, int c, int d, int s)
+static __inline void qinterpolatedown16short(void *a, int c, int d, int s)
 {
 	_asm {
 		mov eax, a

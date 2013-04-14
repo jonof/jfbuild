@@ -33,7 +33,6 @@ EFENCE?=0
 
 # SDK locations - adjust to match your setup
 DXROOT ?= $(HOME)/sdks/directx/dx81
-FMODROOTWIN ?= $(HOME)/sdks/fmodapi374win/api
 
 # build locations - OBJ gets overridden to the game-specific objects dir
 OBJ?=obj.gnu
@@ -139,9 +138,8 @@ ifeq ($(PLATFORM),BSD)
 	LIBS+= -lm
 endif
 ifeq ($(PLATFORM),WINDOWS)
-	OURCFLAGS+= -I$(DXROOT)/include -I$(FMODROOTWIN)/inc
+	OURCFLAGS+= -I$(DXROOT)/include
 	LIBS+= -lm
-	GAMELIBS+= -L$(FMODROOTWIN)/lib
 	ASFLAGS+= -f win32 --prefix _
 endif
 

@@ -20,7 +20,6 @@ ENGINELIB=engine.lib
 EDITORLIB=build.lib
 
 DXROOT=$(USERPROFILE)\sdks\directx\dx81
-FMODROOT=$(USERPROFILE)\sdks\fmodapi374win\api
 
 # /D these to enable certain features of the port's compile process
 # NOASM     When defined, uses C instead of assembly code
@@ -41,10 +40,10 @@ CC=cl
 AS=ml
 RC=rc
 LINK=link /opt:nowin98 /opt:ref /nologo
-CFLAGS=$(CFLAGS) /nologo /MD /J $(flags_cl) $(TARGETOPTS) /I$(INC)
+CFLAGS=$(CFLAGS) /nologo /MD $(flags_cl) $(TARGETOPTS) /I$(INC)
 ENGINECFLAGS="/I$(DXROOT)\include" /I$(LIBSQUISH)
-GAMECFLAGS=/I$(GAME) "/I$(FMODROOT)\inc"
-LIBS=fmodvc.lib #opengl32.lib
+GAMECFLAGS=/I$(GAME)
+LIBS= #opengl32.lib
 ASFLAGS=/nologo /coff
 EXESUFFIX=.exe
 
@@ -88,7 +87,7 @@ GAMEEXEOBJS=$(GAME)\config.$o \
 	$(GAME)\game.$o \
 	$(GAME)\gameres.$(res) \
 	$(GAME)\startwin.game.$o \
-	$(GAME)\sound.$o \
+	$(GAME)\sound_stub.$o \
 	$(SRC)\$(ENGINELIB)
 
 EDITOREXEOBJS=$(GAME)\bstub.$o \
@@ -146,10 +145,10 @@ $(SRC)\$(EDITORLIB): $(EDITOROBJS)
 
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS /LIBPATH:$(DXROOT)\lib /LIBPATH:$(FMODROOT)\lib $(flags_link) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS "/LIBPATH:$(DXROOT)\lib" $(flags_link) /MAP $** $(LIBS) msvcrt.lib
 	
 build$(EXESUFFIX): $(EDITOREXEOBJS)
-	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS /LIBPATH:$(DXROOT)\lib /LIBPATH:$(FMODROOT)\lib $(flags_link) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS "/LIBPATH:$(DXROOT)\lib" $(flags_link) /MAP $** $(LIBS) msvcrt.lib
 
 # the tools
 kextract$(EXESUFFIX): $(TOOLS)\kextract.$o $(SRC)\compat.$o

@@ -385,7 +385,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 
 extern int startwin_run(void);
 
-int app_main(int argc, const char *argv[])
+int app_main(int argc, char const * const argv[])
 {
 	int cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
 	int other, packleng, netparm;
@@ -4875,7 +4875,7 @@ void initlava(void)
 	modify exact [eax edx]
 int addlava(int);
 #elif defined(_MSC_VER) && !defined(NOASM)
-inline int addlava(int b)
+inline int addlava(void *b)
 {
 	_asm {
 	mov ebx, b

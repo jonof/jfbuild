@@ -9,10 +9,10 @@ extern int myconnectindex, numplayers;
 extern int connecthead, connectpoint2[MAXMULTIPLAYERS];
 extern unsigned char syncstate;
 
-int initmultiplayersparms(int argc, const char **argv);
+int initmultiplayersparms(int argc, char const * const argv[]);
 int initmultiplayerscycle(void);
 
-void initmultiplayers(int argc, const char **argv, unsigned char damultioption, unsigned char dacomrateoption, unsigned char dapriority);
+void initmultiplayers(int argc, char const * const argv[], unsigned char damultioption, unsigned char dacomrateoption, unsigned char dapriority);
 void setpackettimeout(int datimeoutcount, int daresendagaincount);
 void uninitmultiplayers(void);
 void sendlogon(void);

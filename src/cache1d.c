@@ -17,7 +17,7 @@
 
 	//Insert '|' in front of filename
 	//Doing this tells kzopen to load the file only if inside a .ZIP file
-static int kzipopen(char *filnam)
+static int kzipopen(const char *filnam)
 {
 	unsigned int i;
 	char newst[BMAX_PATH+4];
@@ -417,7 +417,7 @@ static char filenamsav[MAXOPENFILES][260];
 static int kzcurhand = -1;
 #endif
 
-int initgroupfile(char *filename)
+int initgroupfile(const char *filename)
 {
 	char buf[16];
 	int i, j, k;
@@ -553,7 +553,7 @@ void uninitgroupfile(void)
 	}
 }
 
-int kopen4load(char *filename, char searchfirst)
+int kopen4load(const char *filename, char searchfirst)
 {
 	int i, j, k, fil, newhandle;
 	char bad, *gfileptr;
