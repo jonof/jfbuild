@@ -15,6 +15,7 @@ extern const char **_buildargv;
 extern char quitevent, appactive;
 
 // NOTE: these are implemented in game-land so they may be overridden in game specific ways
+extern int app_main(int argc, const char *argv[]);
 extern int startwin_open(void);
 extern int startwin_close(void);
 extern int startwin_puts(const char *);

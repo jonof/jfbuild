@@ -206,7 +206,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 extern int startwin_run(void);
 
 extern char *defsfilename;	// set in bstub.c
-int app_main(int argc, const char **argv)
+int app_main(int argc, const char *argv[])
 {
 	char ch, quitflag, cmdsetup = 0;
 	int grpstoadd = 0;

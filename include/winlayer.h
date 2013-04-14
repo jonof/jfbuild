@@ -10,8 +10,8 @@ extern unsigned maxrefreshfreq;
 
 extern int glusecds;
 
-long win_gethwnd(void);
-long win_gethinstance(void);
+intptr_t win_gethwnd(void);
+intptr_t win_gethinstance(void);
 
 void win_allowtaskswitching(int onf);
 int win_checkinstance(void);

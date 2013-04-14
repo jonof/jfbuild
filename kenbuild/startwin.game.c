@@ -2,9 +2,9 @@
 #error Only for Windows
 #endif
 
+#include "compat.h"
 #include "build.h"
 #include "winlayer.h"
-#include "compat.h"
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -57,7 +57,7 @@ static void PopulateForm(void)
 		if (validmode[i].fs != settings.fullscreen) continue;
 
 		// all modes get added to the 3D mode list
-		Bsprintf(buf, "%ld x %ld %dbpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
+		Bsprintf(buf, "%d x %d %dbpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
 		j = ComboBox_AddString(hwnd3d, buf);
 		ComboBox_SetItemData(hwnd3d, j, i);
 		if (i == mode3d) ComboBox_SetCurSel(hwnd3d, j);

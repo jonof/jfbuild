@@ -5,6 +5,7 @@
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <winsock.h>
+#define socklen_t int
 #else
 #include <unistd.h>
 #include <netinet/in.h>
@@ -86,16 +87,18 @@ int netinit (int portnum)
 	LPHOSTENT lpHostEnt;
 	char hostnam[256];
 	struct sockaddr_in ip;
-	int i;
 
 #ifdef _WIN32
 	WSADATA ws;
+	u_long i;
 
 	if (WSAStartup(0x101,&ws) == SOCKET_ERROR) return(0);
+#else
+  unsigned int i;
 #endif
 
 	mysock = socket(AF_INET,SOCK_DGRAM,0); if (mysock == INVALID_SOCKET) return(0);
-	i = 1; if (ioctlsocket(mysock,FIONBIO,(unsigned int *)&i) == SOCKET_ERROR) return(0);
+	i = 1; if (ioctlsocket(mysock,FIONBIO,&i) == SOCKET_ERROR) return(0);
 
 	ip.sin_family = AF_INET;
 	ip.sin_addr.s_addr = INADDR_ANY;
