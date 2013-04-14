@@ -1,5 +1,6 @@
 #import <Cocoa/Cocoa.h>
 
+#include "compat.h"
 #include "baselayer.h"
 #include "build.h"
 

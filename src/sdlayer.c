@@ -41,7 +41,6 @@ int startwin_settitle(const char *s) { s=s; return 0; }
 
 int   _buildargc = 1;
 const char **_buildargv = NULL;
-extern int app_main(int argc, char *argv[]);
 
 char quitevent=0, appactive=1;
 

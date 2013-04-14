@@ -721,12 +721,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = (
-					ppc,
+					x86_64,
 					i386,
+					ppc,
 				);
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
-				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
+				GCC_ALTIVEC_EXTENSIONS = NO;
+				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -739,12 +741,12 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				GCC_VERSION = 4.0;
-				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
+				GCC_VERSION = 4.2;
+				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				VALID_ARCHS = "x86_64 i386 ppc";
 				WARNING_CFLAGS = (
 					"-W",
 					"-Wall",
-					"-Wno-char-subscripts",
 					"-Wno-unused-variable",
 				);
 			};
@@ -754,13 +756,14 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = (
-					ppc,
+					x86_64,
 					i386,
+					ppc,
 				);
 				COPY_PHASE_STRIP = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
-				GCC_ALTIVEC_EXTENSIONS = YES;
-				GCC_CHAR_IS_UNSIGNED_CHAR = YES;
+				GCC_ALTIVEC_EXTENSIONS = NO;
+				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -772,12 +775,12 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				GCC_VERSION = 4.0;
-				SDKROOT = "$(DEVELOPER_SDK_DIR)/MacOSX10.4u.sdk";
+				GCC_VERSION = 4.2;
+				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				VALID_ARCHS = "x86_64 i386 ppc";
 				WARNING_CFLAGS = (
 					"-W",
 					"-Wall",
-					"-Wno-char-subscripts",
 					"-Wno-unused-variable",
 				);
 			};
