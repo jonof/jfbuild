@@ -726,8 +726,8 @@ skipitaddwall:
 //
 static void maskwallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *lwal)
 {
-	int i, x, startx, xnice, ynice;
-	intptr_t fpalookup, p;
+	int x, startx, xnice, ynice;
+	intptr_t i, fpalookup, p;
 	int y1ve[4], y2ve[4], u4, d4, dax, z, tsizx, tsizy;
 	char bad;
 
@@ -773,7 +773,7 @@ static void maskwallscan(int x1, int x2, short *uwal, short *dwal, int *swal, in
 		vince[0] = swal[x]*globalyscale;
 		vplce[0] = globalzd + vince[0]*(y1ve[0]-globalhoriz+1);
 
-		mvlineasm1(vince[0],palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],bufplce[0]+waloff[globalpicnum],p+ylookup[y1ve[0]]);
+		mvlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],(void *)(bufplce[0]+waloff[globalpicnum]),(void *)(p+ylookup[y1ve[0]]));
 	}
 	for(;x<=x2-3;x+=4,p+=4)
 	{
@@ -813,25 +813,25 @@ static void maskwallscan(int x1, int x2, short *uwal, short *dwal, int *swal, in
 
 		if ((bad > 0) || (u4 >= d4))
 		{
-			if (!(bad&1)) mvlineasm1(vince[0],palookupoffse[0],y2ve[0]-y1ve[0],vplce[0],bufplce[0],ylookup[y1ve[0]]+p+0);
-			if (!(bad&2)) mvlineasm1(vince[1],palookupoffse[1],y2ve[1]-y1ve[1],vplce[1],bufplce[1],ylookup[y1ve[1]]+p+1);
-			if (!(bad&4)) mvlineasm1(vince[2],palookupoffse[2],y2ve[2]-y1ve[2],vplce[2],bufplce[2],ylookup[y1ve[2]]+p+2);
-			if (!(bad&8)) mvlineasm1(vince[3],palookupoffse[3],y2ve[3]-y1ve[3],vplce[3],bufplce[3],ylookup[y1ve[3]]+p+3);
+			if (!(bad&1)) mvlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0],vplce[0],(void *)bufplce[0],(void *)(ylookup[y1ve[0]]+p+0));
+			if (!(bad&2)) mvlineasm1(vince[1],(void *)palookupoffse[1],y2ve[1]-y1ve[1],vplce[1],(void *)bufplce[1],(void *)(ylookup[y1ve[1]]+p+1));
+			if (!(bad&4)) mvlineasm1(vince[2],(void *)palookupoffse[2],y2ve[2]-y1ve[2],vplce[2],(void *)bufplce[2],(void *)(ylookup[y1ve[2]]+p+2));
+			if (!(bad&8)) mvlineasm1(vince[3],(void *)palookupoffse[3],y2ve[3]-y1ve[3],vplce[3],(void *)bufplce[3],(void *)(ylookup[y1ve[3]]+p+3));
 			continue;
 		}
 
-		if (u4 > y1ve[0]) vplce[0] = mvlineasm1(vince[0],palookupoffse[0],u4-y1ve[0]-1,vplce[0],bufplce[0],ylookup[y1ve[0]]+p+0);
-		if (u4 > y1ve[1]) vplce[1] = mvlineasm1(vince[1],palookupoffse[1],u4-y1ve[1]-1,vplce[1],bufplce[1],ylookup[y1ve[1]]+p+1);
-		if (u4 > y1ve[2]) vplce[2] = mvlineasm1(vince[2],palookupoffse[2],u4-y1ve[2]-1,vplce[2],bufplce[2],ylookup[y1ve[2]]+p+2);
-		if (u4 > y1ve[3]) vplce[3] = mvlineasm1(vince[3],palookupoffse[3],u4-y1ve[3]-1,vplce[3],bufplce[3],ylookup[y1ve[3]]+p+3);
+		if (u4 > y1ve[0]) vplce[0] = mvlineasm1(vince[0],(void *)palookupoffse[0],u4-y1ve[0]-1,vplce[0],(void *)bufplce[0],(void *)(ylookup[y1ve[0]]+p+0));
+		if (u4 > y1ve[1]) vplce[1] = mvlineasm1(vince[1],(void *)palookupoffse[1],u4-y1ve[1]-1,vplce[1],(void *)bufplce[1],(void *)(ylookup[y1ve[1]]+p+1));
+		if (u4 > y1ve[2]) vplce[2] = mvlineasm1(vince[2],(void *)palookupoffse[2],u4-y1ve[2]-1,vplce[2],(void *)bufplce[2],(void *)(ylookup[y1ve[2]]+p+2));
+		if (u4 > y1ve[3]) vplce[3] = mvlineasm1(vince[3],(void *)palookupoffse[3],u4-y1ve[3]-1,vplce[3],(void *)bufplce[3],(void *)(ylookup[y1ve[3]]+p+3));
 
-		if (d4 >= u4) mvlineasm4(d4-u4+1,ylookup[u4]+p);
+		if (d4 >= u4) mvlineasm4(d4-u4+1,(void *)(ylookup[u4]+p));
 
 		i = p+ylookup[d4+1];
-		if (y2ve[0] > d4) mvlineasm1(vince[0],palookupoffse[0],y2ve[0]-d4-1,vplce[0],bufplce[0],i+0);
-		if (y2ve[1] > d4) mvlineasm1(vince[1],palookupoffse[1],y2ve[1]-d4-1,vplce[1],bufplce[1],i+1);
-		if (y2ve[2] > d4) mvlineasm1(vince[2],palookupoffse[2],y2ve[2]-d4-1,vplce[2],bufplce[2],i+2);
-		if (y2ve[3] > d4) mvlineasm1(vince[3],palookupoffse[3],y2ve[3]-d4-1,vplce[3],bufplce[3],i+3);
+		if (y2ve[0] > d4) mvlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-d4-1,vplce[0],(void *)bufplce[0],(void *)(i+0));
+		if (y2ve[1] > d4) mvlineasm1(vince[1],(void *)palookupoffse[1],y2ve[1]-d4-1,vplce[1],(void *)bufplce[1],(void *)(i+1));
+		if (y2ve[2] > d4) mvlineasm1(vince[2],(void *)palookupoffse[2],y2ve[2]-d4-1,vplce[2],(void *)bufplce[2],(void *)(i+2));
+		if (y2ve[3] > d4) mvlineasm1(vince[3],(void *)palookupoffse[3],y2ve[3]-d4-1,vplce[3],(void *)bufplce[3],(void *)(i+3));
 	}
 	for(;x<=x2;x++,p++)
 	{
@@ -848,7 +848,7 @@ static void maskwallscan(int x1, int x2, short *uwal, short *dwal, int *swal, in
 		vince[0] = swal[x]*globalyscale;
 		vplce[0] = globalzd + vince[0]*(y1ve[0]-globalhoriz+1);
 
-		mvlineasm1(vince[0],palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],bufplce[0]+waloff[globalpicnum],p+ylookup[y1ve[0]]);
+		mvlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],(void *)(bufplce[0]+waloff[globalpicnum]),(void *)(p+ylookup[y1ve[0]]));
 	}
 
 #else	// ENGINE_USING_A_C
@@ -1694,7 +1694,8 @@ static void florscan(int x1, int x2, int sectnum)
 //
 static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *lwal)
 {
-	int i, x, xnice, ynice, fpalookup;
+	int x, xnice, ynice;
+        intptr_t i, fpalookup;
 	int y1ve[4], y2ve[4], u4, d4, z, tsizx, tsizy;
 	char bad;
 	
@@ -1738,7 +1739,7 @@ static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *l
 		vince[0] = swal[x]*globalyscale;
 		vplce[0] = globalzd + vince[0]*(y1ve[0]-globalhoriz+1);
 
-		vlineasm1(vince[0],palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],bufplce[0]+waloff[globalpicnum],x+frameoffset+ylookup[y1ve[0]]);
+		vlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],(void *)(bufplce[0]+waloff[globalpicnum]),(void *)(x+frameoffset+ylookup[y1ve[0]]));
 	}
 	for(;x<=x2-3;x+=4)
 	{
@@ -1778,25 +1779,25 @@ static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *l
 
 		if ((bad != 0) || (u4 >= d4))
 		{
-			if (!(bad&1)) prevlineasm1(vince[0],palookupoffse[0],y2ve[0]-y1ve[0],vplce[0],bufplce[0],ylookup[y1ve[0]]+x+frameoffset+0);
-			if (!(bad&2)) prevlineasm1(vince[1],palookupoffse[1],y2ve[1]-y1ve[1],vplce[1],bufplce[1],ylookup[y1ve[1]]+x+frameoffset+1);
-			if (!(bad&4)) prevlineasm1(vince[2],palookupoffse[2],y2ve[2]-y1ve[2],vplce[2],bufplce[2],ylookup[y1ve[2]]+x+frameoffset+2);
-			if (!(bad&8)) prevlineasm1(vince[3],palookupoffse[3],y2ve[3]-y1ve[3],vplce[3],bufplce[3],ylookup[y1ve[3]]+x+frameoffset+3);
+			if (!(bad&1)) prevlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0],vplce[0],(void *)bufplce[0],(void *)(ylookup[y1ve[0]]+x+frameoffset+0));
+			if (!(bad&2)) prevlineasm1(vince[1],(void *)palookupoffse[1],y2ve[1]-y1ve[1],vplce[1],(void *)bufplce[1],(void *)(ylookup[y1ve[1]]+x+frameoffset+1));
+			if (!(bad&4)) prevlineasm1(vince[2],(void *)palookupoffse[2],y2ve[2]-y1ve[2],vplce[2],(void *)bufplce[2],(void *)(ylookup[y1ve[2]]+x+frameoffset+2));
+			if (!(bad&8)) prevlineasm1(vince[3],(void *)palookupoffse[3],y2ve[3]-y1ve[3],vplce[3],(void *)bufplce[3],(void *)(ylookup[y1ve[3]]+x+frameoffset+3));
 			continue;
 		}
 
-		if (u4 > y1ve[0]) vplce[0] = prevlineasm1(vince[0],palookupoffse[0],u4-y1ve[0]-1,vplce[0],bufplce[0],ylookup[y1ve[0]]+x+frameoffset+0);
-		if (u4 > y1ve[1]) vplce[1] = prevlineasm1(vince[1],palookupoffse[1],u4-y1ve[1]-1,vplce[1],bufplce[1],ylookup[y1ve[1]]+x+frameoffset+1);
-		if (u4 > y1ve[2]) vplce[2] = prevlineasm1(vince[2],palookupoffse[2],u4-y1ve[2]-1,vplce[2],bufplce[2],ylookup[y1ve[2]]+x+frameoffset+2);
-		if (u4 > y1ve[3]) vplce[3] = prevlineasm1(vince[3],palookupoffse[3],u4-y1ve[3]-1,vplce[3],bufplce[3],ylookup[y1ve[3]]+x+frameoffset+3);
+		if (u4 > y1ve[0]) vplce[0] = prevlineasm1(vince[0],(void *)palookupoffse[0],u4-y1ve[0]-1,vplce[0],(void *)bufplce[0],(void *)(ylookup[y1ve[0]]+x+frameoffset+0));
+		if (u4 > y1ve[1]) vplce[1] = prevlineasm1(vince[1],(void *)palookupoffse[1],u4-y1ve[1]-1,vplce[1],(void *)bufplce[1],(void *)(ylookup[y1ve[1]]+x+frameoffset+1));
+		if (u4 > y1ve[2]) vplce[2] = prevlineasm1(vince[2],(void *)palookupoffse[2],u4-y1ve[2]-1,vplce[2],(void *)bufplce[2],(void *)(ylookup[y1ve[2]]+x+frameoffset+2));
+		if (u4 > y1ve[3]) vplce[3] = prevlineasm1(vince[3],(void *)palookupoffse[3],u4-y1ve[3]-1,vplce[3],(void *)bufplce[3],(void *)(ylookup[y1ve[3]]+x+frameoffset+3));
 
-		if (d4 >= u4) vlineasm4(d4-u4+1,ylookup[u4]+x+frameoffset);
+		if (d4 >= u4) vlineasm4(d4-u4+1,(void *)(ylookup[u4]+x+frameoffset));
 
 		i = x+frameoffset+ylookup[d4+1];
-		if (y2ve[0] > d4) prevlineasm1(vince[0],palookupoffse[0],y2ve[0]-d4-1,vplce[0],bufplce[0],i+0);
-		if (y2ve[1] > d4) prevlineasm1(vince[1],palookupoffse[1],y2ve[1]-d4-1,vplce[1],bufplce[1],i+1);
-		if (y2ve[2] > d4) prevlineasm1(vince[2],palookupoffse[2],y2ve[2]-d4-1,vplce[2],bufplce[2],i+2);
-		if (y2ve[3] > d4) prevlineasm1(vince[3],palookupoffse[3],y2ve[3]-d4-1,vplce[3],bufplce[3],i+3);
+		if (y2ve[0] > d4) prevlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-d4-1,vplce[0],(void *)bufplce[0],(void *)(i+0));
+		if (y2ve[1] > d4) prevlineasm1(vince[1],(void *)palookupoffse[1],y2ve[1]-d4-1,vplce[1],(void *)bufplce[1],(void *)(i+1));
+		if (y2ve[2] > d4) prevlineasm1(vince[2],(void *)palookupoffse[2],y2ve[2]-d4-1,vplce[2],(void *)bufplce[2],(void *)(i+2));
+		if (y2ve[3] > d4) prevlineasm1(vince[3],(void *)palookupoffse[3],y2ve[3]-d4-1,vplce[3],(void *)bufplce[3],(void *)(i+3));
 	}
 	for(;x<=x2;x++)
 	{
@@ -1813,7 +1814,7 @@ static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *l
 		vince[0] = swal[x]*globalyscale;
 		vplce[0] = globalzd + vince[0]*(y1ve[0]-globalhoriz+1);
 
-		vlineasm1(vince[0],palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],bufplce[0]+waloff[globalpicnum],x+frameoffset+ylookup[y1ve[0]]);
+		vlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],(void *)(bufplce[0]+waloff[globalpicnum]),(void *)(x+frameoffset+ylookup[y1ve[0]]));
 	}
 
 #else	// ENGINE_USING_A_C
@@ -1879,7 +1880,8 @@ static void transmaskvline(int x)
 #ifndef ENGINE_USING_A_C
 static void transmaskvline2(int x)
 {
-	int i, y1, y2, x2;
+	intptr_t i;
+	int y1, y2, x2;
 	short y1ve[2], y2ve[2];
 
 	if ((x < 0) || (x >= xdimen)) return;
@@ -1897,7 +1899,7 @@ static void transmaskvline2(int x)
 	palookupoffse[0] = (intptr_t)palookup[globalpal] + (getpalookup((int)mulscale16(swall[x],globvis),globalshade)<<8);
 	palookupoffse[1] = (intptr_t)palookup[globalpal] + (getpalookup((int)mulscale16(swall[x2],globvis),globalshade)<<8);
 
-	setuptvlineasm2(globalshiftval,palookupoffse[0],palookupoffse[1]);
+	setuptvlineasm2(globalshiftval,(void *)palookupoffse[0],(void *)palookupoffse[1]);
 
 	vince[0] = swall[x]*globalyscale;
 	vince[1] = swall[x2]*globalyscale;
@@ -1920,16 +1922,16 @@ static void transmaskvline2(int x)
 	if (y1ve[0] != y1ve[1])
 	{
 		if (y1ve[0] < y1)
-			vplce[0] = tvlineasm1(vince[0],palookupoffse[0],y1-y1ve[0]-1,vplce[0],bufplce[0],ylookup[y1ve[0]]+i);
+			vplce[0] = tvlineasm1(vince[0],(void *)palookupoffse[0],y1-y1ve[0]-1,vplce[0],(void *)bufplce[0],(void *)(ylookup[y1ve[0]]+i));
 		else
-			vplce[1] = tvlineasm1(vince[1],palookupoffse[1],y1-y1ve[1]-1,vplce[1],bufplce[1],ylookup[y1ve[1]]+i+1);
+			vplce[1] = tvlineasm1(vince[1],(void *)palookupoffse[1],y1-y1ve[1]-1,vplce[1],(void *)bufplce[1],(void *)(ylookup[y1ve[1]]+i+1));
 	}
 
 	if (y2 > y1)
 	{
 		asm1 = vince[1];
 		asm2 = ylookup[y2]+i+1;
-		tvlineasm2(vplce[1],vince[0],bufplce[0],bufplce[1],vplce[0],ylookup[y1]+i);
+		tvlineasm2(vplce[1],vince[0],(void *)bufplce[0],(void *)bufplce[1],vplce[0],(void *)(ylookup[y1]+i));
 	}
 	else
 	{
@@ -1938,9 +1940,9 @@ static void transmaskvline2(int x)
 	}
 
 	if (y2ve[0] > y2ve[1])
-		tvlineasm1(vince[0],palookupoffse[0],y2ve[0]-y2-1,asm1,bufplce[0],ylookup[y2+1]+i);
+		tvlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y2-1,asm1,(void *)bufplce[0],(void *)(ylookup[y2+1]+i));
 	else if (y2ve[0] < y2ve[1])
-		tvlineasm1(vince[1],palookupoffse[1],y2ve[1]-y2-1,asm2,bufplce[1],ylookup[y2+1]+i+1);
+		tvlineasm1(vince[1],(void *)palookupoffse[1],y2ve[1]-y2-1,asm2,(void *)bufplce[1],(void *)(ylookup[y2+1]+i+1));
 
 	faketimerhandler();
 }
@@ -4344,8 +4346,8 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 	unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
 {
 	int cosang, sinang, v, nextv, dax1, dax2, oy, bx, by, ny1, ny2;
-	int i, x, y, x1, y1, x2, y2, gx1, gy1;
-	intptr_t p, bufplc, palookupoffs;
+	int x, y, x1, y1, x2, y2, gx1, gy1;
+	intptr_t i, p, bufplc, palookupoffs;
 	int xsiz, ysiz, xoff, yoff, npoints, yplc, yinc, lx, rx, xx, xend;
 	int xv, yv, xv2, yv2, obuffermode, qlinemode=0, y1ve[4], y2ve[4], u4, d4;
 	char bad;
@@ -4545,49 +4547,49 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 				{
 					if ((bad != 0) || (u4 >= d4))
 					{
-						if (!(bad&1)) prevlineasm1(vince[0],palookupoffse[0],y2ve[0]-y1ve[0],vplce[0],bufplce[0],ylookup[y1ve[0]]+p+0);
-						if (!(bad&2)) prevlineasm1(vince[1],palookupoffse[1],y2ve[1]-y1ve[1],vplce[1],bufplce[1],ylookup[y1ve[1]]+p+1);
-						if (!(bad&4)) prevlineasm1(vince[2],palookupoffse[2],y2ve[2]-y1ve[2],vplce[2],bufplce[2],ylookup[y1ve[2]]+p+2);
-						if (!(bad&8)) prevlineasm1(vince[3],palookupoffse[3],y2ve[3]-y1ve[3],vplce[3],bufplce[3],ylookup[y1ve[3]]+p+3);
+						if (!(bad&1)) prevlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0],vplce[0],(void *)bufplce[0],(void *)(ylookup[y1ve[0]]+p+0));
+						if (!(bad&2)) prevlineasm1(vince[1],(void *)palookupoffse[1],y2ve[1]-y1ve[1],vplce[1],(void *)bufplce[1],(void *)(ylookup[y1ve[1]]+p+1));
+						if (!(bad&4)) prevlineasm1(vince[2],(void *)palookupoffse[2],y2ve[2]-y1ve[2],vplce[2],(void *)bufplce[2],(void *)(ylookup[y1ve[2]]+p+2));
+						if (!(bad&8)) prevlineasm1(vince[3],(void *)palookupoffse[3],y2ve[3]-y1ve[3],vplce[3],(void *)bufplce[3],(void *)(ylookup[y1ve[3]]+p+3));
 						continue;
 					}
 
-					if (u4 > y1ve[0]) vplce[0] = prevlineasm1(vince[0],palookupoffse[0],u4-y1ve[0]-1,vplce[0],bufplce[0],ylookup[y1ve[0]]+p+0);
-					if (u4 > y1ve[1]) vplce[1] = prevlineasm1(vince[1],palookupoffse[1],u4-y1ve[1]-1,vplce[1],bufplce[1],ylookup[y1ve[1]]+p+1);
-					if (u4 > y1ve[2]) vplce[2] = prevlineasm1(vince[2],palookupoffse[2],u4-y1ve[2]-1,vplce[2],bufplce[2],ylookup[y1ve[2]]+p+2);
-					if (u4 > y1ve[3]) vplce[3] = prevlineasm1(vince[3],palookupoffse[3],u4-y1ve[3]-1,vplce[3],bufplce[3],ylookup[y1ve[3]]+p+3);
+					if (u4 > y1ve[0]) vplce[0] = prevlineasm1(vince[0],(void *)palookupoffse[0],u4-y1ve[0]-1,vplce[0],(void *)bufplce[0],(void *)(ylookup[y1ve[0]]+p+0));
+					if (u4 > y1ve[1]) vplce[1] = prevlineasm1(vince[1],(void *)palookupoffse[1],u4-y1ve[1]-1,vplce[1],(void *)bufplce[1],(void *)(ylookup[y1ve[1]]+p+1));
+					if (u4 > y1ve[2]) vplce[2] = prevlineasm1(vince[2],(void *)palookupoffse[2],u4-y1ve[2]-1,vplce[2],(void *)bufplce[2],(void *)(ylookup[y1ve[2]]+p+2));
+					if (u4 > y1ve[3]) vplce[3] = prevlineasm1(vince[3],(void *)palookupoffse[3],u4-y1ve[3]-1,vplce[3],(void *)bufplce[3],(void *)(ylookup[y1ve[3]]+p+3));
 
-					if (d4 >= u4) vlineasm4(d4-u4+1,ylookup[u4]+p);
+					if (d4 >= u4) vlineasm4(d4-u4+1,(void *)(ylookup[u4]+p));
 
 					i = p+ylookup[d4+1];
-					if (y2ve[0] > d4) prevlineasm1(vince[0],palookupoffse[0],y2ve[0]-d4-1,vplce[0],bufplce[0],i+0);
-					if (y2ve[1] > d4) prevlineasm1(vince[1],palookupoffse[1],y2ve[1]-d4-1,vplce[1],bufplce[1],i+1);
-					if (y2ve[2] > d4) prevlineasm1(vince[2],palookupoffse[2],y2ve[2]-d4-1,vplce[2],bufplce[2],i+2);
-					if (y2ve[3] > d4) prevlineasm1(vince[3],palookupoffse[3],y2ve[3]-d4-1,vplce[3],bufplce[3],i+3);
+					if (y2ve[0] > d4) prevlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-d4-1,vplce[0],(void *)bufplce[0],(void *)(i+0));
+					if (y2ve[1] > d4) prevlineasm1(vince[1],(void *)palookupoffse[1],y2ve[1]-d4-1,vplce[1],(void *)bufplce[1],(void *)(i+1));
+					if (y2ve[2] > d4) prevlineasm1(vince[2],(void *)palookupoffse[2],y2ve[2]-d4-1,vplce[2],(void *)bufplce[2],(void *)(i+2));
+					if (y2ve[3] > d4) prevlineasm1(vince[3],(void *)palookupoffse[3],y2ve[3]-d4-1,vplce[3],(void *)bufplce[3],(void *)(i+3));
 				}
 				else
 				{
 					if ((bad != 0) || (u4 >= d4))
 					{
-						if (!(bad&1)) mvlineasm1(vince[0],palookupoffse[0],y2ve[0]-y1ve[0],vplce[0],bufplce[0],ylookup[y1ve[0]]+p+0);
-						if (!(bad&2)) mvlineasm1(vince[1],palookupoffse[1],y2ve[1]-y1ve[1],vplce[1],bufplce[1],ylookup[y1ve[1]]+p+1);
-						if (!(bad&4)) mvlineasm1(vince[2],palookupoffse[2],y2ve[2]-y1ve[2],vplce[2],bufplce[2],ylookup[y1ve[2]]+p+2);
-						if (!(bad&8)) mvlineasm1(vince[3],palookupoffse[3],y2ve[3]-y1ve[3],vplce[3],bufplce[3],ylookup[y1ve[3]]+p+3);
+						if (!(bad&1)) mvlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0],vplce[0],(void *)bufplce[0],(void *)(ylookup[y1ve[0]]+p+0));
+						if (!(bad&2)) mvlineasm1(vince[1],(void *)palookupoffse[1],y2ve[1]-y1ve[1],vplce[1],(void *)bufplce[1],(void *)(ylookup[y1ve[1]]+p+1));
+						if (!(bad&4)) mvlineasm1(vince[2],(void *)palookupoffse[2],y2ve[2]-y1ve[2],vplce[2],(void *)bufplce[2],(void *)(ylookup[y1ve[2]]+p+2));
+						if (!(bad&8)) mvlineasm1(vince[3],(void *)palookupoffse[3],y2ve[3]-y1ve[3],vplce[3],(void *)bufplce[3],(void *)(ylookup[y1ve[3]]+p+3));
 						continue;
 					}
 
-					if (u4 > y1ve[0]) vplce[0] = mvlineasm1(vince[0],palookupoffse[0],u4-y1ve[0]-1,vplce[0],bufplce[0],ylookup[y1ve[0]]+p+0);
-					if (u4 > y1ve[1]) vplce[1] = mvlineasm1(vince[1],palookupoffse[1],u4-y1ve[1]-1,vplce[1],bufplce[1],ylookup[y1ve[1]]+p+1);
-					if (u4 > y1ve[2]) vplce[2] = mvlineasm1(vince[2],palookupoffse[2],u4-y1ve[2]-1,vplce[2],bufplce[2],ylookup[y1ve[2]]+p+2);
-					if (u4 > y1ve[3]) vplce[3] = mvlineasm1(vince[3],palookupoffse[3],u4-y1ve[3]-1,vplce[3],bufplce[3],ylookup[y1ve[3]]+p+3);
+					if (u4 > y1ve[0]) vplce[0] = mvlineasm1(vince[0],(void *)palookupoffse[0],u4-y1ve[0]-1,vplce[0],(void *)bufplce[0],(void *)(ylookup[y1ve[0]]+p+0));
+					if (u4 > y1ve[1]) vplce[1] = mvlineasm1(vince[1],(void *)palookupoffse[1],u4-y1ve[1]-1,vplce[1],(void *)bufplce[1],(void *)(ylookup[y1ve[1]]+p+1));
+					if (u4 > y1ve[2]) vplce[2] = mvlineasm1(vince[2],(void *)palookupoffse[2],u4-y1ve[2]-1,vplce[2],(void *)bufplce[2],(void *)(ylookup[y1ve[2]]+p+2));
+					if (u4 > y1ve[3]) vplce[3] = mvlineasm1(vince[3],(void *)palookupoffse[3],u4-y1ve[3]-1,vplce[3],(void *)bufplce[3],(void *)(ylookup[y1ve[3]]+p+3));
 
-					if (d4 >= u4) mvlineasm4(d4-u4+1,ylookup[u4]+p);
+					if (d4 >= u4) mvlineasm4(d4-u4+1,(void *)(ylookup[u4]+p));
 
 					i = p+ylookup[d4+1];
-					if (y2ve[0] > d4) mvlineasm1(vince[0],palookupoffse[0],y2ve[0]-d4-1,vplce[0],bufplce[0],i+0);
-					if (y2ve[1] > d4) mvlineasm1(vince[1],palookupoffse[1],y2ve[1]-d4-1,vplce[1],bufplce[1],i+1);
-					if (y2ve[2] > d4) mvlineasm1(vince[2],palookupoffse[2],y2ve[2]-d4-1,vplce[2],bufplce[2],i+2);
-					if (y2ve[3] > d4) mvlineasm1(vince[3],palookupoffse[3],y2ve[3]-d4-1,vplce[3],bufplce[3],i+3);
+					if (y2ve[0] > d4) mvlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-d4-1,vplce[0],(void *)bufplce[0],(void *)(i+0));
+					if (y2ve[1] > d4) mvlineasm1(vince[1],(void *)palookupoffse[1],y2ve[1]-d4-1,vplce[1],(void *)bufplce[1],(void *)(i+1));
+					if (y2ve[2] > d4) mvlineasm1(vince[2],(void *)palookupoffse[2],y2ve[2]-d4-1,vplce[2],(void *)bufplce[2],(void *)(i+2));
+					if (y2ve[3] > d4) mvlineasm1(vince[3],(void *)palookupoffse[3],y2ve[3]-d4-1,vplce[3],(void *)bufplce[3],(void *)(i+3));
 				}
 
 				faketimerhandler();
@@ -4600,16 +4602,16 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 				if ((xv2&0x0000ffff) == 0)
 				{
 					qlinemode = 1;
-					setupqrhlineasm4(0L,yv2<<16,(xv2>>16)*ysiz+(yv2>>16),palookupoffs,0L,0L);
+					setupqrhlineasm4(0L,yv2<<16,(xv2>>16)*ysiz+(yv2>>16),(void *)palookupoffs,0L,0L);
 				}
 				else
 				{
 					qlinemode = 0;
-					setuprhlineasm4(xv2<<16,yv2<<16,(xv2>>16)*ysiz+(yv2>>16),palookupoffs,ysiz,0L);
+					setuprhlineasm4(xv2<<16,yv2<<16,(xv2>>16)*ysiz+(yv2>>16),(void *)palookupoffs,ysiz,0L);
 				}
 			}
 			else
-				setuprmhlineasm4(xv2<<16,yv2<<16,(xv2>>16)*ysiz+(yv2>>16),palookupoffs,ysiz,0L);
+				setuprmhlineasm4(xv2<<16,yv2<<16,(xv2>>16)*ysiz+(yv2>>16),(void *)palookupoffs,ysiz,0L);
 
 			y1 = uplc[x1];
 			if (((dastat&8) == 0) && (startumost[x1] > y1)) y1 = startumost[x1];
@@ -4634,9 +4636,9 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 								//x,y1
 							bx += xv*(y1-oy); by += yv*(y1-oy); oy = y1;
 							if (dastat&64) {
-								if (qlinemode) qrhlineasm4(x-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,0L    ,by<<16,ylookup[y1]+x+frameplace);
-								else rhlineasm4(x-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,bx<<16,by<<16,ylookup[y1]+x+frameplace);
-							} else rmhlineasm4(x-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,bx<<16,by<<16,ylookup[y1]+x+frameplace);
+								if (qlinemode) qrhlineasm4(x-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,0L    ,by<<16,(void *)(ylookup[y1]+x+frameplace));
+								else rhlineasm4(x-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,bx<<16,by<<16,(void *)(ylookup[y1]+x+frameplace));
+							} else rmhlineasm4(x-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,bx<<16,by<<16,(void *)(ylookup[y1]+x+frameplace));
 						}
 						y1 = ny1;
 					}
@@ -4649,9 +4651,9 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 								//x,y1
 							bx += xv*(y1-oy); by += yv*(y1-oy); oy = y1;
 							if (dastat&64) {
-								if (qlinemode) qrhlineasm4(x-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,0L    ,by<<16,ylookup[y1]+x+frameplace);
-								else rhlineasm4(x-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,bx<<16,by<<16,ylookup[y1]+x+frameplace);
-							} else rmhlineasm4(x-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,bx<<16,by<<16,ylookup[y1]+x+frameplace);
+								if (qlinemode) qrhlineasm4(x-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,0L    ,by<<16,(void *)(ylookup[y1]+x+frameplace));
+								else rhlineasm4(x-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,bx<<16,by<<16,(void *)(ylookup[y1]+x+frameplace));
+							} else rmhlineasm4(x-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,bx<<16,by<<16,(void *)(ylookup[y1]+x+frameplace));
 						}
 						while (y1 > ny1) lastx[y1--] = x;
 					}
@@ -4662,9 +4664,9 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 							//x,y2
 						bx += xv*(y2-oy); by += yv*(y2-oy); oy = y2;
 						if (dastat&64) {
-							if (qlinemode) qrhlineasm4(x-lastx[y2],(bx>>16)*ysiz+(by>>16)+bufplc,0L,0L    ,by<<16,ylookup[y2]+x+frameplace);
-							else rhlineasm4(x-lastx[y2],(bx>>16)*ysiz+(by>>16)+bufplc,0L,bx<<16,by<<16,ylookup[y2]+x+frameplace);
-						} else rmhlineasm4(x-lastx[y2],(bx>>16)*ysiz+(by>>16)+bufplc,0L,bx<<16,by<<16,ylookup[y2]+x+frameplace);
+							if (qlinemode) qrhlineasm4(x-lastx[y2],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,0L    ,by<<16,(void *)(ylookup[y2]+x+frameplace));
+							else rhlineasm4(x-lastx[y2],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,bx<<16,by<<16,(void *)(ylookup[y2]+x+frameplace));
+						} else rmhlineasm4(x-lastx[y2],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,bx<<16,by<<16,(void *)(ylookup[y2]+x+frameplace));
 					}
 					while (y2 < ny2) lastx[y2++] = x;
 				}
@@ -4677,9 +4679,9 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 							//x,y1
 						bx += xv*(y1-oy); by += yv*(y1-oy); oy = y1;
 						if (dastat&64) {
-							if (qlinemode) qrhlineasm4(x-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,0L    ,by<<16,ylookup[y1]+x+frameplace);
-							else rhlineasm4(x-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,bx<<16,by<<16,ylookup[y1]+x+frameplace);
-						} else rmhlineasm4(x-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,bx<<16,by<<16,ylookup[y1]+x+frameplace);
+							if (qlinemode) qrhlineasm4(x-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,0L    ,by<<16,(void *)(ylookup[y1]+x+frameplace));
+							else rhlineasm4(x-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,bx<<16,by<<16,(void *)(ylookup[y1]+x+frameplace));
+						} else rmhlineasm4(x-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,bx<<16,by<<16,(void *)(ylookup[y1]+x+frameplace));
 					}
 					if (x == x2-1) { bx += xv2; by += yv2; break; }
 					y1 = uplc[x+1];
@@ -4695,9 +4697,9 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 					//x2,y1
 				bx += xv*(y1-oy); by += yv*(y1-oy); oy = y1;
 				if (dastat&64) {
-					if (qlinemode) qrhlineasm4(x2-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,0L,by<<16,ylookup[y1]+x2+frameplace);
-					else rhlineasm4(x2-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,bx<<16,by<<16,ylookup[y1]+x2+frameplace);
-				} else rmhlineasm4(x2-lastx[y1],(bx>>16)*ysiz+(by>>16)+bufplc,0L,bx<<16,by<<16,ylookup[y1]+x2+frameplace);
+					if (qlinemode) qrhlineasm4(x2-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,0L,by<<16,(void *)(ylookup[y1]+x2+frameplace));
+					else rhlineasm4(x2-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,bx<<16,by<<16,(void *)(ylookup[y1]+x2+frameplace));
+				} else rmhlineasm4(x2-lastx[y1],(void *)((bx>>16)*ysiz+(by>>16)+bufplc),0L,bx<<16,by<<16,(void *)(ylookup[y1]+x2+frameplace));
 			}
 		}
 	}
@@ -4706,13 +4708,13 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 		if ((dastat&1) == 0)
 		{
 			if (dastat&64)
-				setupspritevline(palookupoffs,(xv>>16)*ysiz,xv<<16,ysiz,yv,0L);
+				setupspritevline((void *)palookupoffs,(xv>>16)*ysiz,xv<<16,ysiz,yv,0L);
 			else
-				msetupspritevline(palookupoffs,(xv>>16)*ysiz,xv<<16,ysiz,yv,0L);
+				msetupspritevline((void *)palookupoffs,(xv>>16)*ysiz,xv<<16,ysiz,yv,0L);
 		}
 		else
 		{
-			tsetupspritevline(palookupoffs,(xv>>16)*ysiz,xv<<16,ysiz,yv,0L);
+			tsetupspritevline((void *)palookupoffs,(xv>>16)*ysiz,xv<<16,ysiz,yv,0L);
 			if (dastat&32) settransreverse(); else settransnormal();
 		}
 		for(x=x1;x<x2;x++)
@@ -4740,13 +4742,13 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 			if ((dastat&1) == 0)
 			{
 				if (dastat&64)
-					spritevline(0L,by<<16,y2-y1+1,bx<<16,(bx>>16)*ysiz+(by>>16)+bufplc,p);
+					spritevline(0L,by<<16,y2-y1+1,bx<<16,(void *)((bx>>16)*ysiz+(by>>16)+bufplc),(void *)p);
 				else
-					mspritevline(0L,by<<16,y2-y1+1,bx<<16,(bx>>16)*ysiz+(by>>16)+bufplc,p);
+					mspritevline(0L,by<<16,y2-y1+1,bx<<16,(void *)((bx>>16)*ysiz+(by>>16)+bufplc),(void *)p);
 			}
 			else
 			{
-				tspritevline(0L,by<<16,y2-y1+1,bx<<16,(bx>>16)*ysiz+(by>>16)+bufplc,p);
+				tspritevline(0L,by<<16,y2-y1+1,bx<<16,(void *)((bx>>16)*ysiz+(by>>16)+bufplc),(void *)p);
 			}
 			faketimerhandler();
 		}

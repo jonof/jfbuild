@@ -95,53 +95,53 @@ extern long drawslab(long,long,long,long,long,long);
 
 #elif defined(__GNUC__) && defined(__i386__) && !defined(NOASM)	// __WATCOMC__
 
-#if defined(__linux) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#if !defined(_WIN32)
 #define __cdecl
 #endif
 
-extern long __cdecl mmxoverlay();
-extern long __cdecl sethlinesizes(long,long,long);
-extern long __cdecl setpalookupaddress(char *);
-extern long __cdecl setuphlineasm4(long,long);
-extern long __cdecl hlineasm4(long,long,long,long,long,long);
-extern long __cdecl setuprhlineasm4(long,long,long,long,long,long);
-extern long __cdecl rhlineasm4(long,long,long,long,long,long);
-extern long __cdecl setuprmhlineasm4(long,long,long,long,long,long);
-extern long __cdecl rmhlineasm4(long,long,long,long,long,long);
-extern long __cdecl setupqrhlineasm4(long,long,long,long,long,long);
-extern long __cdecl qrhlineasm4(long,long,long,long,long,long);
-extern long __cdecl setvlinebpl(long);
-extern long __cdecl fixtransluscence(long);
-extern long __cdecl prevlineasm1(long,long,long,long,long,long);
-extern long __cdecl vlineasm1(long,long,long,long,long,long);
-extern long __cdecl setuptvlineasm(long);
-extern long __cdecl tvlineasm1(long,long,long,long,long,long);
-extern long __cdecl setuptvlineasm2(long,long,long);
-extern long __cdecl tvlineasm2(long,long,long,long,long,long);
-extern long __cdecl mvlineasm1(long,long,long,long,long,long);
-extern long __cdecl setupvlineasm(long);
-extern long __cdecl vlineasm4(long,long);
-extern long __cdecl setupmvlineasm(long);
-extern long __cdecl mvlineasm4(long,long);
-extern long __cdecl setupspritevline(long,long,long,long,long,long);
-extern long __cdecl spritevline(long,long,long,long,long,long);
-extern long __cdecl msetupspritevline(long,long,long,long,long,long);
-extern long __cdecl mspritevline(long,long,long,long,long,long);
-extern long __cdecl tsetupspritevline(long,long,long,long,long,long);
-extern long __cdecl tspritevline(long,long,long,long,long,long);
-extern long __cdecl mhline(long,long,long,long,long,long);
-extern long __cdecl mhlineskipmodify(long,long,long,long,long,long);
-extern long __cdecl msethlineshift(long,long);
-extern long __cdecl thline(long,long,long,long,long,long);
-extern long __cdecl thlineskipmodify(long,long,long,long,long,long);
-extern long __cdecl tsethlineshift(long,long);
-extern long __cdecl setupslopevlin(long,long,long);
-extern long __cdecl slopevlin(long,long,long,long,long,long);
-extern long __cdecl settransnormal();
-extern long __cdecl settransreverse();
-extern long __cdecl setupdrawslab(long,long);
-extern long __cdecl drawslab(long,long,long,long,long,long);
-extern void __cdecl stretchhline(long,long,long,long,long,long);
+void __cdecl mmxoverlay(void);
+void __cdecl sethlinesizes(int,int,void *);
+void __cdecl setpalookupaddress(void *);
+void __cdecl setuphlineasm4(int,int);
+void __cdecl hlineasm4(int,int,int,int,int,void *);
+void __cdecl setuprhlineasm4(int,int,int,void *,int,int);
+void __cdecl rhlineasm4(int,void *,int,int,int,void *);
+void __cdecl setuprmhlineasm4(int,int,int,void *,int,int);
+void __cdecl rmhlineasm4(int,void *,int,int,int,void *);
+void __cdecl setupqrhlineasm4(int,int,int,void *,int,int);
+void __cdecl qrhlineasm4(int,void *,int,int,int,void *);
+void __cdecl setvlinebpl(int);
+void __cdecl fixtransluscence(void *);
+int __cdecl prevlineasm1(int,void *,int,int,void *,void *);
+void __cdecl vlineasm1(int,void *,int,int,void *,void *);
+void __cdecl setuptvlineasm(int);
+int __cdecl tvlineasm1(int,void *,int,int,void *,void *);
+void __cdecl setuptvlineasm2(int,void *,void *);
+void __cdecl tvlineasm2(int,int,void *,void *,int,void *);
+int __cdecl mvlineasm1(int,void *,int,int,void *,void *);
+void __cdecl setupvlineasm(int);
+void __cdecl vlineasm4(int,void *);
+void __cdecl setupmvlineasm(int);
+void __cdecl mvlineasm4(int,void *);
+void __cdecl setupspritevline(void *,int,int,int,int,int);
+void __cdecl spritevline(int,int,int,int,void *,void *);
+void __cdecl msetupspritevline(void *,int,int,int,int,int);
+void __cdecl mspritevline(int,int,int,int,void *,void *);
+void __cdecl tsetupspritevline(void *,int,int,int,int,int);
+void __cdecl tspritevline(int,int,int,int,void *,void *);
+void __cdecl mhline(void *,int,int,int,int,void *);
+void __cdecl mhlineskipmodify(void *,int,int,int,int,void *);
+void __cdecl msethlineshift(int,int);
+void __cdecl thline(void *,int,int,int,int,void *);
+void __cdecl thlineskipmodify(void *,int,int,int,int,void *);
+void __cdecl tsethlineshift(int,int);
+void __cdecl setupslopevlin(int,void *,int);
+void __cdecl slopevlin(void *,int,void *,int,int,int);
+void __cdecl settransnormal(void);
+void __cdecl settransreverse(void);
+void __cdecl setupdrawslab(int,void *);
+void __cdecl drawslab(int,int,int,int,void *,void *);
+void __cdecl stretchhline(void *,int,int,int,void *,void *);
 
 #elif defined(_MSC_VER)	&& !defined(NOASM)	// __GNUC__ && __i386__
 

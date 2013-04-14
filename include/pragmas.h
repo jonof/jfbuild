@@ -998,7 +998,7 @@ void copybufreverse(void *S, void *D, int c);
 	   __asm__ __volatile__ ("movw (%%eax), %%cx; movw (%%ebx), %%dx; movw %%cx, (%%ebx); movw %%dx, (%%eax)" \
 		: : "a" (__a), "b" (__b) : "ecx", "edx", "memory", "cc"); \
 	 0; })
-#define swapint(a,b) \
+#define swaplong(a,b) \
 	({ void *__a=(a), *__b=(b); \
 	   __asm__ __volatile__ ("movl (%%eax), %%ecx; movl (%%ebx), %%edx; movl %%ecx, (%%ebx); movl %%edx, (%%eax)" \
 		: : "a" (__a), "b" (__b) : "ecx", "edx", "memory", "cc"); \
