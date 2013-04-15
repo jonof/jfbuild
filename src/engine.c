@@ -77,7 +77,8 @@ static short *dotp1[MAXYDIM], *dotp2[MAXYDIM];
 static unsigned char tempbuf[MAXWALLS];
 
 int ebpbak, espbak;
-intptr_t slopalookup[2048];	// was 2048
+#define SLOPALOOKUPSIZ (MAXXDIM<<1)
+intptr_t slopalookup[SLOPALOOKUPSIZ];
 #if defined(USE_OPENGL)
 palette_t palookupfog[MAXPALOOKUPS];
 #endif
@@ -2161,9 +2162,10 @@ static void grouscan(int dax1, int dax2, int sectnum, unsigned char dastat)
 
 	l = (globalzd>>16);
 
+	assert(SLOPALOOKUPSIZ - 4 - ydimen > 0);
+
 	shinc = mulscale16(globalz,xdimenscale);
-	assert((int)(sizeof(slopalookup) / sizeof(intptr_t)) - 4 - ydimen > 0);
-	if (shinc > 0) shoffs = (4<<15); else shoffs = ((sizeof(slopalookup) / sizeof(int) - 4 - ydimen)<<15);
+	if (shinc > 0) shoffs = (4<<15); else shoffs = ((SLOPALOOKUPSIZ-4-ydimen)<<15);
 	if (dastat == 0) y1 = umost[dax1]; else y1 = max(umost[dax1],dplc[dax1]);
 	m1 = mulscale16(y1,globalzd) + (globalzx>>6);
 		//Avoid visibility overflow by crossing horizon
@@ -2171,12 +2173,20 @@ static void grouscan(int dax1, int dax2, int sectnum, unsigned char dastat)
 	m2 = m1+l;
 	mptr1 = &slopalookup[y1+(shoffs>>15)]; mptr2 = mptr1+1;
 
+	assert(y1+(shoffs>>15) >= 0);
+	assert(y1+(shoffs>>15) <= SLOPALOOKUPSIZ-2);
+
 	for(x=dax1;x<=dax2;x++)
 	{
 		if (dastat == 0) { y1 = umost[x]; y2 = min(dmost[x],uplc[x])-1; }
 		else { y1 = max(umost[x],dplc[x]); y2 = dmost[x]-1; }
 		if (y1 <= y2)
 		{
+			assert(y1+(shoffs>>15) >= 0);
+			assert(y1+(shoffs>>15) <= SLOPALOOKUPSIZ-1);
+			assert(y2+(shoffs>>15) >= 0);
+			assert(y2+(shoffs>>15) <= SLOPALOOKUPSIZ-1);
+
 			nptr1 = &slopalookup[y1+(shoffs>>15)];
 			nptr2 = &slopalookup[y2+(shoffs>>15)];
 			while (nptr1 <= mptr1)

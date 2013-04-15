@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 	_buildargv = (const char **)argv;
 
 	baselayer_init();
-	r = app_main(argc, argv);
+	r = app_main(argc, (char const * const*)argv);
 
 	startwin_close();
 #ifdef HAVE_GTK2
