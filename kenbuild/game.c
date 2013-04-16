@@ -383,6 +383,34 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
+static int osdcmd_map(const osdfuncparm_t *parm) {
+    int i;
+    char *dot, namebuf[BMAX_PATH+1];
+
+    if (parm->numparms != 1) return OSDCMD_SHOWHELP;
+
+    strncpy(namebuf, parm->parms[0], BMAX_PATH);
+    namebuf[BMAX_PATH] = 0;
+    dot = strrchr(namebuf, '.');
+    if ((!dot || Bstrcasecmp(dot, ".map")) && strlen(namebuf) <= BMAX_PATH-4) {
+        strcat(namebuf, ".map");
+    }
+
+    prepareboard(namebuf);
+
+    screenpeek = myconnectindex;
+	reccnt = 0;
+	for(i=connecthead;i>=0;i=connectpoint2[i]) initplayersprite((short)i);
+
+	waitforeverybody();
+	totalclock = ototalclock = 0; gotlastpacketclock = 0; nummoves = 0;
+
+	ready2send = 1;
+	drawscreen(screenpeek,65536L);
+
+    return OSDCMD_OK;
+}
+
 extern int startwin_run(void);
 
 int app_main(int argc, char const * const argv[])
@@ -393,6 +421,7 @@ int app_main(int argc, char const * const argv[])
 #ifdef USE_OPENGL
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
+	OSD_RegisterFunction("map", "map [filename]: load a map", osdcmd_map);
 #endif
 	
 	wm_setapptitle("KenBuild by Ken Silverman");
