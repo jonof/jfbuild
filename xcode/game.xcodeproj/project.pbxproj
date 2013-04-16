@@ -504,7 +504,6 @@
 				HEADER_SEARCH_PATHS = ../include;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				PREBINDING = NO;
-				VALID_ARCHS = "x86_64 i386 ppc";
 				WARNING_CFLAGS = (
 					"-W",
 					"-Wall",
@@ -539,7 +538,6 @@
 				HEADER_SEARCH_PATHS = ../include;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
 				PREBINDING = NO;
-				VALID_ARCHS = "x86_64 i386 ppc";
 				WARNING_CFLAGS = (
 					"-W",
 					"-Wall",

@@ -796,7 +796,6 @@
 				);
 				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
-				VALID_ARCHS = "x86_64 i386 ppc";
 				WARNING_CFLAGS = (
 					"-W",
 					"-Wall",
@@ -830,7 +829,6 @@
 				);
 				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				MACOSX_DEPLOYMENT_TARGET = 10.5;
-				VALID_ARCHS = "x86_64 i386 ppc";
 				WARNING_CFLAGS = (
 					"-W",
 					"-Wall",
