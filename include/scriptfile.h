@@ -17,11 +17,11 @@ int scriptfile_getsymbol(scriptfile *sf, int *num);
 int scriptfile_getlinum(scriptfile *sf, char *ptr);
 int scriptfile_getbraces(scriptfile *sf, char **braceend);
 
-scriptfile *scriptfile_fromfile(char *fn);
-scriptfile *scriptfile_fromstring(char *string);
+scriptfile *scriptfile_fromfile(const char *fn);
+scriptfile *scriptfile_fromstring(const char *string);
 void scriptfile_close(scriptfile *sf);
 int scriptfile_eof(scriptfile *sf);
 
-int scriptfile_getsymbolvalue(char *name, int *val);
-int scriptfile_addsymbolvalue(char *name, int val);
+int scriptfile_getsymbolvalue(const char *name, int *val);
+int scriptfile_addsymbolvalue(const char *name, int val);
 void scriptfile_clearsymbols(void);

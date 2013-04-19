@@ -247,7 +247,7 @@ void scriptfile_preparse (scriptfile *sf, char *tx, long flen)
 	sf->eof = &sf->textbuf[nflen-1];
 }
 
-scriptfile *scriptfile_fromfile(char *fn)
+scriptfile *scriptfile_fromfile(const char *fn)
 {
 	int fp;
 	scriptfile *sf;
@@ -282,7 +282,7 @@ scriptfile *scriptfile_fromfile(char *fn)
 	return sf;
 }
 
-scriptfile *scriptfile_fromstring(char *string)
+scriptfile *scriptfile_fromstring(const char *string)
 {
 	scriptfile *sf;
 	char *tx;
@@ -349,7 +349,7 @@ static char * getsymbtabspace(int reqd)
 	return pos;
 }
 
-int scriptfile_getsymbolvalue(char *name, int *val)
+int scriptfile_getsymbolvalue(const char *name, int *val)
 {
 	char *scanner = symbtab;
 
@@ -366,7 +366,7 @@ int scriptfile_getsymbolvalue(char *name, int *val)
 	return 0;
 }
 
-int scriptfile_addsymbolvalue(char *name, int val)
+int scriptfile_addsymbolvalue(const char *name, int val)
 {
 	int x;
 	char *sp;

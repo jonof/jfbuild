@@ -500,7 +500,7 @@ int md_definehud (int modelid, int tilex, double xadd, double yadd, double zadd,
 int md_undefinetile(int tile);
 int md_undefinemodel(int modelid);
 
-int loaddefinitionsfile(char *fn);
+int loaddefinitionsfile(const char *fn);
 
 extern int mapversion;	// if loadboard() fails with -2 return, try loadoldboard(). if it fails with -2, board is dodgy
 int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *daposz, short *daang, short *dacursectnum);

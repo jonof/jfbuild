@@ -946,7 +946,7 @@ static int defsparser(scriptfile *script)
 }
 
 
-int loaddefinitionsfile(char *fn)
+int loaddefinitionsfile(const char *fn)
 {
 	scriptfile *script;
 
