@@ -1,8 +1,7 @@
 #ifdef USE_OPENGL
 
-#include "compat.h"
-#include "baselayer.h"
 #include "build.h"
+#include "baselayer.h"
 #include "glbuild.h"
 #include "kplib.h"
 #include "cache1d.h"

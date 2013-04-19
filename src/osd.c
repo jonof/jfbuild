@@ -2,7 +2,6 @@
 // for the Build Engine
 // by Jonathon Fowler (jf@jonof.id.au)
 
-#include "compat.h"
 #include "build.h"
 #include "osd.h"
 #include "baselayer.h"

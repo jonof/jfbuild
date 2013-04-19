@@ -9,12 +9,11 @@
 #ifndef __APPLE__
 # include "SDL.h"
 #endif
-#include "compat.h"
+#include "build.h"
 #include "sdlayer.h"
 #include "cache1d.h"
 #include "pragmas.h"
 #include "a.h"
-#include "build.h"
 #include "osd.h"
 
 #ifdef USE_OPENGL

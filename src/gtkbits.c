@@ -10,8 +10,8 @@
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
 
-#include "baselayer.h"
 #include "build.h"
+#include "baselayer.h"
 
 #ifndef LINKED_GTK
 # include "dynamicgtk.h"

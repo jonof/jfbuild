@@ -9,6 +9,8 @@
 #ifndef __build_h__
 #define __build_h__
 
+#include "compat.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

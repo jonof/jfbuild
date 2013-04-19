@@ -6,9 +6,8 @@
 
 #ifdef POLYMOST
 
-#include "compat.h"
-#include "kplib.h"
 #include "build.h"
+#include "kplib.h"
 #include "hightile_priv.h"
 
 palette_t hictinting[MAXPALOOKUPS];

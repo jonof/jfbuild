@@ -1,11 +1,9 @@
 #ifdef USE_OPENGL
 
-#include "polymosttexcache.h"
-#include "compat.h"
-#include "baselayer.h"
-
-#include "glbuild.h"
 #include "build.h"
+#include "polymosttexcache.h"
+#include "baselayer.h"
+#include "glbuild.h"
 #include "hightile_priv.h"
 #include "polymosttex_priv.h"
 

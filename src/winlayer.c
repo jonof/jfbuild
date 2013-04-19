@@ -32,10 +32,9 @@
 #include "glbuild.h"
 #endif
 
-#include "compat.h"
+#include "build.h"
 #include "winlayer.h"
 #include "pragmas.h"
-#include "build.h"
 #include "a.h"
 #include "osd.h"
 

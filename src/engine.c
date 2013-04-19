@@ -8,7 +8,6 @@
 
 #define ENGINE
 
-#include "compat.h"
 #include "build.h"
 #include "pragmas.h"
 #include "cache1d.h"

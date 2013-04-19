@@ -1,7 +1,6 @@
 #ifdef USE_OPENGL
 //------------------------------------- MD2/MD3 LIBRARY BEGINS -------------------------------------
 
-#include "compat.h"
 #include "build.h"
 #include "glbuild.h"
 #include "kplib.h"

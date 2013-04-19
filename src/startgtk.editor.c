@@ -19,9 +19,8 @@
 # include "dynamicgtk.h"
 #endif
 
-#include "baselayer.h"
-#include "compat.h"
 #include "build.h"
+#include "baselayer.h"
 #include "editor.h"
 
 #define TAB_CONFIG 0

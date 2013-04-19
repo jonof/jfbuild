@@ -1,6 +1,5 @@
-#include "compat.h"
-#include "osd.h"
 #include "build.h"
+#include "osd.h"
 #include "baselayer.h"
 
 #ifdef RENDERTYPEWIN

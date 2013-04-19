@@ -67,7 +67,6 @@ Low priority:
 
 #ifdef POLYMOST
 
-#include "compat.h"
 #include "build.h"
 #include "glbuild.h"
 #include "pragmas.h"

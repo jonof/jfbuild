@@ -2,7 +2,6 @@
 #error Only for Windows
 #endif
 
-#include "compat.h"
 #include "build.h"
 #include "editor.h"
 #include "winlayer.h"
