@@ -57,9 +57,6 @@
 		AB735F660A29A39D003261DC /* engine.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F540A29A39C003261DC /* engine.c */; };
 		AB735F670A29A39D003261DC /* glbuild.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F550A29A39C003261DC /* glbuild.c */; };
 		AB735F680A29A39D003261DC /* kplib.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F560A29A39C003261DC /* kplib.c */; };
-		AB735F690A29A39D003261DC /* lzf_c.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F570A29A39C003261DC /* lzf_c.c */; };
-		AB735F6A0A29A39D003261DC /* lzf_d.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F580A29A39C003261DC /* lzf_d.c */; };
-		AB735F6B0A29A39D003261DC /* md4.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F590A29A39C003261DC /* md4.c */; };
 		AB735F6C0A29A39D003261DC /* mmulti.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5A0A29A39C003261DC /* mmulti.c */; };
 		AB735F6D0A29A39D003261DC /* osd.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5B0A29A39C003261DC /* osd.c */; };
 		AB735F6E0A29A39D003261DC /* osxbits.m in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5C0A29A39C003261DC /* osxbits.m */; };
@@ -72,8 +69,6 @@
 		AB735F8C0A29A44C003261DC /* compat.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7B0A29A44C003261DC /* compat.h */; };
 		AB735F8D0A29A44C003261DC /* crc32.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7C0A29A44C003261DC /* crc32.h */; };
 		AB735F8E0A29A44C003261DC /* glbuild.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7D0A29A44C003261DC /* glbuild.h */; };
-		AB735F900A29A44C003261DC /* lzf.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7F0A29A44C003261DC /* lzf.h */; };
-		AB735F910A29A44C003261DC /* md4.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F800A29A44C003261DC /* md4.h */; };
 		AB735F920A29A44C003261DC /* mmulti.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F810A29A44C003261DC /* mmulti.h */; };
 		AB735F940A29A44C003261DC /* osd.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F830A29A44C003261DC /* osd.h */; };
 		AB735F960A29A44C003261DC /* pragmas.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F850A29A44C003261DC /* pragmas.h */; };
@@ -181,9 +176,6 @@
 		AB735F540A29A39C003261DC /* engine.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = engine.c; sourceTree = "<group>"; };
 		AB735F550A29A39C003261DC /* glbuild.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = glbuild.c; sourceTree = "<group>"; };
 		AB735F560A29A39C003261DC /* kplib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kplib.c; sourceTree = "<group>"; };
-		AB735F570A29A39C003261DC /* lzf_c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lzf_c.c; sourceTree = "<group>"; };
-		AB735F580A29A39C003261DC /* lzf_d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = lzf_d.c; sourceTree = "<group>"; };
-		AB735F590A29A39C003261DC /* md4.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = md4.c; sourceTree = "<group>"; };
 		AB735F5A0A29A39C003261DC /* mmulti.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mmulti.c; sourceTree = "<group>"; };
 		AB735F5B0A29A39C003261DC /* osd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = osd.c; sourceTree = "<group>"; };
 		AB735F5C0A29A39C003261DC /* osxbits.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = osxbits.m; sourceTree = "<group>"; };
@@ -196,8 +188,6 @@
 		AB735F7B0A29A44C003261DC /* compat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = compat.h; sourceTree = "<group>"; };
 		AB735F7C0A29A44C003261DC /* crc32.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = crc32.h; sourceTree = "<group>"; };
 		AB735F7D0A29A44C003261DC /* glbuild.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glbuild.h; sourceTree = "<group>"; };
-		AB735F7F0A29A44C003261DC /* lzf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lzf.h; sourceTree = "<group>"; };
-		AB735F800A29A44C003261DC /* md4.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = md4.h; sourceTree = "<group>"; };
 		AB735F810A29A44C003261DC /* mmulti.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mmulti.h; sourceTree = "<group>"; };
 		AB735F830A29A44C003261DC /* osd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osd.h; sourceTree = "<group>"; };
 		AB735F850A29A44C003261DC /* pragmas.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = pragmas.h; sourceTree = "<group>"; };
@@ -368,9 +358,6 @@
 				AB3B2A0D0EE3FC0400944CD1 /* hightile.c */,
 				AB3B2ABF0EE4033300944CD1 /* hightile_priv.h */,
 				AB735F560A29A39C003261DC /* kplib.c */,
-				AB735F570A29A39C003261DC /* lzf_c.c */,
-				AB735F580A29A39C003261DC /* lzf_d.c */,
-				AB735F590A29A39C003261DC /* md4.c */,
 				AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */,
 				AB3B2AC00EE4033300944CD1 /* mdsprite_priv.h */,
 				AB735F5A0A29A39C003261DC /* mmulti.c */,
@@ -402,8 +389,6 @@
 				AB735F7B0A29A44C003261DC /* compat.h */,
 				AB735F7C0A29A44C003261DC /* crc32.h */,
 				AB735F7D0A29A44C003261DC /* glbuild.h */,
-				AB735F7F0A29A44C003261DC /* lzf.h */,
-				AB735F800A29A44C003261DC /* md4.h */,
 				AB735F810A29A44C003261DC /* mmulti.h */,
 				AB735F830A29A44C003261DC /* osd.h */,
 				AB735F850A29A44C003261DC /* pragmas.h */,
@@ -475,8 +460,6 @@
 				AB735F8C0A29A44C003261DC /* compat.h in Headers */,
 				AB735F8D0A29A44C003261DC /* crc32.h in Headers */,
 				AB735F8E0A29A44C003261DC /* glbuild.h in Headers */,
-				AB735F900A29A44C003261DC /* lzf.h in Headers */,
-				AB735F910A29A44C003261DC /* md4.h in Headers */,
 				AB735F920A29A44C003261DC /* mmulti.h in Headers */,
 				AB735F940A29A44C003261DC /* osd.h in Headers */,
 				AB735F960A29A44C003261DC /* pragmas.h in Headers */,
@@ -660,9 +643,6 @@
 				AB735F660A29A39D003261DC /* engine.c in Sources */,
 				AB735F670A29A39D003261DC /* glbuild.c in Sources */,
 				AB735F680A29A39D003261DC /* kplib.c in Sources */,
-				AB735F690A29A39D003261DC /* lzf_c.c in Sources */,
-				AB735F6A0A29A39D003261DC /* lzf_d.c in Sources */,
-				AB735F6B0A29A39D003261DC /* md4.c in Sources */,
 				AB735F6C0A29A39D003261DC /* mmulti.c in Sources */,
 				AB735F6D0A29A39D003261DC /* osd.c in Sources */,
 				AB735F6E0A29A39D003261DC /* osxbits.m in Sources */,

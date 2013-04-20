@@ -6,7 +6,7 @@
 #include "kplib.h"
 #include "cache1d.h"
 #include "pragmas.h"
-#include "md4.h"
+#include "crc32.h"
 #include "engine_priv.h"
 #include "polymost_priv.h"
 #include "hightile_priv.h"
@@ -28,7 +28,8 @@ typedef struct PTHash_typ PTHash;
 struct PTMHash_typ {
 	struct PTMHash_typ *next;
 	PTMHead head;
-	unsigned char id[16];
+	unsigned int idcrc;   // crc32 of the id below for quick comparisons
+    PTMIdent id;
 };
 typedef struct PTMHash_typ PTMHash;
 
@@ -62,7 +63,7 @@ static int primepos   = 0;	// the position in pthashhead where we are up to in p
 int polymosttexverbosity = 1;	// 0 = none, 1 = errors, 2 = all
 int polymosttexfullbright = 256;	// first index of the fullbright palette entries
 
-#define PTHASHHEADSIZ 8192
+#define PTHASHHEADSIZ 4096
 static PTHash * pthashhead[PTHASHHEADSIZ];	// will be initialised 0 by .bss segment
 
 #define PTMHASHHEADSIZ 4096
@@ -85,10 +86,9 @@ static inline int pt_gethashhead(const int picnum)
 	return picnum & (PTHASHHEADSIZ-1);
 }
 
-static inline int ptm_gethashhead(const unsigned char id[16])
+static inline int ptm_gethashhead(const unsigned int idcrc)
 {
-	int bytes = (int)id[0] | ((int)id[1] << 8);
-	return bytes & (PTMHASHHEADSIZ-1);
+	return idcrc & (PTMHASHHEADSIZ-1);
 }
 
 static void detect_texture_size()
@@ -109,53 +109,20 @@ static void detect_texture_size()
 
 
 /**
- * Returns a PTMHead pointer for the given texture id
- * @param id the texture id
- * @return the PTMHead item, or null if it couldn't be created
- */
-PTMHead * PTM_GetHead(const unsigned char id[16])
-{
-	PTMHash * ptmh;
-	int i;
-	
-	i = ptm_gethashhead(id);
-	ptmh = ptmhashhead[i];
-	
-	while (ptmh) {
-		if (memcmp(id, ptmh->id, 16) == 0) {
-			return &ptmh->head;
-		}
-		ptmh = ptmh->next;
-	}
-	
-	ptmh = (PTMHash *) malloc(sizeof(PTMHash));
-	if (ptmh) {
-		memset(ptmh, 0, sizeof(PTMHash));
-		
-		memcpy(ptmh->id, id, 16);
-		ptmh->next = ptmhashhead[i];
-		ptmhashhead[i] = ptmh;
-	}
-	
-	return &ptmh->head;
-}
-
-
-/**
  * Calculates a texture id from the information in a PTHead structure
+ * @param id the PTMIdent to initialise using...
  * @param pth the PTHead structure
- * @param extra for ART this is the layer number, otherwise 0
- * @param id the 16 bytes into which the id will be written
  */
-static void ptm_calculateid(const PTHead * pth, int extra, unsigned char id[16])
+void PTM_InitIdent(PTMIdent *id, PTHead *pth)
 {
+    memset(id, 0, sizeof(PTMIdent));
+    
+    if (!pth) {
+        return;
+    }
+    
 	if (pth->flags & PTH_HIGHTILE) {
-		struct {
-			int type;
-			int flags;
-			int effects;
-			char filename[BMAX_PATH];
-		} hightileid;
+        id->type = PTMIDENT_HIGHTILE;
 		
 		if (!pth->repldef) {
 			if (polymosttexverbosity >= 1) {
@@ -165,33 +132,54 @@ static void ptm_calculateid(const PTHead * pth, int extra, unsigned char id[16])
 			return;
 		}
 		
-		memset(&hightileid, 0, sizeof(hightileid));
-		hightileid.type = 1;
-		hightileid.flags = pth->flags & (PTH_CLAMPED);
-		hightileid.effects = (pth->palnum != pth->repldef->palnum)
-				? hictinting[pth->palnum].f : 0;
-		strncpy(hightileid.filename, pth->repldef->filename, BMAX_PATH);
-		
-		md4once((unsigned char *) &hightileid, sizeof(hightileid), id);
-
+		id->flags = pth->flags & (PTH_CLAMPED);
+		id->effects = (pth->palnum != pth->repldef->palnum)
+            ? hictinting[pth->palnum].f : 0;
+		strncpy(id->filename, pth->repldef->filename, BMAX_PATH);
 	} else {
-		struct {
-			int type;
-			int flags;
-			int palnum;
-			int picnum;
-			int layer;
-		} artid;
-		
-		memset(&artid, 0, sizeof(artid));
-		artid.type = 0;
-		artid.flags = pth->flags & (PTH_CLAMPED);
-		artid.palnum = pth->palnum;
-		artid.picnum = pth->picnum;
-		artid.layer = extra;
-		
-		md4once((unsigned char *) &artid, sizeof(artid), id);
+		id->type = PTMIDENT_ART;
+		id->flags = pth->flags & (PTH_CLAMPED);
+		id->palnum = pth->palnum;
+		id->picnum = pth->picnum;
 	}
+}
+
+
+/**
+ * Returns a PTMHead pointer for the given texture id
+ * @param id the identifier of the texture
+ * @return the PTMHead item, or null if it couldn't be created
+ */
+PTMHead * PTM_GetHead(const PTMIdent *id)
+{
+	PTMHash * ptmh;
+	int i;
+    unsigned int idcrc;
+    
+    idcrc = crc32once((unsigned char *)id, sizeof(PTMIdent));
+	
+	i = ptm_gethashhead(idcrc);
+	ptmh = ptmhashhead[i];
+	
+	while (ptmh) {
+        if (ptmh->idcrc == idcrc &&
+            memcmp(&ptmh->id, id, sizeof(PTMIdent)) == 0) {
+			return &ptmh->head;
+		}
+		ptmh = ptmh->next;
+	}
+	
+	ptmh = (PTMHash *) malloc(sizeof(PTMHash));
+	if (ptmh) {
+		memset(ptmh, 0, sizeof(PTMHash));
+		
+        ptmh->idcrc = idcrc;
+		memcpy(&ptmh->id, id, sizeof(PTMIdent));
+		ptmh->next = ptmhashhead[i];
+		ptmhashhead[i] = ptmh;
+	}
+	
+	return &ptmh->head;
 }
 
 
@@ -594,8 +582,8 @@ static int pt_load_art(PTHead * pth)
 	int x, y, x2, y2;
 	int dacol;
 	int hasalpha = 0, hasfullbright = 0;
-	unsigned char id[16];
-	
+    PTMIdent id;
+
 	tex.tsizx = tilesizx[pth->picnum];
 	tex.tsizy = tilesizy[pth->picnum];
 	if (!glinfo.texnpot) {
@@ -690,8 +678,9 @@ static int pt_load_art(PTHead * pth)
 	pth->flags |= (PTH_NOCOMPRESS | PTH_NOMIPLEVEL);
 	tex.hasalpha = hasalpha;
 	
-	ptm_calculateid(pth, PTHPIC_BASE, id);
-	pth->pic[PTHPIC_BASE] = PTM_GetHead(id);
+    PTM_InitIdent(&id, pth);
+    id.layer = PTHPIC_BASE;
+	pth->pic[PTHPIC_BASE] = PTM_GetHead(&id);
 	pth->pic[PTHPIC_BASE]->tsizx = tex.tsizx;
 	pth->pic[PTHPIC_BASE]->tsizy = tex.tsizy;
 	pth->pic[PTHPIC_BASE]->sizx  = tex.sizx;
@@ -699,8 +688,8 @@ static int pt_load_art(PTHead * pth)
 	ptm_uploadtexture(pth->pic[PTHPIC_BASE], pth->flags, &tex, 0);
 	
 	if (hasfullbright) {
-		ptm_calculateid(pth, PTHPIC_GLOW, id);
-		pth->pic[PTHPIC_GLOW] = PTM_GetHead(id);
+        id.layer = PTHPIC_BASE;
+		pth->pic[PTHPIC_GLOW] = PTM_GetHead(&id);
 		pth->pic[PTHPIC_GLOW]->tsizx = tex.tsizx;
 		pth->pic[PTHPIC_GLOW]->tsizy = tex.tsizy;
 		pth->pic[PTHPIC_GLOW]->sizx  = tex.sizx;
@@ -737,7 +726,7 @@ static int pt_load_hightile(PTHead * pth)
 	int effects = 0;
 	int err = 0;
 	int texture = 0, loaded[PTHPIC_SIZE] = { 0,0,0,0,0,0, };
-	unsigned char id[16];
+    PTMIdent id;
 
 	if (!pth->repldef) {
 		return 0;
@@ -777,8 +766,8 @@ static int pt_load_hightile(PTHead * pth)
 			continue;
 		}
 
-		ptm_calculateid(pth, 0, id);
-		pth->pic[texture] = PTM_GetHead(id);
+        PTM_InitIdent(&id, pth);
+        pth->pic[texture] = PTM_GetHead(&id);
 		
 		if ((err = PTM_LoadTextureFile(filename, pth->pic[texture], pth->flags, effects))) {
 			if (polymosttexverbosity >= 1) {

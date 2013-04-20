@@ -7,7 +7,7 @@
 #include "pragmas.h"
 #include "cache1d.h"
 #include "baselayer.h"
-#include "md4.h"
+#include "crc32.h"
 #include "engine_priv.h"
 #include "polymost_priv.h"
 #include "hightile_priv.h"
@@ -330,18 +330,11 @@ int md_undefinemodel(int modelid)
 	return 0;
 }
 
-static void md_calculateskinid(const char * filename, int effects, unsigned char id[16])
+static void md_initident(PTMIdent *id, const char * filename, int effects)
 {
-	struct {
-		int effects;
-		char filename[BMAX_PATH];
-	} skinid;
-	
-	memset(&skinid, 0, sizeof(skinid));
-	skinid.effects = effects;
-	strncpy(skinid.filename, filename, BMAX_PATH);
-	
-	md4once((unsigned char *) &skinid, sizeof(skinid), id);
+    memset(id, 0, sizeof(PTMIdent));
+    id->effects = effects;
+    strncpy(id->filename, filename, BMAX_PATH);
 }
 
 //Note: even though it says md2model, it works for both md2model&md3model
@@ -349,9 +342,9 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 {
 	int i, err = 0;
 	char *skinfile = 0, fn[BMAX_PATH+65];
-	unsigned char id[16];
 	PTMHead **tex = 0;
 	mdskinmap_t *sk, *skzero = 0;
+    PTMIdent id;
 	
 	if (m->mdnum == 2) {
 		surf = 0;
@@ -407,8 +400,8 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 	
 	if (!(*tex)) {
 		// no PTMHead referenced yet at *tex
-		md_calculateskinid(skinfile, hictinting[pal].f, id);
-		*tex = PTM_GetHead(id);
+		md_initident(&id, skinfile, hictinting[pal].f);
+		*tex = PTM_GetHead(&id);
 		if (!(*tex)) {
 			return 0;
 		}

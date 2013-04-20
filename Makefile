@@ -94,9 +94,6 @@ ENGINEOBJS+= \
 	$(SRC)/mdsprite.$o \
 	$(SRC)/glbuild.$o \
 	$(SRC)/kplib.$o \
-	$(SRC)/lzf_c.$o \
-	$(SRC)/lzf_d.$o \
-	$(SRC)/md4.$o \
 	$(SRC)/mmulti.$o \
 	$(SRC)/osd.$o \
 	$(SRC)/pragmas.$o \

@@ -3292,7 +3292,7 @@ void polymost_drawsprite (int snum)
 	//dastat&128  1:draw all pages (permanent)
 	//cx1,...     clip window (actual screen coords)
 void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
-	signed char dashade, char dapalnum, char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
+	signed char dashade, unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
 {
 	static int onumframes = 0;
 	int i, n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;

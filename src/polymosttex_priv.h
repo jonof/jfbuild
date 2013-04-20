@@ -31,6 +31,25 @@ struct PTMHead_typ {
 
 typedef struct PTMHead_typ PTMHead;
 
+/** identifying information for a PolymostTex texture manager entry */
+struct PTMIdent_typ {
+    int type;       //see PTMIDENT_* constants
+    int flags;
+    int palnum;
+    int picnum;
+    int layer;      //see PTHPIC_* constants
+	int effects;    //see HICEFFECT_* constants
+	char filename[BMAX_PATH];
+};
+
+typedef struct PTMIdent_typ PTMIdent;
+
+enum {
+    PTMIDENT_ART = 0,
+    PTMIDENT_HIGHTILE = 1,
+    PTMIDENT_MDSKIN = 2,
+};
+
 /** PolymostTex texture header */
 struct PTHead_typ {
 	PTMHead *pic[PTHPIC_SIZE];	// when (flags & PTH_SKYBOX), each is a face of the cube
@@ -133,13 +152,20 @@ PTHead * PT_GetHead(int picnum, int palnum, unsigned short flags, int peek);
 
 
 /**
+ * Initialise a PTMIdent structure from a PTHead
+ * @param id the PTMIdent to initialise from...
+ * @param pth the PTHead structure
+ */
+void PTM_InitIdent(PTMIdent *id, PTHead *pth);
+
+/**
  * Returns a PTMHead pointer for the given texture id
- * @param id the texture id
+ * @param id the texture identifier struct
  * @return the PTMHead item, or null if it couldn't be created
  *
  * Shared method for polymost.c and mdsprite.c to call.
  */
-PTMHead * PTM_GetHead(const unsigned char id[16]);
+PTMHead * PTM_GetHead(const PTMIdent *id);
 
 /**
  * Loads a texture file into OpenGL

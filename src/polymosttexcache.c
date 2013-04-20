@@ -62,11 +62,11 @@ static unsigned int gethashhead(const char * filename)
 	unsigned long hash = 5381;
 	int c;
 	
-        while ((c = *filename++)) {
+    while ((c = (unsigned char)*filename++)) {
 		hash = ((hash << 5) + hash) ^ c; /* hash * 33 ^ c */
 	}
 	
-        return hash & (PTCACHEHASHSIZ-1);
+    return hash & (PTCACHEHASHSIZ-1);
 }
 
 /**

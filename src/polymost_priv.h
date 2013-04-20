@@ -40,7 +40,7 @@ void polymost_drawrooms ();
 void polymost_drawmaskwall (int damaskwallcnt);
 void polymost_drawsprite (int snum);
 void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
-	signed char dashade, char dapalnum, char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid);
+	signed char dashade, unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid);
 void polymost_fillpolygon (int npoints);
 int polymost_printext256(int xpos, int ypos, short col, short backcol, const char *name, char fontsize);
 void polymost_initosdfuncs(void);
