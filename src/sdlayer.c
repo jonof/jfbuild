@@ -415,6 +415,9 @@ unsigned char bgetchar(void)
 	if (keyasciififoplc == keyasciififoend) return 0;
 	c = keyasciififo[keyasciififoplc];
 	keyasciififoplc = ((keyasciififoplc+1)&(KEYFIFOSIZ-1));
+#ifdef __APPLE__
+    if (c == SDLK_DELETE) c = SDLK_BACKSPACE;
+#endif
 	return c;
 }
 
