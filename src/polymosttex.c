@@ -688,7 +688,7 @@ static int pt_load_art(PTHead * pth)
 	ptm_uploadtexture(pth->pic[PTHPIC_BASE], pth->flags, &tex, 0);
 	
 	if (hasfullbright) {
-        id.layer = PTHPIC_BASE;
+        id.layer = PTHPIC_GLOW;
 		pth->pic[PTHPIC_GLOW] = PTM_GetHead(&id);
 		pth->pic[PTHPIC_GLOW]->tsizx = tex.tsizx;
 		pth->pic[PTHPIC_GLOW]->tsizy = tex.tsizy;
