@@ -82,7 +82,7 @@ static int buildkeytranslationtable(void);
 //static SDL_Surface * loadtarga(const char *fn);		// for loading the icon
 static SDL_Surface * loadappicon(void);
 
-int wm_msgbox(char *name, char *fmt, ...)
+int wm_msgbox(const char *name, const char *fmt, ...)
 {
 	char buf[1000];
 	va_list va;
@@ -103,7 +103,7 @@ int wm_msgbox(char *name, char *fmt, ...)
 	return 0;
 }
 
-int wm_ynbox(char *name, char *fmt, ...)
+int wm_ynbox(const char *name, const char *fmt, ...)
 {
 	char buf[1000];
 	char c;
@@ -127,7 +127,7 @@ int wm_ynbox(char *name, char *fmt, ...)
 	return 0;
 }
 
-void wm_setapptitle(char *name)
+void wm_setapptitle(const char *name)
 {
 	if (name) {
 		Bstrncpy(apptitle, name, sizeof(apptitle)-1);

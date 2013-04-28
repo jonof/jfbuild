@@ -122,9 +122,9 @@ void showframe(int);
 int setpalette(int start, int num, unsigned char *dapal);
 int setgamma(float ro, float go, float bo);
 
-int wm_msgbox(char *name, char *fmt, ...) PRINTF_FORMAT(2, 3);
-int wm_ynbox(char *name, char *fmt, ...) PRINTF_FORMAT(2, 3);
-void wm_setapptitle(char *name);
+int wm_msgbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
+int wm_ynbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
+void wm_setapptitle(const char *name);
 
 // baselayer.c
 int baselayer_init();

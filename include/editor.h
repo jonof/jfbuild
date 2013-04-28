@@ -15,10 +15,17 @@ extern int qsetmode;
 extern short searchsector, searchwall, searchstat;
 extern int zmode, kensplayerheight;
 extern short defaultspritecstat;
+extern int posx, posy, posz, horiz;
+extern short ang, cursectnum;
+extern short ceilingheinum, floorheinum;
+extern int zlock;
+extern short editstatus, searchit;
+extern int searchx, searchy;                          //search input
 
 extern short temppicnum, tempcstat, templotag, temphitag, tempextra;
 extern unsigned char tempshade, temppal, tempxrepeat, tempyrepeat;
 extern unsigned char somethingintab;
+extern char names[MAXTILES][25];
 
 extern unsigned char buildkeys[NUMBUILDKEYS];
 
