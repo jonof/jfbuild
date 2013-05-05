@@ -73,7 +73,7 @@ extern char joyisgamepad, joynumaxes, joynumbuttons, joynumhats, joyaxespresent;
 int initsystem(void);
 void uninitsystem(void);
 
-void initprintf(const char *, ...) PRINTF_FORMAT(1, 2);
+void initputs(const char *);
 void debugprintf(const char *,...) PRINTF_FORMAT(1, 2);
 
 int handleevents(void);

@@ -348,7 +348,7 @@ static int osdcmd_restartvid(const osdfuncparm_t *parm)
 {
 	resetvideomode();
 	if (setgamemode(fullscreen,xdim,ydim,bpp))
-		OSD_Printf("restartvid: Reset failed...\n");
+		buildputs("restartvid: Reset failed...\n");
 
 	return OSDCMD_OK;
 }
@@ -378,7 +378,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	}
 
 	if (setgamemode(newfullscreen,newx,newy,newbpp))
-		OSD_Printf("vidmode: Mode change failed!\n");
+		buildputs("vidmode: Mode change failed!\n");
 	screensize = xdim+1;
 	return OSDCMD_OK;
 }
@@ -418,6 +418,8 @@ int app_main(int argc, char const * const argv[])
 	int cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
 	int other, packleng, netparm;
 
+	buildsetlogfile("console.txt");
+
 #ifdef USE_OPENGL
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
@@ -445,16 +447,14 @@ int app_main(int argc, char const * const argv[])
 		}
 	}
 	
-	OSD_SetLogFile("console.txt");
-
 	initgroupfile("stuff.dat");
 	if (initengine()) {
-		initprintf("There was a problem initialising the engine: %s.\n", engineerrstr);
+		buildprintf("There was a problem initialising the engine: %s.\n", engineerrstr);
 		return -1;
 	}
 
 	if ((i = loadsetup("game.cfg")) < 0)
-		initprintf("Configuration file not found, using defaults.\n");
+		buildputs("Configuration file not found, using defaults.\n");
 
 #if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK2))
 	if (i || forcesetup || cmdsetup) {
@@ -469,7 +469,7 @@ int app_main(int argc, char const * const argv[])
 
 	//initmultiplayers(argc-netparm,&argv[netparm],option[4],option[5],0);
 	if (initmultiplayersparms(argc-netparm,&argv[netparm])) {
-		initprintf("Waiting for players...\n");
+		buildputs("Waiting for players...\n");
 		while (initmultiplayerscycle()) {
 			handleevents();
 			if (quitevent) {
@@ -496,14 +496,14 @@ int app_main(int argc, char const * const argv[])
 	if (!qloadkvx(nextvoxid,"voxel001.kvx"))
 		tiletovox[BROWNMONSTER] = nextvoxid++;
 #endif
-	if (!loaddefinitionsfile("kenbuild.def")) initprintf("Definitions file loaded.\n");
+	if (!loaddefinitionsfile("kenbuild.def")) buildputs("Definitions file loaded.\n");
 
 		//Here's an example of TRUE ornamented walls
 		//The allocatepermanenttile should be called right after loadpics
 		//Since it resets the tile cache for each call.
 	if (allocatepermanenttile(SLIME,128,128) == 0)    //If enough memory
 	{
-		printf("Not enough memory for slime!\n");
+		buildputs("Not enough memory for slime!\n");
 		exit(0);
 	}
 	if (allocatepermanenttile(MAXTILES-1,64,64) != 0)    //If enough memory

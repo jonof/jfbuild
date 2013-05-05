@@ -126,7 +126,7 @@ void PTM_InitIdent(PTMIdent *id, PTHead *pth)
 		
 		if (!pth->repldef) {
 			if (polymosttexverbosity >= 1) {
-				initprintf("PolymostTex: cannot calculate texture id for pth with no repldef\n");
+				buildprintf("PolymostTex: cannot calculate texture id for pth with no repldef\n");
 			}
 			memset(id, 0, 16);
 			return;
@@ -202,7 +202,7 @@ static int ptm_loadcachedtexturefile(const char* filename, PTMHead* ptmh, int fl
 	}
 	
 	if (polymosttexverbosity >= 2) {
-		initprintf("PolymostTex: loaded %s (effects %d, flags %d) from cache\n",
+		buildprintf("PolymostTex: loaded %s (effects %d, flags %d) from cache\n",
 				   tdef->filename, tdef->effects, tdef->flags);
 	}
 
@@ -381,7 +381,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	
 	if (writetocache) {
 		if (polymosttexverbosity >= 2) {
-			initprintf("PolymostTex: writing %s (effects %d, flags %d) to cache\n",
+			buildprintf("PolymostTex: writing %s (effects %d, flags %d) to cache\n",
 					   tdef->filename, tdef->effects, tdef->flags);
 		}
 		PTCacheWriteTile(tdef);
@@ -772,7 +772,7 @@ static int pt_load_hightile(PTHead * pth)
 		if ((err = PTM_LoadTextureFile(filename, pth->pic[texture], pth->flags, effects))) {
 			if (polymosttexverbosity >= 1) {
 				const char * errstr = PTM_GetLoadTextureFileErrorString(err);
-				initprintf("PolymostTex: %s (pic %d pal %d) %s\n",
+				buildprintf("PolymostTex: %s (pic %d pal %d) %s\n",
 						   filename, pth->picnum, pth->palnum, errstr);
 			}
 			continue;
@@ -1131,7 +1131,7 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 			starttime = getticks();
 			squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
 			if (polymosttexverbosity >= 2) {
-				initprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
+				buildprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
 					   tex->sizx, tex->sizy,
 					   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
 					   (float)(getticks() - starttime) / 1000.f);
@@ -1157,7 +1157,7 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 		starttime = getticks();
 		squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
 		if (polymosttexverbosity >= 2) {
-			initprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
+			buildprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
 				   tex->sizx, tex->sizy,
 				   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
 				   (float)(getticks() - starttime) / 1000.f);
@@ -1199,7 +1199,7 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 			starttime = getticks();
 			squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
 			if (polymosttexverbosity >= 2) {
-				initprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
+				buildprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
 					   tex->sizx, tex->sizy,
 					   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
 					   (float)(getticks() - starttime) / 1000.f);

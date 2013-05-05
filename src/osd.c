@@ -20,12 +20,8 @@ static symbol_t *addnewsymbol(const char *name);
 static symbol_t *findsymbol(const char *name, symbol_t *startingat);
 static symbol_t *findexactsymbol(const char *name);
 
-static int _validate_osdlines(void *);
-
 static int _internal_osdfunc_listsymbols(const osdfuncparm_t *);
 static int _internal_osdfunc_help(const osdfuncparm_t *);
-static int _internal_osdfunc_dumpbuildinfo(const osdfuncparm_t *);
-static int _internal_osdfunc_setrendermode(const osdfuncparm_t *);
 
 static int white=-1;			// colour of white (used by default display routines)
 static void _internal_drawosdchar(int, int, char, int, int);
@@ -49,7 +45,6 @@ static int  osdmaxrows=20;		// maximum number of lines which can fit on the scre
 static int  osdmaxlines=TEXTSIZE/60;	// maximum lines which can fit in the buffer
 static char osdvisible=0;		// onscreen display visible?
 static int  osdhead=0; 			// topmost visible line number
-static BFILE *osdlog=NULL;		// log filehandle
 static char osdinited=0;		// text buffer initialised?
 static int  osdkey=0x45;		// numlock shows the osd
 static int  keytime=0;
@@ -254,28 +249,17 @@ void OSD_Cleanup(void)
 //
 void OSD_Init(void)
 {
+    if (osdinited) return;
+	osdinited=1;
+
 	Bmemset(osdtext, 32, TEXTSIZE);
 	osdlines=1;
 
-	osdinited=1;
+	atexit(OSD_Cleanup);
 
 	OSD_RegisterFunction("listsymbols","listsymbols: lists all the recognized symbols",_internal_osdfunc_listsymbols);
 	OSD_RegisterFunction("help","help: displays help on the named symbol",_internal_osdfunc_help);
 	OSD_RegisterFunction("osdrows","osdrows: sets the number of visible lines of the OSD",_internal_osdfunc_vars);
-
-	atexit(OSD_Cleanup);
-}
-
-
-//
-// OSD_SetLogFile() -- Sets the text file where printed text should be echoed
-//
-void OSD_SetLogFile(char *fn)
-{
-	if (osdlog) Bfclose(osdlog);
-	osdlog = NULL;
-	if (fn) osdlog = Bfopen(fn,"w");
-	if (osdlog) setvbuf(osdlog, (char*)NULL, _IONBF, 0);
 }
 
 
@@ -695,11 +679,6 @@ void OSD_Draw(void)
 }
 
 
-//
-// OSD_Printf() -- Print a string to the onscreen display
-//   and write it to the log file
-//
-
 static inline void linefeed(void)
 {
 	Bmemmove(osdtext+osdcols, osdtext, TEXTSIZE-osdcols);
@@ -708,20 +687,37 @@ static inline void linefeed(void)
 	if (osdlines < osdmaxlines) osdlines++;
 }
 
+//
+// OSD_Printf() -- Print a formatted string to the onscreen display
+//   and write it to the log file
+//
+
 void OSD_Printf(const char *fmt, ...)
 {
-	char tmpstr[1024], *chp;
+	char tmpstr[1024];
 	va_list va;
-		
-	if (!osdinited) OSD_Init();
+
+    if (!osdinited) return;
 
 	va_start(va, fmt);
 	Bvsnprintf(tmpstr, 1024, fmt, va);
 	va_end(va);
 
-	if (osdlog) Bfputs(tmpstr, osdlog);
+    OSD_Puts(tmpstr);
+}
 
-	for (chp = tmpstr; *chp; chp++) {
+//
+// OSD_Puts() -- Print a string to the onscreen display
+//   and write it to the log file
+//
+
+void OSD_Puts(const char *str)
+{
+    const char *chp;
+
+	if (!osdinited) return;
+
+	for (chp = str; *chp; chp++) {
 		if (*chp == '\r') osdpos=0;
 		else if (*chp == '\n') {
 			osdpos=0;
@@ -893,47 +889,50 @@ int OSD_RegisterFunction(const char *name, const char *help, int (*func)(const o
 	symbol_t *symb;
 	const char *cp;
 
-	if (!osdinited) OSD_Init();
+	if (!osdinited) {
+        buildputs("OSD_RegisterFunction(): OSD not initialised\n");
+        return -1;
+    }
 
 	if (!name) {
-		Bprintf("OSD_RegisterFunction(): may not register a function with a null name\n");
+		buildputs("OSD_RegisterFunction(): may not register a function with a null name\n");
 		return -1;
 	}
 	if (!name[0]) {
-		Bprintf("OSD_RegisterFunction(): may not register a function with no name\n");
+		buildputs("OSD_RegisterFunction(): may not register a function with no name\n");
 		return -1;
 	}
 
 	// check for illegal characters in name
 	for (cp = name; *cp; cp++) {
 		if ((cp == name) && (*cp >= '0') && (*cp <= '9')) {
-			Bprintf("OSD_RegisterFunction(): first character of function name \"%s\" must not be a numeral\n", name);
+			buildprintf("OSD_RegisterFunction(): first character of function name \"%s\" must not be a numeral\n", name);
 			return -1;
 		}
 		if ((*cp < '0') ||
 		    (*cp > '9' && *cp < 'A') ||
 		    (*cp > 'Z' && *cp < 'a' && *cp != '_') ||
 		    (*cp > 'z')) {
-			Bprintf("OSD_RegisterFunction(): illegal character in function name \"%s\"\n", name);
+			buildprintf("OSD_RegisterFunction(): illegal character in function name \"%s\"\n", name);
 			return -1;
 		}
 	}
 
 	if (!help) help = "(no description for this function)";
 	if (!func) {
-		Bprintf("OSD_RegisterFunction(): may not register a null function\n");
+		buildputs("OSD_RegisterFunction(): may not register a null function\n");
 		return -1;
 	}
 
 	symb = findexactsymbol(name);
 	if (symb) {
-		Bprintf("OSD_RegisterFunction(): \"%s\" is already defined\n", name);
+		buildprintf("OSD_RegisterFunction(): \"%s\" is already defined\n", name);
 		return -1;
 	}
 	
 	symb = addnewsymbol(name);
 	if (!symb) {
-		Bprintf("OSD_RegisterFunction(): Failed registering function \"%s\"\n", name);
+		buildprintf("OSD_RegisterFunction(): Failed registering function \"%s\"\n", name);
 		return -1;
 	}
 

@@ -7,10 +7,9 @@
 
 #define WITHKPLIB
 
-#include "compat.h"
+#include "build.h"
 #include "cache1d.h"
 #include "pragmas.h"
-#include "baselayer.h"
 
 #ifdef WITHKPLIB
 #include "kplib.h"
@@ -93,7 +92,7 @@ void initcache(void *dacachestart, int dacachesize)
 	cac[0].lock = &zerochar;
 	cacnum = 1;
 
-	initprintf("initcache(): Initialised with %d bytes\n", cachesize);
+	buildprintf("initcache(): Initialised with %d bytes\n", cachesize);
 }
 
 void allocache(void **newhandle, int newbytes, unsigned char *newlockptr)
@@ -104,8 +103,8 @@ void allocache(void **newhandle, int newbytes, unsigned char *newlockptr)
 
 	if ((unsigned)newbytes > (unsigned)cachesize)
 	{
-		Bprintf("Cachesize: %d\n",cachesize);
-		Bprintf("Newhandle: 0x%p, Newbytes: %d, *Newlock: %d\n", newhandle,newbytes,*newlockptr);
+		buildprintf("Cachesize: %d\n",cachesize);
+		buildprintf("Newhandle: 0x%p, Newbytes: %d, *Newlock: %d\n", newhandle,newbytes,*newlockptr);
 		reportandexit("BUFFER TOO BIG TO FIT IN CACHE!");
 	}
 
@@ -218,23 +217,29 @@ void agecache(void)
 
 static void reportandexit(char *errormessage)
 {
-	int i, j;
+    int i, j;
 
-	j = 0;
-	for(i=0;i<cacnum;i++)
-	{
-		Bprintf("%d- ",i);
-		if (cac[i].hand) Bprintf("ptr: 0x%p, ",*cac[i].hand);
-		else Bprintf("ptr: NULL, ");
-		Bprintf("leng: %d, ",cac[i].leng);
-		if (cac[i].lock) Bprintf("lock: %d\n",*cac[i].lock);
-		else Bprintf("lock: NULL\n");
-		j += cac[i].leng;
-	}
-	Bprintf("Cachesize = %d\n",cachesize);
-	Bprintf("Cacnum = %d\n",cacnum);
-	Bprintf("Cache length sum = %d\n",j);
-	initprintf("ERROR: %s\n",errormessage);
+    j = 0;
+    for(i=0;i<cacnum;i++)
+    {
+        buildprintf("%d- ",i);
+        if (cac[i].hand) {
+            buildprintf("ptr: 0x%p, ",*cac[i].hand);
+        } else {
+            buildprintf("ptr: NULL, ");
+        }
+        buildprintf("leng: %d, ",cac[i].leng);
+        if (cac[i].lock) {
+            buildprintf("lock: %d\n",*cac[i].lock);
+        } else {
+            buildprintf("lock: NULL\n");
+        }
+        j += cac[i].leng;
+    }
+	buildprintf("Cachesize = %d\n",cachesize);
+	buildprintf("Cacnum = %d\n",cacnum);
+	buildprintf("Cache length sum = %d\n",j);
+	buildprintf("ERROR: %s\n",errormessage);
 	exit(0);
 }
 
@@ -277,7 +282,7 @@ int addsearchpath(const char *p)
 
 	searchpathhead = srch;
 	if (srch->pathlen > maxsearchpathlen) maxsearchpathlen = srch->pathlen;
-	initprintf("addsearchpath(): Added %s\n", srch->path);
+	buildprintf("addsearchpath(): Added %s\n", srch->path);
 
 	return 0;
 }
@@ -322,7 +327,7 @@ int findfrompath(const char *fn, char **where)
 	for (sp = searchpathhead; sp; sp = sp->next) {
 		strcpy(pfn, sp->path);
 		strcat(pfn, ffn);
-		//initprintf("Trying %s\n", pfn);
+		//buildprintf("Trying %s\n", pfn);
 		if (access(pfn, F_OK) >= 0) {
 			*where = pfn;
 			free(ffn);
@@ -470,9 +475,9 @@ int initgroupfile(const char *filename)
 		gnumfiles[numgroupfiles] = B_LITTLE32(*((int *)&buf[12]));
 
 		if ((gfilelist[numgroupfiles] = (char *)kmalloc(gnumfiles[numgroupfiles]<<4)) == 0)
-			{ Bprintf("Not enough memory for file grouping system\n"); exit(0); }
+			{ buildprintf("Not enough memory for file grouping system\n"); exit(0); }
 		if ((gfileoffs[numgroupfiles] = (int *)kmalloc((gnumfiles[numgroupfiles]+1)<<2)) == 0)
-			{ Bprintf("Not enough memory for file grouping system\n"); exit(0); }
+			{ buildprintf("Not enough memory for file grouping system\n"); exit(0); }
 
 		Bread(groupfil[numgroupfiles],gfilelist[numgroupfiles],gnumfiles[numgroupfiles]<<4);
 
@@ -564,7 +569,7 @@ int kopen4load(const char *filename, char searchfirst)
 		newhandle--;
 		if (newhandle < 0)
 		{
-			Bprintf("TOO MANY FILES OPEN IN FILE GROUPING SYSTEM!");
+			buildprintf("TOO MANY FILES OPEN IN FILE GROUPING SYSTEM!");
 			exit(0);
 		}
 	}
@@ -864,7 +869,7 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 		for (j=0; (path[j] = path[i]); j++,i++) ;
 		while (j>0 && toupperlookup[(int)(unsigned char)path[j-1]] == '/') j--;
 		path[j] = 0;
-		//initprintf("Cleaned up path = \"%s\"\n",path);
+		//buildprintf("Cleaned up path = \"%s\"\n",path);
 	}
 	
 	if (*path && (type & CACHE1D_FIND_DIR)) {
@@ -900,8 +905,8 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 								(dirent->mode & BS_IFDIR) ? CACHE1D_FIND_DIR : CACHE1D_FIND_FILE,
 										  stackdepth)) {
 						case -1: goto failure;
-						//case 1: initprintf("%s:%s dropped for lower priority\n", d,dirent->name); break;
-						//case 0: initprintf("%s:%s accepted\n", d,dirent->name); break;
+						//case 1: buildprintf("%s:%s dropped for lower priority\n", d,dirent->name); break;
+						//case 0: buildprintf("%s:%s accepted\n", d,dirent->name); break;
 						default: break;
 					}
 				}
@@ -971,8 +976,8 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 			// the entry is in the clear
 			switch (klistaddentry(&rec, buf, ftype, CACHE1D_SOURCE_ZIP)) {
 				case -1: goto failure;
-				//case 1: initprintf("<ZIP>:%s dropped for lower priority\n", buf); break;
-				//case 0: initprintf("<ZIP>:%s accepted\n", buf); break;
+				//case 1: buildprintf("<ZIP>:%s dropped for lower priority\n", buf); break;
+				//case 0: buildprintf("<ZIP>:%s accepted\n", buf); break;
 				default: break;
 			}
 		}
@@ -991,8 +996,8 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 				if (!Bwildmatch(buf,mask)) continue;
 				switch (klistaddentry(&rec, buf, CACHE1D_FIND_FILE, CACHE1D_SOURCE_GRP)) {
 					case -1: goto failure;
-					//case 1: initprintf("<GRP>:%s dropped for lower priority\n", workspace); break;
-					//case 0: initprintf("<GRP>:%s accepted\n", workspace); break;
+					//case 1: buildprintf("<GRP>:%s dropped for lower priority\n", workspace); break;
+					//case 0: buildprintf("<GRP>:%s accepted\n", workspace); break;
 					default: break;
 				}
 			}

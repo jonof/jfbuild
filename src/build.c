@@ -169,7 +169,7 @@ static int osdcmd_restartvid(const osdfuncparm_t *parm)
 
 	resetvideomode();
 	if (setgamemode(fullscreen,xdim,ydim,bpp))
-		OSD_Printf("restartvid: Reset failed...\n");
+		buildputs("restartvid: Reset failed...\n");
 
 	return OSDCMD_OK;
 }
@@ -197,7 +197,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	}
 
 	if (setgamemode(newfullscreen,newx,newy,newbpp))
-		OSD_Printf("vidmode: Mode change failed!\n");
+		buildputs("vidmode: Mode change failed!\n");
 	xdimgame = newx; ydimgame = newy; bppgame = newbpp; fullscreen = newfullscreen;
 	return OSDCMD_OK;
 }
@@ -276,7 +276,7 @@ int app_main(int argc, char const * const argv[])
 
 	if (grps && grpstoadd > 0) {
 		for (i=0;i<grpstoadd;i++) {
-			initprintf("Adding %s\n",grps[i]);
+			buildprintf("Adding %s\n",grps[i]);
 			initgroupfile(grps[i]);
 		}
 		free((void *)grps);	
@@ -292,13 +292,13 @@ int app_main(int argc, char const * const argv[])
 	Bstrcpy(kensig,"BUILD by Ken Silverman");
 	initcrc();
 
-	if (!loaddefinitionsfile(defsfilename)) initprintf("Definitions file loaded.\n");
+	if (!loaddefinitionsfile(defsfilename)) buildputs("Definitions file loaded.\n");
 	
 		if (setgamemode(fullscreen,xdimgame,ydimgame,bppgame) < 0)
 		{
 			ExtUnInit();
 			uninitengine();
-			Bprintf("%d * %d not supported in this graphics mode\n",xdim,ydim);
+			buildprintf("%d * %d not supported in this graphics mode\n",xdim,ydim);
 			exit(0);
 		}
 		setbrightness(brightness,palette,0);
@@ -425,8 +425,8 @@ int app_main(int argc, char const * const argv[])
 	ExtUnInit();
 	uninitengine();
 
-	Bprintf("Memory status: %d(%d) bytes\n",cachesize,artsize);
-	Bprintf("%s\n",kensig);
+	buildprintf("Memory status: %d(%d) bytes\n",cachesize,artsize);
+	buildprintf("%s\n",kensig);
 	return(0);
 }
 

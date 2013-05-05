@@ -286,11 +286,11 @@ void polymost_texinvalidate (int dapicnum, int dapalnum, int dameth)
 		if (pth->pic[PTHPIC_BASE]) {
 			pth->pic[PTHPIC_BASE]->flags |= PTH_DIRTY;
 		}
-		/*initprintf("invalidating picnum:%d palnum:%d effects:%d skyface:%d flags:%04X repldef:%p\n",
+		/*buildprintf("invalidating picnum:%d palnum:%d effects:%d skyface:%d flags:%04X repldef:%p\n",
 			   pth->picnum, pth->palnum, pth->effects, pth->skyface,
 			   pth->flags, pth->repldef);*/
 	}
-	//initprintf("done\n");
+	//buildprintf("done\n");
 	PTIterFree(iter);
 }
 
@@ -310,7 +310,7 @@ void polymost_texinvalidateall ()
 	}
 	PTIterFree(iter);
 	clearskins();
-	//initprintf("gltexinvalidateall()\n");
+	//buildprintf("gltexinvalidateall()\n");
 }
 
 
@@ -3983,10 +3983,10 @@ static int gltexturemode(const osdfuncparm_t *parm)
 	const char *p;
 
 	if (parm->numparms != 1) {
-		OSD_Printf("Current texturing mode is %s\n", glfiltermodes[gltexfiltermode].name);
-		OSD_Printf("  Vaild modes are:\n");
+		buildprintf("Current texturing mode is %s\n", glfiltermodes[gltexfiltermode].name);
+		buildprintf("  Vaild modes are:\n");
 		for (m = 0; m < (int)numglfiltermodes; m++)
-			OSD_Printf("     %d - %s\n",m,glfiltermodes[m].name);
+			buildprintf("     %d - %s\n",m,glfiltermodes[m].name);
 
 		return OSDCMD_OK;
 	}
@@ -4008,7 +4008,7 @@ static int gltexturemode(const osdfuncparm_t *parm)
 		gltexapplyprops();
 	}
 
-	OSD_Printf("Texture filtering mode changed to %s\n", glfiltermodes[gltexfiltermode].name );
+	buildprintf("Texture filtering mode changed to %s\n", glfiltermodes[gltexfiltermode].name );
 
 	return OSDCMD_OK;
 }
@@ -4019,8 +4019,8 @@ static int gltextureanisotropy(const osdfuncparm_t *parm)
 	const char *p;
 
 	if (parm->numparms != 1) {
-		OSD_Printf("Current texture anisotropy is %d\n", glanisotropy);
-		OSD_Printf("  Maximum is %d\n", glinfo.maxanisotropy);
+		buildprintf("Current texture anisotropy is %d\n", glanisotropy);
+		buildprintf("  Maximum is %f\n", glinfo.maxanisotropy);
 
 		return OSDCMD_OK;
 	}
@@ -4033,15 +4033,15 @@ static int gltextureanisotropy(const osdfuncparm_t *parm)
 		gltexapplyprops();
 	}
 
-	OSD_Printf("Texture anisotropy changed to %d\n", glanisotropy );
+	buildprintf("Texture anisotropy changed to %d\n", glanisotropy );
 
 	return OSDCMD_OK;
 }
 
-static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *parm)
+static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *UNUSED(parm))
 {
 	PTCacheForceRebuild();
-	OSD_Printf("Compressed texture cache invalidated. Use 'restartvid' to reinitialise it.\n");
+	buildprintf("Compressed texture cache invalidated. Use 'restartvid' to reinitialise it.\n");
 	return OSDCMD_OK;
 }
 
@@ -4053,23 +4053,23 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 	
 	if (!showval) val = atoi(parm->parms[0]);
 	if (!Bstrcasecmp(parm->name, "usemodels")) {
-		if (showval) { OSD_Printf("usemodels is %d\n", usemodels); }
+		if (showval) { buildprintf("usemodels is %d\n", usemodels); }
 		else usemodels = (val != 0);
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "usehightile")) {
-		if (showval) { OSD_Printf("usehightile is %d\n", usehightile); }
+		if (showval) { buildprintf("usehightile is %d\n", usehightile); }
 		else usehightile = (val != 0);
 		return OSDCMD_OK;
 	}
 #ifdef USE_OPENGL
 	else if (!Bstrcasecmp(parm->name, "glusetexcompr")) {
-		if (showval) { OSD_Printf("glusetexcompr is %d\n", glusetexcompr); }
+		if (showval) { buildprintf("glusetexcompr is %d\n", glusetexcompr); }
 		else glusetexcompr = (val != 0);
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "gltexcomprquality")) {
-		if (showval) { OSD_Printf("gltexcomprquality is %d\n", gltexcomprquality); }
+		if (showval) { buildprintf("gltexcomprquality is %d\n", gltexcomprquality); }
 		else {
 			if (val < 0 || val > 2) val = 0;
 			gltexcomprquality = val;
@@ -4077,47 +4077,47 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "glredbluemode")) {
-		if (showval) { OSD_Printf("glredbluemode is %d\n", glredbluemode); }
+		if (showval) { buildprintf("glredbluemode is %d\n", glredbluemode); }
 		else glredbluemode = (val != 0);
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "gltexturemaxsize")) {
-		if (showval) { OSD_Printf("gltexturemaxsize is %d\n", gltexmaxsize); }
+		if (showval) { buildprintf("gltexturemaxsize is %d\n", gltexmaxsize); }
 		else gltexmaxsize = val;
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "gltexturemiplevel")) {
-		if (showval) { OSD_Printf("gltexturemiplevel is %d\n", gltexmiplevel); }
+		if (showval) { buildprintf("gltexturemiplevel is %d\n", gltexmiplevel); }
 		else gltexmiplevel = val;
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "usegoodalpha")) {
-		if (showval) { OSD_Printf("usegoodalpha is %d\n", usegoodalpha); }
+		if (showval) { buildprintf("usegoodalpha is %d\n", usegoodalpha); }
 		else usegoodalpha = (val != 0);
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "glpolygonmode")) {
-		if (showval) { OSD_Printf("glpolygonmode is %d\n", glpolygonmode); }
+		if (showval) { buildprintf("glpolygonmode is %d\n", glpolygonmode); }
 		else glpolygonmode = val;
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "glusetexcache")) {
-		if (showval) { OSD_Printf("glusetexcache is %d\n", glusetexcache); }
+		if (showval) { buildprintf("glusetexcache is %d\n", glusetexcache); }
 		else glusetexcache = (val != 0);
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "glmultisample")) {
-		if (showval) { OSD_Printf("glmultisample is %d\n", glmultisample); }
+		if (showval) { buildprintf("glmultisample is %d\n", glmultisample); }
 		else glmultisample = max(0,val);
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "glnvmultisamplehint")) {
-		if (showval) { OSD_Printf("glnvmultisamplehint is %d\n", glnvmultisamplehint); }
+		if (showval) { buildprintf("glnvmultisamplehint is %d\n", glnvmultisamplehint); }
 		else glnvmultisamplehint = (val != 0);
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "polymosttexverbosity")) {
-		if (showval) { OSD_Printf("polymosttexverbosity is %d\n", polymosttexverbosity); }
+		if (showval) { buildprintf("polymosttexverbosity is %d\n", polymosttexverbosity); }
 		else {
 			if (val < 0 || val > 2) val = 1;
 			polymosttexverbosity = val;
@@ -4137,20 +4137,20 @@ static int dumptexturedefs(const osdfuncparm_t * UNUSED(parm))
 	
 	if (!hicfirstinit) return OSDCMD_OK;
 	
-	initprintf("// Begin Texture Dump\n");
+	buildprintf("// Begin Texture Dump\n");
 	for (i=0;i<MAXTILES;i++) {
 		hr = hicreplc[i];
 		if (!hr) continue;
-		initprintf("texture %d {\n", i);
+		buildprintf("texture %d {\n", i);
 		for (; hr; hr = hr->next) {
 			if (!hr->filename) continue;
-			initprintf("    pal %d { name \"%s\" ", hr->palnum, hr->filename);
-			if (hr->alphacut >= 0.0) initprintf("alphacut %g ", hr->alphacut);
-			initprintf("}\n");
+			buildprintf("    pal %d { name \"%s\" ", hr->palnum, hr->filename);
+			if (hr->alphacut >= 0.0) buildprintf("alphacut %g ", hr->alphacut);
+			buildprintf("}\n");
 		}
-		initprintf("}\n");
+		buildprintf("}\n");
 	}
-	initprintf("// End Texture Dump\n");
+	buildprintf("// End Texture Dump\n");
 	
 	return OSDCMD_OK;	// no replacement found
 }
@@ -4165,15 +4165,15 @@ static int debugtexturehash(const osdfuncparm_t * UNUSED(parm))
 		return OSDCMD_OK;
 	}
 	
-	initprintf("// Begin texture hash dump\n");
+	buildprintf("// Begin texture hash dump\n");
 	iter = PTIterNew();
 	while ((pth = PTIterNext(iter)) != 0) {
-		initprintf(" picnum:%d palnum:%d flags:%04X repldef:%p\n",
+		buildprintf(" picnum:%d palnum:%d flags:%04X repldef:%p\n",
 			   pth->picnum, pth->palnum, pth->flags,
 			   pth->repldef);
 		for (i=0; i<6; i++) {
 			if (pth->pic[i]) {
-				initprintf("   pic[%d]: %p => glpic:%d flags:%x sizx/y:%d/%d tsizx/y:%d/%d\n",
+				buildprintf("   pic[%d]: %p => glpic:%d flags:%x sizx/y:%d/%d tsizx/y:%d/%d\n",
 					   i, pth->pic[i], pth->pic[i]->glpic, pth->pic[i]->flags,
 					   pth->pic[i]->sizx, pth->pic[i]->sizy,
 					   pth->pic[i]->tsizx, pth->pic[i]->tsizy);
@@ -4181,7 +4181,7 @@ static int debugtexturehash(const osdfuncparm_t * UNUSED(parm))
 		}
 	}
 	PTIterFree(iter);
-	initprintf("// End texture hash dump\n");
+	buildprintf("// End texture hash dump\n");
 		
 	return OSDCMD_OK;	// no replacement found
 }
@@ -4235,7 +4235,7 @@ void polymost_precache(int dapicnum, int dapalnum, int datype)
 	if (!palookup[dapalnum]) return;//dapalnum = 0;
 
 		//FIXME
-	//OSD_Printf("precached %d %d type %d\n", dapicnum, dapalnum, datype);
+	//buildprintf("precached %d %d type %d\n", dapicnum, dapalnum, datype);
 	flags = (datype & 1) ? PTH_CLAMPED :0;
 	if (usehightile) flags |= PTH_HIGHTILE;
 	PTMarkPrime(dapicnum, dapalnum, flags);

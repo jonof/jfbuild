@@ -160,7 +160,7 @@ void PTCacheLoadIndex(void)
 			// file doesn't exist, which is fine
 			;
 		} else {
-			initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
+			buildprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
 			cachedisabled = 1;
 			return;
 		}
@@ -179,7 +179,7 @@ void PTCacheLoadIndex(void)
 			// file doesn't exist, which is fine
 			return;
 		} else {
-			initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHEINDEXFILE);
+			buildprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHEINDEXFILE);
 			cachedisabled = 1;
 			return;
 		}
@@ -192,7 +192,7 @@ void PTCacheLoadIndex(void)
 	}
 	
 	if (cachereplace) {
-		initprintf("PolymostTexCache: texture cache will be replaced\n");
+		buildprintf("PolymostTexCache: texture cache will be replaced\n");
 		if (fh) {
 			fclose(fh);
 		}
@@ -209,7 +209,7 @@ void PTCacheLoadIndex(void)
 		    fread(&offset,  4,         1, fh) != 1 ||
 		    fread(&mtime,   4,         1, fh) != 1) {
 			// truncated entry, so throw the whole cache away
-			initprintf("PolymostTexCache: corrupt texture cache index detected, cache will be replaced\n");
+			buildprintf("PolymostTexCache: corrupt texture cache index detected, cache will be replaced\n");
 			cachereplace = 1;
 			PTCacheUnloadIndex();
 			break;
@@ -233,7 +233,7 @@ void PTCacheLoadIndex(void)
 	
 	fclose(fh);
 
-	initprintf("PolymostTexCache: cache index loaded (%d entries, %d old entries skipped)\n", total, dups);
+	buildprintf("PolymostTexCache: cache index loaded (%d entries, %d old entries skipped)\n", total, dups);
 }
 
 /**
@@ -255,7 +255,7 @@ void PTCacheUnloadIndex(void)
 		cachehead[i] = 0;
 	}
 
-	initprintf("PolymostTexCache: cache index unloaded\n");
+	buildprintf("PolymostTexCache: cache index unloaded\n");
 }
 
 /**
@@ -283,7 +283,7 @@ static PTCacheTile * ptcache_load(off_t offset)
 	fh = fopen(CACHESTORAGEFILE, "rb");
 	if (!fh) {
 		cachedisabled = 1;
-		initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
+		buildprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
 		return 0;
 	}
 	
@@ -338,7 +338,7 @@ static PTCacheTile * ptcache_load(off_t offset)
 	return tdef;
 fail:
 	cachereplace = 1;
-	initprintf("PolymostTexCache: corrupt texture cache detected, cache will be replaced\n");
+	buildprintf("PolymostTexCache: corrupt texture cache detected, cache will be replaced\n");
 	PTCacheUnloadIndex();
 	fclose(fh);
 	if (tdef) {
@@ -457,7 +457,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	fh = fopen(CACHESTORAGEFILE, createmode);
 	if (!fh) {
 		cachedisabled = 1;
-		initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
+		buildprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHESTORAGEFILE);
 		return 0;
 	}
 	
@@ -524,7 +524,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	fh = fopen(CACHEINDEXFILE, createmode);
 	if (!fh) {
 		cachedisabled = 1;
-		initprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHEINDEXFILE);
+		buildprintf("PolymostTexCache: error opening %s, texture cache disabled\n", CACHEINDEXFILE);
 		return 0;
 	}
 	
@@ -572,7 +572,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	return 1;
 fail:
 	cachedisabled = 1;
-	initprintf("PolymostTexCache: error writing to cache, texture cache disabled\n");
+	buildprintf("PolymostTexCache: error writing to cache, texture cache disabled\n");
 	if (fh) fclose(fh);
 	return 0;
 }

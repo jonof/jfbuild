@@ -5,9 +5,8 @@
  * See the included license file "BUILDLIC.TXT" for license info.
  */
 
-#include "compat.h"
+#include "build.h"
 #include "scriptfile.h"
-#include "baselayer.h"
 #include "cache1d.h"
 #include <math.h>
 
@@ -33,7 +32,7 @@ int scriptfile_getstring(scriptfile *sf, char **retst)
 	(*retst) = scriptfile_gettoken(sf);
 	if (*retst == NULL)
 	{
-		initprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		buildprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
 		return(-2);
 	}
 	return(0);
@@ -44,7 +43,7 @@ int scriptfile_getnumber(scriptfile *sf, int *num)
 	skipoverws(sf);
 	if (sf->textptr >= sf->eof)
 	{
-		initprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		buildprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
 		return -1;
 	}
 
@@ -56,7 +55,7 @@ int scriptfile_getnumber(scriptfile *sf, int *num)
 	if (!ISWS(*sf->textptr) && *sf->textptr) {
 		char *p = sf->textptr;
 		skipovertoken(sf);
-		initprintf("Error on line %s:%d: expecting int, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->ltextptr),p);
+		buildprintf("Error on line %s:%d: expecting int, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->ltextptr),p);
 		return -2;
 	}
 	return 0;
@@ -101,7 +100,7 @@ int scriptfile_getdouble(scriptfile *sf, double *num)
 	skipoverws(sf);
 	if (sf->textptr >= sf->eof)
 	{
-		initprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		buildprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
 		return -1;
 	}
 	
@@ -114,7 +113,7 @@ int scriptfile_getdouble(scriptfile *sf, double *num)
 	if (!ISWS(*sf->textptr) && *sf->textptr) {
 		char *p = sf->textptr;
 		skipovertoken(sf);
-		initprintf("Error on line %s:%d: expecting float, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->ltextptr),p);
+		buildprintf("Error on line %s:%d: expecting float, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->ltextptr),p);
 		return -2;
 	}
 	return 0;
@@ -132,7 +131,7 @@ int scriptfile_getsymbol(scriptfile *sf, int *num)
 	if (*e) {
 		// looks like a string, so find it in the symbol table
 		if (scriptfile_getsymbolvalue(t, num)) return 0;
-		initprintf("Error on line %s:%d: expecting symbol, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->ltextptr),t);
+		buildprintf("Error on line %s:%d: expecting symbol, got \"%s\"\n",sf->filename,scriptfile_getlinum(sf,sf->ltextptr),t);
 		return -2;   // not found
 	}
 
@@ -148,12 +147,12 @@ int scriptfile_getbraces(scriptfile *sf, char **braceend)
 	skipoverws(sf);
 	if (sf->textptr >= sf->eof)
 	{
-		initprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		buildprintf("Error on line %s:%d: unexpected eof\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
 		return -1;
 	}
 
 	if (sf->textptr[0] != '{') {
-		initprintf("Error on line %s:%d: expecting '{'\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
+		buildprintf("Error on line %s:%d: expecting '{'\n",sf->filename,scriptfile_getlinum(sf,sf->textptr));
 		return -1;
 	}
 	bracestart = ++sf->textptr; bracecnt = 1;

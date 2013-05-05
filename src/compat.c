@@ -757,7 +757,7 @@ size_t Bgetsysmemsize(void)
 	if (scpagesiz >= 0 && scphyspages >= 0)
 		siz = (size_t)min(INT64_C(0x7fffffff), (int64_t)scpagesiz * (int64_t)scphyspages);
 
-	//initprintf("Bgetsysmemsize(): %d pages of %d bytes, %d bytes of system memory\n",
+	//buildprintf("Bgetsysmemsize(): %d pages of %d bytes, %d bytes of system memory\n",
 	//		scphyspages, scpagesiz, siz);
 
 	return siz;

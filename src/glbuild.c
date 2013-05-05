@@ -1,8 +1,7 @@
 #if defined DYNAMIC_OPENGL && defined USE_OPENGL
 
+#include "build.h"
 #include "glbuild.h"
-#include "compat.h"
-#include "baselayer.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -116,7 +115,7 @@ static void * getproc_(const char *s, int *err, int fatal, int extension)
 #error Need a dynamic loader for this platform...
 #endif
 	if (!t && fatal) {
-		initprintf("Failed to find %s in %s\n", s, gldriver);
+		buildprintf("Failed to find %s in %s\n", s, gldriver);
 		*err = 1;
 	}
 	return t;
@@ -145,7 +144,7 @@ int loadgldriver(const char *driver)
 #endif
 	}
 
-	initprintf("Loading %s\n",driver);
+	buildprintf("Loading %s\n",driver);
 
 #if defined RENDERTYPESDL
 	if (SDL_GL_LoadLibrary(driver)) return -1;

@@ -112,6 +112,8 @@ extern unsigned char textfont[2048], smalltextfont[2048];
 
 static char kensmessage[128];
 char *engineerrstr = NULL;
+static BFILE *logfile=NULL;		// log filehandle
+
 
 //unsigned int ratelimitlast[32], ratelimitn = 0, ratelimit = 60;
 
@@ -5319,7 +5321,7 @@ int preinitengine(void)
 {
 	char *e;
 
-	printf("BUILD engine by Ken Silverman (http://www.advsys.net/ken)\n"
+	buildprintf("\nBUILD engine by Ken Silverman (http://www.advsys.net/ken)\n"
 	       "Additional improvements by Jonathon Fowler (http://www.jonof.id.au)\n"
 	       "and other contributors. See BUILDLIC.TXT for terms.\n\n"
 	       "%d-bit word size. Built " __DATE__ ".\n\n",
@@ -5331,7 +5333,7 @@ int preinitengine(void)
 
 	if ((e = Bgetenv("BUILD_NOP6")) != NULL)
 		if (!Bstrcasecmp(e, "TRUE")) {
-			Bprintf("Disabling P6 optimizations.\n");
+			buildprintf("Disabling P6 optimizations.\n");
 			dommxoverlay = 0;
 		}
 	if (dommxoverlay) mmxoverlay();
@@ -5430,7 +5432,7 @@ void uninitengine(void)
 {
 	int i;
 	
-	//OSD_Printf("cacheresets = %d, cacheinvalidates = %d\n", cacheresets, cacheinvalidates);
+	//buildprintf("cacheresets = %d, cacheinvalidates = %d\n", cacheresets, cacheinvalidates);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	PTClear();
@@ -5441,6 +5443,10 @@ void uninitengine(void)
 #endif
 
 	uninitsystem();
+
+	if (logfile) Bfclose(logfile);
+	logfile = NULL;
+
 	if (artfil != -1) kclose(artfil);
 
 	if (transluc != NULL) { kfree(transluc); transluc = NULL; }
@@ -6721,7 +6727,7 @@ int loadmaphack(char *filename)
 
 				if ((unsigned)whichsprite >= (unsigned)MAXSPRITES) {
 					// sprite number out of range
-					initprintf("Sprite number out of range 0-%d on line %s:%d\n",
+					buildprintf("Sprite number out of range 0-%d on line %s:%d\n",
 							MAXSPRITES-1,script->filename, scriptfile_getlinum(script,cmdtokptr));
 					whichsprite = -1;
 					break;
@@ -6735,7 +6741,7 @@ int loadmaphack(char *filename)
 
 					if (whichsprite < 0) {
 						// no sprite directive preceeding
-						initprintf("Ignoring angle offset directive because of absent/invalid sprite number on line %s:%d\n",
+						buildprintf("Ignoring angle offset directive because of absent/invalid sprite number on line %s:%d\n",
 							script->filename, scriptfile_getlinum(script,cmdtokptr));
 						break;
 					}
@@ -6745,7 +6751,7 @@ int loadmaphack(char *filename)
 			case 2:      // notmd
 				if (whichsprite < 0) {
 					// no sprite directive preceeding
-					initprintf("Ignoring not-MD2/MD3 directive because of absent/invalid sprite number on line %s:%d\n",
+					buildprintf("Ignoring not-MD2/MD3 directive because of absent/invalid sprite number on line %s:%d\n",
 							script->filename, scriptfile_getlinum(script,cmdtokptr));
 					break;
 				}
@@ -6754,7 +6760,7 @@ int loadmaphack(char *filename)
 			case 3:      // nomdanim
 				if (whichsprite < 0) {
 					// no sprite directive preceeding
-					initprintf("Ignoring no-MD2/MD3-anim directive because of absent/invalid sprite number on line %s:%d\n",
+					buildprintf("Ignoring no-MD2/MD3-anim directive because of absent/invalid sprite number on line %s:%d\n",
 							script->filename, scriptfile_getlinum(script,cmdtokptr));
 					break;
 				}
@@ -7099,7 +7105,7 @@ int loadpics(char *filename, int askedsize)
 		{
 			kread(fil,&artversion,4); artversion = B_LITTLE32(artversion);
 			if (artversion != 1) {
-				Bprintf("loadpics(): Invalid art file version in %s\n", artfilename);
+				buildprintf("loadpics(): Invalid art file version in %s\n", artfilename);
 				return(-1);
 			}
 			kread(fil,&numtiles,4);       numtiles       = B_LITTLE32(numtiles);
@@ -7191,7 +7197,7 @@ void loadtile(short tilenume)
 		faketimerhandler();
 	}
 
-	if (cachedebug) printOSD("Tile:%d\n",tilenume);
+	if (cachedebug) buildprintf("Tile:%d\n",tilenume);
 
 	if (waloff[tilenume] == 0)
 	{
@@ -10623,7 +10629,7 @@ int screencapture_tga(char *filename, char inverseit)
 	enddrawing();	//}}}
 	
 	Bfclose(fil);
-	OSD_Printf("Saved screenshot to %s\n", fn);
+	buildprintf("Saved screenshot to %s\n", fn);
 	Bfree(fn);
 	capturecount++;
 	return(0);
@@ -10787,7 +10793,7 @@ int screencapture_pcx(char *filename, char inverseit)
 #endif
 
 	Bfclose(fil);
-	OSD_Printf("Saved screenshot to %s\n", fn);
+	buildprintf("Saved screenshot to %s\n", fn);
 	Bfree(fn);
 	capturecount++;
 	return(0);
@@ -10907,11 +10913,40 @@ void setpolymost2dview(void)
 	}
 
 	gloy1 = -1;
-	
+
 	bglDisable(GL_DEPTH_TEST);
 	bglDisable(GL_TEXTURE_2D);
 	bglDisable(GL_BLEND);
 #endif
+}
+
+
+void buildprintf(const char *fmt, ...)
+{
+	char tmpstr[1024];
+	va_list va;
+
+	va_start(va, fmt);
+	Bvsnprintf(tmpstr, 1024, fmt, va);
+	va_end(va);
+
+    buildputs(tmpstr);
+}
+
+void buildputs(const char *str)
+{
+    fputs(str, stdout);
+    if (logfile) fputs(str, logfile);
+    initputs(str);  // the startup window
+    OSD_Puts(str);  // the onscreen-display
+}
+
+void buildsetlogfile(const char *fn)
+{
+	if (logfile) Bfclose(logfile);
+	logfile = NULL;
+	if (fn) logfile = Bfopen(fn,"w");
+	if (logfile) setvbuf(logfile, (char*)NULL, _IONBF, 0);
 }
 
 

@@ -29,7 +29,7 @@ struct glinfo glinfo = {
 };
 #endif
 
-static void onvideomodechange(int newmode) { }
+static void onvideomodechange(int UNUSED(newmode)) { }
 void (*baselayer_onvideomodechange)(int) = onvideomodechange;
 
 static int osdfunc_setrendermode(const osdfuncparm_t *parm)
@@ -48,7 +48,7 @@ static int osdfunc_setrendermode(const osdfuncparm_t *parm)
 	if (m < 0 || m > 3) return OSDCMD_SHOWHELP;
 
 	setrendermode(m);
-	OSD_Printf("Rendering method changed to %s\n", modestrs[ getrendermode() ] );
+	buildprintf("Rendering method changed to %s\n", modestrs[ getrendermode() ] );
 
 	return OSDCMD_OK;
 }
@@ -74,16 +74,16 @@ static int osdcmd_hicsetpalettetint(const osdfuncparm_t *parm)
 }
 #endif
 
-static int osdcmd_glinfo(const osdfuncparm_t *parm)
+static int osdcmd_glinfo(const osdfuncparm_t *UNUSED(parm))
 {
 	char *s,*t,*u,i;
 	
 	if (bpp == 8) {
-		OSD_Printf("glinfo: Not in OpenGL mode.\n");
+		buildputs("glinfo: Not in OpenGL mode.\n");
 		return OSDCMD_OK;
 	}
 	
-	OSD_Printf("OpenGL Information:\n"
+	buildprintf("OpenGL Information:\n"
 	           " Version:  %s\n"
 		   " Vendor:   %s\n"
 		   " Renderer: %s\n"
@@ -112,21 +112,21 @@ static int osdcmd_glinfo(const osdfuncparm_t *parm)
 		);
 
 	s = Bstrdup(glinfo.extensions);
-	if (!s) OSD_Printf(glinfo.extensions);
+	if (!s) buildputs(glinfo.extensions);
 	else {
 		i = 0; t = u = s;
 		while (*t) {
 			if (*t == ' ') {
 				if (i&1) {
 					*t = 0;
-					OSD_Printf("   %s\n",u);
+					buildprintf("   %s\n",u);
 					u = t+1;
 				}
 				i++;
 			}
 			t++;
 		}
-		if (i&1) OSD_Printf("   %s\n",u);
+		if (i&1) buildprintf("   %s\n",u);
 		Bfree(s);
 	}
 	
@@ -140,7 +140,7 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 	
 	if (!Bstrcasecmp(parm->name, "screencaptureformat")) {
 		const char *fmts[2][2] = { {"TGA", "PCX"}, {"0", "1"} };
-		if (showval) { OSD_Printf("captureformat is %s\n", fmts[captureformat]); }
+		if (showval) { buildprintf("captureformat is %s\n", fmts[captureformat][0]); }
 		else {
 			int i,j;
 			for (j=0; j<2; j++)
@@ -153,11 +153,11 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 	}
 #ifdef SUPERBUILD
 	else if (!Bstrcasecmp(parm->name, "novoxmips")) {
-		if (showval) { OSD_Printf("novoxmips is %d\n", novoxmips); }
+		if (showval) { buildprintf("novoxmips is %d\n", novoxmips); }
 		else { novoxmips = (atoi(parm->parms[0]) != 0); }
 	}
 	else if (!Bstrcasecmp(parm->name, "usevoxels")) {
-		if (showval) { OSD_Printf("usevoxels is %d\n", usevoxels); }
+		if (showval) { buildprintf("usevoxels is %d\n", usevoxels); }
 		else { usevoxels = (atoi(parm->parms[0]) != 0); }
 	}
 #endif
@@ -166,6 +166,8 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 
 int baselayer_init(void)
 {
+    OSD_Init();
+    
 #ifdef POLYMOST
 	OSD_RegisterFunction("setrendermode","setrendermode <number>: sets the engine's rendering mode.\n"
 			"Mode numbers are:\n"
@@ -239,7 +241,7 @@ void baselayer_setupopengl()
 		} else if (!Bstrcmp(p2, "WGL_3DFX_gamma_control")) {
 				// 3dfx cards have issues with fog
 			glinfo.hack_nofog = 1;
-			if (!(warnonce&1)) initprintf("3dfx card detected: OpenGL fog disabled\n");
+			if (!(warnonce&1)) buildputs("3dfx card detected: OpenGL fog disabled\n");
 			warnonce |= 1;
 		} else if (!Bstrcmp(p2, "GL_ARB_multisample")) {
 				// supports multisampling

@@ -505,6 +505,10 @@ int loaddefinitionsfile(const char *fn);
 extern int mapversion;	// if loadboard() fails with -2 return, try loadoldboard(). if it fails with -2, board is dodgy
 int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *daposz, short *daang, short *dacursectnum);
 
+void buildprintf(const char *fmt, ...) PRINTF_FORMAT(1, 2);
+void buildputs(const char *str);
+void buildsetlogfile(const char *fn);
+
 #ifdef _MSC_VER
 #pragma pack()
 #endif

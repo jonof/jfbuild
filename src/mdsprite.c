@@ -360,7 +360,7 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 			tex = &sk->tex[ hictinting[pal].f ];
 			skinfile = sk->fn;
 			strcpy(fn,skinfile);
-			//OSD_Printf("Using exact match skin (pal=%d,skinnum=%d,surfnum=%d) %s\n",pal,number,surf,skinfile);
+			//buildprintf("Using exact match skin (pal=%d,skinnum=%d,surfnum=%d) %s\n",pal,number,surf,skinfile);
 			break;
 		}
 		//If no match, give highest priority to number, then pal.. (Parkar's request, 02/27/2005)
@@ -376,7 +376,7 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 			tex = &skzero->tex[ hictinting[pal].f ];
 			skinfile = skzero->fn;
 			strcpy(fn,skinfile);
-			//OSD_Printf("Using def skin 0,0 as fallback, pal=%d\n", pal);
+			//buildprintf("Using def skin 0,0 as fallback, pal=%d\n", pal);
 		} else {
 			if ((unsigned)number >= (unsigned)m->numskins) {
 				number = 0;
@@ -385,7 +385,7 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 			skinfile = m->skinfn + number*64;
 			strcpy(fn,m->basepath);
 			strcat(fn,skinfile);
-			//OSD_Printf("Using MD2/MD3 skin (%d) %s, pal=%d\n",number,skinfile,pal);
+			//buildprintf("Using MD2/MD3 skin (%d) %s, pal=%d\n",number,skinfile,pal);
 		}
 	}
 	
@@ -412,7 +412,7 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 		if ((err = PTM_LoadTextureFile(skinfile, *tex, PTH_CLAMPED, hictinting[pal].f))) {
 			if (polymosttexverbosity >= 1) {
 				const char * errstr = PTM_GetLoadTextureFileErrorString(err);
-				initprintf("MDSprite: %s %s\n",
+				buildprintf("MDSprite: %s %s\n",
 						   skinfile, errstr);
 			}
 			return 0;
@@ -1959,7 +1959,7 @@ int mddraw (spritetype *tspr)
 	if (maxmodelverts > allocmodelverts)
 	{
 		point3d *vl = (point3d *)realloc(vertlist,sizeof(point3d)*maxmodelverts);
-		if (!vl) { initprintf("ERROR: Not enough memory to allocate %d vertices!\n",maxmodelverts); return 0; }
+		if (!vl) { buildprintf("ERROR: Not enough memory to allocate %d vertices!\n",maxmodelverts); return 0; }
 		vertlist = vl; allocmodelverts = maxmodelverts;
 	}
 

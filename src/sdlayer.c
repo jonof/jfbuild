@@ -28,7 +28,7 @@
 #else
 int startwin_open(void) { return 0; }
 int startwin_close(void) { return 0; }
-int startwin_puts(const char *s) { s=s; return 0; }
+int startwin_puts(const char *UNUSED(s)) { return 0; }
 int startwin_idle(void *s) { return 0; }
 int startwin_settitle(const char *s) { s=s; return 0; }
 #endif
@@ -79,7 +79,6 @@ void (*joypresscallback)(int,int) = 0;
 static unsigned char keytranslation[SDLK_LAST];
 static int buildkeytranslationtable(void);
 
-//static SDL_Surface * loadtarga(const char *fn);		// for loading the icon
 static SDL_Surface * loadappicon(void);
 
 int wm_msgbox(const char *name, const char *fmt, ...)
@@ -203,7 +202,7 @@ int initsystem(void)
 
 	SDL_VERSION(&compiled);
 
-	initprintf("Initialising SDL system interface "
+	buildprintf("Initialising SDL system interface "
 		  "(compiled with SDL version %d.%d.%d, DLL version %d.%d.%d)\n",
 		linked->major, linked->minor, linked->patch,
 		compiled.major, compiled.minor, compiled.patch);
@@ -213,7 +212,7 @@ int initsystem(void)
 			| SDL_INIT_NOPARACHUTE
 #endif
 		)) {
-		initprintf("Initialisation failed! (%s)\n", SDL_GetError());
+		buildprintf("Initialisation failed! (%s)\n", SDL_GetError());
 		return -1;
 	}
 
@@ -224,7 +223,7 @@ int initsystem(void)
 
 #ifdef USE_OPENGL
 	if (loadgldriver(getenv("BUILD_GLDRV"))) {
-		initprintf("Failed loading OpenGL driver. GL modes will be unavailable.\n");
+		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		nogl = 1;
 	}
 #endif
@@ -232,7 +231,6 @@ int initsystem(void)
 #ifndef __APPLE__
 	{
 		SDL_Surface *icon;
-		//icon = loadtarga("icon.tga");
 		icon = loadappicon();
 		if (icon) {
 			SDL_WM_SetIcon(icon, 0);
@@ -242,22 +240,22 @@ int initsystem(void)
 #endif
 
 	if (SDL_VideoDriverName(drvname, 32))
-		initprintf("Using \"%s\" video driver\n", drvname);
+		buildprintf("Using \"%s\" video driver\n", drvname);
 
 	// dump a quick summary of the graphics hardware
 #ifdef DEBUGGINGAIDS
 	vid = SDL_GetVideoInfo();
-	initprintf("Video device information:\n");
-	initprintf("  Can create hardware surfaces?          %s\n", (vid->hw_available)?"Yes":"No");
-	initprintf("  Window manager available?              %s\n", (vid->wm_available)?"Yes":"No");
-	initprintf("  Accelerated hardware blits?            %s\n", (vid->blit_hw)?"Yes":"No");
-	initprintf("  Accelerated hardware colourkey blits?  %s\n", (vid->blit_hw_CC)?"Yes":"No");
-	initprintf("  Accelerated hardware alpha blits?      %s\n", (vid->blit_hw_A)?"Yes":"No");
-	initprintf("  Accelerated software blits?            %s\n", (vid->blit_sw)?"Yes":"No");
-	initprintf("  Accelerated software colourkey blits?  %s\n", (vid->blit_sw_CC)?"Yes":"No");
-	initprintf("  Accelerated software alpha blits?      %s\n", (vid->blit_sw_A)?"Yes":"No");
-	initprintf("  Accelerated colour fills?              %s\n", (vid->blit_fill)?"Yes":"No");
-	initprintf("  Total video memory:                    %dKB\n", vid->video_mem);
+	buildputs("Video device information:\n");
+	buildprintf("  Can create hardware surfaces?          %s\n", (vid->hw_available)?"Yes":"No");
+	buildprintf("  Window manager available?              %s\n", (vid->wm_available)?"Yes":"No");
+	buildprintf("  Accelerated hardware blits?            %s\n", (vid->blit_hw)?"Yes":"No");
+	buildprintf("  Accelerated hardware colourkey blits?  %s\n", (vid->blit_hw_CC)?"Yes":"No");
+	buildprintf("  Accelerated hardware alpha blits?      %s\n", (vid->blit_hw_A)?"Yes":"No");
+	buildprintf("  Accelerated software blits?            %s\n", (vid->blit_sw)?"Yes":"No");
+	buildprintf("  Accelerated software colourkey blits?  %s\n", (vid->blit_sw_CC)?"Yes":"No");
+	buildprintf("  Accelerated software alpha blits?      %s\n", (vid->blit_sw_A)?"Yes":"No");
+	buildprintf("  Accelerated colour fills?              %s\n", (vid->blit_fill)?"Yes":"No");
+	buildprintf("  Total video memory:                    %dKB\n", vid->video_mem);
 #endif
 
 	return 0;
@@ -282,23 +280,11 @@ void uninitsystem(void)
 
 
 //
-// initprintf() -- prints a string to the intitialization window
+// initputs() -- prints a string to the intitialization window
 //
-void initprintf(const char *f, ...)
+void initputs(const char *str)
 {
-	va_list va;
-	char buf[1024];
-	
-	va_start(va, f);
-	vprintf(f,va);
-	va_end(va);
-
-	va_start(va, f);
-	Bvsnprintf(buf, 1024, f, va);
-	va_end(va);
-	OSD_Printf(buf);
-
-	startwin_puts(buf);
+	startwin_puts(str);
 	startwin_idle(NULL);
 }
 
@@ -344,7 +330,7 @@ int initinput(void)
 	if (!getenv("SDL_HAS3BUTTONMOUSE")) putenv("SDL_HAS3BUTTONMOUSE=1");
 #endif
 	
-	if (SDL_EnableKeyRepeat(250, 30)) initprintf("Error enabling keyboard repeat.\n");
+	if (SDL_EnableKeyRepeat(250, 30)) buildputs("Error enabling keyboard repeat.\n");
 	inputdevices = 1|2;	// keyboard (1) and mouse (2)
 	mouseacquired = 0;
 
@@ -358,8 +344,8 @@ int initinput(void)
 
 	if (!SDL_InitSubSystem(SDL_INIT_JOYSTICK)) {
 		i = SDL_NumJoysticks();
-		initprintf("%d joystick(s) found\n",i);
-		for (j=0;j<i;j++) initprintf("  %d. %s\n", j+1, SDL_JoystickName(j));
+		buildprintf("%d joystick(s) found\n",i);
+		for (j=0;j<i;j++) buildprintf("  %d. %s\n", j+1, SDL_JoystickName(j));
 		joydev = SDL_JoystickOpen(0);
 		if (joydev) {
 			SDL_JoystickEventState(SDL_ENABLE);
@@ -368,7 +354,7 @@ int initinput(void)
 			joynumaxes    = SDL_JoystickNumAxes(joydev);
 			joynumbuttons = min(32,SDL_JoystickNumButtons(joydev));
 			joynumhats    = SDL_JoystickNumHats(joydev);
-			initprintf("Joystick 1 has %d axes, %d buttons, and %d hat(s).\n",
+			buildprintf("Joystick 1 has %d axes, %d buttons, and %d hat(s).\n",
 				joynumaxes,joynumbuttons,joynumhats);
 
 			joyaxis = (int *)Bcalloc(joynumaxes, sizeof(int));
@@ -569,7 +555,7 @@ int inittimer(int tickspersecond)
 {
 	if (timerfreq) return 0;	// already installed
 
-	initprintf("Initialising timer\n");
+	buildputs("Initialising timer\n");
 
 	timerfreq = 1000;
 	timerticspersec = tickspersecond;
@@ -696,7 +682,7 @@ void getvalidmodes(void)
 	if (modeschecked) return;
 
 	validmodecnt=0;
-	initprintf("Detecting video modes:\n");
+	buildputs("Detecting video modes:\n");
 
 #define ADDMODE(x,y,c,f) if (validmodecnt<MAXVALIDMODES) { \
 	int mn; \
@@ -709,7 +695,7 @@ void getvalidmodes(void)
 		validmode[validmodecnt].bpp=c; \
 		validmode[validmodecnt].fs=f; \
 		validmodecnt++; \
-		initprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
+		buildprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
 	} \
 }	
 
@@ -747,7 +733,7 @@ void getvalidmodes(void)
 	}
 
 	if (maxx == 0 && maxy == 0) {
-		initprintf("No fullscreen modes available!\n");
+		buildputs("No fullscreen modes available!\n");
 		maxx = MAXXDIM; maxy = MAXYDIM;
 	}
 
@@ -887,7 +873,7 @@ int setvideomode(int x, int y, int c, int fs)
 
 		if (nogl) return -1;
 		
-		initprintf("Setting video mode %dx%d (%d-bpp %s)\n",
+		buildprintf("Setting video mode %dx%d (%d-bpp %s)\n",
 				x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
 		do {
 			for (i=0; i < (int)(sizeof(attributes)/sizeof(attributes[0])); i++) {
@@ -904,22 +890,22 @@ int setvideomode(int x, int y, int c, int fs)
 			sdl_surface = SDL_SetVideoMode(x, y, c, SDL_OPENGL | ((fs&1)?SDL_FULLSCREEN:0));
 			if (!sdl_surface) {
 				if (multisamplecheck) {
-					initprintf("Multisample mode not possible. Retrying without multisampling.\n");
+					buildputs("Multisample mode not possible. Retrying without multisampling.\n");
 					glmultisample = 0;
 					continue;
 				}
-				initprintf("Unable to set video mode!\n");
+				buildputs("Unable to set video mode!\n");
 				return -1;
 			}
 		} while (multisamplecheck--);
 	} else
 #endif
 	{
-		initprintf("Setting video mode %dx%d (%d-bpp %s)\n",
+		buildprintf("Setting video mode %dx%d (%d-bpp %s)\n",
 				x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
 		sdl_surface = SDL_SetVideoMode(x, y, c, SURFACE_FLAGS | ((fs&1)?SDL_FULLSCREEN:0));
 		if (!sdl_surface) {
-			initprintf("Unable to set video mode!\n");
+			buildputs("Unable to set video mode!\n");
 			return -1;
 		}
 	}
@@ -944,7 +930,7 @@ int setvideomode(int x, int y, int c, int fs)
 	FLAG(SDL_SRCALPHA, "SRCALPHA")
 	FLAG(SDL_PREALLOC, "PREALLOC")
 #undef FLAG
-	initprintf("SDL Surface flags: %s\n", flags);
+	buildprintf("SDL Surface flags: %s\n", flags);
 	}
 #endif
 
@@ -1339,7 +1325,7 @@ int handleevents(void)
 				break;
 
 			default:
-				//printOSD("Got event (%d)\n", ev.type);
+				//buildprintf("Got event (%d)\n", ev.type);
 				break;
 		}
 	}
@@ -1510,12 +1496,12 @@ void makeasmwriteable(void)
 	size_t dep_begin_page;
 	pagesize = sysconf(_SC_PAGE_SIZE);
 	if (pagesize == -1) {
-		initprintf("Error getting system page size\n");
+		buildputs("Error getting system page size\n");
 		return;
 	}
 	dep_begin_page = ((size_t)&dep_begin) & ~(pagesize-1);
 	if (mprotect((void *)dep_begin_page, (size_t)&dep_end - dep_begin_page, PROT_READ|PROT_WRITE) < 0) {
-		initprintf("Error making code writeable (errno=%d)\n", errno);
+		buildprintf("Error making code writeable (errno=%d)\n", errno);
 		return;
 	}
 # else

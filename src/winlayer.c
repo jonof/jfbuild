@@ -241,7 +241,7 @@ static void SignalHandler(int signum)
 {
 	switch (signum) {
 		case SIGSEGV:
-			printOSD("Fatal Signal caught: SIGSEGV. Bailing out.\n");
+			buildputs("Fatal Signal caught: SIGSEGV. Bailing out.\n");
 			uninitsystem();
 			if (stdout) fclose(stdout);
 			break;
@@ -382,9 +382,9 @@ static int set_maxrefreshfreq(const osdfuncparm_t *parm)
 	int freq;
 	if (parm->numparms == 0) {
 		if (maxrefreshfreq == 0)
-			OSD_Printf("maxrefreshfreq = No maximum\n");
+			buildputs("maxrefreshfreq = No maximum\n");
 		else
-			OSD_Printf("maxrefreshfreq = %d Hz\n",maxrefreshfreq);
+			buildprintf("maxrefreshfreq = %d Hz\n",maxrefreshfreq);
 		return OSDCMD_OK;
 	}
 	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
@@ -405,7 +405,7 @@ int initsystem(void)
 {
 	DEVMODE desktopmode;
 
-	initprintf("Initialising Windows DirectX/GDI system interface\n");
+	buildputs("Initialising Windows DirectX/GDI system interface\n");
 
 	// get the desktop dimensions before anything changes them
 	ZeroMemory(&desktopmode, sizeof(DEVMODE));
@@ -429,14 +429,14 @@ int initsystem(void)
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
 	if (loadgldriver(getenv("BUILD_GLDRV"))) {
-		initprintf("Failed loading OpenGL driver. GL modes will be unavailable.\n");
+		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		nogl = 1;
 	}
 #endif
 
 	// try and start DirectDraw
 	if (InitDirectDraw())
-		initprintf("DirectDraw initialisation failed. Fullscreen modes will be unavailable.\n");
+		buildputs("DirectDraw initialisation failed. Fullscreen modes will be unavailable.\n");
 
 	OSD_RegisterFunction("maxrefreshfreq", "maxrefreshfreq: maximum display frequency to set for OpenGL Polymost modes (0=no maximum)", set_maxrefreshfreq);
 	return 0;
@@ -464,18 +464,10 @@ void uninitsystem(void)
 
 
 //
-// initprintf() -- prints a string to the intitialization window
+// initputs() -- prints a string to the intitialization window
 //
-void initprintf(const char *f, ...)
+void initputs(const char *str)
 {
-	va_list va;
-	char buf[1024],*p=NULL,*q=NULL,workbuf[1024];
-
-	va_start(va, f);
-	Bvsnprintf(buf, 1024, f, va);
-	va_end(va);
-	OSD_Printf(buf);
-
 	startwin_puts(buf);
 	handleevents();
 }
@@ -682,7 +674,7 @@ int initmouse(void)
 {
 	if (moustat) return 0;
 
-	initprintf("Initialising mouse\n");
+	buildputs("Initialising mouse\n");
 
 	// grab input
 	moustat=1;
@@ -773,7 +765,7 @@ void setjoydeadzone(int axis, unsigned short dead, unsigned short satur)
 	result = IDirectInputDevice2_SetProperty(lpDID[JOYSTICK], DIPROP_DEADZONE, &dipdw.diph);
 	if FAILED(result) {
 		//ShowDInputErrorBox("Failed setting joystick dead zone", result);
-		initprintf("Failed setting joystick dead zone: %s\n", GetDInputError(result));
+		buildprintf("Failed setting joystick dead zone: %s\n", GetDInputError(result));
 		return;
 	}
 				
@@ -782,7 +774,7 @@ void setjoydeadzone(int axis, unsigned short dead, unsigned short satur)
 	result = IDirectInputDevice2_SetProperty(lpDID[JOYSTICK], DIPROP_SATURATION, &dipdw.diph);
 	if FAILED(result) {
 		//ShowDInputErrorBox("Failed setting joystick saturation point", result);
-		initprintf("Failed setting joystick saturation point: %s\n", GetDInputError(result));
+		buildprintf("Failed setting joystick saturation point: %s\n", GetDInputError(result));
 		return;
 	}
 }
@@ -814,7 +806,7 @@ void getjoydeadzone(int axis, unsigned short *dead, unsigned short *satur)
 	result = IDirectInputDevice2_GetProperty(lpDID[JOYSTICK], DIPROP_DEADZONE, &dipdw.diph);
 	if FAILED(result) {
 		//ShowDInputErrorBox("Failed getting joystick dead zone", result);
-		initprintf("Failed getting joystick dead zone: %s\n", GetDInputError(result));
+		buildprintf("Failed getting joystick dead zone: %s\n", GetDInputError(result));
 		return;
 	}
 
@@ -823,7 +815,7 @@ void getjoydeadzone(int axis, unsigned short *dead, unsigned short *satur)
 	result = IDirectInputDevice2_GetProperty(lpDID[JOYSTICK], DIPROP_SATURATION, &dipdw.diph);
 	if FAILED(result) {
 		//ShowDInputErrorBox("Failed getting joystick saturation point", result);
-		initprintf("Failed getting joystick saturation point: %s\n", GetDInputError(result));
+		buildprintf("Failed getting joystick saturation point: %s\n", GetDInputError(result));
 		return;
 	}
 
@@ -903,7 +895,7 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 
 			// Outputs the GUID of the joystick to the console
 			/*
-			initprintf("GUID = {%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}\n",
+			buildprintf("GUID = {%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}\n",
 					lpddi->guidProduct.Data1,
 					lpddi->guidProduct.Data2, lpddi->guidProduct.Data3,
 					lpddi->guidProduct.Data4[0], lpddi->guidProduct.Data4[1],
@@ -916,7 +908,7 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 		default: d = "OTHER"; break;
 	}
 	
-	initprintf("    * %s: %s\n", d, lpddi->tszProductName);
+	buildprintf("    * %s: %s\n", d, lpddi->tszProductName);
 
 	return DIENUM_CONTINUE;
 }
@@ -938,7 +930,7 @@ static BOOL CALLBACK InitDirectInput_enumobjects(LPCDIDEVICEOBJECTINSTANCE lpddo
 	int *typecounts = (int*)pvRef;
 
 	if (lpddoi->dwType & DIDFT_AXIS) {
-		//initprintf(" Axis: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
+		//buildprintf(" Axis: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
 
 		axisdefs[ typecounts[0] ].name = joyfindnameforofs(lpddoi->dwOfs);
 		if (!axisdefs[ typecounts[0] ].name)
@@ -947,7 +939,7 @@ static BOOL CALLBACK InitDirectInput_enumobjects(LPCDIDEVICEOBJECTINSTANCE lpddo
 
 		typecounts[0]++;
 	} else if (lpddoi->dwType & DIDFT_BUTTON) {
-		//initprintf(" Button: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
+		//buildprintf(" Button: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
 
 		buttondefs[ typecounts[1] ].name = joyfindnameforofs(lpddoi->dwOfs);
 		if (!buttondefs[ typecounts[1] ].name)
@@ -956,7 +948,7 @@ static BOOL CALLBACK InitDirectInput_enumobjects(LPCDIDEVICEOBJECTINSTANCE lpddo
 
 		typecounts[1]++;
 	} else if (lpddoi->dwType & DIDFT_POV) {
-		//initprintf(" POV: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
+		//buildprintf(" POV: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
 
 		hatdefs[ typecounts[2] ].name = joyfindnameforofs(lpddoi->dwOfs);
 		if (!hatdefs[ typecounts[2] ].name)
@@ -987,11 +979,11 @@ static BOOL InitDirectInput(void)
 
 	if (bDInputInited) return FALSE;
 
-	initprintf("Initialising DirectInput...\n");
+	buildputs("Initialising DirectInput...\n");
 
 	// load up the DirectInput DLL
 	if (!hDInputDLL) {
-		initprintf("  - Loading DINPUT.DLL\n");
+		buildputs("  - Loading DINPUT.DLL\n");
 		hDInputDLL = LoadLibrary("DINPUT.DLL");
 		if (!hDInputDLL) {
 			ShowErrorBox("Error loading DINPUT.DLL");
@@ -1004,17 +996,17 @@ static BOOL InitDirectInput(void)
 	if (!aDirectInputCreateA) ShowErrorBox("Error fetching DirectInputCreateA()");
 
 	// create a new DirectInput object
-	initprintf("  - Creating DirectInput object\n");
+	buildputs("  - Creating DirectInput object\n");
 	result = aDirectInputCreateA(hInstance, DIRECTINPUT_VERSION, &lpDI, NULL);
 	if FAILED(result) { HorribleDInputDeath("DirectInputCreateA() failed", result); }
-	else if (result != DI_OK) initprintf("    Created DirectInput object with warning: %s\n",GetDInputError(result));
+	else if (result != DI_OK) buildprintf("    Created DirectInput object with warning: %s\n",GetDInputError(result));
 
 	// enumerate devices to make us look fancy
-	initprintf("  - Enumerating attached input devices\n");
+	buildputs("  - Enumerating attached input devices\n");
 	inputdevices = 0;
 	result = IDirectInput_EnumDevices(lpDI, 0, InitDirectInput_enum, NULL, DIEDFL_ATTACHEDONLY);
 	if FAILED(result) { HorribleDInputDeath("Failed enumerating attached input devices", result); }
-	else if (result != DI_OK) initprintf("    Enumerated input devices with warning: %s\n",GetDInputError(result));
+	else if (result != DI_OK) buildprintf("    Enumerated input devices with warning: %s\n",GetDInputError(result));
 	if (!(inputdevices & (1<<KEYBOARD))) {
 		ShowErrorBox("No keyboard detected!");
 		UninitDirectInput();
@@ -1028,19 +1020,19 @@ static BOOL InitDirectInput(void)
 		if ((inputdevices & (1<<devn)) == 0) continue;
 		*devicedef[devn].did = NULL;
 
-		initprintf("  - Creating %s device\n", devicedef[devn].name);
+		buildprintf("  - Creating %s device\n", devicedef[devn].name);
 		result = IDirectInput_CreateDevice(lpDI, &guidDevs[devn], &dev, NULL);
 		if FAILED(result) { HorribleDInputDeath("Failed creating device", result); }
-		else if (result != DI_OK) initprintf("    Created device with warning: %s\n",GetDInputError(result));
+		else if (result != DI_OK) buildprintf("    Created device with warning: %s\n",GetDInputError(result));
 
 		result = IDirectInputDevice_QueryInterface(dev, &IID_IDirectInputDevice2, (LPVOID *)&dev2);
 		IDirectInputDevice_Release(dev);
 		if FAILED(result) { HorribleDInputDeath("Failed querying DirectInput2 interface for device", result); }
-		else if (result != DI_OK) initprintf("    Queried IDirectInputDevice2 interface with warning: %s\n",GetDInputError(result));
+		else if (result != DI_OK) buildprintf("    Queried IDirectInputDevice2 interface with warning: %s\n",GetDInputError(result));
 
 		result = IDirectInputDevice2_SetDataFormat(dev2, devicedef[devn].df);
 		if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting data format", result); }
-		else if (result != DI_OK) initprintf("    Set data format with warning: %s\n",GetDInputError(result));
+		else if (result != DI_OK) buildprintf("    Set data format with warning: %s\n",GetDInputError(result));
 
 		inputevt[devn] = CreateEvent(NULL, FALSE, FALSE, NULL);
 		if (inputevt[devn] == NULL) {
@@ -1052,7 +1044,7 @@ static BOOL InitDirectInput(void)
 
 		result = IDirectInputDevice2_SetEventNotification(dev2, inputevt[devn]);
 		if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting event object", result); }
-		else if (result != DI_OK) initprintf("    Set event object with warning: %s\n",GetDInputError(result));
+		else if (result != DI_OK) buildprintf("    Set event object with warning: %s\n",GetDInputError(result));
 
 		IDirectInputDevice2_Unacquire(dev2);
 		
@@ -1065,7 +1057,7 @@ static BOOL InitDirectInput(void)
 
 		result = IDirectInputDevice2_SetProperty(dev2, DIPROP_BUFFERSIZE, &dipdw.diph);
 		if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting buffering", result); }
-		else if (result != DI_OK) initprintf("    Set buffering with warning: %s\n",GetDInputError(result));
+		else if (result != DI_OK) buildprintf("    Set buffering with warning: %s\n",GetDInputError(result));
 
 		// set up device
 		if (devn == JOYSTICK) {
@@ -1075,12 +1067,12 @@ static BOOL InitDirectInput(void)
 			didc.dwSize = sizeof(didc);
 			result = IDirectInputDevice2_GetCapabilities(dev2, &didc);
 			if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick capabilities", result); }
-			else if (result != DI_OK) initprintf("    Fetched joystick capabilities with warning: %s\n",GetDInputError(result));
+			else if (result != DI_OK) buildprintf("    Fetched joystick capabilities with warning: %s\n",GetDInputError(result));
 
 			joynumaxes    = (char)didc.dwAxes;
 			joynumbuttons = min(32,(char)didc.dwButtons);
 			joynumhats    = (char)didc.dwPOVs;
-			initprintf("Joystick has %d axes, %d buttons, and %d hat(s).\n",joynumaxes,joynumbuttons,joynumhats);
+			buildprintf("Joystick has %d axes, %d buttons, and %d hat(s).\n",joynumaxes,joynumbuttons,joynumhats);
 
 			axisdefs = (struct _joydef *)Bcalloc(didc.dwAxes, sizeof(struct _joydef));
 			buttondefs = (struct _joydef *)Bcalloc(didc.dwButtons, sizeof(struct _joydef));
@@ -1091,7 +1083,7 @@ static BOOL InitDirectInput(void)
 
 			result = IDirectInputDevice2_EnumObjects(dev2, InitDirectInput_enumobjects, (LPVOID)typecounts, DIDFT_ALL);
 			if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick features", result); }
-			else if (result != DI_OK) initprintf("    Fetched joystick features with warning: %s\n",GetDInputError(result));
+			else if (result != DI_OK) buildprintf("    Fetched joystick features with warning: %s\n",GetDInputError(result));
 		}
 
 		*devicedef[devn].did = dev2;
@@ -1113,7 +1105,7 @@ static void UninitDirectInput(void)
 	int devn;
 	int i;
 	
-	if (bDInputInited) initprintf("Uninitialising DirectInput...\n");
+	if (bDInputInited) buildputs("Uninitialising DirectInput...\n");
 
 	AcquireInputDevices(0,-1);
 
@@ -1132,7 +1124,7 @@ static void UninitDirectInput(void)
 	
 	for (devn = 0; devn < NUM_INPUTS; devn++) {
 		if (*devicedef[devn].did) {
-			initprintf("  - Releasing %s device\n", devicedef[devn].name);
+			buildprintf("  - Releasing %s device\n", devicedef[devn].name);
 			
 			if (devn != JOYSTICK) IDirectInputDevice2_SetEventNotification(*devicedef[devn].did, NULL);
 
@@ -1146,13 +1138,13 @@ static void UninitDirectInput(void)
 	}
 
 	if (lpDI) {
-		initprintf("  - Releasing DirectInput object\n");
+		buildputs("  - Releasing DirectInput object\n");
 		IDirectInput_Release(lpDI);
 		lpDI = NULL;
 	}
 
 	if (hDInputDLL) {
-		initprintf("  - Unloading DINPUT.DLL\n");
+		buildputs("  - Unloading DINPUT.DLL\n");
 		FreeLibrary(hDInputDLL);
 		hDInputDLL = NULL;
 	}
@@ -1236,7 +1228,7 @@ static void AcquireInputDevices(char acquire, signed char device)
 			
 			result = IDirectInputDevice2_SetCooperativeLevel(*devicedef[i].did, hWindow, flags);
 			if (FAILED(result))
-				initprintf("IDirectInputDevice2_SetCooperativeLevel(%s): %s\n",
+				buildprintf("IDirectInputDevice2_SetCooperativeLevel(%s): %s\n",
 						devicedef[i].name, GetDInputError(result));
 
 			if (SUCCEEDED(IDirectInputDevice2_Acquire(*devicedef[i].did)))
@@ -1255,7 +1247,7 @@ static void AcquireInputDevices(char acquire, signed char device)
 			
 			result = IDirectInputDevice2_SetCooperativeLevel(*devicedef[i].did, hWindow, DISCL_FOREGROUND|DISCL_NONEXCLUSIVE);
 			if (FAILED(result))
-				initprintf("IDirectInputDevice2_SetCooperativeLevel(%s): %s\n",
+				buildprintf("IDirectInputDevice2_SetCooperativeLevel(%s): %s\n",
 						devicedef[i].name, GetDInputError(result));
 
 			devacquired[i] = 0;
@@ -1446,11 +1438,11 @@ static void ProcessInputDevices(void)
 					}
 
 					/*
-					OSD_Printf("axes:");
-					for (i=0;i<joynumaxes;i++) OSD_Printf(" %d", joyaxis[i]);
-					OSD_Printf(" - buttons: %x - hats:", joyb);
-					for (i=0;i<joynumhats;i++) OSD_Printf(" %d", joyhat[i]);
-					OSD_Printf("\n");
+					buildputs("axes:");
+					for (i=0;i<joynumaxes;i++) buildprintf(" %d", joyaxis[i]);
+					buildprintf(" - buttons: %x - hats:", joyb);
+					for (i=0;i<joynumhats;i++) buildprintf(" %d", joyhat[i]);
+					buildputs("\n");
 					*/
 				}
 				break;
@@ -1569,7 +1561,7 @@ int inittimer(int tickspersecond)
 	
 	if (timerfreq) return 0;	// already installed
 
-	initprintf("Initialising timer\n");
+	buildputs("Initialising timer\n");
 
 	// OpenWatcom seems to want us to query the value into a local variable
 	// instead of the global 'timerfreq' or else it gets pissed with an
@@ -1795,7 +1787,7 @@ int setvideomode(int x, int y, int c, int fs)
 		gammabrightness = 0;
 	}
 
-	initprintf("Setting video mode %dx%d (%d-bit %s)\n",
+	buildprintf("Setting video mode %dx%d (%d-bit %s)\n",
 			x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
 
 	if (CreateAppWindow(modenum)) return -1;
@@ -1825,7 +1817,7 @@ int setvideomode(int x, int y, int c, int fs)
 	validmode[validmodecnt].fs=f; \
 	validmode[validmodecnt].extra=n; \
 	validmodecnt++; \
-	initprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
+	buildprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
 	}
 
 #define CHECK(w,h) if ((w < maxx) && (h < maxy))
@@ -1916,14 +1908,14 @@ void getvalidmodes(void)
 	if (modeschecked) return;
 
 	validmodecnt=0;
-	initprintf("Detecting video modes:\n");
+	buildputs("Detecting video modes:\n");
 
 	if (bDDrawInited) {
 		// if DirectDraw initialisation didn't fail enumerate fullscreen modes
 
 		result = IDirectDraw_EnumDisplayModes(lpDD, 0, NULL, 0, getvalidmodes_enum);
 		if (result != DD_OK) {
-			initprintf("Unable to enumerate fullscreen modes. Using default list.\n");
+			buildputs("Unable to enumerate fullscreen modes. Using default list.\n");
 			for (j=0; j < 2; j++) {
 				if (cdepths[j] == 0) continue;
 				for (i=0; defaultres[i][0]; i++)
@@ -2077,7 +2069,7 @@ void showframe(int w)
 	if (offscreenrendering) return;
 
 	if (lockcount) {
-		initprintf("Frame still locked %d times when showframe() called.\n", lockcount);
+		buildprintf("Frame still locked %d times when showframe() called.\n", lockcount);
 		while (lockcount) enddrawing();
 	}
 	
@@ -2106,7 +2098,7 @@ void showframe(int w)
 		}
 		if (result != DD_OK) {
 			if (result != DDERR_WASSTILLDRAWING)
-				initprintf("Failed locking back-buffer surface: %s\n", GetDDrawError(result));
+				buildprintf("Failed locking back-buffer surface: %s\n", GetDDrawError(result));
 			return;
 		}
 
@@ -2121,7 +2113,7 @@ void showframe(int w)
 		// unlock the backbuffer surface
 		result = IDirectDrawSurface_Unlock(lpDDSBack, NULL);
 		if (result != DD_OK) {
-			initprintf("Failed unlocking back-buffer surface: %s\n", GetDDrawError(result));
+			buildprintf("Failed unlocking back-buffer surface: %s\n", GetDDrawError(result));
 			return;
 		}
 
@@ -2135,7 +2127,7 @@ void showframe(int w)
 		}
 		if (result != DD_OK) {
 			if (result != DDERR_WASSTILLDRAWING)
-				initprintf("IDirectDrawSurface_Flip(): %s\n", GetDDrawError(result));
+				buildprintf("IDirectDrawSurface_Flip(): %s\n", GetDDrawError(result));
 		}
 	}
 }
@@ -2203,7 +2195,7 @@ int setpalette(int start, int num, unsigned char *dapal)
 		lpal.palPalEntry[255].peFlags = 0;
 
 		if (SetSystemPaletteUse(hDC, SYSPAL_NOSTATIC) == SYSPAL_ERROR) {
-			initprintf("Problem setting system palette use.\n");
+			buildputs("Problem setting system palette use.\n");
 			return -1;
 		}
 
@@ -2213,18 +2205,18 @@ int setpalette(int start, int num, unsigned char *dapal)
 		} else {
 			hPalette = CreatePalette((LOGPALETTE *)lpal.palPalEntry);
 			if (!hPalette) {
-				initprintf("Problem creating palette.\n");
+				buildputs("Problem creating palette.\n");
 				return -1;
 			}
 		}
 
 		if (SelectPalette(hDC, hPalette, FALSE) == NULL) {
-			initprintf("Problem selecting palette.\n");
+			buildputs("Problem selecting palette.\n");
 			return -1;
 		}
 
 		if (RealizePalette(hDC) == GDI_ERROR) {
-			initprintf("Failure realizing palette.\n");
+			buildputs("Failure realizing palette.\n");
 			return -1;
 		}
 
@@ -2234,7 +2226,7 @@ int setpalette(int start, int num, unsigned char *dapal)
 		if (!lpDDPalette) return -1;
 		result = IDirectDrawPalette_SetEntries(lpDDPalette, 0, start, num, (PALETTEENTRY*)&lpal.palPalEntry[start]);
 		if (result != DD_OK) {
-			initprintf("Palette set failed: %s\n", GetDDrawError(result));
+			buildprintf("Palette set failed: %s\n", GetDDrawError(result));
 			return -1;
 		}
 	}
@@ -2356,7 +2348,7 @@ static int getgammaramp(WORD gt[3][256])
 // device enumerator
 static BOOL WINAPI InitDirectDraw_enum(GUID *lpGUID, LPSTR lpDesc, LPSTR lpName, LPVOID lpContext)
 {
-	initprintf("    * %s\n", lpDesc);
+	buildprintf("    * %s\n", lpDesc);
 	return 1;
 }
 
@@ -2369,11 +2361,11 @@ static BOOL InitDirectDraw(void)
 
 	if (bDDrawInited) return FALSE;
 
-	initprintf("Initialising DirectDraw...\n");
+	buildputs("Initialising DirectDraw...\n");
 
 	// load up the DirectDraw DLL
 	if (!hDDrawDLL) {
-		initprintf("  - Loading DDRAW.DLL\n");
+		buildputs("  - Loading DDRAW.DLL\n");
 		hDDrawDLL = LoadLibrary("DDRAW.DLL");
 		if (!hDDrawDLL) {
 			ShowErrorBox("Error loading DDRAW.DLL");
@@ -2390,7 +2382,7 @@ static BOOL InitDirectDraw(void)
 	}
 
 	// enumerate the devices to make us look fancy
-	initprintf("  - Enumerating display devices\n");
+	buildputs("  - Enumerating display devices\n");
 	aDirectDrawEnumerate(InitDirectDraw_enum, NULL);
 
 	// get the pointer to DirectDrawCreate
@@ -2402,7 +2394,7 @@ static BOOL InitDirectDraw(void)
 	}
 
 	// create a new DirectDraw object
-	initprintf("  - Creating DirectDraw object\n");
+	buildputs("  - Creating DirectDraw object\n");
 	result = aDirectDrawCreate(NULL, &lpDD, NULL);
 	if (result != DD_OK) {
 		ShowDDrawErrorBox("DirectDrawCreate() failed", result);
@@ -2411,11 +2403,11 @@ static BOOL InitDirectDraw(void)
 	}
 
 	// fetch capabilities
-	initprintf("  - Checking capabilities\n");
+	buildputs("  - Checking capabilities\n");
 	ddcaps.dwSize = sizeof(DDCAPS);
 	result = IDirectDraw_GetCaps(lpDD, &ddcaps, NULL);
 	if (result != DD_OK) {
-		initprintf("    Unable to get capabilities.\n");
+		buildputs("    Unable to get capabilities.\n");
 	} else {
 		DDdwCaps = ddcaps.dwCaps;
 		DDdwCaps2 = ddcaps.dwCaps2;
@@ -2432,20 +2424,20 @@ static BOOL InitDirectDraw(void)
 //
 static void UninitDirectDraw(void)
 {
-	if (bDDrawInited) initprintf("Uninitialising DirectDraw...\n");
+	if (bDDrawInited) buildputs("Uninitialising DirectDraw...\n");
 
 	ReleaseDirectDrawSurfaces();
 
 	RestoreDirectDrawMode();
 
 	if (lpDD) {
-		initprintf("  - Releasing DirectDraw object\n");
+		buildputs("  - Releasing DirectDraw object\n");
 		IDirectDraw_Release(lpDD);
 		lpDD = NULL;
 	}
 
 	if (hDDrawDLL) {
-		initprintf("  - Unloading DDRAW.DLL\n");
+		buildputs("  - Unloading DDRAW.DLL\n");
 		FreeLibrary(hDDrawDLL);
 		hDDrawDLL = NULL;
 	}
@@ -2492,25 +2484,25 @@ static int RestoreDirectDrawMode(void)
 static void ReleaseDirectDrawSurfaces(void)
 {
 	if (lpDDPalette) {
-		initprintf("  - Releasing palette\n");
+		buildputs("  - Releasing palette\n");
 		IDirectDrawPalette_Release(lpDDPalette);
 		lpDDPalette = NULL;
 	}
 
 	if (lpDDSBack) {
-		initprintf("  - Releasing back-buffer surface\n");
+		buildputs("  - Releasing back-buffer surface\n");
 		IDirectDrawSurface_Release(lpDDSBack);
 		lpDDSBack = NULL;
 	}
 	
 	if (lpDDSPrimary) {
-		initprintf("  - Releasing primary surface\n");
+		buildputs("  - Releasing primary surface\n");
 		IDirectDrawSurface_Release(lpDDSPrimary);
 		lpDDSPrimary = NULL;
 	}
 
 	if (lpOffscreen) {
-		initprintf("  - Freeing offscreen buffer\n");
+		buildputs("  - Freeing offscreen buffer\n");
 		free(lpOffscreen);
 		lpOffscreen = NULL;
 	}
@@ -2532,7 +2524,7 @@ static int SetupDirectDraw(int width, int height)
 	ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
 	ddsd.dwBackBufferCount = 2;	// triple-buffer
 
-	initprintf("  - Creating primary surface\n");
+	buildputs("  - Creating primary surface\n");
 	result = IDirectDraw_CreateSurface(lpDD, &ddsd, &lpDDSPrimary, NULL);
 	if (result != DD_OK) {
 		ShowDDrawErrorBox("Failure creating primary surface", result);
@@ -2544,7 +2536,7 @@ static int SetupDirectDraw(int width, int height)
 	ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
 	numpages = 1;	// KJS 20031225
 
-	initprintf("  - Getting back buffer\n");
+	buildputs("  - Getting back buffer\n");
 	result = IDirectDrawSurface_GetAttachedSurface(lpDDSPrimary, &ddsd.ddsCaps, &lpDDSBack);
 	if (result != DD_OK) {
 		ShowDDrawErrorBox("Failure fetching back-buffer surface", result);
@@ -2552,7 +2544,7 @@ static int SetupDirectDraw(int width, int height)
 		return TRUE;
 	}
 
-	initprintf("  - Allocating offscreen buffer\n");
+	buildputs("  - Allocating offscreen buffer\n");
 	lpOffscreen = (char *)malloc((width|1)*height);
 	if (!lpOffscreen) {
 		ShowErrorBox("Failure allocating offscreen buffer");
@@ -2561,7 +2553,7 @@ static int SetupDirectDraw(int width, int height)
 	}
 
 	// attach a palette to the primary surface
-	initprintf("  - Creating palette\n");
+	buildputs("  - Creating palette\n");
 	result = IDirectDraw_CreatePalette(lpDD, DDPCAPS_8BIT | DDPCAPS_ALLOW256, (PALETTEENTRY*)curpalette, &lpDDPalette, NULL);
 	if (result != DD_OK) {
 		ShowDDrawErrorBox("Failure creating palette", result);
@@ -3331,10 +3323,10 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 				if (appactive) {
 					setpalette(0,0,0);
 					SetBWSystemColours();
-//					initprintf("Resetting palette.\n");
+//					buildputs("Resetting palette.\n");
 				} else {
 					RestoreSystemColours();
-//					initprintf("Resetting system colours.\n");
+//					buildputs("Resetting system colours.\n");
 				}
 			}
 
@@ -3402,7 +3394,7 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) == keyasciififoplc) return 0;
 			keyasciififo[keyasciififoend] = (unsigned char)wParam;
 			keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
-			//OSD_Printf("Char %d, %d-%d\n",wParam,keyasciififoplc,keyasciififoend);
+			//buildprintf("Char %d, %d-%d\n",wParam,keyasciififoplc,keyasciififoend);
 			return 0;
 			
 		case WM_HOTKEY:
@@ -3439,7 +3431,7 @@ static BOOL RegisterWindowClass(void)
 
 	if (window_class_registered) return FALSE;
 
-	//initprintf("Registering window class\n");
+	//buildputs("Registering window class\n");
 
 	wcx.cbSize	= sizeof(wcx);
 	wcx.style	= CS_OWNDC;

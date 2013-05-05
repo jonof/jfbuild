@@ -19,9 +19,6 @@ typedef struct {
 // initializes things
 void OSD_Init(void);
 
-// sets the file to echo output to
-void OSD_SetLogFile(char *fn);
-
 // sets the functions the OSD will call to interrogate the environment
 void OSD_SetFunctions(
 		void (*drawchar)(int,int,char,int,int),
@@ -59,7 +56,9 @@ void OSD_Draw(void);
 
 // just like printf
 void OSD_Printf(const char *fmt, ...);
-#define printOSD OSD_Printf
+
+// just like puts
+void OSD_Puts(const char *str);
 
 // executes buffered commands
 void OSD_DispatchQueued(void);

@@ -34,12 +34,9 @@ static int GetTickCount(void)
 }
 #endif
 
-#ifdef KSFORBUILD
-# include "compat.h"
-# include "baselayer.h"
-# include "mmulti.h"
-# define printf initprintf
-#endif
+#include "build.h"
+#include "mmulti.h"
+#define printf buildprintf
 
 #ifndef min
 #define min(a,b) ((a)<(b)?(a):(b))
