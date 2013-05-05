@@ -160,11 +160,28 @@ int main(int argc, char *argv[])
 #endif
 	startwin_open();
 
-	_buildargc = argc;
-	_buildargv = (const char **)argv;
+#ifdef __APPLE__
+    // consume Xcode's "-NSDocumentRevisionsDebugMode xx" parameter
+    _buildargv = calloc(argc+1, sizeof(char *));
+    for (r = _buildargc = 0; r < argc; r++) {
+        if (strcmp(argv[r], "-NSDocumentRevisionsDebugMode") == 0) {
+            r++;
+        } else {
+            _buildargv[_buildargc++] = argv[r];
+        }
+    }
+    _buildargv[_buildargc] = 0;
+#else
+    _buildargc = argc;
+    _buildargv = (const char **)argv;
+#endif
 
 	baselayer_init();
-	r = app_main(argc, (char const * const*)argv);
+	r = app_main(_buildargc, (char const * const*)_buildargv);
+
+#ifdef __APPLE__
+    free(_buildargv);
+#endif
 
 	startwin_close();
 #ifdef HAVE_GTK2
