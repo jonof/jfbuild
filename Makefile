@@ -32,7 +32,7 @@ RELEASE?=1
 EFENCE?=0
 
 # SDK locations - adjust to match your setup
-DXROOT ?= $(HOME)/sdks/directx/dx81
+DXROOT ?= $(USERPROFILE)/sdks/directx/dx81
 
 # build locations - OBJ gets overridden to the game-specific objects dir
 OBJ?=obj.gnu

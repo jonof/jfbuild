@@ -193,7 +193,7 @@ int win_checkinstance(void)
 //
 // wm_msgbox/wm_ynbox() -- window-manager-provided message boxes
 //
-int wm_msgbox(char *name, char *fmt, ...)
+int wm_msgbox(const char *name, const char *fmt, ...)
 {
 	char buf[1000];
 	va_list va;
@@ -205,7 +205,7 @@ int wm_msgbox(char *name, char *fmt, ...)
 	MessageBox(hWindow,buf,name,MB_OK|MB_TASKMODAL);
 	return 0;
 }
-int wm_ynbox(char *name, char *fmt, ...)
+int wm_ynbox(const char *name, const char *fmt, ...)
 {
 	char buf[1000];
 	va_list va;
@@ -223,7 +223,7 @@ int wm_ynbox(char *name, char *fmt, ...)
 //
 // wm_setapptitle() -- changes the window title
 //
-void wm_setapptitle(char *name)
+void wm_setapptitle(const char *name)
 {
 	if (name) {
 		Bstrncpy(apptitle, name, sizeof(apptitle)-1);
@@ -466,7 +466,7 @@ void uninitsystem(void)
 //
 // initputs() -- prints a string to the intitialization window
 //
-void initputs(const char *str)
+void initputs(const char *buf)
 {
 	startwin_puts(buf);
 	handleevents();

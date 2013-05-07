@@ -282,7 +282,7 @@ int app_main(int argc, char const * const argv[])
 		free((void *)grps);	
 	}
 	
-	OSD_SetLogFile("build.log");
+	buildsetlogfile("build.log");
 	inittimer(TIMERINTSPERSECOND);
 	installusertimercallback(keytimerstuff);
 
