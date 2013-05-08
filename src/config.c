@@ -3,6 +3,7 @@
 
 #include "build.h"
 #include "editor.h"
+#include "osd.h"
 
 #ifdef RENDERTYPEWIN
 #include "winlayer.h"
