@@ -132,10 +132,15 @@ void PTM_InitIdent(PTMIdent *id, PTHead *pth)
 			return;
 		}
 		
-		id->flags = pth->flags & (PTH_CLAMPED);
+		id->flags = pth->flags & (PTH_CLAMPED | PTH_SKYBOX);
 		id->effects = (pth->palnum != pth->repldef->palnum)
             ? hictinting[pth->palnum].f : 0;
-		strncpy(id->filename, pth->repldef->filename, BMAX_PATH);
+		if (pth->flags & PTH_SKYBOX) {
+			// hightile + skybox + picnum ought to cover it
+		    id->picnum = pth->picnum;
+		} else {
+		    strncpy(id->filename, pth->repldef->filename, BMAX_PATH);
+		}
 	} else {
 		id->type = PTMIDENT_ART;
 		id->flags = pth->flags & (PTH_CLAMPED);

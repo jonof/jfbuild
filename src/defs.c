@@ -13,6 +13,7 @@ enum {
 	T_EOF = -2,
 	T_ERROR = -1,
 	T_INCLUDE = 0,
+	T_ECHO,
 	T_DEFINE,
 	T_DEFINETEXTURE,
 	T_DEFINESKYBOX,
@@ -55,6 +56,7 @@ enum {
 	T_TINT,T_RED,T_GREEN,T_BLUE,
 	T_TEXTURE,T_ALPHACUT,T_NOCOMPRESS,
 	T_UNDEFMODEL,T_UNDEFMODELRANGE,T_UNDEFMODELOF,T_UNDEFTEXTURE,T_UNDEFTEXTURERANGE,
+	T_TILEFROMTEXTURE,T_GLOW,T_SETUPTILERANGE,  // EDuke32 extensions
 };
 
 typedef struct { char *text; int tokenid; } tokenlist;
@@ -63,6 +65,7 @@ static tokenlist basetokens[] = {
 	{ "#include",        T_INCLUDE          },
 	{ "define",          T_DEFINE           },
 	{ "#define",         T_DEFINE           },
+	{ "echo",            T_ECHO             },
 
 	// deprecated style
 	{ "definetexture",   T_DEFINETEXTURE    },
@@ -88,6 +91,10 @@ static tokenlist basetokens[] = {
 	{ "undefmodelof",      T_UNDEFMODELOF      },
 	{ "undeftexture",      T_UNDEFTEXTURE      },
 	{ "undeftexturerange", T_UNDEFTEXTURERANGE },
+
+	// EDuke32 extensions
+	{ "tilefromtexture",   T_TILEFROMTEXTURE   },
+	{ "setuptilerange",    T_SETUPTILERANGE    },
 };
 
 static tokenlist modeltokens[] = {
@@ -164,6 +171,7 @@ static tokenlist tinttokens[] = {
 
 static tokenlist texturetokens[] = {
 	{ "pal",   T_PAL  },
+	{ "glow",  T_GLOW },    // EDuke32 extension
 };
 static tokenlist texturetokens_pal[] = {
 	{ "file",      T_FILE },{ "name", T_FILE },
@@ -227,6 +235,14 @@ static int defsparser(scriptfile *script)
 					}
 					break;
 				}
+			case T_ECHO:
+				{
+				    char *str;
+				    if (scriptfile_getstring(script, &str)) break;
+				    buildputs(str);
+				    buildputs("\n");
+				}
+				break;
 			case T_DEFINE:
 				{
 					char *name;
@@ -844,6 +860,14 @@ static int defsparser(scriptfile *script)
 								}
 								hicsetsubsttex(tile,pal,fn,alphacut,flags);
 							} break;
+
+							// an EDuke32 extension which we quietly parse over
+							case T_GLOW: {
+							    char *glowend;
+							    if (scriptfile_getbraces(script, &glowend)) break;
+							    script->textptr = glowend+1;
+							} break;
+
 							default: break;
 						}
 					}
@@ -853,6 +877,28 @@ static int defsparser(scriptfile *script)
 									script->filename, scriptfile_getlinum(script,texturetokptr));
 						break;
 					}
+				}
+				break;
+
+			// an EDuke32 extension which we quietly parse over
+			case T_TILEFROMTEXTURE:
+				{
+				    char *textureend;
+				    int tile=-1;
+				    if (scriptfile_getsymbol(script,&tile)) break;
+				    if (scriptfile_getbraces(script,&textureend)) break;
+				    script->textptr = textureend+1;
+				}
+				break;
+			case T_SETUPTILERANGE:
+				{
+				    int t;
+				    if (scriptfile_getsymbol(script,&t)) break;
+				    if (scriptfile_getsymbol(script,&t)) break;
+				    if (scriptfile_getsymbol(script,&t)) break;
+				    if (scriptfile_getsymbol(script,&t)) break;
+				    if (scriptfile_getsymbol(script,&t)) break;
+				    if (scriptfile_getsymbol(script,&t)) break;
 				}
 				break;
 

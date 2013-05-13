@@ -127,7 +127,7 @@ int md_loadmodel (const char *fn)
 
 	if (nextmodelid >= nummodelsalloced)
 	{
-		ml = (mdmodel **)realloc(models,(nummodelsalloced+MODELALLOCGROUP)*4); if (!ml) return(-1);
+		ml = (mdmodel **)realloc(models,(nummodelsalloced+MODELALLOCGROUP)*sizeof(mdmodel*)); if (!ml) return(-1);
 		models = ml; nummodelsalloced += MODELALLOCGROUP;
 	}
 
