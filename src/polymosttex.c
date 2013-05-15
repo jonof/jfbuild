@@ -524,7 +524,7 @@ static void pt_unload(PTHash * pth)
 {
 	int i;
 	for (i = PTHPIC_SIZE - 1; i>=0; i--) {
-		if (pth->head.pic[i]) {
+		if (pth->head.pic[i] && pth->head.pic[i]->glpic) {
 			bglDeleteTextures(1, &pth->head.pic[i]->glpic);
 			pth->head.pic[i]->glpic = 0;
 		}

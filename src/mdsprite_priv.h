@@ -15,7 +15,6 @@ typedef struct
 	int mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
 	int shadeoff;
 	float scale, bscale, zadd;
-	PTMHead *tex;	// skins
 } mdmodel;
 
 typedef struct _mdanim_t
@@ -52,12 +51,13 @@ typedef struct
 
 typedef struct
 {
-		//WARNING: This top block is a union between md2model&md3model: Make sure it matches!
+		//common between mdmodel/voxmodel/md2model/md3model
 	int mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
 	int shadeoff;
 	float scale, bscale, zadd;
+
+		//MD2 and MD3 share these
 	PTMHead **tex;   // textures for base skin if no mappings defined
-	
 	int numframes, cframe, nframe, fpssc, usesalpha;
 	float oldtime, curtime, interpol;
 	mdanim_t *animations;
@@ -142,12 +142,13 @@ typedef struct
 
 typedef struct
 {
-		//WARNING: This top block is a union between md2model&md3model: Make sure it matches!
+		//common between mdmodel/voxmodel/md2model/md3model
 	int mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
 	int shadeoff;
 	float scale, bscale, zadd;
+
+		//MD2 and MD3 share these
 	PTMHead **tex;   // textures for base skin if no mappings defined
-	
 	int numframes, cframe, nframe, fpssc, usesalpha;
 	float oldtime, curtime, interpol;
 	mdanim_t *animations;
@@ -178,13 +179,13 @@ typedef struct { unsigned short x, y, z, u, v; } vert_t;
 typedef struct { vert_t v[4]; } voxrect_t;
 typedef struct
 {
-		//WARNING: This top block is a union of md2model,md3model,voxmodel: Make sure it matches!
+		//common between mdmodel/voxmodel/md2model/md3model
 	int mdnum; //VOX=1, MD2=2, MD3=3. NOTE: must be first in structure!
 	int shadeoff;
 	float scale, bscale, zadd;
-	GLuint *texid;	// skins for palettes
-	
+
 		//VOX specific stuff:
+	GLuint *texid;	// skins for palettes
 	voxrect_t *quad; int qcnt, qfacind[7];
 	int *mytex, mytexx, mytexy;
 	int xsiz, ysiz, zsiz;

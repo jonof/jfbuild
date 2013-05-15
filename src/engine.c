@@ -5435,9 +5435,9 @@ void uninitengine(void)
 	//buildprintf("cacheresets = %d, cacheinvalidates = %d\n", cacheresets, cacheinvalidates);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
+	polymost_glreset();
 	PTClear();
 	PTCacheUnloadIndex();
-	polymost_glreset();
 	hicinit();
 	freeallmodels();
 #endif

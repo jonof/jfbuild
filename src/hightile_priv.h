@@ -29,6 +29,7 @@ extern palette_t hictinting[MAXPALOOKUPS];
 extern hicreplctyp *hicreplc[MAXTILES];
 extern int hicfirstinit;
 
+void hicinit(void);
 hicreplctyp * hicfindsubst(int picnum, int palnum, int skybox);
 
 #endif

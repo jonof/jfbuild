@@ -75,9 +75,9 @@ void clearskins ()
 		if (m->mdnum == 1) {
 			voxmodel *v = (voxmodel*)m;
 			for(j=0;j<MAXPALOOKUPS;j++) {
-				if (v->texid) {
+				if (v->texid[j]) {
 					bglDeleteTextures(1, &v->texid[j]);
-					v->texid = 0;
+					v->texid[j] = 0;
 				}
 			}
 		} else if (m->mdnum == 2 || m->mdnum == 3) {
@@ -92,6 +92,9 @@ void clearskins ()
 			}
 
 			for(sk=m2->skinmap;sk;sk=sk->next)
+			{
+				if (!sk->tex)
+					continue;
 				for(j=0;j<(HICEFFECTMASK+1);j++)
 				{
 					if (sk->tex[j] && sk->tex[j]->glpic) {
@@ -99,6 +102,7 @@ void clearskins ()
 						sk->tex[j]->glpic = 0;
 					}
 				}
+			}
 		}
 	}
 

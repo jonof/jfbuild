@@ -482,7 +482,6 @@ void gltexapplyprops (void);
 extern int polymosttexfullbright;	// set to the first index of the fullbright palette
 #endif
 
-void hicinit(void);
 // effect bitset: 1 = greyscale, 2 = invert
 void hicsetpalettetint(int palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect);
 // flags bitset: 1 = don't compress
