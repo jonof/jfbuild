@@ -99,8 +99,6 @@ void uninitmouse(void);
 void grabmouse(int a);
 void readmousexy(int *x, int *y);
 void readmousebstatus(int *b);
-void setjoydeadzone(int axis, unsigned short dead, unsigned short satur);
-void getjoydeadzone(int axis, unsigned short *dead, unsigned short *satur);
 
 int inittimer(int);
 void uninittimer(void);
