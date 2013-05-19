@@ -357,8 +357,11 @@ int initinput(void)
 			buildprintf("Joystick 1 has %d axes, %d buttons, and %d hat(s).\n",
 				joynumaxes,joynumbuttons,joynumhats);
 
-			joyaxis = (int *)Bcalloc(joynumaxes, sizeof(int));
-			joyhat = (int *)Bcalloc(joynumhats, sizeof(int));
+			joyaxis = Bcalloc(joynumaxes, sizeof(int));
+            if (joynumhats > 0) {
+                joyhat = malloc(joynumhats * sizeof(int));
+                memset(joyhat, -1, sizeof(int)*joynumhats);
+            }
 		}
 	}
 

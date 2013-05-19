@@ -991,7 +991,10 @@ static BOOL InitDirectInput(void)
 			hatdefs = (struct _joydef *)Bcalloc(didc.dwPOVs, sizeof(struct _joydef));
 
 			joyaxis = (int *)Bcalloc(didc.dwAxes, sizeof(int));
-			joyhat = (int *)Bcalloc(didc.dwPOVs, sizeof(int));
+			if (didc.dwPOVs > 0) {
+				joyhat = malloc(didc.dwPOVs * sizeof(int));
+				memset(joyhat, -1, didc.dwPOVs * sizeof(int));
+			}
 
 			result = IDirectInputDevice2_EnumObjects(dev2, InitDirectInput_enumobjects, (LPVOID)typecounts, DIDFT_ALL);
 			if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick features", result); }
