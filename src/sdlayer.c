@@ -505,6 +505,10 @@ void readmousebstatus(int *b)
 {
 	if (!mouseacquired || !appactive || !moustat) *b = 0;
 	else *b = mouseb;
+	// clear mousewheel events - the game has them now (in *b)
+	// the other mousebuttons are cleared when there's a "button released"
+	// event, but for the mousewheel that doesn't work, as it's released immediately
+	mouseb &= ~(1<<4 | 1<<5);
 }
 
 //
@@ -672,6 +676,7 @@ void getvalidmodes(void)
 #endif
 		0 };
 	static int defaultres[][2] = {
+		{1920,1200},{1920,1080},{1600,1200},{1680,1050},{1600,900},{1400,1050},{1440,900},{1366,768},
 		{1280,1024},{1280,960},{1280,800},{1280,720},{1152,864},{1024,768},{800,600},{640,480},
 		{640,400},{512,384},{480,360},{400,300},{320,240},{320,200},{0,0}
 	};
@@ -1208,8 +1213,15 @@ int handleevents(void)
 
 	while (SDL_PollEvent(&ev)) {
 		switch (ev.type) {
-			case SDL_KEYDOWN:
 			case SDL_KEYUP:
+				// (un)grab mouse with ctrl-g
+				if (ev.key.keysym.sym == SDLK_g
+				    && (ev.key.keysym.mod & KMOD_CTRL)) {
+					grabmouse(!mouseacquired);
+					break;
+				}
+				// else: fallthrough
+			case SDL_KEYDOWN:
 				code = keytranslation[ev.key.keysym.sym];
 
 				if (ev.key.keysym.unicode != 0 && ev.key.type == SDL_KEYDOWN &&
@@ -1258,15 +1270,22 @@ int handleevents(void)
 					case SDL_BUTTON_LEFT: j = 0; break;
 					case SDL_BUTTON_RIGHT: j = 1; break;
 					case SDL_BUTTON_MIDDLE: j = 2; break;
+					case SDL_BUTTON_WHEELDOWN: j = 4; break;
+					case SDL_BUTTON_WHEELUP: j = 5; break;
 					default: j = -1; break;
 				}
+				
 				if (j<0) break;
 				
 				if (ev.button.state == SDL_PRESSED)
 					mouseb |= (1<<j);
-				else
+				else if(j < 4) // don't release mousewheel here, that's done in readmousebstatus()
 					mouseb &= ~(1<<j);
-
+					// SDL sends a SDL_MOUSEBUTTONUP event for mousewheel right after
+					// SDL_MOUSEBUTTONDOWN, so the polling (via readmousebstatus())
+					// misses it. The workaround is to just clear the mousewheelbutton (4, 5)
+					// status in readmousebstatus() and ignoring that event here.
+				
 				if (mousepresscallback)
 					mousepresscallback(j+1, ev.button.state == SDL_PRESSED);
 				break;
