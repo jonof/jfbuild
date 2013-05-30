@@ -505,6 +505,10 @@ void readmousebstatus(int *b)
 {
 	if (!mouseacquired || !appactive || !moustat) *b = 0;
 	else *b = mouseb;
+	// clear mousewheel events - the game has them now (in *b)
+	// the other mousebuttons are cleared when there's a "button released"
+	// event, but for the mousewheel that doesn't work, as it's released immediately
+	mouseb &= ~(1<<4 | 1<<5);
 }
 
 //
@@ -1258,15 +1262,22 @@ int handleevents(void)
 					case SDL_BUTTON_LEFT: j = 0; break;
 					case SDL_BUTTON_RIGHT: j = 1; break;
 					case SDL_BUTTON_MIDDLE: j = 2; break;
+					case SDL_BUTTON_WHEELDOWN: j = 4; break;
+					case SDL_BUTTON_WHEELUP: j = 5; break;
 					default: j = -1; break;
 				}
+				
 				if (j<0) break;
 				
 				if (ev.button.state == SDL_PRESSED)
 					mouseb |= (1<<j);
-				else
+				else if(j < 4) // don't release mousewheel here, that's done in readmousebstatus()
 					mouseb &= ~(1<<j);
-
+					// SDL sends a SDL_MOUSEBUTTONUP event for mousewheel right after
+					// SDL_MOUSEBUTTONDOWN, so the polling (via readmousebstatus())
+					// misses it. The workaround is to just clear the mousewheelbutton (4, 5)
+					// status in readmousebstatus() and ignoring that event here.
+				
 				if (mousepresscallback)
 					mousepresscallback(j+1, ev.button.state == SDL_PRESSED);
 				break;
