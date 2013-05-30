@@ -1213,8 +1213,15 @@ int handleevents(void)
 
 	while (SDL_PollEvent(&ev)) {
 		switch (ev.type) {
-			case SDL_KEYDOWN:
 			case SDL_KEYUP:
+				// (un)grab mouse with ctrl-g
+				if (ev.key.keysym.sym == SDLK_g
+				    && (ev.key.keysym.mod & KMOD_CTRL)) {
+					grabmouse(!mouseacquired);
+					break;
+				}
+				// else: fallthrough
+			case SDL_KEYDOWN:
 				code = keytranslation[ev.key.keysym.sym];
 
 				if (ev.key.keysym.unicode != 0 && ev.key.type == SDL_KEYDOWN &&
