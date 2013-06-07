@@ -168,7 +168,7 @@ EXTERN int spritesortcnt;
 EXTERN spritetype tsprite[MAXSPRITESONSCREEN];
 
 EXTERN int xdim, ydim, ylookup[MAXYDIM+1], numpages;
-EXTERN int yxaspect, viewingrange;
+EXTERN int yxaspect, xyaspect, pixelaspect, widescreen, tallscreen, viewingrange;
 
 #define MAXVALIDMODES 256
 EXTERN int validmodecnt;

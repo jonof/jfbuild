@@ -473,7 +473,7 @@ int globaluclip, globaldclip, globvis;
 int globalvisibility, globalhisibility, globalpisibility, globalcisibility;
 unsigned char globparaceilclip, globparaflorclip;
 
-int xyaspect, viewingrangerecip, pixelaspect, widescreen = 0, tallscreen = 0;
+int viewingrangerecip;
 
 int asm1, asm2, asm4;
 intptr_t asm3;
