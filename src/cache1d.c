@@ -282,7 +282,7 @@ int addsearchpath(const char *p)
 
 	searchpathhead = srch;
 	if (srch->pathlen > maxsearchpathlen) maxsearchpathlen = srch->pathlen;
-	buildprintf("addsearchpath(): Added %s\n", srch->path);
+	buildprintf("Added %s to search path.\n", srch->path);
 
 	return 0;
 }

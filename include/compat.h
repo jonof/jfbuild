@@ -410,6 +410,7 @@ char *Bgetenv(const char *name);
 #endif
 
 char *Bgethomedir(void);
+char *Bgetappdir(void);
 char *Bgetsupportdir(int global);
 size_t Bgetsysmemsize(void);
 int Bcorrectfilename(char *filename, int removefn);

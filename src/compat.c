@@ -331,60 +331,158 @@ char *Bgetcwd(char *buf, bsize_t size)
 // Stuff which must be a function
 //
 
+/**
+ * Get the location of the user's home/profile data directory.
+ * @return NULL if it could not be determined
+ */
 char *Bgethomedir(void)
 {
+    char *dir = NULL;
+
 #ifdef _WIN32
 	TCHAR appdata[MAX_PATH];
 
-	if (SUCCEEDED(SHGetSpecialFolderPathA(NULL, appdata, CSIDL_APPDATA, FALSE)))
-		return strdup(appdata);
-	return NULL;
+	if (SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_CURRENT, appdata))) {
+		dir = strdup(appdata);
+    }
+
 #elif defined __APPLE__
 	FSRef ref;
 	CFStringRef str;
 	CFURLRef base;
-	char *s;
+	const char *s;
 
-	if (FSFindFolder(kUserDomain, kVolumeRootFolderType, kDontCreateFolder, &ref) < 0) return NULL;
+	if (FSFindFolder(kUserDomain,
+                     kVolumeRootFolderType,
+                     kDontCreateFolder, &ref) < 0) return NULL;
+    
 	base = CFURLCreateFromFSRef(NULL, &ref);
-	if (!base) return NULL;
+	if (!base) {
+        return NULL;
+    }
+    
 	str = CFURLCopyFileSystemPath(base, kCFURLPOSIXPathStyle);
 	CFRelease(base);
-	if (!str) return NULL;
-	s = (char*)CFStringGetCStringPtr(str,CFStringGetSystemEncoding());
-	if (s) s = strdup(s);
+	if (!str) {
+        return NULL;
+    }
+    
+	s = CFStringGetCStringPtr(str, CFStringGetSystemEncoding());
+	if (s) {
+        dir = strdup(s);
+    }
 	CFRelease(str);
-	return s;
+    
 #else
 	char *e = getenv("HOME");
-	if (!e) return NULL;
-	return strdup(e);
+	if (e) {
+        dir = strdup(e);
+    }
 #endif
+
+	return dir;
 }
 
+/**
+ * Get the location of the application directory.
+ * On OSX this is the .app bundle resource directory.
+ * On Windows this is the directory the executable was launched from.
+ * @return NULL if it could not be determined
+ */
+char *Bgetappdir(void)
+{
+    char *dir = NULL;
+    
+#ifdef _WIN32
+	TCHAR appdir[MAX_PATH];
+    
+	if (GetModuleFileName(NULL, appdir, MAX_PATH) > 0) {
+		// trim off the filename
+		char *slash = strrchr(appdir, '\\');
+		if (slash) slash[0] = 0;
+		dir = strdup(appdir);
+    }
+
+#elif defined __APPLE__
+    CFBundleRef mainBundle;
+    CFURLRef resUrl, fullUrl;
+	CFStringRef str;
+    const char *s;
+    
+    mainBundle = CFBundleGetMainBundle();
+    if (!mainBundle) {
+        return NULL;
+    }
+    
+    resUrl = CFBundleCopyResourcesDirectoryURL(mainBundle);
+    CFRelease(mainBundle);
+    if (!resUrl) {
+        return NULL;
+    }
+    fullUrl = CFURLCopyAbsoluteURL(resUrl);
+    if (fullUrl) {
+        CFRelease(resUrl);
+        resUrl = fullUrl;
+    }
+
+	str = CFURLCopyFileSystemPath(resUrl, kCFURLPOSIXPathStyle);
+    CFRelease(resUrl);
+    if (!str) {
+        return NULL;
+    }
+    
+    s = CFStringGetCStringPtr(str, CFStringGetSystemEncoding());
+    if (s) {
+        dir = strdup(s);
+    }
+    CFRelease(str);
+#endif
+    
+    return dir;
+}
+
+/**
+ * Get the location for global or user-local support files.
+ * @return NULL if it could not be determined
+ */
 char *Bgetsupportdir(int global)
 {
-#ifndef __APPLE__
-	return Bgethomedir();
-#else
+    char *dir = NULL;
+    
+#ifdef __APPLE__
 	FSRef ref;
 	CFStringRef str;
 	CFURLRef base;
-	char *s;
+	const char *s;
 	
 	if (FSFindFolder(global ? kLocalDomain : kUserDomain,
 					 kApplicationSupportFolderType,
 					 kDontCreateFolder, &ref) < 0) return NULL;
+
 	base = CFURLCreateFromFSRef(NULL, &ref);
-	if (!base) return NULL;
+	if (!base) {
+        return NULL;
+    }
+    
 	str = CFURLCopyFileSystemPath(base, kCFURLPOSIXPathStyle);
 	CFRelease(base);
-	if (!str) return NULL;
-	s = (char*)CFStringGetCStringPtr(str,CFStringGetSystemEncoding());
-	if (s) s = strdup(s);
+	if (!str) {
+        return NULL;
+    }
+    
+	s = CFStringGetCStringPtr(str, CFStringGetSystemEncoding());
+	if (s) {
+        dir = strdup(s);
+    }
 	CFRelease(str);
-	return s;
+
+#else
+    if (!global) {
+        dir = Bgethomedir();
+    }
 #endif
+    
+	return dir;
 }
 
 int Bcorrectfilename(char *filename, int removefn)
