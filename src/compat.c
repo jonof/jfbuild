@@ -43,6 +43,14 @@
 # endif
 #endif
 
+#if defined(__linux) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
+#  include <libgen.h> // for dirname()
+#endif
+
+#if defined(__FreeBSD__)
+#  include <sys/sysctl.h> // for sysctl() to get path to executable
+#endif
+
 #include "compat.h"
 
 
@@ -387,6 +395,7 @@ char *Bgethomedir(void)
  * Get the location of the application directory.
  * On OSX this is the .app bundle resource directory.
  * On Windows this is the directory the executable was launched from.
+ * On Linux/BSD it's the executable's directory
  * @return NULL if it could not be determined
  */
 char *Bgetappdir(void)
@@ -436,6 +445,34 @@ char *Bgetappdir(void)
         dir = strdup(s);
     }
     CFRelease(str);
+    
+#elif defined(__linux) || defined(__NetBSD__) || defined(__OpenBSD__)
+    char buf[PATH_MAX] = {0};
+    char buf2[PATH_MAX] = {0};
+#  ifdef __linux
+    snprintf(buf, sizeof(buf), "/proc/%d/exe", getpid());
+#  else // the BSDs.. except for FreeBSD which has a sysctl
+    snprintf(buf, sizeof(buf), "/proc/%d/file", getpid());
+#  endif
+    int len = readlink(buf, buf2, sizeof(buf2));
+    if (len != -1) {
+        // remove executable name with dirname(3)
+        // on Linux, dirname() will modify buf2 (cutting off executable name) and return it
+        // on FreeBSD it seems to use some internal buffer instead.. anyway, just strdup()
+        dir = strdup(dirname(buf2));
+    }
+#elif defined(__FreeBSD__)
+    // the sysctl should also work when /proc/ is not mounted (which seems to
+    // be common on FreeBSD), so use it..
+    char buf[PATH_MAX] = {0};
+    int name[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+    size_t len = sizeof(buf)-1;
+    int ret = sysctl(name, sizeof(name)/sizeof(name[0]), buf, &len, NULL, 0);
+    if(ret == 0 && buf[0] != '\0') {
+        // again, remove executable name with dirname()
+        // on FreeBSD dirname() seems to use some internal buffer
+        dir = strdup(dirname(buf));
+    }
 #endif
     
     return dir;
