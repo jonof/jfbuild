@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 44;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXAggregateTarget section */
@@ -595,8 +595,11 @@
 /* Begin PBXProject section */
 		AB735F3A0A29A24A003261DC /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0610;
+			};
 			buildConfigurationList = AB735F3B0A29A24B003261DC /* Build configuration list for PBXProject "engine" */;
-			compatibilityVersion = "Xcode 3.0";
+			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -734,6 +737,7 @@
 		AB3FE4530C04336F00D5DBDC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				PREBINDING = NO;
 				PRODUCT_NAME = editorsupp;
@@ -743,6 +747,7 @@
 		AB3FE4540C04336F00D5DBDC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				PREBINDING = NO;
 				PRODUCT_NAME = editorsupp;
@@ -753,11 +758,7 @@
 		AB735F3C0A29A24B003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					x86_64,
-					i386,
-					ppc,
-				);
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_ALTIVEC_EXTENSIONS = NO;
@@ -774,8 +775,8 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
-				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				ONLY_ACTIVE_ARCH = YES;
 				WARNING_CFLAGS = (
 					"-W",
 					"-Wall",
@@ -787,11 +788,7 @@
 		AB735F3D0A29A24B003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					x86_64,
-					i386,
-					ppc,
-				);
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_ALTIVEC_EXTENSIONS = NO;
@@ -807,8 +804,7 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
-				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				WARNING_CFLAGS = (
 					"-W",
 					"-Wall",
@@ -820,12 +816,9 @@
 		AB735F4C0A29A2DD003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
-				);
-				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"/Library/Frameworks\"";
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				PREBINDING = NO;
 				PRODUCT_NAME = engine;
 			};
@@ -834,12 +827,9 @@
 		AB735F4D0A29A2DD003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1)",
-				);
-				FRAMEWORK_SEARCH_PATHS_QUOTED_FOR_TARGET_1 = "\"/Library/Frameworks\"";
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				PREBINDING = NO;
 				PRODUCT_NAME = engine;
 			};
@@ -848,6 +838,7 @@
 		AB735FCE0A29A965003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				PREBINDING = NO;
 				PRODUCT_NAME = editor;
@@ -857,6 +848,7 @@
 		AB735FCF0A29A965003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				PREBINDING = NO;
 				PRODUCT_NAME = editor;
