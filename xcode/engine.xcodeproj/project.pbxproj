@@ -739,7 +739,6 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
-				PREBINDING = NO;
 				PRODUCT_NAME = editorsupp;
 			};
 			name = Debug;
@@ -749,9 +748,7 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
-				PREBINDING = NO;
 				PRODUCT_NAME = editorsupp;
-				ZERO_LINK = NO;
 			};
 			name = Release;
 		};
@@ -761,7 +758,6 @@
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
-				GCC_ALTIVEC_EXTENSIONS = NO;
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -791,7 +787,6 @@
 				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
-				GCC_ALTIVEC_EXTENSIONS = NO;
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
@@ -819,7 +814,6 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
-				PREBINDING = NO;
 				PRODUCT_NAME = engine;
 			};
 			name = Debug;
@@ -830,7 +824,6 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
-				PREBINDING = NO;
 				PRODUCT_NAME = engine;
 			};
 			name = Release;
@@ -840,7 +833,6 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
-				PREBINDING = NO;
 				PRODUCT_NAME = editor;
 			};
 			name = Debug;
@@ -850,9 +842,7 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = YES;
-				PREBINDING = NO;
 				PRODUCT_NAME = editor;
-				ZERO_LINK = NO;
 			};
 			name = Release;
 		};

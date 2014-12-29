@@ -28,7 +28,7 @@ int initmultiplayerscycle(void)
 	return 0;
 }
 
-void initmultiplayers(int argc, char **argv, char damultioption, char dacomrateoption, char dapriority)
+void initmultiplayers(int argc, char **argv)
 {
 	numplayers = 1; myconnectindex = 0;
 	connecthead = 0; connectpoint2[0] = -1;
