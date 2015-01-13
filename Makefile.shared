@@ -110,5 +110,7 @@ ifneq (0,$(NOASM))
 endif
 ifneq (0,$(LINKED_GTK))
   BUILDCFLAGS+= -DLINKED_GTK
+else
+  LIBS+= -ldl
 endif
 
