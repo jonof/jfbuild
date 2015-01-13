@@ -23,6 +23,7 @@ void	uninitsinglegroupfile(int grphandle);
 void	uninitgroupfile(void);
 int 	kopen4load(const char *filename, char searchfirst);	// searchfirst: 0 = anywhere, 1 = first group, 2 = any group
 int 	kread(int handle, void *buffer, int leng);
+int 	kgetc(int handle);
 int 	klseek(int handle, int offset, int whence);
 int 	kfilelength(int handle);
 int 	ktell(int handle);

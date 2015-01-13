@@ -670,6 +670,16 @@ int kread(int handle, void *buffer, int leng)
 	return(0);
 }
 
+int kgetc(int handle)
+{
+	int len;
+	unsigned char ch;
+
+	len = kread(handle, &ch, 1);
+	if (len < 1) return EOF;
+	return (int)ch;
+}
+
 int klseek(int handle, int offset, int whence)
 {
 	int i, groupnum;
