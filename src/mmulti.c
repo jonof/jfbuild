@@ -395,7 +395,7 @@ int initmultiplayerscycle(void)
 	return 1;
 }
 
-void initmultiplayers (int argc, char const * const argv[], unsigned char damultioption, unsigned char dacomrateoption, unsigned char dapriority)
+void initmultiplayers (int argc, char const * const argv[])
 {
 	int i, j, k, otims;
 

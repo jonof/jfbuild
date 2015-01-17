@@ -467,7 +467,7 @@ int app_main(int argc, char const * const argv[])
 	if (option[3] != 0) initmouse();
 	inittimer(TIMERINTSPERSECOND);
 
-	//initmultiplayers(argc-netparm,&argv[netparm],option[4],option[5],0);
+	//initmultiplayers(argc-netparm,&argv[netparm]);
 	if (initmultiplayersparms(argc-netparm,&argv[netparm])) {
 		buildputs("Waiting for players...\n");
 		while (initmultiplayerscycle()) {
