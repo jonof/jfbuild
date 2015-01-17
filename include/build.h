@@ -50,7 +50,11 @@ extern "C" {
 #endif
 
 #ifdef __GNUC__
-#define BPACK __attribute__ ((packed))
+#  if __GNUC__ == 4 && __GNUC_MINOR__ >= 7
+#    define BPACK __attribute__ ((packed, gcc_struct))
+#  else
+#    define BPACK __attribute__ ((packed))
+#  endif
 #else
 #define BPACK
 #endif
