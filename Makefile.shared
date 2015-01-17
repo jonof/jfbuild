@@ -39,6 +39,7 @@ endif
 
 ifeq ($(PLATFORM),LINUX)
 	RENDERTYPE=SDL
+	EXESUFFIX=
 	ifneq ($(DYNAMIC_OPENGL),1)
 		LIBS+= $(GLLIBLIN)
 	endif
@@ -53,6 +54,7 @@ ifeq ($(PLATFORM),WINDOWS)
 endif
 ifeq ($(PLATFORM),BSD)
 	RENDERTYPE=SDL
+	EXESUFFIX=
 	ifneq ($(DYNAMIC_OPENGL),1)
 		LIBS+= $(GLLIBBSD)
 	endif

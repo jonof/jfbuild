@@ -58,7 +58,7 @@ endif
 CC?=gcc
 CXX?=g++
 NASM?=nasm
-RC?=windres
+WINDRES?=windres
 AR?=ar
 RANLIB=ranlib
 OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-unused \
@@ -253,7 +253,7 @@ $(GAME)/%.$o: $(GAME)/rsrc/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(GAME)/%.$(res): $(GAME)/rsrc/%.rc
-	$(RC) -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
+	$(WINDRES) -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
 
 $(RSRC)/game_banner.c: $(RSRC)/game.bmp
 	echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
