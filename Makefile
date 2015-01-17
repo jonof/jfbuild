@@ -55,11 +55,11 @@ else
   debug=-ggdb -O0 -DDEBUGGINGAIDS -DNOSDLPARACHUTE
 endif
 
-CC=gcc
-CXX=g++
-AS=nasm
-RC=windres
-AR=ar
+CC?=gcc
+CXX?=g++
+NASM?=nasm
+RC?=windres
+AR?=ar
 RANLIB=ranlib
 OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-unused \
 	-fno-pic -fno-strict-aliasing -DNO_GCC_BUILTINS \
@@ -68,7 +68,7 @@ OURCXXFLAGS=-fno-exceptions -fno-rtti
 GAMECFLAGS=-I$(GAME) -I$(INC)
 LIBS=
 GAMELIBS=
-ASFLAGS=-s #-g
+NASMFLAGS=-s #-g
 EXESUFFIX=
 
 include Makefile.shared
@@ -126,18 +126,18 @@ ENGINEOBJS+= \
 
 # detect the platform
 ifeq ($(PLATFORM),LINUX)
-	ASFLAGS+= -f elf
+	NASMFLAGS+= -f elf
 	LIBS+= -lm
 endif
 ifeq ($(PLATFORM),BSD)
-	ASFLAGS+= -f elf
+	NASMFLAGS+= -f elf
 	OURCFLAGS+= -I/usr/X11R6/include
 	LIBS+= -lm
 endif
 ifeq ($(PLATFORM),WINDOWS)
 	OURCFLAGS+= -I$(DXROOT)/include
 	LIBS+= -lm
-	ASFLAGS+= -f win32 --prefix _
+	NASMFLAGS+= -f win32 --prefix _
 endif
 
 ifeq ($(RENDERTYPE),SDL)
@@ -229,7 +229,7 @@ include Makefile.deps
 
 # RULES
 $(SRC)/%.$o: $(SRC)/%.$(asm)
-	$(AS) $(ASFLAGS) $< -o $@
+	$(NASM) $(NASMFLAGS) $< -o $@
 
 $(SRC)/%.$o: $(SRC)/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@

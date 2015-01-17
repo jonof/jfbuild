@@ -18,22 +18,21 @@ STDCPPLIB=-lsupc++
 
 BUILDCFLAGS=-I$(LIBSQUISH)
 
-# Detect the platform if it wasn't explicitly given to us from
-# the outside world. This allows cross-compilation by overriding
-# CC and giving us PLATFORM specifically.
+# Detect the platform by interrogating the C compiler. This allows
+# cross-compilation by overriding CC etc.
+machine=$(strip $(shell $(CC) -dumpmachine))
 ifndef PLATFORM
-	uname=$(strip $(shell uname -s))
 	PLATFORM=UNKNOWN
-	ifeq ($(findstring Linux,$(uname)),Linux)
+	ifeq ($(findstring linux,$(machine)),linux)
 		PLATFORM=LINUX
 	endif
-	ifeq ($(findstring BSD,$(uname)),BSD)
+	ifeq ($(findstring freebsd,$(machine)),freebsd)
 		PLATFORM=BSD
 	endif
-	ifeq ($(findstring MINGW,$(uname)),MINGW)
+	ifeq ($(findstring mingw32,$(machine)),mingw32)
 		PLATFORM=WINDOWS
 	endif
-	ifeq ($(findstring Darwin,$(uname)),Darwin)
+	ifeq ($(findstring darwin,$(machine)),darwin)
 		PLATFORM=DARWIN
 	endif
 endif
@@ -42,9 +41,6 @@ ifeq ($(PLATFORM),LINUX)
 	RENDERTYPE=SDL
 	ifneq ($(DYNAMIC_OPENGL),1)
 		LIBS+= $(GLLIBLIN)
-	endif
-	ifeq ($(findstring x86_64,$(shell uname -m)),x86_64)
-	    NOASM=1
 	endif
 endif
 ifeq ($(PLATFORM),WINDOWS)
@@ -80,6 +76,8 @@ ifeq ($(RENDERTYPE),SDL)
 			# include cairo, so we need to filter out those -l switches in order to link
 			ifneq ($(LINKED_GTK),0)
 				LIBS+= $(shell pkg-config --libs gtk+-2.0)
+			else
+				LIBS+= -ldl
 			endif
 		else
 			HAVE_GTK2=0
@@ -89,6 +87,10 @@ else
 	ifeq ($(RENDERTYPE),WIN)
 		LIBS+= -mwindows -ldxguid
 	endif
+endif
+
+ifeq ($(findstring x86_64,$(machine)),x86_64)
+	NOASM=1
 endif
 
 BUILDCFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
