@@ -45,7 +45,7 @@ struct glinfo {
 	char nvmultisamplehint;
 	char multitex;
 	char envcombine;
-	
+
 	char hack_nofog;
 };
 extern struct glinfo glinfo;
@@ -118,7 +118,7 @@ void enddrawing(void);
 void showframe(int);
 
 int setpalette(int start, int num, unsigned char *dapal);
-int setgamma(float ro, float go, float bo);
+int setgamma(float gamma);
 
 int wm_msgbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 int wm_ynbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);

@@ -37,6 +37,7 @@ extern short searchsector, searchwall, searchstat;
 extern char inpreparemirror;
 
 extern int curbrightness, gammabrightness;
+extern float curgamma;
 extern unsigned char britable[16][256];
 extern unsigned char picsiz[MAXTILES];
 extern int lastx[MAXYDIM];

@@ -1,7 +1,7 @@
 #include "osxbits.h"
 #import <AppKit/AppKit.h>
 
-int osx_msgbox(char *name, char *msg)
+int osx_msgbox(const char *name, const char *msg)
 {
 	NSString *mmsg = [[NSString alloc] initWithUTF8String: msg];
 
@@ -10,9 +10,9 @@ int osx_msgbox(char *name, char *msg)
 	[alert addButtonWithTitle: @"OK"];
 	[alert setInformativeText: mmsg];
 	[alert setAlertStyle: NSInformationalAlertStyle];
-	
+
 	[alert runModal];
-	
+
 	[alert release];
 
 #else
@@ -23,7 +23,7 @@ int osx_msgbox(char *name, char *msg)
 	return 0;
 }
 
-int osx_ynbox(char *name, char *msg)
+int osx_ynbox(const char *name, const char *msg)
 {
 	NSString *mmsg = [[NSString alloc] initWithUTF8String: msg];
 	int r;
@@ -35,7 +35,7 @@ int osx_ynbox(char *name, char *msg)
 	[alert addButtonWithTitle:@"No"];
 	[alert setInformativeText: mmsg];
 	[alert setAlertStyle: NSInformationalAlertStyle];
-	
+
 	r = ([alert runModal] == NSAlertFirstButtonReturn);
 
 	[alert release];

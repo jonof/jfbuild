@@ -4937,7 +4937,7 @@ inline int addlava(void *b)
 	return r;
 }
 #else
-inline int addlava(void *bx)
+int addlava(void *bx)
 {
 	unsigned char *b = (unsigned char *)bx;
 	return b[-133] + b[-132] + b[-131] + b[1] + b[-1] + b[131] + b[132];
