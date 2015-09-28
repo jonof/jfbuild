@@ -1,23 +1,17 @@
-# GNU Makefile to prepare source and binary distributions.
-#    make -f MakeDistributions [source|binary]
+# GNU Makefile to prepare a source distribution.
+#    make -f MakeDistributions [source]
 
 SOURCEFILES=build.cfg buildlic.txt ChangeLog game.cfg LICENSE \
 	   Makefile Makefile.deps Makefile.shared Makefile.msvc Makefile.watcom \
-           MakeDistributions makegnu.bat makemsc.bat makew.bat NAMES.H README
+           MakeDistributions makegnu.bat makemsc.bat makew.bat README
 
-BINARYFILES=build.cfg build.exe buildlic.txt ChangeLog fmod.dll \
-           game.cfg game.exe LICENSE NAMES.H neatsong.ogg README
-
-BINARYCHECKS=checkfmoddll checkneatsongogg
-
-.PHONY: source binary $(BINARYCHECKS)
+.PHONY: source
 
 datenow=$(shell date +%Y%m%d)
 
 sourcedir=jfbuild_src_$(datenow)
-binarydir=jfbuild_$(datenow)
 
-all: source binary
+all: source
 
 source:
 	mkdir $(sourcedir) $(sourcedir)/obj.gnu $(sourcedir)/obj.watcom $(sourcedir)/obj.msc
@@ -27,14 +21,3 @@ source:
 	rm -f $(sourcedir)/src/tmp/*
 	touch $(sourcedir)/src/tmp/keep.me
 	kzip -r $(sourcedir).zip $(sourcedir)
-
-binary: $(BINARYCHECKS)
-	nmake /f Makefile.msvc
-	upx --best build.exe game.exe
-	mkdir $(binarydir)
-	cp $(BINARYFILES) $(binarydir)
-	kzip -r $(binarydir).zip $(binarydir)
-
-# Binary checks
-checkfmoddll: fmod.dll
-checkneatsongogg: neatsong.ogg
