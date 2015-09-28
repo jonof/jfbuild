@@ -219,7 +219,7 @@ int initsystem(void)
     SDL_GetVersion(&linked);
     SDL_VERSION(&compiled);
 
-    buildprintf("Initialising SDL system interface "
+    buildprintf("Initialising SDL2 system interface "
           "(compiled with SDL version %d.%d.%d, runtime version %d.%d.%d)\n",
         linked.major, linked.minor, linked.patch,
         compiled.major, compiled.minor, compiled.patch);
@@ -231,10 +231,8 @@ int initsystem(void)
 
     atexit(uninitsystem);
 
-    frameplace = 0;
-
 #ifdef USE_OPENGL
-    if (loadgldriver(getenv("BUILD_GLDRV"))) {
+    if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions()) {
         buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
         nogl = 1;
     }
@@ -261,17 +259,17 @@ int initsystem(void)
 //
 void uninitsystem(void)
 {
-    shutdownvideo();
-
     uninitinput();
     uninitmouse();
     uninittimer();
 
-    SDL_Quit();
-
+    shutdownvideo();
 #ifdef USE_OPENGL
+    unloadglfunctions();
     unloadgldriver();
 #endif
+
+    SDL_Quit();
 }
 
 
@@ -691,14 +689,14 @@ void getvalidmodes(void)
         if (SDL_BITSPERPIXEL(mode.format) <= 8) continue;
         ADDMODE(mode.w, mode.h, SDL_BITSPERPIXEL(mode.format), 1)
     }
-    
+
     // Windowed 8-bit modes
     for (i=0; defaultres[i][0]; i++) {
         CHECK(defaultres[i][0],defaultres[i][1]) {
             ADDMODE(defaultres[i][0], defaultres[i][1], 8, 0)
         }
     }
-    
+
     // Windowed >8-bit modes
     for (i=0; defaultres[i][0]; i++) {
         CHECK(defaultres[i][0],defaultres[i][1]) {
@@ -724,11 +722,11 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 
     getvalidmodes();
 
-    if (c>8
 #ifdef USE_OPENGL
-        && nogl
+    if (c > 8 && nogl) return -1;
+#else
+    if (c > 8) return -1;
 #endif
-       ) return -1;
 
     // fix up the passed resolution values to be multiples of 8
     // and at least 320x200 or at most MAXXDIMxMAXYDIM
@@ -870,7 +868,7 @@ int setvideomode(int x, int y, int c, int fs)
         SDL_RenderSetLogicalSize(sdl_renderer, x, y);
         SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, 255);
         SDL_RenderClear(sdl_renderer);
-        
+
         sdl_texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, x, y);
         if (!sdl_texture) {
             buildprintf("Error creating texture: %s\n", SDL_GetError());
@@ -897,9 +895,9 @@ int setvideomode(int x, int y, int c, int fs)
             buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
             return -1;
         }
-        
-        polymost_glreset();
+
         baselayer_setupopengl();
+        polymost_glreset();
 
         frameplace = 0;
         bytesperline = 0;
@@ -955,7 +953,7 @@ void enddrawing(void)
 //
 // showframe() -- update the display
 //
-void showframe(int w)
+void showframe(int UNUSED(w))
 {
     int i,j;
 
@@ -1032,7 +1030,7 @@ void showframe(int w)
 //
 // setpalette() -- set palette values
 //
-int setpalette(int start, int num, unsigned char *dapal)
+int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
 {
     return 0;
 }
@@ -1047,6 +1045,39 @@ int setgamma(float gamma)
     }
     return 0;
 }
+
+
+#ifdef USE_OPENGL
+//
+// loadgldriver -- loads an OpenGL DLL
+//
+int loadgldriver(const char *soname)
+{
+    const char *name = soname;
+    if (!name) {
+        name = "system OpenGL library";
+    }
+
+    buildprintf("Loading %s\n", name);
+    if (SDL_GL_LoadLibrary(soname)) return -1;
+    return 0;
+}
+
+int unloadgldriver(void)
+{
+    SDL_GL_UnloadLibrary();
+    return 0;
+}
+
+//
+// getglprocaddress
+//
+void *getglprocaddress(const char *name, int UNUSED(ext))
+{
+    return (void*)SDL_GL_GetProcAddress(name);
+}
+#endif
+
 
 #ifndef __APPLE__
 extern struct sdlappicon sdlappicon;

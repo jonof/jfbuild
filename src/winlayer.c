@@ -63,6 +63,7 @@ extern float curgamma;
 #if defined(USE_OPENGL) && defined(POLYMOST)
 // OpenGL stuff
 static HGLRC hGLRC = 0;
+static HANDLE hGLDLL;
 char nofog=0;
 static unsigned char nogl=0;
 #endif
@@ -429,7 +430,7 @@ int initsystem(void)
 	lockcount=0;
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
-	if (loadgldriver(getenv("BUILD_GLDRV"))) {
+	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions()) {
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		nogl = 1;
 	}
@@ -459,6 +460,7 @@ void uninitsystem(void)
 	win_allowtaskswitching(1);
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
+	unloadglfunctions();
 	unloadgldriver();
 #endif
 }
@@ -2601,6 +2603,47 @@ static int SetupDIB(int width, int height)
 }
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
+
+//
+// loadgldriver -- loads an OpenGL DLL
+//
+int loadgldriver(const char *dll)
+{
+	if (hGLDLL) return 0;	// Already loaded
+
+	if (!dll) {
+		dll = "OPENGL32.DLL";
+	}
+
+	buildprintf("Loading %s\n", dll);
+
+	hGLDLL = LoadLibrary(driver);
+	if (!hGLDLL) return -1;
+	return 0;
+}
+
+int unloadgldriver(void)
+{
+	if (!hGLDLL) return 0;
+	FreeLibrary(hGLDLL);
+	hGLDLL = NULL;
+	return 0;
+}
+
+//
+// getglprocaddress
+//
+void *getglprocaddress(const char *name, int ext)
+{
+	if (!hGLDLL) return NULL;
+	if (extension)  {
+		return (void*)bwglGetProcAddress(s);
+	} else {
+		return (void*)GetProcAddress(hGLDLL,s);
+	}
+}
+
+
 //
 // ReleaseOpenGL() -- cleans up OpenGL rendering stuff
 //

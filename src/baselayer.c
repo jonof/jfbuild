@@ -89,7 +89,7 @@ static int osdcmd_glinfo(const osdfuncparm_t *UNUSED(parm))
 		   " Renderer: %s\n"
 		   " Maximum anisotropy:      %.1f%s\n"
 		   " BGRA textures:           %s\n"
-		   " Non-x^2 textures:        %s\n"
+		   " Non-2^x textures:        %s\n"
 		   " Texure compression:      %s\n"
 		   " Clamp-to-edge:           %s\n"
 		   " Multisampling:           %s\n"

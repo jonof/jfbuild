@@ -227,7 +227,7 @@ int initsystem(void)
 	lockcount = 0;
 
 #ifdef USE_OPENGL
-	if (loadgldriver(getenv("BUILD_GLDRV"))) {
+	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions()) {
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		nogl = 1;
 	}
@@ -279,6 +279,7 @@ void uninitsystem(void)
 	SDL_Quit();
 
 #ifdef USE_OPENGL
+	unloadglfunctions();
 	unloadgldriver();
 #endif
 }
@@ -1156,6 +1157,42 @@ int setgamma(float ro, float go, float bo)
 {
 	return SDL_SetGamma(ro,go,bo);
 }
+
+
+#ifdef USE_OPENGL
+//
+// loadgldriver -- loads an OpenGL DLL
+//
+int loadgldriver(const char *soname)
+{
+	if (!soname) {
+#ifdef __APPLE__
+		soname = "/System/Library/Frameworks/OpenGL.framework/OpenGL";
+#else
+		soname = "libGL.so";
+#endif
+	}
+
+	buildprintf("Loading %s\n", soname);
+
+	if (SDL_GL_LoadLibrary(soname)) return -1;
+	return 0;
+}
+
+int unloadgldriver(void)
+{
+	return 0;
+}
+
+//
+// getglprocaddress
+//
+void *getglprocaddress(const char *name, int ext)
+{
+    return (void*)SDL_GL_GetProcAddress(name);
+}
+#endif
+
 
 #ifndef __APPLE__
 extern struct sdlappicon sdlappicon;

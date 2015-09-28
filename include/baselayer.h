@@ -124,6 +124,12 @@ int wm_msgbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 int wm_ynbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 void wm_setapptitle(const char *name);
 
+#ifdef USE_OPENGL
+int loadgldriver(const char *driver);   // or NULL for platform default
+void *getglprocaddress(const char *name, int ext);
+int unloadgldriver(void);
+#endif
+
 // baselayer.c
 int baselayer_init();
 #ifdef USE_OPENGL

@@ -1,18 +1,14 @@
-#if defined DYNAMIC_OPENGL && defined USE_OPENGL
+#ifdef USE_OPENGL
+
+#include "glbuild.h"
+
+#ifdef DYNAMIC_OPENGL
 
 #include "build.h"
-#include "glbuild.h"
+#include "baselayer.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
-#ifdef RENDERTYPESDL
-# ifdef __APPLE__
-#  include <SDL/SDL.h>
-# else
-#  include "SDL.h"
-# endif
-#endif
 
 void (APIENTRY * bglClearColor)( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha );
 void (APIENTRY * bglClear)( GLbitfield mask );
@@ -83,7 +79,7 @@ void (APIENTRY * bglGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
 void (APIENTRY * bglFogf)( GLenum pname, GLfloat param );
 void (APIENTRY * bglFogi)( GLenum pname, GLint param );
 void (APIENTRY * bglFogfv)( GLenum pname, const GLfloat *params );
-			
+
 #ifdef RENDERTYPEWIN
 // Windows
 HGLRC (WINAPI * bwglCreateContext)(HDC);
@@ -97,25 +93,15 @@ int (WINAPI * bwglDescribePixelFormat)(HDC,int,UINT,LPPIXELFORMATDESCRIPTOR);
 int (WINAPI * bwglGetPixelFormat)(HDC);
 BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 
-static HANDLE hGLDLL;
 #endif
 
-
-char *gldriver = NULL;
 
 static void * getproc_(const char *s, int *err, int fatal, int extension)
 {
-	void *t;
-#if defined RENDERTYPESDL
-	t = (void*)SDL_GL_GetProcAddress(s);
-#elif defined _WIN32
-	if (extension) t = (void*)bwglGetProcAddress(s);
-	else t = (void*)GetProcAddress(hGLDLL,s);
-#else
-#error Need a dynamic loader for this platform...
-#endif
+	void *t = NULL;
+	t = getglprocaddress(s, extension);
 	if (!t && fatal) {
-		buildprintf("Failed to find %s in %s\n", s, gldriver);
+		buildprintf("Failed to find %s\n", s);
 		*err = 1;
 	}
 	return t;
@@ -125,34 +111,9 @@ static void * getproc_(const char *s, int *err, int fatal, int extension)
 #define GETPROCEXT(s)     getproc_(s,&err,1,1)
 #define GETPROCEXTSOFT(s) getproc_(s,&err,0,1)
 
-int loadgldriver(const char *driver)
+int loadglfunctions(void)
 {
-	void *t;
 	int err=0;
-	
-#ifdef RENDERTYPEWIN
-	if (hGLDLL) return 0;
-#endif
-
-	if (!driver) {
-#ifdef _WIN32
-		driver = "OPENGL32.DLL";
-#elif defined __APPLE__
-		driver = "/System/Library/Frameworks/OpenGL.framework/OpenGL";
-#else
-		driver = "libGL.so";
-#endif
-	}
-
-	buildprintf("Loading %s\n",driver);
-
-#if defined RENDERTYPESDL
-	if (SDL_GL_LoadLibrary(driver)) return -1;
-#elif defined _WIN32
-	hGLDLL = LoadLibrary(driver);
-	if (!hGLDLL) return -1;
-#endif
-	gldriver = strdup(driver);
 
 #ifdef RENDERTYPEWIN
 	bwglCreateContext	= GETPROC("wglCreateContext");
@@ -244,9 +205,6 @@ int loadgldriver(const char *driver)
 int loadglextensions(void)
 {
 	int err = 0;
-#ifdef RENDERTYPEWIN
-	if (!hGLDLL) return 0;
-#endif
 
 	bglCompressedTexImage2DARB  = GETPROCEXTSOFT("glCompressedTexImage2DARB");
 	bglGetCompressedTexImageARB = GETPROCEXTSOFT("glGetCompressedTexImageARB");
@@ -254,20 +212,8 @@ int loadglextensions(void)
 	return err;
 }
 
-int unloadgldriver(void)
+void unloadglfunctions(void)
 {
-#ifdef RENDERTYPEWIN
-	if (!hGLDLL) return 0;
-#endif
-
-	free(gldriver);
-	gldriver = NULL;
-	
-#ifdef RENDERTYPEWIN
-	FreeLibrary(hGLDLL);
-	hGLDLL = NULL;
-#endif
-	
 	bglClearColor		= NULL;
 	bglClear		= NULL;
 	bglColorMask		= NULL;
@@ -337,7 +283,7 @@ int unloadgldriver(void)
 	bglFogf			= NULL;
 	bglFogi			= NULL;
 	bglFogfv		= NULL;
-			
+
 #ifdef RENDERTYPEWIN
 	bwglCreateContext	= NULL;
 	bwglDeleteContext	= NULL;
@@ -350,16 +296,14 @@ int unloadgldriver(void)
 	bwglGetPixelFormat	= NULL;
 	bwglSetPixelFormat	= NULL;
 #endif
-
-	return 0;
 }
 
 #else
 
-char *gldriver = "<statically linked>";
+int loadglfunctions(void) { return 0; }
+int loadglextensions(void) { return 0; }
+void unloadglfunctions(void) { }
 
-int loadgldriver(const char *a) { return 0; }
-int unloadgldriver(void) { return 0; }
+#endif  //DYNAMIC_OPENGL
 
-#endif
-
+#endif  //USE_OPENGL
