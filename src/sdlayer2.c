@@ -1130,12 +1130,14 @@ int handleevents(void)
                     if (ev.text.text[j] & 0x80) {
                         continue;   // UTF8 character byte
                     }
-                    if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
-                        keyasciififo[keyasciififoend] = ev.text.text[j];
-                        keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+                    code = ev.text.text[j];
+                    if (OSD_HandleChar(code)) {
+                        if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
+                            keyasciififo[keyasciififoend] = code;
+                            keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+                        }
                     }
                 }
-                OSD_HandleKey(0, 1);    // Fake a keypress.
                 break;
 
             case SDL_KEYUP:
@@ -1159,9 +1161,11 @@ int handleevents(void)
                     // FIFO depending on what the state of the control keys are.
                     if ((needcontrol  && mod && (mod & KMOD_CTRL) == mod) ||
                         (!needcontrol && (mod == KMOD_NONE))) {
-                        if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
-                            keyasciififo[keyasciififoend] = control;
-                            keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+                        if (OSD_HandleChar(control)) {
+                            if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
+                                keyasciififo[keyasciififoend] = control;
+                                keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+                            }
                         }
                     }
                 }

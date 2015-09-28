@@ -41,6 +41,10 @@ void OSD_SetParameters(
 // sets the scancode for the key which activates the onscreen display
 void OSD_CaptureKey(int sc);
 
+// handles keyboard character input when capturing input. returns 0 if key was handled
+// or the character if it should be handled by the game.
+int  OSD_HandleChar(int ch);
+
 // handles keyboard input when capturing input. returns 0 if key was handled
 // or the scancode if it should be handled by the game.
 int  OSD_HandleKey(int sc, int press);
