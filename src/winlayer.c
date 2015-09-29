@@ -65,7 +65,7 @@ extern float curgamma;
 static HGLRC hGLRC = 0;
 static HANDLE hGLDLL;
 char nofog=0;
-static unsigned char nogl=0;
+static unsigned char nogl=0, glminidriver=0;
 #endif
 
 static LPTSTR GetWindowsErrorMsg(DWORD code);
@@ -2617,8 +2617,10 @@ int loadgldriver(const char *dll)
 
 	buildprintf("Loading %s\n", dll);
 
-	hGLDLL = LoadLibrary(driver);
+	hGLDLL = LoadLibrary(dll);
 	if (!hGLDLL) return -1;
+
+	glminidriver = (Bstrcasecmp(dll, "opengl32.dll") != 0);
 	return 0;
 }
 
@@ -2636,10 +2638,10 @@ int unloadgldriver(void)
 void *getglprocaddress(const char *name, int ext)
 {
 	if (!hGLDLL) return NULL;
-	if (extension)  {
-		return (void*)bwglGetProcAddress(s);
+	if (ext) {
+		return (void*)bwglGetProcAddress(name);
 	} else {
-		return (void*)GetProcAddress(hGLDLL,s);
+		return (void*)GetProcAddress(hGLDLL, name);
 	}
 }
 
@@ -2703,7 +2705,6 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		0,0,0                          //Layer Masks Ignored
 	};
 	GLuint PixelFormat;
-	int minidriver;
 	int err;
 	static int warnonce = 0;
 	pfd.cColorBits = bitspp;
@@ -2730,9 +2731,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		return TRUE;
 	}
 
-	minidriver = Bstrcasecmp(gldriver,"opengl32.dll");
-
-	if (minidriver) PixelFormat = bwglChoosePixelFormat(hDC,&pfd);
+	if (glminidriver) PixelFormat = bwglChoosePixelFormat(hDC,&pfd);
 	else PixelFormat = ChoosePixelFormat(hDC,&pfd);
 	if (!PixelFormat) {
 		ReleaseOpenGL();
@@ -2740,7 +2739,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		return TRUE;
 	}
 
-	if (minidriver) err = bwglSetPixelFormat(hDC, PixelFormat, &pfd);
+	if (glminidriver) err = bwglSetPixelFormat(hDC, PixelFormat, &pfd);
 	else err = SetPixelFormat(hDC, PixelFormat, &pfd);
 	if (!err) {
 		ReleaseOpenGL();
@@ -3350,10 +3349,13 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			return 0;
 
 		case WM_CHAR:
-			if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) == keyasciififoplc) return 0;
-			keyasciififo[keyasciififoend] = (unsigned char)wParam;
-			keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
-			//buildprintf("Char %d, %d-%d\n",wParam,keyasciififoplc,keyasciififoend);
+			if (OSD_HandleChar((unsigned char)wParam)) {
+				if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
+					keyasciififo[keyasciififoend] = (unsigned char)wParam;
+					keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+					//buildprintf("Char %d, %d-%d\n",wParam,keyasciififoplc,keyasciififoend);
+				}
+			}
 			return 0;
 
 		case WM_HOTKEY:
