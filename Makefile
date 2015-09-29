@@ -142,8 +142,12 @@ ifeq ($(PLATFORM),WINDOWS)
 endif
 
 ifeq ($(RENDERTYPE),SDL)
-	ENGINEOBJS+= $(SRC)/sdlayer.$o
-	OURCFLAGS+= $(subst -Dmain=SDL_main,,$(SDLCONFIG_CFLAGS))
+	ifeq ($(SDLAPI),2)
+		ENGINEOBJS+= $(SRC)/sdlayer2.$o
+	else
+		ENGINEOBJS+= $(SRC)/sdlayer.$o
+	endif
+	OURCFLAGS+= $(SDLCONFIG_CFLAGS)
 
 	ifeq (1,$(HAVE_GTK2))
 		OURCFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)

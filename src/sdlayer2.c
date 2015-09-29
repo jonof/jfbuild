@@ -94,7 +94,9 @@ static int buildkeytranslationtable(void);
 
 static void shutdownvideo(void);
 
+#ifndef __APPLE__
 static SDL_Surface * loadappicon(void);
+#endif
 
 int wm_msgbox(const char *name, const char *fmt, ...)
 {
@@ -239,15 +241,7 @@ int initsystem(void)
 #endif
 
 #ifndef __APPLE__
-    {
-        fixme;  //XXX Check this!
-        SDL_Surface *icon;
-        icon = loadappicon();
-        if (icon) {
-            SDL_WM_SetIcon(icon, 0);
-            SDL_FreeSurface(icon);
-        }
-    }
+    loadappicon();
 #endif
 
     return 0;
@@ -853,6 +847,14 @@ int setvideomode(int x, int y, int c, int fs)
             return -1;
         }
     } while (retry);
+
+#ifndef __APPLE__
+    {
+        SDL_Surface *icon = loadappicon();
+        SDL_SetWindowIcon(sdl_window, icon);
+        SDL_FreeSurface(icon);
+    }
+#endif
 
     if (c == 8) {
         int i, j;
