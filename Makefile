@@ -4,7 +4,7 @@
 #  As of 6 July 2005, the engine should handle optimisations being enabled.
 #  If things seem to be going wrong, lower or disable optimisations, then
 #  try again. If things are still going wrong, call me.
-#   
+#
 
 # Create Makefile.user yourself to provide your own overrides
 # for configurable values
@@ -19,7 +19,7 @@
 #  LINKED_GTK     - enables compile-time linkage to GTK
 #
 SUPERBUILD ?= 1
-POLYMOST ?= 1		
+POLYMOST ?= 1
 USE_OPENGL ?= 1
 DYNAMIC_OPENGL ?= 1
 NOASM ?= 0
@@ -80,6 +80,7 @@ endif
 
 ENGINEOBJS+= \
 	$(SRC)/a-c.$o \
+  	$(SRC)/asmprot.$o \
 	$(SRC)/baselayer.$o \
 	$(SRC)/cache1d.$o \
 	$(SRC)/compat.$o \
@@ -143,7 +144,7 @@ endif
 ifeq ($(RENDERTYPE),SDL)
 	ENGINEOBJS+= $(SRC)/sdlayer.$o
 	OURCFLAGS+= $(subst -Dmain=SDL_main,,$(SDLCONFIG_CFLAGS))
-	
+
 	ifeq (1,$(HAVE_GTK2))
 		OURCFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
 		ENGINEOBJS+= $(SRC)/gtkbits.$o $(SRC)/dynamicgtk.$o
@@ -203,10 +204,10 @@ $(EDITORLIB): $(EDITOROBJS)
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
 	$(CXX) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(GAMELIBS) $(LIBS)
-	
+
 build$(EXESUFFIX): $(EDITOREXEOBJS)
 	$(CXX) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(LIBS)
-	
+
 kextract$(EXESUFFIX): $(TOOLS)/kextract.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
 kgroup$(EXESUFFIX): $(TOOLS)/kgroup.$o $(ENGINELIB)
@@ -268,7 +269,7 @@ $(TOOLS)/%.$o: $(TOOLS)/%.c
 $(TOOLS)/%.$o: $(TOOLS)/%.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# PHONIES	
+# PHONIES
 clean:
 ifeq ($(PLATFORM),DARWIN)
 	cd xcode && xcodebuild -project engine.xcodeproj -alltargets -configuration $(style) clean

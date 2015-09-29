@@ -850,19 +850,6 @@ int setvideomode(int x, int y, int c, int fs)
 			SDL_GLattr attr;
 			int value;
 		} attributes[] = {
-#if 0
-			{ SDL_GL_RED_SIZE, 8 },
-			{ SDL_GL_GREEN_SIZE, 8 },
-			{ SDL_GL_BLUE_SIZE, 8 },
-			{ SDL_GL_ALPHA_SIZE, 8 },
-			{ SDL_GL_BUFFER_SIZE, c },
-			{ SDL_GL_STENCIL_SIZE, 0 },
-			{ SDL_GL_ACCUM_RED_SIZE, 0 },
-			{ SDL_GL_ACCUM_GREEN_SIZE, 0 },
-			{ SDL_GL_ACCUM_BLUE_SIZE, 0 },
-			{ SDL_GL_ACCUM_ALPHA_SIZE, 0 },
-			{ SDL_GL_DEPTH_SIZE, 24 },
-#endif
 			{ SDL_GL_DOUBLEBUFFER, 1 },
 			{ SDL_GL_MULTISAMPLEBUFFERS, glmultisample > 0 },
 			{ SDL_GL_MULTISAMPLESAMPLES, glmultisample },
@@ -906,30 +893,6 @@ int setvideomode(int x, int y, int c, int fs)
 			return -1;
 		}
 	}
-
-#if 0
-	{
-	char flags[512] = "";
-#define FLAG(x,y) if ((sdl_surface->flags & x) == x) { strcat(flags, y); strcat(flags, " "); }
-	FLAG(SDL_HWSURFACE, "HWSURFACE") else
-	FLAG(SDL_SWSURFACE, "SWSURFACE")
-	FLAG(SDL_ASYNCBLIT, "ASYNCBLIT")
-	FLAG(SDL_ANYFORMAT, "ANYFORMAT")
-	FLAG(SDL_HWPALETTE, "HWPALETTE")
-	FLAG(SDL_DOUBLEBUF, "DOUBLEBUF")
-	FLAG(SDL_FULLSCREEN, "FULLSCREEN")
-	FLAG(SDL_OPENGL, "OPENGL")
-	FLAG(SDL_OPENGLBLIT, "OPENGLBLIT")
-	FLAG(SDL_RESIZABLE, "RESIZABLE")
-	FLAG(SDL_HWACCEL, "HWACCEL")
-	FLAG(SDL_SRCCOLORKEY, "SRCCOLORKEY")
-	FLAG(SDL_RLEACCEL, "RLEACCEL")
-	FLAG(SDL_SRCALPHA, "SRCALPHA")
-	FLAG(SDL_PREALLOC, "PREALLOC")
-#undef FLAG
-	buildprintf("SDL Surface flags: %s\n", flags);
-	}
-#endif
 
 	{
 		//static char t[384];
@@ -1051,7 +1014,7 @@ void enddrawing(void)
 //
 // showframe() -- update the display
 //
-void showframe(int w)
+void showframe(int UNUSED(w))
 {
 	int i,j;
 
@@ -1153,9 +1116,9 @@ int getpalette(int start, int num, char *dapal)
 //
 // setgamma
 //
-int setgamma(float ro, float go, float bo)
+int setgamma(float gamma)
 {
-	return SDL_SetGamma(ro,go,bo);
+	return SDL_SetGamma(gamma, gamma, gamma);
 }
 
 
@@ -1165,16 +1128,12 @@ int setgamma(float ro, float go, float bo)
 //
 int loadgldriver(const char *soname)
 {
-	if (!soname) {
-#ifdef __APPLE__
-		soname = "/System/Library/Frameworks/OpenGL.framework/OpenGL";
-#else
-		soname = "libGL.so";
-#endif
-	}
+    const char *name = soname;
+    if (!name) {
+        name = "system OpenGL library";
+    }
 
-	buildprintf("Loading %s\n", soname);
-
+    buildprintf("Loading %s\n", name);
 	if (SDL_GL_LoadLibrary(soname)) return -1;
 	return 0;
 }
@@ -1187,7 +1146,7 @@ int unloadgldriver(void)
 //
 // getglprocaddress
 //
-void *getglprocaddress(const char *name, int ext)
+void *getglprocaddress(const char *name, int UNUSED(ext))
 {
     return (void*)SDL_GL_GetProcAddress(name);
 }
@@ -1249,16 +1208,19 @@ int handleevents(void)
 				}
 				// else: fallthrough
 			case SDL_KEYDOWN:
-				code = keytranslation[ev.key.keysym.sym];
-
 				if (ev.key.keysym.unicode != 0 && ev.key.type == SDL_KEYDOWN &&
-				    (ev.key.keysym.unicode & 0xff80) == 0 &&
-				    ((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
-					keyasciififo[keyasciififoend] = ev.key.keysym.unicode & 0x7f;
-					keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+				    (ev.key.keysym.unicode & 0xff80) == 0) {
+					code = ev.key.keysym.unicode & 0x7f;
+					if (OSD_HandleChar(code)) {
+					    if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
+							keyasciififo[keyasciififoend] = code;
+							keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+						}
+					}
 				}
 
 				// hook in the osd
+				code = keytranslation[ev.key.keysym.sym];
 				if (OSD_HandleKey(code, (ev.key.type == SDL_KEYDOWN)) == 0)
 					break;
 

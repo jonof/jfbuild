@@ -819,7 +819,7 @@ int setvideomode(int x, int y, int c, int fs)
 
     shutdownvideo();
 
-    buildprintf("Setting video mode %dx%d (%d-bpp) %s\n", x,y,c,
+    buildprintf("Setting video mode %dx%d (%d-bpp %s)\n", x,y,c,
         (fs & 1) ? "fullscreen" : "windowed");
 
     do {
