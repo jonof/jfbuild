@@ -9,10 +9,10 @@ extern int myconnectindex, numplayers;
 extern int connecthead, connectpoint2[MAXMULTIPLAYERS];
 extern unsigned char syncstate;
 
-int initmultiplayersparms(int argc, char const * const argv[]);
+int initmultiplayersparms(int argc, char const * const argv[], int *networkmode);
 int initmultiplayerscycle(void);
 
-void initmultiplayers(int argc, char const * const argv[]);
+void initmultiplayers(int argc, char const * const argv[], int *networkmode);
 void setpackettimeout(int datimeoutcount, int daresendagaincount);
 void uninitmultiplayers(void);
 void sendlogon(void);
@@ -23,7 +23,6 @@ void sendpacket(int other, unsigned char *bufptr, int messleng);
 int getpacket(int *other, unsigned char *bufptr);
 void flushpackets(void);
 void genericmultifunction(int other, unsigned char *bufptr, int messleng, int command);
-int isvalidipaddress(const char *st);
 
 #endif	// __mmulti_h__
 

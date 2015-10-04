@@ -171,7 +171,7 @@ static int nummoves;
 static signed char statrate[NUMSTATS] = {-1,0,-1,0,0,0,1,3,0,3,15,-1,-1};
 
 	//Input structures
-static unsigned char networkmode;     //0 is 2(n-1) mode, 1 is n(n-1) mode
+static int networkmode;     //0 is 2(n-1) mode, 1 is n(n-1) mode
 static int locselectedgun, locselectedgun2;
 static input loc, oloc, loc2;
 static input ffsync[MAXPLAYERS], osync[MAXPLAYERS], ssync[MAXPLAYERS];
@@ -425,28 +425,20 @@ int app_main(int argc, char const * const argv[])
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
 	OSD_RegisterFunction("map", "map [filename]: load a map", osdcmd_map);
 #endif
-	
+
 	wm_setapptitle("KenBuild by Ken Silverman");
 
 	Bstrcpy(boardfilename, "nukeland.map");
-	j = 0; netparm = argc;
+	netparm = argc;
 	for (i=1;i<argc;i++) {
-		if ((!Bstrcasecmp("-net",argv[i])) || (!Bstrcasecmp("/net",argv[i]))) { j = 1; netparm = i; continue; }
-		if (j) {
-			if (argv[i][0] == '-' || argv[i][0] == '/') {
-				if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '0')) { networkmode = 0; continue; }
-				if (((argv[i][1] == 'n') || (argv[i][1] == 'N')) && (argv[i][2] == '1')) { networkmode = 1; continue; }
-			}
-			if (isvalidipaddress(argv[i])) continue;
-		} else {
-			if (!Bstrcasecmp(argv[i], "-setup")) cmdsetup = 1;
-			else {
-				Bstrcpy(boardfilename, argv[i]);
-				if (!Bstrrchr(boardfilename,'.')) Bstrcat(boardfilename,".map");
-			}
+		if ((!Bstrcasecmp("-net",argv[i])) || (!Bstrcasecmp("/net",argv[i]))) { netparm = i+1; break; }
+		if (!Bstrcasecmp(argv[i], "-setup")) cmdsetup = 1;
+		else {
+			Bstrcpy(boardfilename, argv[i]);
+			if (!Bstrrchr(boardfilename,'.')) Bstrcat(boardfilename,".map");
 		}
 	}
-	
+
 	initgroupfile("stuff.dat");
 	if (initengine()) {
 		buildprintf("There was a problem initialising the engine: %s.\n", engineerrstr);
@@ -467,8 +459,7 @@ int app_main(int argc, char const * const argv[])
 	if (option[3] != 0) initmouse();
 	inittimer(TIMERINTSPERSECOND);
 
-	//initmultiplayers(argc-netparm,&argv[netparm]);
-	if (initmultiplayersparms(argc-netparm,&argv[netparm])) {
+	if (initmultiplayersparms(argc-netparm, &argv[netparm], &networkmode)) {
 		buildputs("Waiting for players...\n");
 		while (initmultiplayerscycle()) {
 			handleevents();
@@ -534,7 +525,6 @@ int app_main(int argc, char const * const argv[])
 		loadsong("neatsong.ogg");
 	musicon();
 
-	/*
 	if (option[4] > 0)
 	{
 		x1 = ((xdim-screensize)>>1);
@@ -549,8 +539,8 @@ int app_main(int argc, char const * const argv[])
 		if (option[4] < 5) waitplayers = 2; else waitplayers = option[4]-3;
 		while (numplayers < waitplayers)
 		{
-			sprintf(tempbuf,"%ld of %ld players in...",numplayers,waitplayers);
-			printext256(68L,84L,31,0,tempbuf,0);
+			sprintf((char *)tempbuf,"%d of %d players in...",numplayers,waitplayers);
+			printext256(68L,84L,31,0,(char *)tempbuf,0);
 			nextpage();
 
 			if (getpacket(&other,packbuf) > 0)
@@ -590,17 +580,17 @@ int app_main(int argc, char const * const argv[])
 			if (myconnectindex == i) break;
 			j++;
 		}
-		sprintf(getmessage,"Player %ld",j);
+		sprintf((char *)getmessage,"Player %d",j);
 		if (networkmode == 0)
 		{
-			if (j == 1) Bstrcat(getmessage," (Master)");
-			else Bstrcat(getmessage," (Slave)");
+			if (j == 1) Bstrcat((char *)getmessage," (Master)");
+			else Bstrcat((char *)getmessage," (Slave)");
 		} else
-			Bstrcat(getmessage," (Even)");
-		getmessageleng = Bstrlen(getmessage);
+			Bstrcat((char *)getmessage," (Even)");
+		getmessageleng = Bstrlen((char *)getmessage);
 		getmessagetimeoff = totalclock+120;
 	}
-	*/
+	
 	screenpeek = myconnectindex;
 	reccnt = 0;
 	for(i=connecthead;i>=0;i=connectpoint2[i]) initplayersprite((short)i);
@@ -3845,15 +3835,15 @@ void drawscreen(short snum, int dasmoothratio)
 
 						//for(x1=windowx1;x1<=windowx2;x1++)
 						//	{ ch = ptr[x1]; ptr[x1] = ptr3[ptr2[x1]]; ptr2[x1] = ptr4[ch]; }
-						
+
 						ox1 = windowx1-min(j,0);
 						ox2 = windowx2-max(j,0);
-						
+
 						for(x1=windowx1;x1<ox1;x1++)
 							{ ch = ptr[x1]; ptr[x1] = ptr3[ptr2[x1]]; ptr2[x1] = ptr4[ch]; }
 						for(x1=ox2+1;x1<=windowx2;x1++)
 							{ ch = ptr[x1]; ptr[x1] = ptr3[ptr2[x1]]; ptr2[x1] = ptr4[ch]; }
-						
+
 						ptr2 += j;
 						for(x1=ox1;x1<=ox2;x1++)
 							{ ch = ptr[x1]; ptr[x1] = ptr3[ptr2[x1]]; ptr2[x1] = ptr4[ch]; }
