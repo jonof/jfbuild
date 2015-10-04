@@ -320,9 +320,13 @@ void OSD_SetParameters(
 //
 // OSD_CaptureKey() -- Sets the scancode for the key which activates the onscreen display
 //
-void OSD_CaptureKey(int sc)
+int OSD_CaptureKey(int sc)
 {
-	osdkey = sc;
+	int prev = osdkey;
+	if (sc >= 0) {
+		osdkey = sc;
+	}
+	return prev;
 }
 
 enum {
@@ -655,16 +659,7 @@ int OSD_HandleKey(int sc, int press)
 	int i,j;
 
 	if (!osdinited) return sc;
-
-	if (sc == osdkey) {
-		if (press) {
-			OSD_ShowDisplay(osdvisible ^ 1);
-			bflushchars();
-		}
-		return 0;
-	} else if (!osdvisible) {
-		return sc;
-	}
+	if (!osdvisible) return sc;
 
 	if (!press) {
 		if (sc == 42 || sc == 54) // shift
@@ -792,13 +787,17 @@ void OSD_ResizeDisplay(int w, int h)
 //
 void OSD_ShowDisplay(int onf)
 {
+	if (onf < 0) {
+		onf = !osdvisible;
+	}
 	osdvisible = (onf != 0);
 	osdeditcontrol = 0;
 	osdeditshift = 0;
 
 	grabmouse(osdvisible == 0);
 	onshowosd(osdvisible);
-	if (osdvisible) releaseallbuttons();
+	releaseallbuttons();
+	bflushchars();
 }
 
 

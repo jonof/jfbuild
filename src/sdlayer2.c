@@ -1115,6 +1115,7 @@ int handleevents(void)
     int code, rv=0, j, control;
     SDL_Event ev;
     static int firstcall = 1;
+    int eattextinput = 0;
 
 #define SetKey(key,state) { \
     keystatus[key] = state; \
@@ -1128,6 +1129,10 @@ int handleevents(void)
     while (SDL_PollEvent(&ev)) {
         switch (ev.type) {
             case SDL_TEXTINPUT:
+                if (eattextinput) {
+                    eattextinput = 0;
+                    break;
+                }
                 for (j = 0; j < SDL_TEXTINPUTEVENT_TEXT_SIZE && ev.text.text[j]; j++) {
                     if (ev.text.text[j] & 0x80) {
                         continue;   // UTF8 character byte
@@ -1173,7 +1178,15 @@ int handleevents(void)
                 }
 
                 // hook in the osd
-                if (OSD_HandleKey(code, (ev.key.type == SDL_KEYDOWN)) == 0)
+                if (code == OSD_CaptureKey(-1)) {
+                    if (ev.key.type == SDL_KEYDOWN) {
+                        // The character produced by the OSD toggle key needs to be ignored.
+                        eattextinput = 1;
+
+                        OSD_ShowDisplay(-1);
+                    }
+                    break;
+                } else if (OSD_HandleKey(code, (ev.key.type == SDL_KEYDOWN)) == 0)
                     break;
 
                 if (ev.key.type == SDL_KEYDOWN) {
@@ -1295,6 +1308,7 @@ int handleevents(void)
         }
     }
 
+    eattextinput = 0;
     sampletimer();
     startwin_idle(NULL);
 #undef SetKey

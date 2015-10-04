@@ -1221,7 +1221,12 @@ int handleevents(void)
 
 				// hook in the osd
 				code = keytranslation[ev.key.keysym.sym];
-				if (OSD_HandleKey(code, (ev.key.type == SDL_KEYDOWN)) == 0)
+				if (code == OSD_CaptureKey(-1)) {
+					if (ev.key.type == SDL_KEYDOWN) {
+						OSD_ShowDisplay(-1);
+					}
+					break;
+				} else if (OSD_HandleKey(code, (ev.key.type == SDL_KEYDOWN)) == 0)
 					break;
 
 				if (ev.key.type == SDL_KEYDOWN) {

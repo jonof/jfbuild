@@ -38,8 +38,9 @@ void OSD_SetParameters(
 		int textshade, int textpal
 	);
 
-// sets the scancode for the key which activates the onscreen display
-void OSD_CaptureKey(int sc);
+// sets the scancode for the key which activates the onscreen display. Returns the
+// previous scancode set. Pass -1 to read the current scancode.
+int OSD_CaptureKey(int sc);
 
 // handles keyboard character input when capturing input. returns 0 if key was handled
 // or the character if it should be handled by the game.
@@ -52,7 +53,7 @@ int  OSD_HandleKey(int sc, int press);
 // handles the readjustment when screen resolution changes
 void OSD_ResizeDisplay(int w,int h);
 
-// shows or hides the onscreen display
+// shows or hides the onscreen display. Pass -1 to toggle visibility.
 void OSD_ShowDisplay(int onf);
 
 // draw the osd to the screen

@@ -1248,7 +1248,11 @@ static void ProcessInputDevices(void)
 						//if (IsDebuggerPresent() && k == DIK_F12) continue;
 
 						// hook in the osd
-						if (OSD_HandleKey(k, (didod[i].dwData & 0x80)) != 0) {
+						if (k == OSD_CaptureKey(-1)) {
+							if ((didod[i].dwData & 0x80)) {
+								OSD_ShowDisplay(-1);
+							}
+						} else if (OSD_HandleKey(k, (didod[i].dwData & 0x80)) != 0) {
 							SetKey(k, (didod[i].dwData & 0x80) == 0x80);
 
 							if (keypresscallback)
