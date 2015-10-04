@@ -99,7 +99,7 @@ extern void (APIENTRY * bglGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
 extern void (APIENTRY * bglFogf)( GLenum pname, GLfloat param );
 extern void (APIENTRY * bglFogi)( GLenum pname, GLint param );
 extern void (APIENTRY * bglFogfv)( GLenum pname, const GLfloat *params );
-			
+
 #ifdef RENDERTYPEWIN
 // Windows
 extern HGLRC (WINAPI * bwglCreateContext)(HDC);
@@ -185,7 +185,7 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 #define bglFogf			glFogf
 #define bglFogi			glFogi
 #define bglFogfv		glFogfv
-			
+
 #ifdef RENDERTYPEWIN
 #define bwglCreateContext	wglCreateContext
 #define bwglDeleteContext	wglDeleteContext
@@ -201,11 +201,8 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 
 #endif
 
-#endif //USE_OPENGL
-
-extern char *gldriver;
-
-int loadgldriver(const char *driver);
+int loadglfunctions(void);
 int loadglextensions(void);
-int unloadgldriver(void);
+void unloadglfunctions(void);
 
+#endif //USE_OPENGL

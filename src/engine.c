@@ -68,6 +68,7 @@ int dommxoverlay = 1, beforedrawrooms = 1;
 static int oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
 
 int curbrightness = 0, gammabrightness = 0;
+float curgamma = 1.0;
 
 	//Textured Map variables
 static unsigned char globalpolytype;
@@ -1700,7 +1701,7 @@ static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *l
         intptr_t i, fpalookup;
 	int y1ve[4], y2ve[4], u4, d4, z, tsizx, tsizy;
 	char bad;
-	
+
 	if (x2 >= xdim) x2 = xdim-1;
 
 	tsizx = tilesizx[globalpicnum];
@@ -1838,7 +1839,7 @@ static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *l
 
 		vlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],(void *)(bufplce[0]+waloff[globalpicnum]),(void *)(x+frameoffset+ylookup[y1ve[0]]));
 	}
-	
+
 #endif
 
 	faketimerhandler();
@@ -2756,7 +2757,7 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 
 	if (novoxmips) i = 0;
 	davoxptr = (unsigned char *)voxoff[daindex][i];
-	if (!davoxptr && i > 0) { davoxptr = (unsigned char *)voxoff[daindex][0]; i = 0; } 
+	if (!davoxptr && i > 0) { davoxptr = (unsigned char *)voxoff[daindex][0]; i = 0; }
 	if (!davoxptr) return;
 
 	if (voxscale[daindex] == 65536)
@@ -4367,7 +4368,7 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 	if (rendmode) { polymost_dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2,uniqid); return; }
 #endif
 	//============================================================================= //POLYMOST ENDS
-	
+
 	if (cx1 < 0) cx1 = 0;
 	if (cy1 < 0) cy1 = 0;
 	if (cx2 > xres-1) cx2 = xres-1;
@@ -5431,7 +5432,7 @@ int initengine(void)
 void uninitengine(void)
 {
 	int i;
-	
+
 	//buildprintf("cacheresets = %d, cacheinvalidates = %d\n", cacheresets, cacheinvalidates);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
@@ -5548,7 +5549,7 @@ void drawrooms(int daposx, int daposy, int daposz,
 	//============================================================================= //POLYMOST ENDS
 
 	begindrawing();	//{{{
-	
+
 	//frameoffset = frameplace + viewoffset;
 	frameoffset = frameplace + windowy1*bytesperline + windowx1;
 
@@ -5724,7 +5725,7 @@ killsprite:
 	}
 
 	begindrawing();	//{{{
-	
+
 	/*for(i=spritesortcnt-1;i>=0;i--)
 	{
 		xs = tspriteptr[i].x-globalposx;
@@ -5863,7 +5864,7 @@ void drawmapview(int dax, int day, int zoome, short ang)
 	sortnum = 0;
 
 	begindrawing();	//{{{
-	
+
 	for(s=0,sec=&sector[s];s<numsectors;s++,sec++)
 		if (show2dsector[s>>3]&pow2char[s&7])
 		{
@@ -6150,7 +6151,7 @@ int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *dap
 #define MYMAXSECTORS (mapversion==7l?MAXSECTORSV7:MAXSECTORSV8)
 #define MYMAXWALLS   (mapversion==7l?MAXWALLSV7:MAXWALLSV8)
 #define MYMAXSPRITES (mapversion==7l?MAXSPRITESV7:MAXSPRITESV8)
-	
+
 	clearbuf(&show2dsector[0],(int)((MAXSECTORS+3)>>5),0L);
 	clearbuf(&show2dsprite[0],(int)((MAXSPRITES+3)>>5),0L);
 	clearbuf(&show2dwall[0],(int)((MAXWALLS+3)>>5),0L);
@@ -6736,7 +6737,7 @@ int loadmaphack(char *filename)
 					whichsprite = -1;
 					break;
 				}
-				
+
 				break;
 			case 1:		// angoff <xx>
 				{
@@ -6903,7 +6904,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	if ((qsetmode == 200) && (videomodereset == 0) &&
 	    (davidoption == fullscreen) && (xdim == daxdim) && (ydim == daydim) && (bpp == dabpp))
 		return(0);
-	
+
 	strcpy(kensmessage,"!!!! BUILD engine&tools programmed by Ken Silverman of E.G. RI.  (c) Copyright 1995 Ken Silverman.  Summary:  BUILD = Ken. !!!!");
 
 	//if (checkvideomode(&daxdim, &daydim, dabpp, davidoption)<0) return (-1);
@@ -6921,7 +6922,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 #endif
 
 	xdim = daxdim; ydim = daydim;
-	
+
 	// determine the corrective factor for pixel-squareness. Build
 	// is built around the non-square pixels of Mode 13h, so to get
 	// things back square on VGA screens, things need to be "compressed"
@@ -6933,18 +6934,18 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	} else {
 		int ratio = divscale16(ydim*320, xdim*240);
 		pixelaspect = divscale16(240*320L,320*200L);
-		
+
 		if (ratio < 65536) {
 			widescreen = 1;
 		} else if (ratio > 65536) {
 			tallscreen = 1;
-			
+
 			// let tall screens (eg. 1280x1024) stretch the 2D elements
 			// vertically a little until something better is thought of
 			pixelaspect = divscale16(ydim*320L,xdim*200L);
 		}
 	}
-	
+
 	j = ydim*4*sizeof(int);  //Leave room for horizlookup&horizlookup2
 
 	if (lookups != NULL) { kfree((void *)lookups); lookups = NULL; }
@@ -8918,7 +8919,7 @@ void setview(int x1, int y1, int x2, int y2)
 {
 	int i;
 	float xfov;
-	
+
 	xfov = ((float)xdim / (float)ydim) / (4.f / 3.f);
 
 	windowx1 = x1; wx1 = (x1<<12);
@@ -8959,7 +8960,7 @@ void setaspect(int daxrange, int daaspect)
     xyaspect = divscale32(1,yxaspect);
     xdimenscale = scale(xdimen,yxaspect,320);
     xdimscale = scale(320,xyaspect,xdimen);
-    
+
     ydimenscale = scale(ydimen, yxaspect, ys);
 }
 
@@ -9138,8 +9139,8 @@ void setbrightness(int dabrightness, unsigned char *dapal, char noapply)
 	if (!(noapply&4))
 		curbrightness = min(max((int)dabrightness,0),15);
 
-	f = 1.0 + ((float)curbrightness / 10.0);
-	if (setgamma(f,f,f)) j = curbrightness; else j = 0;
+	curgamma = 1.0 + ((float)curbrightness / 10.0);
+	if (setgamma(curgamma)) j = curbrightness; else j = 0;
 
 	for(k=i=0;i<256;i++)
 	{
@@ -9148,14 +9149,14 @@ void setbrightness(int dabrightness, unsigned char *dapal, char noapply)
 		curpalette[i].g = dapal[i*3+1] << 2;
 		curpalette[i].b = dapal[i*3+2] << 2;
 		curpalette[i].f = 0;
-		
+
 		// brightness adjust the palette
 		curpalettefaded[i].b = (tempbuf[k++] = britable[j][ curpalette[i].b ]);
 		curpalettefaded[i].g = (tempbuf[k++] = britable[j][ curpalette[i].g ]);
 		curpalettefaded[i].r = (tempbuf[k++] = britable[j][ curpalette[i].r ]);
 		curpalettefaded[i].f = tempbuf[k++] = 0;
 	}
-	
+
 	if ((noapply&1) == 0) setpalette(0,256,(unsigned char*)tempbuf);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
@@ -9184,7 +9185,7 @@ void setpalettefade(unsigned char r, unsigned char g, unsigned char b, unsigned 
 {
 	int i,k;
 	palette_t p;
-	
+
 	palfadergb.r = min(63,r) << 2;
 	palfadergb.g = min(63,g) << 2;
 	palfadergb.b = min(63,b) << 2;
@@ -9198,14 +9199,14 @@ void setpalettefade(unsigned char r, unsigned char g, unsigned char b, unsigned 
 			p.g	= britable[curbrightness][ curpalette[i].g ];
 			p.r = britable[curbrightness][ curpalette[i].r ];
 		}
-		
-		tempbuf[k++] = 
+
+		tempbuf[k++] =
 			(curpalettefaded[i].b =
 				p.b + ( ( ( (int)palfadergb.b - (int)p.b ) * (int)offset ) >> 6 ) ) >> 2;
-		tempbuf[k++] = 
+		tempbuf[k++] =
 			(curpalettefaded[i].g =
 				p.g + ( ( ( (int)palfadergb.g - (int)p.g ) * (int)offset ) >> 6 ) ) >> 2;
-		tempbuf[k++] = 
+		tempbuf[k++] =
 			(curpalettefaded[i].r =
 				p.r + ( ( ( (int)palfadergb.r - (int)p.r ) * (int)offset ) >> 6 ) ) >> 2;
 		tempbuf[k++] = curpalettefaded[i].f = 0;
@@ -9851,7 +9852,7 @@ void drawline16(int x1, int y1, int x2, int y2, unsigned char col)
 		}
 		d = 0;
 		if (y2 > y1) pinc = bytesperline; else pinc = -bytesperline;
-		
+
 		begindrawing();	//{{{
 		p = (y1*bytesperline)+x1+frameplace;
 		if (dy == 0 && drawlinepat == 0xffffffff) {
@@ -9918,7 +9919,7 @@ void drawcircle16(int x1, int y1, int r, unsigned char col)
 	d = 1 - r;
 	de = 2;
 	dse = 5 - (r << 1);
-	
+
 	begindrawing();
 	p = (y1*bytesperline)+x1+frameplace;
 
@@ -10012,7 +10013,7 @@ void qsetmode640350(void)
 		ydim16 = 350;
 		halfxdim16 = 320;
 		midydim16 = 146;
-		
+
 		begindrawing();	//{{{
 		clearbuf((void *)frameplace, (bytesperline*350L) >> 2, 0);
 		enddrawing();	//}}}
@@ -10043,7 +10044,7 @@ void qsetmode640480(void)
 		ydim16 = 336;
 		halfxdim16 = 320;
 		midydim16 = 200;
-		
+
 		begindrawing();	//{{{
 		clearbuf((void *)(frameplace + (336l*bytesperline)), (bytesperline*144L) >> 2, 0x08080808l);
 		clearbuf((void *)frameplace, (bytesperline*336L) >> 2, 0L);
@@ -10075,13 +10076,13 @@ void qsetmodeany(int daxdim, int daydim)
 		ydim16 = yres - STATUS2DSIZ;
 		halfxdim16 = xres >> 1;
 		midydim16 = scale(200,yres,480);
-		
+
 		begindrawing();	//{{{
 		clearbuf((void *)(frameplace + (ydim16*bytesperline)), (bytesperline*STATUS2DSIZ) >> 2, 0x08080808l);
 		clearbuf((void *)frameplace, (ydim16*bytesperline) >> 2, 0L);
 		enddrawing();	//}}}
 	}
-	
+
 	qsetmode = ((daxdim<<16)|(daydim&0xffff));
 }
 
@@ -10092,7 +10093,7 @@ void qsetmodeany(int daxdim, int daydim)
 void clear2dscreen(void)
 {
 	int clearsz;
-	
+
 	begindrawing();	//{{{
 	if (qsetmode == 350) clearsz = 350;
 	else {
@@ -10114,7 +10115,7 @@ void draw2dgrid(int posxe, int posye, short ange, int zoome, short gride)
 	if (gride > 0)
 	{
 		begindrawing();	//{{{
-		
+
 		yp1 = midydim16-mulscale14(posye+editorgridextent,zoome);
 		if (yp1 < 0) yp1 = 0;
 		yp2 = midydim16-mulscale14(posye-editorgridextent,zoome);
@@ -10180,7 +10181,7 @@ void draw2dscreen(int posxe, int posye, short ange, int zoome, short gride)
 	if (qsetmode == 200) return;
 
 	begindrawing();	//{{{
-	
+
 	if (editstatus == 0)
 	{
 		faketimerhandler();
@@ -10464,13 +10465,13 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 			b.g = britable[curbrightness][ curpalette[backcol].g ];
 			b.b = britable[curbrightness][ curpalette[backcol].b ];
 		}
-		
+
 		setpolymost2dview();
 		bglDisable(GL_ALPHA_TEST);
 		bglDepthMask(GL_FALSE);	// disable writing to the z-buffer
 
 		bglBegin(GL_POINTS);
-		 
+
 		for(i=0;name[i];i++) {
 			letptr = &fontptr[((int)(unsigned char)name[i])<<3];
 			xx = stx-fontsize;
@@ -10500,7 +10501,7 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 		return;
 	}
 #endif
-	
+
 	begindrawing();	//{{{
 	for(i=0;name[i];i++)
 	{
@@ -10546,7 +10547,7 @@ int screencapture_tga(char *filename, char inverseit)
 		fn[i++] = 't';
 		fn[i++] = 'g';
 		fn[i++] = 'a';
-		
+
 		if ((fil = Bfopen(fn,"rb")) == NULL) break;
 		Bfclose(fil);
 		capturecount++;
@@ -10631,7 +10632,7 @@ int screencapture_tga(char *filename, char inverseit)
 	}
 
 	enddrawing();	//}}}
-	
+
 	Bfclose(fil);
 	buildprintf("Saved screenshot to %s\n", fn);
 	Bfree(fn);
@@ -10679,7 +10680,7 @@ static void writepcxline(unsigned char *buf, int bytes, int step, BFILE *fp)
 			runCount = 1;
                 }
         }
-	
+
 	if (runCount) writepcxbyte(last, runCount, fp);
 	if (bytes&1) writepcxbyte(0, 1, fp);
 }
@@ -10703,7 +10704,7 @@ int screencapture_pcx(char *filename, char inverseit)
 		fn[i++] = 'p';
 		fn[i++] = 'c';
 		fn[i++] = 'x';
-		
+
 		if ((fil = Bfopen(fn,"rb")) == NULL) break;
 		Bfclose(fil);
 		capturecount++;
@@ -10723,7 +10724,7 @@ int screencapture_pcx(char *filename, char inverseit)
 	head[14] = 72; head[15] = 0;
 	head[65] = 1;	// 8-bit
 	head[68] = 1;
-	
+
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode >= 3 && qsetmode == 200) {
 		head[65] = 3;	// 24-bit
@@ -10876,7 +10877,7 @@ void invalidatetile(short tilenume, int pal, int how)
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	int numpal, firstpal, np;
 	int hp;
-	
+
 	if (rendmode < 3) return;
 
 	if (pal < 0) {
@@ -10906,7 +10907,7 @@ void setpolymost2dview(void)
 {
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode < 3) return;
-	
+
 	if (gloy1 != -1) {
 		bglViewport(0,0,xres,yres);
 		bglMatrixMode(GL_PROJECTION);

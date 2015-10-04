@@ -33,6 +33,10 @@ int startwin_idle(void *s) { return 0; }
 int startwin_settitle(const char *s) { s=s; return 0; }
 #endif
 
+#if (SDL_MAJOR_VERSION != 1)
+#  error This must be built with SDL1.2
+#endif
+
 #define SURFACE_FLAGS	(SDL_SWSURFACE|SDL_HWPALETTE|SDL_HWACCEL)
 
 // undefine to restrict windowed resolutions to conventional sizes
@@ -52,7 +56,8 @@ char modechange=1;
 char offscreenrendering=0;
 char videomodereset = 0;
 static unsigned short sysgamma[3][256];
-extern int curbrightness, gammabrightness;
+extern int gammabrightness;
+extern float curgamma;
 
 #ifdef USE_OPENGL
 // OpenGL stuff
@@ -151,9 +156,9 @@ void wm_setapptitle(const char *name)
 int main(int argc, char *argv[])
 {
 	int r;
-	
+
 	buildkeytranslationtable();
-	
+
 #ifdef HAVE_GTK2
 	gtkbuild_init(&argc, &argv);
 #endif
@@ -222,7 +227,7 @@ int initsystem(void)
 	lockcount = 0;
 
 #ifdef USE_OPENGL
-	if (loadgldriver(getenv("BUILD_GLDRV"))) {
+	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions()) {
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		nogl = 1;
 	}
@@ -274,6 +279,7 @@ void uninitsystem(void)
 	SDL_Quit();
 
 #ifdef USE_OPENGL
+	unloadglfunctions();
 	unloadgldriver();
 #endif
 }
@@ -324,12 +330,12 @@ static SDL_Joystick *joydev = NULL;
 int initinput(void)
 {
 	int i,j;
-	
+
 #ifdef __APPLE__
 	// force OS X to operate in >1 button mouse mode so that LMB isn't adulterated
 	if (!getenv("SDL_HAS3BUTTONMOUSE")) putenv("SDL_HAS3BUTTONMOUSE=1");
 #endif
-	
+
 	if (SDL_EnableKeyRepeat(250, 30)) buildputs("Error enabling keyboard repeat.\n");
 	inputdevices = 1|2;	// keyboard (1) and mouse (2)
 	mouseacquired = 0;
@@ -474,7 +480,7 @@ void grabmouse(int a)
 		if (a != mouseacquired) {
 #ifndef DEBUGGINGAIDS
 			SDL_GrabMode g;
-			
+
 			g = SDL_WM_GrabInput( a ? SDL_GRAB_ON : SDL_GRAB_OFF );
 			mouseacquired = (g == SDL_GRAB_ON);
 
@@ -573,9 +579,9 @@ void sampletimer(void)
 {
 	Uint32 i;
 	int n;
-	
+
 	if (!timerfreq) return;
-	
+
 	i = SDL_GetTicks();
 	n = (int)(i * timerticspersec / timerfreq) - timerlastsample;
 	if (n>0) {
@@ -635,7 +641,7 @@ void (*installusertimercallback(void (*callback)(void)))(void)
 //
 // ---------------------------------------
 //
-// 
+//
 
 
 //
@@ -688,7 +694,7 @@ void getvalidmodes(void)
 		validmodecnt++; \
 		buildprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
 	} \
-}	
+}
 
 #define CHECK(w,h) if ((w < maxx) && (h < maxy))
 
@@ -785,7 +791,7 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 			odx = dx; ody = dy;
 		}
 	}
-		
+
 #ifdef ANY_WINDOWED_SIZE
 	if (!forced && (fs&1) == 0 && (nearest < 0 || (validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)))
 		return 0x7fffffffl;
@@ -809,7 +815,7 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 int setvideomode(int x, int y, int c, int fs)
 {
 	int modenum, regrab = 0;
-	
+
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
 	    !videomodereset) {
 		OSD_ResizeDisplay(xres,yres);
@@ -836,7 +842,7 @@ int setvideomode(int x, int y, int c, int fs)
 		SDL_SetGammaRamp(sysgamma[0], sysgamma[1], sysgamma[2]);
 		gammabrightness = 0;	// redetect on next mode switch
 	}
-	
+
 #if defined(USE_OPENGL)
 	if (c > 8) {
 		int i, j, multisamplecheck = (glmultisample > 0);
@@ -844,26 +850,13 @@ int setvideomode(int x, int y, int c, int fs)
 			SDL_GLattr attr;
 			int value;
 		} attributes[] = {
-#if 0
-			{ SDL_GL_RED_SIZE, 8 },
-			{ SDL_GL_GREEN_SIZE, 8 },
-			{ SDL_GL_BLUE_SIZE, 8 },
-			{ SDL_GL_ALPHA_SIZE, 8 },
-			{ SDL_GL_BUFFER_SIZE, c },
-			{ SDL_GL_STENCIL_SIZE, 0 },
-			{ SDL_GL_ACCUM_RED_SIZE, 0 },
-			{ SDL_GL_ACCUM_GREEN_SIZE, 0 },
-			{ SDL_GL_ACCUM_BLUE_SIZE, 0 },
-			{ SDL_GL_ACCUM_ALPHA_SIZE, 0 },
-			{ SDL_GL_DEPTH_SIZE, 24 },
-#endif
 			{ SDL_GL_DOUBLEBUFFER, 1 },
 			{ SDL_GL_MULTISAMPLEBUFFERS, glmultisample > 0 },
 			{ SDL_GL_MULTISAMPLESAMPLES, glmultisample },
 		};
 
 		if (nogl) return -1;
-		
+
 		buildprintf("Setting video mode %dx%d (%d-bpp %s)\n",
 				x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
 		do {
@@ -901,30 +894,6 @@ int setvideomode(int x, int y, int c, int fs)
 		}
 	}
 
-#if 0
-	{
-	char flags[512] = "";
-#define FLAG(x,y) if ((sdl_surface->flags & x) == x) { strcat(flags, y); strcat(flags, " "); }
-	FLAG(SDL_HWSURFACE, "HWSURFACE") else
-	FLAG(SDL_SWSURFACE, "SWSURFACE")
-	FLAG(SDL_ASYNCBLIT, "ASYNCBLIT")
-	FLAG(SDL_ANYFORMAT, "ANYFORMAT")
-	FLAG(SDL_HWPALETTE, "HWPALETTE")
-	FLAG(SDL_DOUBLEBUF, "DOUBLEBUF")
-	FLAG(SDL_FULLSCREEN, "FULLSCREEN")
-	FLAG(SDL_OPENGL, "OPENGL")
-	FLAG(SDL_OPENGLBLIT, "OPENGLBLIT")
-	FLAG(SDL_RESIZABLE, "RESIZABLE")
-	FLAG(SDL_HWACCEL, "HWACCEL")
-	FLAG(SDL_SRCCOLORKEY, "SRCCOLORKEY")
-	FLAG(SDL_RLEACCEL, "RLEACCEL")
-	FLAG(SDL_SRCALPHA, "SRCALPHA")
-	FLAG(SDL_PREALLOC, "PREALLOC")
-#undef FLAG
-	buildprintf("SDL Surface flags: %s\n", flags);
-	}
-#endif
-
 	{
 		//static char t[384];
 		//sprintf(t, "%s (%dx%d %s)", apptitle, x, y, ((fs) ? "fullscreen" : "windowed"));
@@ -937,7 +906,7 @@ int setvideomode(int x, int y, int c, int fs)
 		baselayer_setupopengl();
 	}
 #endif
-	
+
 	xres = x;
 	yres = y;
 	bpp = c;
@@ -950,24 +919,23 @@ int setvideomode(int x, int y, int c, int fs)
 	modechange=1;
 	videomodereset = 0;
 	OSD_ResizeDisplay(xres,yres);
-	
+
 	// save the current system gamma to determine if gamma is available
 	if (!gammabrightness) {
-		float f = 1.0 + ((float)curbrightness / 10.0);
 		if (SDL_GetGammaRamp(sysgamma[0], sysgamma[1], sysgamma[2]) >= 0)
 			gammabrightness = 1;
 
 		// see if gamma really is working by trying to set the brightness
-		if (gammabrightness && SDL_SetGamma(f,f,f) < 0)
+		if (gammabrightness && SDL_SetGamma(curgamma, curgamma, curgamma) < 0)
 			gammabrightness = 0;	// nope
 	}
 
 	// setpalettefade will set the palette according to whether gamma worked
 	setpalettefade(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);
-	
+
 	//if (c==8) setpalette(0,256,0);
 	//baselayer_onvideomodechange(c>8);
-	
+
 	if (regrab) grabmouse(1);
 
 	return 0;
@@ -1005,10 +973,10 @@ void begindrawing(void)
 		return;
 
 	if (offscreenrendering) return;
-	
+
 	if (SDL_MUSTLOCK(sdl_surface)) SDL_LockSurface(sdl_surface);
 	frameplace = (intptr_t)sdl_surface->pixels;
-	
+
 	if (sdl_surface->pitch != bytesperline || modechange) {
 		bytesperline = sdl_surface->pitch;
 		imageSize = bytesperline*yres;
@@ -1046,7 +1014,7 @@ void enddrawing(void)
 //
 // showframe() -- update the display
 //
-void showframe(int w)
+void showframe(int UNUSED(w))
 {
 	int i,j;
 
@@ -1073,7 +1041,7 @@ void showframe(int w)
 			bglVertex2i(1, 1);
 			bglVertex2i(-1, 1);
 			bglEnd();
-			
+
 			bglMatrixMode(GL_MODELVIEW);
 			bglPopMatrix();
 			bglMatrixMode(GL_PROJECTION);
@@ -1084,7 +1052,7 @@ void showframe(int w)
 		return;
 	}
 #endif
-	
+
 	if (offscreenrendering) return;
 
 	if (lockcount) {
@@ -1107,7 +1075,7 @@ int setpalette(int start, int num, unsigned char *dapal)
 	if (bpp > 8) return 0;	// no palette in opengl
 
 	copybuf(curpalettefaded, pal, 256);
-	
+
 	for (i=start, n=num; n>0; i++, n--) {
 		/*
 		pal[i].b = dapal[0] << 2;
@@ -1148,10 +1116,42 @@ int getpalette(int start, int num, char *dapal)
 //
 // setgamma
 //
-int setgamma(float ro, float go, float bo)
+int setgamma(float gamma)
 {
-	return SDL_SetGamma(ro,go,bo);
+	return SDL_SetGamma(gamma, gamma, gamma);
 }
+
+
+#ifdef USE_OPENGL
+//
+// loadgldriver -- loads an OpenGL DLL
+//
+int loadgldriver(const char *soname)
+{
+    const char *name = soname;
+    if (!name) {
+        name = "system OpenGL library";
+    }
+
+    buildprintf("Loading %s\n", name);
+	if (SDL_GL_LoadLibrary(soname)) return -1;
+	return 0;
+}
+
+int unloadgldriver(void)
+{
+	return 0;
+}
+
+//
+// getglprocaddress
+//
+void *getglprocaddress(const char *name, int UNUSED(ext))
+{
+    return (void*)SDL_GL_GetProcAddress(name);
+}
+#endif
+
 
 #ifndef __APPLE__
 extern struct sdlappicon sdlappicon;
@@ -1175,7 +1175,7 @@ static SDL_Surface * loadappicon(void)
 //
 // ---------------------------------------
 //
-// 
+//
 
 
 //
@@ -1208,17 +1208,25 @@ int handleevents(void)
 				}
 				// else: fallthrough
 			case SDL_KEYDOWN:
-				code = keytranslation[ev.key.keysym.sym];
-
 				if (ev.key.keysym.unicode != 0 && ev.key.type == SDL_KEYDOWN &&
-				    (ev.key.keysym.unicode & 0xff80) == 0 &&
-				    ((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
-					keyasciififo[keyasciififoend] = ev.key.keysym.unicode & 0x7f;
-					keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+				    (ev.key.keysym.unicode & 0xff80) == 0) {
+					code = ev.key.keysym.unicode & 0x7f;
+					if (OSD_HandleChar(code)) {
+					    if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
+							keyasciififo[keyasciififoend] = code;
+							keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+						}
+					}
 				}
 
 				// hook in the osd
-				if (OSD_HandleKey(code, (ev.key.type == SDL_KEYDOWN)) == 0)
+				code = keytranslation[ev.key.keysym.sym];
+				if (code == OSD_CaptureKey(-1)) {
+					if (ev.key.type == SDL_KEYDOWN) {
+						OSD_ShowDisplay(-1);
+					}
+					break;
+				} else if (OSD_HandleKey(code, (ev.key.type == SDL_KEYDOWN)) == 0)
 					break;
 
 				if (ev.key.type == SDL_KEYDOWN) {
@@ -1260,9 +1268,9 @@ int handleevents(void)
 					case SDL_BUTTON_WHEELUP: j = 5; break;
 					default: j = -1; break;
 				}
-				
+
 				if (j<0) break;
-				
+
 				if (ev.button.state == SDL_PRESSED)
 					mouseb |= (1<<j);
 				else if(j < 4) // don't release mousewheel here, that's done in readmousebstatus()
@@ -1271,11 +1279,11 @@ int handleevents(void)
 					// SDL_MOUSEBUTTONDOWN, so the polling (via readmousebstatus())
 					// misses it. The workaround is to just clear the mousewheelbutton (4, 5)
 					// status in readmousebstatus() and ignoring that event here.
-				
+
 				if (mousepresscallback)
 					mousepresscallback(j+1, ev.button.state == SDL_PRESSED);
 				break;
-				
+
 			case SDL_MOUSEMOTION:
 				if (!firstcall) {
 					if (appactive) {
@@ -1340,7 +1348,7 @@ int handleevents(void)
 #undef SetKey
 
 	firstcall = 0;
-	
+
 	return rv;
 }
 
@@ -1348,7 +1356,7 @@ int handleevents(void)
 static int buildkeytranslationtable(void)
 {
 	memset(keytranslation,0,sizeof(keytranslation));
-	
+
 #define MAP(x,y) keytranslation[x] = y
 	MAP(SDLK_BACKSPACE,	0xe);
 	MAP(SDLK_TAB,		0xf);
@@ -1477,40 +1485,4 @@ static int buildkeytranslationtable(void)
 #undef MAP
 
 	return 0;
-}
-
-#if defined _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-#elif defined __linux || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
-# include <sys/mman.h>
-#endif
-
-void makeasmwriteable(void)
-{
-#ifndef ENGINE_USING_A_C
-	extern int dep_begin, dep_end;
-# if defined _WIN32
-	DWORD oldprot;
-	if (!VirtualProtect((LPVOID)&dep_begin, (SIZE_T)&dep_end - (SIZE_T)&dep_begin, PAGE_EXECUTE_READWRITE, &oldprot)) {
-		initprint("Error making code writeable\n");
-		return;
-	}
-# elif defined __linux || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__
-	int pagesize;
-	size_t dep_begin_page;
-	pagesize = sysconf(_SC_PAGE_SIZE);
-	if (pagesize == -1) {
-		buildputs("Error getting system page size\n");
-		return;
-	}
-	dep_begin_page = ((size_t)&dep_begin) & ~(pagesize-1);
-	if (mprotect((void *)dep_begin_page, (size_t)&dep_end - dep_begin_page, PROT_READ|PROT_WRITE) < 0) {
-		buildprintf("Error making code writeable (errno=%d)\n", errno);
-		return;
-	}
-# else
-#  error Dont know how to unprotect the self-modifying assembly on this platform!
-# endif
-#endif
 }

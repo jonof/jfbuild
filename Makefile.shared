@@ -9,6 +9,7 @@ GLLIBBSD=-lopengl32
 GLLIBLIN=-lGL
 
 SDLCONFIG=sdl-config
+SDL2CONFIG=sdl2-config
 
 # Path to the included libsquish
 LIBSQUISH=libsquish
@@ -61,11 +62,23 @@ ifeq ($(PLATFORM),BSD)
 endif
 
 ifeq ($(RENDERTYPE),SDL)
-	ifneq ($(SDLCONFIG),)
-		SDLCONFIG_CFLAGS+=$(shell $(SDLCONFIG) --cflags)
-		SDLCONFIG_LIBS=$(shell $(SDLCONFIG) --libs)
+	ifneq ($(shell $(SDL2CONFIG) --version),)
+		SDLAPI=2
+		SDLCONFIG_CFLAGS+=$(shell $(SDL2CONFIG) --cflags)
+		SDLCONFIG_LIBS=$(shell $(SDL2CONFIG) --libs)
 
 		LIBS+= $(SDLCONFIG_LIBS)
+	else
+		ifneq ($(shell $(SDLCONFIG) --version),)
+			SDLAPI=1
+			SDLCONFIG_CFLAGS+=$(subst -Dmain=SDL_main,,$(shell $(SDLCONFIG) --cflags))
+			SDLCONFIG_LIBS=$(shell $(SDLCONFIG) --libs)
+
+			LIBS+= $(SDLCONFIG_LIBS)
+		endif
+	endif
+	ifeq ($(SDLAPI),)
+		SDLAPI=$(error No $(SDL2CONFIG) or $(SDLCONFIG) could be found)
 	endif
 
 	ifeq (1,$(WITHOUT_GTK))

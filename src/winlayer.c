@@ -57,13 +57,15 @@ static HANDLE instanceflag = NULL;
 int    backgroundidle = 1;
 
 static WORD sysgamma[3][256];
-extern int curbrightness, gammabrightness;
+extern int gammabrightness;
+extern float curgamma;
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
 // OpenGL stuff
 static HGLRC hGLRC = 0;
+static HANDLE hGLDLL;
 char nofog=0;
-static unsigned char nogl=0;
+static unsigned char nogl=0, glminidriver=0;
 #endif
 
 static LPTSTR GetWindowsErrorMsg(DWORD code);
@@ -320,7 +322,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			}
 		}
 		*wp = 0;
-		
+
 		_buildargv = malloc(sizeof(char*)*_buildargc);
 		wp = argvbuf;
 		for (i=0; i<_buildargc; i++,wp++) {
@@ -388,7 +390,7 @@ static int set_maxrefreshfreq(const osdfuncparm_t *parm)
 		return OSDCMD_OK;
 	}
 	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
-	
+
 	freq = Batol(parm->parms[0]);
 	if (freq < 0) return OSDCMD_SHOWHELP;
 
@@ -428,7 +430,7 @@ int initsystem(void)
 	lockcount=0;
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
-	if (loadgldriver(getenv("BUILD_GLDRV"))) {
+	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions()) {
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		nogl = 1;
 	}
@@ -458,6 +460,7 @@ void uninitsystem(void)
 	win_allowtaskswitching(1);
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
+	unloadglfunctions();
 	unloadgldriver();
 #endif
 }
@@ -509,7 +512,7 @@ int handleevents(void)
 			quitevent = 1;
 
 		if (startwin_idle((void*)&msg) > 0) continue;
-		
+
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -738,7 +741,7 @@ void readmousebstatus(int *b)
 void releaseallbuttons(void)
 {
 	int i;
-	
+
 	if (mousepresscallback) {
 		if (mouseb & 1) mousepresscallback(1, 0);
 		if (mouseb & 2) mousepresscallback(2, 0);
@@ -777,9 +780,9 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 {
 	const char *d;
 	int i;
-	
+
 #define COPYGUID(d,s) memcpy(&d,&s,sizeof(GUID))
-	
+
 	switch (lpddi->dwDevType&0xff) {
 		case DIDEVTYPE_KEYBOARD:
 			inputdevices |= (1<<KEYBOARD);
@@ -819,7 +822,7 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 			break;
 		default: d = "OTHER"; break;
 	}
-	
+
 	buildprintf("    * %s: %s\n", d, lpddi->tszProductName);
 
 	return DIENUM_CONTINUE;
@@ -959,7 +962,7 @@ static BOOL InitDirectInput(void)
 		else if (result != DI_OK) buildprintf("    Set event object with warning: %s\n",GetDInputError(result));
 
 		IDirectInputDevice2_Unacquire(dev2);
-		
+
 		memset(&dipdw, 0, sizeof(dipdw));
 		dipdw.diph.dwSize = sizeof(DIPROPDWORD);
 		dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
@@ -974,7 +977,7 @@ static BOOL InitDirectInput(void)
 		// set up device
 		if (devn == JOYSTICK) {
 			int typecounts[3] = {0,0,0};
-			
+
 			memset(&didc, 0, sizeof(didc));
 			didc.dwSize = sizeof(didc);
 			result = IDirectInputDevice2_GetCapabilities(dev2, &didc);
@@ -1019,7 +1022,7 @@ static void UninitDirectInput(void)
 {
 	int devn;
 	int i;
-	
+
 	if (bDInputInited) buildputs("Uninitialising DirectInput...\n");
 
 	AcquireInputDevices(0,-1);
@@ -1036,11 +1039,11 @@ static void UninitDirectInput(void)
 		for (i=joynumhats-1; i>=0; i--) if (hatdefs[i].name) free((void*)hatdefs[i].name);
 		free(hatdefs); hatdefs = NULL;
 	}
-	
+
 	for (devn = 0; devn < NUM_INPUTS; devn++) {
 		if (*devicedef[devn].did) {
 			buildprintf("  - Releasing %s device\n", devicedef[devn].name);
-			
+
 			if (devn != JOYSTICK) IDirectInputDevice2_SetEventNotification(*devicedef[devn].did, NULL);
 
 			IDirectInputDevice2_Release(*devicedef[devn].did);
@@ -1077,7 +1080,7 @@ static void GetKeyNames(void)
 	DIDEVICEOBJECTINSTANCE key;
 	HRESULT res;
 	char tbuf[MAX_PATH];
-	
+
 	memset(keynames,0,sizeof(keynames));
 	for (i=0;i<256;i++) {
 		ZeroMemory(&key,sizeof(key));
@@ -1135,12 +1138,12 @@ static void AcquireInputDevices(char acquire, signed char device)
 			if (! *devicedef[i].did) continue;
 			if (device != -1 && i != device) continue;	// don't touch other devices if only the mouse is wanted
 			else if (!mousegrab && i == MOUSE) continue;	// don't grab the mouse if we don't want it grabbed
-			
+
 			IDirectInputDevice2_Unacquire(*devicedef[i].did);
 
 			if (i == MOUSE/* && fullscreen*/) flags = DISCL_FOREGROUND|DISCL_EXCLUSIVE;
 			else flags = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE;
-			
+
 			result = IDirectInputDevice2_SetCooperativeLevel(*devicedef[i].did, hWindow, flags);
 			if (FAILED(result))
 				buildprintf("IDirectInputDevice2_SetCooperativeLevel(%s): %s\n",
@@ -1153,13 +1156,13 @@ static void AcquireInputDevices(char acquire, signed char device)
 		}
 	} else {
 		releaseallbuttons();
-		
+
 		for (i=0; i<NUM_INPUTS; i++) {
 			if (! *devicedef[i].did) continue;
 			if (device != -1 && i != device) continue;	// don't touch other devices if only the mouse is wanted
-			
+
 			IDirectInputDevice2_Unacquire(*devicedef[i].did);
-			
+
 			result = IDirectInputDevice2_SetCooperativeLevel(*devicedef[i].did, hWindow, DISCL_FOREGROUND|DISCL_NONEXCLUSIVE);
 			if (FAILED(result))
 				buildprintf("IDirectInputDevice2_SetCooperativeLevel(%s): %s\n",
@@ -1178,7 +1181,7 @@ static void ProcessInputDevices(void)
 {
 	DWORD i;
 	HRESULT result;
-	
+
 	DIDEVICEOBJECTDATA didod[INPUT_BUFFER_SIZE];
 	DWORD dwElements = INPUT_BUFFER_SIZE;
 	DWORD ev;
@@ -1205,7 +1208,7 @@ static void ProcessInputDevices(void)
 			}
 		}
 	}
-	
+
 	t = getticks();
 
 	// do this here because we only want the wheel to signal once, but hold the state for a moment
@@ -1234,9 +1237,9 @@ static void ProcessInputDevices(void)
 				if (result == DI_OK) {
 					DWORD k, numlockon = FALSE;
 					static DWORD shiftkey = 0, shiftkeycount = 0;
-					
+
 					numlockon = (GetKeyState(VK_NUMLOCK) & 1);
-					
+
 					// process the key events
 					for (i=0; i<dwElements; i++) {
 						k = didod[i].dwOfs;
@@ -1245,7 +1248,11 @@ static void ProcessInputDevices(void)
 						//if (IsDebuggerPresent() && k == DIK_F12) continue;
 
 						// hook in the osd
-						if (OSD_HandleKey(k, (didod[i].dwData & 0x80)) != 0) {
+						if (k == OSD_CaptureKey(-1)) {
+							if ((didod[i].dwData & 0x80)) {
+								OSD_ShowDisplay(-1);
+							}
+						} else if (OSD_HandleKey(k, (didod[i].dwData & 0x80)) != 0) {
 							SetKey(k, (didod[i].dwData & 0x80) == 0x80);
 
 							if (keypresscallback)
@@ -1261,7 +1268,7 @@ static void ProcessInputDevices(void)
 					}
 				}
 				break;
-				
+
 			case MOUSE:		// mouse
 				if (!lpDID[MOUSE]) break;
 				result = IDirectInputDevice2_GetDeviceData(lpDID[MOUSE], sizeof(DIDEVICEOBJECTDATA),
@@ -1323,7 +1330,7 @@ static void ProcessInputDevices(void)
 						(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
 				if (result == DI_OK) {
 					int j;
-					
+
 					for (i=0; i<dwElements; i++) {
 						// check axes
 						for (j=0; j<joynumaxes; j++) {
@@ -1363,7 +1370,7 @@ static void ProcessInputDevices(void)
 				break;
 		}
 	}
-	
+
 	// key repeat
 	// this is like this because the period of t is 1000ms
 	if (lastKeyDown > 0) {
@@ -1473,7 +1480,7 @@ void (*installusertimercallback(void (*callback)(void)))(void)
 int inittimer(int tickspersecond)
 {
 	int64_t t;
-	
+
 	if (timerfreq) return 0;	// already installed
 
 	buildputs("Initialising timer\n");
@@ -1513,7 +1520,7 @@ void sampletimer(void)
 {
 	int64_t i;
 	int n;
-	
+
 	if (!timerfreq) return;
 
 	QueryPerformanceCounter((LARGE_INTEGER*)&i);
@@ -1648,7 +1655,7 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 			odx = dx; ody = dy;
 		}
 	}
-		
+
 #ifdef ANY_WINDOWED_SIZE
 	if (!forced && (fs&1) == 0 && (nearest < 0 || validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)) {
 		// check the colour depth is recognised at the very least
@@ -1678,7 +1685,7 @@ int setvideomode(int x, int y, int c, int fs)
 {
 	int i,inp[NUM_INPUTS];
 	int modenum;
-	
+
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
 		!videomodereset) {
 		OSD_ResizeDisplay(xres,yres);
@@ -1708,9 +1715,8 @@ int setvideomode(int x, int y, int c, int fs)
 	if (CreateAppWindow(modenum)) return -1;
 
 	if (!gammabrightness) {
-		float f = 1.0 + ((float)curbrightness / 10.0);
 		if (getgammaramp(sysgamma) >= 0) gammabrightness = 1;
-		if (gammabrightness && setgamma(f,f,f) < 0) gammabrightness = 0;
+		if (gammabrightness && setgamma(curgamma) < 0) gammabrightness = 0;
 	}
 
 	for (i=0;i<NUM_INPUTS;i++) if (inp[i]) AcquireInputDevices(1,i);
@@ -1746,7 +1752,7 @@ static void cdsenummodes(void)
 	struct { unsigned x,y,bpp,freq; } modes[MAXVALIDMODES];
 	int nmodes=0;
 	unsigned maxx = MAXXDIM, maxy = MAXYDIM;
-	
+
 
 	ZeroMemory(&dm,sizeof(DEVMODE));
 	dm.dmSize = sizeof(DEVMODE);
@@ -1769,7 +1775,7 @@ static void cdsenummodes(void)
 				modes[i].freq = dm.dmDisplayFrequency;
 			}
 		}
-		
+
 		j++;
 		ZeroMemory(&dm,sizeof(DEVMODE));
 		dm.dmSize = sizeof(DEVMODE);
@@ -1786,12 +1792,12 @@ static void cdsenummodes(void)
 static HRESULT WINAPI getvalidmodes_enum(DDSURFACEDESC *ddsd, VOID *udata)
 {
 	unsigned maxx = MAXXDIM, maxy = MAXYDIM;
-	
+
 	if (ddsd->ddpfPixelFormat.dwRGBBitCount == 8) {
 		CHECK(ddsd->dwWidth, ddsd->dwHeight)
 		ADDMODE((int)ddsd->dwWidth, (int)ddsd->dwHeight, (int)ddsd->ddpfPixelFormat.dwRGBBitCount, 1,-1);
 	}
-	
+
 	return(DDENUMRET_OK);
 }
 
@@ -1894,7 +1900,7 @@ void begindrawing(void)
 		return;		// already locked
 
 	if (offscreenrendering) return;
-	
+
 	if (!fullscreen) {
 		frameplace = (intptr_t)lpPixels;
 	} else {
@@ -1908,10 +1914,10 @@ void begindrawing(void)
 	} else {
 		bytesperline = xres|1;
 	}
-	
+
 	imageSize = bytesperline*yres;
 	setvlinebpl(bytesperline);
-	
+
 	j = 0;
 	for(i=0;i<=ydim;i++) ylookup[i] = j, j += bytesperline;
 	modechange=0;
@@ -1927,7 +1933,7 @@ void enddrawing(void)
 		if (!offscreenrendering) frameplace = 0;
 		return;
 	}
-	
+
 	if (!frameplace) return;
 	if (lockcount > 1) { lockcount--; return; }
 	if (!offscreenrendering) frameplace = 0;
@@ -1968,7 +1974,7 @@ void showframe(int w)
 			bglVertex2i(1, 1);
 			bglVertex2i(-1, 1);
 			bglEnd();
-			
+
 			bglMatrixMode(GL_MODELVIEW);
 			bglPopMatrix();
 			bglMatrixMode(GL_PROJECTION);
@@ -1988,7 +1994,7 @@ void showframe(int w)
 		buildprintf("Frame still locked %d times when showframe() called.\n", lockcount);
 		while (lockcount) enddrawing();
 	}
-	
+
 	if (!fullscreen) {
 		BitBlt(hDC, 0, 0, xres, yres, hDCSection, 0, 0, SRCCOPY);
 	} else {
@@ -1998,7 +2004,7 @@ void showframe(int w)
 
 			if ((result = IDirectDrawSurface_GetFlipStatus(lpDDSPrimary, DDGFS_CANFLIP)) == DDERR_WASSTILLDRAWING)
 				return;
-		}			
+		}
 
 		// lock the backbuffer surface
 		memset(&ddsd, 0, sizeof(ddsd));
@@ -2060,7 +2066,7 @@ int setpalette(int start, int num, unsigned char *dapal)
 	HRESULT result;
 	RGBQUAD *rgb;
 	//HPALETTE hPalPrev;
-	
+
 	struct logpal {
 		WORD palVersion;
 		WORD palNumEntries;
@@ -2137,7 +2143,7 @@ int setpalette(int start, int num, unsigned char *dapal)
 		}
 
 		SetBWSystemColours();
-		
+
 	} else {
 		if (!lpDDPalette) return -1;
 		result = IDirectDrawPalette_SetEntries(lpDDPalette, 0, start, num, (PALETTEENTRY*)&lpal.palPalEntry[start]);
@@ -2187,7 +2193,7 @@ static int setgammaramp(WORD gt[3][256])
 		HRESULT hr;
 
 		if (!(DDdwCaps2 & DDCAPS2_PRIMARYGAMMA)) return -1;
-		
+
 		hr = IDirectDrawSurface_QueryInterface(lpDDSPrimary, &IID_IDirectDrawGammaControl, (LPVOID)&gam);
 		if (hr != DD_OK) {
 			ShowDDrawErrorBox("Error querying gamma control", hr);
@@ -2206,18 +2212,18 @@ static int setgammaramp(WORD gt[3][256])
 	}
 }
 
-int setgamma(float ro, float go, float bo)
+int setgamma(float gamma)
 {
 	int i;
 	WORD gt[3][256];
-	
+
 	if (!hWindow) return -1;
-	
-	ro = 1.0 / ro; go = 1.0 / go; bo = 1.0 / bo;
+
+	gamma = 1.0 / gamma;
 	for (i=0;i<256;i++) {
-		gt[0][i] = (WORD)min(65535, max(0, (int)(pow((double)i / 256.0, ro) * 65535.0 + 0.5)));
-		gt[1][i] = (WORD)min(65535, max(0, (int)(pow((double)i / 256.0, go) * 65535.0 + 0.5)));
-		gt[2][i] = (WORD)min(65535, max(0, (int)(pow((double)i / 256.0, go) * 65535.0 + 0.5)));
+		gt[0][i] =
+		gt[1][i] =
+		gt[2][i] = (WORD)min(65535, max(0, (int)(pow((double)i / 256.0, gamma) * 65535.0 + 0.5)));
 	}
 
 	return setgammaramp(gt);
@@ -2370,7 +2376,7 @@ static int RestoreDirectDrawMode(void)
 	HRESULT result;
 
 	if (fullscreen == 0 || /*bpp > 8 ||*/ !bDDrawInited) return FALSE;
-	
+
 	if (modesetusing == 1) ChangeDisplaySettings(NULL,0);
 	else if (modesetusing == 0) {
 		// restore previous display mode and set to normal cooperative level
@@ -2410,7 +2416,7 @@ static void ReleaseDirectDrawSurfaces(void)
 		IDirectDrawSurface_Release(lpDDSBack);
 		lpDDSBack = NULL;
 	}
-	
+
 	if (lpDDSPrimary) {
 		buildputs("  - Releasing primary surface\n");
 		IDirectDrawSurface_Release(lpDDSPrimary);
@@ -2601,6 +2607,49 @@ static int SetupDIB(int width, int height)
 }
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
+
+//
+// loadgldriver -- loads an OpenGL DLL
+//
+int loadgldriver(const char *dll)
+{
+	if (hGLDLL) return 0;	// Already loaded
+
+	if (!dll) {
+		dll = "OPENGL32.DLL";
+	}
+
+	buildprintf("Loading %s\n", dll);
+
+	hGLDLL = LoadLibrary(dll);
+	if (!hGLDLL) return -1;
+
+	glminidriver = (Bstrcasecmp(dll, "opengl32.dll") != 0);
+	return 0;
+}
+
+int unloadgldriver(void)
+{
+	if (!hGLDLL) return 0;
+	FreeLibrary(hGLDLL);
+	hGLDLL = NULL;
+	return 0;
+}
+
+//
+// getglprocaddress
+//
+void *getglprocaddress(const char *name, int ext)
+{
+	if (!hGLDLL) return NULL;
+	if (ext) {
+		return (void*)bwglGetProcAddress(name);
+	} else {
+		return (void*)GetProcAddress(hGLDLL, name);
+	}
+}
+
+
 //
 // ReleaseOpenGL() -- cleans up OpenGL rendering stuff
 //
@@ -2660,7 +2709,6 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		0,0,0                          //Layer Masks Ignored
 	};
 	GLuint PixelFormat;
-	int minidriver;
 	int err;
 	static int warnonce = 0;
 	pfd.cColorBits = bitspp;
@@ -2687,9 +2735,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		return TRUE;
 	}
 
-	minidriver = Bstrcasecmp(gldriver,"opengl32.dll");
-
-	if (minidriver) PixelFormat = bwglChoosePixelFormat(hDC,&pfd);
+	if (glminidriver) PixelFormat = bwglChoosePixelFormat(hDC,&pfd);
 	else PixelFormat = ChoosePixelFormat(hDC,&pfd);
 	if (!PixelFormat) {
 		ReleaseOpenGL();
@@ -2697,7 +2743,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		return TRUE;
 	}
 
-	if (minidriver) err = bwglSetPixelFormat(hDC, PixelFormat, &pfd);
+	if (glminidriver) err = bwglSetPixelFormat(hDC, PixelFormat, &pfd);
 	else err = SetPixelFormat(hDC, PixelFormat, &pfd);
 	if (!err) {
 		ReleaseOpenGL();
@@ -2720,7 +2766,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 
 	polymost_glreset();
 	baselayer_setupopengl();
-	
+
 	numpages = 2;	// KJS 20031225: tell rotatesprite that it's double buffered!
 
 	return FALSE;
@@ -2770,7 +2816,7 @@ static BOOL CreateAppWindow(int modenum)
 			if (bpp != bitspp) RestoreDirectDrawMode();
 #endif
 		}
-			
+
 
 		ShowWindow(hWindow, SW_HIDE);	// so Windows redraws what's behind if the window shrinks
 	}
@@ -2907,7 +2953,7 @@ static BOOL CreateAppWindow(int modenum)
 
 			modesetusing = 0;
 		}
-		
+
 		if (bitspp > 8) {
 #if defined(USE_OPENGL) && defined(POLYMOST)
 			// we want an opengl mode
@@ -2922,7 +2968,7 @@ static BOOL CreateAppWindow(int modenum)
 			}
 		}
 	}
-	
+
 #if defined(USE_OPENGL) && defined(POLYMOST)
 	if (bitspp > 8) loadglextensions();
 #endif
@@ -3211,7 +3257,7 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	RECT rect;
 	POINT pt;
 	HRESULT result;
-	
+
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (hWnd == hGLWindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
 #endif
@@ -3254,7 +3300,7 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			else appactive = 1;
 			AcquireInputDevices(appactive,-1);
 			break;
-			
+
 		case WM_PALETTECHANGED:
 			// someone stole the palette so try and steal it back
 			if (appactive && (HWND)wParam != hWindow) setpalette(0,0,0);
@@ -3307,12 +3353,15 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			return 0;
 
 		case WM_CHAR:
-			if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) == keyasciififoplc) return 0;
-			keyasciififo[keyasciififoend] = (unsigned char)wParam;
-			keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
-			//buildprintf("Char %d, %d-%d\n",wParam,keyasciififoplc,keyasciififoend);
+			if (OSD_HandleChar((unsigned char)wParam)) {
+				if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
+					keyasciififo[keyasciififoend] = (unsigned char)wParam;
+					keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+					//buildprintf("Char %d, %d-%d\n",wParam,keyasciififoplc,keyasciififoend);
+				}
+			}
 			return 0;
-			
+
 		case WM_HOTKEY:
 			return 0;
 
@@ -3387,20 +3436,4 @@ static LPTSTR GetWindowsErrorMsg(DWORD code)
 		(LPTSTR)lpMsgBuf, 1024, NULL);
 
 	return lpMsgBuf;
-}
-
-
-//
-// makeasmwriteable() -- removes write protection from the self-modifying assembly code
-//
-void makeasmwriteable(void)
-{
-#ifndef ENGINE_USING_A_C
-	extern int dep_begin, dep_end;
-	DWORD oldprot;
-	
-	if (!VirtualProtect((LPVOID)&dep_begin, (SIZE_T)&dep_end - (SIZE_T)&dep_begin, PAGE_EXECUTE_READWRITE, &oldprot)) {
-		ShowErrorBox("Problem making code writeable");
-	}
-#endif
 }

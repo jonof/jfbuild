@@ -19,8 +19,8 @@
 # include "dynamicgtk.h"
 #endif
 
-#include "baselayer.h"
 #include "compat.h"
+#include "baselayer.h"
 #include "build.h"
 
 #define TAB_CONFIG 0
@@ -528,9 +528,9 @@ int startwin_run(void)
 	settings.bpp3d = bppgame;
 	settings.forcesetup = forcesetup;
 	PopulateForm();
-	
+
 	gtk_main();
-	
+
 	SetPage(TAB_MESSAGES);
 	if (retval) {
 		fullscreen = settings.fullscreen;

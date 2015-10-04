@@ -34,8 +34,8 @@
 		AB73604B0A29AD5F003261DC /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601B0A29AA70003261DC /* libengine.a */; };
 		AB73605A0A29ADB5003261DC /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601B0A29AA70003261DC /* libengine.a */; };
 		AB73605B0A29ADB7003261DC /* libeditor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601D0A29AA70003261DC /* libeditor.a */; };
-		AB7361230A29B9D4003261DC /* SDL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL.framework */; };
-		AB7361240A29B9D4003261DC /* SDL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL.framework */; };
+		AB7361230A29B9D4003261DC /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
+		AB7361240A29B9D4003261DC /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
 		AB7361290A29BA60003261DC /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361280A29BA60003261DC /* CoreFoundation.framework */; };
 		AB73612A0A29BA60003261DC /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361280A29BA60003261DC /* CoreFoundation.framework */; };
 		AB73612D0A29BA7A003261DC /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73612C0A29BA7A003261DC /* AppKit.framework */; };
@@ -110,6 +110,13 @@
 			remoteGlobalIDString = ABAE9C390F0CC81900A528DC;
 			remoteInfo = kgroup;
 		};
+		ABF1DD211BB82822007DE427 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = ABD03E211A5189E00012B9D1;
+			remoteInfo = transpal;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -156,20 +163,20 @@
 		AB3E076D0A3306CE00FF2442 /* build.bmp */ = {isa = PBXFileReference; lastKnownFileType = image.bmp; name = build.bmp; path = ../kenbuild/rsrc/build.bmp; sourceTree = SOURCE_ROOT; };
 		AB3E07700A3307F700FF2442 /* osxmain.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = osxmain.nib; sourceTree = SOURCE_ROOT; };
 		AB726D400F046BDE00730EAA /* sound_stub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sound_stub.c; path = ../kenbuild/sound_stub.c; sourceTree = SOURCE_ROOT; };
-		AB726D610F046E6E00730EAA /* ascboard.map */ = {isa = PBXFileReference; lastKnownFileType = file; path = ascboard.map; sourceTree = "<group>"; };
-		AB726D620F046E6E00730EAA /* boards.map */ = {isa = PBXFileReference; lastKnownFileType = file; path = boards.map; sourceTree = "<group>"; };
-		AB726D630F046E6E00730EAA /* evilal.map */ = {isa = PBXFileReference; lastKnownFileType = file; path = evilal.map; sourceTree = "<group>"; };
-		AB726D640F046E6E00730EAA /* kensig.map */ = {isa = PBXFileReference; lastKnownFileType = file; path = kensig.map; sourceTree = "<group>"; };
+		AB726D610F046E6E00730EAA /* ascboard.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = ascboard.map; sourceTree = "<group>"; };
+		AB726D620F046E6E00730EAA /* boards.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = boards.map; sourceTree = "<group>"; };
+		AB726D630F046E6E00730EAA /* evilal.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = evilal.map; sourceTree = "<group>"; };
+		AB726D640F046E6E00730EAA /* kensig.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = kensig.map; sourceTree = "<group>"; };
 		AB726D650F046E6E00730EAA /* names.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = names.h; sourceTree = "<group>"; };
-		AB726D660F046E6E00730EAA /* nsnoal.map */ = {isa = PBXFileReference; lastKnownFileType = file; path = nsnoal.map; sourceTree = "<group>"; };
-		AB726D670F046E6E00730EAA /* nukeland.map */ = {isa = PBXFileReference; lastKnownFileType = file; path = nukeland.map; sourceTree = "<group>"; };
+		AB726D660F046E6E00730EAA /* nsnoal.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = nsnoal.map; sourceTree = "<group>"; };
+		AB726D670F046E6E00730EAA /* nukeland.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = nukeland.map; sourceTree = "<group>"; };
 		AB726D680F046E6E00730EAA /* stuff.dat */ = {isa = PBXFileReference; lastKnownFileType = file; path = stuff.dat; sourceTree = "<group>"; };
 		AB7360140A29AA70003261DC /* engine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = engine.xcodeproj; sourceTree = "<group>"; };
 		AB73602A0A29AB08003261DC /* game.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = game.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB73602D0A29AB08003261DC /* game-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "game-Info.plist"; sourceTree = "<group>"; };
 		AB7360500A29AD92003261DC /* build.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = build.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7360520A29AD92003261DC /* build-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "build-Info.plist"; sourceTree = "<group>"; };
-		AB7361220A29B9D4003261DC /* SDL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL.framework; path = /Users/jonof/Library/Frameworks/SDL.framework; sourceTree = "<absolute>"; };
+		AB7361220A29B9D4003261DC /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Users/jonof/Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
 		AB7361280A29BA60003261DC /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = /System/Library/Frameworks/CoreFoundation.framework; sourceTree = "<absolute>"; };
 		AB73612C0A29BA7A003261DC /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		ABA9E3290FEF9DD00024231F /* bstub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bstub.c; path = ../kenbuild/bstub.c; sourceTree = SOURCE_ROOT; };
@@ -185,7 +192,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB73604B0A29AD5F003261DC /* libengine.a in Frameworks */,
-				AB7361230A29B9D4003261DC /* SDL.framework in Frameworks */,
+				AB7361230A29B9D4003261DC /* SDL2.framework in Frameworks */,
 				AB7361290A29BA60003261DC /* CoreFoundation.framework in Frameworks */,
 				AB73612D0A29BA7A003261DC /* AppKit.framework in Frameworks */,
 			);
@@ -198,7 +205,7 @@
 				AB73605B0A29ADB7003261DC /* libeditor.a in Frameworks */,
 				AB73605A0A29ADB5003261DC /* libengine.a in Frameworks */,
 				AB3FE4680C0433D000D5DBDC /* libeditorsupp.a in Frameworks */,
-				AB7361240A29B9D4003261DC /* SDL.framework in Frameworks */,
+				AB7361240A29B9D4003261DC /* SDL2.framework in Frameworks */,
 				AB73612A0A29BA60003261DC /* CoreFoundation.framework in Frameworks */,
 				AB73612E0A29BA7A003261DC /* AppKit.framework in Frameworks */,
 			);
@@ -244,6 +251,7 @@
 				ABAE9AD60F0B308900A528DC /* arttool */,
 				ABAE9C3E0F0CC83700A528DC /* kextract */,
 				ABAE9C400F0CC83700A528DC /* kgroup */,
+				ABF1DD221BB82822007DE427 /* transpal */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -289,7 +297,7 @@
 			children = (
 				AB73612C0A29BA7A003261DC /* AppKit.framework */,
 				AB7361280A29BA60003261DC /* CoreFoundation.framework */,
-				AB7361220A29B9D4003261DC /* SDL.framework */,
+				AB7361220A29B9D4003261DC /* SDL2.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -341,6 +349,8 @@
 /* Begin PBXProject section */
 		AB73600B0A29AA64003261DC /* Project object */ = {
 			isa = PBXProject;
+			attributes = {
+			};
 			buildConfigurationList = AB73600C0A29AA64003261DC /* Build configuration list for PBXProject "game" */;
 			compatibilityVersion = "Xcode 3.0";
 			developmentRegion = English;
@@ -409,6 +419,13 @@
 			fileType = "compiled.mach-o.executable";
 			path = kgroup;
 			remoteRef = ABAE9C3F0F0CC83700A528DC /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ABF1DD221BB82822007DE427 /* transpal */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = transpal;
+			remoteRef = ABF1DD211BB82822007DE427 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -480,11 +497,7 @@
 		AB73600D0A29AA64003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					x86_64,
-					i386,
-					ppc,
-				);
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
@@ -500,9 +513,8 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				HEADER_SEARCH_PATHS = ../include;
-				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				PREBINDING = NO;
 				WARNING_CFLAGS = (
 					"-W",
@@ -515,11 +527,7 @@
 		AB73600E0A29AA64003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = (
-					x86_64,
-					i386,
-					ppc,
-				);
+				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				COPY_PHASE_STRIP = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
@@ -534,9 +542,8 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				GCC_VERSION = com.apple.compilers.llvmgcc42;
 				HEADER_SEARCH_PATHS = ../include;
-				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				PREBINDING = NO;
 				WARNING_CFLAGS = (
 					"-W",
