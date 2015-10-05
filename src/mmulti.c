@@ -7,9 +7,16 @@
 //#define DEBUG_SENDRECV_WIRE
 
 #ifdef _WIN32
+#define _WIN32_WINNT 0x0501
 #define WIN32_LEAN_AND_MEAN
-#include <winsock.h>
-#define socklen_t int
+#include <ws2tcpip.h>
+
+const char *inet_ntop(int af, const void *src, char *dst, socklen_t);
+
+#ifndef AI_ADDRCONFIG
+#define AI_ADDRCONFIG 0
+#endif
+
 #else
 #include <unistd.h>
 #include <netinet/in.h>
@@ -18,8 +25,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #define SOCKET int
-#define closesocket close
-#define ioctlsocket ioctl
 
 #include <sys/time.h>
 static int GetTickCount(void)
@@ -77,9 +82,11 @@ static const char *presentaddress(struct sockaddr *a);
 
 void netuninit ()
 {
-	if (mysock >= 0) closesocket(mysock);
 #ifdef _WIN32
+	if (mysock != INVALID_SOCKET) closesocket(mysock);
 	WSACleanup();
+#else
+	if (mysock >= 0) close(mysock);
 #endif
 }
 
@@ -101,14 +108,19 @@ int netinit (int portnum)
 #endif
 
 #ifdef _WIN32
-	if (WSAStartup(MAKE_WORD(2,2), &ws) != 0) return(0);
+	if (WSAStartup(0x202, &ws) != 0) return(0);
 #endif
 
-	mysock = socket(domain, SOCK_DGRAM, 0);
-	if (mysock < 0) return(0);
-
 	i = 1;
+	mysock = socket(domain, SOCK_DGRAM, 0);
+#ifdef _WIN32
+	if (mysock == INVALID_SOCKET) return(0);
 	if (ioctlsocket(mysock,FIONBIO,&i) != 0) return(0);
+#else
+	if (mysock < 0) return(0);
+	if (ioctl(mysock,FIONBIO,&i) != 0) return(0);
+#endif
+
 
 	memset(&host, 0, sizeof(host));
 #ifdef USE_IPV6
@@ -534,7 +546,7 @@ static int lookuphost(const char *name, struct sockaddr *host)
 	struct addrinfo * result, *res;
 	struct addrinfo hints;
 	char *wname, *portch;
-	int error;
+	int error, port = 0;
 
 	// ipv6 for future thought:
 	//  [2001:db8::1]:1234
@@ -544,17 +556,18 @@ static int lookuphost(const char *name, struct sockaddr *host)
 		return 0;
 	}
 
-	// Find a port and clip it.
+	// Parse a port.
 	portch = strrchr(wname, ':');
 	if (portch) {
 		*(portch++) = 0;
-		if (*portch == 0) {
-			portch = NULL;
+		if (*portch != 0) {
+			port = strtol(portch, NULL, 10);
 		}
 	}
+	if (port < 1025 || port > 65534) port = NETPORT;
 
 	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags = AI_ADDRCONFIG | AI_NUMERICSERV;
+	hints.ai_flags = AI_ADDRCONFIG;
 #ifdef USE_IPV6
 	hints.ai_flags |= AI_ALL;
 	hints.ai_family = PF_UNSPEC;
@@ -564,7 +577,7 @@ static int lookuphost(const char *name, struct sockaddr *host)
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = IPPROTO_UDP;
 
-	error = getaddrinfo(wname, portch, &hints, &result);
+	error = getaddrinfo(wname, NULL, &hints, &result);
 	if (error) {
 		printf("mmulti error: problem resolving %s (%s)\n", name, gai_strerror(error));
 		free(wname);
@@ -574,16 +587,12 @@ static int lookuphost(const char *name, struct sockaddr *host)
 	for (res = result; res; res = res->ai_next) {
 		if (res->ai_family == PF_INET) {
 			memcpy((struct sockaddr_in *)host, (struct sockaddr_in *)res->ai_addr, sizeof(struct sockaddr_in));
-			if (((struct sockaddr_in *)host)->sin_port == 0) {
-				((struct sockaddr_in *)host)->sin_port = htons(NETPORT);
-			}
+			((struct sockaddr_in *)host)->sin_port = htons(port);
 			break;
 		}
 		if (res->ai_family == PF_INET6) {
 			memcpy((struct sockaddr_in6 *)host, (struct sockaddr_in6 *)res->ai_addr, sizeof(struct sockaddr_in6));
-			if (((struct sockaddr_in6 *)host)->sin6_port == 0) {
-				((struct sockaddr_in6 *)host)->sin6_port = htons(NETPORT);
-			}
+			((struct sockaddr_in6 *)host)->sin6_port = htons(port);
 			break;
 		}
 	}
@@ -853,3 +862,28 @@ int getpacket (int *retother, unsigned char *bufptr)
 
 	return(0);
 }
+
+#ifdef _WIN32
+
+const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
+{
+	if (af == AF_INET) {
+		struct sockaddr_in in;
+		memset(&in, 0, sizeof(in));
+		in.sin_family = AF_INET;
+		memcpy(&in.sin_addr, src, sizeof(struct in_addr));
+		getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST);
+		return dst;
+	}
+	if (af == AF_INET6) {
+		struct sockaddr_in6 in;
+		memset(&in, 0, sizeof(in));
+		in.sin6_family = AF_INET6;
+		memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
+		getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
+		return dst;
+	}
+	return NULL;
+}
+
+#endif
