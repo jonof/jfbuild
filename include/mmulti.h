@@ -5,14 +5,14 @@
 
 #define MAXMULTIPLAYERS 16
 
-extern int myconnectindex, numplayers;
+extern int myconnectindex, numplayers, networkmode;
 extern int connecthead, connectpoint2[MAXMULTIPLAYERS];
 extern unsigned char syncstate;
 
-int initmultiplayersparms(int argc, char const * const argv[], int *networkmode);
+int initmultiplayersparms(int argc, char const * const argv[]);
 int initmultiplayerscycle(void);
 
-void initmultiplayers(int argc, char const * const argv[], int *networkmode);
+void initmultiplayers(int argc, char const * const argv[]);
 void setpackettimeout(int datimeoutcount, int daresendagaincount);
 void uninitmultiplayers(void);
 void sendlogon(void);

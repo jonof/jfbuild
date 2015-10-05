@@ -171,7 +171,6 @@ static int nummoves;
 static signed char statrate[NUMSTATS] = {-1,0,-1,0,0,0,1,3,0,3,15,-1,-1};
 
 	//Input structures
-static int networkmode;     //0 is 2(n-1) mode, 1 is n(n-1) mode
 static int locselectedgun, locselectedgun2;
 static input loc, oloc, loc2;
 static input ffsync[MAXPLAYERS], osync[MAXPLAYERS], ssync[MAXPLAYERS];
@@ -459,7 +458,7 @@ int app_main(int argc, char const * const argv[])
 	if (option[3] != 0) initmouse();
 	inittimer(TIMERINTSPERSECOND);
 
-	if (initmultiplayersparms(argc-netparm, &argv[netparm], &networkmode)) {
+	if (initmultiplayersparms(argc-netparm, &argv[netparm])) {
 		buildputs("Waiting for players...\n");
 		while (initmultiplayerscycle()) {
 			handleevents();
@@ -568,11 +567,6 @@ int app_main(int argc, char const * const argv[])
 			}
 		}
 		screenpeek = myconnectindex;
-
-		if (numplayers <= 3)
-			networkmode = 1;
-		else
-			networkmode = 0;
 
 		j = 1;
 		for(i=connecthead;i>=0;i=connectpoint2[i])
