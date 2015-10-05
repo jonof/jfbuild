@@ -266,7 +266,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	hInstance = hInst;
 
 	if (CheckWinVersion() || hPrevInst) {
-		MessageBox(0, "This application must be run under Windows 95/98/Me or Windows 2000/XP or better.",
+		MessageBox(0, "This application must be run under Windows XP or newer.",
 			apptitle, MB_OK|MB_ICONSTOP);
 		return -1;
 	}
@@ -3235,15 +3235,10 @@ static BOOL CheckWinVersion(void)
 	osv.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 	if (!GetVersionEx(&osv)) return TRUE;
 
-	// haha, yeah, like it will work on Win32s
-	if (osv.dwPlatformId == VER_PLATFORM_WIN32s) return TRUE;
-
-	// we don't like NT 3.51
-	if (osv.dwMajorVersion < 4) return TRUE;
-
-	// nor do we like NT 4
-	if (osv.dwPlatformId == VER_PLATFORM_WIN32_NT &&
-	    osv.dwMajorVersion == 4) return TRUE;
+	// At least NT 5.1, aka Windows XP
+	if (osv.dwPlatformId != VER_PLATFORM_WIN32_NT) return TRUE;
+	if (osv.dwMajorVersion < 5) return TRUE;
+	else if (osv.dwMajorVersion == 5 && osv.dwMinorVersion < 1) return TRUE;
 
 	return FALSE;
 }
