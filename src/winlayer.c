@@ -17,9 +17,6 @@
 #include <windows.h>
 #include <ddraw.h>
 #include <dinput.h>
-#ifndef DIK_PAUSE
-# define DIK_PAUSE 0xC5
-#endif
 #include <math.h>
 
 #include "dxdidf.h"	// comment this out if c_dfDI* is being reported as multiply defined
@@ -132,6 +129,7 @@ int keyasciififoplc, keyasciififoend;
 static char keynames[256][24];
 static unsigned int lastKeyDown = 0;
 static unsigned int lastKeyTime = 0;
+static const int wscantable[256], wxscantable[256];
 
 void (*keypresscallback)(int,int) = 0;
 void (*mousepresscallback)(int,int) = 0;
@@ -536,20 +534,18 @@ int handleevents(void)
 //  INPUT (MOUSE/KEYBOARD/JOYSTICK?)
 //=================================================================================================
 
-#define KEYBOARD	0
-#define MOUSE		1
-#define JOYSTICK	2
-#define NUM_INPUTS	3
+#define JOYSTICK	0
+#define NUM_INPUTS	1
 
 static HMODULE               hDInputDLL    = NULL;
 static LPDIRECTINPUTA        lpDI          = NULL;
-static LPDIRECTINPUTDEVICE2A lpDID[NUM_INPUTS] =  { NULL, NULL, NULL };
+static LPDIRECTINPUTDEVICE2A lpDID[NUM_INPUTS] =  { NULL };
 static BOOL                  bDInputInited = FALSE;
 #define INPUT_BUFFER_SIZE	32
 static GUID                  guidDevs[NUM_INPUTS];
 
-static char devacquired[NUM_INPUTS] = { 0,0,0 };
-static HANDLE inputevt[NUM_INPUTS] = {0,0,0};
+static char devacquired[NUM_INPUTS] = { 0 };
+static HANDLE inputevt[NUM_INPUTS] = {0};
 static int joyblast=0;
 static char moustat = 0, mousegrab = 0;
 
@@ -558,8 +554,6 @@ static struct {
 	LPDIRECTINPUTDEVICE2A *did;
 	const DIDATAFORMAT *df;
 } devicedef[NUM_INPUTS] = {
-	{ "keyboard", &lpDID[KEYBOARD], &c_dfDIKeyboard },
-	{ "mouse",    &lpDID[MOUSE],    &c_dfDIMouse },
 	{ "joystick", &lpDID[JOYSTICK], &c_dfDIJoystick }
 };
 static struct _joydef {
@@ -621,6 +615,8 @@ int initinput(void)
 
 	inputdevices = 0;
 	joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
+
+	GetKeyNames();
 
 	if (InitDirectInput())
 		return -1;
@@ -707,7 +703,7 @@ void grabmouse(int a)
 	if (!moustat) return;
 
 	mousegrab = a;
-	AcquireInputDevices(a,MOUSE);	// only release or grab the mouse
+//XXX	AcquireInputDevices(a,MOUSE);	// only release or grab the mouse
 
 	mousex = 0;
 	mousey = 0;
@@ -720,7 +716,7 @@ void grabmouse(int a)
 //
 void readmousexy(int *x, int *y)
 {
-	if (!moustat || !devacquired[MOUSE] || !mousegrab) { *x = *y = 0; return; }
+	if (!moustat || /*XXX !devacquired[MOUSE] || */!mousegrab) { *x = *y = 0; return; }
 	*x = mousex;
 	*y = mousey;
 	mousex = 0;
@@ -733,7 +729,7 @@ void readmousexy(int *x, int *y)
 //
 void readmousebstatus(int *b)
 {
-	if (!moustat || !devacquired[MOUSE] || !mousegrab) *b = 0;
+	if (!moustat || /*XXX !devacquired[MOUSE] || */!mousegrab) *b = 0;
 	else *b = mouseb;
 }
 
@@ -784,16 +780,6 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 #define COPYGUID(d,s) memcpy(&d,&s,sizeof(GUID))
 
 	switch (lpddi->dwDevType&0xff) {
-		case DIDEVTYPE_KEYBOARD:
-			inputdevices |= (1<<KEYBOARD);
-			d = "KEYBOARD";
-			COPYGUID(guidDevs[KEYBOARD],lpddi->guidInstance);
-			break;
-		case DIDEVTYPE_MOUSE:
-			inputdevices |= (1<<MOUSE);
-			d = "MOUSE";
-			COPYGUID(guidDevs[MOUSE],lpddi->guidInstance);
-			break;
 		case DIDEVTYPE_JOYSTICK:
 			inputdevices |= (1<<JOYSTICK);
 			joyisgamepad = ((lpddi->dwDevType & (DIDEVTYPEJOYSTICK_GAMEPAD<<8)) != 0);
@@ -922,11 +908,6 @@ static BOOL InitDirectInput(void)
 	result = IDirectInput_EnumDevices(lpDI, 0, InitDirectInput_enum, NULL, DIEDFL_ATTACHEDONLY);
 	if FAILED(result) { HorribleDInputDeath("Failed enumerating attached input devices", result); }
 	else if (result != DI_OK) buildprintf("    Enumerated input devices with warning: %s\n",GetDInputError(result));
-	if (!(inputdevices & (1<<KEYBOARD))) {
-		ShowErrorBox("No keyboard detected!");
-		UninitDirectInput();
-		return TRUE;
-	}
 
 	// ***
 	// create the devices
@@ -1007,7 +988,6 @@ static BOOL InitDirectInput(void)
 		*devicedef[devn].did = dev2;
 	}
 
-	GetKeyNames();
 	memset(devacquired, 0, sizeof(devacquired));
 
 	bDInputInited = TRUE;
@@ -1074,23 +1054,31 @@ static void UninitDirectInput(void)
 //
 // GetKeyNames() -- retrieves the names for all the keys on the keyboard
 //
+static void PutKeyName(int vsc, int ex, int scan) {
+	TCHAR tbuf[24];
+
+	vsc <<= 16;
+	vsc |= ex << 24;
+	if (GetKeyNameText(vsc, tbuf, 24) == 0) return;
+	CharToOemBuff(tbuf, keynames[scan], 24-1);
+
+	//buildprintf("VSC %8x scan %-2x = %s\n", vsc, scan, keynames[scan]);
+}
 static void GetKeyNames(void)
 {
-	int i;
-	DIDEVICEOBJECTINSTANCE key;
-	HRESULT res;
-	char tbuf[MAX_PATH];
+	int scan, ex;
+	unsigned i;
 
 	memset(keynames,0,sizeof(keynames));
-	for (i=0;i<256;i++) {
-		ZeroMemory(&key,sizeof(key));
-		key.dwSize = sizeof(DIDEVICEOBJECTINSTANCE);
-
-		res = IDirectInputDevice_GetObjectInfo(*devicedef[KEYBOARD].did, &key, i, DIPH_BYOFFSET);
-		if (FAILED(res)) continue;
-
-		CharToOem(key.tszName, tbuf);
-		strncpy(keynames[i], tbuf, sizeof(keynames[i])-1);
+	for (i=0; i < 256; i++) {
+		scan = wscantable[i];
+		if (scan != 0) {
+			PutKeyName(i, 0, scan);
+		}
+		scan = wxscantable[i];
+		if (scan != 0) {
+			PutKeyName(i, 1, scan);
+		}
 	}
 }
 
@@ -1137,12 +1125,10 @@ static void AcquireInputDevices(char acquire, signed char device)
 		for (i=0; i<NUM_INPUTS; i++) {
 			if (! *devicedef[i].did) continue;
 			if (device != -1 && i != device) continue;	// don't touch other devices if only the mouse is wanted
-			else if (!mousegrab && i == MOUSE) continue;	// don't grab the mouse if we don't want it grabbed
 
 			IDirectInputDevice2_Unacquire(*devicedef[i].did);
 
-			if (i == MOUSE/* && fullscreen*/) flags = DISCL_FOREGROUND|DISCL_EXCLUSIVE;
-			else flags = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE;
+			flags = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE;
 
 			result = IDirectInputDevice2_SetCooperativeLevel(*devicedef[i].did, hWindow, flags);
 			if (FAILED(result))
@@ -1230,6 +1216,7 @@ static void ProcessInputDevices(void)
 	ev = MsgWaitForMultipleObjects(numdevs, waithnds, FALSE, 0, 0);
 	if (/*(ev >= WAIT_OBJECT_0) &&*/ (ev < (WAIT_OBJECT_0+numdevs))) {
 		switch (idevnums[ev - WAIT_OBJECT_0]) {
+/*XXX
 			case KEYBOARD:		// keyboard
 				if (!lpDID[KEYBOARD]) break;
 				result = IDirectInputDevice2_GetDeviceData(lpDID[KEYBOARD], sizeof(DIDEVICEOBJECTDATA),
@@ -1268,7 +1255,8 @@ static void ProcessInputDevices(void)
 					}
 				}
 				break;
-
+*/
+/*XXX
 			case MOUSE:		// mouse
 				if (!lpDID[MOUSE]) break;
 				result = IDirectInputDevice2_GetDeviceData(lpDID[MOUSE], sizeof(DIDEVICEOBJECTDATA),
@@ -1324,6 +1312,7 @@ static void ProcessInputDevices(void)
 					}
 				}
 				break;
+*/
 			case JOYSTICK:		// joystick
 				if (!lpDID[JOYSTICK]) break;
 				result = IDirectInputDevice2_GetDeviceData(lpDID[JOYSTICK], sizeof(DIDEVICEOBJECTDATA),
@@ -3244,6 +3233,47 @@ static BOOL CheckWinVersion(void)
 }
 
 
+static const int wscantable[256] = {
+/*         x0    x1    x2    x3    x4    x5    x6    x7    x8    x9    xA    xB    xC    xD    xE    xF */
+/* 0y */ 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+/* 1y */ 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+/* 2y */ 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
+/* 3y */ 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
+/* 4y */ 0x40, 0x41, 0x42, 0x43, 0x44, 0x59, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
+/* 5y */ 0x50, 0x51, 0x52, 0x53, 0,    0,    0,    0x57, 0x58, 0,    0,    0,    0,    0,    0,    0,   
+/* 6y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* 7y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* 8y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* 9y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* Ay */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* By */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* Cy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* Dy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* Ey */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* Fy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+};
+
+static const int wxscantable[256] = {
+/*         x0    x1    x2    x3    x4    x5    x6    x7    x8    x9    xA    xB    xC    xD    xE    xF */
+/* 0y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* 1y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0x9c, 0x9d, 0,    0,   
+/* 2y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* 3y */ 0,    0,    0,    0,    0,    0xb5, 0,    0,    0xb8, 0,    0,    0,    0,    0xb8, 0,    0,   
+/* 4y */ 0,    0,    0,    0,    0,    0x45, 0,    0xc7, 0xc8, 0xc9, 0,    0xcb, 0,    0xcd, 0,    0xcf,
+/* 5y */ 0xd0, 0xd1, 0xd2, 0xd3, 0,    0,    0,    0,    0,    0,    0,    0x5b, 0x5c, 0x5d, 0,    0,   
+/* 6y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* 7y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* 8y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* 9y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0x9d, 0,    0,   
+/* Ay */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* By */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* Cy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* Dy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* Ey */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* Fy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+};
+
+
 //
 // WndProcCallback() -- the Windows window callback
 //
@@ -3330,21 +3360,37 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			quitevent = 1;
 			return 0;
 
-		case WM_KEYDOWN:
-		case WM_KEYUP:
-			// pause sucks. I read that apparently it doesn't work the same everwhere
-			// with DirectInput but it does with Windows messages. Oh well.
-			if (wParam == VK_PAUSE && (lParam & 0x80000000l)) {
-				SetKey(0x59, 1);
-
-				if (keypresscallback)
-					keypresscallback(0x59, 1);
-			}
-			break;
-
-			// JBF 20040115: Alt-F4 upsets us, so drop all system keys on their asses
 		case WM_SYSKEYDOWN:
 		case WM_SYSKEYUP:
+		case WM_KEYDOWN:
+		case WM_KEYUP:
+			{
+				int press = (lParam & 0x80000000l) == 0;
+				int wscan = (lParam >> 16) & 0xff;
+				int scan = 0;
+
+				if (lParam & (1<<24)) {
+					scan = wxscantable[wscan];
+				} else {
+					scan = wscantable[wscan];
+				}
+
+				//buildprintf("VK %-2x VSC %8x scan %-2x = %s\n", wParam, (UINT)lParam, scan, keynames[scan]);
+
+				if (scan == 0) {
+					// Not a key we want, so give it to the OS to handle.
+					break;
+				} else if (scan == OSD_CaptureKey(-1)) {
+					if (press) {
+						OSD_ShowDisplay(-1);
+					}
+				} else if (OSD_HandleKey(scan, press) != 0) {
+					if (!keystatus[scan] || !press) {
+						SetKey(scan, press);
+						if (keypresscallback) keypresscallback(scan, press);
+					}
+				}
+			}
 			return 0;
 
 		case WM_CHAR:
