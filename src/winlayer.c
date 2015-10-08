@@ -81,7 +81,7 @@ static int RestoreDirectDrawMode(void);
 static void ReleaseDirectDrawSurfaces(void);
 static BOOL InitDirectInput(void);
 static void UninitDirectInput(void);
-static void GetKeyNames(void);
+static void fetchkeynames(void);
 static void AcquireInputDevices(char acquire, signed char device);
 static void ProcessInputDevices(void);
 static int SetupDirectDraw(int width, int height);
@@ -529,70 +529,12 @@ int handleevents(void)
 
 
 
-
-
-
 //-------------------------------------------------------------------------------------------------
-//  INPUT (MOUSE/KEYBOARD/JOYSTICK?)
+//  INPUT (MOUSE/KEYBOARD)
 //=================================================================================================
 
-#define JOYSTICK	0
-#define NUM_INPUTS	1
-
-static HMODULE               hDInputDLL    = NULL;
-static LPDIRECTINPUTA        lpDI          = NULL;
-static LPDIRECTINPUTDEVICE2A lpDID[NUM_INPUTS] =  { NULL };
-static BOOL                  bDInputInited = FALSE;
-#define INPUT_BUFFER_SIZE	32
-static GUID                  guidDevs[NUM_INPUTS];
-
-static char devacquired[NUM_INPUTS] = { 0 };
-static HANDLE inputevt[NUM_INPUTS] = {0};
-static int joyblast=0;
 static char moustat = 0, mousegrab = 0;
-
-static struct {
-	char *name;
-	LPDIRECTINPUTDEVICE2A *did;
-	const DIDATAFORMAT *df;
-} devicedef[NUM_INPUTS] = {
-	{ "joystick", &lpDID[JOYSTICK], &c_dfDIJoystick }
-};
-static struct _joydef {
-	const char *name;
-	unsigned ofs;	// directinput 'dwOfs' value
-} *axisdefs = NULL, *buttondefs = NULL, *hatdefs = NULL;
-
-struct _joydevicefeature {
-	unsigned int ofs;
-	const char *name;
-};
-struct _joydevicedefn {
-	unsigned int devid;	// is the value of DIDEVICEINSTANCE.guidProduct.Data1
-	int nfeatures;
-	struct _joydevicefeature *features;
-};
-
-// This is to give more realistic names to the buttons, axes, etc on a controller than
-// those the driver reports. Curse inconsistency.
-struct _joydevicefeature joyfeatures_C20A046D[] = {	// Logitech WingMan RumblePad USB
-	{ 0,  "Left Stick X" }, { 4,  "Left Stick Y" }, { 8,  "Right Stick X" },
-	{ 20, "Right Stick Y" }, { 24, "Throttle" },
-};
-struct _joydevicefeature joyfeatures_C218046D[] = {	// Logitech RumblePad 2 USB
-	{ 0,  "Left Stick X" }, { 4,  "Left Stick Y" }, { 8,  "Right Stick X" },
-	{ 20, "Right Stick Y" }, { 32, "D-Pad" }, { 48, "Button 1" },
-	{ 49, "Button 2" }, { 50, "Button 3" }, { 51, "Button 4" },
-	{ 52, "Button 5" }, { 53, "Button 6" }, { 54, "Button 7" },
-	{ 55, "Button 8" }, { 56, "Button 9" }, { 57, "Button 10" },
-	{ 58, "Left Stick Press" }, { 59, "Right Stick Press" },
-};
-#define featurecount(x) (sizeof(x)/sizeof(struct _joydevicefeature))
-static struct _joydevicedefn *thisjoydef = NULL, joyfeatures[] = {
-	{ 0xC20A046D, featurecount(joyfeatures_C20A046D), joyfeatures_C20A046D },	// Logitech WingMan RumblePad USB
-	{ 0xC218046D, featurecount(joyfeatures_C218046D), joyfeatures_C218046D },	// Logitech RumblePad 2 USB
-};
-#undef featurecount
+static int joyblast=0;
 
 // I don't see any pressing need to store the key-up events yet
 #define SetKey(key,state) { \
@@ -618,7 +560,7 @@ int initinput(void)
 	inputdevices = 0;
 	joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
 
-	GetKeyNames();
+	fetchkeynames();
 
 	if (InitDirectInput())
 		return -1;
@@ -819,6 +761,107 @@ void releaseallbuttons(void)
 
 
 //
+// fetchkeynames() -- retrieves the names for all the keys on the keyboard
+//
+static void putkeyname(int vsc, int ex, int scan) {
+	TCHAR tbuf[24];
+
+	vsc <<= 16;
+	vsc |= ex << 24;
+	if (GetKeyNameText(vsc, tbuf, 24) == 0) return;
+	CharToOemBuff(tbuf, keynames[scan], 24-1);
+
+	//buildprintf("VSC %8x scan %-2x = %s\n", vsc, scan, keynames[scan]);
+}
+
+static void fetchkeynames(void)
+{
+	int scan, ex;
+	unsigned i;
+
+	memset(keynames,0,sizeof(keynames));
+	for (i=0; i < 256; i++) {
+		scan = wscantable[i];
+		if (scan != 0) {
+			putkeyname(i, 0, scan);
+		}
+		scan = wxscantable[i];
+		if (scan != 0) {
+			putkeyname(i, 1, scan);
+		}
+	}
+}
+
+const char *getkeyname(int num)
+{
+	if ((unsigned)num >= 256) return NULL;
+	return keynames[num];
+}
+
+
+
+
+//-------------------------------------------------------------------------------------------------
+//  DIRECTINPUT INPUT (LEGACY JOYSTICKS)
+//=================================================================================================
+
+#define JOYSTICK	0
+#define NUM_INPUTS	1
+
+static HMODULE               hDInputDLL    = NULL;
+static LPDIRECTINPUTA        lpDI          = NULL;
+static LPDIRECTINPUTDEVICE2A lpDID[NUM_INPUTS] =  { NULL };
+static BOOL                  bDInputInited = FALSE;
+#define INPUT_BUFFER_SIZE	32
+static GUID                  guidDevs[NUM_INPUTS];
+
+static char devacquired[NUM_INPUTS] = { 0 };
+static HANDLE inputevt[NUM_INPUTS] = {0};
+
+static struct {
+	char *name;
+	LPDIRECTINPUTDEVICE2A *did;
+	const DIDATAFORMAT *df;
+} devicedef[NUM_INPUTS] = {
+	{ "joystick", &lpDID[JOYSTICK], &c_dfDIJoystick }
+};
+static struct _joydef {
+	const char *name;
+	unsigned ofs;	// directinput 'dwOfs' value
+} *axisdefs = NULL, *buttondefs = NULL, *hatdefs = NULL;
+
+struct _joydevicefeature {
+	unsigned int ofs;
+	const char *name;
+};
+struct _joydevicedefn {
+	unsigned int devid;	// is the value of DIDEVICEINSTANCE.guidProduct.Data1
+	int nfeatures;
+	struct _joydevicefeature *features;
+};
+
+// This is to give more realistic names to the buttons, axes, etc on a controller than
+// those the driver reports. Curse inconsistency.
+struct _joydevicefeature joyfeatures_C20A046D[] = {	// Logitech WingMan RumblePad USB
+	{ 0,  "Left Stick X" }, { 4,  "Left Stick Y" }, { 8,  "Right Stick X" },
+	{ 20, "Right Stick Y" }, { 24, "Throttle" },
+};
+struct _joydevicefeature joyfeatures_C218046D[] = {	// Logitech RumblePad 2 USB
+	{ 0,  "Left Stick X" }, { 4,  "Left Stick Y" }, { 8,  "Right Stick X" },
+	{ 20, "Right Stick Y" }, { 32, "D-Pad" }, { 48, "Button 1" },
+	{ 49, "Button 2" }, { 50, "Button 3" }, { 51, "Button 4" },
+	{ 52, "Button 5" }, { 53, "Button 6" }, { 54, "Button 7" },
+	{ 55, "Button 8" }, { 56, "Button 9" }, { 57, "Button 10" },
+	{ 58, "Left Stick Press" }, { 59, "Right Stick Press" },
+};
+#define featurecount(x) (sizeof(x)/sizeof(struct _joydevicefeature))
+static struct _joydevicedefn *thisjoydef = NULL, joyfeatures[] = {
+	{ 0xC20A046D, featurecount(joyfeatures_C20A046D), joyfeatures_C20A046D },	// Logitech WingMan RumblePad USB
+	{ 0xC218046D, featurecount(joyfeatures_C218046D), joyfeatures_C218046D },	// Logitech RumblePad 2 USB
+};
+#undef featurecount
+
+//
 // InitDirectInput() -- get DirectInput started
 //
 
@@ -851,6 +894,26 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 	}
 
 	return DIENUM_CONTINUE;
+}
+
+const char *getjoyname(int what, int num)
+{
+	switch (what) {
+		case 0:	// axis
+			if ((unsigned)num > (unsigned)joynumaxes) return NULL;
+			return axisdefs[num].name;
+
+		case 1: // button
+			if ((unsigned)num > (unsigned)joynumbuttons) return NULL;
+			return buttondefs[num].name;
+
+		case 2: // hat
+			if ((unsigned)num > (unsigned)joynumhats) return NULL;
+			return hatdefs[num].name;
+
+		default:
+			return NULL;
+	}
 }
 
 static const char *joyfindnameforofs(int ofs)
@@ -1089,63 +1152,6 @@ static void UninitDirectInput(void)
 	bDInputInited = FALSE;
 }
 
-
-//
-// GetKeyNames() -- retrieves the names for all the keys on the keyboard
-//
-static void PutKeyName(int vsc, int ex, int scan) {
-	TCHAR tbuf[24];
-
-	vsc <<= 16;
-	vsc |= ex << 24;
-	if (GetKeyNameText(vsc, tbuf, 24) == 0) return;
-	CharToOemBuff(tbuf, keynames[scan], 24-1);
-
-	//buildprintf("VSC %8x scan %-2x = %s\n", vsc, scan, keynames[scan]);
-}
-static void GetKeyNames(void)
-{
-	int scan, ex;
-	unsigned i;
-
-	memset(keynames,0,sizeof(keynames));
-	for (i=0; i < 256; i++) {
-		scan = wscantable[i];
-		if (scan != 0) {
-			PutKeyName(i, 0, scan);
-		}
-		scan = wxscantable[i];
-		if (scan != 0) {
-			PutKeyName(i, 1, scan);
-		}
-	}
-}
-
-const char *getkeyname(int num)
-{
-	if ((unsigned)num >= 256) return NULL;
-	return keynames[num];
-}
-
-const char *getjoyname(int what, int num)
-{
-	switch (what) {
-		case 0:	// axis
-			if ((unsigned)num > (unsigned)joynumaxes) return NULL;
-			return axisdefs[num].name;
-
-		case 1: // button
-			if ((unsigned)num > (unsigned)joynumbuttons) return NULL;
-			return buttondefs[num].name;
-
-		case 2: // hat
-			if ((unsigned)num > (unsigned)joynumhats) return NULL;
-			return hatdefs[num].name;
-
-		default:
-			return NULL;
-	}
-}
 
 //
 // AcquireInputDevices() -- (un)acquires the input devices
