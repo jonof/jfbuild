@@ -500,6 +500,7 @@ void debugprintf(const char *f, ...)
 // handleevents() -- process the Windows message queue
 //   returns !0 if there was an important event worth checking (like quitting)
 //
+static int eatosdinput = 0;
 int handleevents(void)
 {
 	int rv=0;
@@ -517,6 +518,7 @@ int handleevents(void)
 		DispatchMessage(&msg);
 	}
 
+	eatosdinput = 0;
 	ProcessInputDevices();
 
 	if (!appactive || quitevent) rv = -1;
@@ -3332,6 +3334,7 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 				} else if (scan == OSD_CaptureKey(-1)) {
 					if (press) {
 						OSD_ShowDisplay(-1);
+						eatosdinput = 1;
 					}
 				} else if (OSD_HandleKey(scan, press) != 0) {
 					if (!keystatus[scan] || !press) {
@@ -3343,7 +3346,9 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			return 0;
 
 		case WM_CHAR:
-			if (OSD_HandleChar((unsigned char)wParam)) {
+			if (eatosdinput) {
+				eatosdinput = 0;
+			} else if (OSD_HandleChar((unsigned char)wParam)) {
 				if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
 					keyasciififo[keyasciififoend] = (unsigned char)wParam;
 					keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
