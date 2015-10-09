@@ -1439,12 +1439,13 @@ static void ptiter_seekforward(PTIter iter)
 				// not look further
 				break;
 			}
+			iter->i++;
 			if (iter->i >= PTHASHHEADSIZ) {
 				// end of hash
 				iter->pth = 0;
+				iter->i = PTHASHHEADSIZ;
 				break;
 			}
-			iter->i++;
 			iter->pth = pthashhead[iter->i];
 		} else {
 			iter->pth = iter->pth->next;
