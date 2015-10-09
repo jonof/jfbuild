@@ -82,7 +82,8 @@ static void ReleaseDirectDrawSurfaces(void);
 static BOOL InitDirectInput(void);
 static void UninitDirectInput(void);
 static void fetchkeynames(void);
-static void AcquireInputDevices(char acquire, signed char device);
+static void updatemouse(void);
+static void AcquireInputDevices(char acquire);
 static void ProcessInputDevices(void);
 static int SetupDirectDraw(int width, int height);
 static void UninitDIB(void);
@@ -129,8 +130,6 @@ unsigned char keyasciififo[KEYFIFOSIZ];
 int keyfifoplc, keyfifoend;
 int keyasciififoplc, keyasciififoend;
 static char keynames[256][24];
-static unsigned int lastKeyDown = 0;
-static unsigned int lastKeyTime = 0;
 static const int wscantable[256], wxscantable[256];
 
 void (*keypresscallback)(int,int) = 0;
@@ -519,6 +518,7 @@ int handleevents(void)
 	}
 
 	eatosdinput = 0;
+	updatemouse();
 	ProcessInputDevices();
 
 	if (!appactive || quitevent) rv = -1;
@@ -559,7 +559,7 @@ int initinput(void)
 	keyfifoplc = keyfifoend = 0;
 	keyasciififoplc = keyasciififoend = 0;
 
-	inputdevices = 0;
+	inputdevices = 1;
 	joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
 
 	fetchkeynames();
@@ -636,6 +636,7 @@ int initmouse(void)
 
 	// grab input
 	moustat=1;
+	inputdevices |= 2;
 	grabmouse(1);
 
 	return 0;
@@ -687,6 +688,23 @@ static void constrainmouse(int a)
 	} else {
 		ClipCursor(NULL);
 		ShowCursor(TRUE);
+	}
+}
+
+static void updatemouse(void)
+{
+	unsigned t = getticks();
+
+	if (!mousegrab) return;
+
+	// we only want the wheel to signal once, but hold the state for a moment
+	if (mousewheel[0] > 0 && t - mousewheel[0] > MouseWheelFakePressTime) {
+		if (mousepresscallback) mousepresscallback(5,0);
+		mousewheel[0] = 0; mouseb &= ~16;
+	}
+	if (mousewheel[1] > 0 && t - mousewheel[1] > MouseWheelFakePressTime) {
+		if (mousepresscallback) mousepresscallback(6,0);
+		mousewheel[1] = 0; mouseb &= ~32;
 	}
 }
 
@@ -758,7 +776,6 @@ void releaseallbuttons(void)
 			if (keypresscallback) keypresscallback(i, 0);
 		//}
 	}
-	lastKeyDown = lastKeyTime = 0;
 }
 
 
@@ -807,26 +824,16 @@ const char *getkeyname(int num)
 //  DIRECTINPUT INPUT (LEGACY JOYSTICKS)
 //=================================================================================================
 
-#define JOYSTICK	0
-#define NUM_INPUTS	1
-
 static HMODULE               hDInputDLL    = NULL;
 static LPDIRECTINPUTA        lpDI          = NULL;
-static LPDIRECTINPUTDEVICE2A lpDID[NUM_INPUTS] =  { NULL };
+static LPDIRECTINPUTDEVICE2A lpDID         = NULL;
 static BOOL                  bDInputInited = FALSE;
 #define INPUT_BUFFER_SIZE	32
-static GUID                  guidDevs[NUM_INPUTS];
+static GUID                  guidDev;
 
-static char devacquired[NUM_INPUTS] = { 0 };
-static HANDLE inputevt[NUM_INPUTS] = {0};
+static char devacquired = 0;
+static HANDLE inputevt = 0;
 
-static struct {
-	char *name;
-	LPDIRECTINPUTDEVICE2A *did;
-	const DIDATAFORMAT *df;
-} devicedef[NUM_INPUTS] = {
-	{ "joystick", &lpDID[JOYSTICK], &c_dfDIJoystick }
-};
 static struct _joydef {
 	const char *name;
 	unsigned ofs;	// directinput 'dwOfs' value
@@ -877,10 +884,10 @@ static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRe
 
 	switch (lpddi->dwDevType&0xff) {
 		case DIDEVTYPE_JOYSTICK:
-			inputdevices |= (1<<JOYSTICK);
+			inputdevices |= 4;
 			joyisgamepad = ((lpddi->dwDevType & (DIDEVTYPEJOYSTICK_GAMEPAD<<8)) != 0);
 			d = joyisgamepad ? "GAMEPAD" : "JOYSTICK";
-			COPYGUID(guidDevs[JOYSTICK],lpddi->guidInstance);
+			COPYGUID(guidDev, lpddi->guidInstance);
 
 			thisjoydef = NULL;
 			for (i=0; i<(int)(sizeof(joyfeatures)/sizeof(joyfeatures[0])); i++) {
@@ -980,6 +987,7 @@ static BOOL InitDirectInput(void)
 	LPDIRECTINPUTDEVICE2A dev2;
 	DIDEVCAPS didc;
 
+	int typecounts[3] = {0,0,0};
 	int devn,i;
 
 	if (bDInputInited) return FALSE;
@@ -1008,91 +1016,82 @@ static BOOL InitDirectInput(void)
 
 	// enumerate devices to make us look fancy
 	buildputs("  - Enumerating attached input devices\n");
-	inputdevices = 0;
+	inputdevices &= ~4;
 	result = IDirectInput_EnumDevices(lpDI, 0, InitDirectInput_enum, NULL, DIEDFL_ATTACHEDONLY);
 	if FAILED(result) { HorribleDInputDeath("Failed enumerating attached input devices", result); }
 	else if (result != DI_OK) buildprintf("    Enumerated input devices with warning: %s\n",GetDInputError(result));
 
-	// ***
+	if (!(inputdevices & 4)) return FALSE;
+
 	// create the devices
-	// ***
-	for (devn = 0; devn < NUM_INPUTS; devn++) {
-		if ((inputdevices & (1<<devn)) == 0) continue;
-		*devicedef[devn].did = NULL;
+	buildprintf("  - Creating joystick device\n");
+	result = IDirectInput_CreateDevice(lpDI, &guidDev, &dev, NULL);
+	if FAILED(result) { HorribleDInputDeath("Failed creating device", result); }
+	else if (result != DI_OK) buildprintf("    Created device with warning: %s\n",GetDInputError(result));
 
-		buildprintf("  - Creating %s device\n", devicedef[devn].name);
-		result = IDirectInput_CreateDevice(lpDI, &guidDevs[devn], &dev, NULL);
-		if FAILED(result) { HorribleDInputDeath("Failed creating device", result); }
-		else if (result != DI_OK) buildprintf("    Created device with warning: %s\n",GetDInputError(result));
+	result = IDirectInputDevice_QueryInterface(dev, &IID_IDirectInputDevice2, (LPVOID *)&dev2);
+	IDirectInputDevice_Release(dev);
+	if FAILED(result) { HorribleDInputDeath("Failed querying DirectInput2 interface for device", result); }
+	else if (result != DI_OK) buildprintf("    Queried IDirectInputDevice2 interface with warning: %s\n",GetDInputError(result));
 
-		result = IDirectInputDevice_QueryInterface(dev, &IID_IDirectInputDevice2, (LPVOID *)&dev2);
-		IDirectInputDevice_Release(dev);
-		if FAILED(result) { HorribleDInputDeath("Failed querying DirectInput2 interface for device", result); }
-		else if (result != DI_OK) buildprintf("    Queried IDirectInputDevice2 interface with warning: %s\n",GetDInputError(result));
+	result = IDirectInputDevice2_SetDataFormat(dev2, &c_dfDIJoystick);
+	if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting data format", result); }
+	else if (result != DI_OK) buildprintf("    Set data format with warning: %s\n",GetDInputError(result));
 
-		result = IDirectInputDevice2_SetDataFormat(dev2, devicedef[devn].df);
-		if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting data format", result); }
-		else if (result != DI_OK) buildprintf("    Set data format with warning: %s\n",GetDInputError(result));
-
-		inputevt[devn] = CreateEvent(NULL, FALSE, FALSE, NULL);
-		if (inputevt[devn] == NULL) {
-			IDirectInputDevice_Release(dev2);
-			ShowErrorBox("Couldn't create event object");
-			UninitDirectInput();
-			return TRUE;
-		}
-
-		result = IDirectInputDevice2_SetEventNotification(dev2, inputevt[devn]);
-		if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting event object", result); }
-		else if (result != DI_OK) buildprintf("    Set event object with warning: %s\n",GetDInputError(result));
-
-		IDirectInputDevice2_Unacquire(dev2);
-
-		memset(&dipdw, 0, sizeof(dipdw));
-		dipdw.diph.dwSize = sizeof(DIPROPDWORD);
-		dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
-		dipdw.diph.dwObj = 0;
-		dipdw.diph.dwHow = DIPH_DEVICE;
-		dipdw.dwData = INPUT_BUFFER_SIZE;
-
-		result = IDirectInputDevice2_SetProperty(dev2, DIPROP_BUFFERSIZE, &dipdw.diph);
-		if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting buffering", result); }
-		else if (result != DI_OK) buildprintf("    Set buffering with warning: %s\n",GetDInputError(result));
-
-		// set up device
-		if (devn == JOYSTICK) {
-			int typecounts[3] = {0,0,0};
-
-			memset(&didc, 0, sizeof(didc));
-			didc.dwSize = sizeof(didc);
-			result = IDirectInputDevice2_GetCapabilities(dev2, &didc);
-			if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick capabilities", result); }
-			else if (result != DI_OK) buildprintf("    Fetched joystick capabilities with warning: %s\n",GetDInputError(result));
-
-			joynumaxes    = (char)didc.dwAxes;
-			joynumbuttons = min(32,(char)didc.dwButtons);
-			joynumhats    = (char)didc.dwPOVs;
-			buildprintf("Joystick has %d axes, %d buttons, and %d hat(s).\n",joynumaxes,joynumbuttons,joynumhats);
-
-			axisdefs = (struct _joydef *)Bcalloc(didc.dwAxes, sizeof(struct _joydef));
-			buttondefs = (struct _joydef *)Bcalloc(didc.dwButtons, sizeof(struct _joydef));
-			hatdefs = (struct _joydef *)Bcalloc(didc.dwPOVs, sizeof(struct _joydef));
-
-			joyaxis = (int *)Bcalloc(didc.dwAxes, sizeof(int));
-			if (didc.dwPOVs > 0) {
-				joyhat = malloc(didc.dwPOVs * sizeof(int));
-				memset(joyhat, -1, didc.dwPOVs * sizeof(int));
-			}
-
-			result = IDirectInputDevice2_EnumObjects(dev2, InitDirectInput_enumobjects, (LPVOID)typecounts, DIDFT_ALL);
-			if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick features", result); }
-			else if (result != DI_OK) buildprintf("    Fetched joystick features with warning: %s\n",GetDInputError(result));
-		}
-
-		*devicedef[devn].did = dev2;
+	inputevt = CreateEvent(NULL, FALSE, FALSE, NULL);
+	if (inputevt == NULL) {
+		IDirectInputDevice_Release(dev2);
+		ShowErrorBox("Couldn't create event object");
+		UninitDirectInput();
+		return TRUE;
 	}
 
-	memset(devacquired, 0, sizeof(devacquired));
+	result = IDirectInputDevice2_SetEventNotification(dev2, inputevt);
+	if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting event object", result); }
+	else if (result != DI_OK) buildprintf("    Set event object with warning: %s\n",GetDInputError(result));
+
+	IDirectInputDevice2_Unacquire(dev2);
+
+	memset(&dipdw, 0, sizeof(dipdw));
+	dipdw.diph.dwSize = sizeof(DIPROPDWORD);
+	dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+	dipdw.diph.dwObj = 0;
+	dipdw.diph.dwHow = DIPH_DEVICE;
+	dipdw.dwData = INPUT_BUFFER_SIZE;
+
+	result = IDirectInputDevice2_SetProperty(dev2, DIPROP_BUFFERSIZE, &dipdw.diph);
+	if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting buffering", result); }
+	else if (result != DI_OK) buildprintf("    Set buffering with warning: %s\n",GetDInputError(result));
+
+	// set up device
+	memset(&didc, 0, sizeof(didc));
+	didc.dwSize = sizeof(didc);
+	result = IDirectInputDevice2_GetCapabilities(dev2, &didc);
+	if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick capabilities", result); }
+	else if (result != DI_OK) buildprintf("    Fetched joystick capabilities with warning: %s\n",GetDInputError(result));
+
+	joynumaxes    = (char)didc.dwAxes;
+	joynumbuttons = min(32,(char)didc.dwButtons);
+	joynumhats    = (char)didc.dwPOVs;
+	buildprintf("Joystick has %d axes, %d buttons, and %d hat(s).\n",joynumaxes,joynumbuttons,joynumhats);
+
+	axisdefs = (struct _joydef *)Bcalloc(didc.dwAxes, sizeof(struct _joydef));
+	buttondefs = (struct _joydef *)Bcalloc(didc.dwButtons, sizeof(struct _joydef));
+	hatdefs = (struct _joydef *)Bcalloc(didc.dwPOVs, sizeof(struct _joydef));
+
+	joyaxis = (int *)Bcalloc(didc.dwAxes, sizeof(int));
+	if (didc.dwPOVs > 0) {
+		joyhat = malloc(didc.dwPOVs * sizeof(int));
+		memset(joyhat, -1, didc.dwPOVs * sizeof(int));
+	}
+
+	result = IDirectInputDevice2_EnumObjects(dev2, InitDirectInput_enumobjects, (LPVOID)typecounts, DIDFT_ALL);
+	if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick features", result); }
+	else if (result != DI_OK) buildprintf("    Fetched joystick features with warning: %s\n",GetDInputError(result));
+
+	lpDID = dev2;
+
+	devacquired = 0;
 
 	bDInputInited = TRUE;
 	return FALSE;
@@ -1109,7 +1108,7 @@ static void UninitDirectInput(void)
 
 	if (bDInputInited) buildputs("Uninitialising DirectInput...\n");
 
-	AcquireInputDevices(0,-1);
+	AcquireInputDevices(0);
 
 	if (axisdefs) {
 		for (i=joynumaxes-1; i>=0; i--) if (axisdefs[i].name) free((void*)axisdefs[i].name);
@@ -1124,19 +1123,15 @@ static void UninitDirectInput(void)
 		free(hatdefs); hatdefs = NULL;
 	}
 
-	for (devn = 0; devn < NUM_INPUTS; devn++) {
-		if (*devicedef[devn].did) {
-			buildprintf("  - Releasing %s device\n", devicedef[devn].name);
+	if (lpDID) {
+		buildprintf("  - Releasing joystick device\n");
 
-			if (devn != JOYSTICK) IDirectInputDevice2_SetEventNotification(*devicedef[devn].did, NULL);
-
-			IDirectInputDevice2_Release(*devicedef[devn].did);
-			*devicedef[devn].did = NULL;
-		}
-		if (inputevt[devn]) {
-			CloseHandle(inputevt[devn]);
-			inputevt[devn] = NULL;
-		}
+		IDirectInputDevice2_Release(lpDID);
+		lpDID = NULL;
+	}
+	if (inputevt) {
+		CloseHandle(inputevt);
+		inputevt = NULL;
 	}
 
 	if (lpDI) {
@@ -1158,7 +1153,7 @@ static void UninitDirectInput(void)
 //
 // AcquireInputDevices() -- (un)acquires the input devices
 //
-static void AcquireInputDevices(char acquire, signed char device)
+static void AcquireInputDevices(char acquire)
 {
 	DWORD flags;
 	HRESULT result;
@@ -1166,43 +1161,35 @@ static void AcquireInputDevices(char acquire, signed char device)
 
 	if (!bDInputInited) return;
 	if (!hWindow) return;
+	if (!lpDID) return;
 
 	if (acquire) {
 		if (!appactive) return;		// why acquire when inactive?
-		for (i=0; i<NUM_INPUTS; i++) {
-			if (! *devicedef[i].did) continue;
-			if (device != -1 && i != device) continue;	// don't touch other devices if only the mouse is wanted
 
-			IDirectInputDevice2_Unacquire(*devicedef[i].did);
+		IDirectInputDevice2_Unacquire(lpDID);
 
-			flags = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE;
+		flags = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE;
 
-			result = IDirectInputDevice2_SetCooperativeLevel(*devicedef[i].did, hWindow, flags);
-			if (FAILED(result))
-				buildprintf("IDirectInputDevice2_SetCooperativeLevel(%s): %s\n",
-						devicedef[i].name, GetDInputError(result));
+		result = IDirectInputDevice2_SetCooperativeLevel(lpDID, hWindow, flags);
+		if (FAILED(result))
+			buildprintf("IDirectInputDevice2_SetCooperativeLevel: %s\n",
+					GetDInputError(result));
 
-			if (SUCCEEDED(IDirectInputDevice2_Acquire(*devicedef[i].did)))
-				devacquired[i] = 1;
-			else
-				devacquired[i] = 0;
-		}
+		if (SUCCEEDED(IDirectInputDevice2_Acquire(lpDID)))
+			devacquired = 1;
+		else
+			devacquired = 0;
 	} else {
 		releaseallbuttons();
 
-		for (i=0; i<NUM_INPUTS; i++) {
-			if (! *devicedef[i].did) continue;
-			if (device != -1 && i != device) continue;	// don't touch other devices if only the mouse is wanted
+		IDirectInputDevice2_Unacquire(lpDID);
 
-			IDirectInputDevice2_Unacquire(*devicedef[i].did);
+		result = IDirectInputDevice2_SetCooperativeLevel(lpDID, hWindow, DISCL_FOREGROUND|DISCL_NONEXCLUSIVE);
+		if (FAILED(result))
+			buildprintf("IDirectInputDevice2_SetCooperativeLevel: %s\n",
+					GetDInputError(result));
 
-			result = IDirectInputDevice2_SetCooperativeLevel(*devicedef[i].did, hWindow, DISCL_FOREGROUND|DISCL_NONEXCLUSIVE);
-			if (FAILED(result))
-				buildprintf("IDirectInputDevice2_SetCooperativeLevel(%s): %s\n",
-						devicedef[i].name, GetDInputError(result));
-
-			devacquired[i] = 0;
-		}
+		devacquired = 0;
 	}
 }
 
@@ -1218,111 +1205,69 @@ static void ProcessInputDevices(void)
 	DIDEVICEOBJECTDATA didod[INPUT_BUFFER_SIZE];
 	DWORD dwElements = INPUT_BUFFER_SIZE;
 	DWORD ev;
-	unsigned t,u;
-	unsigned idevnums[NUM_INPUTS], numdevs = 0;
-	HANDLE waithnds[NUM_INPUTS];
+	unsigned t, numdevs = 0;
+	HANDLE waithnds;
 
-	for (t = 0; t < NUM_INPUTS; t++ ) {
-		if (*devicedef[t].did) {
-			result = IDirectInputDevice2_Poll(*devicedef[t].did);
-			if (result == DIERR_INPUTLOST || result == DIERR_NOTACQUIRED) {
-				if (SUCCEEDED(IDirectInputDevice2_Acquire(*devicedef[t].did))) {
-					devacquired[t] = 1;
-					IDirectInputDevice2_Poll(*devicedef[t].did);
-				} else {
-					devacquired[t] = 0;
-				}
-			}
+	if (!lpDID) return;
 
-			if (devacquired[t]) {
-				waithnds[numdevs] = inputevt[t];
-				idevnums[numdevs] = t;
-				numdevs++;
-			}
+	result = IDirectInputDevice2_Poll(lpDID);
+	if (result == DIERR_INPUTLOST || result == DIERR_NOTACQUIRED) {
+		if (SUCCEEDED(IDirectInputDevice2_Acquire(lpDID))) {
+			devacquired = 1;
+			IDirectInputDevice2_Poll(lpDID);
+		} else {
+			devacquired = 0;
 		}
 	}
+
+	if (!devacquired) return;
 
 	t = getticks();
 
-	// do this here because we only want the wheel to signal once, but hold the state for a moment
-	if (mousegrab) {
-		if (mousewheel[0] > 0 && t - mousewheel[0] > MouseWheelFakePressTime) {
-			if (mousepresscallback) mousepresscallback(5,0);
-			mousewheel[0] = 0; mouseb &= ~16;
-		}
-		if (mousewheel[1] > 0 && t - mousewheel[1] > MouseWheelFakePressTime) {
-			if (mousepresscallback) mousepresscallback(6,0);
-			mousewheel[1] = 0; mouseb &= ~32;
-		}
-	}
-
-	if (numdevs == 0) return;	// nothing to do
-
 	// use event objects so that we can quickly get indication of when data is ready
 	// to be read and input events processed
-	ev = MsgWaitForMultipleObjects(numdevs, waithnds, FALSE, 0, 0);
-	if (/*(ev >= WAIT_OBJECT_0) &&*/ (ev < (WAIT_OBJECT_0+numdevs))) {
-		switch (idevnums[ev - WAIT_OBJECT_0]) {
-			case JOYSTICK:		// joystick
-				if (!lpDID[JOYSTICK]) break;
-				result = IDirectInputDevice2_GetDeviceData(lpDID[JOYSTICK], sizeof(DIDEVICEOBJECTDATA),
-						(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
-				if (result == DI_OK) {
-					int j;
+	ev = MsgWaitForMultipleObjects(1, &inputevt, FALSE, 0, 0);
+	if (/*(ev >= WAIT_OBJECT_0) &&*/ (ev < (WAIT_OBJECT_0+1))) {
+		result = IDirectInputDevice2_GetDeviceData(lpDID, sizeof(DIDEVICEOBJECTDATA),
+				(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
+		if (result == DI_OK) {
+			int j;
 
-					for (i=0; i<dwElements; i++) {
-						// check axes
-						for (j=0; j<joynumaxes; j++) {
-							if (axisdefs[j].ofs != didod[i].dwOfs) continue;
-							joyaxis[j] = didod[i].dwData - 32767;
-							break;
-						}
-						if (j<joynumaxes) continue;
-
-						// check buttons
-						for (j=0; j<joynumbuttons; j++) {
-							if (buttondefs[j].ofs != didod[i].dwOfs) continue;
-							if (didod[i].dwData & 0x80) joyb |= (1<<j);
-							else joyb &= ~(1<<j);
-							if (joypresscallback)
-								joypresscallback(j+1, (didod[i].dwData & 0x80)==0x80);
-							break;
-						}
-						if (j<joynumbuttons) continue;
-
-						// check hats
-						for (j=0; j<joynumhats; j++) {
-							if (hatdefs[j].ofs != didod[i].dwOfs) continue;
-							joyhat[j] = didod[i].dwData;
-							break;
-						}
-					}
-
-					/*
-					buildputs("axes:");
-					for (i=0;i<joynumaxes;i++) buildprintf(" %d", joyaxis[i]);
-					buildprintf(" - buttons: %x - hats:", joyb);
-					for (i=0;i<joynumhats;i++) buildprintf(" %d", joyhat[i]);
-					buildputs("\n");
-					*/
+			for (i=0; i<dwElements; i++) {
+				// check axes
+				for (j=0; j<joynumaxes; j++) {
+					if (axisdefs[j].ofs != didod[i].dwOfs) continue;
+					joyaxis[j] = didod[i].dwData - 32767;
+					break;
 				}
-				break;
-		}
-	}
+				if (j<joynumaxes) continue;
 
-	// key repeat
-	// this is like this because the period of t is 1000ms
-	if (lastKeyDown > 0) {
-		u = (1000 + t - lastKeyTime)%1000;
-		if ((u >= 250) && !(lastKeyDown&0x80000000l)) {
-			if (OSD_HandleKey(lastKeyDown, 1) != 0)
-				SetKey(lastKeyDown, 1);
-			lastKeyDown |= 0x80000000l;
-			lastKeyTime = t;
-		} else if ((u >= 30) && (lastKeyDown&0x80000000l)) {
-			if (OSD_HandleKey(lastKeyDown&(0x7fffffffl), 1) != 0)
-				SetKey(lastKeyDown&(0x7fffffffl), 1);
-			lastKeyTime = t;
+				// check buttons
+				for (j=0; j<joynumbuttons; j++) {
+					if (buttondefs[j].ofs != didod[i].dwOfs) continue;
+					if (didod[i].dwData & 0x80) joyb |= (1<<j);
+					else joyb &= ~(1<<j);
+					if (joypresscallback)
+						joypresscallback(j+1, (didod[i].dwData & 0x80)==0x80);
+					break;
+				}
+				if (j<joynumbuttons) continue;
+
+				// check hats
+				for (j=0; j<joynumhats; j++) {
+					if (hatdefs[j].ofs != didod[i].dwOfs) continue;
+					joyhat[j] = didod[i].dwData;
+					break;
+				}
+			}
+
+			/*
+			buildputs("axes:");
+			for (i=0;i<joynumaxes;i++) buildprintf(" %d", joyaxis[i]);
+			buildprintf(" - buttons: %x - hats:", joyb);
+			for (i=0;i<joynumhats;i++) buildprintf(" %d", joyhat[i]);
+			buildputs("\n");
+			*/
 		}
 	}
 }
@@ -1622,7 +1567,7 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 //
 int setvideomode(int x, int y, int c, int fs)
 {
-	int i,inp[NUM_INPUTS];
+	int i,inp;
 	int modenum;
 
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
@@ -1640,8 +1585,8 @@ int setvideomode(int x, int y, int c, int fs)
 		customfs   = fs;
 	}
 
-	for (i=0;i<NUM_INPUTS;i++) inp[i] = devacquired[i];
-	AcquireInputDevices(0,-1);
+	inp = devacquired;
+	AcquireInputDevices(0);
 
 	if (hWindow && gammabrightness) {
 		setgammaramp(sysgamma);
@@ -1658,7 +1603,7 @@ int setvideomode(int x, int y, int c, int fs)
 		if (gammabrightness && setgamma(curgamma) < 0) gammabrightness = 0;
 	}
 
-	for (i=0;i<NUM_INPUTS;i++) if (inp[i]) AcquireInputDevices(1,i);
+	if (inp) AcquireInputDevices(1);
 	modechange=1;
 	videomodereset = 0;
 	//baselayer_onvideomodechange(c>8);
@@ -3267,14 +3212,14 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 				}
 			}
 
-			AcquireInputDevices(appactive,-1);
+			AcquireInputDevices(appactive);
 			constrainmouse(LOWORD(wParam) != WA_INACTIVE && HIWORD(wParam) == 0);
 			break;
 
 		case WM_SIZE:
 			if (wParam == SIZE_MAXHIDE || wParam == SIZE_MINIMIZED) appactive = 0;
 			else appactive = 1;
-			AcquireInputDevices(appactive,-1);
+			AcquireInputDevices(appactive);
 			break;
 
 		case WM_PALETTECHANGED:
@@ -3430,11 +3375,11 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 
 		case WM_ENTERMENULOOP:
 		case WM_ENTERSIZEMOVE:
-			AcquireInputDevices(0,-1);
+			AcquireInputDevices(0);
 			return 0;
 		case WM_EXITMENULOOP:
 		case WM_EXITSIZEMOVE:
-			AcquireInputDevices(1,-1);
+			AcquireInputDevices(1);
 			return 0;
 
 		case WM_DESTROY:
