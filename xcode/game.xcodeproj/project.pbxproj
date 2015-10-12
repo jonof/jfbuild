@@ -10,6 +10,7 @@
 		AB053FAD0A33136000FA2918 /* osxmain.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07700A3307F700FF2442 /* osxmain.nib */; };
 		AB053FAF0A33136D00FA2918 /* startwin.game.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB053FAE0A33136D00FA2918 /* startwin.game.nib */; };
 		AB053FB70A3313A000FA2918 /* game.bmp in Resources */ = {isa = PBXBuildFile; fileRef = AB053FB60A3313A000FA2918 /* game.bmp */; };
+		AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */; settings = {ASSET_TAGS = (); }; };
 		AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07650A33068500FF2442 /* startwin.editor.nib */; };
 		AB3E076E0A3306CE00FF2442 /* build.bmp in Resources */ = {isa = PBXBuildFile; fileRef = AB3E076D0A3306CE00FF2442 /* build.bmp */; };
 		AB3E07710A3307F700FF2442 /* osxmain.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07700A3307F700FF2442 /* osxmain.nib */; };
@@ -159,6 +160,7 @@
 /* Begin PBXFileReference section */
 		AB053FAE0A33136D00FA2918 /* startwin.game.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.game.nib; sourceTree = SOURCE_ROOT; };
 		AB053FB60A3313A000FA2918 /* game.bmp */ = {isa = PBXFileReference; lastKnownFileType = image.bmp; name = game.bmp; path = ../kenbuild/rsrc/game.bmp; sourceTree = "<group>"; };
+		AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Editor Images.xcassets"; sourceTree = "<group>"; };
 		AB3E07650A33068500FF2442 /* startwin.editor.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.editor.nib; sourceTree = SOURCE_ROOT; };
 		AB3E076D0A3306CE00FF2442 /* build.bmp */ = {isa = PBXFileReference; lastKnownFileType = image.bmp; name = build.bmp; path = ../kenbuild/rsrc/build.bmp; sourceTree = SOURCE_ROOT; };
 		AB3E07700A3307F700FF2442 /* osxmain.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = osxmain.nib; sourceTree = SOURCE_ROOT; };
@@ -274,6 +276,7 @@
 		AB7360210A29AA91003261DC /* Editor */ = {
 			isa = PBXGroup;
 			children = (
+				AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */,
 				ABA9E3290FEF9DD00024231F /* bstub.c */,
 				AB3E07700A3307F700FF2442 /* osxmain.nib */,
 				AB3E07650A33068500FF2442 /* startwin.editor.nib */,
@@ -446,6 +449,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */,
+				AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */,
 				AB3E076E0A3306CE00FF2442 /* build.bmp in Resources */,
 				AB3E07710A3307F700FF2442 /* osxmain.nib in Resources */,
 			);
@@ -590,6 +594,7 @@
 		AB7360540A29AD92003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
@@ -601,6 +606,7 @@
 		AB7360550A29AD92003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
