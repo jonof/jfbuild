@@ -9,7 +9,7 @@
 /* Begin PBXBuildFile section */
 		AB053FAD0A33136000FA2918 /* osxmain.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07700A3307F700FF2442 /* osxmain.nib */; };
 		AB053FAF0A33136D00FA2918 /* startwin.game.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB053FAE0A33136D00FA2918 /* startwin.game.nib */; };
-		AB053FB70A3313A000FA2918 /* game.bmp in Resources */ = {isa = PBXBuildFile; fileRef = AB053FB60A3313A000FA2918 /* game.bmp */; };
+		AB3DEDA21BD23DAB0009D070 /* Game Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */; settings = {ASSET_TAGS = (); }; };
 		AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */; settings = {ASSET_TAGS = (); }; };
 		AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07650A33068500FF2442 /* startwin.editor.nib */; };
 		AB3E076E0A3306CE00FF2442 /* build.bmp in Resources */ = {isa = PBXBuildFile; fileRef = AB3E076D0A3306CE00FF2442 /* build.bmp */; };
@@ -159,7 +159,7 @@
 
 /* Begin PBXFileReference section */
 		AB053FAE0A33136D00FA2918 /* startwin.game.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.game.nib; sourceTree = SOURCE_ROOT; };
-		AB053FB60A3313A000FA2918 /* game.bmp */ = {isa = PBXFileReference; lastKnownFileType = image.bmp; name = game.bmp; path = ../kenbuild/rsrc/game.bmp; sourceTree = "<group>"; };
+		AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Game Images.xcassets"; sourceTree = "<group>"; };
 		AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Editor Images.xcassets"; sourceTree = "<group>"; };
 		AB3E07650A33068500FF2442 /* startwin.editor.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.editor.nib; sourceTree = SOURCE_ROOT; };
 		AB3E076D0A3306CE00FF2442 /* build.bmp */ = {isa = PBXFileReference; lastKnownFileType = image.bmp; name = build.bmp; path = ../kenbuild/rsrc/build.bmp; sourceTree = SOURCE_ROOT; };
@@ -261,13 +261,13 @@
 		AB7360200A29AA88003261DC /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */,
 				ABA9E3320FEF9E470024231F /* game.c */,
 				ABA9E3330FEF9E470024231F /* game.h */,
 				ABA9E3340FEF9E470024231F /* StartupWinController.game.m */,
 				AB726D400F046BDE00730EAA /* sound_stub.c */,
 				ABA9E32A0FEF9DD00024231F /* config.c */,
 				AB053FAE0A33136D00FA2918 /* startwin.game.nib */,
-				AB053FB60A3313A000FA2918 /* game.bmp */,
 				AB73602D0A29AB08003261DC /* game-Info.plist */,
 			);
 			name = Game;
@@ -439,8 +439,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB053FAD0A33136000FA2918 /* osxmain.nib in Resources */,
+				AB3DEDA21BD23DAB0009D070 /* Game Images.xcassets in Resources */,
 				AB053FAF0A33136D00FA2918 /* startwin.game.nib in Resources */,
-				AB053FB70A3313A000FA2918 /* game.bmp in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -560,6 +560,7 @@
 		AB73602F0A29AB09003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",
@@ -577,6 +578,7 @@
 		AB7360300A29AB09003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",

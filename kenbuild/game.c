@@ -416,6 +416,7 @@ int app_main(int argc, char const * const argv[])
 {
 	int cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
 	int other, packleng, netparm;
+    int startretval = STARTWIN_RUN;
 
 	buildsetlogfile("console.txt");
 
@@ -449,7 +450,10 @@ int app_main(int argc, char const * const argv[])
 
 #if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK2))
 	if (i || forcesetup || cmdsetup) {
-		if (quitevent || !startwin_run()) return -1;
+		if (quitevent) return 0;
+
+        startretval = startwin_run();
+        if (startretval == STARTWIN_CANCEL || startretval < 0) return 0;
 	}
 #endif
 	writesetup("game.cfg");
@@ -458,7 +462,8 @@ int app_main(int argc, char const * const argv[])
 	if (option[3] != 0) initmouse();
 	inittimer(TIMERINTSPERSECOND);
 
-	if (initmultiplayersparms(argc-netparm, &argv[netparm])) {
+	if (startretval == STARTWIN_RUN_MULTI ||    // startup window already called initmultiplayersparms successfully
+            initmultiplayersparms(argc-netparm, &argv[netparm])) {
 		buildputs("Waiting for players...\n");
 		while (initmultiplayerscycle()) {
 			handleevents();

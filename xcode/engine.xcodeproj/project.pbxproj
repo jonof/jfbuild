@@ -79,7 +79,6 @@
 		AB735FD00A29A994003261DC /* editor.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735FC60A29A8FD003261DC /* editor.h */; };
 		AB735FD10A29A99A003261DC /* build.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC20A29A8E5003261DC /* build.c */; };
 		AB735FD20A29A99A003261DC /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC30A29A8E5003261DC /* config.c */; };
-		AB7360450A29AD3A003261DC /* osxmain.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7360440A29AD3A003261DC /* osxmain.m */; };
 		ABA9E3070FEF9D170024231F /* a.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3020FEF9D170024231F /* a.h */; };
 		ABA9E3080FEF9D170024231F /* kplib.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3030FEF9D170024231F /* kplib.h */; };
 		ABA9E3090FEF9D170024231F /* osxbits.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3040FEF9D170024231F /* osxbits.h */; };
@@ -708,7 +707,6 @@
 				AB735F6F0A29A39D003261DC /* pragmas.c in Sources */,
 				AB735F700A29A39D003261DC /* scriptfile.c in Sources */,
 				AB735F710A29A39D003261DC /* sdlayer2.c in Sources */,
-				AB7360450A29AD3A003261DC /* osxmain.m in Sources */,
 				AB3B2A0E0EE3FC0400944CD1 /* hightile.c in Sources */,
 				AB3B2A1D0EE3FCF900944CD1 /* polymost.c in Sources */,
 				AB3B2AE10EE403E000944CD1 /* mdsprite.c in Sources */,
