@@ -840,11 +840,6 @@
 					RENDERTYPESDL,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				WARNING_CFLAGS = (
-					"-W",
-					"-Wall",
-					"-Wno-unused-variable",
-				);
 			};
 			name = Debug;
 		};
@@ -867,11 +862,6 @@
 					RENDERTYPESDL,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				WARNING_CFLAGS = (
-					"-W",
-					"-Wall",
-					"-Wno-unused-variable",
-				);
 			};
 			name = Release;
 		};
