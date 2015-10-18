@@ -44,7 +44,7 @@
 		ABA9E32B0FEF9DD00024231F /* bstub.c in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E3290FEF9DD00024231F /* bstub.c */; };
 		ABA9E3310FEF9E060024231F /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E32A0FEF9DD00024231F /* config.c */; };
 		ABA9E3350FEF9E470024231F /* game.c in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E3320FEF9E470024231F /* game.c */; };
-		ABA9E3360FEF9E470024231F /* StartupWinController.game.m in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E3340FEF9E470024231F /* StartupWinController.game.m */; };
+		ABA9E3360FEF9E470024231F /* StartupWinController.m in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E3340FEF9E470024231F /* StartupWinController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -185,7 +185,7 @@
 		ABA9E32A0FEF9DD00024231F /* config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = config.c; path = ../kenbuild/config.c; sourceTree = SOURCE_ROOT; };
 		ABA9E3320FEF9E470024231F /* game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = game.c; path = ../kenbuild/game.c; sourceTree = SOURCE_ROOT; };
 		ABA9E3330FEF9E470024231F /* game.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = game.h; path = ../kenbuild/game.h; sourceTree = SOURCE_ROOT; };
-		ABA9E3340FEF9E470024231F /* StartupWinController.game.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = StartupWinController.game.m; path = ../kenbuild/StartupWinController.game.m; sourceTree = SOURCE_ROOT; };
+		ABA9E3340FEF9E470024231F /* StartupWinController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = StartupWinController.m; path = ../kenbuild/StartupWinController.m; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -264,7 +264,7 @@
 				AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */,
 				ABA9E3320FEF9E470024231F /* game.c */,
 				ABA9E3330FEF9E470024231F /* game.h */,
-				ABA9E3340FEF9E470024231F /* StartupWinController.game.m */,
+				ABA9E3340FEF9E470024231F /* StartupWinController.m */,
 				AB726D400F046BDE00730EAA /* sound_stub.c */,
 				ABA9E32A0FEF9DD00024231F /* config.c */,
 				AB053FAE0A33136D00FA2918 /* startwin.game.nib */,
@@ -465,7 +465,7 @@
 				AB726D410F046BDE00730EAA /* sound_stub.c in Sources */,
 				ABA9E3310FEF9E060024231F /* config.c in Sources */,
 				ABA9E3350FEF9E470024231F /* game.c in Sources */,
-				ABA9E3360FEF9E470024231F /* StartupWinController.game.m in Sources */,
+				ABA9E3360FEF9E470024231F /* StartupWinController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

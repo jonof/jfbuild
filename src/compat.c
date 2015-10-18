@@ -424,7 +424,6 @@ char *Bgetappdir(void)
     }
     
     resUrl = CFBundleCopyResourcesDirectoryURL(mainBundle);
-    CFRelease(mainBundle);
     if (!resUrl) {
         return NULL;
     }

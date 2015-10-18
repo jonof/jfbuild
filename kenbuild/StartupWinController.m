@@ -19,6 +19,7 @@ static struct {
 
 @interface StartupWinController : NSWindowController <NSWindowDelegate>
 {
+    BOOL quiteventonclose;
     NSMutableArray *modeslist3d;
 
     IBOutlet NSButton *alwaysShowButton;
@@ -42,6 +43,7 @@ static struct {
 }
 
 - (void)dealloc;
+- (void)closeQuietly;
 - (void)populateVideoModes:(BOOL)firstTime;
 
 - (IBAction)alwaysShowClicked:(id)sender;
@@ -54,7 +56,7 @@ static struct {
 - (IBAction)start:(id)sender;
 
 - (void)setupRunMode;
-- (void)setupMessagesMode;
+- (void)setupMessagesMode:(BOOL)allowCancel;
 - (void)putsMessage:(NSString *)str;
 - (void)setTitle:(NSString *)str;
 
@@ -63,10 +65,23 @@ static struct {
 
 @implementation StartupWinController
 
+- (void)windowDidLoad
+{
+    quiteventonclose = TRUE;
+}
+
 - (void)dealloc
 {
     [modeslist3d release];
     [super dealloc];
+}
+
+// Close the window, but don't cause the quitevent flag to be set
+// as though this is a cancel operation.
+- (void)closeQuietly
+{
+    quiteventonclose = FALSE;
+    [self close];
 }
 
 - (void)populateVideoModes:(BOOL)firstTime
@@ -161,12 +176,13 @@ static struct {
 - (void)windowWillClose:(NSNotification *)notification
 {
     [NSApp stopModalWithCode:STARTWIN_CANCEL];
-    quitevent = 1;
+    quitevent = quitevent || quiteventonclose;
 }
 
 - (IBAction)cancel:(id)sender
 {
     [NSApp stopModalWithCode:STARTWIN_CANCEL];
+    quitevent = quitevent || quiteventonclose;
 }
 
 - (IBAction)start:(id)sender
@@ -182,7 +198,7 @@ static struct {
 
     if ([multiPlayerButton state] == NSOnState) {
         @autoreleasepool {
-            NSMutableArray *args = [[NSMutableArray alloc] init];
+            NSMutableArray *args = [[[NSMutableArray alloc] init] autorelease];
             NSString *str;
             int argstrlen = 0, i;
             char *argstrptr;
@@ -193,6 +209,7 @@ static struct {
             } else {
                 str = [[NSString alloc] initWithFormat:@"-n0:%d", [numPlayersField intValue]];
             }
+            [str autorelease];
             [args addObject:str];
             argstrlen += [str lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
 
@@ -261,10 +278,10 @@ static struct {
     [startButton setEnabled:YES];
 
     [tabView selectTabViewItem:tabConfig];
-    [NSCursor unhide];	// Why should I need to do this?
+    [NSCursor unhide];  // Why should I need to do this?
 }
 
-- (void)setupMessagesMode
+- (void)setupMessagesMode:(BOOL)allowCancel
 {
     [tabView selectTabViewItem:tabMessages];
 
@@ -275,7 +292,7 @@ static struct {
         [control setEnabled:false];
     }
 
-    [cancelButton setEnabled:false];
+    [cancelButton setEnabled:allowCancel];
     [startButton setEnabled:false];
 }
 
@@ -318,7 +335,7 @@ int startwin_open(void)
     if (startwin == nil) return -1;
 
     [startwin window];  // Forces the window controls on the controller to be initialised.
-    [startwin setupMessagesMode];
+    [startwin setupMessagesMode:YES];
     [startwin showWindow:nil];
 
     return 0;
@@ -328,7 +345,7 @@ int startwin_close(void)
 {
     if (startwin == nil) return 1;
 
-    [startwin close];
+    [startwin closeQuietly];
     [startwin release];
     startwin = nil;
 
@@ -365,7 +382,6 @@ int startwin_settitle(const char *s)
 
 int startwin_idle(void *v)
 {
-    if (startwin) [[startwin window] displayIfNeeded];
     return 0;
 }
 
@@ -391,16 +407,16 @@ int startwin_run(void)
         case STARTWIN_CANCEL: retval = STARTWIN_CANCEL; break;
         default: retval = -1;
     }
-    
-    [startwin setupMessagesMode];
-    
+
+    [startwin setupMessagesMode:(retval == STARTWIN_RUN_MULTI)];
+
     if (retval) {
         fullscreen = settings.fullscreen;
         xdimgame = settings.xdim3d;
         ydimgame = settings.ydim3d;
         bppgame = settings.bpp3d;
         forcesetup = settings.forcesetup;
-        
+
         if (retval == STARTWIN_RUN_MULTI) {
             if (!initmultiplayersparms(settings.multiargc, settings.multiargv)) {
                 retval = STARTWIN_RUN;
@@ -409,6 +425,6 @@ int startwin_run(void)
             free(settings.multiargstr);
         }
     }
-    
+
     return retval;
 }
