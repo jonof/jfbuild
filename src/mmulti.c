@@ -50,10 +50,10 @@ static int GetTickCount(void)
 #define MAXPLAYERS 16
 #define MAXPAKSIZ 256 //576
 
-
 #define PAKRATE 40   //Packet rate/sec limit ... necessary?
 #define SIMMIS 0     //Release:0  Test:100 Packets per 256 missed.
 #define SIMLAG 0     //Release:0  Test: 10 Packets to delay receipt
+#define PRESENCETIMEOUT 2000
 static int simlagcnt[MAXPLAYERS];
 static unsigned char simlagfif[MAXPLAYERS][SIMLAG+1][MAXPAKSIZ+2];
 #if ((SIMMIS != 0) || (SIMLAG != 0))
@@ -427,17 +427,18 @@ int initmultiplayersparms(int argc, char const * const argv[])
 	for(i=0;i<numplayers-1;i++) connectpoint2[i] = i+1;
 	connectpoint2[numplayers-1] = -1;
 
+	netready = 0;
+
 	return (((!danetmode) && (numplayers >= 2)) || (numplayers == 2));
 }
 
 int initmultiplayerscycle(void)
 {
-	int i, k;
+	int i, k, dnetready = 1;
 
 	getpacket(&i,0);
 
 	tims = GetTickCount();
-	netready = 1;
 
 	if (networkmode == 0 && myconnectindex == connecthead)
 	{
@@ -446,34 +447,39 @@ int initmultiplayerscycle(void)
 			if (i == myconnectindex) continue;
 			if (otherhost[i].ss_family == AF_UNSPEC) {
 				// There's a slot to be filled.
-				netready = 0;
+				dnetready = 0;
 			} else if (lastrecvtims[i] == 0) {
 				// There's a player who hasn't checked in.
-				netready = 0;
+				dnetready = 0;
 			} else if (prevlastrecvtims[i] != lastrecvtims[i]) {
 				if (!playerslive[i]) {
 					printf("mmulti: Player %d is here\n", i);
 					playerslive[i] = 1;
 				}
 				prevlastrecvtims[i] = lastrecvtims[i];
-			} else if (tims - lastrecvtims[i] > 2000) {
+			} else if (tims - lastrecvtims[i] > PRESENCETIMEOUT) {
 				if (playerslive[i]) {
 					printf("mmulti: Player %d has gone\n", i);
 					playerslive[i] = 0;
 				}
 				prevlastrecvtims[i] = lastrecvtims[i];
-				netready = 0;
+				dnetready = 0;
 			}
 		}
 	}
 	else
 	{
-		// In peer-to-peer mode we send pings to our peer group members
-		// and wait for them all to check in.
-		// As a slave, we send the master pings.
 		if (networkmode == 0) {
+			// As a slave, we send the master pings. The netready flag gets
+			// set by getpacket() and is sent by the master when it is OK
+			// to launch.
+			dnetready = 0;
 			i = connecthead;
+
 		} else {
+			// In peer-to-peer mode we send pings to our peer group members
+			// and wait for them all to check in. The netready flag is set
+			// when everyone responds together within the timeout.
 			i = numplayers - 1;
 		}
 		while (1) {
@@ -501,20 +507,20 @@ int initmultiplayerscycle(void)
 
 				if (lastrecvtims[i] == 0) {
 					// There's a player who hasn't checked in.
-					netready = 0;
+					dnetready = 0;
 				} else if (prevlastrecvtims[i] != lastrecvtims[i]) {
 					if (!playerslive[i]) {
 						printf("mmulti: Player %d is here\n", i);
 						playerslive[i] = 1;
 					}
 					prevlastrecvtims[i] = lastrecvtims[i];
-				} else if (prevlastrecvtims[i] - tims > 2000) {
+				} else if (prevlastrecvtims[i] - tims > PRESENCETIMEOUT) {
 					if (playerslive[i]) {
 						printf("mmulti: Player %d has gone\n", i);
 						playerslive[i] = 0;
 					}
 					prevlastrecvtims[i] = lastrecvtims[i];
-					netready = 0;
+					dnetready = 0;
 				}
 			}
 
@@ -525,6 +531,8 @@ int initmultiplayerscycle(void)
 			}
 		}
 	}
+
+	netready = netready || dnetready;
 
 	return !netready;
 }
@@ -669,6 +677,7 @@ void sendpacket (int other, unsigned char *bufptr, int messleng)
 int getpacket (int *retother, unsigned char *bufptr)
 {
 	int i, j, k, ic0, crc16ofs, messleng, other;
+	static int warned = 0;
 
 	if (numplayers < 2) return(0);
 
@@ -713,7 +722,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 				// Peers send each other 0xaa and respond with 0xab containing their opinion
 				// of the requesting peer's placement within the order.
 
-				// Slave sends 0xaa to Master at initmultiplayers() and waits for 0xab response.
+				// Slave sends 0xaa to Master at initmultiplayerscycle() and waits for 0xab response.
 				// Master responds to slave with 0xab whenever it receives a 0xaa - even if during game!
 				if (pakbuf[k] == 0xaa)
 				{
@@ -763,15 +772,19 @@ int getpacket (int *retother, unsigned char *bufptr)
 					if (sendother >= 0) {
 						lastrecvtims[sendother] = tims;
 
-							//   short crc16ofs;       //offset of crc16
-							//   int icnt0;           //-1 (special packet for MMULTI.C's player collection)
-							//   ...
-							//   unsigned short crc16; //CRC16 of everything except crc16
+							//   short crc16ofs;        //offset of crc16
+							//   int icnt0;             //-1 (special packet for MMULTI.C's player collection)
+							//   char type;				// 0xab
+							//   char connectindex;
+							//   char numplayers;
+						    //   char netready;
+							//   unsigned short crc16;  //CRC16 of everything except crc16
 						k = 2;
 						*(int *)&pakbuf[k] = -1; k += 4;
 						pakbuf[k++] = 0xab;
 						pakbuf[k++] = (char)sendother;
 						pakbuf[k++] = (char)numplayers;
+						pakbuf[k++] = (char)netready;
 						*(unsigned short *)&pakbuf[0] = (unsigned short)k;
 						*(unsigned short *)&pakbuf[k] = getcrc16(pakbuf,k); k += 2;
 						netsend(sendother,pakbuf,k);
@@ -801,17 +814,26 @@ int getpacket (int *retother, unsigned char *bufptr)
 								connectpoint2[numplayers-1] = -1;
 							}
 
+							netready = netready || (int)pakbuf[k+3];
+
 							lastrecvtims[connecthead] = tims;
 						}
 					} else {
 						// Peer-to-peer. Verify that our peer's understanding of the
 						// order and player count matches with ours.
-#ifdef DEBUG_SENDRECV
-						fprintf(stderr, "mmulti debug: peer %d believes we're player %d in a %d player game\n",
-							other, (int)pakbuf[k+1], (int)pakbuf[k+2]);
-#endif
-
-						lastrecvtims[other] = tims;
+						if ((myconnectindex != (int)pakbuf[k+1] ||
+								numplayers != (int)pakbuf[k+2])) {
+							if (!warned) {
+								const char *addr = presentaddress((struct sockaddr *)&snatchhost);
+								buildprintf("mmulti error: host %s (peer %d) believes this machine is "
+									"player %d in a %d-player game! The game will not start until "
+									"every machine is in agreement.\n",
+									addr, other, (int)pakbuf[k+1], (int)pakbuf[k+2]);
+							}
+							warned = 1;
+						} else {
+							lastrecvtims[other] = tims;
+						}
 					}
 				}
 			}
