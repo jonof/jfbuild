@@ -12,7 +12,6 @@
 		AB3DEDA21BD23DAB0009D070 /* Game Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */; settings = {ASSET_TAGS = (); }; };
 		AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */; settings = {ASSET_TAGS = (); }; };
 		AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07650A33068500FF2442 /* startwin.editor.nib */; };
-		AB3E076E0A3306CE00FF2442 /* build.bmp in Resources */ = {isa = PBXBuildFile; fileRef = AB3E076D0A3306CE00FF2442 /* build.bmp */; };
 		AB3E07710A3307F700FF2442 /* osxmain.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07700A3307F700FF2442 /* osxmain.nib */; };
 		AB3FE4680C0433D000D5DBDC /* libeditorsupp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */; };
 		AB726D410F046BDE00730EAA /* sound_stub.c in Sources */ = {isa = PBXBuildFile; fileRef = AB726D400F046BDE00730EAA /* sound_stub.c */; };
@@ -162,7 +161,6 @@
 		AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Game Images.xcassets"; sourceTree = "<group>"; };
 		AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Editor Images.xcassets"; sourceTree = "<group>"; };
 		AB3E07650A33068500FF2442 /* startwin.editor.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.editor.nib; sourceTree = SOURCE_ROOT; };
-		AB3E076D0A3306CE00FF2442 /* build.bmp */ = {isa = PBXFileReference; lastKnownFileType = image.bmp; name = build.bmp; path = ../kenbuild/rsrc/build.bmp; sourceTree = SOURCE_ROOT; };
 		AB3E07700A3307F700FF2442 /* osxmain.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = osxmain.nib; sourceTree = SOURCE_ROOT; };
 		AB726D400F046BDE00730EAA /* sound_stub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sound_stub.c; path = ../kenbuild/sound_stub.c; sourceTree = SOURCE_ROOT; };
 		AB726D610F046E6E00730EAA /* ascboard.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = ascboard.map; sourceTree = "<group>"; };
@@ -174,9 +172,9 @@
 		AB726D670F046E6E00730EAA /* nukeland.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = nukeland.map; sourceTree = "<group>"; };
 		AB726D680F046E6E00730EAA /* stuff.dat */ = {isa = PBXFileReference; lastKnownFileType = file; path = stuff.dat; sourceTree = "<group>"; };
 		AB7360140A29AA70003261DC /* engine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = engine.xcodeproj; sourceTree = "<group>"; };
-		AB73602A0A29AB08003261DC /* game.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = game.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB73602A0A29AB08003261DC /* KenBuild.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KenBuild.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB73602D0A29AB08003261DC /* game-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "game-Info.plist"; sourceTree = "<group>"; };
-		AB7360500A29AD92003261DC /* build.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = build.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB7360500A29AD92003261DC /* Build Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Build Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7360520A29AD92003261DC /* build-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "build-Info.plist"; sourceTree = "<group>"; };
 		AB7361220A29B9D4003261DC /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Users/jonof/Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
 		AB7361280A29BA60003261DC /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = /System/Library/Frameworks/CoreFoundation.framework; sourceTree = "<absolute>"; };
@@ -280,7 +278,6 @@
 				ABA9E3290FEF9DD00024231F /* bstub.c */,
 				AB3E07700A3307F700FF2442 /* osxmain.nib */,
 				AB3E07650A33068500FF2442 /* startwin.editor.nib */,
-				AB3E076D0A3306CE00FF2442 /* build.bmp */,
 				AB7360520A29AD92003261DC /* build-Info.plist */,
 			);
 			name = Editor;
@@ -289,8 +286,8 @@
 		AB73602B0A29AB08003261DC /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AB73602A0A29AB08003261DC /* game.app */,
-				AB7360500A29AD92003261DC /* build.app */,
+				AB73602A0A29AB08003261DC /* KenBuild.app */,
+				AB7360500A29AD92003261DC /* Build Editor.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -324,7 +321,7 @@
 			);
 			name = game;
 			productName = game;
-			productReference = AB73602A0A29AB08003261DC /* game.app */;
+			productReference = AB73602A0A29AB08003261DC /* KenBuild.app */;
 			productType = "com.apple.product-type.application";
 		};
 		AB73604F0A29AD92003261DC /* build */ = {
@@ -344,7 +341,7 @@
 			);
 			name = build;
 			productName = build;
-			productReference = AB7360500A29AD92003261DC /* build.app */;
+			productReference = AB7360500A29AD92003261DC /* Build Editor.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -450,7 +447,6 @@
 			files = (
 				AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */,
 				AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */,
-				AB3E076E0A3306CE00FF2442 /* build.bmp in Resources */,
 				AB3E07710A3307F700FF2442 /* osxmain.nib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -555,7 +551,7 @@
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
-				PRODUCT_NAME = game;
+				PRODUCT_NAME = KenBuild;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -568,7 +564,7 @@
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
-				PRODUCT_NAME = game;
+				PRODUCT_NAME = KenBuild;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -580,7 +576,7 @@
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
-				PRODUCT_NAME = build;
+				PRODUCT_NAME = "Build Editor";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -592,7 +588,7 @@
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
-				PRODUCT_NAME = build;
+				PRODUCT_NAME = "Build Editor";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;

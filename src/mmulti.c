@@ -3,7 +3,7 @@
 #include <string.h>
 
 //#define USE_IPV6
-#define DEBUG_SENDRECV
+//#define DEBUG_SENDRECV
 //#define DEBUG_SENDRECV_WIRE
 
 #ifdef _WIN32

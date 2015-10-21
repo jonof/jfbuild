@@ -255,6 +255,7 @@ static struct {
 - (void)setupRunMode
 {
     [alwaysShowButton setState: (settings.forcesetup ? NSOnState : NSOffState)];
+    [alwaysShowButton setEnabled:YES];
 
     getvalidmodes();
     [videoMode3DPUButton setEnabled:YES];
@@ -291,6 +292,8 @@ static struct {
     while (control = [enumerator nextObject]) {
         [control setEnabled:false];
     }
+
+    [alwaysShowButton setEnabled:NO];
 
     [cancelButton setEnabled:allowCancel];
     [startButton setEnabled:false];
