@@ -75,3 +75,32 @@ IDI_ICON          ICON           "rsrc/game_icon.ico"
 
 
 CREATEPROCESS_MANIFEST_RESOURCE_ID RT_MANIFEST "rsrc/game.manifest"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 0,0,0,0
+PRODUCTVERSION 0,0,0,0
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS 0
+FILEOS VOS__WINDOWS32
+FILETYPE VFT_APP
+FILESUBTYPE VFT2_UNKNOWN
+{
+    BLOCK "StringFileInfo"
+    {
+        BLOCK "080904e4"
+        {
+            VALUE "CompanyName", "http://jonof.id.au"
+            VALUE "FileDescription", "KenBuild"
+            VALUE "FileVersion", __DATE__ " " __TIME__
+            VALUE "InternalName", "game.exe"
+            VALUE "OriginalFilename", "game.exe"
+            VALUE "ProductName", "Build engine by Ken Silverman"
+            VALUE "ProductVersion", __DATE__ " " __TIME__
+            VALUE "LegalCopyright", "See BUILDLIC.TXT for terms"
+        }
+    }
+    BLOCK "VarFileInfo"
+    {
+        VALUE "Translation", 0x809, 1252
+    }
+}
