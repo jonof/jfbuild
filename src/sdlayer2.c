@@ -1308,7 +1308,6 @@ int handleevents(void)
         }
     }
 
-    eattextinput = 0;
     sampletimer();
     startwin_idle(NULL);
 #undef SetKey

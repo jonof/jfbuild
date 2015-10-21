@@ -9,9 +9,9 @@
 /* Begin PBXBuildFile section */
 		AB053FAD0A33136000FA2918 /* osxmain.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07700A3307F700FF2442 /* osxmain.nib */; };
 		AB053FAF0A33136D00FA2918 /* startwin.game.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB053FAE0A33136D00FA2918 /* startwin.game.nib */; };
-		AB053FB70A3313A000FA2918 /* game.bmp in Resources */ = {isa = PBXBuildFile; fileRef = AB053FB60A3313A000FA2918 /* game.bmp */; };
+		AB3DEDA21BD23DAB0009D070 /* Game Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */; settings = {ASSET_TAGS = (); }; };
+		AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */; settings = {ASSET_TAGS = (); }; };
 		AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07650A33068500FF2442 /* startwin.editor.nib */; };
-		AB3E076E0A3306CE00FF2442 /* build.bmp in Resources */ = {isa = PBXBuildFile; fileRef = AB3E076D0A3306CE00FF2442 /* build.bmp */; };
 		AB3E07710A3307F700FF2442 /* osxmain.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07700A3307F700FF2442 /* osxmain.nib */; };
 		AB3FE4680C0433D000D5DBDC /* libeditorsupp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */; };
 		AB726D410F046BDE00730EAA /* sound_stub.c in Sources */ = {isa = PBXBuildFile; fileRef = AB726D400F046BDE00730EAA /* sound_stub.c */; };
@@ -43,7 +43,7 @@
 		ABA9E32B0FEF9DD00024231F /* bstub.c in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E3290FEF9DD00024231F /* bstub.c */; };
 		ABA9E3310FEF9E060024231F /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E32A0FEF9DD00024231F /* config.c */; };
 		ABA9E3350FEF9E470024231F /* game.c in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E3320FEF9E470024231F /* game.c */; };
-		ABA9E3360FEF9E470024231F /* StartupWinController.game.m in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E3340FEF9E470024231F /* StartupWinController.game.m */; };
+		ABA9E3360FEF9E470024231F /* StartupWinController.m in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E3340FEF9E470024231F /* StartupWinController.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -158,9 +158,9 @@
 
 /* Begin PBXFileReference section */
 		AB053FAE0A33136D00FA2918 /* startwin.game.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.game.nib; sourceTree = SOURCE_ROOT; };
-		AB053FB60A3313A000FA2918 /* game.bmp */ = {isa = PBXFileReference; lastKnownFileType = image.bmp; name = game.bmp; path = ../kenbuild/rsrc/game.bmp; sourceTree = "<group>"; };
+		AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Game Images.xcassets"; sourceTree = "<group>"; };
+		AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Editor Images.xcassets"; sourceTree = "<group>"; };
 		AB3E07650A33068500FF2442 /* startwin.editor.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.editor.nib; sourceTree = SOURCE_ROOT; };
-		AB3E076D0A3306CE00FF2442 /* build.bmp */ = {isa = PBXFileReference; lastKnownFileType = image.bmp; name = build.bmp; path = ../kenbuild/rsrc/build.bmp; sourceTree = SOURCE_ROOT; };
 		AB3E07700A3307F700FF2442 /* osxmain.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = osxmain.nib; sourceTree = SOURCE_ROOT; };
 		AB726D400F046BDE00730EAA /* sound_stub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sound_stub.c; path = ../kenbuild/sound_stub.c; sourceTree = SOURCE_ROOT; };
 		AB726D610F046E6E00730EAA /* ascboard.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = ascboard.map; sourceTree = "<group>"; };
@@ -172,9 +172,9 @@
 		AB726D670F046E6E00730EAA /* nukeland.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = nukeland.map; sourceTree = "<group>"; };
 		AB726D680F046E6E00730EAA /* stuff.dat */ = {isa = PBXFileReference; lastKnownFileType = file; path = stuff.dat; sourceTree = "<group>"; };
 		AB7360140A29AA70003261DC /* engine.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = engine.xcodeproj; sourceTree = "<group>"; };
-		AB73602A0A29AB08003261DC /* game.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = game.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB73602A0A29AB08003261DC /* KenBuild.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KenBuild.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB73602D0A29AB08003261DC /* game-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "game-Info.plist"; sourceTree = "<group>"; };
-		AB7360500A29AD92003261DC /* build.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = build.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB7360500A29AD92003261DC /* Build Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Build Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7360520A29AD92003261DC /* build-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "build-Info.plist"; sourceTree = "<group>"; };
 		AB7361220A29B9D4003261DC /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Users/jonof/Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
 		AB7361280A29BA60003261DC /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = /System/Library/Frameworks/CoreFoundation.framework; sourceTree = "<absolute>"; };
@@ -183,7 +183,7 @@
 		ABA9E32A0FEF9DD00024231F /* config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = config.c; path = ../kenbuild/config.c; sourceTree = SOURCE_ROOT; };
 		ABA9E3320FEF9E470024231F /* game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = game.c; path = ../kenbuild/game.c; sourceTree = SOURCE_ROOT; };
 		ABA9E3330FEF9E470024231F /* game.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = game.h; path = ../kenbuild/game.h; sourceTree = SOURCE_ROOT; };
-		ABA9E3340FEF9E470024231F /* StartupWinController.game.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = StartupWinController.game.m; path = ../kenbuild/StartupWinController.game.m; sourceTree = SOURCE_ROOT; };
+		ABA9E3340FEF9E470024231F /* StartupWinController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = StartupWinController.m; path = ../kenbuild/StartupWinController.m; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -259,13 +259,13 @@
 		AB7360200A29AA88003261DC /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */,
 				ABA9E3320FEF9E470024231F /* game.c */,
 				ABA9E3330FEF9E470024231F /* game.h */,
-				ABA9E3340FEF9E470024231F /* StartupWinController.game.m */,
+				ABA9E3340FEF9E470024231F /* StartupWinController.m */,
 				AB726D400F046BDE00730EAA /* sound_stub.c */,
 				ABA9E32A0FEF9DD00024231F /* config.c */,
 				AB053FAE0A33136D00FA2918 /* startwin.game.nib */,
-				AB053FB60A3313A000FA2918 /* game.bmp */,
 				AB73602D0A29AB08003261DC /* game-Info.plist */,
 			);
 			name = Game;
@@ -274,10 +274,10 @@
 		AB7360210A29AA91003261DC /* Editor */ = {
 			isa = PBXGroup;
 			children = (
+				AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */,
 				ABA9E3290FEF9DD00024231F /* bstub.c */,
 				AB3E07700A3307F700FF2442 /* osxmain.nib */,
 				AB3E07650A33068500FF2442 /* startwin.editor.nib */,
-				AB3E076D0A3306CE00FF2442 /* build.bmp */,
 				AB7360520A29AD92003261DC /* build-Info.plist */,
 			);
 			name = Editor;
@@ -286,8 +286,8 @@
 		AB73602B0A29AB08003261DC /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AB73602A0A29AB08003261DC /* game.app */,
-				AB7360500A29AD92003261DC /* build.app */,
+				AB73602A0A29AB08003261DC /* KenBuild.app */,
+				AB7360500A29AD92003261DC /* Build Editor.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -321,7 +321,7 @@
 			);
 			name = game;
 			productName = game;
-			productReference = AB73602A0A29AB08003261DC /* game.app */;
+			productReference = AB73602A0A29AB08003261DC /* KenBuild.app */;
 			productType = "com.apple.product-type.application";
 		};
 		AB73604F0A29AD92003261DC /* build */ = {
@@ -341,7 +341,7 @@
 			);
 			name = build;
 			productName = build;
-			productReference = AB7360500A29AD92003261DC /* build.app */;
+			productReference = AB7360500A29AD92003261DC /* Build Editor.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -436,8 +436,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB053FAD0A33136000FA2918 /* osxmain.nib in Resources */,
+				AB3DEDA21BD23DAB0009D070 /* Game Images.xcassets in Resources */,
 				AB053FAF0A33136D00FA2918 /* startwin.game.nib in Resources */,
-				AB053FB70A3313A000FA2918 /* game.bmp in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -446,7 +446,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */,
-				AB3E076E0A3306CE00FF2442 /* build.bmp in Resources */,
+				AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */,
 				AB3E07710A3307F700FF2442 /* osxmain.nib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -461,7 +461,7 @@
 				AB726D410F046BDE00730EAA /* sound_stub.c in Sources */,
 				ABA9E3310FEF9E060024231F /* config.c in Sources */,
 				ABA9E3350FEF9E470024231F /* game.c in Sources */,
-				ABA9E3360FEF9E470024231F /* StartupWinController.game.m in Sources */,
+				ABA9E3360FEF9E470024231F /* StartupWinController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -516,11 +516,6 @@
 				HEADER_SEARCH_PATHS = ../include;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				PREBINDING = NO;
-				WARNING_CFLAGS = (
-					"-W",
-					"-Wall",
-					"-Wno-unused-variable",
-				);
 			};
 			name = Debug;
 		};
@@ -545,27 +540,18 @@
 				HEADER_SEARCH_PATHS = ../include;
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				PREBINDING = NO;
-				WARNING_CFLAGS = (
-					"-W",
-					"-Wall",
-					"-Wno-unused-variable",
-				);
 			};
 			name = Release;
 		};
 		AB73602F0A29AB09003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",
-				);
-				FRAMEWORK_SEARCH_PATHS_QUOTED_1 = "\"$(SRCROOT)/../../_output/Debug\"";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
-				PRODUCT_NAME = game;
+				PRODUCT_NAME = KenBuild;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -573,16 +559,12 @@
 		AB7360300A29AB09003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(FRAMEWORK_SEARCH_PATHS_QUOTED_1)",
-				);
-				FRAMEWORK_SEARCH_PATHS_QUOTED_1 = "\"$(SRCROOT)/../../_output/Debug\"";
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
-				PRODUCT_NAME = game;
+				PRODUCT_NAME = KenBuild;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -590,10 +572,11 @@
 		AB7360540A29AD92003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
-				PRODUCT_NAME = build;
+				PRODUCT_NAME = "Build Editor";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -601,10 +584,11 @@
 		AB7360550A29AD92003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
-				PRODUCT_NAME = build;
+				PRODUCT_NAME = "Build Editor";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;

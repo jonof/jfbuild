@@ -48,7 +48,7 @@ endif
 ifeq ($(PLATFORM),WINDOWS)
 	RENDERTYPE ?= WIN
 	EXESUFFIX=.exe
-	LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -lwsock32 -lcomctl32 -static-libgcc -static-libstdc++ #-lshfolder
+	LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -lws2_32 -lcomctl32 -luxtheme -static-libgcc -static-libstdc++ #-lshfolder
 	ifneq ($(DYNAMIC_OPENGL),1)
 		LIBS+= $(GLLIBWIN)
 	endif

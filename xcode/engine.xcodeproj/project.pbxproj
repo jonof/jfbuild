@@ -34,7 +34,7 @@
 		AB3B2AE10EE403E000944CD1 /* mdsprite.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */; };
 		AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */; };
 		AB3B2C820EE41B9000944CD1 /* textfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C800EE41B9000944CD1 /* textfont.c */; };
-		AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */; };
+		AB3FE4500C04336F00D5DBDC /* EditorStartupWinController.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* EditorStartupWinController.m */; };
 		AB6725F90F0F8114000C7D92 /* polymosttexcache.c in Sources */ = {isa = PBXBuildFile; fileRef = AB6725F80F0F8114000C7D92 /* polymosttexcache.c */; };
 		AB6727E40F1093DC000C7D92 /* polymosttex-squish.cc in Sources */ = {isa = PBXBuildFile; fileRef = AB6727E30F1093DC000C7D92 /* polymosttex-squish.cc */; };
 		AB6728580F1096AF000C7D92 /* alpha.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB6728400F1096AF000C7D92 /* alpha.cpp */; };
@@ -79,7 +79,6 @@
 		AB735FD00A29A994003261DC /* editor.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735FC60A29A8FD003261DC /* editor.h */; };
 		AB735FD10A29A99A003261DC /* build.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC20A29A8E5003261DC /* build.c */; };
 		AB735FD20A29A99A003261DC /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC30A29A8E5003261DC /* config.c */; };
-		AB7360450A29AD3A003261DC /* osxmain.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7360440A29AD3A003261DC /* osxmain.m */; };
 		ABA9E3070FEF9D170024231F /* a.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3020FEF9D170024231F /* a.h */; };
 		ABA9E3080FEF9D170024231F /* kplib.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3030FEF9D170024231F /* kplib.h */; };
 		ABA9E3090FEF9D170024231F /* osxbits.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3040FEF9D170024231F /* osxbits.h */; };
@@ -157,7 +156,7 @@
 		AB3B2AC10EE4033300944CD1 /* polymost_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymost_priv.h; sourceTree = "<group>"; };
 		AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smalltextfont.c; sourceTree = "<group>"; };
 		AB3B2C800EE41B9000944CD1 /* textfont.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = textfont.c; sourceTree = "<group>"; };
-		AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = StartupWinController.editor.m; sourceTree = "<group>"; };
+		AB3E07290A33035B00FF2442 /* EditorStartupWinController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EditorStartupWinController.m; sourceTree = "<group>"; };
 		AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditorsupp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB6725F80F0F8114000C7D92 /* polymosttexcache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymosttexcache.c; sourceTree = "<group>"; };
 		AB6727E30F1093DC000C7D92 /* polymosttex-squish.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "polymosttex-squish.cc"; sourceTree = "<group>"; };
@@ -453,7 +452,7 @@
 		AB735FC10A29A8AE003261DC /* src */ = {
 			isa = PBXGroup;
 			children = (
-				AB3E07290A33035B00FF2442 /* StartupWinController.editor.m */,
+				AB3E07290A33035B00FF2442 /* EditorStartupWinController.m */,
 				AB735FC20A29A8E5003261DC /* build.c */,
 				AB735FC30A29A8E5003261DC /* config.c */,
 			);
@@ -685,7 +684,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AB3FE4500C04336F00D5DBDC /* StartupWinController.editor.m in Sources */,
+				AB3FE4500C04336F00D5DBDC /* EditorStartupWinController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -708,7 +707,6 @@
 				AB735F6F0A29A39D003261DC /* pragmas.c in Sources */,
 				AB735F700A29A39D003261DC /* scriptfile.c in Sources */,
 				AB735F710A29A39D003261DC /* sdlayer2.c in Sources */,
-				AB7360450A29AD3A003261DC /* osxmain.m in Sources */,
 				AB3B2A0E0EE3FC0400944CD1 /* hightile.c in Sources */,
 				AB3B2A1D0EE3FCF900944CD1 /* polymost.c in Sources */,
 				AB3B2AE10EE403E000944CD1 /* mdsprite.c in Sources */,
@@ -842,11 +840,6 @@
 					RENDERTYPESDL,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				WARNING_CFLAGS = (
-					"-W",
-					"-Wall",
-					"-Wno-unused-variable",
-				);
 			};
 			name = Debug;
 		};
@@ -869,11 +862,6 @@
 					RENDERTYPESDL,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				WARNING_CFLAGS = (
-					"-W",
-					"-Wall",
-					"-Wno-unused-variable",
-				);
 			};
 			name = Release;
 		};

@@ -9,7 +9,7 @@
 #include "mmulti.h"
 
 
-int myconnectindex, numplayers;
+int myconnectindex, numplayers, networkmode;
 int connecthead, connectpoint2[MAXMULTIPLAYERS];
 char syncstate = 0;
 

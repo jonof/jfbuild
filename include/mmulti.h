@@ -5,7 +5,7 @@
 
 #define MAXMULTIPLAYERS 16
 
-extern int myconnectindex, numplayers;
+extern int myconnectindex, numplayers, networkmode;
 extern int connecthead, connectpoint2[MAXMULTIPLAYERS];
 extern unsigned char syncstate;
 
@@ -23,7 +23,6 @@ void sendpacket(int other, unsigned char *bufptr, int messleng);
 int getpacket(int *other, unsigned char *bufptr);
 void flushpackets(void);
 void genericmultifunction(int other, unsigned char *bufptr, int messleng, int command);
-int isvalidipaddress(const char *st);
 
 #endif	// __mmulti_h__
 

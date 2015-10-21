@@ -2,10 +2,21 @@
 #include <stdlib.h>
 #include <string.h>
 
+//#define USE_IPV6
+//#define DEBUG_SENDRECV
+//#define DEBUG_SENDRECV_WIRE
+
 #ifdef _WIN32
+#define _WIN32_WINNT 0x0501
 #define WIN32_LEAN_AND_MEAN
-#include <winsock.h>
-#define socklen_t int
+#include <ws2tcpip.h>
+
+const char *inet_ntop(int af, const void *src, char *dst, socklen_t);
+
+#ifndef AI_ADDRCONFIG
+#define AI_ADDRCONFIG 0
+#endif
+
 #else
 #include <unistd.h>
 #include <netinet/in.h>
@@ -14,12 +25,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #define SOCKET int
-#define INVALID_HANDLE_VALUE (-1)
-#define INVALID_SOCKET (-1)
-#define SOCKET_ERROR (-1)
-#define closesocket close
-#define ioctlsocket ioctl
-#define LPHOSTENT struct hostent *
 
 #include <sys/time.h>
 static int GetTickCount(void)
@@ -45,21 +50,21 @@ static int GetTickCount(void)
 #define MAXPLAYERS 16
 #define MAXPAKSIZ 256 //576
 
-
 #define PAKRATE 40   //Packet rate/sec limit ... necessary?
 #define SIMMIS 0     //Release:0  Test:100 Packets per 256 missed.
 #define SIMLAG 0     //Release:0  Test: 10 Packets to delay receipt
+#define PRESENCETIMEOUT 2000
 static int simlagcnt[MAXPLAYERS];
 static unsigned char simlagfif[MAXPLAYERS][SIMLAG+1][MAXPAKSIZ+2];
 #if ((SIMMIS != 0) || (SIMLAG != 0))
 #pragma message("\n\nWARNING! INTENTIONAL PACKET LOSS SIMULATION IS ENABLED!\nREMEMBER TO CHANGE SIMMIS&SIMLAG to 0 before RELEASE!\n\n")
 #endif
 
-int myconnectindex, numplayers;
+int myconnectindex, numplayers, networkmode = -1;
 int connecthead, connectpoint2[MAXPLAYERS];
 
-static int tims, lastsendtims[MAXPLAYERS];
-static unsigned char pakbuf[MAXPAKSIZ];
+static int tims, lastsendtims[MAXPLAYERS], lastrecvtims[MAXPLAYERS], prevlastrecvtims[MAXPLAYERS];
+static unsigned char pakbuf[MAXPAKSIZ], playerslive[MAXPLAYERS];
 
 #define FIFSIZ 512 //16384/40 = 6min:49sec
 static int ipak[MAXPLAYERS][FIFSIZ], icnt0[MAXPLAYERS];
@@ -67,81 +72,123 @@ static int opak[MAXPLAYERS][FIFSIZ], ocnt0[MAXPLAYERS], ocnt1[MAXPLAYERS];
 static unsigned char pakmem[4194304]; static int pakmemi = 1;
 
 #define NETPORT 0x5bd9
-static SOCKET mysock;
-static int myip, myport = NETPORT, otherip[MAXPLAYERS], otherport[MAXPLAYERS];
-static int snatchip = 0, snatchport = 0, danetmode = 255, netready = 0;
+static SOCKET mysock = -1;
+static struct sockaddr_storage otherhost[MAXPLAYERS], snatchhost;
+static int netready = 0;
+
+static int lookuphost(const char *name, struct sockaddr *host);
+static int issameaddress(struct sockaddr *a, struct sockaddr *b);
+static const char *presentaddress(struct sockaddr *a);
 
 void netuninit ()
 {
-	if (mysock != (SOCKET)INVALID_HANDLE_VALUE) closesocket(mysock);
 #ifdef _WIN32
+	if (mysock != INVALID_SOCKET) closesocket(mysock);
 	WSACleanup();
+#else
+	if (mysock >= 0) close(mysock);
 #endif
 }
 
 int netinit (int portnum)
 {
-	LPHOSTENT lpHostEnt;
-	char hostnam[256];
-	struct sockaddr_in ip;
-
 #ifdef _WIN32
 	WSADATA ws;
 	u_long i;
-
-	if (WSAStartup(0x101,&ws) == SOCKET_ERROR) return(0);
 #else
-  unsigned int i;
+	unsigned int i;
 #endif
 
-	mysock = socket(AF_INET,SOCK_DGRAM,0); if (mysock == INVALID_SOCKET) return(0);
-	i = 1; if (ioctlsocket(mysock,FIONBIO,&i) == SOCKET_ERROR) return(0);
+#ifdef USE_IPV6
+	struct sockaddr_in6 host;
+	int domain = PF_INET6;
+#else
+	struct sockaddr_in host;
+	int domain = PF_INET;
+#endif
 
-	ip.sin_family = AF_INET;
-	ip.sin_addr.s_addr = INADDR_ANY;
-	ip.sin_port = htons(portnum);
-	if (bind(mysock,(struct sockaddr *)&ip,sizeof(ip)) != SOCKET_ERROR)
-	{
-		myport = portnum;
-		if (gethostname(hostnam,sizeof(hostnam)) != SOCKET_ERROR)
-			if ((lpHostEnt = gethostbyname(hostnam)))
-			{
-				myip = ip.sin_addr.s_addr = *(int *)lpHostEnt->h_addr;
-				printf("mmulti: This machine's IP is %s\n", inet_ntoa(ip.sin_addr));
-			}
-		return(1);
-	}
-	return(0);
+#ifdef _WIN32
+	if (WSAStartup(0x202, &ws) != 0) return(0);
+#endif
+
+	i = 1;
+	mysock = socket(domain, SOCK_DGRAM, 0);
+#ifdef _WIN32
+	if (mysock == INVALID_SOCKET) return(0);
+	if (ioctlsocket(mysock,FIONBIO,&i) != 0) return(0);
+#else
+	if (mysock < 0) return(0);
+	if (ioctl(mysock,FIONBIO,&i) != 0) return(0);
+#endif
+
+
+	memset(&host, 0, sizeof(host));
+#ifdef USE_IPV6
+	host.sin6_family = AF_INET6;
+	host.sin6_port = htons(portnum);
+	host.sin6_addr = in6addr_any;
+#else
+	host.sin_family = AF_INET;
+	host.sin_port = htons(portnum);
+	host.sin_addr.s_addr = INADDR_ANY;
+#endif
+	if (bind(mysock, (struct sockaddr *)&host, sizeof(host)) != 0) return(0);
+
+	return(1);
 }
 
 int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 {
-	struct sockaddr_in ip;
+	socklen_t len;
+	if (otherhost[other].ss_family == AF_UNSPEC) return(0);
 
-	if (!otherip[other]) return(0);
-	ip.sin_family = AF_INET;
-	ip.sin_addr.s_addr = otherip[other];
-	ip.sin_port = otherport[other];
-	return(sendto(mysock,dabuf,bufsiz,0,(struct sockaddr *)&ip,sizeof(struct sockaddr_in)) != SOCKET_ERROR);
+#ifdef DEBUG_SENDRECV_WIRE
+	{
+		int i;
+		const unsigned char *pakbuf = dabuf;
+		fprintf(stderr, "mmulti debug send: "); for(i=0;i<bufsiz;i++) fprintf(stderr, "%02x ",pakbuf[i]); fprintf(stderr, "\n");
+	}
+#endif
+
+	if (otherhost[other].ss_family == AF_INET) {
+		len = sizeof(struct sockaddr_in);
+	} else {
+		len = sizeof(struct sockaddr_in6);
+	}
+	if (sendto(mysock,dabuf,bufsiz,0, (struct sockaddr *)&otherhost[other], len) < 0) {
+#ifdef DEBUG_SENDRECV_WIRE
+		fprintf(stderr, "mmulti debug send error: %s\n", strerror(errno));
+#endif
+		return 0;
+	}
+	return 1;
 }
 
 int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 {
-	struct sockaddr_in ip;
-	socklen_t iplen = sizeof(ip);
-	int i;
+	struct sockaddr_storage host;
+	socklen_t hostlen = sizeof(host);
+	int i, len;
 
-	if (recvfrom(mysock,dabuf,bufsiz,0,(struct sockaddr *)&ip,&iplen) == -1) return(0);
+	if ((len = recvfrom(mysock, dabuf, bufsiz, 0, (struct sockaddr *)&host, &hostlen)) <= 0) return(0);
 #if (SIMMIS > 0)
 	if ((rand()&255) < SIMMIS) return(0);
 #endif
 
-	snatchip = (int)ip.sin_addr.s_addr; snatchport = (int)ip.sin_port;
+#ifdef DEBUG_SENDRECV_WIRE
+	{
+		const unsigned char *pakbuf = dabuf;
+		fprintf(stderr, "mmulti debug recv: "); for(i=0;i<len;i++) fprintf(stderr, "%02x ",pakbuf[i]); fprintf(stderr, "\n");
+	}
+#endif
+
+	memcpy(&snatchhost, &host, sizeof(host));
 
 	(*other) = myconnectindex;
-	for(i=0;i<MAXPLAYERS;i++)
-		if ((otherip[i] == snatchip) && (otherport[i] == snatchport))
+	for(i=0;i<MAXPLAYERS;i++) {
+		if (issameaddress((struct sockaddr *)&snatchhost, (struct sockaddr *)&otherhost[i]))
 			{ (*other) = i; break; }
+	}
 #if (SIMLAG > 1)
 	i = simlagcnt[*other]%(SIMLAG+1);
 	*(short *)&simlagfif[*other][i][0] = bufsiz; memcpy(&simlagfif[*other][i][2],dabuf,bufsiz);
@@ -153,39 +200,55 @@ int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 	return(1);
 }
 
-int isvalidipaddress (const char *st)
-{
-	int i, bcnt, num;
-
-	bcnt = 0; num = 0;
-	for(i=0;st[i];i++)
-	{
-		if (st[i] == '.') { bcnt++; num = 0; continue; }
-		if (st[i] == ':')
-		{
-			if (bcnt != 3) return(0);
-			num = 0;
-			for(i++;st[i];i++)
-			{
-				if ((st[i] >= '0') && (st[i] <= '9'))
-					{ num = num*10+st[i]-'0'; if (num >= 65536) return(0); }
-				else return(0);
-			}
-			return(1);
-		}
-		if ((st[i] >= '0') && (st[i] <= '9'))
-			{ num = num*10+st[i]-'0'; if (num >= 256) return(0); }
-
+static int issameaddress(struct sockaddr *a, struct sockaddr *b) {
+	if (a->sa_family != b->sa_family) return 0;
+	if (a->sa_family == AF_INET) {
+		struct sockaddr_in *a4 = (struct sockaddr_in *)a;
+		struct sockaddr_in *b4 = (struct sockaddr_in *)b;
+		return a4->sin_addr.s_addr == b4->sin_addr.s_addr &&
+			a4->sin_port == b4->sin_port;
 	}
-	return(bcnt == 3);
+	if (a->sa_family == AF_INET6) {
+		struct sockaddr_in6 *a6 = (struct sockaddr_in6 *)a;
+		struct sockaddr_in6 *b6 = (struct sockaddr_in6 *)b;
+		return IN6_ARE_ADDR_EQUAL(&a6->sin6_addr, &b6->sin6_addr) &&
+			a6->sin6_port == b6->sin6_port;
+	}
+	return 0;
+}
+
+static const char *presentaddress(struct sockaddr *a) {
+	static char str[128+32];
+	char addr[128];
+	int port;
+
+	if (a->sa_family == AF_INET) {
+		struct sockaddr_in *s = (struct sockaddr_in *)a;
+		inet_ntop(AF_INET, &s->sin_addr, addr, sizeof(addr));
+		port = ntohs(s->sin_port);
+	} else if (a->sa_family == AF_INET6) {
+		struct sockaddr_in6 *s = (struct sockaddr_in6 *)a;
+		strcpy(addr, "[");
+		inet_ntop(AF_INET6, &s->sin6_addr, addr+1, sizeof(addr)-2);
+		strcat(addr, "]");
+		port = ntohs(s->sin6_port);
+	} else {
+		return NULL;
+	}
+
+	strcpy(str, addr);
+	sprintf(addr, ":%d", port);
+	strcat(str, addr);
+
+	return str;
 }
 
 //---------------------------------- Obsolete variables&functions ----------------------------------
 unsigned char syncstate = 0;
-void setpackettimeout (int datimeoutcount, int daresendagaincount) {}
-void genericmultifunction (int other, unsigned char *bufptr, int messleng, int command) {}
+void setpackettimeout (int UNUSED(datimeoutcount), int UNUSED(daresendagaincount)) {}
+void genericmultifunction (int UNUSED(other), unsigned char *UNUSED(bufptr), int UNUSED(messleng), int UNUSED(command)) {}
 int getoutputcirclesize () { return(0); }
-void setsocket (int newsocket) { }
+void setsocket (int UNUSED(newsocket)) { }
 void flushpackets () {}
 void sendlogon () {}
 void sendlogoff () {}
@@ -233,11 +296,16 @@ static void initmultiplayers_reset(void)
 #endif
 
 	lastsendtims[0] = GetTickCount();
-	for(i=1;i<MAXPLAYERS;i++) lastsendtims[i] = lastsendtims[0];
+	for(i=0;i<MAXPLAYERS;i++) {
+		lastsendtims[i] = lastsendtims[0];
+		lastrecvtims[i] = prevlastrecvtims[i] = 0;
+		connectpoint2[i] = -1;
+		playerslive[i] = 0;
+	}
+	connecthead = 0;
 	numplayers = 1; myconnectindex = 0;
 
-	memset(otherip,0,sizeof(otherip));
-	for(i=0;i<MAXPLAYERS;i++) otherport[i] = htons(NETPORT);
+	memset(otherhost,0,sizeof(otherhost));
 }
 
 	// Multiplayer command line summary. Assume myconnectindex always = 0 for 192.168.1.2
@@ -248,151 +316,225 @@ static void initmultiplayers_reset(void)
 	// 192.168.1.4                             game /n0 192.168.1.2
 	//
 	// /n1 (peer-peer) 2 player:               3 player:
-	// 192.168.1.2     game /n1 192.168.1.100  game /n1 192.168.1.100 192.168.1.4
-	// 192.168.1.100   game 192.168.1.2 /n1    game 192.168.1.2 /n1 192.168.1.4
-	// 192.168.1.4                             game 192.168.1.2 192.168.1.100 /n1
+	// 192.168.1.2     game /n1 * 192.168.1.100  game /n1 * 192.168.1.100 192.168.1.4
+	// 192.168.1.100   game /n2 192.168.1.2 *    game /n1 192.168.1.2 * 192.168.1.4
+	// 192.168.1.4                               game /n1 192.168.1.2 192.168.1.100 *
 int initmultiplayersparms(int argc, char const * const argv[])
 {
-	int i, j, daindex, portnum = NETPORT;
-	char *st;
+	int i, j, daindex, danumplayers, danetmode, portnum = NETPORT;
+	struct sockaddr_storage resolvhost;
 
 	initmultiplayers_reset();
-	danetmode = 255; daindex = 0;
+	danetmode = 255; daindex = 0; danumplayers = 0;
 
-	// go looking for the port, if specified
 	for (i=0;i<argc;i++) {
 		if (argv[i][0] != '-' && argv[i][0] != '/') continue;
+
+		// -p1234 = Listen port
 		if ((argv[i][1] == 'p' || argv[i][1] == 'P') && argv[i][2]) {
 			char *p;
 			j = strtol(argv[i]+2, &p, 10);
 			if (!(*p) && j > 0 && j<65535) portnum = j;
 
 			printf("mmulti: Using port %d\n", portnum);
+			continue;
+		}
+
+		// -nm,   -n0   = Master/slave, 2 players
+		// -nm:n, -n0:n = Master/slave, n players
+		// -np,   -n1   = Peer-to-peer
+		if ((argv[i][1] == 'N') || (argv[i][1] == 'n') || (argv[i][1] == 'I') || (argv[i][1] == 'i'))
+		{
+			danumplayers = 2;
+			if (argv[i][2] == '0' || argv[i][2] == 'm' || argv[i][2] == 'M')
+			{
+				danetmode = 0;
+				printf("mmulti: Master-slave mode\n");
+
+				if ((argv[i][3] == ':') && (argv[i][4] >= '0') && (argv[i][4] <= '9'))
+				{
+					char *p;
+					j = strtol(argv[i]+4, &p, 10);
+					if (!(*p) && j > 0 && j <= MAXPLAYERS) {
+						danumplayers = j;
+						printf("mmulti: %d-player game\n", danumplayers);
+					} else {
+						printf("mmulti error: Invalid number of players\n");
+						return 0;
+					}
+				}
+			}
+			else if (argv[i][2] == '1' || argv[i][2] == 'p' || argv[i][2] == 'P')
+			{
+				danetmode = 1;
+				printf("mmulti: Peer-to-peer mode\n");
+			}
+			continue;
 		}
 	}
 
-	netinit(portnum);
+	if (!netinit(portnum)) {
+		printf("mmulti error: Could not initialise networking\n");
+		return 0;
+	}
 
 	for(i=0;i<argc;i++)
 	{
-		//if (((argv[i][0] == '/') || (argv[i][0] == '-')) &&
-		//    ((argv[i][1] == 'N') || (argv[i][1] == 'n')) &&
-		//    ((argv[i][2] == 'E') || (argv[i][2] == 'e')) &&
-		//    ((argv[i][3] == 'T') || (argv[i][3] == 't')) &&
-		//     (!argv[i][4]))
-		//   { foundnet = 1; continue; }
-		//if (!foundnet) continue;
-
 		if ((argv[i][0] == '-') || (argv[i][0] == '/')) {
-			if ((argv[i][1] == 'N') || (argv[i][1] == 'n') || (argv[i][1] == 'I') || (argv[i][1] == 'i'))
-			{
-				numplayers = 2;
-				if (argv[i][2] == '0')
-				{
-					danetmode = 0;
-					if ((argv[i][3] == ':') && (argv[i][4] >= '0') && (argv[i][4] <= '9'))
-					{
-						numplayers = (argv[i][4]-'0');
-						if ((argv[i][5] >= '0') && (argv[i][5] <= '9')) numplayers = numplayers*10+(argv[i][5]-'0');
-						printf("mmulti: %d-player game\n", numplayers);
-					}
-					printf("mmulti: Master-slave mode\n");
-				}
-				else if (argv[i][2] == '1')
-				{
-					danetmode = 1;
-					myconnectindex = daindex; daindex++;
-					printf("mmulti: Peer-to-peer mode\n");
-				}
-				continue;
-			}
-			else if ((argv[i][1] == 'P') || (argv[i][1] == 'p')) continue;
+			continue;
 		}
 
-		st = strdup(argv[i]); if (!st) break;
-		if (isvalidipaddress(st))
-		{
-			if ((danetmode == 1) && (daindex == myconnectindex)) daindex++;
-			for(j=0;st[j];j++) {
-				if (st[j] == ':')
-					{ otherport[daindex] = htons((unsigned short)atol(&st[j+1])); st[j] = 0; break; }
+		if (daindex >= MAXPLAYERS) {
+			printf("mmulti error: More than %d players provided\n", MAXPLAYERS);
+			return 0;
+		}
+
+		if (argv[i][0] == '*' && argv[i][1] == 0) {
+			// 'self' placeholder
+			if (danetmode == 0) {
+				printf("mmulti: * is not valid in master-slave mode\n");
+				return 0;
+			} else {
+				myconnectindex = daindex++;
+				printf("mmulti: This machine is player %d\n", myconnectindex);
 			}
-			otherip[daindex] = inet_addr(st);
-			printf("mmulti: Player %d at %s:%d\n",daindex,st,ntohs(otherport[daindex]));
+			continue;
+		}
+
+		if (!lookuphost(argv[i], (struct sockaddr *)&resolvhost)) {
+			printf("mmulti error: Could not resolve %s\n", argv[i]);
+			return 0;
+		} else {
+			memcpy(&otherhost[daindex], &resolvhost, sizeof(resolvhost));
+			printf("mmulti: Player %d at %s (%s)\n", daindex,
+				presentaddress((struct sockaddr *)&resolvhost), argv[i]);
 			daindex++;
 		}
-		else
-		{
-			LPHOSTENT lph;
-			unsigned short pt = htons(NETPORT);
-
-			for(j=0;st[j];j++)
-				if (st[j] == ':')
-					{ pt = htons((unsigned short)atol(&st[j+1])); st[j] = 0; break; }
-			if ((lph = gethostbyname(st)))
-			{
-				if ((danetmode == 1) && (daindex == myconnectindex)) daindex++;
-				otherip[daindex] = *(int *)lph->h_addr;
-				otherport[daindex] = pt;
-				printf("mmulti: Player %d at %s:%d (%s)\n",daindex,
-						inet_ntoa(*(struct in_addr *)lph->h_addr),ntohs(pt),argv[i]);
-				daindex++;
-			} else printf("mmulti: Failed resolving %s\n",argv[i]);
-		}
-		free(st);
 	}
-	if ((danetmode == 255) && (daindex)) { numplayers = 2; danetmode = 0; } //an IP w/o /n# defaults to /n0
-	if ((numplayers >= 2) && (daindex) && (!danetmode)) myconnectindex = 1;
-	if (daindex > numplayers) numplayers = daindex;
 
-		//for(i=0;i<numplayers;i++)
-		  //   printf("Player %d: %d.%d.%d.%d:%d\n",i,otherip[i]&255,(otherip[i]>>8)&255,(otherip[i]>>16)&255,((unsigned int)otherip[i])>>24,ntohs(otherport[i]));
+	if ((danetmode == 255) && (daindex)) { danumplayers = 2; danetmode = 0; } //an IP w/o /n# defaults to /n0
+	if ((danumplayers >= 2) && (daindex) && (!danetmode)) myconnectindex = 1;
+	if (daindex > danumplayers) danumplayers = daindex;
+
+	if (danetmode == 0 && myconnectindex == 0) {
+		printf("mmulti: This machine is master\n");
+	}
+
+	networkmode = danetmode;
+	numplayers = danumplayers;
 
 	connecthead = 0;
 	for(i=0;i<numplayers-1;i++) connectpoint2[i] = i+1;
 	connectpoint2[numplayers-1] = -1;
+
+	netready = 0;
 
 	return (((!danetmode) && (numplayers >= 2)) || (numplayers == 2));
 }
 
 int initmultiplayerscycle(void)
 {
-	int i, k;
+	int i, k, dnetready = 1;
 
 	getpacket(&i,0);
 
 	tims = GetTickCount();
-	if (myconnectindex == connecthead)
+
+	if (networkmode == 0 && myconnectindex == connecthead)
 	{
-		for(i=numplayers-1;i>0;i--)
-			if (!otherip[i]) break;
-		if (!i) {
-			netready = 1;
-			return 0;
+		// The master waits for all players to check in.
+		for(i=numplayers-1;i>0;i--) {
+			if (i == myconnectindex) continue;
+			if (otherhost[i].ss_family == AF_UNSPEC) {
+				// There's a slot to be filled.
+				dnetready = 0;
+			} else if (lastrecvtims[i] == 0) {
+				// There's a player who hasn't checked in.
+				dnetready = 0;
+			} else if (prevlastrecvtims[i] != lastrecvtims[i]) {
+				if (!playerslive[i]) {
+					printf("mmulti: Player %d is here\n", i);
+					playerslive[i] = 1;
+				}
+				prevlastrecvtims[i] = lastrecvtims[i];
+			} else if (tims - lastrecvtims[i] > PRESENCETIMEOUT) {
+				if (playerslive[i]) {
+					printf("mmulti: Player %d has gone\n", i);
+					playerslive[i] = 0;
+				}
+				prevlastrecvtims[i] = lastrecvtims[i];
+				dnetready = 0;
+			}
 		}
 	}
 	else
 	{
-		if (netready) return 0;
-		if (tims < lastsendtims[connecthead]) lastsendtims[connecthead] = tims;
-		if (tims >= lastsendtims[connecthead]+250) //1000/PAKRATE)
-		{
-			lastsendtims[connecthead] = tims;
+		if (networkmode == 0) {
+			// As a slave, we send the master pings. The netready flag gets
+			// set by getpacket() and is sent by the master when it is OK
+			// to launch.
+			dnetready = 0;
+			i = connecthead;
 
-				//   short crc16ofs;       //offset of crc16
-				//   int icnt0;           //-1 (special packet for MMULTI.C's player collection)
-				//   ...
-				//   unsigned short crc16; //CRC16 of everything except crc16
-			k = 2;
-			*(int *)&pakbuf[k] = -1; k += 4;
-			pakbuf[k++] = 0xaa;
-			*(unsigned short *)&pakbuf[0] = (unsigned short)k;
-			*(unsigned short *)&pakbuf[k] = getcrc16(pakbuf,k); k += 2;
-			netsend(connecthead,pakbuf,k);
+		} else {
+			// In peer-to-peer mode we send pings to our peer group members
+			// and wait for them all to check in. The netready flag is set
+			// when everyone responds together within the timeout.
+			i = numplayers - 1;
+		}
+		while (1) {
+			if (i != myconnectindex) {
+				if (tims < lastsendtims[i]) lastsendtims[i] = tims;
+				if (tims >= lastsendtims[i]+250) //1000/PAKRATE)
+				{
+#ifdef DEBUG_SENDRECV
+					fprintf(stderr, "mmulti debug: sending player %d a ping\n", i);
+#endif
+
+					lastsendtims[i] = tims;
+
+						//   short crc16ofs;       //offset of crc16
+						//   int icnt0;           //-1 (special packet for MMULTI.C's player collection)
+						//   ...
+						//   unsigned short crc16; //CRC16 of everything except crc16
+					k = 2;
+					*(int *)&pakbuf[k] = -1; k += 4;
+					pakbuf[k++] = 0xaa;
+					*(unsigned short *)&pakbuf[0] = (unsigned short)k;
+					*(unsigned short *)&pakbuf[k] = getcrc16(pakbuf,k); k += 2;
+					netsend(i,pakbuf,k);
+				}
+
+				if (lastrecvtims[i] == 0) {
+					// There's a player who hasn't checked in.
+					dnetready = 0;
+				} else if (prevlastrecvtims[i] != lastrecvtims[i]) {
+					if (!playerslive[i]) {
+						printf("mmulti: Player %d is here\n", i);
+						playerslive[i] = 1;
+					}
+					prevlastrecvtims[i] = lastrecvtims[i];
+				} else if (prevlastrecvtims[i] - tims > PRESENCETIMEOUT) {
+					if (playerslive[i]) {
+						printf("mmulti: Player %d has gone\n", i);
+						playerslive[i] = 0;
+					}
+					prevlastrecvtims[i] = lastrecvtims[i];
+					dnetready = 0;
+				}
+			}
+
+			if (networkmode == 0) {
+				break;
+			} else {
+				if (--i < 0) break;
+			}
 		}
 	}
 
-	return 1;
+	netready = netready || dnetready;
+
+	return !netready;
 }
 
 void initmultiplayers (int argc, char const * const argv[])
@@ -401,46 +543,78 @@ void initmultiplayers (int argc, char const * const argv[])
 
 	if (initmultiplayersparms(argc,argv))
 	{
-#if 0
-			//Console code seems to crash Win98 upon quitting game
-			//it's not necessary and it's not portable anyway
-		char tbuf[1024];
-		unsigned int u;
-		HANDLE hconsout;
-		AllocConsole();
-		SetConsoleTitle("Multiplayer status...");
-		hconsout = GetStdHandle(STD_OUTPUT_HANDLE);
-		otims = 0;
-#endif
 		while (initmultiplayerscycle())
 		{
-#if 0
-			if ((tims < otims) || (tims > otims+100))
-			{
-				otims = tims;
-				sprintf(tbuf,"\rWait for players (%d/%d): ",myconnectindex,numplayers);
-				for(i=0;i<numplayers;i++)
-				{
-					if (i == myconnectindex) { strcat(tbuf,"<me> "); continue; }
-					if (!otherip[i]) { strcat(tbuf,"?.?.?.?:? "); continue; }
-					sprintf(&tbuf[strlen(tbuf)],"%d.%d.%d.%d:%04x ",otherip[i]&255,(otherip[i]>>8)&255,(otherip[i]>>16)&255,(((unsigned int)otherip[i])>>24),otherport[i]);
-				}
-				WriteConsole(hconsout,tbuf,strlen(tbuf),&u,0);
-			}
 		}
-		FreeConsole();
-#else
-		}
-#endif
 	}
-	netready = 1;
+}
+
+static int lookuphost(const char *name, struct sockaddr *host)
+{
+	struct addrinfo * result, *res;
+	struct addrinfo hints;
+	char *wname, *portch;
+	int error, port = 0;
+
+	// ipv6 for future thought:
+	//  [2001:db8::1]:1234
+
+	wname = strdup(name);
+	if (!wname) {
+		return 0;
+	}
+
+	// Parse a port.
+	portch = strrchr(wname, ':');
+	if (portch) {
+		*(portch++) = 0;
+		if (*portch != 0) {
+			port = strtol(portch, NULL, 10);
+		}
+	}
+	if (port < 1025 || port > 65534) port = NETPORT;
+
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_flags = AI_ADDRCONFIG;
+#ifdef USE_IPV6
+	hints.ai_flags |= AI_ALL;
+	hints.ai_family = PF_UNSPEC;
+#else
+	hints.ai_family = PF_INET;
+#endif
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_protocol = IPPROTO_UDP;
+
+	error = getaddrinfo(wname, NULL, &hints, &result);
+	if (error) {
+		printf("mmulti error: problem resolving %s (%s)\n", name, gai_strerror(error));
+		free(wname);
+		return 0;
+	}
+
+	for (res = result; res; res = res->ai_next) {
+		if (res->ai_family == PF_INET) {
+			memcpy((struct sockaddr_in *)host, (struct sockaddr_in *)res->ai_addr, sizeof(struct sockaddr_in));
+			((struct sockaddr_in *)host)->sin_port = htons(port);
+			break;
+		}
+		if (res->ai_family == PF_INET6) {
+			memcpy((struct sockaddr_in6 *)host, (struct sockaddr_in6 *)res->ai_addr, sizeof(struct sockaddr_in6));
+			((struct sockaddr_in6 *)host)->sin6_port = htons(port);
+			break;
+		}
+	}
+
+	freeaddrinfo(result);
+	free(wname);
+	return res != NULL;
 }
 
 void dosendpackets (int other)
 {
 	int i, j, k;
 
-	if (!otherip[other]) return;
+	if (otherhost[other].ss_family == AF_UNSPEC) return;
 
 		//Packet format:
 		//   short crc16ofs;       //offset of crc16
@@ -480,8 +654,6 @@ void dosendpackets (int other)
 	*(unsigned short *)&pakbuf[k] = 0; k += 2;
 	*(unsigned short *)&pakbuf[0] = (unsigned short)k;
 	*(unsigned short *)&pakbuf[k] = getcrc16(pakbuf,k); k += 2;
-
-	//printf("Send: "); for(i=0;i<k;i++) printf("%02x ",pakbuf[i]); printf("\n");
 	netsend(other,pakbuf,k);
 }
 
@@ -497,8 +669,6 @@ void sendpacket (int other, unsigned char *bufptr, int messleng)
 	memcpy(&pakmem[pakmemi+2],bufptr,messleng); pakmemi += messleng+2;
 	ocnt1[other]++;
 
-	//printf("Send: "); for(i=0;i<messleng;i++) printf("%02x ",bufptr[i]); printf("\n");
-
 	dosendpackets(other);
 }
 
@@ -507,6 +677,7 @@ void sendpacket (int other, unsigned char *bufptr, int messleng)
 int getpacket (int *retother, unsigned char *bufptr)
 {
 	int i, j, k, ic0, crc16ofs, messleng, other;
+	static int warned = 0;
 
 	if (numplayers < 2) return(0);
 
@@ -515,9 +686,11 @@ int getpacket (int *retother, unsigned char *bufptr)
 		for(i=connecthead;i>=0;i=connectpoint2[i])
 		{
 			if (i != myconnectindex) dosendpackets(i);
-			if ((!danetmode) && (myconnectindex != connecthead)) break; //slaves in M/S mode only send to master
+			if ((!networkmode) && (myconnectindex != connecthead)) break; //slaves in M/S mode only send to master
 		}
 	}
+
+	tims = GetTickCount();
 
 	while (netread(&other,pakbuf,sizeof(pakbuf)))
 	{
@@ -534,54 +707,133 @@ int getpacket (int *retother, unsigned char *bufptr)
 		k = 0;
 		crc16ofs = (int)(*(unsigned short *)&pakbuf[k]); k += 2;
 
-		//printf("Recv: "); for(i=0;i<crc16ofs+2;i++) printf("%02x ",pakbuf[i]); printf("\n");
-
-		if ((crc16ofs+2 <= (int)sizeof(pakbuf)) && (getcrc16(pakbuf,crc16ofs) == (*(unsigned short *)&pakbuf[crc16ofs])))
-		{
+		if (crc16ofs+2 > (int)sizeof(pakbuf)) {
+#ifdef DEBUG_SENDRECV
+			fprintf(stderr, "mmulti debug: wrong-sized packet from %d\n", other);
+#endif
+		} else if (getcrc16(pakbuf,crc16ofs) != (*(unsigned short *)&pakbuf[crc16ofs])) {
+#ifdef DEBUG_SENDRECV
+			fprintf(stderr, "mmulti debug: bad crc in packet from %d\n", other);
+#endif
+		} else {
 			ic0 = *(int *)&pakbuf[k]; k += 4;
 			if (ic0 == -1)
 			{
-					 //Slave sends 0xaa to Master at initmultiplayers() and waits for 0xab response
-					 //Master responds to slave with 0xab whenever it receives a 0xaa - even if during game!
-				if ((pakbuf[k] == 0xaa) && (myconnectindex == connecthead))
-				{
-					for(other=1;other<numplayers;other++)
-					{
-							//Only send to others asking for a response
-						if ((otherip[other]) && ((otherip[other] != snatchip) || (otherport[other] != snatchport))) continue;
-						otherip[other] = snatchip;
-						otherport[other] = snatchport;
+				// Peers send each other 0xaa and respond with 0xab containing their opinion
+				// of the requesting peer's placement within the order.
 
-							//   short crc16ofs;       //offset of crc16
-							//   int icnt0;           //-1 (special packet for MMULTI.C's player collection)
-							//   ...
-							//   unsigned short crc16; //CRC16 of everything except crc16
+				// Slave sends 0xaa to Master at initmultiplayerscycle() and waits for 0xab response.
+				// Master responds to slave with 0xab whenever it receives a 0xaa - even if during game!
+				if (pakbuf[k] == 0xaa)
+				{
+					int sendother = -1;
+#ifdef DEBUG_SENDRECV
+					const char *addr = presentaddress((struct sockaddr *)&snatchhost);
+#endif
+
+					if (networkmode == 0) {
+						// Master-slave.
+						if (other == myconnectindex && myconnectindex == connecthead) {
+							// This the master and someone new is calling. Find them a place.
+#ifdef DEBUG_SENDRECV
+							fprintf(stderr, "mmulti debug: got ping from new host %s\n", addr);
+#endif
+							for (other = 1; other < numplayers; other++) {
+								if (otherhost[other].ss_family == PF_UNSPEC) {
+									sendother = other;
+									memcpy(&otherhost[other], &snatchhost, sizeof(snatchhost));
+#ifdef DEBUG_SENDRECV
+									fprintf(stderr, "mmulti debug: giving %s player %d\n", addr, other);
+#endif
+									break;
+								}
+							}
+						} else {
+							// Repeat back to them their position.
+#ifdef DEBUG_SENDRECV
+							fprintf(stderr, "mmulti debug: got ping from player %d\n", other);
+#endif
+							sendother = other;
+						}
+					} else {
+						// Peer-to-peer mode.
+						if (other == myconnectindex) {
+#ifdef DEBUG_SENDRECV
+							fprintf(stderr, "mmulti debug: got ping from unknown host %s\n", addr);
+#endif
+						} else {
+#ifdef DEBUG_SENDRECV
+							fprintf(stderr, "mmulti debug: got ping from peer %d\n", other);
+#endif
+							sendother = other;
+						}
+					}
+
+					if (sendother >= 0) {
+						lastrecvtims[sendother] = tims;
+
+							//   short crc16ofs;        //offset of crc16
+							//   int icnt0;             //-1 (special packet for MMULTI.C's player collection)
+							//   char type;				// 0xab
+							//   char connectindex;
+							//   char numplayers;
+						    //   char netready;
+							//   unsigned short crc16;  //CRC16 of everything except crc16
 						k = 2;
 						*(int *)&pakbuf[k] = -1; k += 4;
 						pakbuf[k++] = 0xab;
-						pakbuf[k++] = (char)other;
+						pakbuf[k++] = (char)sendother;
 						pakbuf[k++] = (char)numplayers;
+						pakbuf[k++] = (char)netready;
 						*(unsigned short *)&pakbuf[0] = (unsigned short)k;
 						*(unsigned short *)&pakbuf[k] = getcrc16(pakbuf,k); k += 2;
-						netsend(other,pakbuf,k);
-						break;
+						netsend(sendother,pakbuf,k);
 					}
 				}
-				else if ((pakbuf[k] == 0xab) && (myconnectindex != connecthead))
+				else if (pakbuf[k] == 0xab)
 				{
-					if (((unsigned int)pakbuf[k+1] < (unsigned int)pakbuf[k+2]) &&
-						 ((unsigned int)pakbuf[k+2] < (unsigned int)MAXPLAYERS))
-					{
-						myconnectindex = (int)pakbuf[k+1];
-						numplayers = (int)pakbuf[k+2];
+					if (networkmode == 0) {
+						// Master-slave.
+						if (((unsigned int)pakbuf[k+1] < (unsigned int)pakbuf[k+2]) &&
+							 ((unsigned int)pakbuf[k+2] < (unsigned int)MAXPLAYERS) &&
+							 other == connecthead)
+						{
+#ifdef DEBUG_SENDRECV
+								fprintf(stderr, "mmulti debug: master gave us player %d in a %d player game\n",
+									(int)pakbuf[k+1], (int)pakbuf[k+2]);
+#endif
 
-						connecthead = 0;
-						for(i=0;i<numplayers-1;i++) connectpoint2[i] = i+1;
-						connectpoint2[numplayers-1] = -1;
+							if ((int)pakbuf[k+1] != myconnectindex ||
+									(int)pakbuf[k+2] != numplayers)
+							{
+								myconnectindex = (int)pakbuf[k+1];
+								numplayers = (int)pakbuf[k+2];
 
-						otherip[connecthead] = snatchip;
-						otherport[connecthead] = snatchport;
-						netready = 1;
+								connecthead = 0;
+								for(i=0;i<numplayers-1;i++) connectpoint2[i] = i+1;
+								connectpoint2[numplayers-1] = -1;
+							}
+
+							netready = netready || (int)pakbuf[k+3];
+
+							lastrecvtims[connecthead] = tims;
+						}
+					} else {
+						// Peer-to-peer. Verify that our peer's understanding of the
+						// order and player count matches with ours.
+						if ((myconnectindex != (int)pakbuf[k+1] ||
+								numplayers != (int)pakbuf[k+2])) {
+							if (!warned) {
+								const char *addr = presentaddress((struct sockaddr *)&snatchhost);
+								buildprintf("mmulti error: host %s (peer %d) believes this machine is "
+									"player %d in a %d-player game! The game will not start until "
+									"every machine is in agreement.\n",
+									addr, other, (int)pakbuf[k+1], (int)pakbuf[k+2]);
+							}
+							warned = 1;
+						} else {
+							lastrecvtims[other] = tims;
+						}
 					}
 				}
 			}
@@ -607,6 +859,8 @@ int getpacket (int *retother, unsigned char *bufptr)
 					k += messleng;
 					messleng = (int)(*(unsigned short *)&pakbuf[k]); k += 2;
 				}
+
+				lastrecvtims[other] = tims;
 			}
 		}
 	}
@@ -622,12 +876,36 @@ int getpacket (int *retother, unsigned char *bufptr)
 			{
 				messleng = *(short *)&pakmem[j]; memcpy(bufptr,&pakmem[j+2],messleng);
 				*retother = i; ipak[i][icnt0[i]&(FIFSIZ-1)] = 0; icnt0[i]++;
-				//printf("Recv: "); for(i=0;i<messleng;i++) printf("%02x ",bufptr[i]); printf("\n");
 				return(messleng);
 			}
 		}
-		if ((!danetmode) && (myconnectindex != connecthead)) break; //slaves in M/S mode only send to master
+		if ((!networkmode) && (myconnectindex != connecthead)) break; //slaves in M/S mode only send to master
 	}
 
 	return(0);
 }
+
+#ifdef _WIN32
+
+const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
+{
+	if (af == AF_INET) {
+		struct sockaddr_in in;
+		memset(&in, 0, sizeof(in));
+		in.sin_family = AF_INET;
+		memcpy(&in.sin_addr, src, sizeof(struct in_addr));
+		getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST);
+		return dst;
+	}
+	if (af == AF_INET6) {
+		struct sockaddr_in6 in;
+		memset(&in, 0, sizeof(in));
+		in.sin6_family = AF_INET6;
+		memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
+		getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
+		return dst;
+	}
+	return NULL;
+}
+
+#endif

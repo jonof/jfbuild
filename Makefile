@@ -257,7 +257,7 @@ $(GAME)/%.$o: $(GAME)/%.cpp
 $(GAME)/%.$o: $(GAME)/rsrc/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 
-$(GAME)/%.$(res): $(GAME)/rsrc/%.rc
+$(GAME)/%.$(res): $(GAME)/%.rc
 	$(WINDRES) -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
 
 $(RSRC)/game_banner.c: $(RSRC)/game.bmp

@@ -15,6 +15,11 @@ extern const char **_buildargv;
 extern char quitevent, appactive;
 
 // NOTE: these are implemented in game-land so they may be overridden in game specific ways
+enum {
+    STARTWIN_CANCEL = 0,
+    STARTWIN_RUN = 1,
+    STARTWIN_RUN_MULTI = 2, // the startup window has called initmultiplayersparms already
+};
 extern int app_main(int argc, char const * const argv[]);
 extern int startwin_open(void);
 extern int startwin_close(void);
