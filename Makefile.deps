@@ -22,7 +22,7 @@ $(SRC)/smalltextfont.$o: $(SRC)/smalltextfont.c
 $(SRC)/glbuild.$o: $(SRC)/glbuild.c $(INC)/glbuild.h $(INC)/baselayer.h
 $(SRC)/kplib.$o: $(SRC)/kplib.c $(INC)/compat.h
 $(SRC)/mmulti_null.$o: $(SRC)/mmulti_null.c $(INC)/mmulti.h
-$(SRC)/mmulti.$o: $(SRC)/mmulti.c
+$(SRC)/mmulti.$o: $(SRC)/mmulti.c $(INC)/build.h $(INC)/mmulti.h $(INC)/baselayer.h
 $(SRC)/osd.$o: $(SRC)/osd.c $(INC)/build.h $(INC)/osd.h $(INC)/compat.h $(INC)/baselayer.h
 $(SRC)/pragmas.$o: $(SRC)/pragmas.c $(INC)/compat.h
 $(SRC)/scriptfile.$o: $(SRC)/scriptfile.c $(INC)/scriptfile.h $(INC)/cache1d.h $(INC)/compat.h
