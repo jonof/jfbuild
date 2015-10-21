@@ -32,7 +32,7 @@ $(SRC)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/b
 $(SRC)/gtkbits.$o: $(SRC)/gtkbits.c $(INC)/baselayer.h $(INC)/compat.h $(INC)/build.h $(INC)/dynamicgtk.h
 $(SRC)/dynamicgtk.$o: $(SRC)/dynamicgtk.c $(INC)/dynamicgtk.h
 
-$(SRC)/startwin.editor.$o: $(SRC)/startwin.editor.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(INC)/startwin.editor.h
+$(SRC)/startwin.editor.$o: $(SRC)/startwin.editor.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(INC)/buildres.h
 $(SRC)/startgtk.editor.$o: $(SRC)/startgtk.editor.c $(INC)/baselayer.h $(INC)/build.h $(INC)/editor.h $(INC)/compat.h
 
 # KenBuild test game
@@ -45,7 +45,7 @@ $(GAME)/startwin.game.$o: $(GAME)/startwin.game.c $(INC)/build.h $(INC)/editor.h
 $(GAME)/startgtk.game.$o: $(GAME)/startgtk.game.c $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h
 
 $(GAME)/gameres.$(res): $(GAME)/gameres.rc $(GAME)/gameres.h
-$(GAME)/buildres.$(res): $(GAME)/buildres.rc $(INC)/startwin.editor.h
+$(GAME)/buildres.$(res): $(GAME)/buildres.rc $(GAME)/rsrc/build.bmp $(INC)/buildres.h
 
 $(GAME)/game_icon.$o: $(GAME)/rsrc/game_icon.c
 $(GAME)/build_icon.$o: $(GAME)/rsrc/build_icon.c
