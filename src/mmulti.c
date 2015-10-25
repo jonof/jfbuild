@@ -1,5 +1,5 @@
 #ifdef _WIN32
-#define _WIN32_WINNT 0x0501
+#define _WIN32_WINNT 0x0600
 #define WIN32_LEAN_AND_MEAN
 #endif
 
@@ -12,15 +12,19 @@
 #define DEBUG_SENDRECV_WIRE
 
 #ifdef _WIN32
+#include <mswsock.h>
 #include <ws2tcpip.h>
 
-const char *inet_ntop(int af, const void *src, char *dst, socklen_t);
-
-#ifndef AI_ADDRCONFIG
-#define AI_ADDRCONFIG 0x400
-#endif
-
+#define IPV6_RECVPKTINFO IPV6_PKTINFO
 #define IS_INVALID_SOCKET(sock) (sock == INVALID_SOCKET)
+#define CMSG_FIRSTHDR(m) WSA_CMSG_FIRSTHDR(m)
+#define CMSG_NXTHDR(m,c) WSA_CMSG_NXTHDR(m,c)
+#define CMSG_LEN(l) WSA_CMSG_LEN(l)
+#define CMSG_SPACE(l) WSA_CMSG_SPACE(l)
+#define CMSG_DATA(c) WSA_CMSG_DATA(c)
+
+LPFN_WSASENDMSG WSASendMsgPtr;
+LPFN_WSARECVMSG WSARecvMsgPtr;
 
 #else
 
@@ -107,6 +111,9 @@ void netuninit ()
 	if (mysock != INVALID_SOCKET) closesocket(mysock);
 	WSACleanup();
 	mysock = INVALID_SOCKET;
+
+	WSASendMsgPtr = NULL;
+	WSARecvMsgPtr = NULL;
 #else
 	if (mysock >= 0) close(mysock);
 	mysock = -1;
@@ -125,8 +132,6 @@ int netinit (int portnum)
 
 #ifdef _WIN32
 	if (WSAStartup(0x202, &ws) != 0) return(0);
-	//FIXME: need to get WSARecvMsg and WSASendMsg, see
-	//   https://msdn.microsoft.com/en-us/library/windows/desktop/ms741687(v=vs.85).aspx
 #endif
 
 #ifdef USE_IPV6
@@ -139,6 +144,8 @@ int netinit (int portnum)
 		// Tidy up from last cycle.
 #ifdef _WIN32
 		if (mysock != INVALID_SOCKET) closesocket(mysock);
+		WSASendMsgPtr = NULL;
+		WSARecvMsgPtr = NULL;
 #else
 		if (mysock >= 0) close(mysock);
 #endif
@@ -157,6 +164,23 @@ int netinit (int portnum)
 			}
 		}
 
+#ifdef _WIN32
+		DWORD len;
+		GUID sendguid = WSAID_WSASENDMSG, recvguid = WSAID_WSARECVMSG;
+		if (WSAIoctl(mysock, SIO_GET_EXTENSION_FUNCTION_POINTER,
+				&sendguid, sizeof(sendguid), &WSASendMsgPtr, sizeof(WSASendMsgPtr),
+				&len, NULL, NULL) == SOCKET_ERROR) {
+			printf("mmulti error: could not get sendmsg entry point.\n");
+			break;
+		}
+		if (WSAIoctl(mysock, SIO_GET_EXTENSION_FUNCTION_POINTER,
+				&recvguid, sizeof(recvguid), &WSARecvMsgPtr, sizeof(WSARecvMsgPtr),
+				&len, NULL, NULL) == SOCKET_ERROR) {
+			printf("mmulti error: could not get recvmsg entry point.\n");
+			break;
+		}
+#endif
+
 		// Set non-blocking IO on the socket.
 #ifdef _WIN32
 		if (ioctlsocket(mysock, FIONBIO, &on) != 0)
@@ -169,14 +193,14 @@ int netinit (int portnum)
 		}
 
 		// Allow local address reuse.
-		if (setsockopt(mysock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on)) != 0) {
+		if (setsockopt(mysock, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) != 0) {
 			printf("mmulti error: could not enable local address reuse on socket.\n");
 			break;
 		}
 
 		// Request that we receive IPV4 packet info.
-#ifdef __linux
-		if (setsockopt(mysock, IPPROTO_IP, IP_PKTINFO, &on, sizeof(on)) != 0)
+#if defined(__linux) || defined(_WIN32)
+		if (setsockopt(mysock, IPPROTO_IP, IP_PKTINFO, (void *)&on, sizeof(on)) != 0)
 #else
 		if (domain == PF_INET && setsockopt(mysock, IPPROTO_IP, IP_RECVDSTADDR, &on, sizeof(on)) != 0)
 #endif
@@ -191,14 +215,14 @@ int netinit (int portnum)
 
 		if (domain == PF_INET6) {
 			// Allow dual-stack IPV4/IPV6 on the socket.
-			if (setsockopt(mysock, IPPROTO_IPV6, IPV6_V6ONLY, &off, sizeof(off)) != 0) {
+			if (setsockopt(mysock, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&off, sizeof(off)) != 0) {
 				printf("mmulti warning: could not enable dual-stack socket, retrying for IPV4.\n");
 				domain = PF_INET;
 				continue;
 			}
 
 			// Request that we receive IPV6 packet info.
-			if (setsockopt(mysock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on)) != 0) {
+			if (setsockopt(mysock, IPPROTO_IPV6, IPV6_RECVPKTINFO, (void *)&on, sizeof(on)) != 0) {
 				printf("mmulti error: could not enable IPV6 packet info on socket.\n");
 				break;
 			}
@@ -255,7 +279,24 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 #endif
 
 #ifdef _WIN32
-# error FIXME
+	WSABUF iovec;
+	WSAMSG msg;
+	WSACMSGHDR *cmsg;
+	DWORD len = 0;
+
+	iovec.buf = dabuf;
+	iovec.len = bufsiz;
+	msg.name = (LPSOCKADDR)&otherhost[other];
+	if (otherhost[other].ss_family == AF_INET) {
+		msg.namelen = sizeof(struct sockaddr_in);
+	} else {
+		msg.namelen = sizeof(struct sockaddr_in6);
+	}
+	msg.lpBuffers = &iovec;
+	msg.dwBufferCount = 1;
+	msg.Control.buf = msg_control;
+	msg.Control.len = sizeof(msg_control);
+	msg.dwFlags = 0;
 #else
 	struct iovec iovec;
 	struct msghdr msg;
@@ -275,6 +316,7 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 	msg.msg_control = msg_control;
 	msg.msg_controllen = sizeof(msg_control);
 	msg.msg_flags = 0;
+#endif
 
 	len = 0;
 	memset(msg_control, 0, sizeof(msg_control));
@@ -285,10 +327,14 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 	// just have to cross our fingers.
 	if (replyfrom4[other].s_addr != INADDR_ANY) {
 		cmsg->cmsg_level = IPPROTO_IP;
-#ifdef __linux
+#if defined(__linux) || defined(_WIN32)
 		cmsg->cmsg_type = IP_PKTINFO;
 		cmsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
+		#ifdef _WIN32
+		((struct in_pktinfo *)CMSG_DATA(cmsg))->ipi_addr = replyfrom4[other];
+		#else
 		((struct in_pktinfo *)CMSG_DATA(cmsg))->ipi_spec_dst = replyfrom4[other];
+		#endif
 		len += CMSG_SPACE(sizeof(struct in_pktinfo));
 #else
 		cmsg->cmsg_type = IP_SENDSRCADDR;
@@ -307,22 +353,30 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 		len += CMSG_SPACE(sizeof(struct in6_pktinfo));
 		cmsg = CMSG_NXTHDR(&msg, cmsg);
 	}
-	if (len > 0) {
-		msg.msg_controllen = len;
-	} else {
-		msg.msg_control = NULL;
-		msg.msg_controllen = 0;
+#ifdef _WIN32
+	msg.Control.len = len;
+	if (len == 0) {
+		msg.Control.buf = NULL;
 	}
-
-	len = sendmsg(mysock, &msg, 0);
+#else
+	msg.msg_controllen = len;
+	if (len == 0) {
+		msg.msg_control = NULL;
+	}
 #endif
 
-	if (len < 0) {
+#ifdef _WIN32
+	if (WSASendMsgPtr(mysock, &msg, 0, &len, NULL, NULL) == SOCKET_ERROR)
+#else
+	if ((len = sendmsg(mysock, &msg, 0)) < 0)
+#endif
+	{
 #ifdef DEBUG_SENDRECV_WIRE
 		debugprintf("mmulti debug send error: %s\n", strerror(errno));
 #endif
 		return 0;
 	}
+
 	return 1;
 }
 
@@ -333,21 +387,21 @@ int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 
 #ifdef _WIN32
 	WSABUF iovec;
-	WSAMSG msg, control;
+	WSAMSG msg;
+	WSACMSGHDR *cmsg;
 	DWORD len = 0;
 
 	iovec.buf = dabuf;
 	iovec.len = bufsiz;
-	control.buf = msg_control;
-	control.len = sizeof(msg_control);
-	msg.name = &snatchhost;
+	msg.name = (LPSOCKADDR)&snatchhost;
 	msg.namelen = sizeof(snatchhost);
 	msg.lpBuffers = &iovec;
 	msg.dwBufferCount = 1;
-	msg.Control = &control;
+	msg.Control.buf = msg_control;
+	msg.Control.len = sizeof(msg_control);
 	msg.dwFlags = 0;
 
-	if (WSARecvMsg(mysock, &msg, &len, NULL, NULL) == SOCKET_ERROR) return 0;
+	if (WSARecvMsgPtr(mysock, &msg, &len, NULL, NULL) == SOCKET_ERROR) return 0;
 #else
 	struct iovec iovec;
 	struct msghdr msg;
@@ -385,7 +439,7 @@ int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 	memset(&snatchreplyfrom4, 0, sizeof(snatchreplyfrom4));
 	memset(&snatchreplyfrom6, 0, sizeof(snatchreplyfrom6));
 	for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-#ifdef __linux
+#if defined(__linux) || defined(_WIN32)
 		if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
 			snatchreplyfrom4 = ((struct in_pktinfo *)CMSG_DATA(cmsg))->ipi_addr;
 #ifdef DEBUG_SENDRECV_WIRE
@@ -1155,28 +1209,3 @@ void savesnatchhost(int other)
 	replyfrom4[other] = snatchreplyfrom4;
 	replyfrom6[other] = snatchreplyfrom6;
 }
-
-#ifdef _WIN32
-
-const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
-{
-	if (af == AF_INET) {
-		struct sockaddr_in in;
-		memset(&in, 0, sizeof(in));
-		in.sin_family = AF_INET;
-		memcpy(&in.sin_addr, src, sizeof(struct in_addr));
-		getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST);
-		return dst;
-	}
-	if (af == AF_INET6) {
-		struct sockaddr_in6 in;
-		memset(&in, 0, sizeof(in));
-		in.sin6_family = AF_INET6;
-		memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
-		getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
-		return dst;
-	}
-	return NULL;
-}
-
-#endif
