@@ -4908,7 +4908,7 @@ inline int addlava(void *b)
 	}
 }
 #elif defined(__GNUC__) && defined(__i386__) && !defined(NOASM)
-inline int addlava(void *b)
+int addlava(void *b)
 {
 	int r;
 	__asm__ __volatile__ (

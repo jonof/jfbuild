@@ -2,13 +2,14 @@
 #error Only for Windows
 #endif
 
+#define WIN32_LEAN_AND_MEAN
+#define _WIN32_WINNT 0x0501
+#define _WIN32_IE 0x0600
+
 #include "build.h"
 #include "editor.h"
 #include "winlayer.h"
 
-#define WIN32_LEAN_AND_MEAN
-#define _WIN32_WINNT 0x0501
-#define _WIN32_IE 0x0600
 #include <windows.h>
 #include <windowsx.h>
 #include <commctrl.h>

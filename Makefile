@@ -258,7 +258,7 @@ $(GAME)/%.$o: $(GAME)/rsrc/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(GAME)/%.$(res): $(GAME)/%.rc
-	$(WINDRES) -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
+	$(WINDRES) -O coff -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
 
 $(RSRC)/game_banner.c: $(RSRC)/game.bmp
 	echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@

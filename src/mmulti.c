@@ -1,3 +1,8 @@
+#ifdef _WIN32
+#define _WIN32_WINNT 0x0501
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,8 +12,6 @@
 //#define DEBUG_SENDRECV_WIRE
 
 #ifdef _WIN32
-#define _WIN32_WINNT 0x0501
-#define WIN32_LEAN_AND_MEAN
 #include <ws2tcpip.h>
 
 const char *inet_ntop(int af, const void *src, char *dst, socklen_t);
