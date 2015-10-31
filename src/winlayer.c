@@ -10,7 +10,7 @@
 #error winlayer.c is for Windows only.
 #endif
 
-#define _WIN32_WINNT 0x0501		// WinXP
+#define _WIN32_WINNT 0x0600
 #define DIRECTINPUT_VERSION 0x0500
 #define DIRECTDRAW_VERSION  0x0600
 
@@ -3119,10 +3119,9 @@ static BOOL CheckWinVersion(void)
 	osv.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
 	if (!GetVersionEx(&osv)) return TRUE;
 
-	// At least NT 5.1, aka Windows XP
+	// At least Windows Vista
 	if (osv.dwPlatformId != VER_PLATFORM_WIN32_NT) return TRUE;
-	if (osv.dwMajorVersion < 5) return TRUE;
-	else if (osv.dwMajorVersion == 5 && osv.dwMinorVersion < 1) return TRUE;
+	if (osv.dwMajorVersion < 6) return TRUE;
 
 	return FALSE;
 }
