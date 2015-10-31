@@ -95,13 +95,6 @@ static __inline int filelength (int h)
 #define _inline inline
 #endif
 
-	//use GCC-specific extension to force symbol name to be something in particular to override underscoring.
-#if defined(__GNUC__) && defined(__i386__) && !defined(NOASM)
-#define ASMNAME(x) asm(x)
-#else
-#define ASMNAME(x)
-#endif
-
 static int bytesperline, xres, yres, globxoffs, globyoffs;
 static INT_PTR frameplace;
 
@@ -161,7 +154,7 @@ static kzfilestate kzfs;
 //   pow2mask     128*
 //   dcflagor      64
 
-int palcol[256] ASMNAME("palcol"), paleng, bakcol, numhufblocks, zlibcompflags;
+int palcol[256], paleng, bakcol, numhufblocks, zlibcompflags;
 signed char coltype, filtype, bitdepth;
 
 //============================ KPNGILIB begins ===============================
@@ -181,13 +174,13 @@ static int bakr = 0x80, bakg = 0x80, bakb = 0x80; //this used to be public...
 static int gslidew = 0, gslider = 0, xm, xmn[4], xr0, xr1, xplc, yplc;
 static INT_PTR nfplace;
 static int clen[320], cclen[19], bitpos, filt, xsiz, ysiz;
-static int xsizbpl, ixsiz, ixoff, iyoff, ixstp, iystp, intlac, nbpl, trnsrgb ASMNAME("trnsrgb");
+static int xsizbpl, ixsiz, ixoff, iyoff, ixstp, iystp, intlac, nbpl, trnsrgb;
 static int ccind[19] = {16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15};
 static int hxbit[59][2], ibuf0[288], nbuf0[32], ibuf1[32], nbuf1[32];
 static const unsigned char *filptr;
 static unsigned char slidebuf[32768], opixbuf0[4], opixbuf1[4];
-static unsigned char pnginited = 0, olinbuf[65536] ASMNAME("olinbuf"); //WARNING:max xres is: 65536/bpp-1
-static int gotcmov = -2, abstab10[1024] ASMNAME("abstab10");
+static unsigned char pnginited = 0, olinbuf[65536]; //WARNING:max xres is: 65536/bpp-1
+static int gotcmov = -2, abstab10[1024];
 
 	//Variables to speed up dynamic Huffman decoding:
 #define LOGQHUFSIZ0 9
@@ -323,8 +316,14 @@ static inline int bitrev (int b, int c)
 {
 	int a;
 	__asm__ __volatile__ (
-		"xorl %%eax, %%eax\n\t0:\n\tshrl $1, %%edx\n\tadcl %%eax, %%eax\n\tsubl $1, %%ecx\n\tjnz 0b"
-		: "+a" (a), "+d" (b), "+c" (c) : : "cc");
+		"xorl %%eax, %%eax\n"
+		"0:\n"
+		"shrl $1, %%edx\n"
+		"adcl %%eax, %%eax\n"
+		"subl $1, %%ecx\n"
+		"jnz 0b"
+		: "+a" (a), "+d" (b), "+c" (c)
+		: : "cc");
 	return a;
 }
 
@@ -332,21 +331,38 @@ static inline int testflag (int c)
 {
 	int a;
 	__asm__ __volatile__ (
-		"pushf\n\tpopl %%eax\n\tmovl %%eax, %%edx\n\txorl %%ecx, %%eax\n\tpushl %%eax\n\t"
-		"popf\n\tpushf\n\tpopl %%eax\n\txorl %%edx, %%eax\n\tmovl $1, %%eax\n\tjne 0f\n\t"
-		"xorl %%eax, %%eax\n\t0:"
-		: "=a" (a) : "c" (c) : "edx","cc" );
+		"pushf\n"
+		"popl %%eax\n"
+		"movl %%eax, %%edx\n"
+		"xorl %%ecx, %%eax\n"
+		"pushl %%eax\n"
+		"popf\n"
+		"pushf\n"
+		"popl %%eax\n"
+		"xorl %%edx, %%eax\n"
+		"movl $1, %%eax\n"
+		"jne 0f\n"
+		"xorl %%eax, %%eax\n"
+		"0:"
+		: "=a" (a)
+		: "c" (c)
+		: "edx","cc" );
 	return a;
 }
 
 static inline void cpuid (int a, int *s)
 {
 	__asm__ __volatile__ (
-		"pushl %%ebx\n\t"
-		"cpuid\n\tmovl %%eax, (%%esi)\n\tmovl %%ebx, 4(%%esi)\n\t"
-		"movl %%ecx, 8(%%esi)\n\tmovl %%edx, 12(%%esi)\n\t"
-		"popl %%ebx\n\t"
-		: "+a" (a) : "S" (s) : "ecx","edx","memory","cc");
+		"pushl %%ebx\n"
+		"cpuid\n"
+		"movl %%eax, (%%esi)\n"
+		"movl %%ebx, 4(%%esi)\n"
+		"movl %%ecx, 8(%%esi)\n"
+		"movl %%edx, 12(%%esi)\n"
+		"popl %%ebx\n"
+		: "+a" (a)
+		: "S" (s)
+		: "ecx","edx","memory","cc");
 }
 
 #else
@@ -730,12 +746,20 @@ static _inline void pal8hlineasm (int c, int d, INT_PTR t, int b)
 static inline int Paeth686 (int a, int b, int c)
 {
 	__asm__ __volatile__ (
-		"movl %%ecx, %%edx\n\tsubl %%eax, %%edx\n\tsubl %%ebx, %%edx\n\t"
-		"leal (abstab10+2048)(,%%edx,4), %%edx\n\t"
-		"movl (%%edx,%%ebx,4), %%esi\n\tmovl (%%edx,%%ecx,4), %%edi\n\t"
-		"cmpl %%esi, %%edi\n\tcmovgel %%esi, %%edi\n\tcmovgel %%ebx, %%ecx\n\t"
-		"cmpl (%%edx,%%eax,4), %%edi\n\tcmovgel %%eax, %%ecx"
-		: "+c" (c) : "a" (a), "b" (b) : "esi","edi","memory","cc"
+		"movl %%ecx, %%edx\n"
+		"subl %%eax, %%edx\n"
+		"subl %%ebx, %%edx\n"
+		"leal (%[abstab10]+2048)(,%%edx,4), %%edx\n"
+		"movl (%%edx,%%ebx,4), %%esi\n"
+		"movl (%%edx,%%ecx,4), %%edi\n"
+		"cmpl %%esi, %%edi\n"
+		"cmovgel %%esi, %%edi\n"
+		"cmovgel %%ebx, %%ecx\n"
+		"cmpl (%%edx,%%eax,4), %%edi\n"
+		"cmovgel %%eax, %%ecx"
+		: "+c" (c)
+		: "a" (a), "b" (b), [abstab10] "m" (abstab10[0])
+		: "edx", "esi","edi","memory","cc"
 		);
 	return c;
 }
@@ -744,27 +768,50 @@ static inline int Paeth686 (int a, int b, int c)
 static inline void rgbhlineasm (int c, int d, INT_PTR t, int b)
 {
 	__asm__ __volatile__ (
-		"subl %%edx, %%ecx\n\tjle 3f\n\taddl $olinbuf, %%edx\n\t"
-		"cmpl $0, trnsrgb(,1)\n\tjz 2f\n\t"
-		"0: movl (%%ecx,%%edx,1), %%eax\n\torl $0xff000000, %%eax\n\tcmpl trnsrgb(,1), %%eax\n\t"
-		"jne 1f\n\tandl $0xffffff, %%eax\n\t"
-		"1: subl $3, %%ecx\n\tmovl %%eax, (%%edi)\n\tleal (%%edi,%%ebx,1), %%edi\n\t"
-		"jnz 0b\n\tjmp 3f\n\t"
-		"2: movl (%%ecx,%%edx,1), %%eax\n\torl $0xff000000, %%eax\n\tsubl $3, %%ecx\n\t"
-		"movl %%eax, (%%edi)\n\tleal (%%edi,%%ebx,1), %%edi\n\tjnz 2b\n\t"
+		"subl %%edx, %%ecx\n"
+		"jle 3f\n"
+		"addl $%[olinbuf], %%edx\n"
+		"cmpl $0, %[trnsrgb](,1)\n"
+		"jz 2f\n"
+		"0: movl (%%ecx,%%edx,1), %%eax\n"
+		"orl $0xff000000, %%eax\n"
+		"cmpl %[trnsrgb](,1), %%eax\n"
+		"jne 1f\n"
+		"andl $0xffffff, %%eax\n"
+		"1: subl $3, %%ecx\n"
+		"movl %%eax, (%%edi)\n"
+		"leal (%%edi,%%ebx,1), %%edi\n"
+		"jnz 0b\n"
+		"jmp 3f\n"
+		"2: movl (%%ecx,%%edx,1), %%eax\n"
+		"orl $0xff000000, %%eax\n"
+		"subl $3, %%ecx\n"
+		"movl %%eax, (%%edi)\n"
+		"leal (%%edi,%%ebx,1), %%edi\n"
+		"jnz 2b\n"
 		"3:"
-		: "+c" (c), "+D" (t) : "d" (d), "b" (b) : "eax","memory","cc"
+		: "+c" (c), "+d" (d), "+D" (t)
+		: "b" (b), [trnsrgb] "m" (trnsrgb), [olinbuf] "m" (olinbuf[0])
+		: "eax","memory","cc"
 		);
 }
 
 static inline void pal8hlineasm (int c, int d, INT_PTR t, int b)
 {
 	__asm__ __volatile__ (
-		"subl %%edx, %%ecx\n\tjle 1f\n\taddl $olinbuf, %%edx\n\t"
-		"0: movzbl (%%ecx,%%edx,1), %%eax\n\tmovl palcol(,%%eax,4), %%eax\n\t"
-		"subl $1, %%ecx\n\tmovl %%eax, (%%edi)\n\tleal (%%edi,%%ebx,1), %%edi\n\tjnz 0b\n\t"
+		"subl %%edx, %%ecx\n"
+		"jle 1f\n"
+		"addl $%[olinbuf], %%edx\n"
+		"0: movzbl (%%ecx,%%edx,1), %%eax\n"
+		"movl %[palcol](,%%eax,4), %%eax\n"
+		"subl $1, %%ecx\n"
+		"movl %%eax, (%%edi)\n"
+		"leal (%%edi,%%ebx,1), %%edi\n"
+		"jnz 0b\n"
 		"1:"
-		: "+c" (c), "+D" (t) : "d" (d), "b" (b) : "eax","memory","cc"
+		: "+c" (c), "+d" (d), "+D" (t)
+		: "b" (b), [palcol] "m" (palcol[0]), [olinbuf] "m" (olinbuf[0])
+		: "eax","memory","cc"
 		);
 }
 
