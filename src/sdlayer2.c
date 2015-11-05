@@ -452,12 +452,8 @@ void grabmouse(int a)
 {
     if (appactive && moustat) {
         if (a != mouseacquired) {
-#ifndef DEBUGGINGAIDS
             SDL_SetRelativeMouseMode(a ? SDL_TRUE : SDL_FALSE);
             mouseacquired = a;
-#else
-            mouseacquired = a;
-#endif
         }
     } else {
         mouseacquired = a;
@@ -1203,15 +1199,14 @@ int handleevents(void)
                 break;
 
             case SDL_WINDOWEVENT:
-                if (ev.window.type != SDL_WINDOWEVENT_FOCUS_GAINED &&
-                    ev.window.type != SDL_WINDOWEVENT_FOCUS_LOST) {
-                    break;
+                if (ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED ||
+                        ev.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+                    appactive = ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED;
+                    if (mouseacquired && moustat) {
+                        SDL_SetRelativeMouseMode(appactive ? SDL_TRUE : SDL_FALSE);
+                    }
+                    rv=-1;
                 }
-                appactive = ev.window.type == SDL_WINDOWEVENT_FOCUS_GAINED;
-                if (mouseacquired && moustat) {
-                    SDL_SetRelativeMouseMode(appactive ? SDL_TRUE : SDL_FALSE);
-                }
-                rv=-1;
                 break;
 
             case SDL_MOUSEBUTTONDOWN:
