@@ -1,23 +1,40 @@
+#ifdef _WIN32
+#define _WIN32_WINNT 0x0600
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-//#define USE_IPV6
-//#define DEBUG_SENDRECV
-//#define DEBUG_SENDRECV_WIRE
+#define USE_IPV6
+#define DEBUG_SENDRECV
+#define DEBUG_SENDRECV_WIRE
 
 #ifdef _WIN32
-#define _WIN32_WINNT 0x0501
-#define WIN32_LEAN_AND_MEAN
+#include <mswsock.h>
 #include <ws2tcpip.h>
 
-const char *inet_ntop(int af, const void *src, char *dst, socklen_t);
+#define IPV6_RECVPKTINFO IPV6_PKTINFO
+#define IS_INVALID_SOCKET(sock) (sock == INVALID_SOCKET)
+#define CMSG_FIRSTHDR(m) WSA_CMSG_FIRSTHDR(m)
+#define CMSG_NXTHDR(m,c) WSA_CMSG_NXTHDR(m,c)
+#define CMSG_LEN(l) WSA_CMSG_LEN(l)
+#define CMSG_SPACE(l) WSA_CMSG_SPACE(l)
+#define CMSG_DATA(c) WSA_CMSG_DATA(c)
 
-#ifndef AI_ADDRCONFIG
-#define AI_ADDRCONFIG 0
-#endif
+LPFN_WSASENDMSG WSASendMsgPtr;
+LPFN_WSARECVMSG WSARecvMsgPtr;
 
 #else
+
+#ifdef __APPLE__
+# define __APPLE_USE_RFC_3542
+#endif
+#ifdef __GNUC__
+# define __USE_GNU
+#endif
+
 #include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -37,10 +54,14 @@ static int GetTickCount(void)
 	ti += tv.tv_usec / 1000;
 	return ti;
 }
+
+#define IS_INVALID_SOCKET(sock) (sock < 0)
+
 #endif
 
 #include "build.h"
 #include "mmulti.h"
+#include "baselayer.h"
 #define printf buildprintf
 
 #ifndef min
@@ -73,122 +94,390 @@ static unsigned char pakmem[4194304]; static int pakmemi = 1;
 
 #define NETPORT 0x5bd9
 static SOCKET mysock = -1;
-static struct sockaddr_storage otherhost[MAXPLAYERS], snatchhost;
+static int domain = PF_UNSPEC;
+static struct sockaddr_storage otherhost[MAXPLAYERS], snatchhost;	// IPV4/6 address of peers
+static struct in_addr replyfrom4[MAXPLAYERS], snatchreplyfrom4;		// our IPV4 address peers expect to hear from us on
+static struct in6_addr replyfrom6[MAXPLAYERS], snatchreplyfrom6;	// our IPV6 address peers expect to hear from us on
 static int netready = 0;
 
-static int lookuphost(const char *name, struct sockaddr *host);
+static int lookuphost(const char *name, struct sockaddr *host, int warnifmany);
 static int issameaddress(struct sockaddr *a, struct sockaddr *b);
 static const char *presentaddress(struct sockaddr *a);
+static void savesnatchhost(int other);
 
 void netuninit ()
 {
 #ifdef _WIN32
 	if (mysock != INVALID_SOCKET) closesocket(mysock);
 	WSACleanup();
+	mysock = INVALID_SOCKET;
+
+	WSASendMsgPtr = NULL;
+	WSARecvMsgPtr = NULL;
 #else
 	if (mysock >= 0) close(mysock);
+	mysock = -1;
 #endif
+	domain = PF_UNSPEC;
 }
 
 int netinit (int portnum)
 {
 #ifdef _WIN32
 	WSADATA ws;
-	u_long i;
+	u_long off = 0, on = 1;
 #else
-	unsigned int i;
-#endif
-
-#ifdef USE_IPV6
-	struct sockaddr_in6 host;
-	int domain = PF_INET6;
-#else
-	struct sockaddr_in host;
-	int domain = PF_INET;
+	unsigned int off = 0, on = 1;
 #endif
 
 #ifdef _WIN32
 	if (WSAStartup(0x202, &ws) != 0) return(0);
 #endif
 
-	i = 1;
-	mysock = socket(domain, SOCK_DGRAM, 0);
-#ifdef _WIN32
-	if (mysock == INVALID_SOCKET) return(0);
-	if (ioctlsocket(mysock,FIONBIO,&i) != 0) return(0);
-#else
-	if (mysock < 0) return(0);
-	if (ioctl(mysock,FIONBIO,&i) != 0) return(0);
-#endif
-
-
-	memset(&host, 0, sizeof(host));
 #ifdef USE_IPV6
-	host.sin6_family = AF_INET6;
-	host.sin6_port = htons(portnum);
-	host.sin6_addr = in6addr_any;
+	domain = PF_INET6;
 #else
-	host.sin_family = AF_INET;
-	host.sin_port = htons(portnum);
-	host.sin_addr.s_addr = INADDR_ANY;
+	domain = PF_INET;
 #endif
-	if (bind(mysock, (struct sockaddr *)&host, sizeof(host)) != 0) return(0);
 
-	return(1);
+	while (domain != PF_UNSPEC) {
+		// Tidy up from last cycle.
+#ifdef _WIN32
+		if (mysock != INVALID_SOCKET) closesocket(mysock);
+		WSASendMsgPtr = NULL;
+		WSARecvMsgPtr = NULL;
+#else
+		if (mysock >= 0) close(mysock);
+#endif
+
+		mysock = socket(domain, SOCK_DGRAM, 0);
+		if (IS_INVALID_SOCKET(mysock)) {
+			if (domain == PF_INET6) {
+				// Retry for IPV4.
+				printf("mmulti warning: could not create IPV6 socket, trying for IPV4.\n");
+				domain = PF_INET;
+				continue;
+			} else {
+				// No IPV4 is a total loss.
+				printf("mmulti error: could not create IPV4 socket, no multiplayer possible.\n");
+				break;
+			}
+		}
+
+#ifdef _WIN32
+		DWORD len;
+		GUID sendguid = WSAID_WSASENDMSG, recvguid = WSAID_WSARECVMSG;
+		if (WSAIoctl(mysock, SIO_GET_EXTENSION_FUNCTION_POINTER,
+				&sendguid, sizeof(sendguid), &WSASendMsgPtr, sizeof(WSASendMsgPtr),
+				&len, NULL, NULL) == SOCKET_ERROR) {
+			printf("mmulti error: could not get sendmsg entry point.\n");
+			break;
+		}
+		if (WSAIoctl(mysock, SIO_GET_EXTENSION_FUNCTION_POINTER,
+				&recvguid, sizeof(recvguid), &WSARecvMsgPtr, sizeof(WSARecvMsgPtr),
+				&len, NULL, NULL) == SOCKET_ERROR) {
+			printf("mmulti error: could not get recvmsg entry point.\n");
+			break;
+		}
+#endif
+
+		// Set non-blocking IO on the socket.
+#ifdef _WIN32
+		if (ioctlsocket(mysock, FIONBIO, &on) != 0)
+#else
+		if (ioctl(mysock, FIONBIO, &on) != 0)
+#endif
+		{
+			printf("mmulti error: could not enable non-blocking IO on socket.\n");
+			break;
+		}
+
+		// Allow local address reuse.
+		if (setsockopt(mysock, SOL_SOCKET, SO_REUSEADDR, (void *)&on, sizeof(on)) != 0) {
+			printf("mmulti error: could not enable local address reuse on socket.\n");
+			break;
+		}
+
+		// Request that we receive IPV4 packet info.
+#if defined(__linux) || defined(_WIN32)
+		if (setsockopt(mysock, IPPROTO_IP, IP_PKTINFO, (void *)&on, sizeof(on)) != 0)
+#else
+		if (domain == PF_INET && setsockopt(mysock, IPPROTO_IP, IP_RECVDSTADDR, &on, sizeof(on)) != 0)
+#endif
+		{
+			if (domain == PF_INET) {
+				printf("mmulti error: could not enable IPV4 packet info on socket.\n");
+				break;
+			} else {
+				printf("mmulti warning: could not enable IPV4 packet info on socket.\n");
+			}
+		}
+
+		if (domain == PF_INET6) {
+			// Allow dual-stack IPV4/IPV6 on the socket.
+			if (setsockopt(mysock, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&off, sizeof(off)) != 0) {
+				printf("mmulti warning: could not enable dual-stack socket, retrying for IPV4.\n");
+				domain = PF_INET;
+				continue;
+			}
+
+			// Request that we receive IPV6 packet info.
+			if (setsockopt(mysock, IPPROTO_IPV6, IPV6_RECVPKTINFO, (void *)&on, sizeof(on)) != 0) {
+				printf("mmulti error: could not enable IPV6 packet info on socket.\n");
+				break;
+			}
+
+			struct sockaddr_in6 host;
+			memset(&host, 0, sizeof(host));
+			host.sin6_family = AF_INET6;
+			host.sin6_port = htons(portnum);
+			host.sin6_addr = in6addr_any;
+			if (bind(mysock, (struct sockaddr *)&host, sizeof(host)) != 0) {
+				// Retry for IPV4.
+				domain = PF_INET;
+				continue;
+			}
+		} else {
+			struct sockaddr_in host;
+			memset(&host, 0, sizeof(host));
+			host.sin_family = AF_INET;
+			host.sin_port = htons(portnum);
+			host.sin_addr.s_addr = INADDR_ANY;
+			if (bind(mysock, (struct sockaddr *)&host, sizeof(host)) != 0) {
+				// No IPV4 is a total loss.
+				break;
+			}
+		}
+
+		// Complete success.
+		return 1;
+	}
+
+	netuninit();
+
+	return 0;
 }
 
 int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 {
-	socklen_t len;
+	char msg_control[1024];
 	if (otherhost[other].ss_family == AF_UNSPEC) return(0);
+
+	if (otherhost[other].ss_family != domain) {
+#ifdef DEBUG_SENDRECV_WIRE
+		debugprintf("mmulti debug send error: tried sending to a different protocol family\n");
+#endif
+		return 0;
+	}
 
 #ifdef DEBUG_SENDRECV_WIRE
 	{
 		int i;
 		const unsigned char *pakbuf = dabuf;
-		fprintf(stderr, "mmulti debug send: "); for(i=0;i<bufsiz;i++) fprintf(stderr, "%02x ",pakbuf[i]); fprintf(stderr, "\n");
+		debugprintf("mmulti debug send: "); for(i=0;i<bufsiz;i++) debugprintf("%02x ",pakbuf[i]); debugprintf("\n");
 	}
 #endif
 
+#ifdef _WIN32
+	WSABUF iovec;
+	WSAMSG msg;
+	WSACMSGHDR *cmsg;
+	DWORD len = 0;
+
+	iovec.buf = dabuf;
+	iovec.len = bufsiz;
+	msg.name = (LPSOCKADDR)&otherhost[other];
 	if (otherhost[other].ss_family == AF_INET) {
-		len = sizeof(struct sockaddr_in);
+		msg.namelen = sizeof(struct sockaddr_in);
 	} else {
-		len = sizeof(struct sockaddr_in6);
+		msg.namelen = sizeof(struct sockaddr_in6);
 	}
-	if (sendto(mysock,dabuf,bufsiz,0, (struct sockaddr *)&otherhost[other], len) < 0) {
+	msg.lpBuffers = &iovec;
+	msg.dwBufferCount = 1;
+	msg.Control.buf = msg_control;
+	msg.Control.len = sizeof(msg_control);
+	msg.dwFlags = 0;
+#else
+	struct iovec iovec;
+	struct msghdr msg;
+	struct cmsghdr *cmsg;
+	int len;
+
+	iovec.iov_base = dabuf;
+	iovec.iov_len = bufsiz;
+	msg.msg_name = &otherhost[other];
+	if (otherhost[other].ss_family == AF_INET) {
+		msg.msg_namelen = sizeof(struct sockaddr_in);
+	} else {
+		msg.msg_namelen = sizeof(struct sockaddr_in6);
+	}
+	msg.msg_iov = &iovec;
+	msg.msg_iovlen = 1;
+	msg.msg_control = msg_control;
+	msg.msg_controllen = sizeof(msg_control);
+	msg.msg_flags = 0;
+#endif
+
+	len = 0;
+	memset(msg_control, 0, sizeof(msg_control));
+
+	cmsg = CMSG_FIRSTHDR(&msg);
+#ifndef __APPLE__
+	// OS X doesn't implement setting the UDP4 source. We'll
+	// just have to cross our fingers.
+	if (replyfrom4[other].s_addr != INADDR_ANY) {
+		cmsg->cmsg_level = IPPROTO_IP;
+#if defined(__linux) || defined(_WIN32)
+		cmsg->cmsg_type = IP_PKTINFO;
+		cmsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
+		#ifdef _WIN32
+		((struct in_pktinfo *)CMSG_DATA(cmsg))->ipi_addr = replyfrom4[other];
+		#else
+		((struct in_pktinfo *)CMSG_DATA(cmsg))->ipi_spec_dst = replyfrom4[other];
+		#endif
+		len += CMSG_SPACE(sizeof(struct in_pktinfo));
+#else
+		cmsg->cmsg_type = IP_SENDSRCADDR;
+		cmsg->cmsg_len = CMSG_LEN(sizeof(struct in_addr));
+		*(struct in_addr *)CMSG_DATA(cmsg) = replyfrom4[other];
+		len += CMSG_SPACE(sizeof(struct in_addr));
+#endif
+		cmsg = CMSG_NXTHDR(&msg, cmsg);
+	}
+#endif
+	if (!IN6_IS_ADDR_UNSPECIFIED(&replyfrom6[other])) {
+		cmsg->cmsg_level = IPPROTO_IPV6;
+		cmsg->cmsg_type = IPV6_PKTINFO;
+		cmsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
+		((struct in6_pktinfo *)CMSG_DATA(cmsg))->ipi6_addr = replyfrom6[other];
+		len += CMSG_SPACE(sizeof(struct in6_pktinfo));
+		cmsg = CMSG_NXTHDR(&msg, cmsg);
+	}
+#ifdef _WIN32
+	msg.Control.len = len;
+	if (len == 0) {
+		msg.Control.buf = NULL;
+	}
+#else
+	msg.msg_controllen = len;
+	if (len == 0) {
+		msg.msg_control = NULL;
+	}
+#endif
+
+#ifdef _WIN32
+	if (WSASendMsgPtr(mysock, &msg, 0, &len, NULL, NULL) == SOCKET_ERROR)
+#else
+	if ((len = sendmsg(mysock, &msg, 0)) < 0)
+#endif
+	{
 #ifdef DEBUG_SENDRECV_WIRE
-		fprintf(stderr, "mmulti debug send error: %s\n", strerror(errno));
+		debugprintf("mmulti debug send error: %s\n", strerror(errno));
 #endif
 		return 0;
 	}
+
 	return 1;
 }
 
 int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 {
-	struct sockaddr_storage host;
-	socklen_t hostlen = sizeof(host);
-	int i, len;
+	char msg_control[1024];
+	int i;
 
-	if ((len = recvfrom(mysock, dabuf, bufsiz, 0, (struct sockaddr *)&host, &hostlen)) <= 0) return(0);
+#ifdef _WIN32
+	WSABUF iovec;
+	WSAMSG msg;
+	WSACMSGHDR *cmsg;
+	DWORD len = 0;
+
+	iovec.buf = dabuf;
+	iovec.len = bufsiz;
+	msg.name = (LPSOCKADDR)&snatchhost;
+	msg.namelen = sizeof(snatchhost);
+	msg.lpBuffers = &iovec;
+	msg.dwBufferCount = 1;
+	msg.Control.buf = msg_control;
+	msg.Control.len = sizeof(msg_control);
+	msg.dwFlags = 0;
+
+	if (WSARecvMsgPtr(mysock, &msg, &len, NULL, NULL) == SOCKET_ERROR) return 0;
+#else
+	struct iovec iovec;
+	struct msghdr msg;
+	struct cmsghdr *cmsg;
+	int len;
+
+	iovec.iov_base = dabuf;
+	iovec.iov_len = bufsiz;
+	msg.msg_name = &snatchhost;
+	msg.msg_namelen = sizeof(snatchhost);
+	msg.msg_iov = &iovec;
+	msg.msg_iovlen = 1;
+	msg.msg_control = msg_control;
+	msg.msg_controllen = sizeof(msg_control);
+	msg.msg_flags = 0;
+
+	if ((len = recvmsg(mysock, &msg, 0)) < 0) return 0;
+#endif
+	if (len == 0) return 0;
+
+	if (snatchhost.ss_family != domain) {
+#ifdef DEBUG_SENDRECV_WIRE
+		debugprintf("mmulti debug recv error: received from a different protocol family\n");
+#endif
+		return 0;
+	}
+
 #if (SIMMIS > 0)
 	if ((rand()&255) < SIMMIS) return(0);
 #endif
 
+	// Decode the message headers to record what of our IP addresses the
+	// packet came in on. We reply on that same address so the peer knows
+	// who it came from.
+	memset(&snatchreplyfrom4, 0, sizeof(snatchreplyfrom4));
+	memset(&snatchreplyfrom6, 0, sizeof(snatchreplyfrom6));
+	for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+#if defined(__linux) || defined(_WIN32)
+		if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
+			snatchreplyfrom4 = ((struct in_pktinfo *)CMSG_DATA(cmsg))->ipi_addr;
+#ifdef DEBUG_SENDRECV_WIRE
+			debugprintf("mmulti debug recv: received at %s\n", inet_ntoa(snatchreplyfrom4));
+#endif
+		}
+#else
+		if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_RECVDSTADDR) {
+			snatchreplyfrom4 = *(struct in_addr *)CMSG_DATA(cmsg);
+#ifdef DEBUG_SENDRECV_WIRE
+			debugprintf("mmulti debug recv: received at %s\n", inet_ntoa(snatchreplyfrom4));
+#endif
+		}
+#endif
+		else if (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_PKTINFO) {
+			snatchreplyfrom6 = ((struct in6_pktinfo *)CMSG_DATA(cmsg))->ipi6_addr;
+#ifdef DEBUG_SENDRECV_WIRE
+			char addr[INET6_ADDRSTRLEN+1];
+			debugprintf("mmulti debug recv: received at %s\n", inet_ntop(AF_INET6, &snatchreplyfrom6, addr, sizeof(addr)));
+#endif
+		}
+	}
+
 #ifdef DEBUG_SENDRECV_WIRE
 	{
 		const unsigned char *pakbuf = dabuf;
-		fprintf(stderr, "mmulti debug recv: "); for(i=0;i<len;i++) fprintf(stderr, "%02x ",pakbuf[i]); fprintf(stderr, "\n");
+		debugprintf("mmulti debug recv: ");
+		for(i=0;i<len;i++) debugprintf("%02x ",pakbuf[i]);
+		debugprintf("\n");
 	}
 #endif
-
-	memcpy(&snatchhost, &host, sizeof(host));
 
 	(*other) = myconnectindex;
 	for(i=0;i<MAXPLAYERS;i++) {
 		if (issameaddress((struct sockaddr *)&snatchhost, (struct sockaddr *)&otherhost[i]))
 			{ (*other) = i; break; }
 	}
+
 #if (SIMLAG > 1)
 	i = simlagcnt[*other]%(SIMLAG+1);
 	*(short *)&simlagfif[*other][i][0] = bufsiz; memcpy(&simlagfif[*other][i][2],dabuf,bufsiz);
@@ -201,14 +490,19 @@ int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 }
 
 static int issameaddress(struct sockaddr *a, struct sockaddr *b) {
-	if (a->sa_family != b->sa_family) return 0;
+	if (a->sa_family != b->sa_family) {
+		// Different families.
+		return 0;
+	}
 	if (a->sa_family == AF_INET) {
+		// IPV4.
 		struct sockaddr_in *a4 = (struct sockaddr_in *)a;
 		struct sockaddr_in *b4 = (struct sockaddr_in *)b;
 		return a4->sin_addr.s_addr == b4->sin_addr.s_addr &&
 			a4->sin_port == b4->sin_port;
 	}
 	if (a->sa_family == AF_INET6) {
+		// IPV6.
 		struct sockaddr_in6 *a6 = (struct sockaddr_in6 *)a;
 		struct sockaddr_in6 *b6 = (struct sockaddr_in6 *)b;
 		return IN6_ARE_ADDR_EQUAL(&a6->sin6_addr, &b6->sin6_addr) &&
@@ -384,8 +678,13 @@ int initmultiplayersparms(int argc, char const * const argv[])
 			continue;
 		}
 
+		if (danetmode == 0 && daindex >= 1) {
+			printf("mmulti warning: Too many host names given for master-slave mode\n");
+			continue;
+		}
 		if (daindex >= MAXPLAYERS) {
 			printf("mmulti error: More than %d players provided\n", MAXPLAYERS);
+			netuninit();
 			return 0;
 		}
 
@@ -393,6 +692,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 			// 'self' placeholder
 			if (danetmode == 0) {
 				printf("mmulti: * is not valid in master-slave mode\n");
+				netuninit();
 				return 0;
 			} else {
 				myconnectindex = daindex++;
@@ -401,8 +701,9 @@ int initmultiplayersparms(int argc, char const * const argv[])
 			continue;
 		}
 
-		if (!lookuphost(argv[i], (struct sockaddr *)&resolvhost)) {
+		if (!lookuphost(argv[i], (struct sockaddr *)&resolvhost, danetmode == 1)) {
 			printf("mmulti error: Could not resolve %s\n", argv[i]);
+			netuninit();
 			return 0;
 		} else {
 			memcpy(&otherhost[daindex], &resolvhost, sizeof(resolvhost));
@@ -429,7 +730,12 @@ int initmultiplayersparms(int argc, char const * const argv[])
 
 	netready = 0;
 
-	return (((!danetmode) && (numplayers >= 2)) || (numplayers == 2));
+	if (((!danetmode) && (numplayers >= 2)) || (numplayers == 2)) {
+		return 1;
+	} else {
+		netuninit();
+		return 0;
+	}
 }
 
 int initmultiplayerscycle(void)
@@ -488,7 +794,7 @@ int initmultiplayerscycle(void)
 				if (tims >= lastsendtims[i]+250) //1000/PAKRATE)
 				{
 #ifdef DEBUG_SENDRECV
-					fprintf(stderr, "mmulti debug: sending player %d a ping\n", i);
+					debugprintf("mmulti debug: sending player %d a ping\n", i);
 #endif
 
 					lastsendtims[i] = tims;
@@ -549,12 +855,12 @@ void initmultiplayers (int argc, char const * const argv[])
 	}
 }
 
-static int lookuphost(const char *name, struct sockaddr *host)
+static int lookuphost(const char *name, struct sockaddr *host, int warnifmany)
 {
 	struct addrinfo * result, *res;
 	struct addrinfo hints;
 	char *wname, *portch;
-	int error, port = 0;
+	int error, port = 0, found = 0;
 
 	// ipv6 for future thought:
 	//  [2001:db8::1]:1234
@@ -576,12 +882,10 @@ static int lookuphost(const char *name, struct sockaddr *host)
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_flags = AI_ADDRCONFIG;
-#ifdef USE_IPV6
-	hints.ai_flags |= AI_ALL;
-	hints.ai_family = PF_UNSPEC;
-#else
-	hints.ai_family = PF_INET;
-#endif
+	hints.ai_family = domain;
+	if (domain == PF_INET6) {
+		hints.ai_flags |= AI_V4MAPPED;
+	}
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = IPPROTO_UDP;
 
@@ -593,21 +897,22 @@ static int lookuphost(const char *name, struct sockaddr *host)
 	}
 
 	for (res = result; res; res = res->ai_next) {
-		if (res->ai_family == PF_INET) {
+		if (res->ai_family == PF_INET && !found) {
 			memcpy((struct sockaddr_in *)host, (struct sockaddr_in *)res->ai_addr, sizeof(struct sockaddr_in));
 			((struct sockaddr_in *)host)->sin_port = htons(port);
-			break;
-		}
-		if (res->ai_family == PF_INET6) {
+			found = 1;
+		} else if (res->ai_family == PF_INET6 && !found) {
 			memcpy((struct sockaddr_in6 *)host, (struct sockaddr_in6 *)res->ai_addr, sizeof(struct sockaddr_in6));
 			((struct sockaddr_in6 *)host)->sin6_port = htons(port);
-			break;
+			found = 1;
+		} else if (found && warnifmany) {
+			printf("mmulti warning: host name %s has another address: %s\n", wname, presentaddress(res->ai_addr));
 		}
 	}
 
 	freeaddrinfo(result);
 	free(wname);
-	return res != NULL;
+	return found;
 }
 
 void dosendpackets (int other)
@@ -709,11 +1014,11 @@ int getpacket (int *retother, unsigned char *bufptr)
 
 		if (crc16ofs+2 > (int)sizeof(pakbuf)) {
 #ifdef DEBUG_SENDRECV
-			fprintf(stderr, "mmulti debug: wrong-sized packet from %d\n", other);
+			debugprintf("mmulti debug: wrong-sized packet from %d\n", other);
 #endif
 		} else if (getcrc16(pakbuf,crc16ofs) != (*(unsigned short *)&pakbuf[crc16ofs])) {
 #ifdef DEBUG_SENDRECV
-			fprintf(stderr, "mmulti debug: bad crc in packet from %d\n", other);
+			debugprintf("mmulti debug: bad crc in packet from %d\n", other);
 #endif
 		} else {
 			ic0 = *(int *)&pakbuf[k]; k += 4;
@@ -736,14 +1041,13 @@ int getpacket (int *retother, unsigned char *bufptr)
 						if (other == myconnectindex && myconnectindex == connecthead) {
 							// This the master and someone new is calling. Find them a place.
 #ifdef DEBUG_SENDRECV
-							fprintf(stderr, "mmulti debug: got ping from new host %s\n", addr);
+							debugprintf("mmulti debug: got ping from new host %s\n", addr);
 #endif
 							for (other = 1; other < numplayers; other++) {
 								if (otherhost[other].ss_family == PF_UNSPEC) {
 									sendother = other;
-									memcpy(&otherhost[other], &snatchhost, sizeof(snatchhost));
 #ifdef DEBUG_SENDRECV
-									fprintf(stderr, "mmulti debug: giving %s player %d\n", addr, other);
+									debugprintf("mmulti debug: giving %s player %d\n", addr, other);
 #endif
 									break;
 								}
@@ -751,7 +1055,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 						} else {
 							// Repeat back to them their position.
 #ifdef DEBUG_SENDRECV
-							fprintf(stderr, "mmulti debug: got ping from player %d\n", other);
+							debugprintf("mmulti debug: got ping from player %d\n", other);
 #endif
 							sendother = other;
 						}
@@ -759,17 +1063,18 @@ int getpacket (int *retother, unsigned char *bufptr)
 						// Peer-to-peer mode.
 						if (other == myconnectindex) {
 #ifdef DEBUG_SENDRECV
-							fprintf(stderr, "mmulti debug: got ping from unknown host %s\n", addr);
+							debugprintf("mmulti debug: got ping from unknown host %s\n", addr);
 #endif
 						} else {
 #ifdef DEBUG_SENDRECV
-							fprintf(stderr, "mmulti debug: got ping from peer %d\n", other);
+							debugprintf("mmulti debug: got ping from peer %d\n", other);
 #endif
 							sendother = other;
 						}
 					}
 
 					if (sendother >= 0) {
+						savesnatchhost(sendother);
 						lastrecvtims[sendother] = tims;
 
 							//   short crc16ofs;        //offset of crc16
@@ -777,7 +1082,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 							//   char type;				// 0xab
 							//   char connectindex;
 							//   char numplayers;
-						    //   char netready;
+							//   char netready;
 							//   unsigned short crc16;  //CRC16 of everything except crc16
 						k = 2;
 						*(int *)&pakbuf[k] = -1; k += 4;
@@ -799,7 +1104,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 							 other == connecthead)
 						{
 #ifdef DEBUG_SENDRECV
-								fprintf(stderr, "mmulti debug: master gave us player %d in a %d player game\n",
+								debugprintf("mmulti debug: master gave us player %d in a %d player game\n",
 									(int)pakbuf[k+1], (int)pakbuf[k+2]);
 #endif
 
@@ -816,22 +1121,24 @@ int getpacket (int *retother, unsigned char *bufptr)
 
 							netready = netready || (int)pakbuf[k+3];
 
+							savesnatchhost(connecthead);
 							lastrecvtims[connecthead] = tims;
 						}
 					} else {
 						// Peer-to-peer. Verify that our peer's understanding of the
 						// order and player count matches with ours.
-						if ((myconnectindex != (int)pakbuf[k+1] ||
-								numplayers != (int)pakbuf[k+2])) {
+						if (myconnectindex != (int)pakbuf[k+1] ||
+								numplayers != (int)pakbuf[k+2]) {
 							if (!warned) {
 								const char *addr = presentaddress((struct sockaddr *)&snatchhost);
-								buildprintf("mmulti error: host %s (peer %d) believes this machine is "
+								printf("mmulti error: host %s (peer %d) believes this machine is "
 									"player %d in a %d-player game! The game will not start until "
 									"every machine is in agreement.\n",
 									addr, other, (int)pakbuf[k+1], (int)pakbuf[k+2]);
 							}
 							warned = 1;
 						} else {
+							savesnatchhost(other);
 							lastrecvtims[other] = tims;
 						}
 					}
@@ -839,6 +1146,13 @@ int getpacket (int *retother, unsigned char *bufptr)
 			}
 			else
 			{
+				if (other == myconnectindex) {
+#ifdef DEBUG_SENDRECV
+					debugprintf("mmulti debug: got a packet from unknown host %s\n",
+								presentaddress(&snatchhost));
+					return 0;
+#endif
+				}
 				if (ocnt0[other] < ic0) ocnt0[other] = ic0;
 				for(i=ic0;i<min(ic0+256,ocnt1[other]);i++)
 					if (pakbuf[((i-ic0)>>3)+k]&(1<<((i-ic0)&7)))
@@ -885,27 +1199,13 @@ int getpacket (int *retother, unsigned char *bufptr)
 	return(0);
 }
 
-#ifdef _WIN32
-
-const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
+// Records the IP address of a peer, along with our IPV4 and/or IPV6 addresses
+// their packet came in on. We send our reply from the same address.
+void savesnatchhost(int other)
 {
-	if (af == AF_INET) {
-		struct sockaddr_in in;
-		memset(&in, 0, sizeof(in));
-		in.sin_family = AF_INET;
-		memcpy(&in.sin_addr, src, sizeof(struct in_addr));
-		getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST);
-		return dst;
-	}
-	if (af == AF_INET6) {
-		struct sockaddr_in6 in;
-		memset(&in, 0, sizeof(in));
-		in.sin6_family = AF_INET6;
-		memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
-		getnameinfo((struct sockaddr *)&in, sizeof(struct sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
-		return dst;
-	}
-	return NULL;
-}
+	if (other == myconnectindex) return;
 
-#endif
+	memcpy(&otherhost[other], &snatchhost, sizeof(snatchhost));
+	replyfrom4[other] = snatchreplyfrom4;
+	replyfrom6[other] = snatchreplyfrom6;
+}

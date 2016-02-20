@@ -838,6 +838,7 @@
 					USE_A_C,
 					NOASM,
 					RENDERTYPESDL,
+					DEBUGGINGAIDS,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
 			};
