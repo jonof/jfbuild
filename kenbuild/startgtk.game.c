@@ -431,7 +431,8 @@ int startwin_open(void)
 	if (startwin) {
 		SetPage(TAB_MESSAGES);
 		gtk_widget_show(startwin);
-		gtk_main_iteration_do(FALSE);
+		while (gtk_events_pending())
+			gtk_main_iteration();
 		return 0;
 	}
   	return -1;
@@ -509,8 +510,9 @@ int startwin_idle(void *s)
 {
 	if (!gtkenabled) return 0;
 	//if (!startwin) return 1;
-  	gtk_main_iteration_do (FALSE);
-  	return 0;
+	while (gtk_events_pending())
+		gtk_main_iteration();
+	return 0;
 }
 
 extern int xdimgame, ydimgame, bppgame, forcesetup;
