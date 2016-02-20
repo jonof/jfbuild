@@ -86,9 +86,6 @@ ifeq ($(RENDERTYPE),SDL)
 	else
 		ifneq (No,$(shell pkg-config --exists gtk+-2.0 || echo No))
 			HAVE_GTK2=1
-			# on my 64bit Gentoo box I have Cairo enabled which means the libs list includes
-			# -lpangocairo-1.0 and -lcairo, however the 32bit compatibility libraries don't
-			# include cairo, so we need to filter out those -l switches in order to link
 			ifneq ($(LINKED_GTK),0)
 				LIBS+= $(shell pkg-config --libs gtk+-2.0)
 			endif
