@@ -427,6 +427,11 @@ int startwin_open(void)
 	if (!gtkenabled) return 0;
 	if (startwin) return 1;
 
+	if (!gtk_init_check(NULL, NULL)) {
+		gtkenabled = 0;
+		return -1;
+	}
+
 	startwin = create_window();
 	if (startwin) {
 		SetPage(TAB_MESSAGES);
