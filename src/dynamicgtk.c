@@ -22,7 +22,7 @@ int dynamicgtk_init(void)
 
 	handle = dlopen("libgtk-x11-2.0.so", RTLD_NOW|RTLD_GLOBAL);
 	if (!handle) return 0;
-	
+
 	memset(&dynamicgtksyms, 0, sizeof(dynamicgtksyms));
 
 	do {
@@ -62,6 +62,7 @@ int dynamicgtk_init(void)
 		GETDLSYM(gtk_container_set_border_width)
 		GETDLSYM(gtk_dialog_get_type)
 		GETDLSYM(gtk_dialog_run)
+		GETDLSYM(gtk_events_pending)
 		GETDLSYM(gtk_fixed_get_type)
 		GETDLSYM(gtk_fixed_new)
 		GETDLSYM(gtk_fixed_put)
@@ -80,6 +81,7 @@ int dynamicgtk_init(void)
 		GETDLSYM(gtk_list_store_new)
 		GETDLSYM(gtk_list_store_set)
 		GETDLSYM(gtk_main)
+		GETDLSYM(gtk_main_iteration)
 		GETDLSYM(gtk_main_iteration_do)
 		GETDLSYM(gtk_main_quit)
 		GETDLSYM(gtk_message_dialog_new)
