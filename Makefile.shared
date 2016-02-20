@@ -91,9 +91,8 @@ ifeq ($(RENDERTYPE),SDL)
 			# include cairo, so we need to filter out those -l switches in order to link
 			ifneq ($(LINKED_GTK),0)
 				LIBS+= $(shell pkg-config --libs gtk+-2.0)
-			else
-				LIBS+= -ldl
 			endif
+			LIBS+= -ldl
 		else
 			HAVE_GTK2=0
 		endif

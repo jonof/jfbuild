@@ -174,8 +174,10 @@ void          (*gtk_list_store_set)              (GtkListStore *list_store,
 
 	// gtkmain.h
 void	   (*gtk_main)		   (void);
+gboolean   (*gtk_main_iteration)   (void);
 gboolean   (*gtk_main_iteration_do)   (gboolean blocking);
 void	   (*gtk_main_quit)	   (void);
+gboolean   (*gtk_events_pending)       (void);
 
 	// gtkmessagedialog.h
 GtkWidget* (*gtk_message_dialog_new)      (GtkWindow      *parent,
@@ -345,7 +347,7 @@ void       (*gtk_window_set_resizable)            (GtkWindow           *window,
                                                 gboolean             resizable);
 void       (*gtk_window_set_title)                (GtkWindow           *window,
 						const gchar         *title);
-void       (*gtk_window_set_type_hint)            (GtkWindow           *window, 
+void       (*gtk_window_set_type_hint)            (GtkWindow           *window,
 						GdkWindowTypeHint    hint);
 
 };
@@ -460,7 +462,9 @@ void dynamicgtk_uninit(void);
 #define gtk_list_store_set dynamicgtksyms.gtk_list_store_set
 
 // gtkmain.h
+#define gtk_events_pending dynamicgtksyms.gtk_events_pending
 #define gtk_main dynamicgtksyms.gtk_main
+#define gtk_main_iteration dynamicgtksyms.gtk_main_iteration
 #define gtk_main_iteration_do dynamicgtksyms.gtk_main_iteration_do
 #define gtk_main_quit dynamicgtksyms.gtk_main_quit
 
