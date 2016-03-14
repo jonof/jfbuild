@@ -52,7 +52,7 @@ ifneq ($(RELEASE),0)
   debug=-fomit-frame-pointer -O2
 else
   # debugging enabled
-  debug=-ggdb -O0 -DDEBUGGINGAIDS -DNOSDLPARACHUTE
+  debug=-Og -DDEBUGGINGAIDS -DNOSDLPARACHUTE
 endif
 
 CC?=gcc
@@ -61,7 +61,7 @@ NASM?=nasm
 WINDRES?=windres
 AR?=ar
 RANLIB=ranlib
-OURCFLAGS=$(debug) -W -Wall -Wimplicit -Wno-unused \
+OURCFLAGS=$(debug) -g -W -Wall -Wimplicit -Wno-unused \
 	-fno-pic -fno-strict-aliasing -DNO_GCC_BUILTINS \
 	-DKSFORBUILD -I$(INC) -I$(SRC)
 OURCXXFLAGS=-fno-exceptions -fno-rtti
