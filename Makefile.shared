@@ -8,8 +8,8 @@ GLLIBWIN=-lopengl32
 GLLIBBSD=-lopengl32
 GLLIBLIN=-lGL
 
-SDLCONFIG=sdl-config
-SDL2CONFIG=sdl2-config
+SDLCONFIG=$(shell which sdl-config)
+SDL2CONFIG=$(shell which sdl2-config)
 
 # Path to the included libsquish
 LIBSQUISH=libsquish
@@ -62,14 +62,14 @@ ifeq ($(PLATFORM),BSD)
 endif
 
 ifeq ($(RENDERTYPE),SDL)
-	ifneq ($(shell $(SDL2CONFIG) --version),)
+	ifneq ($(SDL2CONFIG),)
 		SDLAPI=2
 		SDLCONFIG_CFLAGS+=$(shell $(SDL2CONFIG) --cflags)
 		SDLCONFIG_LIBS=$(shell $(SDL2CONFIG) --libs)
 
 		LIBS+= $(SDLCONFIG_LIBS)
 	else
-		ifneq ($(shell $(SDLCONFIG) --version),)
+		ifneq ($(SDLCONFIG),)
 			SDLAPI=1
 			SDLCONFIG_CFLAGS+=$(subst -Dmain=SDL_main,,$(shell $(SDLCONFIG) --cflags))
 			SDLCONFIG_LIBS=$(shell $(SDLCONFIG) --libs)
