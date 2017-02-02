@@ -28,8 +28,7 @@
 #include <sys/stat.h>
 
 #ifdef __APPLE__
-# include <CoreFoundation/CoreFoundation.h>
-# include <CoreServices/CoreServices.h>
+# include "osxbits.h"
 #endif
 
 #if defined(__WATCOMC__)
@@ -341,6 +340,7 @@ char *Bgetcwd(char *buf, bsize_t size)
 
 /**
  * Get the location of the user's home/profile data directory.
+ * The caller must free the string when done with it.
  * @return NULL if it could not be determined
  */
 char *Bgethomedir(void)
@@ -355,31 +355,7 @@ char *Bgethomedir(void)
     }
 
 #elif defined __APPLE__
-	FSRef ref;
-	CFStringRef str;
-	CFURLRef base;
-	const char *s;
-
-	if (FSFindFolder(kUserDomain,
-                     kVolumeRootFolderType,
-                     kDontCreateFolder, &ref) < 0) return NULL;
-    
-	base = CFURLCreateFromFSRef(NULL, &ref);
-	if (!base) {
-        return NULL;
-    }
-    
-	str = CFURLCopyFileSystemPath(base, kCFURLPOSIXPathStyle);
-	CFRelease(base);
-	if (!str) {
-        return NULL;
-    }
-    
-	s = CFStringGetCStringPtr(str, CFStringGetSystemEncoding());
-	if (s) {
-        dir = strdup(s);
-    }
-	CFRelease(str);
+    dir = osx_gethomedir();
     
 #else
 	char *e = getenv("HOME");
@@ -396,6 +372,7 @@ char *Bgethomedir(void)
  * On OSX this is the .app bundle resource directory.
  * On Windows this is the directory the executable was launched from.
  * On Linux/BSD it's the executable's directory
+ * The caller must free the string when done with it.
  * @return NULL if it could not be determined
  */
 char *Bgetappdir(void)
@@ -413,37 +390,7 @@ char *Bgetappdir(void)
     }
 
 #elif defined __APPLE__
-    CFBundleRef mainBundle;
-    CFURLRef resUrl, fullUrl;
-	CFStringRef str;
-    const char *s;
-    
-    mainBundle = CFBundleGetMainBundle();
-    if (!mainBundle) {
-        return NULL;
-    }
-    
-    resUrl = CFBundleCopyResourcesDirectoryURL(mainBundle);
-    if (!resUrl) {
-        return NULL;
-    }
-    fullUrl = CFURLCopyAbsoluteURL(resUrl);
-    if (fullUrl) {
-        CFRelease(resUrl);
-        resUrl = fullUrl;
-    }
-
-	str = CFURLCopyFileSystemPath(resUrl, kCFURLPOSIXPathStyle);
-    CFRelease(resUrl);
-    if (!str) {
-        return NULL;
-    }
-    
-    s = CFStringGetCStringPtr(str, CFStringGetSystemEncoding());
-    if (s) {
-        dir = strdup(s);
-    }
-    CFRelease(str);
+    dir = osx_getappdir();
     
 #elif defined(__linux) || defined(__NetBSD__) || defined(__OpenBSD__)
     char buf[PATH_MAX] = {0};
@@ -479,6 +426,7 @@ char *Bgetappdir(void)
 
 /**
  * Get the location for global or user-local support files.
+ * The caller must free the string when done with it.
  * @return NULL if it could not be determined
  */
 char *Bgetsupportdir(int global)
@@ -486,31 +434,7 @@ char *Bgetsupportdir(int global)
     char *dir = NULL;
     
 #ifdef __APPLE__
-	FSRef ref;
-	CFStringRef str;
-	CFURLRef base;
-	const char *s;
-	
-	if (FSFindFolder(global ? kLocalDomain : kUserDomain,
-					 kApplicationSupportFolderType,
-					 kDontCreateFolder, &ref) < 0) return NULL;
-
-	base = CFURLCreateFromFSRef(NULL, &ref);
-	if (!base) {
-        return NULL;
-    }
-    
-	str = CFURLCopyFileSystemPath(base, kCFURLPOSIXPathStyle);
-	CFRelease(base);
-	if (!str) {
-        return NULL;
-    }
-    
-	s = CFStringGetCStringPtr(str, CFStringGetSystemEncoding());
-	if (s) {
-        dir = strdup(s);
-    }
-	CFRelease(str);
+    dir = osx_getsupportdir(global);
 
 #else
     if (!global) {

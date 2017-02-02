@@ -1,5 +1,41 @@
 #include "osxbits.h"
 #import <AppKit/AppKit.h>
+#import <Foundation/Foundation.h>
+
+char *osx_gethomedir(void)
+{
+    NSURL *url = [[NSFileManager defaultManager] URLForDirectory:NSUserDirectory
+                                                        inDomain:NSUserDomainMask
+                                               appropriateForURL:nil
+                                                          create:FALSE
+                                                           error:nil];
+    if (url) {
+        return strdup([url fileSystemRepresentation]);
+    }
+    return NULL;
+}
+
+char *osx_getappdir(void)
+{
+    NSString *path = [[NSBundle mainBundle] resourcePath];
+    if (path) {
+        return strdup([path cStringUsingEncoding:NSUTF8StringEncoding]);
+    }
+    return NULL;
+}
+
+char *osx_getsupportdir(int global)
+{
+    NSURL *url = [[NSFileManager defaultManager] URLForDirectory:NSApplicationSupportDirectory
+                                                        inDomain:global ? NSLocalDomainMask : NSUserDomainMask
+                                               appropriateForURL:nil
+                                                          create:FALSE
+                                                           error:nil];
+    if (url) {
+        return strdup([url fileSystemRepresentation]);
+    }
+    return NULL;
+}
 
 int osx_msgbox(const char *name, const char *msg)
 {
