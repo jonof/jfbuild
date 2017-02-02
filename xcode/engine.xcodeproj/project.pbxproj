@@ -647,8 +647,30 @@
 			attributes = {
 				LastUpgradeCheck = 0610;
 				TargetAttributes = {
+					AB3FE44A0C04336F00D5DBDC = {
+						DevelopmentTeam = S7U4E54CHC;
+					};
+					AB735F480A29A2DC003261DC = {
+						DevelopmentTeam = S7U4E54CHC;
+					};
+					AB735FCB0A29A916003261DC = {
+						DevelopmentTeam = S7U4E54CHC;
+					};
+					AB77B4D2171AC3E800982712 = {
+						DevelopmentTeam = S7U4E54CHC;
+					};
+					ABAE9AD10F0B307500A528DC = {
+						DevelopmentTeam = S7U4E54CHC;
+					};
+					ABAE9C270F0CC80200A528DC = {
+						DevelopmentTeam = S7U4E54CHC;
+					};
+					ABAE9C320F0CC81900A528DC = {
+						DevelopmentTeam = S7U4E54CHC;
+					};
 					ABD03E201A5189E00012B9D1 = {
 						CreatedOnToolsVersion = 6.1.1;
+						DevelopmentTeam = S7U4E54CHC;
 					};
 				};
 			};
@@ -823,8 +845,9 @@
 		AB735F3C0A29A24B003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = S7U4E54CHC;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
@@ -840,15 +863,16 @@
 					RENDERTYPESDL,
 					DEBUGGINGAIDS,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 			};
 			name = Debug;
 		};
 		AB735F3D0A29A24B003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = YES;
+				DEVELOPMENT_TEAM = S7U4E54CHC;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
@@ -862,7 +886,7 @@
 					NOASM,
 					RENDERTYPESDL,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 			};
 			name = Release;
 		};
