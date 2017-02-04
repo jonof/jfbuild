@@ -716,6 +716,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 	if ((danetmode == 255) && (daindex)) { danumplayers = 2; danetmode = 0; } //an IP w/o /n# defaults to /n0
 	if ((danumplayers >= 2) && (daindex) && (!danetmode)) myconnectindex = 1;
 	if (daindex > danumplayers) danumplayers = daindex;
+	else if (danumplayers == 0) danumplayers = 1;
 
 	if (danetmode == 0 && myconnectindex == 0) {
 		printf("mmulti: This machine is master\n");
