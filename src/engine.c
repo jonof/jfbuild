@@ -6899,7 +6899,7 @@ int saveboard(char *filename, int *daposx, int *daposy, int *daposz,
 extern char videomodereset;
 int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 {
-	int i, j;
+	int i, j, oldbpp;
 
 	if ((qsetmode == 200) && (videomodereset == 0) &&
 	    (davidoption == fullscreen) && (xdim == daxdim) && (ydim == daydim) && (bpp == dabpp))
@@ -6910,7 +6910,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	//if (checkvideomode(&daxdim, &daydim, dabpp, davidoption)<0) return (-1);
 
 	//bytesperline is set in this function
-	j = bpp;
+	oldbpp = bpp;
 	if (setvideomode(daxdim,daydim,dabpp,davidoption) < 0) return(-1);
 
         // it's possible the previous call protected our code sections again
@@ -6918,7 +6918,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 
 #ifdef POLYMOST
 	if (dabpp > 8) rendmode = 3;	// GL renderer
-	else if (dabpp == 8 && j > 8) rendmode = 0;	// going from GL to software activates softpolymost
+	else if (dabpp == 8 && oldbpp > 8) rendmode = 0;	// going from GL to software activates softpolymost
 #endif
 
 	xdim = daxdim; ydim = daydim;
