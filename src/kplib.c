@@ -2232,7 +2232,7 @@ static int kbmprend (const char *buf, int fleng,
 	int daglobxoffs, int daglobyoffs)
 {
 	int i, j, x, y, x0, x1, y0, y1, rastoff, headsiz, xsiz, ysiz, cdim, comp, cptrinc, *lptr;
-	const unsigned char *cptr;
+	const unsigned char *cptr, *ubuf = (const unsigned char *)buf;
 
 	headsiz = *(int *)&buf[14];
 	if (headsiz == LSWAPIB(12)) //OS/2 1.x (old format)
@@ -2262,7 +2262,7 @@ static int kbmprend (const char *buf, int fleng,
 	{
 		if (cdim == 2) { palcol[0] = 0xffffffff; palcol[1] = LSWAPIB(0xff000000); }
 		if (headsiz == LSWAPIB(12)) j = 3; else j = 4;
-		for(i=0,cptr=&buf[headsiz+14];cptr<&buf[rastoff];i++,cptr+=j)
+		for(i=0,cptr=&ubuf[headsiz+14];cptr<&ubuf[rastoff];i++,cptr+=j)
 			palcol[i] = ((*(int *)&cptr[0])|LSWAPIB(0xff000000));
 		coltype = 3; bitdepth = cdim; paleng = i; //For PNGOUT
 	}
@@ -2299,7 +2299,7 @@ static int kbmprend (const char *buf, int fleng,
 		palcol[5] = ((-1<<( 8-palcol[5]))&0x000000ff);
 	}
 
-	cptrinc = (((xsiz*cdim+31)>>3)&~3); cptr = &buf[rastoff];
+	cptrinc = (((xsiz*cdim+31)>>3)&~3); cptr = &ubuf[rastoff];
 	if (ysiz < 0) { ysiz = -ysiz; } else { cptr = &cptr[(ysiz-1)*cptrinc]; cptrinc = -cptrinc; }
 
 	x0 = daglobxoffs; x1 = xsiz+daglobxoffs;

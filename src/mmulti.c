@@ -1150,7 +1150,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 				if (other == myconnectindex) {
 #ifdef DEBUG_SENDRECV
 					debugprintf("mmulti debug: got a packet from unknown host %s\n",
-								presentaddress(&snatchhost));
+								presentaddress((struct sockaddr *)&snatchhost));
 					return 0;
 #endif
 				}
