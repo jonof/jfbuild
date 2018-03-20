@@ -122,13 +122,13 @@ static int fvel, svel, avel;
 static int fvel2, svel2, avel2;
 
 #define NUMOPTIONS 8
-#define NUMKEYS 19
+#define NUMKEYS 20
 unsigned char option[NUMOPTIONS] = {0,0,0,0,0,0,1,0};
 unsigned char keys[NUMKEYS] =
 {
 	0xc8,0xd0,0xcb,0xcd,0x2a,0x9d,0x1d,0x39,
 	0x1e,0x2c,0xd1,0xc9,0x33,0x34,
-	0x9c,0x1c,0xd,0xc,0xf
+	0x9c,0x1c,0xd,0xc,0xf,0x2b
 };
 int xdimgame = 320, ydimgame = 200, bppgame = 8, xdim2d = 640, ydim2d = 480;	// JBF 20050318: config.c expects to find these
 int forcesetup = 1;
