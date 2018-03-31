@@ -26,31 +26,33 @@ $(SRC)/mmulti.$o: $(SRC)/mmulti.c $(INC)/build.h $(INC)/mmulti.h $(INC)/baselaye
 $(SRC)/osd.$o: $(SRC)/osd.c $(INC)/build.h $(INC)/osd.h $(INC)/compat.h $(INC)/baselayer.h
 $(SRC)/pragmas.$o: $(SRC)/pragmas.c $(INC)/compat.h
 $(SRC)/scriptfile.$o: $(SRC)/scriptfile.c $(INC)/scriptfile.h $(INC)/cache1d.h $(INC)/compat.h
-$(SRC)/sdlayer.$o: $(SRC)/sdlayer.c $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/build.h $(INC)/osd.h $(INC)/glbuild.h
 $(SRC)/sdlayer2.$o: $(SRC)/sdlayer2.c $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/build.h $(INC)/osd.h $(INC)/glbuild.h
 $(SRC)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/baselayer.h $(INC)/pragmas.h $(INC)/build.h $(SRC)/a.h $(INC)/osd.h $(SRC)/dxdidf.h $(INC)/glbuild.h
-$(SRC)/gtkbits.$o: $(SRC)/gtkbits.c $(INC)/baselayer.h $(INC)/compat.h $(INC)/build.h $(INC)/dynamicgtk.h
-$(SRC)/dynamicgtk.$o: $(SRC)/dynamicgtk.c $(INC)/dynamicgtk.h
+$(SRC)/gtkbits.$o: $(SRC)/gtkbits.c $(INC)/baselayer.h $(INC)/compat.h $(INC)/build.h
 
-$(SRC)/startwin.editor.$o: $(SRC)/startwin.editor.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(INC)/buildres.h
-$(SRC)/startgtk.editor.$o: $(SRC)/startgtk.editor.c $(INC)/baselayer.h $(INC)/build.h $(INC)/editor.h $(INC)/compat.h
+$(SRC)/startwin_editor.$o: $(SRC)/startwin_editor.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(INC)/buildres.h
+$(SRC)/startgtk_editor.$o: $(SRC)/startgtk_editor.c $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h $(INC)/editor.h
 
 # KenBuild test game
 $(GAME)/game.$o: $(GAME)/game.c $(INC)/compat.h $(INC)/build.h $(GAME)/names.h $(INC)/pragmas.h $(INC)/cache1d.h $(GAME)/game.h $(INC)/osd.h $(INC)/baselayer.h
 $(GAME)/bstub.$o: $(GAME)/bstub.c $(INC)/compat.h $(INC)/build.h $(INC)/pragmas.h $(INC)/baselayer.h $(GAME)/names.h $(INC)/osd.h $(INC)/cache1d.h $(INC)/editor.h
 $(GAME)/config.$o: $(GAME)/config.c $(INC)/compat.h $(INC)/osd.h $(INC)/editor.h
 $(GAME)/sound.$o: $(GAME)/sound.c $(INC)/osd.h $(INC)/compat.h $(INC)/cache1d.h
-$(GAME)/jfaud_sound.$o: $(GAME)/jfaud_sound.cpp $(INC)/osd.h $(INC)/compat.h $(INC)/cache1d.h
-$(GAME)/startwin.game.$o: $(GAME)/startwin.game.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(GAME)/gameres.h
-$(GAME)/startgtk.game.$o: $(GAME)/startgtk.game.c $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h
+$(GAME)/startwin_game.$o: $(GAME)/startwin_game.c $(INC)/build.h $(INC)/winlayer.h $(INC)/compat.h $(GAME)/game.h $(GAME)/gameres.h
+$(GAME)/startgtk_game.$o: $(GAME)/startgtk_game.c $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h $(GAME)/game.h
 
-$(GAME)/gameres.$(res): $(GAME)/gameres.rc $(GAME)/gameres.h
-$(GAME)/buildres.$(res): $(GAME)/buildres.rc $(GAME)/rsrc/build.bmp $(INC)/buildres.h
+$(GAME)/gameres.$(res): $(GAME)/gameres.rc $(GAME)/gameres.h $(GAME)/rsrc/game_icon.ico $(GAME)/rsrc/game.manifest
+$(GAME)/buildres.$(res): $(GAME)/buildres.rc $(INC)/buildres.h $(GAME)/rsrc/build.bmp $(GAME)/rsrc/build_icon.ico $(GAME)/rsrc/build.manifest
 
-$(GAME)/game_icon.$o: $(GAME)/rsrc/game_icon.c
-$(GAME)/build_icon.$o: $(GAME)/rsrc/build_icon.c
-$(GAME)/game_banner.$o: $(GAME)/rsrc/game_banner.c
-$(GAME)/editor_banner.$o: $(GAME)/rsrc/editor_banner.c
+# Derived source files from art assets
+$(GAME)/rsrc/startgtk_game_gresource.c: $(GAME)/rsrc/startgtk_game.gresource.xml $(GAME)/rsrc/game.png $(GAME)/rsrc/startgtk_game.glade
+$(GAME)/rsrc/startgtk_game_gresource.h: $(GAME)/rsrc/startgtk_game.gresource.xml
+$(GAME)/rsrc/startgtk_build_gresource.c: $(GAME)/rsrc/startgtk_build.gresource.xml $(GAME)/rsrc/build.png $(GAME)/rsrc/startgtk_build.glade
+$(GAME)/rsrc/startgtk_build_gresource.h: $(GAME)/rsrc/startgtk_build.gresource.xml
+$(GAME)/rsrc/sdlappicon_game.c: $(GAME)/rsrc/game.png
+$(GAME)/rsrc/sdlappicon_game.$o: $(GAME)/rsrc/sdlappicon_game.c
+$(GAME)/rsrc/sdlappicon_build.c: $(GAME)/rsrc/build.png
+$(GAME)/rsrc/sdlappicon_build.$o: $(GAME)/rsrc/sdlappicon_build.c
 
 # Tools
 $(TOOLS)/arttool.$o: $(TOOLS)/arttool.cc
@@ -59,5 +61,6 @@ $(TOOLS)/kgroup.$o: $(TOOLS)/kgroup.c $(INC)/compat.h
 $(TOOLS)/transpal.$o: $(TOOLS)/transpal.c $(INC)/compat.h $(INC)/pragmas.h
 $(TOOLS)/wad2art.$o: $(TOOLS)/wad2art.c $(INC)/compat.h $(INC)/pragmas.h
 $(TOOLS)/wad2map.$o: $(TOOLS)/wad2map.c $(INC)/compat.h $(INC)/pragmas.h
-$(TOOLS)/generateicon.$o: $(TOOLS)/generateicon.c
+$(TOOLS)/generatesdlappicon.$o: $(TOOLS)/generatesdlappicon.c
 $(TOOLS)/cacheinfo.$o: $(TOOLS)/cacheinfo.c $(INC)/compat.h
+$(TOOLS)/bin2c.$o: $(TOOLS)/bin2c.cc

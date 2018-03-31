@@ -1170,7 +1170,7 @@ unsigned gloadtex (int *picbuf, int xsiz, int ysiz, int is8bit, int dapal)
 	int i;
 
 	pic = (coltype *)picbuf; //Correct for GL's RGB order; also apply gamma here..
-	pic2 = (coltype *)malloc(xsiz*ysiz*sizeof(int)); if (!pic2) return((unsigned)-1);
+	pic2 = (coltype *)malloc(xsiz*ysiz*sizeof(coltype)); if (!pic2) return((unsigned)-1);
 	cptr = (unsigned char*)&britable[gammabrightness ? 0 : curbrightness][0];
 	if (!is8bit)
 	{
@@ -1556,7 +1556,7 @@ static int loadvox (const char *filnam)
 	vbit = (int *)malloc(i); if (!vbit) { kclose(fil); return(-1); }
 	memset(vbit,0,i);
 
-	tbuf = (unsigned char *)malloc(zsiz*sizeof(char)); if (!tbuf) { kclose(fil); return(-1); }
+	tbuf = (unsigned char *)malloc(zsiz*sizeof(unsigned char)); if (!tbuf) { kclose(fil); return(-1); }
 
 	klseek(fil,12,SEEK_SET);
 	for(x=0;x<xsiz;x++)
@@ -1664,7 +1664,7 @@ static int loadkv6 (const char *filnam)
 	kread(fil,&i,4);       zpiv = (float)(B_LITTLE32(i));
 	kread(fil,&numvoxs,4); numvoxs = B_LITTLE32(numvoxs);
 
-	ylen = (unsigned short *)malloc(xsiz*ysiz*sizeof(short));
+	ylen = (unsigned short *)malloc(xsiz*ysiz*sizeof(unsigned short));
 	if (!ylen) { kclose(fil); return(-1); }
 
 	klseek(fil,32+(numvoxs<<3)+(xsiz<<2),SEEK_SET);

@@ -7,12 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AB053FAD0A33136000FA2918 /* osxmain.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07700A3307F700FF2442 /* osxmain.nib */; };
 		AB053FAF0A33136D00FA2918 /* startwin.game.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB053FAE0A33136D00FA2918 /* startwin.game.nib */; };
 		AB3DEDA21BD23DAB0009D070 /* Game Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */; };
 		AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */; };
 		AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07650A33068500FF2442 /* startwin.editor.nib */; };
-		AB3E07710A3307F700FF2442 /* osxmain.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07700A3307F700FF2442 /* osxmain.nib */; };
 		AB3FE4680C0433D000D5DBDC /* libeditorsupp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */; };
 		AB726D410F046BDE00730EAA /* sound_stub.c in Sources */ = {isa = PBXBuildFile; fileRef = AB726D400F046BDE00730EAA /* sound_stub.c */; };
 		AB726D690F046E7800730EAA /* ascboard.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D610F046E6E00730EAA /* ascboard.map */; };
@@ -34,7 +32,7 @@
 		AB73604B0A29AD5F003261DC /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601B0A29AA70003261DC /* libengine.a */; };
 		AB73605A0A29ADB5003261DC /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601B0A29AA70003261DC /* libengine.a */; };
 		AB73605B0A29ADB7003261DC /* libeditor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601D0A29AA70003261DC /* libeditor.a */; };
-		AB7361230A29B9D4003261DC /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
+		AB7361230A29B9D4003261DC /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = (Required, ); }; };
 		AB7361240A29B9D4003261DC /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
 		AB7361290A29BA60003261DC /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361280A29BA60003261DC /* CoreFoundation.framework */; };
 		AB73612A0A29BA60003261DC /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361280A29BA60003261DC /* CoreFoundation.framework */; };
@@ -161,7 +159,6 @@
 		AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Game Images.xcassets"; sourceTree = "<group>"; };
 		AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Editor Images.xcassets"; sourceTree = "<group>"; };
 		AB3E07650A33068500FF2442 /* startwin.editor.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.editor.nib; sourceTree = SOURCE_ROOT; };
-		AB3E07700A3307F700FF2442 /* osxmain.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = osxmain.nib; sourceTree = SOURCE_ROOT; };
 		AB726D400F046BDE00730EAA /* sound_stub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sound_stub.c; path = ../kenbuild/sound_stub.c; sourceTree = SOURCE_ROOT; };
 		AB726D610F046E6E00730EAA /* ascboard.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = ascboard.map; sourceTree = "<group>"; };
 		AB726D620F046E6E00730EAA /* boards.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = boards.map; sourceTree = "<group>"; };
@@ -276,7 +273,6 @@
 			children = (
 				AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */,
 				ABA9E3290FEF9DD00024231F /* bstub.c */,
-				AB3E07700A3307F700FF2442 /* osxmain.nib */,
 				AB3E07650A33068500FF2442 /* startwin.editor.nib */,
 				AB7360520A29AD92003261DC /* build-Info.plist */,
 			);
@@ -435,7 +431,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AB053FAD0A33136000FA2918 /* osxmain.nib in Resources */,
 				AB3DEDA21BD23DAB0009D070 /* Game Images.xcassets in Resources */,
 				AB053FAF0A33136D00FA2918 /* startwin.game.nib in Resources */,
 			);
@@ -447,7 +442,6 @@
 			files = (
 				AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */,
 				AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */,
-				AB3E07710A3307F700FF2442 /* osxmain.nib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -497,9 +491,10 @@
 		AB73600D0A29AA64003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = S7U4E54CHC;
+				ENABLE_TESTABILITY = YES;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
@@ -515,8 +510,8 @@
 					RENDERTYPESDL,
 				);
 				HEADER_SEARCH_PATHS = ../include;
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				OTHER_CODE_SIGN_FLAGS = "--deep";
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				ONLY_ACTIVE_ARCH = YES;
 				PREBINDING = NO;
 			};
 			name = Debug;
@@ -524,9 +519,9 @@
 		AB73600E0A29AA64003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = "$(ARCHS_STANDARD_32_64_BIT)";
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = YES;
+				DEVELOPMENT_TEAM = S7U4E54CHC;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
@@ -541,8 +536,7 @@
 					RENDERTYPESDL,
 				);
 				HEADER_SEARCH_PATHS = ../include;
-				MACOSX_DEPLOYMENT_TARGET = 10.6;
-				OTHER_CODE_SIGN_FLAGS = "--deep";
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
 				PREBINDING = NO;
 			};
 			name = Release;
@@ -555,6 +549,7 @@
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
+				PRODUCT_BUNDLE_IDENTIFIER = au.id.jonof.kenbuild;
 				PRODUCT_NAME = KenBuild;
 				WRAPPER_EXTENSION = app;
 			};
@@ -568,6 +563,7 @@
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
+				PRODUCT_BUNDLE_IDENTIFIER = au.id.jonof.kenbuild;
 				PRODUCT_NAME = KenBuild;
 				WRAPPER_EXTENSION = app;
 			};
@@ -580,6 +576,7 @@
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
+				PRODUCT_BUNDLE_IDENTIFIER = au.id.jonof.kenbuild.build;
 				PRODUCT_NAME = "Build Editor";
 				WRAPPER_EXTENSION = app;
 			};
@@ -592,6 +589,7 @@
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
 				OTHER_LDFLAGS = "-lstdc++";
+				PRODUCT_BUNDLE_IDENTIFIER = au.id.jonof.kenbuild.build;
 				PRODUCT_NAME = "Build Editor";
 				WRAPPER_EXTENSION = app;
 			};

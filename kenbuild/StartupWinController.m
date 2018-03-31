@@ -3,24 +3,15 @@
 #include "compat.h"
 #include "baselayer.h"
 #include "build.h"
-#include "mmulti.h"
+#include "game.h"
 
 #include <stdlib.h>
-
-static struct {
-    int fullscreen;
-    int xdim3d, ydim3d, bpp3d;
-    int forcesetup;
-
-    int multiargc;
-    char const * *multiargv;
-    char *multiargstr;
-} settings;
 
 @interface StartupWinController : NSWindowController <NSWindowDelegate>
 {
     BOOL quiteventonclose;
-    NSMutableArray *modeslist3d;
+    BOOL inmodal;
+    struct startwin_settings *settings;
 
     IBOutlet NSButton *alwaysShowButton;
     IBOutlet NSButton *fullscreenButton;
@@ -31,36 +22,33 @@ static struct {
     IBOutlet NSPopUpButton *videoMode3DPUButton;
 
     IBOutlet NSButton *singlePlayerButton;
-    IBOutlet NSButton *multiPlayerButton;
+    IBOutlet NSButton *joinMultiButton;
+    IBOutlet NSTextField *hostField;
+    IBOutlet NSButton *hostMultiButton;
     IBOutlet NSTextField *numPlayersField;
     IBOutlet NSStepper *numPlayersStepper;
-    IBOutlet NSTextField *playerHostsLabel;
-    IBOutlet NSTextField *playerHostsField;
-    IBOutlet NSButton *peerToPeerButton;
 
     IBOutlet NSButton *cancelButton;
     IBOutlet NSButton *startButton;
 }
 
-- (void)dealloc;
+- (int)modalRun;
 - (void)closeQuietly;
 - (void)populateVideoModes:(BOOL)firstTime;
 
-- (IBAction)alwaysShowClicked:(id)sender;
 - (IBAction)fullscreenClicked:(id)sender;
 
 - (IBAction)multiPlayerModeClicked:(id)sender;
-- (IBAction)peerToPeerModeClicked:(id)sender;
 
 - (IBAction)cancel:(id)sender;
 - (IBAction)start:(id)sender;
 
-- (void)setupRunMode;
+- (void)setupConfigMode;
 - (void)setupMessagesMode:(BOOL)allowCancel;
 - (void)putsMessage:(NSString *)str;
 - (void)setTitle:(NSString *)str;
+- (void)setSettings:(struct startwin_settings *)theSettings;
 
-- (void)setupPlayerHostsField;
 @end
 
 @implementation StartupWinController
@@ -70,10 +58,28 @@ static struct {
     quiteventonclose = TRUE;
 }
 
-- (void)dealloc
+- (BOOL)windowShouldClose:(id)sender
 {
-    [modeslist3d release];
-    [super dealloc];
+    if (inmodal) {
+        [NSApp stopModalWithCode:STARTWIN_CANCEL];
+    }
+    quitevent = quitevent || quiteventonclose;
+    return NO;
+}
+
+- (int)modalRun
+{
+    int retval;
+
+    inmodal = YES;
+    switch ([NSApp runModalForWindow:[self window]]) {
+        case STARTWIN_RUN: retval = STARTWIN_RUN; break;
+        case STARTWIN_CANCEL: retval = STARTWIN_CANCEL; break;
+        default: retval = -1;
+    }
+    inmodal = NO;
+
+    return retval;
 }
 
 // Close the window, but don't cause the quitevent flag to be set
@@ -86,26 +92,32 @@ static struct {
 
 - (void)populateVideoModes:(BOOL)firstTime
 {
-    int i, mode3d, fullscreen = ([fullscreenButton state] == NSOnState);
+    int i, mode3d = -1;
     int idx3d = -1;
-    int xdim, ydim, bpp = 8;
+    int xdim = 0, ydim = 0, bpp = 0, fullscreen = 0;
+    int cd[] = { 32, 24, 16, 15, 8, 0 };
+    NSMenu *menu3d = nil;
+    NSMenuItem *menuitem = nil;
 
     if (firstTime) {
-        xdim = settings.xdim3d;
-        ydim = settings.ydim3d;
-        bpp  = settings.bpp3d;
+        getvalidmodes();
+        xdim = settings->xdim3d;
+        ydim = settings->ydim3d;
+        bpp  = settings->bpp3d;
+        fullscreen = settings->fullscreen;
     } else {
-        mode3d = [[modeslist3d objectAtIndex:[videoMode3DPUButton indexOfSelectedItem]] intValue];
+        fullscreen = ([fullscreenButton state] == NSOnState);
+        mode3d = [[videoMode3DPUButton selectedItem] tag];
         if (mode3d >= 0) {
             xdim = validmode[mode3d].xdim;
             ydim = validmode[mode3d].ydim;
             bpp = validmode[mode3d].bpp;
         }
-
     }
+
+    // Find an ideal match.
     mode3d = checkvideomode(&xdim, &ydim, bpp, fullscreen, 1);
     if (mode3d < 0) {
-        int i, cd[] = { 32, 24, 16, 15, 8, 0 };
         for (i=0; cd[i]; ) { if (cd[i] >= bpp) i++; else break; }
         for ( ; cd[i]; i++) {
             mode3d = checkvideomode(&xdim, &ydim, cd[i], fullscreen, 1);
@@ -114,25 +126,22 @@ static struct {
         }
     }
 
-    [modeslist3d release];
-    [videoMode3DPUButton removeAllItems];
-
-    modeslist3d = [[NSMutableArray alloc] init];
+    // Repopulate the lists.
+    menu3d = [videoMode3DPUButton menu];
+    [menu3d removeAllItems];
 
     for (i = 0; i < validmodecnt; i++) {
-        if (fullscreen == validmode[i].fs) {
-            if (i == mode3d) idx3d = [modeslist3d count];
-            [modeslist3d addObject:[NSNumber numberWithInt:i]];
-            [videoMode3DPUButton addItemWithTitle:[NSString stringWithFormat:@"%d %C %d %d-bpp",
-                                                   validmode[i].xdim, 0xd7, validmode[i].ydim, validmode[i].bpp]];
-        }
+        if (validmode[i].fs != fullscreen) continue;
+
+        if (i == mode3d) idx3d = i;
+        menuitem = [menu3d addItemWithTitle:[NSString stringWithFormat:@"%d %C %d %d-bpp",
+                                          validmode[i].xdim, 0xd7, validmode[i].ydim, validmode[i].bpp]
+                                     action:nil
+                              keyEquivalent:@""];
+        [menuitem setTag:i];
     }
 
-    if (idx3d >= 0) [videoMode3DPUButton selectItemAtIndex:idx3d];
-}
-
-- (IBAction)alwaysShowClicked:(id)sender
-{
+    if (idx3d >= 0) [videoMode3DPUButton selectItemWithTag:idx3d];
 }
 
 - (IBAction)fullscreenClicked:(id)sender
@@ -143,137 +152,77 @@ static struct {
 - (IBAction)multiPlayerModeClicked:(id)sender
 {
     [singlePlayerButton setState:(sender == singlePlayerButton ? NSOnState : NSOffState)];
-    [multiPlayerButton setState:(sender == multiPlayerButton ? NSOnState : NSOffState)];
 
-    [peerToPeerButton setEnabled:(sender == multiPlayerButton)];
-    [playerHostsField setEnabled:(sender == multiPlayerButton)];
-    [self setupPlayerHostsField];
+    [joinMultiButton setState:(sender == joinMultiButton ? NSOnState : NSOffState)];
+    [hostField setEnabled:(sender == joinMultiButton)];
 
-    BOOL enableNumPlayers = (sender == multiPlayerButton) && ([peerToPeerButton state] == NSOffState);
-    [numPlayersField setEnabled:enableNumPlayers];
-    [numPlayersStepper setEnabled:enableNumPlayers];
-}
-
-- (IBAction)peerToPeerModeClicked:(id)sender
-{
-    BOOL enableNumPlayers = ([peerToPeerButton state] == NSOffState);
-    [numPlayersField setEnabled:enableNumPlayers];
-    [numPlayersStepper setEnabled:enableNumPlayers];
-    [self setupPlayerHostsField];
-}
-
-- (void)setupPlayerHostsField
-{
-    if ([peerToPeerButton state] == NSOffState) {
-        [playerHostsLabel setStringValue:@"Host address:"];
-        [playerHostsField setPlaceholderString:@"Leave empty to host the game."];
-    } else {
-        [playerHostsLabel setStringValue:@"Player addresses:"];
-        [playerHostsField setPlaceholderString:@"List each address in order. Use * to indicate this machine's position."];
-    }
-}
-
-- (void)windowWillClose:(NSNotification *)notification
-{
-    [NSApp stopModalWithCode:STARTWIN_CANCEL];
-    quitevent = quitevent || quiteventonclose;
+    [hostMultiButton setState:(sender == hostMultiButton ? NSOnState : NSOffState)];
+    [numPlayersField setEnabled:(sender == hostMultiButton)];
+    [numPlayersStepper setEnabled:(sender == hostMultiButton)];
 }
 
 - (IBAction)cancel:(id)sender
 {
-    [NSApp stopModalWithCode:STARTWIN_CANCEL];
+    if (inmodal) {
+        [NSApp stopModalWithCode:STARTWIN_CANCEL];
+    }
     quitevent = quitevent || quiteventonclose;
 }
 
 - (IBAction)start:(id)sender
 {
-    int retval;
-    int mode = [[modeslist3d objectAtIndex:[videoMode3DPUButton indexOfSelectedItem]] intValue];
+    int mode = -1;
+
+    mode = [[videoMode3DPUButton selectedItem] tag];
     if (mode >= 0) {
-        settings.xdim3d = validmode[mode].xdim;
-        settings.ydim3d = validmode[mode].ydim;
-        settings.bpp3d = validmode[mode].bpp;
-        settings.fullscreen = validmode[mode].fs;
+        settings->xdim3d = validmode[mode].xdim;
+        settings->ydim3d = validmode[mode].ydim;
+        settings->bpp3d = validmode[mode].bpp;
+        settings->fullscreen = validmode[mode].fs;
     }
 
-    if ([multiPlayerButton state] == NSOnState) {
-        @autoreleasepool {
-            NSMutableArray *args = [[[NSMutableArray alloc] init] autorelease];
-            NSString *str;
-            int argstrlen = 0, i;
-            char *argstrptr;
-
-            // The game type parameter.
-            if ([peerToPeerButton state] == NSOnState) {
-                str = [[NSString alloc] initWithString:@"-n1"];
-            } else {
-                str = [[NSString alloc] initWithFormat:@"-n0:%d", [numPlayersField intValue]];
-            }
-            [str autorelease];
-            [args addObject:str];
-            argstrlen += [str lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
-
-            // The peer list.
-            NSCharacterSet *split = [NSCharacterSet characterSetWithCharactersInString:@" ,\n\t"];
-            NSArray *parts = [[playerHostsField stringValue] componentsSeparatedByCharactersInSet:split];
-            NSEnumerator *iterparts = [parts objectEnumerator];
-
-            while (str = (NSString *)[iterparts nextObject]) {
-                if ([str length] == 0) continue;
-                [args addObject:str];
-                argstrlen += [str lengthOfBytesUsingEncoding:NSUTF8StringEncoding] + 1;
-            }
-
-            settings.multiargc = [args count];
-            settings.multiargv = (char const * *)malloc(settings.multiargc * sizeof(char *));
-            settings.multiargstr = (char *)malloc(argstrlen);
-
-            argstrptr = settings.multiargstr;
-            for (i = 0; i < settings.multiargc; i++) {
-                str = (NSString *)[args objectAtIndex:i];
-
-                strcpy(argstrptr, [str cStringUsingEncoding:NSUTF8StringEncoding]);
-                settings.multiargv[i] = argstrptr;
-                argstrptr += strlen(argstrptr) + 1;
-            }
-        }
-
-        retval = STARTWIN_RUN_MULTI;
-    } else {
-        settings.multiargc = 0;
-        settings.multiargv = NULL;
-        settings.multiargstr = NULL;
-
-        retval = STARTWIN_RUN;
+    settings->numplayers = 0;
+    settings->joinhost = NULL;
+    if ([singlePlayerButton state] == NSOnState) {
+        settings->numplayers = 1;
+    } else if ([joinMultiButton state] == NSOnState) {
+        NSString *host = [hostField stringValue];
+        settings->numplayers = 2;
+        settings->joinhost = strdup([host cStringUsingEncoding:NSUTF8StringEncoding]);
+    } else if ([hostMultiButton state] == NSOnState) {
+        settings->numplayers = [numPlayersField intValue];
     }
 
-    settings.forcesetup = [alwaysShowButton state] == NSOnState;
+    settings->forcesetup = [alwaysShowButton state] == NSOnState;
 
-    [NSApp stopModalWithCode:retval];
+    if (inmodal) {
+        [NSApp stopModalWithCode:STARTWIN_RUN];
+    }
 }
 
-- (void)setupRunMode
+- (void)setupConfigMode
 {
-    [alwaysShowButton setState: (settings.forcesetup ? NSOnState : NSOffState)];
+    [alwaysShowButton setState: (settings->forcesetup ? NSOnState : NSOffState)];
     [alwaysShowButton setEnabled:YES];
 
-    getvalidmodes();
     [videoMode3DPUButton setEnabled:YES];
     [self populateVideoModes:YES];
     [fullscreenButton setEnabled:YES];
-    [fullscreenButton setState: (settings.fullscreen ? NSOnState : NSOffState)];
+    [fullscreenButton setState: (settings->fullscreen ? NSOnState : NSOffState)];
 
     [singlePlayerButton setEnabled:YES];
     [singlePlayerButton setState:NSOnState];
-    [multiPlayerButton setEnabled:YES];
-    [multiPlayerButton setState:NSOffState];
+
+    [hostMultiButton setEnabled:YES];
+    [hostMultiButton setState:NSOffState];
     [numPlayersField setEnabled:NO];
     [numPlayersField setIntValue:2];
     [numPlayersStepper setEnabled:NO];
     [numPlayersStepper setMaxValue:MAXPLAYERS];
-    [peerToPeerButton setEnabled:NO];
-    [playerHostsField setEnabled:NO];
-    [self setupPlayerHostsField];
+
+    [joinMultiButton setEnabled:YES];
+    [joinMultiButton setState:NSOffState];
+    [hostField setEnabled:NO];
 
     [cancelButton setEnabled:YES];
     [startButton setEnabled:YES];
@@ -326,6 +275,11 @@ static struct {
     [[self window] setTitle:str];
 }
 
+- (void)setSettings:(struct startwin_settings *)theSettings
+{
+    settings = theSettings;
+}
+
 @end
 
 static StartupWinController *startwin = nil;
@@ -334,53 +288,53 @@ int startwin_open(void)
 {
     if (startwin != nil) return 1;
 
-    startwin = [[StartupWinController alloc] initWithWindowNibName:@"startwin.game"];
-    if (startwin == nil) return -1;
+    @autoreleasepool {
+        startwin = [[StartupWinController alloc] initWithWindowNibName:@"startwin.game"];
+        if (startwin == nil) return -1;
 
-    [startwin window];  // Forces the window controls on the controller to be initialised.
-    [startwin setupMessagesMode:YES];
-    [startwin showWindow:nil];
+        [startwin window];  // Forces the window controls on the controller to be initialised.
+        [startwin setupMessagesMode:YES];
+        [startwin showWindow:nil];
 
-    return 0;
+        return 0;
+    }
 }
 
 int startwin_close(void)
 {
     if (startwin == nil) return 1;
 
-    [startwin closeQuietly];
-    [startwin release];
-    startwin = nil;
+    @autoreleasepool {
+        [startwin closeQuietly];
+        [startwin release];
+        startwin = nil;
 
-    return 0;
+        return 0;
+    }
 }
 
 int startwin_puts(const char *s)
 {
-    NSString *ns;
-
     if (!s) return -1;
     if (startwin == nil) return 1;
 
-    ns = [[NSString alloc] initWithUTF8String:s];
-    [startwin putsMessage:ns];
-    [ns release];
+    @autoreleasepool {
+        [startwin putsMessage:[NSString stringWithUTF8String:s]];
 
-    return 0;
+        return 0;
+    }
 }
 
 int startwin_settitle(const char *s)
 {
-    NSString *ns;
-
     if (!s) return -1;
     if (startwin == nil) return 1;
 
-    ns = [[NSString alloc] initWithUTF8String:s];
-    [startwin setTitle:ns];
-    [ns release];
+    @autoreleasepool {
+        [startwin setTitle:[NSString stringWithUTF8String:s]];
 
-    return 0;
+        return 0;
+    }
 }
 
 int startwin_idle(void *v)
@@ -388,46 +342,19 @@ int startwin_idle(void *v)
     return 0;
 }
 
-extern int xdimgame, ydimgame, bppgame, forcesetup;
-
-int startwin_run(void)
+int startwin_run(struct startwin_settings *settings)
 {
     int retval;
 
     if (startwin == nil) return 0;
 
-    settings.fullscreen = fullscreen;
-    settings.xdim3d = xdimgame;
-    settings.ydim3d = ydimgame;
-    settings.bpp3d = bppgame;
-    settings.forcesetup = forcesetup;
+    @autoreleasepool {
+        [startwin setSettings:settings];
 
-    [startwin setupRunMode];
+        [startwin setupConfigMode];
+        retval = [startwin modalRun];
+        [startwin setupMessagesMode: (settings->numplayers > 1)];
 
-    switch ([NSApp runModalForWindow:[startwin window]]) {
-        case STARTWIN_RUN_MULTI: retval = STARTWIN_RUN_MULTI; break;
-        case STARTWIN_RUN: retval = STARTWIN_RUN; break;
-        case STARTWIN_CANCEL: retval = STARTWIN_CANCEL; break;
-        default: retval = -1;
+        return retval;
     }
-
-    [startwin setupMessagesMode:(retval == STARTWIN_RUN_MULTI)];
-
-    if (retval) {
-        fullscreen = settings.fullscreen;
-        xdimgame = settings.xdim3d;
-        ydimgame = settings.ydim3d;
-        bppgame = settings.bpp3d;
-        forcesetup = settings.forcesetup;
-
-        if (retval == STARTWIN_RUN_MULTI) {
-            if (!initmultiplayersparms(settings.multiargc, settings.multiargv)) {
-                retval = STARTWIN_RUN;
-            }
-            free(settings.multiargv);
-            free(settings.multiargstr);
-        }
-    }
-
-    return retval;
 }

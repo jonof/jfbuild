@@ -1,19 +1,17 @@
 #import <Cocoa/Cocoa.h>
 
-#include "build.h"
+#include "compat.h"
 #include "baselayer.h"
+#include "build.h"
+#include "editor.h"
 
-static struct {
-    int fullscreen;
-    int xdim2d, ydim2d;
-    int xdim3d, ydim3d, bpp3d;
-    int forcesetup;
-} settings;
+#include <stdlib.h>
 
 @interface EditorStartupWinController : NSWindowController <NSWindowDelegate>
 {
-    NSMutableArray *modeslist2d;
-    NSMutableArray *modeslist3d;
+    BOOL quiteventonclose;
+    BOOL inmodal;
+    struct startwin_settings *settings;
 
     IBOutlet NSButton *alwaysShowButton;
     IBOutlet NSButton *fullscreenButton;
@@ -28,65 +26,103 @@ static struct {
     IBOutlet NSButton *startButton;
 }
 
-- (void)dealloc;
+- (int)modalRun;
+- (void)closeQuietly;
 - (void)populateVideoModes:(BOOL)firstTime;
 
-- (IBAction)alwaysShowClicked:(id)sender;
 - (IBAction)fullscreenClicked:(id)sender;
 
 - (IBAction)cancel:(id)sender;
 - (IBAction)start:(id)sender;
 
-- (void)setupRunMode;
-- (void)setupMessagesMode;
+- (void)setupConfigMode;
+- (void)setupMessagesMode:(BOOL)allowCancel;
 - (void)putsMessage:(NSString *)str;
 - (void)setTitle:(NSString *)str;
+- (void)setSettings:(struct startwin_settings *)theSettings;
+
 @end
 
 @implementation EditorStartupWinController
 
-- (void)dealloc
+- (void)windowDidLoad
 {
-    [modeslist2d release];
-    [modeslist3d release];
-    [super dealloc];
+    quiteventonclose = TRUE;
+}
+
+- (BOOL)windowShouldClose:(id)sender
+{
+    if (inmodal) {
+        [NSApp stopModalWithCode:STARTWIN_CANCEL];
+    }
+    quitevent = quitevent || quiteventonclose;
+    return NO;
+}
+
+- (int)modalRun
+{
+    int retval;
+
+    inmodal = YES;
+    switch ([NSApp runModalForWindow:[self window]]) {
+        case STARTWIN_RUN: retval = STARTWIN_RUN; break;
+        case STARTWIN_CANCEL: retval = STARTWIN_CANCEL; break;
+        default: retval = -1;
+    }
+    inmodal = NO;
+
+    return retval;
+}
+
+// Close the window, but don't cause the quitevent flag to be set
+// as though this is a cancel operation.
+- (void)closeQuietly
+{
+    quiteventonclose = FALSE;
+    [self close];
 }
 
 - (void)populateVideoModes:(BOOL)firstTime
 {
-    int i, mode2d, mode3d, fullscreen = ([fullscreenButton state] == NSOnState);
+    int i, mode2d = -1, mode3d = -1;
     int idx2d = -1, idx3d = -1;
-    int xdim, ydim, bpp = 8;
+    int xdim = 0, ydim = 0, bpp = 0, fullscreen = 0;
+    int xdim2d = 0, ydim2d = 0;
+    int cd[] = { 32, 24, 16, 15, 8, 0 };
+    NSMenu *menu3d = nil, *menu2d = nil;
+    NSMenuItem *menuitem = nil;
 
     if (firstTime) {
-        xdim = settings.xdim2d;
-        ydim = settings.ydim2d;
-    } else {
-        mode2d = [[modeslist2d objectAtIndex:[videoMode2DPUButton indexOfSelectedItem]] intValue];
-        if (mode2d >= 0) {
-            xdim = validmode[mode2d].xdim;
-            ydim = validmode[mode2d].ydim;
-        }
-    }
-    mode2d = checkvideomode(&xdim, &ydim, 8, fullscreen, 1);
-    if (mode2d < 0) mode2d = 0;
+        getvalidmodes();
+        xdim = settings->xdim3d;
+        ydim = settings->ydim3d;
+        bpp  = settings->bpp3d;
+        fullscreen = settings->fullscreen;
 
-    if (firstTime) {
-        xdim = settings.xdim3d;
-        ydim = settings.ydim3d;
-        bpp  = settings.bpp3d;
+        xdim2d = settings->xdim2d;
+        ydim2d = settings->ydim2d;
     } else {
-        mode3d = [[modeslist3d objectAtIndex:[videoMode3DPUButton indexOfSelectedItem]] intValue];
+        fullscreen = ([fullscreenButton state] == NSOnState);
+        mode3d = [[videoMode3DPUButton selectedItem] tag];
         if (mode3d >= 0) {
             xdim = validmode[mode3d].xdim;
             ydim = validmode[mode3d].ydim;
             bpp = validmode[mode3d].bpp;
         }
-
+        mode2d = [[videoMode2DPUButton selectedItem] tag];
+        if (mode2d >= 0) {
+            xdim2d = validmode[mode2d].xdim;
+            ydim2d = validmode[mode2d].ydim;
+        }
     }
+
+    // Find an ideal match.
     mode3d = checkvideomode(&xdim, &ydim, bpp, fullscreen, 1);
+    mode2d = checkvideomode(&xdim2d, &ydim2d, 8, fullscreen, 1);
+    if (mode2d < 0) {
+        mode2d = 0;
+    }
     if (mode3d < 0) {
-        int i, cd[] = { 32, 24, 16, 15, 8, 0 };
         for (i=0; cd[i]; ) { if (cd[i] >= bpp) i++; else break; }
         for ( ; cd[i]; i++) {
             mode3d = checkvideomode(&xdim, &ydim, cd[i], fullscreen, 1);
@@ -95,36 +131,34 @@ static struct {
         }
     }
 
-    [modeslist2d release];
-    [modeslist3d release];
-    [videoMode2DPUButton removeAllItems];
-    [videoMode3DPUButton removeAllItems];
-
-    modeslist2d = [[NSMutableArray alloc] init];
-    modeslist3d = [[NSMutableArray alloc] init];
+    // Repopulate the lists.
+    menu3d = [videoMode3DPUButton menu];
+    menu2d = [videoMode2DPUButton menu];
+    [menu3d removeAllItems];
+    [menu2d removeAllItems];
 
     for (i = 0; i < validmodecnt; i++) {
-        if (fullscreen == validmode[i].fs) {
-            if (validmode[i].bpp == 8 && validmode[i].xdim >= 640 && validmode[i].ydim >= 480) {
-                if (i == mode2d) idx2d = [modeslist2d count];
-                [modeslist2d addObject:[NSNumber numberWithInt:i]];
-                [videoMode2DPUButton addItemWithTitle:[NSString stringWithFormat:@"%d %C %d",
-                    validmode[i].xdim, 0xd7, validmode[i].ydim]];
-            }
+        if (validmode[i].fs != fullscreen) continue;
 
-            if (i == mode3d) idx3d = [modeslist3d count];
-            [modeslist3d addObject:[NSNumber numberWithInt:i]];
-            [videoMode3DPUButton addItemWithTitle:[NSString stringWithFormat:@"%d %C %d %d-bpp",
-                validmode[i].xdim, 0xd7, validmode[i].ydim, validmode[i].bpp]];
+        if (i == mode3d) idx3d = i;
+        menuitem = [menu3d addItemWithTitle:[NSString stringWithFormat:@"%d %C %d %d-bpp",
+                                          validmode[i].xdim, 0xd7, validmode[i].ydim, validmode[i].bpp]
+                                     action:nil
+                              keyEquivalent:@""];
+        [menuitem setTag:i];
+
+        if (validmode[i].bpp == 8 && validmode[i].xdim >= 640 && validmode[i].ydim >= 480) {
+            if (i == mode2d) idx2d = i;
+            menuitem = [menu2d addItemWithTitle:[NSString stringWithFormat:@"%d %C %d",
+                                                 validmode[i].xdim, 0xd7, validmode[i].ydim]
+                                         action:nil
+                                  keyEquivalent:@""];
+            [menuitem setTag:i];
         }
     }
 
-    if (idx2d >= 0) [videoMode2DPUButton selectItemAtIndex:idx2d];
-    if (idx3d >= 0) [videoMode3DPUButton selectItemAtIndex:idx3d];
-}
-
-- (IBAction)alwaysShowClicked:(id)sender
-{
+    if (idx2d >= 0) [videoMode2DPUButton selectItemWithTag:idx2d];
+    if (idx3d >= 0) [videoMode3DPUButton selectItemWithTag:idx3d];
 }
 
 - (IBAction)fullscreenClicked:(id)sender
@@ -132,48 +166,49 @@ static struct {
     [self populateVideoModes:NO];
 }
 
-- (void)windowWillClose:(NSNotification *)notification
-{
-    [NSApp stopModalWithCode:STARTWIN_CANCEL];
-    quitevent = 1;
-}
-
 - (IBAction)cancel:(id)sender
 {
-    [NSApp stopModalWithCode:STARTWIN_CANCEL];
+    if (inmodal) {
+        [NSApp stopModalWithCode:STARTWIN_CANCEL];
+    }
+    quitevent = quitevent || quiteventonclose;
 }
 
 - (IBAction)start:(id)sender
 {
-    int mode = [[modeslist3d objectAtIndex:[videoMode3DPUButton indexOfSelectedItem]] intValue];
+    int mode = -1;
+
+    mode = [[videoMode3DPUButton selectedItem] tag];
     if (mode >= 0) {
-        settings.xdim3d = validmode[mode].xdim;
-        settings.ydim3d = validmode[mode].ydim;
-        settings.bpp3d = validmode[mode].bpp;
-        settings.fullscreen = validmode[mode].fs;
+        settings->xdim3d = validmode[mode].xdim;
+        settings->ydim3d = validmode[mode].ydim;
+        settings->bpp3d = validmode[mode].bpp;
+        settings->fullscreen = validmode[mode].fs;
     }
 
-    mode = [[modeslist2d objectAtIndex:[videoMode2DPUButton indexOfSelectedItem]] intValue];
+    mode = [[videoMode2DPUButton selectedItem] tag];
     if (mode >= 0) {
-        settings.xdim2d = validmode[mode].xdim;
-        settings.ydim2d = validmode[mode].ydim;
+        settings->xdim2d = validmode[mode].xdim;
+        settings->ydim2d = validmode[mode].ydim;
     }
 
-    settings.forcesetup = [alwaysShowButton state] == NSOnState;
+    settings->forcesetup = [alwaysShowButton state] == NSOnState;
 
-    [NSApp stopModalWithCode:STARTWIN_RUN];
+    if (inmodal) {
+        [NSApp stopModalWithCode:STARTWIN_RUN];
+    }
 }
 
-- (void)setupRunMode
+- (void)setupConfigMode
 {
-    [alwaysShowButton setState: (settings.forcesetup ? NSOnState : NSOffState)];
+    [alwaysShowButton setState: (settings->forcesetup ? NSOnState : NSOffState)];
+    [alwaysShowButton setEnabled:YES];
 
-    getvalidmodes();
     [videoMode2DPUButton setEnabled:YES];
     [videoMode3DPUButton setEnabled:YES];
     [self populateVideoModes:YES];
     [fullscreenButton setEnabled:YES];
-    [fullscreenButton setState: (settings.fullscreen ? NSOnState : NSOffState)];
+    [fullscreenButton setState: (settings->fullscreen ? NSOnState : NSOffState)];
 
     [cancelButton setEnabled:YES];
     [startButton setEnabled:YES];
@@ -182,7 +217,7 @@ static struct {
     [NSCursor unhide];  // Why should I need to do this?
 }
 
-- (void)setupMessagesMode
+- (void)setupMessagesMode:(BOOL)allowCancel
 {
     [tabView selectTabViewItem:tabMessages];
 
@@ -193,7 +228,9 @@ static struct {
         [control setEnabled:false];
     }
 
-    [cancelButton setEnabled:false];
+    [alwaysShowButton setEnabled:NO];
+
+    [cancelButton setEnabled:allowCancel];
     [startButton setEnabled:false];
 }
 
@@ -224,6 +261,11 @@ static struct {
     [[self window] setTitle:str];
 }
 
+- (void)setSettings:(struct startwin_settings *)theSettings
+{
+    settings = theSettings;
+}
+
 @end
 
 static EditorStartupWinController *startwin = nil;
@@ -232,97 +274,73 @@ int startwin_open(void)
 {
     if (startwin != nil) return 1;
 
-    startwin = [[EditorStartupWinController alloc] initWithWindowNibName:@"startwin.editor"];
-    if (startwin == nil) return -1;
+    @autoreleasepool {
+        startwin = [[EditorStartupWinController alloc] initWithWindowNibName:@"startwin.editor"];
+        if (startwin == nil) return -1;
 
-    [startwin window];  // Forces the window controls on the controller to be initialised.
-    [startwin setupMessagesMode];
-    [startwin showWindow:nil];
+        [startwin window];  // Forces the window controls on the controller to be initialised.
+        [startwin setupMessagesMode:YES];
+        [startwin showWindow:nil];
 
-    return 0;
+        return 0;
+    }
 }
 
 int startwin_close(void)
 {
     if (startwin == nil) return 1;
 
-    [startwin close];
-    [startwin release];
-    startwin = nil;
+    @autoreleasepool {
+        [startwin closeQuietly];
+        [startwin release];
+        startwin = nil;
 
-    return 0;
+        return 0;
+    }
 }
 
 int startwin_puts(const char *s)
 {
-    NSString *ns;
-
     if (!s) return -1;
     if (startwin == nil) return 1;
 
-    ns = [[NSString alloc] initWithUTF8String:s];
-    [startwin putsMessage:ns];
-    [ns release];
+    @autoreleasepool {
+        [startwin putsMessage:[NSString stringWithUTF8String:s]];
 
-    return 0;
+        return 0;
+    }
 }
 
 int startwin_settitle(const char *s)
 {
-    NSString *ns;
-
     if (!s) return -1;
     if (startwin == nil) return 1;
 
-    ns = [[NSString alloc] initWithUTF8String:s];
-    [startwin setTitle:ns];
-    [ns release];
+    @autoreleasepool {
+        [startwin setTitle:[NSString stringWithUTF8String:s]];
 
-    return 0;
+        return 0;
+    }
 }
 
 int startwin_idle(void *v)
 {
-    if (startwin) [[startwin window] displayIfNeeded];
     return 0;
 }
 
-extern int xdim2d, ydim2d, xdimgame, ydimgame, bppgame, forcesetup;
-
-int startwin_run(void)
+int startwin_run(struct startwin_settings *settings)
 {
     int retval;
 
     if (startwin == nil) return 0;
 
-    settings.fullscreen = fullscreen;
-    settings.xdim2d = xdim2d;
-    settings.ydim2d = ydim2d;
-    settings.xdim3d = xdimgame;
-    settings.ydim3d = ydimgame;
-    settings.bpp3d = bppgame;
-    settings.forcesetup = forcesetup;
+    @autoreleasepool {
+        [startwin setSettings:settings];
 
-    [startwin setupRunMode];
+        [startwin setupConfigMode];
+        retval = [startwin modalRun];
+        [startwin setupMessagesMode:NO];
 
-    switch ([NSApp runModalForWindow:[startwin window]]) {
-        case STARTWIN_RUN_MULTI:
-        case STARTWIN_RUN: retval = STARTWIN_RUN; break;
-        case STARTWIN_CANCEL: retval = STARTWIN_CANCEL; break;
-        default: retval = -1;
+        return retval;
     }
-
-    [startwin setupMessagesMode];
-
-    if (retval) {
-        fullscreen = settings.fullscreen;
-        xdim2d = settings.xdim2d;
-        ydim2d = settings.ydim2d;
-        xdimgame = settings.xdim3d;
-        ydimgame = settings.ydim3d;
-        bppgame = settings.bpp3d;
-        forcesetup = settings.forcesetup;
-    }
-
-    return retval;
 }

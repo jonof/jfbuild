@@ -410,13 +410,12 @@ static int osdcmd_map(const osdfuncparm_t *parm) {
     return OSDCMD_OK;
 }
 
-extern int startwin_run(void);
-
 int app_main(int argc, char const * const argv[])
 {
 	int cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
-	int other, packleng, netparm;
+	int other, packleng, netparm = 0, netsuccess = 0;
     int startretval = STARTWIN_RUN;
+    struct startwin_settings settings;
 
 	buildsetlogfile("console.txt");
 
@@ -429,7 +428,6 @@ int app_main(int argc, char const * const argv[])
 	wm_setapptitle("KenBuild by Ken Silverman");
 
 	Bstrcpy(boardfilename, "nukeland.map");
-	netparm = argc;
 	for (i=1;i<argc;i++) {
 		if ((!Bstrcasecmp("-net",argv[i])) || (!Bstrcasecmp("/net",argv[i]))) { netparm = i+1; break; }
 		if (!Bstrcasecmp(argv[i], "-setup")) cmdsetup = 1;
@@ -441,45 +439,89 @@ int app_main(int argc, char const * const argv[])
 
 	initgroupfile("stuff.dat");
 	if (initengine()) {
-		buildprintf("There was a problem initialising the engine: %s.\n", engineerrstr);
+		wm_msgbox(apptitle, "There was a problem initialising the engine: %s.\n", engineerrstr);
 		return -1;
 	}
 
 	if ((i = loadsetup("game.cfg")) < 0)
 		buildputs("Configuration file not found, using defaults.\n");
 
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK2))
-	if (i || forcesetup || cmdsetup) {
-		if (quitevent) return 0;
+    memset(&settings, 0, sizeof(settings));
+    settings.fullscreen = fullscreen;
+    settings.xdim3d = xdimgame;
+    settings.ydim3d = ydimgame;
+    settings.bpp3d = bppgame;
+    settings.forcesetup = forcesetup;
 
-        startretval = startwin_run();
-        if (startretval == STARTWIN_CANCEL || startretval < 0) return 0;
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
+	if (i || forcesetup || cmdsetup) {
+        if (quitevent) return 0;
+
+        startretval = startwin_run(&settings);
+        if (startretval == STARTWIN_CANCEL)
+            return 0;
 	}
 #endif
-	writesetup("game.cfg");
+
+    fullscreen = settings.fullscreen;
+    xdimgame = settings.xdim3d;
+    ydimgame = settings.ydim3d;
+    bppgame = settings.bpp3d;
+    forcesetup = settings.forcesetup;
+
+    writesetup("game.cfg");
 
 	initinput();
 	if (option[3] != 0) initmouse();
 	inittimer(TIMERINTSPERSECOND);
 
-	if (startretval == STARTWIN_RUN_MULTI ||    // startup window already called initmultiplayersparms successfully
-            initmultiplayersparms(argc-netparm, &argv[netparm])) {
-		buildputs("Waiting for players...\n");
-		while (initmultiplayerscycle()) {
-			handleevents();
-			if (quitevent) {
-				sendlogoff();         //Signing off
-				musicoff();
-				uninitmultiplayers();
-				uninittimer();
-				uninitinput();
-				uninitengine();
-				uninitsb();
-				uninitgroupfile();
-				return 0;
-			}
-		}
-	}
+    if (netparm || settings.numplayers > 1) {
+        if (netparm) {
+            netsuccess = initmultiplayersparms(argc - netparm, &argv[netparm]);
+        } else {
+            char modeparm[8];
+            const char *parmarr[3] = { modeparm, NULL, NULL };
+            int parmc = 0;
+
+            if (settings.joinhost) {
+                strcpy(modeparm, "-nm");
+                parmarr[1] = settings.joinhost;
+                parmc = 2;
+            } else if (settings.numplayers > 1 && settings.numplayers <= MAXPLAYERS) {
+                sprintf(modeparm, "-nm:%d", settings.numplayers);
+                parmc = 1;
+            }
+
+            if (parmc > 0) {
+                netsuccess = initmultiplayersparms(parmc, parmarr);
+            }
+
+            if (settings.joinhost) {
+                free(settings.joinhost);
+            }
+        }
+    }
+
+    if (netsuccess) {
+        buildputs("Waiting for players...\n");
+        while (initmultiplayerscycle()) {
+            handleevents();
+            if (quitevent) {
+                sendlogoff();         //Signing off
+                musicoff();
+                uninitmultiplayers();
+                uninittimer();
+                uninitinput();
+                uninitengine();
+                uninitsb();
+                uninitgroupfile();
+                return 0;
+            }
+        }
+    } else {
+        initsingleplayers();
+    }
+
 	option[4] = (numplayers >= 2);
 
 	pskyoff[0] = 0; pskyoff[1] = 0; pskybits = 1;
@@ -589,7 +631,7 @@ int app_main(int argc, char const * const argv[])
 		getmessageleng = Bstrlen((char *)getmessage);
 		getmessagetimeoff = totalclock+120;
 	}
-	
+
 	screenpeek = myconnectindex;
 	reccnt = 0;
 	for(i=connecthead;i>=0;i=connectpoint2[i]) initplayersprite((short)i);

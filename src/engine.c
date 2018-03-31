@@ -10536,7 +10536,10 @@ int screencapture_tga(char *filename, char inverseit)
 	BFILE *fil;
 
 	do {	// JBF 2004022: So we don't overwrite existing screenshots
-		if (capturecount > 9999) return -1;
+        if (capturecount > 9999) {
+            Bfree(fn);
+            return -1;
+        }
 
 		i = Bstrrchr(fn,'.')-fn-4;
 		fn[i++] = ((capturecount/1000)%10)+48;
@@ -10693,7 +10696,10 @@ int screencapture_pcx(char *filename, char inverseit)
 	BFILE *fil;
 
 	do {	// JBF 2004022: So we don't overwrite existing screenshots
-		if (capturecount > 9999) return -1;
+        if (capturecount > 9999) {
+            Bfree(fn);
+            return -1;
+        }
 
 		i = Bstrrchr(fn,'.')-fn-4;
 		fn[i++] = ((capturecount/1000)%10)+48;

@@ -164,7 +164,7 @@ void clearkeys(void) { memset(keystatus,0,sizeof(keystatus)); }
 static int osdcmd_restartvid(const osdfuncparm_t *parm)
 {
 	extern int qsetmode;
-	
+
 	if (qsetmode != 200) return OSDCMD_OK;
 
 	resetvideomode();
@@ -202,23 +202,23 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
-extern int startwin_run(void);
-
 extern char *defsfilename;	// set in bstub.c
 int app_main(int argc, char const * const argv[])
 {
 	char ch, quitflag, cmdsetup = 0;
+    struct startwin_settings settings;
+    int startretval = STARTWIN_RUN;
 	int grpstoadd = 0;
 	char const ** grps = NULL;
 	int i, j, k;
-	
+
 	pathsearchmode = 1;		// unrestrict findfrompath so that full access to the filesystem can be had
 
 #ifdef USE_OPENGL
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
 #endif
-	
+
 	wm_setapptitle("BUILD by Ken Silverman");
 
 #ifdef RENDERTYPEWIN
@@ -242,12 +242,12 @@ int app_main(int argc, char const * const argv[])
 					"Options:\n"
 					"\t-grp\tUse an extra GRP or ZIP file.\n"
 					"\t-g\tSame as above.\n"
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK2))
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
 					"\t-setup\tDisplays the configuration dialogue box before entering the editor.\n"
 #endif
 					;
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK2))
-				wm_msgbox("BUILD by Ken Silverman",s);
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
+				wm_msgbox("BUILD by Ken Silverman","%s",s);
 #else
 				puts(s);
 #endif
@@ -268,20 +268,42 @@ int app_main(int argc, char const * const argv[])
 	//Bcanonicalisefilename(boardfilename,0);
 
 	if ((i = ExtInit()) < 0) return -1;
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK2))
-	if (i || forcesetup || cmdsetup) {
-		if (quitevent || !startwin_run()) return -1;
-	}
+
+    memset(&settings, 0, sizeof(settings));
+    settings.fullscreen = fullscreen;
+    settings.xdim2d = xdim2d;
+    settings.ydim2d = ydim2d;
+    settings.xdim3d = xdimgame;
+    settings.ydim3d = ydimgame;
+    settings.bpp3d = bppgame;
+    settings.forcesetup = forcesetup;
+
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
+    if (i || forcesetup || cmdsetup) {
+        if (quitevent) return 0;
+
+        startretval = startwin_run(&settings);
+        if (startretval == STARTWIN_CANCEL)
+            return 0;
+    }
 #endif
+
+    fullscreen = settings.fullscreen;
+    xdim2d = settings.xdim2d;
+    ydim2d = settings.ydim2d;
+    xdimgame = settings.xdim3d;
+    ydimgame = settings.ydim3d;
+    bppgame = settings.bpp3d;
+    forcesetup = settings.forcesetup;
 
 	if (grps && grpstoadd > 0) {
 		for (i=0;i<grpstoadd;i++) {
 			buildprintf("Adding %s\n",grps[i]);
 			initgroupfile(grps[i]);
 		}
-		free((void *)grps);	
+		free((void *)grps);
 	}
-	
+
 	buildsetlogfile("build.log");
 	inittimer(TIMERINTSPERSECOND);
 	installusertimercallback(keytimerstuff);
@@ -293,7 +315,7 @@ int app_main(int argc, char const * const argv[])
 	initcrc();
 
 	if (!loaddefinitionsfile(defsfilename)) buildputs("Definitions file loaded.\n");
-	
+
 		if (setgamemode(fullscreen,xdimgame,ydimgame,bppgame) < 0)
 		{
 			ExtUnInit();
@@ -2501,7 +2523,7 @@ int drawtilescreen(int pictopleft, int picbox)
 	begindrawing(); //{{{
 
 	setpolymost2dview();	// JBF 20040205: set to 2d rendering
-	
+
 	pinc = ylookup[1];
 	clearview(0L);
 	for(cnt=0;cnt<(tottiles<<(gettilezoom<<1));cnt++)         //draw the 5*3 grid of tiles
@@ -2896,7 +2918,7 @@ void overheadeditor(void)
 		enddrawing();	//}}}
 
 		OSD_Draw();
-		
+
 		if (keystatus[88] > 0)   //F12
 		{
 			keystatus[88] = 0;
@@ -5239,7 +5261,7 @@ void overheadeditor(void)
 						if (handleevents()) {
 							if (quitevent) quitevent = 0;
 						}
-						
+
 						ch = bgetchar();
 
 						if (keystatus[1] > 0) bad = 1;
@@ -5980,7 +6002,7 @@ int getfilenames(char *path, char *kind)
 	findfiles = klistpath(path,kind,CACHE1D_FIND_FILE|(!pathsearchmode&&grponlymode?CACHE1D_OPT_NOSTACK:0));
 	for (r = finddirs; r; r=r->next) numdirs++;
 	for (r = findfiles; r; r=r->next) numfiles++;
-	
+
 	finddirshigh = finddirs;
 	findfileshigh = findfiles;
 	currentlist = 0;
@@ -5995,7 +6017,7 @@ int menuselect(void)
 	int i, j, topplc;
 	char ch, buffer[78], *sb;
 	CACHE1D_FIND_REC *dir;
-	
+
 	int bakpathsearchmode = pathsearchmode;
 
 	listsize = (ydim16-32)/8;
@@ -6011,11 +6033,11 @@ int menuselect(void)
 	begindrawing();
 	printmessage16("Select .MAP file with arrows&enter.");
 	enddrawing();
-	
+
 	do {
 		begindrawing();
 		clearbuf((unsigned char *)frameplace, (bytesperline*ydim16) >> 2, 0l);
-		
+
 		if (pathsearchmode) {
 			strcpy(buffer,"Local filesystem mode. Press F for game filesystem.");
 		} else {
@@ -6023,7 +6045,7 @@ int menuselect(void)
 					grponlymode?"GRP-only ":"", grponlymode?"all files":"GRP files only");
 		}
 		printext16(halfxdim16-(8*strlen(buffer)/2), 4, 14,0,buffer,0);
-		
+
 		Bsnprintf(buffer,78,"(%d dirs, %d files) %s",numdirs,numfiles,selectedboardfilename);
 		buffer[sizeof(buffer)-1] = 0;
 		printext16(1,ydim16-8-1,8,0,buffer,0);
@@ -6082,7 +6104,7 @@ int menuselect(void)
 			if (keystatus[0xcd] > 0) ch = 9;		// right arr
 			if (keystatus[0xc8] > 0) ch = 72;		// up arr
 			if (keystatus[0xd0] > 0) ch = 80;		// down arr
-			
+
 		}
 
 		if (ch == 'f' || ch == 'F') {
@@ -6348,7 +6370,7 @@ int loadnames(void)
 				if (buffer[a-2] == '\r') buffer[a-2] = 0;
 			if (buffer[a-1] == '\n') buffer[a-1] = 0;
 		}
-			
+
 		p = buffer;
 		line++;
 		while (*p == 32) p++;
@@ -6692,7 +6714,7 @@ void keytimerstuff(void)
 	static int ltotalclock=0;
 	if (totalclock == ltotalclock) return;
 	ltotalclock=totalclock;
-	
+
 	if (keystatus[buildkeys[5]] == 0)
 	{
 		if (keystatus[buildkeys[2]] > 0) angvel = max(angvel-16,-128);
@@ -6766,6 +6788,7 @@ void getclosestpointonwall(int x, int y, int dawall, int *nx, int *ny)
 	walltype *wal;
 	int i, j, dx, dy;
 
+    if (dawall < 0) { *nx = *ny = 0; return; }
 	wal = &wall[dawall];
 	dx = wall[wal->point2].x-wal->x;
 	dy = wall[wal->point2].y-wal->y;

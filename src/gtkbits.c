@@ -5,21 +5,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <gdk-pixbuf/gdk-pixdata.h>
-#include <gdk-pixbuf/gdk-pixbuf.h>
-#include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
+
+#if GTK_CHECK_VERSION(3,4,0) != TRUE
+# error Gtk+ 3.4 or higher required.
+#endif
 
 #include "build.h"
 #include "baselayer.h"
 
-#ifndef LINKED_GTK
-# include "dynamicgtk.h"
-#endif
+// Copied from a glib-compile-resource generated header.
+extern GResource *startgtk_get_resource (void);
+extern void startgtk_register_resource (void);
+extern void startgtk_unregister_resource (void);
+
 
 int gtkenabled = 0;
-
-static GdkPixbuf *appicon = NULL;
 
 int gtkbuild_msgbox(char *name, char *msg)
 {
@@ -56,38 +57,36 @@ int gtkbuild_ynbox(char *name, char *msg)
 	gtk_widget_destroy(dialog);
 
 	if (r == GTK_RESPONSE_YES) return 1;
+
 	return 0;
 }
 
-#ifdef RENDERTYPESDL
-#include "sdlayer.h"
-extern struct sdlappicon sdlappicon;
-#endif
 void gtkbuild_init(int *argc, char ***argv)
 {
-#ifndef LINKED_GTK
-	gtkenabled = dynamicgtk_init();
-	if (gtkenabled < 0) {
-		gtkenabled = 0;
+	GdkPixbuf *appicon = NULL;
+	GError *error = NULL;
+
+	gtkenabled = gtk_init_check(argc, argv);
+	if (!gtkenabled) {
 		return;
 	}
-#endif
-	gtkenabled = gtk_init_check(argc, argv);
-	if (!gtkenabled) return;
-#ifdef RENDERTYPESDL
-	appicon = gdk_pixbuf_new_from_data((const guchar *)sdlappicon.pixels,
-			GDK_COLORSPACE_RGB, TRUE, 8, sdlappicon.width, sdlappicon.height,
-			sdlappicon.width*4, NULL, NULL);
-#endif
-	if (appicon) gtk_window_set_default_icon(appicon);
+
+	startgtk_register_resource();
+
+	appicon = gdk_pixbuf_new_from_resource("/appicon.png", &error);
+	if (!appicon) {
+        buildprintf("gdk_pixbuf_new_from_resource error: %s\n", error->message);
+	} else {
+		gtk_window_set_default_icon(appicon);
+		g_object_unref(G_OBJECT(appicon));
+	}
 }
 
-void gtkbuild_exit(int r)
+void gtkbuild_exit(void)
 {
-	if (gtkenabled) {
-		if (appicon) g_object_unref((gpointer)appicon);
+	if (!gtkenabled) {
+		return;
 	}
-#ifndef LINKED_GTK
-	dynamicgtk_uninit();
-#endif
+
+    startgtk_unregister_resource();
 }

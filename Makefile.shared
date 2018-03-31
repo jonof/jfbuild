@@ -8,7 +8,6 @@ GLLIBWIN=-lopengl32
 GLLIBBSD=-lopengl32
 GLLIBLIN=-lGL
 
-SDLCONFIG=$(shell which sdl-config)
 SDL2CONFIG=$(shell which sdl2-config)
 
 # Path to the included libsquish
@@ -48,7 +47,8 @@ endif
 ifeq ($(PLATFORM),WINDOWS)
 	RENDERTYPE ?= WIN
 	EXESUFFIX=.exe
-	LIBS+= -lmingwex -lwinmm -L$(DXROOT)/lib -lws2_32 -lcomctl32 -luxtheme -static-libgcc -static-libstdc++ #-lshfolder
+	LIBS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -luxtheme -static
+	#LIBS+= -static-libgcc -static-libstdc++
 	ifneq ($(DYNAMIC_OPENGL),1)
 		LIBS+= $(GLLIBWIN)
 	endif
@@ -63,35 +63,21 @@ endif
 
 ifeq ($(RENDERTYPE),SDL)
 	ifneq ($(SDL2CONFIG),)
-		SDLAPI=2
-		SDLCONFIG_CFLAGS+=$(shell $(SDL2CONFIG) --cflags)
+		SDLCONFIG_CFLAGS=$(shell $(SDL2CONFIG) --cflags)
 		SDLCONFIG_LIBS=$(shell $(SDL2CONFIG) --libs)
-
-		LIBS+= $(SDLCONFIG_LIBS)
 	else
-		ifneq ($(SDLCONFIG),)
-			SDLAPI=1
-			SDLCONFIG_CFLAGS+=$(subst -Dmain=SDL_main,,$(shell $(SDLCONFIG) --cflags))
-			SDLCONFIG_LIBS=$(shell $(SDLCONFIG) --libs)
-
-			LIBS+= $(SDLCONFIG_LIBS)
-		endif
-	endif
-	ifeq ($(SDLAPI),)
-		SDLAPI=$(error No $(SDL2CONFIG) or $(SDLCONFIG) could be found)
+		$(error No $(SDL2CONFIG) could be found)
 	endif
 
 	ifeq (1,$(WITHOUT_GTK))
-		HAVE_GTK2=0
+		HAVE_GTK=0
 	else
-		ifneq (No,$(shell pkg-config --exists gtk+-2.0 || echo No))
-			HAVE_GTK2=1
-			ifneq ($(LINKED_GTK),0)
-				LIBS+= $(shell pkg-config --libs gtk+-2.0)
-			endif
-			LIBS+= -ldl
+		ifneq (No,$(shell pkg-config --atleast-version=3.4 gtk+-3.0 || echo No))
+			HAVE_GTK=1
+			GTKCONFIG_CFLAGS=-DHAVE_GTK $(shell pkg-config --cflags gtk+-3.0)
+			GTKCONFIG_LIBS=$(shell pkg-config --libs gtk+-3.0) -ldl
 		else
-			HAVE_GTK2=0
+			HAVE_GTK=0
 		endif
 	endif
 else
@@ -120,8 +106,5 @@ ifneq (0,$(USE_OPENGL))
 endif
 ifneq (0,$(NOASM))
   BUILDCFLAGS+= -DNOASM
-endif
-ifneq (0,$(LINKED_GTK))
-  BUILDCFLAGS+= -DLINKED_GTK
 endif
 

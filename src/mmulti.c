@@ -602,6 +602,11 @@ static void initmultiplayers_reset(void)
 	memset(otherhost,0,sizeof(otherhost));
 }
 
+void initsingleplayers(void)
+{
+    initmultiplayers_reset();
+}
+
 	// Multiplayer command line summary. Assume myconnectindex always = 0 for 192.168.1.2
 	//
 	// /n0 (mast/slav) 2 player:               3 player:
@@ -642,7 +647,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 			danumplayers = 2;
 			if (argv[i][2] == '0' || argv[i][2] == 'm' || argv[i][2] == 'M')
 			{
-				danetmode = 0;
+				danetmode = MMULTI_MODE_MS;
 				printf("mmulti: Master-slave mode\n");
 
 				if ((argv[i][3] == ':') && (argv[i][4] >= '0') && (argv[i][4] <= '9'))
@@ -660,7 +665,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 			}
 			else if (argv[i][2] == '1' || argv[i][2] == 'p' || argv[i][2] == 'P')
 			{
-				danetmode = 1;
+				danetmode = MMULTI_MODE_P2P;
 				printf("mmulti: Peer-to-peer mode\n");
 			}
 			continue;
@@ -678,7 +683,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 			continue;
 		}
 
-		if (danetmode == 0 && daindex >= 1) {
+		if (danetmode == MMULTI_MODE_MS && daindex >= 1) {
 			printf("mmulti warning: Too many host names given for master-slave mode\n");
 			continue;
 		}
@@ -690,7 +695,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 
 		if (argv[i][0] == '*' && argv[i][1] == 0) {
 			// 'self' placeholder
-			if (danetmode == 0) {
+			if (danetmode == MMULTI_MODE_MS) {
 				printf("mmulti: * is not valid in master-slave mode\n");
 				netuninit();
 				return 0;
@@ -701,7 +706,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 			continue;
 		}
 
-		if (!lookuphost(argv[i], (struct sockaddr *)&resolvhost, danetmode == 1)) {
+		if (!lookuphost(argv[i], (struct sockaddr *)&resolvhost, danetmode == MMULTI_MODE_P2P)) {
 			printf("mmulti error: Could not resolve %s\n", argv[i]);
 			netuninit();
 			return 0;
@@ -713,12 +718,12 @@ int initmultiplayersparms(int argc, char const * const argv[])
 		}
 	}
 
-	if ((danetmode == 255) && (daindex)) { danumplayers = 2; danetmode = 0; } //an IP w/o /n# defaults to /n0
-	if ((danumplayers >= 2) && (daindex) && (!danetmode)) myconnectindex = 1;
+	if ((danetmode == 255) && (daindex)) { danumplayers = 2; danetmode = MMULTI_MODE_MS; } //an IP w/o /n# defaults to /n0
+	if ((danumplayers >= 2) && (daindex) && (danetmode == MMULTI_MODE_MS)) myconnectindex = 1;
 	if (daindex > danumplayers) danumplayers = daindex;
 	else if (danumplayers == 0) danumplayers = 1;
 
-	if (danetmode == 0 && myconnectindex == 0) {
+	if (danetmode == MMULTI_MODE_MS && myconnectindex == 0) {
 		printf("mmulti: This machine is master\n");
 	}
 
@@ -731,7 +736,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 
 	netready = 0;
 
-	if (((!danetmode) && (numplayers >= 2)) || (numplayers == 2)) {
+	if (((danetmode == MMULTI_MODE_MS) && (numplayers >= 2)) || (numplayers == 2)) {
 		return 1;
 	} else {
 		netuninit();
@@ -747,7 +752,7 @@ int initmultiplayerscycle(void)
 
 	tims = GetTickCount();
 
-	if (networkmode == 0 && myconnectindex == connecthead)
+	if (networkmode == MMULTI_MODE_MS && myconnectindex == connecthead)
 	{
 		// The master waits for all players to check in.
 		for(i=numplayers-1;i>0;i--) {
@@ -776,7 +781,7 @@ int initmultiplayerscycle(void)
 	}
 	else
 	{
-		if (networkmode == 0) {
+		if (networkmode == MMULTI_MODE_MS) {
 			// As a slave, we send the master pings. The netready flag gets
 			// set by getpacket() and is sent by the master when it is OK
 			// to launch.
@@ -831,7 +836,7 @@ int initmultiplayerscycle(void)
 				}
 			}
 
-			if (networkmode == 0) {
+			if (networkmode == MMULTI_MODE_MS) {
 				break;
 			} else {
 				if (--i < 0) break;
@@ -992,7 +997,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 		for(i=connecthead;i>=0;i=connectpoint2[i])
 		{
 			if (i != myconnectindex) dosendpackets(i);
-			if ((!networkmode) && (myconnectindex != connecthead)) break; //slaves in M/S mode only send to master
+			if ((networkmode == MMULTI_MODE_MS) && (myconnectindex != connecthead)) break; //slaves in M/S mode only send to master
 		}
 	}
 
@@ -1037,7 +1042,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 					const char *addr = presentaddress((struct sockaddr *)&snatchhost);
 #endif
 
-					if (networkmode == 0) {
+					if (networkmode == MMULTI_MODE_MS) {
 						// Master-slave.
 						if (other == myconnectindex && myconnectindex == connecthead) {
 							// This the master and someone new is calling. Find them a place.
@@ -1098,7 +1103,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 				}
 				else if (pakbuf[k] == 0xab)
 				{
-					if (networkmode == 0) {
+					if (networkmode == MMULTI_MODE_MS) {
 						// Master-slave.
 						if (((unsigned int)pakbuf[k+1] < (unsigned int)pakbuf[k+2]) &&
 							 ((unsigned int)pakbuf[k+2] < (unsigned int)MAXPLAYERS) &&
@@ -1194,7 +1199,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 				return(messleng);
 			}
 		}
-		if ((!networkmode) && (myconnectindex != connecthead)) break; //slaves in M/S mode only send to master
+		if ((networkmode == MMULTI_MODE_MS) && (myconnectindex != connecthead)) break; //slaves in M/S mode only send to master
 	}
 
 	return(0);

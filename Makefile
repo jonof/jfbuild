@@ -16,23 +16,18 @@
 #  USE_OPENGL     - enables OpenGL support in Polymost
 #  DYNAMIC_OPENGL - enables run-time loading of OpenGL library
 #  NOASM          - disables the use of assembly code
-#  LINKED_GTK     - enables compile-time linkage to GTK
 #
 SUPERBUILD ?= 1
 POLYMOST ?= 1
 USE_OPENGL ?= 1
 DYNAMIC_OPENGL ?= 1
 NOASM ?= 0
-LINKED_GTK ?= 0
 
 # Debugging options
 #  RELEASE - 1 = no debugging
 #  EFENCE  - 1 = compile with Electric Fence for malloc() debugging
 RELEASE?=1
 EFENCE?=0
-
-# SDK locations - adjust to match your setup
-DXROOT ?= $(USERPROFILE)/sdks/directx/dx81
 
 # build locations - OBJ gets overridden to the game-specific objects dir
 OBJ?=obj.gnu
@@ -62,7 +57,7 @@ WINDRES?=windres
 AR?=ar
 RANLIB=ranlib
 OURCFLAGS=$(debug) -g -W -Wall -Wimplicit -Wno-unused \
-	-fno-pic -fno-strict-aliasing -DNO_GCC_BUILTINS \
+	-fno-strict-aliasing -DNO_GCC_BUILTINS \
 	-DKSFORBUILD -I$(INC) -I$(SRC)
 OURCXXFLAGS=-fno-exceptions -fno-rtti
 GAMECFLAGS=-I$(GAME) -I$(INC)
@@ -136,34 +131,31 @@ ifeq ($(PLATFORM),BSD)
 	LIBS+= -lm
 endif
 ifeq ($(PLATFORM),WINDOWS)
-	OURCFLAGS+= -I$(DXROOT)/include
 	LIBS+= -lm
 	NASMFLAGS+= -f win32 --prefix _
 endif
 
 ifeq ($(RENDERTYPE),SDL)
-	ifeq ($(SDLAPI),2)
-		ENGINEOBJS+= $(SRC)/sdlayer2.$o
-	else
-		ENGINEOBJS+= $(SRC)/sdlayer.$o
-	endif
+	ENGINEOBJS+= $(SRC)/sdlayer2.$o
 	OURCFLAGS+= $(SDLCONFIG_CFLAGS)
+	LIBS+= $(SDLCONFIG_LIBS)
 
-	ifeq (1,$(HAVE_GTK2))
-		OURCFLAGS+= -DHAVE_GTK2 $(shell pkg-config --cflags gtk+-2.0)
-		ENGINEOBJS+= $(SRC)/gtkbits.$o $(SRC)/dynamicgtk.$o
-		EDITOROBJS+= $(SRC)/startgtk.editor.$o
-		GAMEEXEOBJS+= $(GAME)/game_banner.$o $(GAME)/startgtk.game.$o
-		EDITOREXEOBJS+= $(GAME)/editor_banner.$o
+	ifeq (1,$(HAVE_GTK))
+		OURCFLAGS+= $(GTKCONFIG_CFLAGS)
+		LIBS+= $(GTKCONFIG_LIBS)
+		ENGINEOBJS+= $(SRC)/gtkbits.$o
+		EDITOROBJS+= $(SRC)/startgtk_editor.$o
+		GAMEEXEOBJS+= $(GAME)/startgtk_game.$o $(GAME)/rsrc/startgtk_game_gresource.$o
+		EDITOREXEOBJS+= $(GAME)/rsrc/startgtk_build_gresource.$o
 	endif
 
-	GAMEEXEOBJS+= $(GAME)/game_icon.$o
-	EDITOREXEOBJS+= $(GAME)/build_icon.$o
+	GAMEEXEOBJS+= $(GAME)/rsrc/sdlappicon_game.$o
+	EDITOREXEOBJS+= $(GAME)/rsrc/sdlappicon_build.$o
 endif
 ifeq ($(RENDERTYPE),WIN)
 	ENGINEOBJS+= $(SRC)/winlayer.$o
-	EDITOROBJS+= $(SRC)/startwin.editor.$o
-	GAMEEXEOBJS+= $(GAME)/gameres.$(res) $(GAME)/startwin.game.$o
+	EDITOROBJS+= $(SRC)/startwin_editor.$o
+	GAMEEXEOBJS+= $(GAME)/gameres.$(res) $(GAME)/startwin_game.$o
 	EDITOREXEOBJS+= $(GAME)/buildres.$(res)
 endif
 
@@ -224,10 +216,12 @@ wad2art$(EXESUFFIX): $(TOOLS)/wad2art.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
 wad2map$(EXESUFFIX): $(TOOLS)/wad2map.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
-generateicon$(EXESUFFIX): $(TOOLS)/generateicon.$o $(ENGINELIB)
+generatesdlappicon$(EXESUFFIX): $(TOOLS)/generatesdlappicon.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
 cacheinfo$(EXESUFFIX): $(TOOLS)/cacheinfo.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
+bin2c$(EXESUFFIX): $(TOOLS)/bin2c.$o
+	$(CXX) -o $@ $^
 
 # DEPENDENCIES
 include Makefile.deps
@@ -254,18 +248,19 @@ $(GAME)/%.$o: $(GAME)/%.c
 $(GAME)/%.$o: $(GAME)/%.cpp
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@
 
-$(GAME)/%.$o: $(GAME)/rsrc/%.c
+$(GAME)/rsrc/%.$o: $(GAME)/rsrc/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(GAME)/%.$(res): $(GAME)/%.rc
 	$(WINDRES) -O coff -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
 
-$(RSRC)/game_banner.c: $(RSRC)/game.bmp
-	echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
-	gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
-$(RSRC)/editor_banner.c: $(RSRC)/build.bmp
-	echo "#include <gdk-pixbuf/gdk-pixdata.h>" > $@
-	gdk-pixbuf-csource --extern --struct --raw --name=startbanner_pixdata $^ | sed 's/load_inc//' >> $@
+$(GAME)/rsrc/%_gresource.c: $(GAME)/rsrc/%.gresource.xml
+	glib-compile-resources --generate --manual-register --c-name=startgtk --target=$@ --sourcedir=$(GAME)/rsrc $<
+$(GAME)/rsrc/%_gresource.h: $(GAME)/rsrc/%.gresource.xml
+	glib-compile-resources --generate --manual-register --c-name=startgtk --target=$@ --sourcedir=$(GAME)/rsrc $<
+$(GAME)/rsrc/sdlappicon_%.c: $(GAME)/rsrc/%.png generatesdlappicon$(EXESUFFIX)
+	./generatesdlappicon$(EXESUFFIX) $< > $@
+
 
 $(TOOLS)/%.$o: $(TOOLS)/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@

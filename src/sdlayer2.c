@@ -28,9 +28,9 @@
 # include "glbuild.h"
 #endif
 
-#if defined __APPLE__
+#if defined(__APPLE__)
 # include "osxbits.h"
-#elif defined HAVE_GTK2
+#elif defined(HAVE_GTK)
 # include "gtkbits.h"
 #else
 int startwin_open(void) { return 0; }
@@ -109,7 +109,7 @@ int wm_msgbox(const char *name, const char *fmt, ...)
 
 #if defined(__APPLE__)
     return osx_msgbox(name, buf);
-#elif defined HAVE_GTK2
+#elif defined HAVE_GTK
     if (gtkbuild_msgbox(name, buf) >= 0) return 1;
 #endif
     puts(buf);
@@ -132,7 +132,7 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 
 #if defined __APPLE__
     return osx_ynbox(name, buf);
-#elif defined HAVE_GTK2
+#elif defined HAVE_GTK
     if ((r = gtkbuild_ynbox(name, buf)) >= 0) return r;
 #endif
     puts(buf);
@@ -174,10 +174,15 @@ int main(int argc, char *argv[])
 
     buildkeytranslationtable();
 
-#ifdef HAVE_GTK2
+    // SDL must be initialised before GTK or else crashing will ensue.
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER)) {
+        buildprintf("Early initialisation of SDL failed! (%s)\n", SDL_GetError());
+        return 1;
+    }
+
+#ifdef HAVE_GTK
     gtkbuild_init(&argc, &argv);
 #endif
-    startwin_open();
 
 #ifdef __APPLE__
     // consume Xcode's "-NSDocumentRevisionsDebugMode xx" parameter
@@ -195,6 +200,7 @@ int main(int argc, char *argv[])
     _buildargv = (const char **)argv;
 #endif
 
+    startwin_open();
     baselayer_init();
     r = app_main(_buildargc, (char const * const*)_buildargv);
 
@@ -203,9 +209,12 @@ int main(int argc, char *argv[])
 #endif
 
     startwin_close();
-#ifdef HAVE_GTK2
-    gtkbuild_exit(r);
+#ifdef HAVE_GTK
+    gtkbuild_exit();
 #endif
+
+    SDL_Quit();
+
     return r;
 }
 
@@ -221,15 +230,10 @@ int initsystem(void)
     SDL_GetVersion(&linked);
     SDL_VERSION(&compiled);
 
-    buildprintf("Initialising SDL2 system interface "
+    buildprintf("SDL2 system interface "
           "(compiled with SDL version %d.%d.%d, runtime version %d.%d.%d)\n",
         linked.major, linked.minor, linked.patch,
         compiled.major, compiled.minor, compiled.patch);
-
-    if (SDL_Init(SDL_INIT_VIDEO /*| SDL_INIT_TIMER*/)) {
-        buildprintf("Initialisation failed! (%s)\n", SDL_GetError());
-        return -1;
-    }
 
     atexit(uninitsystem);
 
@@ -238,10 +242,6 @@ int initsystem(void)
         buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
         nogl = 1;
     }
-#endif
-
-#ifndef __APPLE__
-    loadappicon();
 #endif
 
     return 0;
@@ -262,8 +262,6 @@ void uninitsystem(void)
     unloadglfunctions();
     unloadgldriver();
 #endif
-
-    SDL_Quit();
 }
 
 
@@ -505,7 +503,7 @@ void releaseallbuttons(void)
 //
 //
 
-static Uint32 timerfreq=0;
+static Uint64 timerfreq=0;
 static Uint32 timerlastsample=0;
 static Uint32 timerticspersec=0;
 static void (*usertimercallback)(void) = NULL;
@@ -519,9 +517,9 @@ int inittimer(int tickspersecond)
 
     buildputs("Initialising timer\n");
 
-    timerfreq = 1000;
+    timerfreq = SDL_GetPerformanceFrequency();
     timerticspersec = tickspersecond;
-    timerlastsample = SDL_GetTicks() * timerticspersec / timerfreq;
+    timerlastsample = (Uint32)(SDL_GetPerformanceCounter() * timerticspersec / timerfreq);
 
     usertimercallback = NULL;
 
@@ -543,13 +541,11 @@ void uninittimer(void)
 //
 void sampletimer(void)
 {
-    Uint32 i;
     int n;
 
     if (!timerfreq) return;
 
-    i = SDL_GetTicks();
-    n = (int)(i * timerticspersec / timerfreq) - timerlastsample;
+    n = (int)(SDL_GetPerformanceCounter() * timerticspersec / timerfreq) - timerlastsample;
     if (n>0) {
         totalclock += n;
         timerlastsample += n;
@@ -800,8 +796,6 @@ int setvideomode(int x, int y, int c, int fs)
 
     if (checkvideomode(&x,&y,c,fs,0) < 0) return -1;
 
-    startwin_close();
-
     if (mouseacquired) {
         regrab = 1;
         grabmouse(0);
@@ -918,6 +912,8 @@ int setvideomode(int x, int y, int c, int fs)
 
     if (regrab) grabmouse(1);
 
+    startwin_close();
+
     return 0;
 }
 
@@ -956,8 +952,8 @@ void showframe(int UNUSED(w))
     int i,j;
 
     if (bpp > 8) {
-        if (palfadedelta) {
 #ifdef USE_OPENGL
+        if (palfadedelta) {
             bglMatrixMode(GL_PROJECTION);
             bglPushMatrix();
             bglLoadIdentity();
@@ -983,11 +979,10 @@ void showframe(int UNUSED(w))
             bglPopMatrix();
             bglMatrixMode(GL_PROJECTION);
             bglPopMatrix();
-
-#endif
         }
 
         SDL_GL_SwapWindow(sdl_window);
+#endif
     } else {
         unsigned char *pixels, *out, *in;
         int pitch, y, x;

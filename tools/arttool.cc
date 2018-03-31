@@ -8,6 +8,7 @@
 #include <fstream>
 #include <string>
 #include <cstdlib>
+#include <cstring>
 
 using namespace std;
 
@@ -67,13 +68,13 @@ private:
 
 	void writeShort(ofstream &ofs, short s)
 	{
-		char d[2] = { s&255, (s>>8)&255 };
+		char d[2] = { (char)(s&255), (char)((s>>8)&255) };
 		ofs.write(d, 2);
 	}
 
 	void writeLong(ofstream &ofs, int l)
 	{
-		char d[4] = { l&255, (l>>8)&255, (l>>16)&255, (l>>24)&255 };
+		char d[4] = { (char)(l&255), (char)((l>>8)&255), (char)((l>>16)&255), (char)((l>>24)&255) };
 		ofs.write(d, 4);
 	}
 

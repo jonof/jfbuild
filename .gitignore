@@ -4,6 +4,7 @@
 *.lib
 *.exe
 *~
+
 /xcode/*.xcodeproj/*.mode1v3
 /xcode/*.xcodeproj/*.pbxuser
 /xcode/*.xcodeproj/project.xcworkspace
@@ -12,3 +13,14 @@
 /Makefile.user
 /console.txt
 /kenbuild-data/*
+
+/game
+/build
+/kextract
+/kgroup
+/transpal
+/arttool
+/wad2art
+/wad2map
+/generatesdlappicon
+/bin2c

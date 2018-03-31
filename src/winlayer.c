@@ -352,13 +352,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 	if (RegisterWindowClass()) return -1;
 
-#ifdef DISCLAIMER
-	MessageBox(0,
-		DISCLAIMER,
-		"Notice",
-		MB_OK|MB_ICONINFORMATION);
-#endif
-
 	atexit(uninitsystem);
 
 	instanceflag = CreateSemaphore(NULL, 1,1, WindowClass);

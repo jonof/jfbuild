@@ -6,8 +6,8 @@
 
 #define IDD_PAGE_CONFIG             1100
 #define IDC_FULLSCREEN              1101
-#define IDC_3DVMODE                 1102
-#define IDC_2DVMODE                 1103
+#define IDC_VMODE3D                 1102
+#define IDC_VMODE2D                 1103
 
 #define IDD_PAGE_MESSAGES           1200
 #define IDC_MESSAGES                1201
@@ -18,3 +18,5 @@
 #ifndef IDC_STATIC
 #define IDC_STATIC (-1)
 #endif
+
+#define Y_POS(origin,index) (origin + (index * 15))

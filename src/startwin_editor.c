@@ -6,9 +6,10 @@
 #define _WIN32_WINNT 0x0600
 #define _WIN32_IE 0x0600
 
+#include "compat.h"
+#include "winlayer.h"
 #include "build.h"
 #include "editor.h"
-#include "winlayer.h"
 
 #include <windows.h>
 #include <windowsx.h>
@@ -21,91 +22,97 @@
 #define TAB_CONFIG 0
 #define TAB_MESSAGES 1
 
-static struct {
-    int fullscreen;
-    int xdim2d, ydim2d;
-    int xdim3d, ydim3d, bpp3d;
-    int forcesetup;
-} settings;
 
 static HWND startupdlg = NULL;
 static HWND pages[2] = { NULL, NULL};
-static int done = -1, mode = TAB_CONFIG, quiteventonclose = 1;
+static int mode = TAB_CONFIG;
+static struct startwin_settings *settings;
+static BOOL quiteventonclose = FALSE;
+static int retval = -1;
 
-static void populateVideoModes(BOOL firstTime)
+static void populate_video_modes(BOOL firstTime)
 {
-    int i, j, mode2d, mode3d, fullscreen;
-    int xdim2d, ydim2d, xdim3d, ydim3d, bpp3d = 8;
-    char buf[64];
-    HWND hwnd2d, hwnd3d;
+    int i, j, mode2d = -1, mode3d = -1;
+    int xdim = 0, ydim = 0, bpp = 0, fullscreen = 0;
+    int xdim2d = 0, ydim2d = 0;
+    char modestr[64];
+    int cd[] = { 32, 24, 16, 15, 8, 0 };
+    HWND hwnd, hwnd2d;
 
-    fullscreen = IsDlgButtonChecked(pages[TAB_CONFIG], IDC_FULLSCREEN) == BST_CHECKED;
-
-    hwnd2d = GetDlgItem(pages[TAB_CONFIG], IDC_2DVMODE);
-    hwnd3d = GetDlgItem(pages[TAB_CONFIG], IDC_3DVMODE);
+    hwnd = GetDlgItem(pages[TAB_CONFIG], IDC_VMODE3D);
+    hwnd2d = GetDlgItem(pages[TAB_CONFIG], IDC_VMODE2D);
     if (firstTime) {
-        xdim2d = settings.xdim2d;
-        ydim2d = settings.ydim2d;
+        getvalidmodes();
+        xdim = settings->xdim3d;
+        ydim = settings->ydim3d;
+        bpp  = settings->bpp3d;
+        fullscreen = settings->fullscreen;
 
-        xdim3d = settings.xdim3d;
-        ydim3d = settings.ydim3d;
-        bpp3d  = settings.bpp3d;
+        xdim2d = settings->xdim2d;
+        ydim2d = settings->ydim2d;
     } else {
+        fullscreen = IsDlgButtonChecked(pages[TAB_CONFIG], IDC_FULLSCREEN) == BST_CHECKED;
+        i = ComboBox_GetCurSel(hwnd);
+        if (i != CB_ERR) i = ComboBox_GetItemData(hwnd, i);
+        if (i != CB_ERR) {
+            xdim = validmode[i].xdim;
+            ydim = validmode[i].ydim;
+            bpp  = validmode[i].bpp;
+        }
+
         i = ComboBox_GetCurSel(hwnd2d);
         if (i != CB_ERR) i = ComboBox_GetItemData(hwnd2d, i);
         if (i != CB_ERR) {
-            xdim3d = validmode[i].xdim;
-            ydim3d = validmode[i].ydim;
-        }
-
-        i = ComboBox_GetCurSel(hwnd3d);
-        if (i != CB_ERR) i = ComboBox_GetItemData(hwnd3d, i);
-        if (i != CB_ERR) {
-            xdim3d = validmode[i].xdim;
-            ydim3d = validmode[i].ydim;
-            bpp3d  = validmode[i].bpp;
+            xdim2d = validmode[i].xdim;
+            ydim2d = validmode[i].ydim;
         }
     }
 
+    // Find an ideal match.
+    mode3d = checkvideomode(&xdim, &ydim, bpp, fullscreen, 1);
     mode2d = checkvideomode(&xdim2d, &ydim2d, 8, fullscreen, 1);
-    mode3d = checkvideomode(&xdim3d, &ydim3d, bpp3d, fullscreen, 1);
     if (mode2d < 0) {
         mode2d = 0;
     }
     if (mode3d < 0) {
-        int i, cd[] = { 32, 24, 16, 15, 8, 0 };
-        for (i=0; cd[i]; ) { if (cd[i] >= bpp3d) i++; else break; }
+        for (i=0; cd[i]; ) { if (cd[i] >= bpp) i++; else break; }
         for ( ; cd[i]; i++) {
-            mode3d = checkvideomode(&xdim3d, &ydim3d, cd[i], fullscreen, 1);
+            mode3d = checkvideomode(&xdim, &ydim, cd[i], fullscreen, 1);
             if (mode3d < 0) continue;
             break;
         }
     }
 
+    // Repopulate the lists.
+    ComboBox_ResetContent(hwnd);
     ComboBox_ResetContent(hwnd2d);
-    ComboBox_ResetContent(hwnd3d);
     for (i=0; i<validmodecnt; i++) {
         if (validmode[i].fs != fullscreen) continue;
 
+        Bsprintf(modestr, "%d x %d %d-bpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
+        j = ComboBox_AddString(hwnd, modestr);
+        ComboBox_SetItemData(hwnd, j, i);
+        if (i == mode3d) {
+            ComboBox_SetCurSel(hwnd, j);
+        }
+
         if (validmode[i].bpp == 8 && validmode[i].xdim >= 640 && validmode[i].ydim >= 480) {
-            Bsprintf(buf, "%d x %d", validmode[i].xdim, validmode[i].ydim);
-            j = ComboBox_AddString(hwnd2d, buf);
+            Bsprintf(modestr, "%d x %d", validmode[i].xdim, validmode[i].ydim);
+            j = ComboBox_AddString(hwnd2d, modestr);
             ComboBox_SetItemData(hwnd2d, j, i);
             if (i == mode2d) {
                 ComboBox_SetCurSel(hwnd2d, j);
             }
         }
-
-        Bsprintf(buf, "%d x %d %d-bpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
-        j = ComboBox_AddString(hwnd3d, buf);
-        ComboBox_SetItemData(hwnd3d, j, i);
-        if (i == mode3d) {
-            ComboBox_SetCurSel(hwnd3d, j);
-        }
     }
 }
 
-static void setPage(int n)
+static void set_settings(struct startwin_settings *thesettings)
+{
+    settings = thesettings;
+}
+
+static void set_page(int n)
 {
     HWND tab = GetDlgItem(startupdlg, IDC_STARTWIN_TABCTL);
     int cur = (int)SendMessage(tab, TCM_GETCURSEL,0,0);
@@ -118,36 +125,75 @@ static void setPage(int n)
     SendMessage(startupdlg, WM_NEXTDLGCTL, (WPARAM)GetDlgItem(startupdlg, IDC_STARTWIN_TABCTL), TRUE);
 }
 
-static void setupRunMode(void)
+static void setup_config_mode(void)
 {
-    CheckDlgButton(startupdlg, IDC_ALWAYSSHOW, (settings.forcesetup ? BST_CHECKED : BST_UNCHECKED));
+    set_page(TAB_CONFIG);
+
+    CheckDlgButton(startupdlg, IDC_ALWAYSSHOW, (settings->forcesetup ? BST_CHECKED : BST_UNCHECKED));
     EnableWindow(GetDlgItem(startupdlg, IDC_ALWAYSSHOW), TRUE);
 
-    EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC_2DVMODE), TRUE);
-    EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC_3DVMODE), TRUE);
+    CheckDlgButton(pages[TAB_CONFIG], IDC_FULLSCREEN, (settings->fullscreen ? BST_CHECKED : BST_UNCHECKED));
     EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC_FULLSCREEN), TRUE);
 
-    populateVideoModes(TRUE);
-    CheckDlgButton(pages[TAB_CONFIG], IDC_FULLSCREEN, (settings.fullscreen ? BST_CHECKED : BST_UNCHECKED));
+    populate_video_modes(TRUE);
+    EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC_VMODE3D), TRUE);
+    EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC_VMODE2D), TRUE);
 
     EnableWindow(GetDlgItem(startupdlg, IDCANCEL), TRUE);
     EnableWindow(GetDlgItem(startupdlg, IDOK), TRUE);
-
-    setPage(TAB_CONFIG);
 }
 
-static void setupMessagesMode(int allowCancel)
+static void setup_messages_mode(BOOL allowcancel)
 {
-    setPage(TAB_MESSAGES);
+    set_page(TAB_MESSAGES);
 
-    EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC_2DVMODE), FALSE);
-    EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC_3DVMODE), FALSE);
     EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC_FULLSCREEN), FALSE);
+    EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC_VMODE3D), FALSE);
+    EnableWindow(GetDlgItem(pages[TAB_CONFIG], IDC_VMODE2D), FALSE);
 
     EnableWindow(GetDlgItem(startupdlg, IDC_ALWAYSSHOW), FALSE);
 
-    EnableWindow(GetDlgItem(startupdlg, IDCANCEL), allowCancel);
+    EnableWindow(GetDlgItem(startupdlg, IDCANCEL), allowcancel);
     EnableWindow(GetDlgItem(startupdlg, IDOK), FALSE);
+}
+
+static void fullscreen_clicked(void)
+{
+    populate_video_modes(FALSE);
+}
+
+static void cancelbutton_clicked(void)
+{
+    retval = STARTWIN_CANCEL;
+    quitevent = quitevent || quiteventonclose;
+}
+
+static void startbutton_clicked(void)
+{
+    int i;
+    HWND hwnd;
+
+    hwnd = GetDlgItem(pages[TAB_CONFIG], IDC_VMODE3D);
+    i = ComboBox_GetCurSel(hwnd);
+    if (i != CB_ERR) i = ComboBox_GetItemData(hwnd, i);
+    if (i != CB_ERR) {
+        settings->xdim3d = validmode[i].xdim;
+        settings->ydim3d = validmode[i].ydim;
+        settings->bpp3d  = validmode[i].bpp;
+        settings->fullscreen = validmode[i].fs;
+    }
+
+    hwnd = GetDlgItem(pages[TAB_CONFIG], IDC_VMODE2D);
+    i = ComboBox_GetCurSel(hwnd);
+    if (i != CB_ERR) i = ComboBox_GetItemData(hwnd, i);
+    if (i != CB_ERR) {
+        settings->xdim2d = validmode[i].xdim;
+        settings->ydim2d = validmode[i].ydim;
+    }
+
+    settings->forcesetup = IsDlgButtonChecked(startupdlg, IDC_ALWAYSSHOW) == BST_CHECKED;
+
+    retval = STARTWIN_RUN;
 }
 
 static INT_PTR CALLBACK ConfigPageProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -161,7 +207,7 @@ static INT_PTR CALLBACK ConfigPageProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
                 case IDC_FULLSCREEN:
-                    populateVideoModes(FALSE);
+                    fullscreen_clicked();
                     return TRUE;
                 default: break;
             }
@@ -184,21 +230,15 @@ static INT_PTR CALLBACK MessagesPageProc(HWND hwndDlg, UINT uMsg, WPARAM wParam,
 
 static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    static HBITMAP *hbmp = NULL;
-
     switch (uMsg) {
         case WM_INITDIALOG: {
             HWND hwnd;
             RECT r, rdlg, chrome, rtab, rcancel, rstart;
             int xoffset = 0, yoffset = 0;
 
-            hbmp = LoadImage((HINSTANCE)win_gethinstance(), MAKEINTRESOURCE(IDB_BMP), IMAGE_BITMAP,
-                0, 0, LR_LOADTRANSPARENT | LR_LOADMAP3DCOLORS);
-            SendDlgItemMessage(hwndDlg, IDC_STARTWIN_BITMAP, STM_SETIMAGE, IMAGE_BITMAP, (LPARAM)hbmp);
-
             {
                 TCITEM tab;
-                
+
                 hwnd = GetDlgItem(hwndDlg, IDC_STARTWIN_TABCTL);
 
                 // Add tabs to the tab control
@@ -249,8 +289,7 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
         }
 
         case WM_CLOSE:
-            done = STARTWIN_CANCEL;
-            quitevent = quitevent || quiteventonclose;
+            cancelbutton_clicked();
             return TRUE;
 
         case WM_DESTROY:
@@ -264,46 +303,16 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
                 pages[TAB_MESSAGES] = NULL;
             }
 
-            if (hbmp) {
-                DeleteObject(hbmp);
-                hbmp = NULL;
-            }
-
             startupdlg = NULL;
             return TRUE;
 
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
                 case IDCANCEL:
-                    done = STARTWIN_CANCEL;
-                    quitevent = quitevent || quiteventonclose;
+                    cancelbutton_clicked();
                     return TRUE;
                 case IDOK: {
-                    int i;
-                    HWND hwnd;
-
-                    hwnd = GetDlgItem(pages[TAB_CONFIG], IDC_2DVMODE);
-                    i = ComboBox_GetCurSel(hwnd);
-                    if (i != CB_ERR) i = ComboBox_GetItemData(hwnd, i);
-                    if (i != CB_ERR) {
-                        settings.xdim2d = validmode[i].xdim;
-                        settings.ydim2d = validmode[i].ydim;
-                    }
-
-                    hwnd = GetDlgItem(pages[TAB_CONFIG], IDC_3DVMODE);
-                    i = ComboBox_GetCurSel(hwnd);
-                    if (i != CB_ERR) i = ComboBox_GetItemData(hwnd, i);
-                    if (i != CB_ERR) {
-                        settings.xdim3d = validmode[i].xdim;
-                        settings.ydim3d = validmode[i].ydim;
-                        settings.bpp3d  = validmode[i].bpp;
-                    }
-
-                    settings.fullscreen = IsDlgButtonChecked(pages[TAB_CONFIG], IDC_FULLSCREEN) == BST_CHECKED;
-
-                    settings.forcesetup = IsDlgButtonChecked(hwndDlg, IDC_ALWAYSSHOW) == BST_CHECKED;
-
-                    done = STARTWIN_RUN;
+                    startbutton_clicked();
                     return TRUE;
                 }
             }
@@ -319,24 +328,30 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 int startwin_open(void)
 {
     INITCOMMONCONTROLSEX icc;
+
     if (startupdlg) return 1;
+
     icc.dwSize = sizeof(icc);
     icc.dwICC = ICC_TAB_CLASSES;
     InitCommonControlsEx(&icc);
     startupdlg = CreateDialog((HINSTANCE)win_gethinstance(), MAKEINTRESOURCE(IDD_STARTWIN), NULL, startup_dlgproc);
-    if (startupdlg) {
-        setupMessagesMode(FALSE);
-        return 0;
+    if (!startupdlg) {
+        return -1;
     }
-    return -1;
+
+    quiteventonclose = TRUE;
+    setup_messages_mode(FALSE);
+    return 0;
 }
 
 int startwin_close(void)
 {
     if (!startupdlg) return 1;
-    quiteventonclose = 0;
+
+    quiteventonclose = FALSE;
     DestroyWindow(startupdlg);
     startupdlg = NULL;
+
     return 0;
 }
 
@@ -350,7 +365,7 @@ int startwin_puts(const char *buf)
     int vis;
 
     if (!startupdlg) return 1;
-    
+
     edctl = GetDlgItem(pages[TAB_MESSAGES], IDC_MESSAGES);
     if (!edctl) return -1;
 
@@ -393,8 +408,9 @@ int startwin_puts(const char *buf)
 
 int startwin_settitle(const char *str)
 {
-    if (!startupdlg) return 1;
-    SetWindowText(startupdlg, str);
+    if (startupdlg) {
+        SetWindowText(startupdlg, str);
+    }
     return 0;
 }
 
@@ -405,26 +421,18 @@ int startwin_idle(void *v)
     return 0;
 }
 
-int startwin_run(void)
+int startwin_run(struct startwin_settings *settings)
 {
     MSG msg;
+
     if (!startupdlg) return 1;
 
-    done = -1;
+    set_settings(settings);
+    setup_config_mode();
 
-    settings.fullscreen = fullscreen;
-    settings.xdim2d = xdim2d;
-    settings.ydim2d = ydim2d;
-    settings.xdim3d = xdimgame;
-    settings.ydim3d = ydimgame;
-    settings.bpp3d = bppgame;
-    settings.forcesetup = forcesetup;
-
-    setupRunMode();
-
-    while (done < 0) {
+    while (retval < 0) {
         switch (GetMessage(&msg, NULL, 0,0)) {
-            case 0: done = STARTWIN_CANCEL; break;    //WM_QUIT
+            case 0: retval = STARTWIN_CANCEL; break;    //WM_QUIT
             case -1: return -1;     // error
             default:
                  if (IsWindow(startupdlg) && IsDialogMessage(startupdlg, &msg)) break;
@@ -434,18 +442,9 @@ int startwin_run(void)
         }
     }
 
-    setupMessagesMode(FALSE);
+    setup_messages_mode(FALSE);
+    set_settings(NULL);
 
-    if (done) {
-        fullscreen = settings.fullscreen;
-        xdim2d = settings.xdim2d;
-        ydim2d = settings.ydim2d;
-        xdimgame = settings.xdim3d;
-        ydimgame = settings.ydim3d;
-        bppgame = settings.bpp3d;
-        forcesetup = settings.forcesetup;
-    }
-
-    return done;
+    return retval;
 }
 
