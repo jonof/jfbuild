@@ -13,6 +13,7 @@
 
 #include <windows.h>
 #include <windowsx.h>
+#include <strsafe.h>
 #include <commctrl.h>
 #include <uxtheme.h>
 #include <stdio.h>
@@ -34,7 +35,7 @@ static void populate_video_modes(BOOL firstTime)
 {
     int i, j, mode3d = -1;
     int xdim = 0, ydim = 0, bpp = 0, fullscreen = 0;
-    char modestr[64];
+    TCHAR modestr[64];
     int cd[] = { 32, 24, 16, 15, 8, 0 };
     HWND hwnd;
 
@@ -72,7 +73,8 @@ static void populate_video_modes(BOOL firstTime)
     for (i=0; i<validmodecnt; i++) {
         if (validmode[i].fs != fullscreen) continue;
 
-        Bsprintf(modestr, "%d x %d %d-bpp", validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
+        StringCbPrintf(modestr, sizeof(modestr), TEXT("%d x %d %d-bpp"),
+            validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
         j = ComboBox_AddString(hwnd, modestr);
         ComboBox_SetItemData(hwnd, j, i);
         if (i == mode3d) {
@@ -268,9 +270,9 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
                 ZeroMemory(&tab, sizeof(tab));
                 tab.mask = TCIF_TEXT;
                 tab.pszText = TEXT("Configuration");
-                TabCtrl_InsertItem(hwnd, 0, &tab);
+                TabCtrl_InsertItem(hwnd, TAB_CONFIG, &tab);
                 tab.pszText = TEXT("Messages");
-                TabCtrl_InsertItem(hwnd, 1, &tab);
+                TabCtrl_InsertItem(hwnd, TAB_MESSAGES, &tab);
 
                 // Work out the position and size of the area inside the tab control for the pages.
                 ZeroMemory(&r, sizeof(r));
