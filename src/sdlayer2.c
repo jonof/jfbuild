@@ -202,6 +202,10 @@ int main(int argc, char *argv[])
 
     startwin_open();
     baselayer_init();
+
+    // This avoids doubled character input in the (OSX) startup window's edit fields.
+    SDL_EventState(SDL_TEXTINPUT, SDL_IGNORE);
+
     r = app_main(_buildargc, (char const * const*)_buildargv);
 
 #ifdef __APPLE__
@@ -913,6 +917,9 @@ int setvideomode(int x, int y, int c, int fs)
     if (regrab) grabmouse(1);
 
     startwin_close();
+
+    // Start listening for character input.
+    SDL_EventState(SDL_TEXTINPUT, SDL_ENABLE);
 
     return 0;
 }
