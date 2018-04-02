@@ -8,8 +8,8 @@
 #include <string.h>
 
 #define USE_IPV6
-#define DEBUG_SENDRECV
-#define DEBUG_SENDRECV_WIRE
+//#define MMULTI_DEBUG_SENDRECV
+//#define MMULTI_DEBUG_SENDRECV_WIRE
 
 #ifdef _WIN32
 #include <mswsock.h>
@@ -264,13 +264,13 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 	if (otherhost[other].ss_family == AF_UNSPEC) return(0);
 
 	if (otherhost[other].ss_family != domain) {
-#ifdef DEBUG_SENDRECV_WIRE
+#ifdef MMULTI_DEBUG_SENDRECV_WIRE
 		debugprintf("mmulti debug send error: tried sending to a different protocol family\n");
 #endif
 		return 0;
 	}
 
-#ifdef DEBUG_SENDRECV_WIRE
+#ifdef MMULTI_DEBUG_SENDRECV_WIRE
 	{
 		int i;
 		const unsigned char *pakbuf = dabuf;
@@ -371,7 +371,7 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 	if ((len = sendmsg(mysock, &msg, 0)) < 0)
 #endif
 	{
-#ifdef DEBUG_SENDRECV_WIRE
+#ifdef MMULTI_DEBUG_SENDRECV_WIRE
 		debugprintf("mmulti debug send error: %s\n", strerror(errno));
 #endif
 		return 0;
@@ -423,7 +423,7 @@ int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 	if (len == 0) return 0;
 
 	if (snatchhost.ss_family != domain) {
-#ifdef DEBUG_SENDRECV_WIRE
+#ifdef MMULTI_DEBUG_SENDRECV_WIRE
 		debugprintf("mmulti debug recv error: received from a different protocol family\n");
 #endif
 		return 0;
@@ -442,28 +442,28 @@ int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 #if defined(__linux) || defined(_WIN32)
 		if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
 			snatchreplyfrom4 = ((struct in_pktinfo *)CMSG_DATA(cmsg))->ipi_addr;
-#ifdef DEBUG_SENDRECV_WIRE
+#ifdef MMULTI_DEBUG_SENDRECV_WIRE
 			debugprintf("mmulti debug recv: received at %s\n", inet_ntoa(snatchreplyfrom4));
 #endif
 		}
 #else
 		if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_RECVDSTADDR) {
 			snatchreplyfrom4 = *(struct in_addr *)CMSG_DATA(cmsg);
-#ifdef DEBUG_SENDRECV_WIRE
+#ifdef MMULTI_DEBUG_SENDRECV_WIRE
 			debugprintf("mmulti debug recv: received at %s\n", inet_ntoa(snatchreplyfrom4));
 #endif
 		}
 #endif
 		else if (cmsg->cmsg_level == IPPROTO_IPV6 && cmsg->cmsg_type == IPV6_PKTINFO) {
 			snatchreplyfrom6 = ((struct in6_pktinfo *)CMSG_DATA(cmsg))->ipi6_addr;
-#ifdef DEBUG_SENDRECV_WIRE
+#ifdef MMULTI_DEBUG_SENDRECV_WIRE
 			char addr[INET6_ADDRSTRLEN+1];
 			debugprintf("mmulti debug recv: received at %s\n", inet_ntop(AF_INET6, &snatchreplyfrom6, addr, sizeof(addr)));
 #endif
 		}
 	}
 
-#ifdef DEBUG_SENDRECV_WIRE
+#ifdef MMULTI_DEBUG_SENDRECV_WIRE
 	{
 		const unsigned char *pakbuf = dabuf;
 		debugprintf("mmulti debug recv: ");
@@ -799,7 +799,7 @@ int initmultiplayerscycle(void)
 				if (tims < lastsendtims[i]) lastsendtims[i] = tims;
 				if (tims >= lastsendtims[i]+250) //1000/PAKRATE)
 				{
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 					debugprintf("mmulti debug: sending player %d a ping\n", i);
 #endif
 
@@ -1019,11 +1019,11 @@ int getpacket (int *retother, unsigned char *bufptr)
 		crc16ofs = (int)(*(unsigned short *)&pakbuf[k]); k += 2;
 
 		if (crc16ofs+2 > (int)sizeof(pakbuf)) {
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 			debugprintf("mmulti debug: wrong-sized packet from %d\n", other);
 #endif
 		} else if (getcrc16(pakbuf,crc16ofs) != (*(unsigned short *)&pakbuf[crc16ofs])) {
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 			debugprintf("mmulti debug: bad crc in packet from %d\n", other);
 #endif
 		} else {
@@ -1038,7 +1038,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 				if (pakbuf[k] == 0xaa)
 				{
 					int sendother = -1;
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 					const char *addr = presentaddress((struct sockaddr *)&snatchhost);
 #endif
 
@@ -1046,13 +1046,13 @@ int getpacket (int *retother, unsigned char *bufptr)
 						// Master-slave.
 						if (other == myconnectindex && myconnectindex == connecthead) {
 							// This the master and someone new is calling. Find them a place.
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 							debugprintf("mmulti debug: got ping from new host %s\n", addr);
 #endif
 							for (other = 1; other < numplayers; other++) {
 								if (otherhost[other].ss_family == PF_UNSPEC) {
 									sendother = other;
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 									debugprintf("mmulti debug: giving %s player %d\n", addr, other);
 #endif
 									break;
@@ -1060,7 +1060,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 							}
 						} else {
 							// Repeat back to them their position.
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 							debugprintf("mmulti debug: got ping from player %d\n", other);
 #endif
 							sendother = other;
@@ -1068,11 +1068,11 @@ int getpacket (int *retother, unsigned char *bufptr)
 					} else {
 						// Peer-to-peer mode.
 						if (other == myconnectindex) {
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 							debugprintf("mmulti debug: got ping from unknown host %s\n", addr);
 #endif
 						} else {
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 							debugprintf("mmulti debug: got ping from peer %d\n", other);
 #endif
 							sendother = other;
@@ -1109,7 +1109,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 							 ((unsigned int)pakbuf[k+2] < (unsigned int)MAXPLAYERS) &&
 							 other == connecthead)
 						{
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 								debugprintf("mmulti debug: master gave us player %d in a %d player game\n",
 									(int)pakbuf[k+1], (int)pakbuf[k+2]);
 #endif
@@ -1153,7 +1153,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 			else
 			{
 				if (other == myconnectindex) {
-#ifdef DEBUG_SENDRECV
+#ifdef MMULTI_DEBUG_SENDRECV
 					debugprintf("mmulti debug: got a packet from unknown host %s\n",
 								presentaddress((struct sockaddr *)&snatchhost));
 					return 0;

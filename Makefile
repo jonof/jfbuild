@@ -47,7 +47,9 @@ ifneq ($(RELEASE),0)
   debug=-fomit-frame-pointer -O2
 else
   # debugging enabled
-  debug=-Og -DDEBUGGINGAIDS -DNOSDLPARACHUTE
+  debug=-Og -DDEBUGGINGAIDS
+  debug+= -DMMULTI_DEBUG_SENDRECV
+  #debug+= -DMMULTI_DEBUG_SENDRECV_WIRE
 endif
 
 CC?=gcc
