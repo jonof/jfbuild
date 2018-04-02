@@ -428,7 +428,10 @@ static void OSD_Manipulate(int op) {
 				osdeditlen--;
 			}
 			osdeditcursor--;
-			if (osdeditcursor<osdeditwinstart) osdeditwinstart--,osdeditwinend--;
+			if (osdeditcursor<osdeditwinstart) {
+				osdeditwinstart--;
+				osdeditwinend--;
+			}
 			break;
 		case OSDOP_DELETE:
 			if (osdeditcursor == osdeditlen || !osdeditlen) return;
@@ -524,17 +527,22 @@ static void OSD_Manipulate(int op) {
 				osdhistorypos++;
 				memcpy(osdeditbuf, osdhistorybuf[osdhistorypos], EDITLENGTH+1);
 				osdeditlen = osdeditcursor = 0;
-				while (osdeditbuf[osdeditcursor]) osdeditlen++, osdeditcursor++;
+				while (osdeditbuf[osdeditcursor]) {
+					osdeditlen++;
+					osdeditcursor++;
+				}
 				if (osdeditcursor<osdeditwinstart) {
 					osdeditwinend = osdeditcursor;
 					osdeditwinstart = osdeditwinend-editlinewidth;
 
-					if (osdeditwinstart<0)
-						osdeditwinend-=osdeditwinstart,
+					if (osdeditwinstart<0) {
+						osdeditwinend-=osdeditwinstart;
 						osdeditwinstart=0;
-				} else if (osdeditcursor>=osdeditwinend)
-					osdeditwinstart+=(osdeditcursor-osdeditwinend),
+					}
+				} else if (osdeditcursor>=osdeditwinend) {
+					osdeditwinstart+=(osdeditcursor-osdeditwinend);
 					osdeditwinend+=(osdeditcursor-osdeditwinend);
+				}
 			}
 			break;
 		case OSDOP_HISTORY_DOWN:
@@ -549,17 +557,22 @@ static void OSD_Manipulate(int op) {
 					osdhistorypos--;
 					memcpy(osdeditbuf, osdhistorybuf[osdhistorypos], EDITLENGTH+1);
 					osdeditlen = osdeditcursor = 0;
-					while (osdeditbuf[osdeditcursor]) osdeditlen++, osdeditcursor++;
+					while (osdeditbuf[osdeditcursor]) {
+						osdeditlen++;
+						osdeditcursor++;
+					}
 					if (osdeditcursor<osdeditwinstart) {
 						osdeditwinend = osdeditcursor;
 						osdeditwinstart = osdeditwinend-editlinewidth;
 
-						if (osdeditwinstart<0)
-							osdeditwinend-=osdeditwinstart,
+						if (osdeditwinstart<0) {
+							osdeditwinend-=osdeditwinstart;
 							osdeditwinstart=0;
-					} else if (osdeditcursor>=osdeditwinend)
-						osdeditwinstart+=(osdeditcursor-osdeditwinend),
+						}
+					} else if (osdeditcursor>=osdeditwinend) {
+						osdeditwinstart+=(osdeditcursor-osdeditwinend);
 						osdeditwinend+=(osdeditcursor-osdeditwinend);
+					}
 				}
 			}
 			break;
@@ -595,7 +608,10 @@ static void OSD_InsertChar(int ch)
 	}
 	osdeditbuf[osdeditcursor] = ch;
 	osdeditcursor++;
-	if (osdeditcursor>osdeditwinend) osdeditwinstart++,osdeditwinend++;
+	if (osdeditcursor>osdeditwinend) {
+		osdeditwinstart++;
+		osdeditwinend++;
+	}
 }
 
 //

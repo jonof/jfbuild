@@ -530,8 +530,14 @@ static int defsparser(scriptfile *script)
 									}
 								}
 
-								if (ftilenume < 0) buildprintf("Error: missing 'first tile number' for frame definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,frametokptr)), happy = 0;
-								if (ltilenume < 0) buildprintf("Error: missing 'last tile number' for frame definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,frametokptr)), happy = 0;
+								if (ftilenume < 0) {
+									buildprintf("Error: missing 'first tile number' for frame definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,frametokptr));
+									happy = 0;
+								}
+								if (ltilenume < 0) {
+									buildprintf("Error: missing 'last tile number' for frame definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,frametokptr));
+									happy = 0;
+								}
 								if (!happy) break;
 
 								if (ltilenume < ftilenume) {
@@ -581,8 +587,14 @@ static int defsparser(scriptfile *script)
 									}
 								}
 
-								if (!startframe) buildprintf("Error: missing 'start frame' for anim definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,animtokptr)), happy = 0;
-								if (!endframe) buildprintf("Error: missing 'end frame' for anim definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,animtokptr)), happy = 0;
+								if (!startframe) {
+									buildprintf("Error: missing 'start frame' for anim definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,animtokptr));
+									happy = 0;
+								}
+								if (!endframe) {
+									buildprintf("Error: missing 'end frame' for anim definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,animtokptr));
+									happy = 0;
+								}
 								if (!happy) break;
 								
 								if (lastmodelid < 0) {
@@ -668,8 +680,14 @@ static int defsparser(scriptfile *script)
 									}
 								}
 
-								if (ftilenume < 0) buildprintf("Error: missing 'first tile number' for hud definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,hudtokptr)), happy = 0;
-								if (ltilenume < 0) buildprintf("Error: missing 'last tile number' for hud definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,hudtokptr)), happy = 0;
+								if (ftilenume < 0) {
+									buildprintf("Error: missing 'first tile number' for hud definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,hudtokptr));
+									happy = 0;
+								}
+								if (ltilenume < 0) {
+									buildprintf("Error: missing 'last tile number' for hud definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,hudtokptr));
+									happy = 0;
+								}
 								if (!happy) break;
 
 								if (ltilenume < ftilenume) {
@@ -785,9 +803,15 @@ static int defsparser(scriptfile *script)
 						}
 					}
 
-					if (tile < 0) buildprintf("Error: missing 'tile number' for skybox definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,skyboxtokptr)), happy=0;
+					if (tile < 0) {
+						buildprintf("Error: missing 'tile number' for skybox definition near line %s:%d\n", script->filename, scriptfile_getlinum(script,skyboxtokptr));
+						happy=0;
+					}
 					for (i=0;i<6;i++) {
-							if (!fn[i]) buildprintf("Error: missing '%s filename' for skybox definition near line %s:%d\n", skyfaces[i], script->filename, scriptfile_getlinum(script,skyboxtokptr)), happy = 0;
+						if (!fn[i]) {
+							buildprintf("Error: missing '%s filename' for skybox definition near line %s:%d\n", skyfaces[i], script->filename, scriptfile_getlinum(script,skyboxtokptr));
+							happy = 0;
+						}
 					}
 
 					if (!happy) break;
