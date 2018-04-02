@@ -34,9 +34,9 @@ extern int gltexmiplevel;	// discards this many mipmap levels
 
 int polymost_texmayhavealpha (int dapicnum, int dapalnum);
 void polymost_texinvalidate (int dapicnum, int dapalnum, int dameth);
-void polymost_texinvalidateall ();
-void polymost_glinit();
-void polymost_drawrooms ();
+void polymost_texinvalidateall (void);
+void polymost_glinit(void);
+void polymost_drawrooms (void);
 void polymost_drawmaskwall (int damaskwallcnt);
 void polymost_drawsprite (int snum);
 void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,

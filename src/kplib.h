@@ -6,15 +6,15 @@ extern int kprender (void *, int, void *, int, int, int, int, int);
 
 	//ZIP functions:
 extern int kzaddstack (const char *);
-extern void kzuninit ();
+extern void kzuninit (void);
 extern int kzopen (const char *);
 extern int kzread (void *, int);
-extern int kzfilelength ();
+extern int kzfilelength (void);
 extern int kzseek (int, int);
-extern int kztell ();
-extern int kzgetc ();
-extern int kzeof ();
-extern void kzclose ();
+extern int kztell (void);
+extern int kzgetc (void);
+extern int kzeof (void);
+extern void kzclose (void);
 
 extern void kzfindfilestart (const char *); //pass wildcard string
 extern int kzfindfile (char *); //you alloc buf, returns 1:found,0:~found

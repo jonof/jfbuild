@@ -470,7 +470,7 @@ void setpolymost2dview(void);   // sets up GL for 2D drawing
 
 int polymost_drawtilescreen(int tilex, int tiley, int wallnum, int dimen);
 void polymost_glreset(void);
-void polymost_precache_begin();
+void polymost_precache_begin(void);
 void polymost_precache(int dapicnum, int dapalnum, int datype);
 int  polymost_precache_run(int* done, int* total);
 
