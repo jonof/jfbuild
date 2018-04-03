@@ -6556,7 +6556,8 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 	if (numsectors > MAXSECTORS) { kclose(fil); return(-1); }
 	for (i=0; i<numsectors; i++) {
 		switch (mapversion) {
-			case 5: kread(fil,&v5sect,sizeof(struct sectortypev5));
+			case 5:
+				kread(fil,&v5sect,sizeof(struct sectortypev5));
 				v5sect.wallptr = B_LITTLE16(v5sect.wallptr);
 				v5sect.wallnum = B_LITTLE16(v5sect.wallnum);
 				v5sect.ceilingpicnum = B_LITTLE16(v5sect.ceilingpicnum);
@@ -6568,8 +6569,11 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 				v5sect.lotag = B_LITTLE16(v5sect.lotag);
 				v5sect.hitag = B_LITTLE16(v5sect.hitag);
 				v5sect.extra = B_LITTLE16(v5sect.extra);
+				convertv5sectv6(&v5sect,&v6sect);
+				convertv6sectv7(&v6sect,&sector[i]);
 				break;
-			case 6: kread(fil,&v6sect,sizeof(struct sectortypev6));
+			case 6:
+				kread(fil,&v6sect,sizeof(struct sectortypev6));
 				v6sect.wallptr = B_LITTLE16(v6sect.wallptr);
 				v6sect.wallnum = B_LITTLE16(v6sect.wallnum);
 				v6sect.ceilingpicnum = B_LITTLE16(v6sect.ceilingpicnum);
@@ -6581,11 +6585,8 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 				v6sect.lotag = B_LITTLE16(v6sect.lotag);
 				v6sect.hitag = B_LITTLE16(v6sect.hitag);
 				v6sect.extra = B_LITTLE16(v6sect.extra);
+				convertv6sectv7(&v6sect,&sector[i]);
 				break;
-		}
-		switch (mapversion) {
-			case 5: convertv5sectv6(&v5sect,&v6sect);
-			case 6: convertv6sectv7(&v6sect,&sector[i]);
 		}
 	}
 
@@ -6593,7 +6594,8 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 	if (numwalls > MAXWALLS) { kclose(fil); return(-1); }
 	for (i=0; i<numwalls; i++) {
 		switch (mapversion) {
-			case 5: kread(fil,&v5wall,sizeof(struct walltypev5));
+			case 5:
+				kread(fil,&v5wall,sizeof(struct walltypev5));
 				v5wall.x = B_LITTLE32(v5wall.x);
 				v5wall.y = B_LITTLE32(v5wall.y);
 				v5wall.point2 = B_LITTLE16(v5wall.point2);
@@ -6607,8 +6609,11 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 				v5wall.lotag = B_LITTLE16(v5wall.lotag);
 				v5wall.hitag = B_LITTLE16(v5wall.hitag);
 				v5wall.extra = B_LITTLE16(v5wall.extra);
+				convertv5wallv6(&v5wall,&v6wall,i);
+				convertv6wallv7(&v6wall,&wall[i]);
 				break;
-			case 6: kread(fil,&v6wall,sizeof(struct walltypev6));
+			case 6:
+				kread(fil,&v6wall,sizeof(struct walltypev6));
 				v6wall.x = B_LITTLE32(v6wall.x);
 				v6wall.y = B_LITTLE32(v6wall.y);
 				v6wall.point2 = B_LITTLE16(v6wall.point2);
@@ -6620,11 +6625,8 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 				v6wall.lotag = B_LITTLE16(v6wall.lotag);
 				v6wall.hitag = B_LITTLE16(v6wall.hitag);
 				v6wall.extra = B_LITTLE16(v6wall.extra);
+				convertv6wallv7(&v6wall,&wall[i]);
 				break;
-		}
-		switch (mapversion) {
-			case 5: convertv5wallv6(&v5wall,&v6wall,i);
-			case 6:	convertv6wallv7(&v6wall,&wall[i]);
 		}
 	}
 
@@ -6632,7 +6634,8 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 	if (numsprites > MAXSPRITES) { kclose(fil); return(-1); }
 	for (i=0; i<numsprites; i++) {
 		switch (mapversion) {
-			case 5: kread(fil,&v5spr,sizeof(struct spritetypev5));
+			case 5:
+				kread(fil,&v5spr,sizeof(struct spritetypev5));
 				v5spr.x = B_LITTLE32(v5spr.x);
 				v5spr.y = B_LITTLE32(v5spr.y);
 				v5spr.z = B_LITTLE32(v5spr.z);
@@ -6647,8 +6650,11 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 				v5spr.lotag = B_LITTLE16(v5spr.lotag);
 				v5spr.hitag = B_LITTLE16(v5spr.hitag);
 				v5spr.extra = B_LITTLE16(v5spr.extra);
+				convertv5sprv6(&v5spr,&v6spr);
+				convertv6sprv7(&v6spr,&sprite[i]);
 				break;
-			case 6: kread(fil,&v6spr,sizeof(struct spritetypev6));
+			case 6:
+				kread(fil,&v6spr,sizeof(struct spritetypev6));
 				v6spr.x = B_LITTLE32(v6spr.x);
 				v6spr.y = B_LITTLE32(v6spr.y);
 				v6spr.z = B_LITTLE32(v6spr.z);
@@ -6664,11 +6670,8 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 				v6spr.lotag = B_LITTLE16(v6spr.lotag);
 				v6spr.hitag = B_LITTLE16(v6spr.hitag);
 				v6spr.extra = B_LITTLE16(v6spr.extra);
+				convertv6sprv7(&v6spr,&sprite[i]);
 				break;
-		}
-		switch (mapversion) {
-			case 5: convertv5sprv6(&v5spr,&v6spr);
-			case 6: convertv6sprv7(&v6spr,&sprite[i]);
 		}
 	}
 
