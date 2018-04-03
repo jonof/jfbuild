@@ -278,7 +278,9 @@ int addsearchpath(const char *p)
 		return -1;
 	}
 	strcpy(srch->path, p);
-	for (s=srch->path; *s; s++) ; s--; if (s<srch->path || toupperlookup[(int)(unsigned char)*s] != '/') strcat(srch->path, "/");
+	for (s=srch->path; *s; s++) ;
+	s--;
+	if (s<srch->path || toupperlookup[(int)(unsigned char)*s] != '/') strcat(srch->path, "/");
 
 	searchpathhead = srch;
 	if (srch->pathlen > maxsearchpathlen) maxsearchpathlen = srch->pathlen;
@@ -947,7 +949,8 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 			
 			// scan for the end of the string and shift
 			// everything left a char in the process
-			for (i=1; (buf[i-1]=buf[i]); i++) ; i-=2;
+			for (i=1; (buf[i-1]=buf[i]); i++) ;
+			i-=2;
 
 			// if there's a slash at the end, this is a directory entry
 			if (toupperlookup[(int)(unsigned char)buf[i]] == '/') { ftype = CACHE1D_FIND_DIR; buf[i] = 0; }
@@ -1066,7 +1069,8 @@ int kdfread(void *buffer, bsize_t dasizeof, bsize_t count, int fil)
 	if (dasizeof > LZWSIZE) { count *= dasizeof; dasizeof = 1; }
 	ptr = (unsigned char *)buffer;
 
-	if (kread(fil,&leng,2) != 2) return -1; leng = B_LITTLE16(leng);
+	if (kread(fil,&leng,2) != 2) return -1;
+	leng = B_LITTLE16(leng);
 	if (kread(fil,lzwbuf5,(int)leng) != leng) return -1;
 	k = 0; kgoal = lzwuncompress(lzwbuf5,(int)leng,lzwbuf4);
 
@@ -1077,7 +1081,8 @@ int kdfread(void *buffer, bsize_t dasizeof, bsize_t count, int fil)
 	{
 		if (k >= kgoal)
 		{
-			if (kread(fil,&leng,2) != 2) return -1; leng = B_LITTLE16(leng);
+			if (kread(fil,&leng,2) != 2) return -1;
+			leng = B_LITTLE16(leng);
 			if (kread(fil,lzwbuf5,(int)leng) != leng) return -1;
 			k = 0; kgoal = lzwuncompress(lzwbuf5,(int)leng,lzwbuf4);
 		}
@@ -1101,7 +1106,8 @@ int dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 	if (dasizeof > LZWSIZE) { count *= dasizeof; dasizeof = 1; }
 	ptr = (unsigned char *)buffer;
 
-	if (Bfread(&leng,2,1,fil) != 1) return -1; leng = B_LITTLE16(leng);
+	if (Bfread(&leng,2,1,fil) != 1) return -1;
+	leng = B_LITTLE16(leng);
 	if (Bfread(lzwbuf5,(int)leng,1,fil) != 1) return -1;
 	k = 0; kgoal = lzwuncompress(lzwbuf5,(int)leng,lzwbuf4);
 
@@ -1112,7 +1118,8 @@ int dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 	{
 		if (k >= kgoal)
 		{
-			if (Bfread(&leng,2,1,fil) != 1) return -1; leng = B_LITTLE16(leng);
+			if (Bfread(&leng,2,1,fil) != 1) return -1;
+			leng = B_LITTLE16(leng);
 			if (Bfread(lzwbuf5,(int)leng,1,fil) != 1) return -1;
 			k = 0; kgoal = lzwuncompress(lzwbuf5,(int)leng,lzwbuf4);
 		}
