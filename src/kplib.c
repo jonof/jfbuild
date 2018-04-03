@@ -2294,9 +2294,9 @@ static int kbmprend (const char *buf, int fleng,
 		palcol[0] = 24-(palcol[0]+palcol[3]);
 		palcol[1] = 16-(palcol[1]+palcol[4]);
 		palcol[2] =  8-(palcol[2]+palcol[5]);
-		palcol[3] = ((-1<<(24-palcol[3]))&0x00ff0000);
-		palcol[4] = ((-1<<(16-palcol[4]))&0x0000ff00);
-		palcol[5] = ((-1<<( 8-palcol[5]))&0x000000ff);
+		palcol[3] = (-(1<<(24-palcol[3])))&0x00ff0000;
+		palcol[4] = (-(1<<(16-palcol[4])))&0x0000ff00;
+		palcol[5] = (-(1<<( 8-palcol[5])))&0x000000ff;
 	}
 
 	cptrinc = (((xsiz*cdim+31)>>3)&~3); cptr = &ubuf[rastoff];

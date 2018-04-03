@@ -1225,20 +1225,20 @@ static void putvox (int x, int y, int z, int col)
 static void setzrange0 (int *lptr, int z0, int z1)
 {
 	int z, ze;
-	if (!((z0^z1)&~31)) { lptr[z0>>5] &= ((~(-1<<SHIFTMOD32(z0)))|(-1<<SHIFTMOD32(z1))); return; }
+	if (!((z0^z1)&~31)) { lptr[z0>>5] &= (~(-(1<<SHIFTMOD32(z0))))|(-(1<<SHIFTMOD32(z1))); return; }
 	z = (z0>>5); ze = (z1>>5);
-	lptr[z] &=~(-1<<SHIFTMOD32(z0)); for(z++;z<ze;z++) lptr[z] = 0;
-	lptr[z] &= (-1<<SHIFTMOD32(z1));
+	lptr[z] &=~(-(1<<SHIFTMOD32(z0))); for(z++;z<ze;z++) lptr[z] = 0;
+	lptr[z] &= (-(1<<SHIFTMOD32(z1)));
 }
 
 	//Set all bits in vbit from (x,y,z0) to (x,y,z1-1) to 1's
 static void setzrange1 (int *lptr, int z0, int z1)
 {
 	int z, ze;
-	if (!((z0^z1)&~31)) { lptr[z0>>5] |= ((~(-1<<SHIFTMOD32(z1)))&(-1<<SHIFTMOD32(z0))); return; }
+	if (!((z0^z1)&~31)) { lptr[z0>>5] |= (~(-(1<<SHIFTMOD32(z1))))&(-(1<<SHIFTMOD32(z0))); return; }
 	z = (z0>>5); ze = (z1>>5);
-	lptr[z] |= (-1<<SHIFTMOD32(z0)); for(z++;z<ze;z++) lptr[z] = -1;
-	lptr[z] |=~(-1<<SHIFTMOD32(z1));
+	lptr[z] |= (-(1<<SHIFTMOD32(z0))); for(z++;z<ze;z++) lptr[z] = -1;
+	lptr[z] |=~(-(1<<SHIFTMOD32(z1)));
 }
 
 static int isrectfree (int x0, int y0, int dx, int dy)
