@@ -5328,6 +5328,16 @@ int preinitengine(void)
 	       "%d-bit word size. Built " __DATE__ ".\n\n",
 	       (int)(sizeof(intptr_t) * 8));
 
+	// Detect anomalous structure packing.
+	assert(sizeof(sectortype) == 40);
+	assert((intptr_t)&sector[1] - (intptr_t)&sector[0] == sizeof(sectortype));
+	assert(sizeof(walltype) == 32);
+	assert((intptr_t)&wall[1] - (intptr_t)&wall[0] == sizeof(walltype));
+	assert(sizeof(spritetype) == 44);
+	assert((intptr_t)&sprite[1] - (intptr_t)&sprite[0] == sizeof(spritetype));
+	assert(sizeof(spriteexttype) == 12);
+	assert((intptr_t)&spriteext[1] - (intptr_t)&spriteext[0] == sizeof(spriteexttype));
+
 	if (initsystem()) exit(1);
 
 	makeasmwriteable();
