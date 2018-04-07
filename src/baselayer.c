@@ -10,6 +10,7 @@
 #include "glbuild.h"
 
 struct glinfo glinfo = {
+	0,	// loaded
 	"Unknown",	// vendor
 	"Unknown",	// renderer
 	"0.0.0",	// version
@@ -78,8 +79,8 @@ static int osdcmd_glinfo(const osdfuncparm_t *UNUSED(parm))
 {
 	char *s,*t,*u,i;
 	
-	if (bpp == 8) {
-		buildputs("glinfo: Not in OpenGL mode.\n");
+	if (!glinfo.loaded) {
+		buildputs("glinfo: OpenGL information not available.\n");
 		return OSDCMD_OK;
 	}
 	
@@ -90,7 +91,7 @@ static int osdcmd_glinfo(const osdfuncparm_t *UNUSED(parm))
 		   " Maximum anisotropy:      %.1f%s\n"
 		   " BGRA textures:           %s\n"
 		   " Non-2^x textures:        %s\n"
-		   " Texure compression:      %s\n"
+		   " Texture compression:     %s\n"
 		   " Clamp-to-edge:           %s\n"
 		   " Multisampling:           %s\n"
 		   " Nvidia multisample hint: %s\n"
@@ -250,5 +251,7 @@ void baselayer_setupopengl()
 		}
 	}
 	free(p);
+
+	glinfo.loaded = 1;
 }
 #endif

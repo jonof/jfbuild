@@ -68,8 +68,6 @@ static GLuint gl8bitpaltex = 0;		// The 1D texture holding the palette.
 static GLuint gl8bitframetex = 0;	// The 2D texture holding the frame.
 static GLuint gl8bitprogram = 0;	// The shader program for rendering the 8bit frame.
 static char nogl=0;
-static char gl8bitpaldirty = 0;
-static char gl8bitfirstframe = 0;
 #endif
 
 // input
@@ -805,8 +803,6 @@ static void shutdownvideo(void)
     }
 }
 
-static int prepare_gl8bit_shader(void);
-
 //
 // setvideomode() -- set SDL video mode
 //
@@ -833,17 +829,17 @@ int setvideomode(int x, int y, int c, int fs)
     buildprintf("Setting video mode %dx%d (%d-bpp %s)\n", x,y,c,
         (fs & 1) ? "fullscreen" : "windowed");
 
-	if (!nogl) {
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-
-		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, glmultisample > 0);
-		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glmultisample);
-	}
-
     do {
+		if (!nogl) {
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+			SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, glmultisample > 0);
+			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glmultisample);
+		}
+
         flags = 0;
 		if (!nogl) {
 			flags |= SDL_WINDOW_OPENGL;
@@ -906,7 +902,7 @@ int setvideomode(int x, int y, int c, int fs)
 			}
 
 			baselayer_setupopengl();
-			if (prepare_gl8bit_shader() < 0) {
+			if (glbuild_prepare_8bit_shader(&gl8bitpaltex, &gl8bitframetex, &gl8bitprogram, x, y) < 0) {
 				shutdownvideo();
 				return -1;
 			}
@@ -915,9 +911,6 @@ int setvideomode(int x, int y, int c, int fs)
 			bglLoadIdentity();
 			bglMatrixMode(GL_MODELVIEW);
 			bglLoadIdentity();
-
-			gl8bitpaldirty = 1;		// Force the palette texture to be updated.
-			gl8bitfirstframe = 1;	// Force the frame texture to be initialised rather than overwritten.
 		}
 
         frame = (unsigned char *) malloc(x * y);
@@ -974,63 +967,6 @@ int setvideomode(int x, int y, int c, int fs)
     SDL_EventState(SDL_TEXTINPUT, SDL_ENABLE);
 
     return 0;
-}
-
-static int prepare_gl8bit_shader(void)
-{
-	GLuint shader = 0, program = 0;
-	GLint status = 0;
-
-	static const GLchar *shadersrc = \
-		"#version 110\n"
-		"uniform sampler1D palette;\n"
-		"uniform sampler2D frame;\n"
-		"void main(void)\n"
-		"{\n"
-		"  float pixelvalue;\n"
-		"  vec3 palettevalue;\n"
-		"  pixelvalue = texture2D(frame, gl_TexCoord[0].xy).r;\n"
-		"  palettevalue = texture1D(palette, pixelvalue).rgb;\n"
-		"  gl_FragColor = vec4(palettevalue, 1.0);\n"
-		"}\n";
-
-	// Initialise texture objects for the palette and framebuffer.
-	// The textures will be uploaded on the first rendered frame.
-	bglGenTextures(1, &gl8bitpaltex);
-	bglActiveTexture(GL_TEXTURE0);
-	bglBindTexture(GL_TEXTURE_1D, gl8bitpaltex);
-	bglTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	bglTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	bglGenTextures(1, &gl8bitframetex);
-	bglActiveTexture(GL_TEXTURE1);
-	bglBindTexture(GL_TEXTURE_2D, gl8bitframetex);
-	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	// Prepare the fragment shader.
-	shader = glbuild_compile_shader(GL_FRAGMENT_SHADER, shadersrc);
-	if (!shader) {
-		return -1;
-	}
-
-	// Prepare the shader program.
-	program = glbuild_link_program(1, &shader);
-	if (!program) {
-		bglDeleteShader(shader);
-		return -1;
-	}
-
-	// Shaders were detached in glbuild_link_program.
-	bglDeleteShader(shader);
-
-	// Connect the textures to the program.
-	bglUseProgram(program);
-	bglUniform1i(bglGetUniformLocation(program, "palette"), 0);
-	bglUniform1i(bglGetUniformLocation(program, "frame"), 1);
-
-	gl8bitprogram = program;
-	return 0;
 }
 
 
@@ -1098,19 +1034,8 @@ void showframe(int UNUSED(w))
         }
 
 		if (bpp == 8) {
-			if (gl8bitpaldirty) {
-				bglActiveTexture(GL_TEXTURE0);
-				bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, curpalettefaded);
-				gl8bitpaldirty = 0;
-			}
-	
-			bglActiveTexture(GL_TEXTURE1);
-			if (gl8bitfirstframe) {
-				bglTexImage2D(GL_TEXTURE_2D, 0, GL_RED, xres, yres, 0, GL_RED, GL_UNSIGNED_BYTE, frame);
-				gl8bitfirstframe = 0;
-			} else {
-				bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xres, yres, GL_RED, GL_UNSIGNED_BYTE, frame);
-			}
+			bglActiveTexture(GL_TEXTURE0);
+			bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xres, yres, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame);
 
 			bglBegin(GL_QUADS);
 			bglTexCoord2f(0.0, 1.0);
@@ -1170,7 +1095,10 @@ void showframe(int UNUSED(w))
 int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
 {
 #ifdef USE_OPENGL
-	gl8bitpaldirty = 1;
+	if (gl8bitpaltex) {
+		bglActiveTexture(GL_TEXTURE1);
+		bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, curpalettefaded);
+	}
 #endif
     return 0;
 }

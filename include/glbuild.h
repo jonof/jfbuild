@@ -251,5 +251,6 @@ void unloadglfunctions(void);
 
 GLuint glbuild_compile_shader(GLuint type, const GLchar *source);
 GLuint glbuild_link_program(int shadercount, GLuint *shaders);
+int glbuild_prepare_8bit_shader(GLuint *paltex, GLuint *frametex, GLuint *program, int resx, int resy);		// <0 = error
 
 #endif //USE_OPENGL

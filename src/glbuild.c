@@ -442,4 +442,64 @@ GLuint glbuild_link_program(int shadercount, GLuint *shaders)
 	return program;
 }
 
+int glbuild_prepare_8bit_shader(GLuint *paltex, GLuint *frametex, GLuint *program, int resx, int resy)
+{
+	GLuint shader = 0, prog = 0;
+	GLint status = 0;
+
+	static const GLchar *shadersrc = \
+	"#version 110\n"
+	"uniform sampler1D palette;\n"
+	"uniform sampler2D frame;\n"
+	"void main(void)\n"
+	"{\n"
+	"  float pixelvalue;\n"
+	"  vec3 palettevalue;\n"
+	"  pixelvalue = texture2D(frame, gl_TexCoord[0].xy).r;\n"
+	"  palettevalue = texture1D(palette, pixelvalue).rgb;\n"
+	"  gl_FragColor = vec4(palettevalue, 1.0);\n"
+	"}\n";
+
+	// Initialise texture objects for the palette and framebuffer.
+	// The textures will be uploaded on the first rendered frame.
+	bglGenTextures(1, paltex);
+	bglActiveTexture(GL_TEXTURE1);
+	bglBindTexture(GL_TEXTURE_1D, *paltex);
+	bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);	// Allocates memory.
+	bglTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	bglTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	bglGenTextures(1, frametex);
+	bglActiveTexture(GL_TEXTURE0);
+	bglBindTexture(GL_TEXTURE_2D, *frametex);
+	bglTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, resx, resy, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);	// Allocates memory.
+	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	// Prepare the fragment shader.
+	shader = glbuild_compile_shader(GL_FRAGMENT_SHADER, shadersrc);
+	if (!shader) {
+		return -1;
+	}
+
+	// Prepare the shader program.
+	prog = glbuild_link_program(1, &shader);
+	if (!prog) {
+		bglDeleteShader(shader);
+		return -1;
+	}
+
+	// Shaders were detached in glbuild_link_program.
+	bglDeleteShader(shader);
+
+	// Connect the textures to the program.
+	bglUseProgram(prog);
+	bglUniform1i(bglGetUniformLocation(prog, "palette"), 1);
+	bglUniform1i(bglGetUniformLocation(prog, "frame"), 0);
+
+	*program = prog;
+	return 0;
+}
+
+
 #endif  //USE_OPENGL
