@@ -2474,7 +2474,7 @@ void statuslistcode(void)
 		day = sintable[sprite[i].ang]*l;
 
 		osectnum = sprite[i].sectnum;
-		movestat = movesprite((short)i,dax,day,0L,-8L<<8,-8L<<8,CLIPMASK0);
+		movestat = movesprite((short)i,dax,day,0L,-(8L<<8),-(8L<<8),CLIPMASK0);
 		sprite[i].z = globloz;
 		if ((sprite[i].sectnum != osectnum) && (sector[sprite[i].sectnum].lotag == 10))
 		{
@@ -3256,7 +3256,7 @@ void processinput(short snum)
 			goalz = globloz-(8<<8);
 			if (posz[snum] >= goalz-(2<<8))
 			{
-				clipmove(&posx[snum],&posy[snum],&posz[snum],&cursectnum[snum],-TICSPERFRAME<<14,-TICSPERFRAME<<14,128L,4<<8,4<<8,CLIPMASK0);
+				clipmove(&posx[snum],&posy[snum],&posz[snum],&cursectnum[snum],-(TICSPERFRAME<<14),-(TICSPERFRAME<<14),128L,4<<8,4<<8,CLIPMASK0);
 
 				if (slimesoundcnt[snum] >= 0)
 				{
@@ -4281,7 +4281,7 @@ void fakedomovethings(void)
 		{
 			goalz = globloz-(8<<8);
 			if (myz >= goalz-(2<<8))
-				clipmove(&myx,&myy,&myz,&mycursectnum,-TICSPERFRAME<<14,-TICSPERFRAME<<14,128L,4<<8,4<<8,CLIPMASK0);
+				clipmove(&myx,&myy,&myz,&mycursectnum,-(TICSPERFRAME<<14),-(TICSPERFRAME<<14),128L,4<<8,4<<8,CLIPMASK0);
 		}
 	if (goalz < globhiz+(16<<8))   //ceiling&floor too close
 		goalz = ((globloz+globhiz)>>1);

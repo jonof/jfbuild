@@ -594,7 +594,7 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 #ifdef USE_OPENGL
 	if (rendmode == 3)
 	{
-		float hackscx, hackscy, alphac;
+		float hackscx, hackscy, alphac = 0.0;
 		unsigned short ptflags = 0;
 		int drawlayers = 1 << PTHPIC_BASE, drawinglayer = PTHPIC_BASE, picidx = PTHPIC_BASE;
 		GLuint glpic = 0;

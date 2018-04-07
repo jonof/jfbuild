@@ -188,7 +188,7 @@ void setupdrawslab (int dabpl, void *pal);
 void drawslab (int dx, int v, int dy, int vi, void *vptr, void *p);
 void stretchhline (void *p0, int u, int cnt, int uinc, void *rptr, void *p);
 
-void mmxoverlay();
+void mmxoverlay(void);
 
 #endif	// else
 

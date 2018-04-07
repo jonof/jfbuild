@@ -491,6 +491,7 @@
 		AB73600D0A29AA64003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = NO;
 				DEVELOPMENT_TEAM = S7U4E54CHC;
@@ -519,6 +520,7 @@
 		AB73600E0A29AA64003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COPY_PHASE_STRIP = YES;
 				DEVELOPMENT_TEAM = S7U4E54CHC;

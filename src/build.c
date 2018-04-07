@@ -181,24 +181,34 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 
 	if (qsetmode != 200) return OSDCMD_OK;
 
-	switch (parm->numparms) {
-		case 1:	// bpp switch
-			newbpp = Batol(parm->parms[0]);
-			break;
-		case 4:	// fs, res, bpp switch
-			newfullscreen = (Batol(parm->parms[3]) != 0);
-		case 3:	// res & bpp switch
-			newbpp = Batol(parm->parms[2]);
-		case 2: // res switch
-			newx = Batol(parm->parms[0]);
-			newy = Batol(parm->parms[1]);
-			break;
-		default: return OSDCMD_SHOWHELP;
+	if (parm->numparms < 1 || parm->numparms > 4) {
+		return OSDCMD_SHOWHELP;		
+	}
+
+	if (parm->numparms == 4) {
+		// fs, res, bpp switch
+		newfullscreen = (Batol(parm->parms[3]) != 0);
+	}
+	if (parm->numparms >= 3) {
+		// res & bpp switch
+		newbpp = Batol(parm->parms[2]);
+	}
+	if (parm->numparms >= 2) {
+		// res switch
+		newy = Batol(parm->parms[1]);
+		newx = Batol(parm->parms[0]);
+	}
+	if (parm->numparms == 1) {
+		// bpp switch
+		newbpp = Batol(parm->parms[0]);
 	}
 
 	if (setgamemode(newfullscreen,newx,newy,newbpp))
 		buildputs("vidmode: Mode change failed!\n");
-	xdimgame = newx; ydimgame = newy; bppgame = newbpp; fullscreen = newfullscreen;
+	xdimgame = newx;
+	ydimgame = newy;
+	bppgame = newbpp;
+	fullscreen = newfullscreen;
 	return OSDCMD_OK;
 }
 
@@ -4347,7 +4357,7 @@ void overheadeditor(void)
 
 							sector[numsectors].wallptr = numwalls;
 							sector[numsectors].wallnum = newnumwalls-numwalls;
-							sector[numsectors].ceilingz = (-32<<8);
+							sector[numsectors].ceilingz = -(32<<8);
 							sector[numsectors].floorz = (32<<8);
 							for(i=numwalls;i<newnumwalls;i++)
 							{
@@ -6015,7 +6025,7 @@ int menuselect(void)
 {
 	int listsize;
 	int i, j, topplc;
-	char ch, buffer[78], *sb;
+	char ch, buffer[90], *sb;
 	CACHE1D_FIND_REC *dir;
 
 	int bakpathsearchmode = pathsearchmode;
@@ -6041,8 +6051,11 @@ int menuselect(void)
 		if (pathsearchmode) {
 			strcpy(buffer,"Local filesystem mode. Press F for game filesystem.");
 		} else {
-			sprintf(buffer,"Game filesystem %smode. Press F for local filesystem, G for %s.",
-					grponlymode?"GRP-only ":"", grponlymode?"all files":"GRP files only");
+			strcpy(buffer,"Game filesystem");
+			if (grponlymode) strcat(buffer, " GRP-only");
+			strcat(buffer, " mode. Press F for local filesystem, G for ");
+			if (grponlymode) strcat(buffer, "all files.");
+			else strcat(buffer, "GRP files only.");
 		}
 		printext16(halfxdim16-(8*strlen(buffer)/2), 4, 14,0,buffer,0);
 

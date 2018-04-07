@@ -84,7 +84,7 @@ extern "C" {
 //   bits 9-15: reserved
 
 	//40 bytes
-typedef struct BPACK
+typedef struct
 {
 	short wallptr, wallnum;
 	int ceilingz, floorz;
@@ -113,7 +113,7 @@ typedef struct BPACK
 //   bits 10-15: reserved
 
 	//32 bytes
-typedef struct BPACK
+typedef struct
 {
 	int x, y;
 	short point2, nextwall, nextsector, cstat;
@@ -139,7 +139,7 @@ typedef struct BPACK
 //   bit 15: 1 = Invisible sprite, 0 = not invisible
 
 	//44 bytes
-typedef struct BPACK
+typedef struct
 {
 	int x, y, z;
 	short cstat, picnum;
@@ -152,7 +152,8 @@ typedef struct BPACK
 	short lotag, hitag, extra;
 } spritetype;
 
-typedef struct BPACK {
+	// 12 bytes
+typedef struct {
 	unsigned int mdanimtims;
 	short mdanimcur;
 	short angoff;
@@ -161,12 +162,12 @@ typedef struct BPACK {
 } spriteexttype;
 #define SPREXT_NOTMD 1
 #define SPREXT_NOMDANIM 2
-EXTERN spriteexttype spriteext[MAXSPRITES+MAXUNIQHUDID];
-EXTERN int guniqhudid;
 
 EXTERN sectortype sector[MAXSECTORS];
 EXTERN walltype wall[MAXWALLS];
 EXTERN spritetype sprite[MAXSPRITES];
+EXTERN spriteexttype spriteext[MAXSPRITES+MAXUNIQHUDID];
+EXTERN int guniqhudid;
 
 EXTERN int spritesortcnt;
 EXTERN spritetype tsprite[MAXSPRITESONSCREEN];
@@ -470,7 +471,7 @@ void setpolymost2dview(void);   // sets up GL for 2D drawing
 
 int polymost_drawtilescreen(int tilex, int tiley, int wallnum, int dimen);
 void polymost_glreset(void);
-void polymost_precache_begin();
+void polymost_precache_begin(void);
 void polymost_precache(int dapicnum, int dapalnum, int datype);
 int  polymost_precache_run(int* done, int* total);
 

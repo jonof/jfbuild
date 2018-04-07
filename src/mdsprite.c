@@ -882,7 +882,10 @@ static md3model *md3load (int fil)
 		if (!s->tris)
 		{
 			for(surfi--;surfi>=0;surfi--) free(m->head.surfs[surfi].tris);
-			if (m->head.tags) free(m->head.tags); free(m->head.frames); free(m); return(0);
+			if (m->head.tags) free(m->head.tags);
+			free(m->head.frames);
+			free(m);
+			return(0);
 		}
 		s->shaders = (md3shader_t *)(((intptr_t)s->tris   )+leng[0]);
 		s->uv      = (md3uv_t     *)(((intptr_t)s->shaders)+leng[1]);
@@ -1225,20 +1228,20 @@ static void putvox (int x, int y, int z, int col)
 static void setzrange0 (int *lptr, int z0, int z1)
 {
 	int z, ze;
-	if (!((z0^z1)&~31)) { lptr[z0>>5] &= ((~(-1<<SHIFTMOD32(z0)))|(-1<<SHIFTMOD32(z1))); return; }
+	if (!((z0^z1)&~31)) { lptr[z0>>5] &= (~(-(1<<SHIFTMOD32(z0))))|(-(1<<SHIFTMOD32(z1))); return; }
 	z = (z0>>5); ze = (z1>>5);
-	lptr[z] &=~(-1<<SHIFTMOD32(z0)); for(z++;z<ze;z++) lptr[z] = 0;
-	lptr[z] &= (-1<<SHIFTMOD32(z1));
+	lptr[z] &=~(-(1<<SHIFTMOD32(z0))); for(z++;z<ze;z++) lptr[z] = 0;
+	lptr[z] &= (-(1<<SHIFTMOD32(z1)));
 }
 
 	//Set all bits in vbit from (x,y,z0) to (x,y,z1-1) to 1's
 static void setzrange1 (int *lptr, int z0, int z1)
 {
 	int z, ze;
-	if (!((z0^z1)&~31)) { lptr[z0>>5] |= ((~(-1<<SHIFTMOD32(z1)))&(-1<<SHIFTMOD32(z0))); return; }
+	if (!((z0^z1)&~31)) { lptr[z0>>5] |= (~(-(1<<SHIFTMOD32(z1))))&(-(1<<SHIFTMOD32(z0))); return; }
 	z = (z0>>5); ze = (z1>>5);
-	lptr[z] |= (-1<<SHIFTMOD32(z0)); for(z++;z<ze;z++) lptr[z] = -1;
-	lptr[z] |=~(-1<<SHIFTMOD32(z1));
+	lptr[z] |= (-(1<<SHIFTMOD32(z0))); for(z++;z<ze;z++) lptr[z] = -1;
+	lptr[z] |=~(-(1<<SHIFTMOD32(z1)));
 }
 
 static int isrectfree (int x0, int y0, int dx, int dy)
@@ -1619,7 +1622,8 @@ static int loadkvx (const char *filnam)
 	vbit = (int *)malloc(i); if (!vbit) { free(xyoffs); kclose(fil); return(-1); }
 	memset(vbit,0,i);
 
-	for(vcolhashsizm1=4096;vcolhashsizm1<(mip1leng>>1);vcolhashsizm1<<=1); vcolhashsizm1--; //approx to numvoxs!
+	for(vcolhashsizm1=4096;vcolhashsizm1<(mip1leng>>1);vcolhashsizm1<<=1) ;
+	vcolhashsizm1--; //approx to numvoxs!
 	vcolhashead = (int *)malloc((vcolhashsizm1+1)*sizeof(int)); if (!vcolhashead) { free(xyoffs); kclose(fil); return(-1); }
 	memset(vcolhashead,-1,(vcolhashsizm1+1)*sizeof(int));
 
@@ -1675,7 +1679,8 @@ static int loadkv6 (const char *filnam)
 	vbit = (int *)malloc(i); if (!vbit) { free(ylen); kclose(fil); return(-1); }
 	memset(vbit,0,i);
 
-	for(vcolhashsizm1=4096;vcolhashsizm1<numvoxs;vcolhashsizm1<<=1); vcolhashsizm1--;
+	for(vcolhashsizm1=4096;vcolhashsizm1<numvoxs;vcolhashsizm1<<=1) ;
+	vcolhashsizm1--;
 	vcolhashead = (int *)malloc((vcolhashsizm1+1)*sizeof(int)); if (!vcolhashead) { free(ylen); kclose(fil); return(-1); }
 	memset(vcolhashead,-1,(vcolhashsizm1+1)*sizeof(int));
 

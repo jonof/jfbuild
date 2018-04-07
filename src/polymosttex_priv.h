@@ -97,12 +97,12 @@ int PTDoPrime(int* done, int* total);
 /**
  * Resets the texture hash but leaves the headers in memory
  */
-void PTReset();
+void PTReset(void);
 
 /**
  * Clears the texture hash of all content
  */
-void PTClear();
+void PTClear(void);
 
 /**
  * Creates a new iterator for walking the header hash looking for particular
