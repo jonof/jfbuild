@@ -51,8 +51,8 @@ char quitevent=0, appactive=1;
 // video
 static SDL_Window *sdl_window;
 static SDL_GLContext sdl_glcontext;
-static SDL_Renderer *sdl_renderer;
-static SDL_Texture *sdl_texture;
+static SDL_Renderer *sdl_renderer;	// For non-GL 8-bit mode output.
+static SDL_Texture *sdl_texture;	// For non-GL 8-bit mode output.
 static unsigned char *frame;
 int xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
 intptr_t frameplace=0;
@@ -63,8 +63,13 @@ extern int gammabrightness;
 extern float curgamma;
 
 #ifdef USE_OPENGL
-// OpenGL stuff
+// OpenGL stuff.
+static GLuint gl8bitpaltex = 0;		// The 1D texture holding the palette.
+static GLuint gl8bitframetex = 0;	// The 2D texture holding the frame.
+static GLuint gl8bitprogram = 0;	// The shader program for rendering the 8bit frame.
 static char nogl=0;
+static char gl8bitpaldirty = 0;
+static char gl8bitfirstframe = 0;
 #endif
 
 // input
@@ -661,7 +666,8 @@ void getvalidmodes(void)
     } \
 }
 
-#define CHECK(w,h) if ((w < maxx) && (h < maxy))
+#define CHECKL(w,h) if ((w < maxx) && (h < maxy))
+#define CHECKLE(w,h) if ((w <= maxx) && (h <= maxy))
 
     SDL_GetDesktopDisplayMode(0, &desktop);
     maxx = desktop.w;
@@ -669,27 +675,27 @@ void getvalidmodes(void)
 
     // Fullscreen 8-bit modes: upsamples to the desktop mode
     for (i=0; defaultres[i][0]; i++)
-        CHECK(defaultres[i][0],defaultres[i][1])
+        CHECKLE(defaultres[i][0],defaultres[i][1])
             ADDMODE(defaultres[i][0],defaultres[i][1],8,1)
 
     // Fullscreen >8-bit modes
     for (j = SDL_GetNumDisplayModes(0) - 1; j >= 0; j--) {
         SDL_GetDisplayMode(0, j, &mode);
         if ((mode.w > MAXXDIM) || (mode.h > MAXYDIM)) continue;
-        if (SDL_BITSPERPIXEL(mode.format) <= 8) continue;
+        if (SDL_BITSPERPIXEL(mode.format) < 8) continue;
         ADDMODE(mode.w, mode.h, SDL_BITSPERPIXEL(mode.format), 1)
     }
 
     // Windowed 8-bit modes
     for (i=0; defaultres[i][0]; i++) {
-        CHECK(defaultres[i][0],defaultres[i][1]) {
+        CHECKL(defaultres[i][0],defaultres[i][1]) {
             ADDMODE(defaultres[i][0], defaultres[i][1], 8, 0)
         }
     }
 
     // Windowed >8-bit modes
     for (i=0; defaultres[i][0]; i++) {
-        CHECK(defaultres[i][0],defaultres[i][1]) {
+        CHECKL(defaultres[i][0],defaultres[i][1]) {
             ADDMODE(defaultres[i][0], defaultres[i][1], SDL_BITSPERPIXEL(desktop.format), 0)
         }
     }
@@ -764,6 +770,21 @@ static void shutdownvideo(void)
         free(frame);
         frame = NULL;
     }
+#ifdef USE_OPENGL
+	if (gl8bitprogram) {
+		bglUseProgram(0);	// Disable shaders, go back to fixed-function.
+		bglDeleteProgram(gl8bitprogram);
+		gl8bitprogram = 0;
+	}
+	if (gl8bitpaltex) {
+		bglDeleteTextures(1, &gl8bitpaltex);
+		gl8bitpaltex = 0;
+	}
+	if (gl8bitframetex) {
+		bglDeleteTextures(1, &gl8bitframetex);
+		gl8bitframetex = 0;
+	}
+#endif
     if (sdl_texture) {
         SDL_DestroyTexture(sdl_texture);
         sdl_texture = NULL;
@@ -784,13 +805,15 @@ static void shutdownvideo(void)
     }
 }
 
+static int prepare_gl8bit_shader(void);
+
 //
 // setvideomode() -- set SDL video mode
 //
 int setvideomode(int x, int y, int c, int fs)
 {
     int modenum, regrab = 0;
-    int retry = 0, flags;
+    int flags;
 
     if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
         !videomodereset) {
@@ -798,7 +821,7 @@ int setvideomode(int x, int y, int c, int fs)
         return 0;
     }
 
-    if (checkvideomode(&x,&y,c,fs,0) < 0) return -1;
+    if (checkvideomode(&x,&y,c,fs,0) < 0) return -1;	// Will return if GL mode not available.
 
     if (mouseacquired) {
         regrab = 1;
@@ -810,37 +833,40 @@ int setvideomode(int x, int y, int c, int fs)
     buildprintf("Setting video mode %dx%d (%d-bpp %s)\n", x,y,c,
         (fs & 1) ? "fullscreen" : "windowed");
 
+	if (!nogl) {
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, glmultisample > 0);
+		SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glmultisample);
+	}
+
     do {
-        retry = 0;
-
-        if (c > 8) {
-            if (nogl) return -1;
-
-            SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, glmultisample > 0);
-            SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glmultisample);
-        }
-
         flags = 0;
-        if (c > 8) {
-            flags |= SDL_WINDOW_OPENGL;
-            if (fs & 1) flags |= SDL_WINDOW_FULLSCREEN;
-        } else {
-            if (fs & 1) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+		if (!nogl) {
+			flags |= SDL_WINDOW_OPENGL;
+		}
+		if (fs & 1) {
+        	if (c > 8) flags |= SDL_WINDOW_FULLSCREEN;
+			else flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
         }
 
         sdl_window = SDL_CreateWindow(apptitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
         if (!sdl_window) {
             buildprintf("Error creating window: %s\n", SDL_GetError());
-            if (glmultisample > 0) {
+
+			if (glmultisample > 0) {
                 buildprintf("Retrying without multisampling.\n");
                 glmultisample = 0;
-                retry = 1;
                 continue;
             }
+
             return -1;
         }
-    } while (retry);
+		break;
+    } while (1);
 
 #ifndef __APPLE__
     {
@@ -853,23 +879,46 @@ int setvideomode(int x, int y, int c, int fs)
     if (c == 8) {
         int i, j;
 
-        // 8-bit software mode goes via the rendering apparatus.
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
+		if (nogl) {
+			// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
+			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 
-        sdl_renderer = SDL_CreateRenderer(sdl_window, -1, SDL_RENDERER_PRESENTVSYNC);
-        if (!sdl_renderer) {
-            buildprintf("Error creating renderer: %s\n", SDL_GetError());
-            return -1;
-        }
-        SDL_RenderSetLogicalSize(sdl_renderer, x, y);
-        SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, 255);
-        SDL_RenderClear(sdl_renderer);
+			sdl_renderer = SDL_CreateRenderer(sdl_window, -1, SDL_RENDERER_PRESENTVSYNC);
+			if (!sdl_renderer) {
+				buildprintf("Error creating renderer: %s\n", SDL_GetError());
+				return -1;
+			}
+			SDL_RenderSetLogicalSize(sdl_renderer, x, y);
+			SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, 255);
+			SDL_RenderClear(sdl_renderer);
 
-        sdl_texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, x, y);
-        if (!sdl_texture) {
-            buildprintf("Error creating texture: %s\n", SDL_GetError());
-            return -1;
-        }
+			sdl_texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, x, y);
+			if (!sdl_texture) {
+				buildprintf("Error creating texture: %s\n", SDL_GetError());
+				return -1;
+			}
+		} else {
+			// Prepare the GLSL shader for 8-bit blitting.
+			sdl_glcontext = SDL_GL_CreateContext(sdl_window);
+			if (!sdl_glcontext) {
+				buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
+				return -1;
+			}
+
+			baselayer_setupopengl();
+			if (prepare_gl8bit_shader() < 0) {
+				shutdownvideo();
+				return -1;
+			}
+
+			bglMatrixMode(GL_PROJECTION);
+			bglLoadIdentity();
+			bglMatrixMode(GL_MODELVIEW);
+			bglLoadIdentity();
+
+			gl8bitpaldirty = 1;		// Force the palette texture to be updated.
+			gl8bitfirstframe = 1;	// Force the frame texture to be initialised rather than overwritten.
+		}
 
         frame = (unsigned char *) malloc(x * y);
         if (!frame) {
@@ -883,7 +932,10 @@ int setvideomode(int x, int y, int c, int fs)
         numpages = 1;
 
         setvlinebpl(bytesperline);
-        for (i=j=0; i<=y; i++) ylookup[i] = j, j += bytesperline;
+		for (i = j = 0; i <= y; i++) {
+			ylookup[i] = j;
+			j += bytesperline;
+		}
 
     } else {
         sdl_glcontext = SDL_GL_CreateContext(sdl_window);
@@ -924,6 +976,101 @@ int setvideomode(int x, int y, int c, int fs)
     return 0;
 }
 
+static int prepare_gl8bit_shader(void)
+{
+	GLint shader = 0, program = 0, status = 0;
+
+	static const GLchar *shadersrc = \
+		"#version 110\n"
+		"uniform sampler1D palette;\n"
+		"uniform sampler2D frame;\n"
+		"void main(void)\n"
+		"{\n"
+		"  float pixelvalue;\n"
+		"  vec3 palettevalue;\n"
+		"  pixelvalue = texture2D(frame, gl_TexCoord[0].xy).r;\n"
+		"  palettevalue = texture1D(palette, pixelvalue).rgb;\n"
+		"  gl_FragColor = vec4(palettevalue, 1.0);\n"
+		"}\n";
+
+	// Initialise texture objects for the palette and framebuffer.
+	// The textures will be uploaded on the first rendered frame.
+	bglGenTextures(1, &gl8bitpaltex);
+	bglActiveTexture(GL_TEXTURE0);
+	bglBindTexture(GL_TEXTURE_1D, gl8bitpaltex);
+	bglTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	bglTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	bglGenTextures(1, &gl8bitframetex);
+	bglActiveTexture(GL_TEXTURE1);
+	bglBindTexture(GL_TEXTURE_2D, gl8bitframetex);
+	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	// Prepare the fragment shader.
+	shader = bglCreateShader(GL_FRAGMENT_SHADER);
+	if (!shader) {
+		return -1;
+	}
+
+	bglShaderSource(shader, 1, &shadersrc, NULL);
+	bglCompileShader(shader);
+
+	bglGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+	if (status == GL_FALSE) {
+		GLint loglen = 0;
+		GLchar *logtext = NULL;
+
+		bglGetShaderiv(shader, GL_INFO_LOG_LENGTH, &loglen);
+
+		logtext = (GLchar *)malloc(loglen);
+		bglGetShaderInfoLog(shader, loglen, &loglen, logtext);
+		buildprintf("GL shader compile error: %s\n", logtext);
+		free(logtext);
+
+		bglDeleteShader(shader);
+		return -1;
+	}
+
+	// Prepare the shader program.
+	program = bglCreateProgram();
+	if (!program) {
+		bglDeleteShader(shader);
+		return -1;
+	}
+
+	bglAttachShader(program, shader);
+	bglLinkProgram(program);
+
+	bglGetProgramiv(shader, GL_LINK_STATUS, &status);
+	if (status == GL_FALSE) {
+		GLint loglen = 0;
+		GLchar *logtext = NULL;
+
+		bglGetProgramiv(program, GL_INFO_LOG_LENGTH, &loglen);
+
+		logtext = (GLchar *)malloc(loglen);
+		bglGetProgramInfoLog(program, loglen, &loglen, logtext);
+		buildprintf("GL program link error: %s\n", logtext);
+		free(logtext);
+
+		bglDeleteShader(shader);
+		bglDeleteProgram(program);
+		return -1;
+	}
+
+	bglDetachShader(program, shader);
+	bglDeleteShader(shader);
+
+	// Connect the textures to the program.
+	bglUseProgram(program);
+	bglUniform1i(bglGetUniformLocation(program, "palette"), 0);
+	bglUniform1i(bglGetUniformLocation(program, "frame"), 1);
+
+	gl8bitprogram = program;
+	return 0;
+}
+
 
 //
 // resetvideomode() -- resets the video system
@@ -958,9 +1105,9 @@ void showframe(int UNUSED(w))
 {
     int i,j;
 
-    if (bpp > 8) {
 #ifdef USE_OPENGL
-        if (palfadedelta) {
+	if (!nogl) {
+        if (bpp > 8 && palfadedelta) {
             bglMatrixMode(GL_PROJECTION);
             bglPushMatrix();
             bglLoadIdentity();
@@ -988,42 +1135,70 @@ void showframe(int UNUSED(w))
             bglPopMatrix();
         }
 
+		if (bpp == 8) {
+			if (gl8bitpaldirty) {
+				bglActiveTexture(GL_TEXTURE0);
+				bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, curpalettefaded);
+				gl8bitpaldirty = 0;
+			}
+	
+			bglActiveTexture(GL_TEXTURE1);
+			if (gl8bitfirstframe) {
+				bglTexImage2D(GL_TEXTURE_2D, 0, GL_RED, xres, yres, 0, GL_RED, GL_UNSIGNED_BYTE, frame);
+				gl8bitfirstframe = 0;
+			} else {
+				bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xres, yres, GL_RED, GL_UNSIGNED_BYTE, frame);
+			}
+
+			bglBegin(GL_QUADS);
+			bglTexCoord2f(0.0, 1.0);
+			bglVertex2i(-1, -1);
+			bglTexCoord2f(1.0, 1.0);
+			bglVertex2i(1, -1);
+			bglTexCoord2f(1.0, 0.0);
+			bglVertex2i(1, 1);
+			bglTexCoord2f(0, 0.0);
+			bglVertex2i(-1, 1);
+			bglEnd();
+		}
+
         SDL_GL_SwapWindow(sdl_window);
+		return;
+	}
 #endif
-    } else {
-        unsigned char *pixels, *out, *in;
-        int pitch, y, x;
 
-        if (SDL_LockTexture(sdl_texture, NULL, (void**)&pixels, &pitch)) {
-            debugprintf("Could not lock texture: %s\n", SDL_GetError());
-            return;
-        }
+	unsigned char *pixels, *out, *in;
+	int pitch, y, x;
 
-        in = frame;
-        for (y = yres - 1; y >= 0; y--) {
-            out = pixels;
-            for (x = xres - 1; x >= 0; x--) {
+	if (SDL_LockTexture(sdl_texture, NULL, (void**)&pixels, &pitch)) {
+		debugprintf("Could not lock texture: %s\n", SDL_GetError());
+		return;
+	}
+
+	in = frame;
+	for (y = yres - 1; y >= 0; y--) {
+		out = pixels;
+		for (x = xres - 1; x >= 0; x--) {
 #if 0
-                out[0] = curpalettefaded[*in].b;
-                out[1] = curpalettefaded[*in].g;
-                out[2] = curpalettefaded[*in].r;
-                out[3] = 0;
+			out[0] = curpalettefaded[*in].b;
+			out[1] = curpalettefaded[*in].g;
+			out[2] = curpalettefaded[*in].r;
+			out[3] = 0;
 #else
-                // RGBA -> BGRA, ignoring A
-                *(unsigned int *)out = B_SWAP32(*(unsigned int *)&curpalettefaded[*in]) >> 8;
+			// RGBA -> BGRA, ignoring A
+			*(unsigned int *)out = B_SWAP32(*(unsigned int *)&curpalettefaded[*in]) >> 8;
 #endif
-                in += 1;
-                out += 4;
-            }
-            pixels += pitch;
-        }
+			in += 1;
+			out += 4;
+		}
+		pixels += pitch;
+	}
 
-        SDL_UnlockTexture(sdl_texture);
-        if (SDL_RenderCopy(sdl_renderer, sdl_texture, NULL, NULL)) {
-            debugprintf("Could not copy render texture: %s\n", SDL_GetError());
-        }
-        SDL_RenderPresent(sdl_renderer);
-    }
+	SDL_UnlockTexture(sdl_texture);
+	if (SDL_RenderCopy(sdl_renderer, sdl_texture, NULL, NULL)) {
+		debugprintf("Could not copy render texture: %s\n", SDL_GetError());
+	}
+	SDL_RenderPresent(sdl_renderer);
 }
 
 
@@ -1032,6 +1207,9 @@ void showframe(int UNUSED(w))
 //
 int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
 {
+#ifdef USE_OPENGL
+	gl8bitpaldirty = 1;
+#endif
     return 0;
 }
 

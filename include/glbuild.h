@@ -87,6 +87,11 @@ extern void (APIENTRY * bglTexEnvf)( GLenum target, GLenum pname, GLfloat param 
 extern void (APIENTRY * bglGenTextures)( GLsizei n, GLuint *textures );	// 1.1
 extern void (APIENTRY * bglDeleteTextures)( GLsizei n, const GLuint *textures);	// 1.1
 extern void (APIENTRY * bglBindTexture)( GLenum target, GLuint texture );	// 1.1
+extern void (APIENTRY * bglTexImage1D)( GLenum target, GLint level,
+								   GLint internalFormat,
+								   GLsizei width, GLint border,
+								   GLenum format, GLenum type,
+								   const GLvoid *pixels );
 extern void (APIENTRY * bglTexImage2D)( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels );
 extern void (APIENTRY * bglTexSubImage2D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels );	// 1.1
 extern void (APIENTRY * bglTexParameterf)( GLenum target, GLenum pname, GLfloat param );
@@ -99,6 +104,25 @@ extern void (APIENTRY * bglGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
 extern void (APIENTRY * bglFogf)( GLenum pname, GLfloat param );
 extern void (APIENTRY * bglFogi)( GLenum pname, GLint param );
 extern void (APIENTRY * bglFogfv)( GLenum pname, const GLfloat *params );
+
+// Shaders
+extern void (APIENTRY * bglActiveTexture)( GLenum texture );
+extern void (APIENTRY * bglAttachShader)(GLuint program, GLuint shader);
+extern void (APIENTRY * bglCompileShader)(GLuint shader);
+extern GLuint (APIENTRY * bglCreateProgram)(void);
+extern GLuint (APIENTRY * bglCreateShader)(GLenum type);
+extern void (APIENTRY * bglDeleteProgram)(GLuint program);
+extern void (APIENTRY * bglDeleteShader)(GLuint shader);
+extern void (APIENTRY * bglDetachShader)(GLuint program, GLuint shader);
+extern void (APIENTRY * bglGetProgramiv)(GLuint program, GLenum pname, GLint *params);
+extern void (APIENTRY * bglGetProgramInfoLog)(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+extern void (APIENTRY * bglGetShaderiv)(GLuint shader, GLenum pname, GLint *params);
+extern void (APIENTRY * bglGetShaderInfoLog)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+extern GLint (APIENTRY * bglGetUniformLocation)(GLuint program, const GLchar *name);
+extern void (APIENTRY * bglLinkProgram)(GLuint program);
+extern void (APIENTRY * bglShaderSource)(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
+extern void (APIENTRY * bglUniform1i)(GLint location, GLint v0);
+extern void (APIENTRY * bglUseProgram)(GLuint program);
 
 #ifdef RENDERTYPEWIN
 // Windows
@@ -173,6 +197,7 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 #define bglGenTextures		glGenTextures
 #define bglDeleteTextures	glDeleteTextures
 #define bglBindTexture		glBindTexture
+#define bglTexImage1D		glTexImage1D
 #define bglTexImage2D		glTexImage2D
 #define bglTexSubImage2D	glTexSubImage2D
 #define bglTexParameterf	glTexParameterf
@@ -185,6 +210,25 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 #define bglFogf			glFogf
 #define bglFogi			glFogi
 #define bglFogfv		glFogfv
+
+// Shaders
+#define bglActiveTexture glActiveTexture
+#define bglAttachShader  glAttachShader
+#define bglCompileShader glCompileShader
+#define bglCreateProgram glCreateProgram
+#define bglCreateShader  glCreateShader
+#define bglDeleteProgram glDeleteProgram
+#define bglDeleteShader  glDeleteShader
+#define bglDetachShader  glDetachShader
+#define bglGetProgramiv  glGetProgramiv
+#define bglGetProgramInfoLog glGetProgramInfoLog
+#define bglGetShaderiv   glGetShaderiv
+#define bglGetShaderInfoLog glGetShaderInfoLog
+#define bglGetUniformLocation glGetUniformLocation
+#define bglLinkProgram   glLinkProgram
+#define bglShaderSource  glShaderSource
+#define bglUseProgram    glUseProgram
+#define bglUniform1i     glUniform1i
 
 #ifdef RENDERTYPEWIN
 #define bwglCreateContext	wglCreateContext

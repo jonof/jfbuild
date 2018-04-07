@@ -202,13 +202,7 @@ void baselayer_setupopengl()
 	static int warnonce = 0;
 	int i;
 
-	bglEnable(GL_TEXTURE_2D);
-	bglShadeModel(GL_SMOOTH); //GL_FLAT
-	bglClearColor(0,0,0,0.5); //Black Background
-	bglHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
-	bglHint(GL_LINE_SMOOTH_HINT,GL_NICEST);
-	bglDisable(GL_DITHER);
-
+	memset(&glinfo, 0, sizeof(glinfo));
 	glinfo.vendor     = (const char *) bglGetString(GL_VENDOR);
 	glinfo.renderer   = (const char *) bglGetString(GL_RENDERER);
 	glinfo.version    = (const char *) bglGetString(GL_VERSION);

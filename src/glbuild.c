@@ -67,6 +67,11 @@ void (APIENTRY * bglTexEnvf)( GLenum target, GLenum pname, GLfloat param );
 void (APIENTRY * bglGenTextures)( GLsizei n, GLuint *textures );	// 1.1
 void (APIENTRY * bglDeleteTextures)( GLsizei n, const GLuint *textures);	// 1.1
 void (APIENTRY * bglBindTexture)( GLenum target, GLuint texture );	// 1.1
+void (APIENTRY * bglTexImage1D)( GLenum target, GLint level,
+								   GLint internalFormat,
+								   GLsizei width, GLint border,
+								   GLenum format, GLenum type,
+								   const GLvoid *pixels );
 void (APIENTRY * bglTexImage2D)( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels );
 void (APIENTRY * bglTexSubImage2D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels );	// 1.1
 void (APIENTRY * bglTexParameterf)( GLenum target, GLenum pname, GLfloat param );
@@ -79,6 +84,25 @@ void (APIENTRY * bglGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
 void (APIENTRY * bglFogf)( GLenum pname, GLfloat param );
 void (APIENTRY * bglFogi)( GLenum pname, GLint param );
 void (APIENTRY * bglFogfv)( GLenum pname, const GLfloat *params );
+
+// Shaders
+void (APIENTRY * bglActiveTexture)( GLenum texture );
+void (APIENTRY * bglAttachShader)(GLuint program, GLuint shader);
+void (APIENTRY * bglCompileShader)(GLuint shader);
+GLuint (APIENTRY * bglCreateProgram)(void);
+GLuint (APIENTRY * bglCreateShader)(GLenum type);
+void (APIENTRY * bglDeleteProgram)(GLuint program);
+void (APIENTRY * bglDeleteShader)(GLuint shader);
+void (APIENTRY * bglDetachShader)(GLuint program, GLuint shader);
+void (APIENTRY * bglGetProgramiv)(GLuint program, GLenum pname, GLint *params);
+void (APIENTRY * bglGetProgramInfoLog)(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+void (APIENTRY * bglGetShaderiv)(GLuint shader, GLenum pname, GLint *params);
+void (APIENTRY * bglGetShaderInfoLog)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+GLint (APIENTRY * bglGetUniformLocation)(GLuint program, const GLchar *name);
+void (APIENTRY * bglLinkProgram)(GLuint program);
+void (APIENTRY * bglShaderSource)(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
+void (APIENTRY * bglUniform1i)(GLint location, GLint v0);
+void (APIENTRY * bglUseProgram)(GLuint program);
 
 #ifdef RENDERTYPEWIN
 // Windows
@@ -185,6 +209,7 @@ int loadglfunctions(void)
 	bglGenTextures		= GETPROC("glGenTextures");
 	bglDeleteTextures	= GETPROC("glDeleteTextures");
 	bglBindTexture		= GETPROC("glBindTexture");
+	bglTexImage1D		= GETPROC("glTexImage1D");
 	bglTexImage2D		= GETPROC("glTexImage2D");
 	bglTexSubImage2D	= GETPROC("glTexSubImage2D");
 	bglTexParameterf	= GETPROC("glTexParameterf");
@@ -195,6 +220,25 @@ int loadglfunctions(void)
 	bglFogf			= GETPROC("glFogf");
 	bglFogi			= GETPROC("glFogi");
 	bglFogfv		= GETPROC("glFogfv");
+
+	// Shaders
+	bglActiveTexture = GETPROC("glActiveTexture");
+	bglAttachShader  = GETPROC("glAttachShader");
+	bglCompileShader = GETPROC("glCompileShader");
+	bglCreateProgram = GETPROC("glCreateProgram");
+	bglCreateShader  = GETPROC("glCreateShader");
+	bglDeleteProgram = GETPROC("glDeleteProgram");
+	bglDeleteShader  = GETPROC("glDeleteShader");
+	bglDetachShader  = GETPROC("glDetachShader");
+	bglGetProgramiv  = GETPROC("glGetProgramiv");
+	bglGetProgramInfoLog = GETPROC("glGetProgramInfoLog");
+	bglGetShaderiv   = GETPROC("glGetShaderiv");
+	bglGetShaderInfoLog = GETPROC("glGetShaderInfoLog");
+	bglGetUniformLocation = GETPROC("glGetUniformLocation");
+	bglLinkProgram   = GETPROC("glLinkProgram");
+	bglShaderSource  = GETPROC("glShaderSource");
+	bglUseProgram    = GETPROC("glUseProgram");
+	bglUniform1i     = GETPROC("glUniform1i");
 
 	loadglextensions();
 
@@ -271,6 +315,7 @@ void unloadglfunctions(void)
 	bglGenTextures		= NULL;
 	bglDeleteTextures	= NULL;
 	bglBindTexture		= NULL;
+	bglTexImage1D		= NULL;
 	bglTexImage2D		= NULL;
 	bglTexSubImage2D	= NULL;
 	bglTexParameterf	= NULL;
@@ -283,6 +328,25 @@ void unloadglfunctions(void)
 	bglFogf			= NULL;
 	bglFogi			= NULL;
 	bglFogfv		= NULL;
+
+	// Shaders
+	bglActiveTexture = NULL;
+	bglAttachShader  = NULL;
+	bglCompileShader = NULL;
+	bglCreateProgram = NULL;
+	bglCreateShader  = NULL;
+	bglDeleteProgram = NULL;
+	bglDeleteShader  = NULL;
+	bglDetachShader  = NULL;
+	bglGetProgramiv  = NULL;
+	bglGetProgramInfoLog = NULL;
+	bglGetShaderiv   = NULL;
+	bglGetShaderInfoLog = NULL;
+	bglGetUniformLocation = NULL;
+	bglLinkProgram   = NULL;
+	bglShaderSource  = NULL;
+	bglUseProgram    = NULL;
+	bglUniform1i     = NULL;
 
 #ifdef RENDERTYPEWIN
 	bwglCreateContext	= NULL;

@@ -412,7 +412,13 @@ void polymost_glreset ()
 void polymost_glinit()
 {
 	GLfloat col[4];
-	
+
+	bglEnable(GL_TEXTURE_2D);
+	bglShadeModel(GL_SMOOTH); //GL_FLAT
+	bglClearColor(0,0,0,0.5); //Black Background
+	bglHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
+	bglDisable(GL_DITHER);
+
 	bglFogi(GL_FOG_MODE,GL_EXP); //GL_EXP(default),GL_EXP2,GL_LINEAR
 	//bglHint(GL_FOG_HINT,GL_NICEST);
 	bglFogf(GL_FOG_DENSITY,1.0); //must be > 0, default is 1
