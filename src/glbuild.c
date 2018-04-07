@@ -370,4 +370,76 @@ void unloadglfunctions(void) { }
 
 #endif  //DYNAMIC_OPENGL
 
+GLuint glbuild_compile_shader(GLuint type, const GLchar *source)
+{
+	GLuint shader;
+	GLint status;
+
+	shader = bglCreateShader(type);
+	if (!shader) {
+		return 0;
+	}
+
+	bglShaderSource(shader, 1, &source, NULL);
+	bglCompileShader(shader);
+
+	bglGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+	if (status == GL_FALSE) {
+		GLint loglen = 0;
+		GLchar *logtext = NULL;
+
+		bglGetShaderiv(shader, GL_INFO_LOG_LENGTH, &loglen);
+
+		logtext = (GLchar *)malloc(loglen);
+		bglGetShaderInfoLog(shader, loglen, &loglen, logtext);
+		buildprintf("GL shader compile error: %s\n", logtext);
+		free(logtext);
+
+		bglDeleteShader(shader);
+		return 0;
+	}
+
+	return shader;
+}
+
+GLuint glbuild_link_program(int shadercount, GLuint *shaders)
+{
+	GLuint program;
+	GLint status;
+	int i;
+
+	program = bglCreateProgram();
+	if (!program) {
+		return 0;
+	}
+
+	for (i = 0; i < shadercount; i++) {
+		bglAttachShader(program, shaders[i]);
+	}
+
+	bglLinkProgram(program);
+
+	bglGetProgramiv(program, GL_LINK_STATUS, &status);
+	if (status == GL_FALSE) {
+		GLint loglen = 0;
+		GLchar *logtext = NULL;
+
+		bglGetProgramiv(program, GL_INFO_LOG_LENGTH, &loglen);
+
+		logtext = (GLchar *)malloc(loglen);
+		bglGetProgramInfoLog(program, loglen, &loglen, logtext);
+		buildprintf("GL program link error: %s\n", logtext);
+		free(logtext);
+
+		bglDeleteProgram(program);
+		return 0;
+	}
+
+	for (i = 0; i < shadercount; i++) {
+		bglDetachShader(program, shaders[i]);
+	}
+
+	return program;
+}
+
 #endif  //USE_OPENGL

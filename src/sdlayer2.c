@@ -978,7 +978,8 @@ int setvideomode(int x, int y, int c, int fs)
 
 static int prepare_gl8bit_shader(void)
 {
-	GLint shader = 0, program = 0, status = 0;
+	GLuint shader = 0, program = 0;
+	GLint status = 0;
 
 	static const GLchar *shadersrc = \
 		"#version 110\n"
@@ -1008,58 +1009,19 @@ static int prepare_gl8bit_shader(void)
 	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	// Prepare the fragment shader.
-	shader = bglCreateShader(GL_FRAGMENT_SHADER);
+	shader = glbuild_compile_shader(GL_FRAGMENT_SHADER, shadersrc);
 	if (!shader) {
 		return -1;
 	}
 
-	bglShaderSource(shader, 1, &shadersrc, NULL);
-	bglCompileShader(shader);
-
-	bglGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-	if (status == GL_FALSE) {
-		GLint loglen = 0;
-		GLchar *logtext = NULL;
-
-		bglGetShaderiv(shader, GL_INFO_LOG_LENGTH, &loglen);
-
-		logtext = (GLchar *)malloc(loglen);
-		bglGetShaderInfoLog(shader, loglen, &loglen, logtext);
-		buildprintf("GL shader compile error: %s\n", logtext);
-		free(logtext);
-
-		bglDeleteShader(shader);
-		return -1;
-	}
-
 	// Prepare the shader program.
-	program = bglCreateProgram();
+	program = glbuild_link_program(1, &shader);
 	if (!program) {
 		bglDeleteShader(shader);
 		return -1;
 	}
 
-	bglAttachShader(program, shader);
-	bglLinkProgram(program);
-
-	bglGetProgramiv(shader, GL_LINK_STATUS, &status);
-	if (status == GL_FALSE) {
-		GLint loglen = 0;
-		GLchar *logtext = NULL;
-
-		bglGetProgramiv(program, GL_INFO_LOG_LENGTH, &loglen);
-
-		logtext = (GLchar *)malloc(loglen);
-		bglGetProgramInfoLog(program, loglen, &loglen, logtext);
-		buildprintf("GL program link error: %s\n", logtext);
-		free(logtext);
-
-		bglDeleteShader(shader);
-		bglDeleteProgram(program);
-		return -1;
-	}
-
-	bglDetachShader(program, shader);
+	// Shaders were detached in glbuild_link_program.
 	bglDeleteShader(shader);
 
 	// Connect the textures to the program.

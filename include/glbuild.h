@@ -249,4 +249,7 @@ int loadglfunctions(void);
 int loadglextensions(void);
 void unloadglfunctions(void);
 
+GLuint glbuild_compile_shader(GLuint type, const GLchar *source);
+GLuint glbuild_link_program(int shadercount, GLuint *shaders);
+
 #endif //USE_OPENGL
