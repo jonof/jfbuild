@@ -136,6 +136,8 @@ int gltexmiplevel = 0;		// discards this many mipmap levels
 static int lastglpolygonmode = 0; //FUK
 int glpolygonmode = 0;     // 0:GL_FILL,1:GL_LINE,2:GL_POINT //FUK
 static GLuint polymosttext = 0;
+
+static int polymost_preparetext(void);
 #endif
 
 #if defined(USE_MSC_PRAGMAS)
@@ -402,8 +404,10 @@ void polymost_glreset ()
 		clearskins();
 	}
 	
-	if (polymosttext) bglDeleteTextures(1,&polymosttext);
-	polymosttext=0;
+	if (polymosttext) {
+		bglDeleteTextures(1, &polymosttext);
+		polymosttext = 0;
+	}
 	
 	glox1 = -1;
 }
@@ -3879,7 +3883,9 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	GLfloat tx, ty, txc, tyc;
 	int c;
 	palette_t p,b;
-	
+
+	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
+
 	if (gammabrightness) {
 		p = curpalette[col];
 		b = curpalette[backcol];
@@ -3892,53 +3898,7 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 		b.b = britable[curbrightness][ curpalette[backcol].b ];
 	}
 
-	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
-
-	if (!polymosttext) {
-		// construct a 256x128 8-bit alpha-only texture for the font glyph matrix
-		unsigned char *tbuf, *cptr, *tptr;
-		int h,i,j,l;
-
-		bglGenTextures(1,&polymosttext);
-		if (!polymosttext) return -1;
-
-		tbuf = (unsigned char *)Bmalloc(256*128);
-		if (!tbuf) {
-			bglDeleteTextures(1,&polymosttext);
-			polymosttext = 0;
-			return -1;
-		}
-		Bmemset(tbuf, 0, 256*128);
-
-		cptr = (unsigned char*)textfont;
-		for (h=0;h<256;h++) {
-			tptr = tbuf + (h%32)*8 + (h/32)*256*8;
-			for (i=0;i<8;i++) {
-				for (j=0;j<8;j++) {
-					if (cptr[h*8+i] & pow2char[7-j]) tptr[j] = 255;
-				}
-				tptr += 256;
-			}
-		}
-		
-		cptr = (unsigned char*)smalltextfont;
-		for (h=0;h<256;h++) {
-			tptr = tbuf + 256*64 + (h%32)*8 + (h/32)*256*8;
-			for (i=1;i<7;i++) {
-				for (j=2;j<6;j++) {
-					if (cptr[h*8+i] & pow2char[7-j]) tptr[j-2] = 255;
-				}
-				tptr += 256;
-			}
-		}
-
-		bglBindTexture(GL_TEXTURE_2D, polymosttext);
-		bglTexImage2D(GL_TEXTURE_2D,0,GL_ALPHA,256,128,0,GL_ALPHA,GL_UNSIGNED_BYTE,(GLvoid*)tbuf);
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-		bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-		free(tbuf);
-	}
-	else bglBindTexture(GL_TEXTURE_2D, polymosttext);
+	polymost_preparetext();
 
 	setpolymost2dview();	// disables blending, texturing, and depth testing
 	bglDisable(GL_ALPHA_TEST);
@@ -3980,6 +3940,64 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	return 0;
 #endif
 }
+
+#ifdef USE_OPENGL
+static int polymost_preparetext(void)
+{
+	unsigned char *tbuf, *cptr, *tptr;
+	int h,i,j,l;
+
+	bglUseProgram(0);
+	bglActiveTexture(GL_TEXTURE0);
+
+	if (polymosttext) {
+		bglBindTexture(GL_TEXTURE_2D, polymosttext);
+		return 0;
+	}
+
+	// construct a 256x128 8-bit alpha-only texture for the font glyph matrix
+	bglGenTextures(1,&polymosttext);
+	if (!polymosttext) return -1;
+
+	tbuf = (unsigned char *)Bmalloc(256*128);
+	if (!tbuf) {
+		bglDeleteTextures(1,&polymosttext);
+		polymosttext = 0;
+		return -1;
+	}
+	Bmemset(tbuf, 0, 256*128);
+
+	cptr = (unsigned char*)textfont;
+	for (h=0;h<256;h++) {
+		tptr = tbuf + (h%32)*8 + (h/32)*256*8;
+		for (i=0;i<8;i++) {
+			for (j=0;j<8;j++) {
+				if (cptr[h*8+i] & pow2char[7-j]) tptr[j] = 255;
+			}
+			tptr += 256;
+		}
+	}
+
+	cptr = (unsigned char*)smalltextfont;
+	for (h=0;h<256;h++) {
+		tptr = tbuf + 256*64 + (h%32)*8 + (h/32)*256*8;
+		for (i=1;i<7;i++) {
+			for (j=2;j<6;j++) {
+				if (cptr[h*8+i] & pow2char[7-j]) tptr[j-2] = 255;
+			}
+			tptr += 256;
+		}
+	}
+
+	bglBindTexture(GL_TEXTURE_2D, polymosttext);
+	bglTexImage2D(GL_TEXTURE_2D,0,GL_ALPHA,256,128,0,GL_ALPHA,GL_UNSIGNED_BYTE,(GLvoid*)tbuf);
+	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	free(tbuf);
+
+	return 0;
+}
+#endif
 
 // Console commands by JBF
 #ifdef USE_OPENGL
