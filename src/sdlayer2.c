@@ -907,6 +907,8 @@ int setvideomode(int x, int y, int c, int fs)
 				return -1;
 			}
 
+			bglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
 			bglMatrixMode(GL_PROJECTION);
 			bglLoadIdentity();
 			bglMatrixMode(GL_MODELVIEW);

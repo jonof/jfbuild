@@ -48,6 +48,7 @@ extern void (APIENTRY * bglPopAttrib)( void );
 extern GLenum (APIENTRY * bglGetError)( void );
 extern const GLubyte* (APIENTRY * bglGetString)( GLenum name );
 extern void (APIENTRY * bglHint)( GLenum target, GLenum mode );
+extern void (APIENTRY * bglPixelStorei)( GLenum pname, GLint param );
 
 // Depth
 extern void (APIENTRY * bglDepthFunc)( GLenum func );
@@ -158,6 +159,7 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 #define bglGetError		glGetError
 #define bglGetString		glGetString
 #define bglHint			glHint
+#define bglPixelStorei	glPixelStorei
 
 // Depth
 #define bglDepthFunc		glDepthFunc

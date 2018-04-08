@@ -28,6 +28,7 @@ void (APIENTRY * bglPopAttrib)( void );
 GLenum (APIENTRY * bglGetError)( void );
 const GLubyte* (APIENTRY * bglGetString)( GLenum name );
 void (APIENTRY * bglHint)( GLenum target, GLenum mode );
+void (APIENTRY * bglPixelStorei)( GLenum pname, GLint param );
 
 // Depth
 void (APIENTRY * bglDepthFunc)( GLenum func );
@@ -170,6 +171,7 @@ int loadglfunctions(void)
 	bglGetError		= GETPROC("glGetError");
 	bglGetString		= GETPROC("glGetString");
 	bglHint			= GETPROC("glHint");
+	bglPixelStorei	= GETPROC("glPixelStorei");
 
 	// Depth
 	bglDepthFunc		= GETPROC("glDepthFunc");
@@ -276,6 +278,7 @@ void unloadglfunctions(void)
 	bglGetError		= NULL;
 	bglGetString		= NULL;
 	bglHint			= NULL;
+	bglPixelStorei	= NULL;
 
 	// Depth
 	bglDepthFunc		= NULL;

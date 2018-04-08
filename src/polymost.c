@@ -436,6 +436,8 @@ void polymost_glinit()
 	//bglHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 	//bglEnable(GL_LINE_SMOOTH);
 
+	bglPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
 	if (glmultisample > 0 && glinfo.multisample) {
 		if (glinfo.nvmultisamplehint)
 			bglHint(GL_MULTISAMPLE_FILTER_HINT_NV, glnvmultisamplehint ? GL_NICEST:GL_FASTEST);
