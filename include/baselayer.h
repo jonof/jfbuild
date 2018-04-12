@@ -38,6 +38,7 @@ extern void (*baselayer_onvideomodechange)(int);
 
 #ifdef USE_OPENGL
 struct glinfo {
+	int loaded;
 	const char *vendor;
 	const char *renderer;
 	const char *version;

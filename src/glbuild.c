@@ -28,6 +28,7 @@ void (APIENTRY * bglPopAttrib)( void );
 GLenum (APIENTRY * bglGetError)( void );
 const GLubyte* (APIENTRY * bglGetString)( GLenum name );
 void (APIENTRY * bglHint)( GLenum target, GLenum mode );
+void (APIENTRY * bglPixelStorei)( GLenum pname, GLint param );
 
 // Depth
 void (APIENTRY * bglDepthFunc)( GLenum func );
@@ -170,6 +171,7 @@ int loadglfunctions(void)
 	bglGetError		= GETPROC("glGetError");
 	bglGetString		= GETPROC("glGetString");
 	bglHint			= GETPROC("glHint");
+	bglPixelStorei	= GETPROC("glPixelStorei");
 
 	// Depth
 	bglDepthFunc		= GETPROC("glDepthFunc");
@@ -276,6 +278,7 @@ void unloadglfunctions(void)
 	bglGetError		= NULL;
 	bglGetString		= NULL;
 	bglHint			= NULL;
+	bglPixelStorei	= NULL;
 
 	// Depth
 	bglDepthFunc		= NULL;
@@ -369,5 +372,137 @@ int loadglextensions(void) { return 0; }
 void unloadglfunctions(void) { }
 
 #endif  //DYNAMIC_OPENGL
+
+GLuint glbuild_compile_shader(GLuint type, const GLchar *source)
+{
+	GLuint shader;
+	GLint status;
+
+	shader = bglCreateShader(type);
+	if (!shader) {
+		return 0;
+	}
+
+	bglShaderSource(shader, 1, &source, NULL);
+	bglCompileShader(shader);
+
+	bglGetShaderiv(shader, GL_COMPILE_STATUS, &status);
+	if (status == GL_FALSE) {
+		GLint loglen = 0;
+		GLchar *logtext = NULL;
+
+		bglGetShaderiv(shader, GL_INFO_LOG_LENGTH, &loglen);
+
+		logtext = (GLchar *)malloc(loglen);
+		bglGetShaderInfoLog(shader, loglen, &loglen, logtext);
+		buildprintf("GL shader compile error: %s\n", logtext);
+		free(logtext);
+
+		bglDeleteShader(shader);
+		return 0;
+	}
+
+	return shader;
+}
+
+GLuint glbuild_link_program(int shadercount, GLuint *shaders)
+{
+	GLuint program;
+	GLint status;
+	int i;
+
+	program = bglCreateProgram();
+	if (!program) {
+		return 0;
+	}
+
+	for (i = 0; i < shadercount; i++) {
+		bglAttachShader(program, shaders[i]);
+	}
+
+	bglLinkProgram(program);
+
+	bglGetProgramiv(program, GL_LINK_STATUS, &status);
+	if (status == GL_FALSE) {
+		GLint loglen = 0;
+		GLchar *logtext = NULL;
+
+		bglGetProgramiv(program, GL_INFO_LOG_LENGTH, &loglen);
+
+		logtext = (GLchar *)malloc(loglen);
+		bglGetProgramInfoLog(program, loglen, &loglen, logtext);
+		buildprintf("GL program link error: %s\n", logtext);
+		free(logtext);
+
+		bglDeleteProgram(program);
+		return 0;
+	}
+
+	for (i = 0; i < shadercount; i++) {
+		bglDetachShader(program, shaders[i]);
+	}
+
+	return program;
+}
+
+int glbuild_prepare_8bit_shader(GLuint *paltex, GLuint *frametex, GLuint *program, int resx, int resy)
+{
+	GLuint shader = 0, prog = 0;
+	GLint status = 0;
+
+	static const GLchar *shadersrc = \
+	"#version 110\n"
+	"uniform sampler1D palette;\n"
+	"uniform sampler2D frame;\n"
+	"void main(void)\n"
+	"{\n"
+	"  float pixelvalue;\n"
+	"  vec3 palettevalue;\n"
+	"  pixelvalue = texture2D(frame, gl_TexCoord[0].xy).r;\n"
+	"  palettevalue = texture1D(palette, pixelvalue).rgb;\n"
+	"  gl_FragColor = vec4(palettevalue, 1.0);\n"
+	"}\n";
+
+	// Initialise texture objects for the palette and framebuffer.
+	// The textures will be uploaded on the first rendered frame.
+	bglGenTextures(1, paltex);
+	bglActiveTexture(GL_TEXTURE1);
+	bglBindTexture(GL_TEXTURE_1D, *paltex);
+	bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);	// Allocates memory.
+	bglTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	bglTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	bglGenTextures(1, frametex);
+	bglActiveTexture(GL_TEXTURE0);
+	bglBindTexture(GL_TEXTURE_2D, *frametex);
+	bglTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, resx, resy, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);	// Allocates memory.
+	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	// Prepare the fragment shader.
+	shader = glbuild_compile_shader(GL_FRAGMENT_SHADER, shadersrc);
+	if (!shader) {
+		return -1;
+	}
+
+	// Prepare the shader program.
+	prog = glbuild_link_program(1, &shader);
+	if (!prog) {
+		bglDeleteShader(shader);
+		return -1;
+	}
+
+	// Shaders were detached in glbuild_link_program.
+	bglDeleteShader(shader);
+
+	// Connect the textures to the program.
+	bglUseProgram(prog);
+	bglUniform1i(bglGetUniformLocation(prog, "palette"), 1);
+	bglUniform1i(bglGetUniformLocation(prog, "frame"), 0);
+
+	*program = prog;
+	return 0;
+}
+
 
 #endif  //USE_OPENGL

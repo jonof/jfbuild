@@ -6926,8 +6926,8 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	oldbpp = bpp;
 	if (setvideomode(daxdim,daydim,dabpp,davidoption) < 0) return(-1);
 
-        // it's possible the previous call protected our code sections again
-        makeasmwriteable();
+	// it's possible the previous call protected our code sections again
+	makeasmwriteable();
 
 #ifdef POLYMOST
 	if (dabpp > 8) rendmode = 3;	// GL renderer
@@ -6979,20 +6979,24 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	for(i=0;i<=ydim;i++) ylookup[i] = j, j += bytesperline;
 
 	setview(0L,0L,xdim-1,ydim-1);
-	clearallviews(0L);
-	setbrightness(curbrightness,&palette[0],0);
-
-	if (searchx < 0) { searchx = halfxdimen; searchy = (ydimen>>1); }
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
-		polymost_glinit();
 		polymost_glreset();
+		polymost_glinit();
 	}
 #endif
+
+	setbrightness(curbrightness,&palette[0],0);
+	clearallviews(0L);
+
+	if (searchx < 0) { searchx = halfxdimen; searchy = (ydimen>>1); }
+
 	qsetmode = 200;
-//	memset(ratelimitlast,0,sizeof(ratelimitlast));
-//	ratelimitn = 0;
+
+	//memset(ratelimitlast,0,sizeof(ratelimitlast));
+	//ratelimitn = 0;
+
 	return(0);
 }
 
