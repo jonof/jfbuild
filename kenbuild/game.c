@@ -4567,6 +4567,24 @@ void getinput(void)
 	if (((loc.bits&2048) > 0) && (locselectedgun == 0))
 		oldmousebstatus &= ~1;     //Allow continous fire with mouse for chain gun
 
+	if (option[3] & 2) {
+		if (joynumaxes == 2) {
+			loc.avel = min(max(loc.avel+(joyaxis[0]>>8),-128),127);
+			loc.fvel = min(max(loc.fvel-(joyaxis[1]>>8),-128),127);
+		} else if (joynumaxes >= 4) {
+			loc.avel = min(max(loc.avel+(joyaxis[2]>>8),-128),127);
+			loc.fvel = min(max(loc.fvel-(joyaxis[1]>>8),-128),127);
+			loc.svel = min(max(loc.svel-(joyaxis[0]>>8),-128),127);
+		}
+		if (joynumaxes >= 6) {
+			loc.bits |= (joyaxis[5] > 0) << 11;	// Rtrigger shoot
+		}
+		if (joynumbuttons >= 2) {
+			loc.bits |= (!!(joyb & 1)) << 11;	// A button shoot
+			loc.bits |= (!!(joyb & 2)) << 10;	// B button space
+		}
+	}
+
 		//PRIVATE KEYS:
 /*   if (keystatus[0xb7])  //Printscreen
 	{

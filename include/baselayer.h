@@ -73,8 +73,8 @@ extern int keyasciififoplc, keyasciififoend;
 extern int mousex, mousey, mouseb;
 
 // joystick
-extern int *joyaxis, *joyhat, joyb;
-extern char joyisgamepad, joynumaxes, joynumbuttons, joynumhats, joyaxespresent;
+extern int joyaxis[], joyb;
+extern char joynumaxes, joynumbuttons;
 
 
 

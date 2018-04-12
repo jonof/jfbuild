@@ -79,8 +79,8 @@ int keyfifoplc, keyfifoend;
 int keyasciififoplc, keyasciififoend;
 static char keynames[256][24];
 int mousex=0,mousey=0,mouseb=0;
-int *joyaxis = NULL, joyb=0, *joyhat = NULL;
-char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0, joyaxespresent=0;
+int joyaxis[SDL_CONTROLLER_AXIS_MAX], joyb=0;
+char joynumaxes=0, joynumbuttons=0;
 
 
 void (*keypresscallback)(int,int) = 0;
@@ -308,8 +308,7 @@ void debugprintf(const char *f, ...)
 //
 
 static char mouseacquired=0,moustat=0;
-static int joyblast=0;
-static SDL_Joystick *joydev = NULL;
+static SDL_GameController *controller = NULL;
 
 //
 // initinput() -- init input system
@@ -327,27 +326,58 @@ int initinput(void)
         strncpy(keynames[ keytranslation[i].normal ], SDL_GetScancodeName(i), sizeof(keynames[i])-1);
     }
 
-    if (!SDL_InitSubSystem(SDL_INIT_JOYSTICK)) {
-        i = SDL_NumJoysticks();
-        buildprintf("%d joystick(s) found\n",i);
-        for (j=0;j<i;j++) buildprintf("  %d. %s\n", j+1, SDL_JoystickName(j));
-        joydev = SDL_JoystickOpen(0);
-        if (joydev) {
-            SDL_JoystickEventState(SDL_ENABLE);
-            inputdevices |= 4;
+    if (!SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER)) {
+		int flen, fh;
+		char *dbuf = NULL;
+		SDL_RWops *rwops = NULL;
 
-            joynumaxes    = SDL_JoystickNumAxes(joydev);
-            joynumbuttons = min(32,SDL_JoystickNumButtons(joydev));
-            joynumhats    = SDL_JoystickNumHats(joydev);
-            buildprintf("Joystick 1 has %d axes, %d buttons, and %d hat(s).\n",
-                joynumaxes,joynumbuttons,joynumhats);
+		// Load an available controller mappings file.
+		fh = kopen4load("gamecontrollerdb.txt", 0);
+		if (fh >= 0) {
+			flen = kfilelength(fh);
+			if (flen >= 0) {
+				dbuf = (char *)malloc(flen + 1);
+			}
+		}
+		if (dbuf) {
+			flen = kread(fh, dbuf, flen);
+			dbuf[flen+1] = 0;
+			kclose(fh);
+			if (flen >= 0) {
+				rwops = SDL_RWFromConstMem(dbuf, flen);
+			}
+		}
+		if (rwops) {
+			i = SDL_GameControllerAddMappingsFromRW(rwops, 0);
+			buildprintf("Added %d game controller mappings\n", i);
+			free(dbuf);
+			SDL_free(rwops);
+		}
 
-            joyaxis = Bcalloc(joynumaxes, sizeof(int));
-            if (joynumhats > 0) {
-                joyhat = malloc(joynumhats * sizeof(int));
-                memset(joyhat, -1, sizeof(int)*joynumhats);
-            }
-        }
+		// Enumerate game controllers.
+		if (SDL_NumJoysticks() < 1) {
+			buildputs("No game controllers found\n");
+		} else {
+			int numjoysticks = SDL_NumJoysticks();
+			buildputs("Game controllers:\n");
+			for (i = 0; i < numjoysticks; i++) {
+				if (SDL_IsGameController(i)) {
+					buildprintf("  - %s\n", SDL_GameControllerNameForIndex(i));
+					if (!controller) {
+						controller = SDL_GameControllerOpen(i);
+					}
+				}
+			}
+			if (controller) {
+				buildprintf("Using controller %s\n", SDL_GameControllerName(controller));
+
+				inputdevices |= 4;
+				joynumaxes    = SDL_CONTROLLER_AXIS_MAX;
+				joynumbuttons = SDL_CONTROLLER_BUTTON_MAX;
+			} else {
+				buildprintf("No controllers are usable\n");
+			}
+		}
     }
 
     return 0;
@@ -360,9 +390,9 @@ void uninitinput(void)
 {
     uninitmouse();
 
-    if (joydev) {
-        SDL_JoystickClose(joydev);
-        joydev = NULL;
+    if (controller) {
+		SDL_GameControllerClose(controller);
+        controller = NULL;
     }
 }
 
@@ -374,24 +404,11 @@ const char *getkeyname(int num)
 
 const char *getjoyname(int what, int num)
 {
-    static char tmp[64];
-
     switch (what) {
         case 0: // axis
-            if ((unsigned)num >= (unsigned)joynumaxes) return NULL;
-            sprintf(tmp,"Axis %d",num+1);
-            return tmp;
-
+			return SDL_GameControllerGetStringForAxis(num);
         case 1: // button
-            if ((unsigned)num >= (unsigned)joynumbuttons) return NULL;
-            sprintf(tmp,"Button %d",num+1);
-            return tmp;
-
-        case 2: // hat
-            if ((unsigned)num >= (unsigned)joynumhats) return NULL;
-            sprintf(tmp,"Hat %d",num+1);
-            return tmp;
-
+            return SDL_GameControllerGetStringForButton(num);
         default:
             return NULL;
     }
@@ -1325,42 +1342,19 @@ int handleevents(void)
                 }
                 break;
 
-            case SDL_JOYAXISMOTION:
-                if (appactive && ev.jaxis.axis < joynumaxes)
-                    joyaxis[ ev.jaxis.axis ] = ev.jaxis.value;
+            case SDL_CONTROLLERAXISMOTION:
+				if (appactive) {
+					joyaxis[ ev.caxis.axis ] = ev.caxis.value;
+				}
                 break;
 
-            case SDL_JOYHATMOTION: {
-                int hatvals[16] = {
-                    -1, // centre
-                    0,  // up 1
-                    9000,   // right 2
-                    4500,   // up+right 3
-                    18000,  // down 4
-                    -1, // down+up!! 5
-                    13500,  // down+right 6
-                    -1, // down+right+up!! 7
-                    27000,  // left 8
-                    27500,  // left+up 9
-                    -1, // left+right!! 10
-                    -1, // left+right+up!! 11
-                    22500,  // left+down 12
-                    -1, // left+down+up!! 13
-                    -1, // left+down+right!! 14
-                    -1, // left+down+right+up!! 15
-                };
-                if (appactive && ev.jhat.hat < joynumhats)
-                    joyhat[ ev.jhat.hat ] = hatvals[ ev.jhat.value & 15 ];
-                break;
-            }
-
-            case SDL_JOYBUTTONDOWN:
-            case SDL_JOYBUTTONUP:
-                if (appactive && ev.jbutton.button < joynumbuttons) {
-                    if (ev.jbutton.state == SDL_PRESSED)
-                        joyb |= 1 << ev.jbutton.button;
+            case SDL_CONTROLLERBUTTONDOWN:
+            case SDL_CONTROLLERBUTTONUP:
+                if (appactive) {
+                    if (ev.cbutton.state == SDL_PRESSED)
+                        joyb |= 1 << ev.cbutton.button;
                     else
-                        joyb &= ~(1 << ev.jbutton.button);
+                        joyb &= ~(1 << ev.cbutton.button);
                 }
                 break;
 

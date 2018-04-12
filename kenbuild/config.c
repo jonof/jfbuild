@@ -64,7 +64,7 @@ extern double msens;
  * 0      = video mode (0:chained 1:vesa 2:screen buffered 3/4/5:tseng/paradise/s3 6:red-blue)
  * 1      = sound (0:none)
  * 2      = music (0:none)
- * 3      = input (0:keyboard 1:+mouse)
+ * 3      = input (0:keyboard 1:+mouse 2:+joystick)
  * 4      = multiplayer (0:single 1-4:com 5-11:ipx)
  * 5&0xf0 = com speed
  * 5&0x0f = com irq
@@ -116,7 +116,8 @@ int loadsetup(const char *fn)
 	if (readconfig(fp, "ydim", val, VL) > 0) ydimgame = xdim2d = Batoi(val);
 	if (readconfig(fp, "samplerate", val, VL) > 0) option[7] = (Batoi(val) & 0x0f) << 4;
 	if (readconfig(fp, "music", val, VL) > 0) { if (Batoi(val) != 0) option[2] = 1; else option[2] = 0; }
-	if (readconfig(fp, "mouse", val, VL) > 0) { if (Batoi(val) != 0) option[3] = 1; else option[3] = 0; }
+	if (readconfig(fp, "mouse", val, VL) > 0) { if (Batoi(val) != 0) option[3] |= 1; else option[3] &= ~1; }
+	if (readconfig(fp, "joystick", val, VL) > 0) { if (Batoi(val) != 0) option[3] |= 2; else option[3] &= ~2; }
 	if (readconfig(fp, "bpp", val, VL) > 0) bppgame = Batoi(val);
 	if (readconfig(fp, "renderer", val, VL) > 0) { i = Batoi(val); setrendermode(i); }
 	if (readconfig(fp, "brightness", val, VL) > 0) brightness = min(max(Batoi(val),0),15);
@@ -218,6 +219,11 @@ int writesetup(const char *fn)
 	";   1 - Yes\n"
 	"mouse = %d\n"
 	"\n"
+	"; Enable joystick\n"
+	";   0 - No\n"
+	";   1 - Yes\n"
+	"joystick = %d\n"
+	"\n"
 	"; Mouse sensitivity\n"
 	"mousesensitivity = %g\n"
 	"\n"
@@ -273,7 +279,7 @@ int writesetup(const char *fn)
 	maxrefreshfreq,
 #endif
 	brightness, option[7]>>4, option[2],
-	option[3], msens,
+	!!(option[3]&1), !!(option[3]&2), msens,
 	keys[0], keys[1], keys[2], keys[3], keys[4], keys[5],
 	keys[6], keys[7], keys[8], keys[9], keys[10], keys[11],
 	keys[12], keys[13], keys[14], keys[15], keys[16], keys[17],
