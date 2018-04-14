@@ -107,16 +107,15 @@ void (APIENTRY * bglUseProgram)(GLuint program);
 
 #ifdef RENDERTYPEWIN
 // Windows
+PROC (WINAPI * bwglGetProcAddress)(LPCSTR);
 HGLRC (WINAPI * bwglCreateContext)(HDC);
 BOOL (WINAPI * bwglDeleteContext)(HGLRC);
-PROC (WINAPI * bwglGetProcAddress)(LPCSTR);
 BOOL (WINAPI * bwglMakeCurrent)(HDC,HGLRC);
 
+const char * (WINAPI * bwglGetExtensionsStringARB)(HDC hdc);
+BOOL (WINAPI * bwglChoosePixelFormatARB)(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
+HGLRC (WINAPI * bwglCreateContextAttribsARB)(HDC hDC, HGLRC hShareContext, const int *attribList);
 BOOL (WINAPI * bwglSwapBuffers)(HDC);
-int (WINAPI * bwglChoosePixelFormat)(HDC,CONST PIXELFORMATDESCRIPTOR*);
-int (WINAPI * bwglDescribePixelFormat)(HDC,int,UINT,LPPIXELFORMATDESCRIPTOR);
-int (WINAPI * bwglGetPixelFormat)(HDC);
-BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 
 #endif
 
@@ -126,7 +125,7 @@ static void * getproc_(const char *s, int *err, int fatal, int extension)
 	void *t = NULL;
 	t = getglprocaddress(s, extension);
 	if (!t && fatal) {
-		buildprintf("Failed to find %s\n", s);
+		buildprintf("loadglfunctions: failed to find %s\n", s);
 		*err = 1;
 	}
 	return t;
@@ -141,16 +140,15 @@ int loadglfunctions(int all)
 	int err=0;
 
 #ifdef RENDERTYPEWIN
+	bwglGetProcAddress	= GETPROC("wglGetProcAddress");
 	bwglCreateContext	= GETPROC("wglCreateContext");
 	bwglDeleteContext	= GETPROC("wglDeleteContext");
-	bwglGetProcAddress	= GETPROC("wglGetProcAddress");
 	bwglMakeCurrent		= GETPROC("wglMakeCurrent");
-
 	bwglSwapBuffers		= GETPROC("wglSwapBuffers");
-	bwglChoosePixelFormat	= GETPROC("wglChoosePixelFormat");
-	bwglDescribePixelFormat	= GETPROC("wglDescribePixelFormat");
-	bwglGetPixelFormat	= GETPROC("wglGetPixelFormat");
-	bwglSetPixelFormat	= GETPROC("wglSetPixelFormat");
+
+	bwglGetExtensionsStringARB = GETPROCEXTSOFT("wglGetExtensionsStringARB");
+	bwglChoosePixelFormatARB = GETPROCEXTSOFT("wglChoosePixelFormatARB");
+	bwglCreateContextAttribsARB = GETPROCEXTSOFT("wglCreateContextAttribsARB");
 #endif
 
 	if (!all) {
@@ -222,6 +220,8 @@ int loadglfunctions(int all)
 	bglTexParameterf	= GETPROC("glTexParameterf");
 	bglTexParameteri	= GETPROC("glTexParameteri");
 	bglGetTexLevelParameteriv = GETPROC("glGetTexLevelParameteriv");
+	bglCompressedTexImage2DARB  = GETPROCEXTSOFT("glCompressedTexImage2DARB");
+	bglGetCompressedTexImageARB = GETPROCEXTSOFT("glGetCompressedTexImageARB");
 
 	// Fog
 	bglFogf			= GETPROC("glFogf");
@@ -229,37 +229,25 @@ int loadglfunctions(int all)
 	bglFogfv		= GETPROC("glFogfv");
 
 	// Shaders
-	bglActiveTexture = GETPROC("glActiveTexture");
-	bglAttachShader  = GETPROC("glAttachShader");
-	bglCompileShader = GETPROC("glCompileShader");
-	bglCreateProgram = GETPROC("glCreateProgram");
-	bglCreateShader  = GETPROC("glCreateShader");
-	bglDeleteProgram = GETPROC("glDeleteProgram");
-	bglDeleteShader  = GETPROC("glDeleteShader");
-	bglDetachShader  = GETPROC("glDetachShader");
-	bglGetProgramiv  = GETPROC("glGetProgramiv");
-	bglGetProgramInfoLog = GETPROC("glGetProgramInfoLog");
-	bglGetShaderiv   = GETPROC("glGetShaderiv");
-	bglGetShaderInfoLog = GETPROC("glGetShaderInfoLog");
-	bglGetUniformLocation = GETPROC("glGetUniformLocation");
-	bglLinkProgram   = GETPROC("glLinkProgram");
-	bglShaderSource  = GETPROC("glShaderSource");
-	bglUseProgram    = GETPROC("glUseProgram");
-	bglUniform1i     = GETPROC("glUniform1i");
-
-	loadglextensions();
+	bglActiveTexture = GETPROCEXT("glActiveTexture");
+	bglAttachShader  = GETPROCEXT("glAttachShader");
+	bglCompileShader = GETPROCEXT("glCompileShader");
+	bglCreateProgram = GETPROCEXT("glCreateProgram");
+	bglCreateShader  = GETPROCEXT("glCreateShader");
+	bglDeleteProgram = GETPROCEXT("glDeleteProgram");
+	bglDeleteShader  = GETPROCEXT("glDeleteShader");
+	bglDetachShader  = GETPROCEXT("glDetachShader");
+	bglGetProgramiv  = GETPROCEXT("glGetProgramiv");
+	bglGetProgramInfoLog = GETPROCEXT("glGetProgramInfoLog");
+	bglGetShaderiv   = GETPROCEXT("glGetShaderiv");
+	bglGetShaderInfoLog = GETPROCEXT("glGetShaderInfoLog");
+	bglGetUniformLocation = GETPROCEXT("glGetUniformLocation");
+	bglLinkProgram   = GETPROCEXT("glLinkProgram");
+	bglShaderSource  = GETPROCEXT("glShaderSource");
+	bglUseProgram    = GETPROCEXT("glUseProgram");
+	bglUniform1i     = GETPROCEXT("glUniform1i");
 
 	if (err) unloadglfunctions();
-	return err;
-}
-
-int loadglextensions(void)
-{
-	int err = 0;
-
-	bglCompressedTexImage2DARB  = GETPROCEXTSOFT("glCompressedTexImage2DARB");
-	bglGetCompressedTexImageARB = GETPROCEXTSOFT("glGetCompressedTexImageARB");
-
 	return err;
 }
 
@@ -362,11 +350,10 @@ void unloadglfunctions(void)
 	bwglGetProcAddress	= NULL;
 	bwglMakeCurrent		= NULL;
 
+	bwglGetExtensionsStringARB = NULL;
+	bwglChoosePixelFormatARB = NULL;
+	bwglCreateContextAttribsARB = NULL;
 	bwglSwapBuffers		= NULL;
-	bwglChoosePixelFormat	= NULL;
-	bwglDescribePixelFormat	= NULL;
-	bwglGetPixelFormat	= NULL;
-	bwglSetPixelFormat	= NULL;
 #endif
 }
 

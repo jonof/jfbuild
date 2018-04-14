@@ -77,60 +77,7 @@ static int osdcmd_hicsetpalettetint(const osdfuncparm_t *parm)
 
 static int osdcmd_glinfo(const osdfuncparm_t *UNUSED(parm))
 {
-	char *s,*t,*u,i;
-	
-	if (!glinfo.loaded) {
-		buildputs("glinfo: OpenGL information not available.\n");
-		return OSDCMD_OK;
-	}
-	
-	buildprintf("OpenGL Information:\n"
-	           " Version:  %s\n"
-		   " Vendor:   %s\n"
-		   " Renderer: %s\n"
-		   " Maximum anisotropy:      %.1f%s\n"
-		   " BGRA textures:           %s\n"
-		   " Non-2^x textures:        %s\n"
-		   " Texture compression:     %s\n"
-		   " Clamp-to-edge:           %s\n"
-		   " Multisampling:           %s\n"
-		   " Nvidia multisample hint: %s\n"
-		   " Multitexturing:          %s\n"
-		   " Env combine extension:   %s\n"
-		   " Extensions:\n",
-		   	glinfo.version,
-			glinfo.vendor,
-			glinfo.renderer,
-			glinfo.maxanisotropy, glinfo.maxanisotropy>1.0?"":" (no anisotropic filtering)",
-			glinfo.bgra ? "supported": "not supported",
-			glinfo.texnpot ? "supported": "not supported",
-			glinfo.texcompr ? "supported": "not supported",
-			glinfo.clamptoedge ? "supported": "not supported",
-			glinfo.multisample ? "supported": "not supported",
-			glinfo.nvmultisamplehint ? "supported": "not supported",
-			glinfo.multitex ? "supported": "not supported",
-			glinfo.envcombine ? "supported": "not supported"
-		);
-
-	s = Bstrdup(glinfo.extensions);
-	if (!s) buildputs(glinfo.extensions);
-	else {
-		i = 0; t = u = s;
-		while (*t) {
-			if (*t == ' ') {
-				if (i&1) {
-					*t = 0;
-					buildprintf("   %s\n",u);
-					u = t+1;
-				}
-				i++;
-			}
-			t++;
-		}
-		if (i&1) buildprintf("   %s\n",u);
-		Bfree(s);
-	}
-	
+	baselayer_dumpglinfo();
 	return OSDCMD_OK;
 }
 #endif
@@ -259,4 +206,62 @@ int baselayer_setupopengl(void)
 	glinfo.loaded = 1;
 	return 0;
 }
+
+void baselayer_dumpglinfo(void)
+{
+	char *s,*t,*u,i;
+	
+	if (!glinfo.loaded) {
+		buildputs("OpenGL information not available.\n");
+		return;
+	}
+	
+	buildprintf("OpenGL Information:\n"
+	           " Version:  %s\n"
+		   " Vendor:   %s\n"
+		   " Renderer: %s\n"
+		   " Maximum anisotropy:      %.1f%s\n"
+		   " BGRA textures:           %s\n"
+		   " Non-2^x textures:        %s\n"
+		   " Texture compression:     %s\n"
+		   " Clamp-to-edge:           %s\n"
+		   " Multisampling:           %s\n"
+		   " Nvidia multisample hint: %s\n"
+		   " Multitexturing:          %s\n"
+		   " Env combine extension:   %s\n"
+		   " Extensions:\n",
+		   	glinfo.version,
+			glinfo.vendor,
+			glinfo.renderer,
+			glinfo.maxanisotropy, glinfo.maxanisotropy>1.0?"":" (no anisotropic filtering)",
+			glinfo.bgra ? "supported": "not supported",
+			glinfo.texnpot ? "supported": "not supported",
+			glinfo.texcompr ? "supported": "not supported",
+			glinfo.clamptoedge ? "supported": "not supported",
+			glinfo.multisample ? "supported": "not supported",
+			glinfo.nvmultisamplehint ? "supported": "not supported",
+			glinfo.multitex ? "supported": "not supported",
+			glinfo.envcombine ? "supported": "not supported"
+		);
+
+	s = Bstrdup(glinfo.extensions);
+	if (!s) buildputs(glinfo.extensions);
+	else {
+		i = 0; t = u = s;
+		while (*t) {
+			if (*t == ' ') {
+				if (i&1) {
+					*t = 0;
+					buildprintf("   %s\n",u);
+					u = t+1;
+				}
+				i++;
+			}
+			t++;
+		}
+		if (i&1) buildprintf("   %s\n",u);
+		Bfree(s);
+	}
+}
+
 #endif

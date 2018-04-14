@@ -1,10 +1,5 @@
 #ifdef USE_OPENGL
 
-#ifdef RENDERTYPEWIN
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
-
 #if defined(__APPLE__)
 # include <OpenGL/gl.h>
 #else
@@ -19,6 +14,12 @@
 # include <OpenGL/glext.h>
 #else
 # include "glext.h"
+#endif
+
+#ifdef RENDERTYPEWIN
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <GL/wglext.h>
 #endif
 
 #ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
@@ -132,12 +133,11 @@ extern HGLRC (WINAPI * bwglCreateContext)(HDC);
 extern BOOL (WINAPI * bwglDeleteContext)(HGLRC);
 extern PROC (WINAPI * bwglGetProcAddress)(LPCSTR);
 extern BOOL (WINAPI * bwglMakeCurrent)(HDC,HGLRC);
-
 extern BOOL (WINAPI * bwglSwapBuffers)(HDC);
-extern int (WINAPI * bwglChoosePixelFormat)(HDC,CONST PIXELFORMATDESCRIPTOR*);
-extern int (WINAPI * bwglDescribePixelFormat)(HDC,int,UINT,LPPIXELFORMATDESCRIPTOR);
-extern int (WINAPI * bwglGetPixelFormat)(HDC);
-extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
+
+extern const char * (WINAPI * bwglGetExtensionsStringARB)(HDC hdc);
+extern BOOL (WINAPI * bwglChoosePixelFormatARB)(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
+extern HGLRC (WINAPI * bwglCreateContextAttribsARB)(HDC hDC, HGLRC hShareContext, const int *attribList);
 #endif
 
 #else	// DYNAMIC_OPENGL
@@ -238,18 +238,16 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 #define bwglDeleteContext	wglDeleteContext
 #define bwglGetProcAddress	wglGetProcAddress
 #define bwglMakeCurrent		wglMakeCurrent
+#define bwglSwapBuffers     wglSwapBuffers
 
-#define bwglSwapBuffers		SwapBuffers
-#define bwglChoosePixelFormat	ChoosePixelFormat
-#define bwglDescribePixelFormat	DescribePixelFormat
-#define bwglGetPixelFormat	GetPixelFormat
-#define bwglSetPixelFormat	SetPixelFormat
+#define bwglGetExtensionsStringARB  wglGetExtensionsStringARB
+#define bwglChoosePixelFormatARB    wglChoosePixelFormatARB
+#define bwglCreateContextAttribsARB wglCreateContentAttribsARB
 #endif
 
 #endif
 
 int loadglfunctions(int all);   // all==0: the basic ones needed to bootstrap
-int loadglextensions(void);
 void unloadglfunctions(void);
 
 GLuint glbuild_compile_shader(GLuint type, const GLchar *source);

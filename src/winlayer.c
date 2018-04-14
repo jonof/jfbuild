@@ -1,26 +1,21 @@
-// Windows DIB/DirectDraw interface layer
+// Windows interface layer
 // for the Build Engine
 // by Jonathon Fowler (jf@jonof.id.au)
 //
 // This is all very ugly.
-//
-// Written for DirectX 6.0
 
 #ifndef _WIN32
 #error winlayer.c is for Windows only.
 #endif
 
+#define WINVER 0x0600
 #define _WIN32_WINNT 0x0600
-#define DIRECTINPUT_VERSION 0x0500
-#define DIRECTDRAW_VERSION  0x0600
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <ddraw.h>
-#include <dinput.h>
+#include <xinput.h>
 #include <math.h>
 
-#include "dxdidf.h"	// comment this out if c_dfDI* is being reported as multiply defined
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
@@ -47,8 +42,8 @@ static char *argvbuf = NULL;
 // Windows crud
 static HINSTANCE hInstance = 0;
 static HWND hWindow = 0;
-#define WINDOW_STYLE (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX)
-#define WindowClass "buildapp"
+static HDC hDCWindow = NULL;
+#define WINDOW_CLASS "buildapp"
 static BOOL window_class_registered = FALSE;
 static HANDLE instanceflag = NULL;
 
@@ -62,53 +57,43 @@ extern float curgamma;
 // OpenGL stuff
 static HGLRC hGLRC = 0;
 static HANDLE hGLDLL;
-char nofog=0;
-static unsigned char nogl=0, glminidriver=0;
+static GLuint gl8bitpaltex = 0;		// The 1D texture holding the palette.
+static GLuint gl8bitframetex = 0;	// The 2D texture holding the frame.
+static GLuint gl8bitprogram = 0;	// The shader program for rendering the 8bit frame.
+static unsigned char nogl=0;
+static unsigned char *frame = NULL;
+
+static HWND hGLWindow = NULL;
+static HWND dummyhGLwindow = NULL;
+static HDC hDCGLWindow = NULL;
 #endif
 
 static LPTSTR GetWindowsErrorMsg(DWORD code);
 static const char * getwindowserrorstr(DWORD code);
-static const char * GetDDrawError(HRESULT code);
-static const char * GetDInputError(HRESULT code);
 static void ShowErrorBox(const char *m);
-static void ShowDDrawErrorBox(const char *m, HRESULT r);
-static void ShowDInputErrorBox(const char *m, HRESULT r);
 static BOOL CheckWinVersion(void);
 static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-static BOOL InitDirectDraw(void);
-static void UninitDirectDraw(void);
-static int RestoreDirectDrawMode(void);
-static void ReleaseDirectDrawSurfaces(void);
-static BOOL InitDirectInput(void);
-static void UninitDirectInput(void);
 static void fetchkeynames(void);
 static void updatemouse(void);
-static void AcquireInputDevices(char acquire);
-static void ProcessInputDevices(void);
-static int SetupDirectDraw(int width, int height);
+static void updatejoystick(void);
 static void UninitDIB(void);
 static int SetupDIB(int width, int height);
-static void ReleaseOpenGL(void);
 static void UninitOpenGL(void);
-static int SetupOpenGL(int width, int height, int bitspp);
+static int SetupOpenGL(int width, int height, int bitspp, int cover);
 static BOOL RegisterWindowClass(void);
-static BOOL CreateAppWindow(int modenum);
+static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refresh);
 static void DestroyAppWindow(void);
-static void SaveSystemColours(void);
-static void SetBWSystemColours(void);
-static void RestoreSystemColours(void);
 
+static void shutdownvideo(void);
 
 // video
-static int desktopxdim=0,desktopydim=0,desktopbpp=0,modesetusing=-1;
+static int desktopxdim=0,desktopydim=0,desktopbpp=0, desktopmodeset=0;
 int xres=-1, yres=-1, fullscreen=0, bpp=0, bytesperline=0, imageSize=0;
 intptr_t frameplace=0;
-int lockcount=0;
-static int windowposx, windowposy, curvidmode = -1;
-static int customxdim = 640, customydim = 480, custombpp = 8, customfs = 0;
+static int windowposx, windowposy;
 static unsigned modeschecked=0;
 unsigned maxrefreshfreq=60;
-char modechange=1, repaintneeded=0;
+char modechange=1;
 char offscreenrendering=0;
 int glcolourdepth=32;
 char videomodereset = 0;
@@ -119,8 +104,8 @@ char quitevent=0, appactive=1;
 int mousex=0, mousey=0, mouseb=0;
 static unsigned int mousewheel[2] = { 0,0 };
 #define MouseWheelFakePressTime (100)	// getticks() is a 1000Hz timer, and the button press is faked for 100ms
-int *joyaxis = NULL, joyb=0, *joyhat = NULL;
-char joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
+int joyaxis[8], joyb=0;
+char joynumaxes=0, joynumbuttons=0;
 
 static char taskswitching=1;
 
@@ -265,7 +250,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	hInstance = hInst;
 
 	if (CheckWinVersion() || hPrevInst) {
-		MessageBox(0, "This application must be run under Windows XP or newer.",
+		MessageBox(0, "This application must be run under Windows Vista or newer.",
 			apptitle, MB_OK|MB_ICONSTOP);
 		return -1;
 	}
@@ -273,8 +258,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	hdc = GetDC(NULL);
 	r = GetDeviceCaps(hdc, BITSPIXEL);
 	ReleaseDC(NULL, hdc);
-	if (r < 8) {
-		MessageBox(0, "This application requires a desktop colour depth of 256-colours or more.",
+	if (r <= 8) {
+		MessageBox(0, "This application requires a desktop colour depth of 65536-colours or more.",
 			apptitle, MB_OK|MB_ICONSTOP);
 		return -1;
 	}
@@ -342,11 +327,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 			*stderr = *fp;
 		}
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
-	if ((argp = Bgetenv("BUILD_NOFOG")) != NULL)
-		nofog = Batol(argp);
-#endif
-
 	// install signal handlers
 	signal(SIGSEGV, SignalHandler);
 
@@ -354,7 +334,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 	atexit(uninitsystem);
 
-	instanceflag = CreateSemaphore(NULL, 1,1, WindowClass);
+	instanceflag = CreateSemaphore(NULL, 1,1, WINDOW_CLASS);
 
 	startwin_open();
 	baselayer_init();
@@ -399,7 +379,7 @@ int initsystem(void)
 {
 	DEVMODE desktopmode;
 
-	buildputs("Initialising Windows DirectX/GDI system interface\n");
+	buildputs("Initialising Windows system interface\n");
 
 	// get the desktop dimensions before anything changes them
 	ZeroMemory(&desktopmode, sizeof(DEVMODE));
@@ -410,27 +390,18 @@ int initsystem(void)
 	desktopydim = desktopmode.dmPelsHeight;
 	desktopbpp  = desktopmode.dmBitsPerPel;
 
-	if (desktopbpp <= 8)
-		// save the system colours
-		SaveSystemColours();
-
 	memset(curpalette, 0, sizeof(palette_t) * 256);
 
 	atexit(uninitsystem);
 
 	frameplace=0;
-	lockcount=0;
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
-	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions()) {
+	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions(FALSE)) {
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		nogl = 1;
 	}
 #endif
-
-	// try and start DirectDraw
-	if (InitDirectDraw())
-		buildputs("DirectDraw initialisation failed. Fullscreen modes will be unavailable.\n");
 
 	OSD_RegisterFunction("maxrefreshfreq", "maxrefreshfreq: maximum display frequency to set for OpenGL Polymost modes (0=no maximum)", set_maxrefreshfreq);
 	return 0;
@@ -451,6 +422,7 @@ void uninitsystem(void)
 
 	win_allowtaskswitching(1);
 
+	shutdownvideo();
 #if defined(USE_OPENGL) && defined(POLYMOST)
 	unloadglfunctions();
 	unloadgldriver();
@@ -464,7 +436,6 @@ void uninitsystem(void)
 void initputs(const char *buf)
 {
 	startwin_puts(buf);
-	handleevents();
 }
 
 
@@ -498,8 +469,6 @@ int handleevents(void)
 	int rv=0;
 	MSG msg;
 
-	//if (frameplace && fullscreen) printf("Offscreen buffer is locked!\n");
-
 	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 		if (msg.message == WM_QUIT)
 			quitevent = 1;
@@ -512,7 +481,7 @@ int handleevents(void)
 
 	eatosdinput = 0;
 	updatemouse();
-	ProcessInputDevices();
+	updatejoystick();
 
 	if (!appactive || quitevent) rv = -1;
 
@@ -530,6 +499,8 @@ int handleevents(void)
 
 static char moustat = 0, mousegrab = 0;
 static int joyblast=0;
+
+static int xinputusernum = -1;
 
 // I don't see any pressing need to store the key-up events yet
 #define SetKey(key,state) { \
@@ -553,12 +524,30 @@ int initinput(void)
 	keyasciififoplc = keyasciififoend = 0;
 
 	inputdevices = 1;
-	joyisgamepad=0, joynumaxes=0, joynumbuttons=0, joynumhats=0;
+	joynumaxes=0;
+	joynumbuttons=0;
 
 	fetchkeynames();
 
-	if (InitDirectInput())
-		return -1;
+	{
+		DWORD usernum, result;
+		XINPUT_CAPABILITIES caps;
+
+		buildputs("Initialising game controllers\n");
+
+		for (usernum = 0; usernum < XUSER_MAX_COUNT; usernum++) {
+			result = XInputGetCapabilities(usernum, XINPUT_FLAG_GAMEPAD, &caps);
+			if (result == ERROR_SUCCESS && xinputusernum < 0) {
+				xinputusernum = (int)usernum;
+				inputdevices |= 4;
+
+				joynumbuttons = 15;
+				joynumaxes = 6;
+			}
+		}
+
+		buildprintf("  - Using controller in port %d\n", xinputusernum);
+	}
 
 	return 0;
 }
@@ -570,7 +559,9 @@ int initinput(void)
 void uninitinput(void)
 {
 	uninitmouse();
-	UninitDirectInput();
+
+	xinputusernum = -1;
+	inputdevices &= ~4;
 }
 
 
@@ -740,6 +731,40 @@ void readmousebstatus(int *b)
 }
 
 
+static void updatejoystick(void)
+{
+	XINPUT_STATE state;
+
+	if (xinputusernum < 0) return;
+
+	ZeroMemory(&state, sizeof(state));
+	if (XInputGetState(xinputusernum, &state) != ERROR_SUCCESS) {
+		buildputs("Joystick error, disabling.\n");
+		joyb = 0;
+		memset(joyaxis, 0, sizeof(joyaxis));
+		xinputusernum = -1;
+		return;
+	}
+
+	// We use SDL's game controller button order for BUILD:
+	//   A, B, X, Y, Back, (Guide), Start, LThumb, RThumb,
+	//   LShoulder, RShoulder, DPUp, DPDown, DPLeft, DPRight
+	// So we must shuffle XInput around.
+	joyb = ((state.Gamepad.wButtons & 0xF000) >> 12) |		// A,B,X,Y
+	       ((state.Gamepad.wButtons & 0x0020) >> 1) |		// Back
+	       ((state.Gamepad.wButtons & 0x0010) << 2) |       // Start
+	       ((state.Gamepad.wButtons & 0x03C0) << 1) |       // LThumb,RThumb,LShoulder,RShoulder
+	       ((state.Gamepad.wButtons & 0x000F) << 8);		// DPadUp,Down,Left,Right
+
+	joyaxis[0] = state.Gamepad.sThumbLX;
+	joyaxis[1] = -state.Gamepad.sThumbLY;
+	joyaxis[2] = state.Gamepad.sThumbRX;
+	joyaxis[3] = -state.Gamepad.sThumbRY;
+	joyaxis[4] = (state.Gamepad.bLeftTrigger >> 1) | ((int)state.Gamepad.bLeftTrigger << 7);	// Extend to 0-32767
+	joyaxis[5] = (state.Gamepad.bRightTrigger >> 1) | ((int)state.Gamepad.bRightTrigger << 7);
+}
+
+
 void releaseallbuttons(void)
 {
 	int i;
@@ -810,518 +835,47 @@ const char *getkeyname(int num)
 	return keynames[num];
 }
 
-
-
-
-//-------------------------------------------------------------------------------------------------
-//  DIRECTINPUT INPUT (LEGACY JOYSTICKS)
-//=================================================================================================
-
-static HMODULE               hDInputDLL    = NULL;
-static LPDIRECTINPUTA        lpDI          = NULL;
-static LPDIRECTINPUTDEVICE2A lpDID         = NULL;
-static BOOL                  bDInputInited = FALSE;
-#define INPUT_BUFFER_SIZE	32
-static GUID                  guidDev;
-
-static char devacquired = 0;
-static HANDLE inputevt = 0;
-
-static struct _joydef {
-	const char *name;
-	unsigned ofs;	// directinput 'dwOfs' value
-} *axisdefs = NULL, *buttondefs = NULL, *hatdefs = NULL;
-
-struct _joydevicefeature {
-	unsigned int ofs;
-	const char *name;
-};
-struct _joydevicedefn {
-	unsigned int devid;	// is the value of DIDEVICEINSTANCE.guidProduct.Data1
-	int nfeatures;
-	struct _joydevicefeature *features;
-};
-
-// This is to give more realistic names to the buttons, axes, etc on a controller than
-// those the driver reports. Curse inconsistency.
-struct _joydevicefeature joyfeatures_C20A046D[] = {	// Logitech WingMan RumblePad USB
-	{ 0,  "Left Stick X" }, { 4,  "Left Stick Y" }, { 8,  "Right Stick X" },
-	{ 20, "Right Stick Y" }, { 24, "Throttle" },
-};
-struct _joydevicefeature joyfeatures_C218046D[] = {	// Logitech RumblePad 2 USB
-	{ 0,  "Left Stick X" }, { 4,  "Left Stick Y" }, { 8,  "Right Stick X" },
-	{ 20, "Right Stick Y" }, { 32, "D-Pad" }, { 48, "Button 1" },
-	{ 49, "Button 2" }, { 50, "Button 3" }, { 51, "Button 4" },
-	{ 52, "Button 5" }, { 53, "Button 6" }, { 54, "Button 7" },
-	{ 55, "Button 8" }, { 56, "Button 9" }, { 57, "Button 10" },
-	{ 58, "Left Stick Press" }, { 59, "Right Stick Press" },
-};
-#define featurecount(x) (sizeof(x)/sizeof(struct _joydevicefeature))
-static struct _joydevicedefn *thisjoydef = NULL, joyfeatures[] = {
-	{ 0xC20A046D, featurecount(joyfeatures_C20A046D), joyfeatures_C20A046D },	// Logitech WingMan RumblePad USB
-	{ 0xC218046D, featurecount(joyfeatures_C218046D), joyfeatures_C218046D },	// Logitech RumblePad 2 USB
-};
-#undef featurecount
-
-//
-// InitDirectInput() -- get DirectInput started
-//
-
-// device enumerator
-static BOOL CALLBACK InitDirectInput_enum(LPCDIDEVICEINSTANCE lpddi, LPVOID pvRef)
-{
-	const char *d;
-	int i;
-
-#define COPYGUID(d,s) memcpy(&d,&s,sizeof(GUID))
-
-	switch (lpddi->dwDevType&0xff) {
-		case DIDEVTYPE_JOYSTICK:
-			inputdevices |= 4;
-			joyisgamepad = ((lpddi->dwDevType & (DIDEVTYPEJOYSTICK_GAMEPAD<<8)) != 0);
-			d = joyisgamepad ? "GAMEPAD" : "JOYSTICK";
-			COPYGUID(guidDev, lpddi->guidInstance);
-
-			thisjoydef = NULL;
-			for (i=0; i<(int)(sizeof(joyfeatures)/sizeof(joyfeatures[0])); i++) {
-				if (lpddi->guidProduct.Data1 == joyfeatures[i].devid) {
-					thisjoydef = &joyfeatures[i];
-					break;
-				}
-			}
-
-			buildprintf("    * %s: %s\n", d, lpddi->tszProductName);
-			break;
-		default: break;
-	}
-
-	return DIENUM_CONTINUE;
-}
-
 const char *getjoyname(int what, int num)
 {
+	static const char * axisnames[6] = {
+		"Left Stick X",
+		"Left Stick Y",
+		"Right Stick X",
+		"Right Stick Y",
+		"Left Trigger",
+		"Right Trigger",
+	};
+	static const char * buttonnames[15] = {
+		"A",
+		"B",
+		"X",
+		"Y",
+		"Start",
+		"Guide",
+		"Back",
+		"Left Thumb",
+		"Right Thumb",
+		"Left Shoulder",
+		"Right Shoulder",
+		"DPad Up",
+		"DPad Down",
+		"DPad Left",
+		"DPad Right",
+	};
 	switch (what) {
 		case 0:	// axis
-			if ((unsigned)num > (unsigned)joynumaxes) return NULL;
-			return axisdefs[num].name;
+			if ((unsigned)num > (unsigned)6) return NULL;
+			return axisnames[num];
 
 		case 1: // button
-			if ((unsigned)num > (unsigned)joynumbuttons) return NULL;
-			return buttondefs[num].name;
-
-		case 2: // hat
-			if ((unsigned)num > (unsigned)joynumhats) return NULL;
-			return hatdefs[num].name;
+			if ((unsigned)num > (unsigned)15) return NULL;
+			return buttonnames[num];
 
 		default:
 			return NULL;
 	}
 }
 
-static const char *joyfindnameforofs(int ofs)
-{
-	int i;
-	if (!thisjoydef) return NULL;
-	for (i=0;i<thisjoydef->nfeatures;i++) {
-		if (ofs == (int)thisjoydef->features[i].ofs)
-			return Bstrdup(thisjoydef->features[i].name);
-	}
-	return NULL;
-}
-
-static BOOL CALLBACK InitDirectInput_enumobjects(LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef)
-{
-	unsigned i;
-	int *typecounts = (int*)pvRef;
-
-	if (lpddoi->dwType & DIDFT_AXIS) {
-		//buildprintf(" Axis: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
-
-		axisdefs[ typecounts[0] ].name = joyfindnameforofs(lpddoi->dwOfs);
-		if (!axisdefs[ typecounts[0] ].name)
-			axisdefs[ typecounts[0] ].name = Bstrdup(lpddoi->tszName);
-		axisdefs[ typecounts[0] ].ofs = lpddoi->dwOfs;
-
-		typecounts[0]++;
-	} else if (lpddoi->dwType & DIDFT_BUTTON) {
-		//buildprintf(" Button: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
-
-		buttondefs[ typecounts[1] ].name = joyfindnameforofs(lpddoi->dwOfs);
-		if (!buttondefs[ typecounts[1] ].name)
-			buttondefs[ typecounts[1] ].name = Bstrdup(lpddoi->tszName);
-		buttondefs[ typecounts[1] ].ofs = lpddoi->dwOfs;
-
-		typecounts[1]++;
-	} else if (lpddoi->dwType & DIDFT_POV) {
-		//buildprintf(" POV: %s (dwOfs=%d)\n", lpddoi->tszName, lpddoi->dwOfs);
-
-		hatdefs[ typecounts[2] ].name = joyfindnameforofs(lpddoi->dwOfs);
-		if (!hatdefs[ typecounts[2] ].name)
-			hatdefs[ typecounts[2] ].name = Bstrdup(lpddoi->tszName);
-		hatdefs[ typecounts[2] ].ofs = lpddoi->dwOfs;
-
-		typecounts[2]++;
-	}
-
-	return DIENUM_CONTINUE;
-}
-
-#define HorribleDInputDeath( x, y ) \
-	ShowDInputErrorBox(x,y); \
-	UninitDirectInput(); \
-	return TRUE
-
-static BOOL InitDirectInput(void)
-{
-	HRESULT result;
-	HRESULT (WINAPI *aDirectInputCreateA)(HINSTANCE, DWORD, LPDIRECTINPUTA *, LPUNKNOWN);
-	DIPROPDWORD dipdw;
-	LPDIRECTINPUTDEVICEA dev;
-	LPDIRECTINPUTDEVICE2A dev2;
-	DIDEVCAPS didc;
-
-	int typecounts[3] = {0,0,0};
-	int devn,i;
-
-	if (bDInputInited) return FALSE;
-
-	buildputs("Initialising DirectInput...\n");
-
-	// load up the DirectInput DLL
-	if (!hDInputDLL) {
-		buildputs("  - Loading DINPUT.DLL\n");
-		hDInputDLL = LoadLibrary("DINPUT.DLL");
-		if (!hDInputDLL) {
-			ShowErrorBox("Error loading DINPUT.DLL");
-			return TRUE;
-		}
-	}
-
-	// get the pointer to DirectInputCreate
-	aDirectInputCreateA = (void *)GetProcAddress(hDInputDLL, "DirectInputCreateA");
-	if (!aDirectInputCreateA) ShowErrorBox("Error fetching DirectInputCreateA()");
-
-	// create a new DirectInput object
-	buildputs("  - Creating DirectInput object\n");
-	result = aDirectInputCreateA(hInstance, DIRECTINPUT_VERSION, &lpDI, NULL);
-	if FAILED(result) { HorribleDInputDeath("DirectInputCreateA() failed", result); }
-	else if (result != DI_OK) buildprintf("    Created DirectInput object with warning: %s\n",GetDInputError(result));
-
-	// enumerate devices to make us look fancy
-	buildputs("  - Enumerating attached input devices\n");
-	inputdevices &= ~4;
-	result = IDirectInput_EnumDevices(lpDI, 0, InitDirectInput_enum, NULL, DIEDFL_ATTACHEDONLY);
-	if FAILED(result) { HorribleDInputDeath("Failed enumerating attached input devices", result); }
-	else if (result != DI_OK) buildprintf("    Enumerated input devices with warning: %s\n",GetDInputError(result));
-
-	if (!(inputdevices & 4)) return FALSE;
-
-	// create the devices
-	buildprintf("  - Creating joystick device\n");
-	result = IDirectInput_CreateDevice(lpDI, &guidDev, &dev, NULL);
-	if FAILED(result) { HorribleDInputDeath("Failed creating device", result); }
-	else if (result != DI_OK) buildprintf("    Created device with warning: %s\n",GetDInputError(result));
-
-	result = IDirectInputDevice_QueryInterface(dev, &IID_IDirectInputDevice2, (LPVOID *)&dev2);
-	IDirectInputDevice_Release(dev);
-	if FAILED(result) { HorribleDInputDeath("Failed querying DirectInput2 interface for device", result); }
-	else if (result != DI_OK) buildprintf("    Queried IDirectInputDevice2 interface with warning: %s\n",GetDInputError(result));
-
-	result = IDirectInputDevice2_SetDataFormat(dev2, &c_dfDIJoystick);
-	if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting data format", result); }
-	else if (result != DI_OK) buildprintf("    Set data format with warning: %s\n",GetDInputError(result));
-
-	inputevt = CreateEvent(NULL, FALSE, FALSE, NULL);
-	if (inputevt == NULL) {
-		IDirectInputDevice_Release(dev2);
-		ShowErrorBox("Couldn't create event object");
-		UninitDirectInput();
-		return TRUE;
-	}
-
-	result = IDirectInputDevice2_SetEventNotification(dev2, inputevt);
-	if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting event object", result); }
-	else if (result != DI_OK) buildprintf("    Set event object with warning: %s\n",GetDInputError(result));
-
-	IDirectInputDevice2_Unacquire(dev2);
-
-	memset(&dipdw, 0, sizeof(dipdw));
-	dipdw.diph.dwSize = sizeof(DIPROPDWORD);
-	dipdw.diph.dwHeaderSize = sizeof(DIPROPHEADER);
-	dipdw.diph.dwObj = 0;
-	dipdw.diph.dwHow = DIPH_DEVICE;
-	dipdw.dwData = INPUT_BUFFER_SIZE;
-
-	result = IDirectInputDevice2_SetProperty(dev2, DIPROP_BUFFERSIZE, &dipdw.diph);
-	if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed setting buffering", result); }
-	else if (result != DI_OK) buildprintf("    Set buffering with warning: %s\n",GetDInputError(result));
-
-	// set up device
-	memset(&didc, 0, sizeof(didc));
-	didc.dwSize = sizeof(didc);
-	result = IDirectInputDevice2_GetCapabilities(dev2, &didc);
-	if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick capabilities", result); }
-	else if (result != DI_OK) buildprintf("    Fetched joystick capabilities with warning: %s\n",GetDInputError(result));
-
-	joynumaxes    = (char)didc.dwAxes;
-	joynumbuttons = min(32,(char)didc.dwButtons);
-	joynumhats    = (char)didc.dwPOVs;
-	buildprintf("Joystick has %d axes, %d buttons, and %d hat(s).\n",joynumaxes,joynumbuttons,joynumhats);
-
-	axisdefs = (struct _joydef *)Bcalloc(didc.dwAxes, sizeof(struct _joydef));
-	buttondefs = (struct _joydef *)Bcalloc(didc.dwButtons, sizeof(struct _joydef));
-	hatdefs = (struct _joydef *)Bcalloc(didc.dwPOVs, sizeof(struct _joydef));
-
-	joyaxis = (int *)Bcalloc(didc.dwAxes, sizeof(int));
-	if (didc.dwPOVs > 0) {
-		joyhat = malloc(didc.dwPOVs * sizeof(int));
-		memset(joyhat, -1, didc.dwPOVs * sizeof(int));
-	}
-
-	result = IDirectInputDevice2_EnumObjects(dev2, InitDirectInput_enumobjects, (LPVOID)typecounts, DIDFT_ALL);
-	if FAILED(result) { IDirectInputDevice_Release(dev2); HorribleDInputDeath("Failed getting joystick features", result); }
-	else if (result != DI_OK) buildprintf("    Fetched joystick features with warning: %s\n",GetDInputError(result));
-
-	lpDID = dev2;
-
-	devacquired = 0;
-
-	bDInputInited = TRUE;
-	return FALSE;
-}
-
-
-//
-// UninitDirectInput() -- clean up DirectInput
-//
-static void UninitDirectInput(void)
-{
-	int devn;
-	int i;
-
-	if (bDInputInited) buildputs("Uninitialising DirectInput...\n");
-
-	AcquireInputDevices(0);
-
-	if (axisdefs) {
-		for (i=joynumaxes-1; i>=0; i--) if (axisdefs[i].name) free((void*)axisdefs[i].name);
-		free(axisdefs); axisdefs = NULL;
-	}
-	if (buttondefs) {
-		for (i=joynumbuttons-1; i>=0; i--) if (buttondefs[i].name) free((void*)buttondefs[i].name);
-		free(buttondefs); buttondefs = NULL;
-	}
-	if (hatdefs) {
-		for (i=joynumhats-1; i>=0; i--) if (hatdefs[i].name) free((void*)hatdefs[i].name);
-		free(hatdefs); hatdefs = NULL;
-	}
-
-	if (lpDID) {
-		buildprintf("  - Releasing joystick device\n");
-
-		IDirectInputDevice2_Release(lpDID);
-		lpDID = NULL;
-	}
-	if (inputevt) {
-		CloseHandle(inputevt);
-		inputevt = NULL;
-	}
-
-	if (lpDI) {
-		buildputs("  - Releasing DirectInput object\n");
-		IDirectInput_Release(lpDI);
-		lpDI = NULL;
-	}
-
-	if (hDInputDLL) {
-		buildputs("  - Unloading DINPUT.DLL\n");
-		FreeLibrary(hDInputDLL);
-		hDInputDLL = NULL;
-	}
-
-	bDInputInited = FALSE;
-}
-
-
-//
-// AcquireInputDevices() -- (un)acquires the input devices
-//
-static void AcquireInputDevices(char acquire)
-{
-	DWORD flags;
-	HRESULT result;
-	int i;
-
-	if (!bDInputInited) return;
-	if (!hWindow) return;
-	if (!lpDID) return;
-
-	if (acquire) {
-		if (!appactive) return;		// why acquire when inactive?
-
-		IDirectInputDevice2_Unacquire(lpDID);
-
-		flags = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE;
-
-		result = IDirectInputDevice2_SetCooperativeLevel(lpDID, hWindow, flags);
-		if (FAILED(result))
-			buildprintf("IDirectInputDevice2_SetCooperativeLevel: %s\n",
-					GetDInputError(result));
-
-		if (SUCCEEDED(IDirectInputDevice2_Acquire(lpDID)))
-			devacquired = 1;
-		else
-			devacquired = 0;
-	} else {
-		releaseallbuttons();
-
-		IDirectInputDevice2_Unacquire(lpDID);
-
-		result = IDirectInputDevice2_SetCooperativeLevel(lpDID, hWindow, DISCL_FOREGROUND|DISCL_NONEXCLUSIVE);
-		if (FAILED(result))
-			buildprintf("IDirectInputDevice2_SetCooperativeLevel: %s\n",
-					GetDInputError(result));
-
-		devacquired = 0;
-	}
-}
-
-
-//
-// ProcessInputDevices() -- processes the input devices
-//
-static void ProcessInputDevices(void)
-{
-	DWORD i;
-	HRESULT result;
-
-	DIDEVICEOBJECTDATA didod[INPUT_BUFFER_SIZE];
-	DWORD dwElements = INPUT_BUFFER_SIZE;
-	DWORD ev;
-	unsigned t, numdevs = 0;
-	HANDLE waithnds;
-
-	if (!lpDID) return;
-
-	result = IDirectInputDevice2_Poll(lpDID);
-	if (result == DIERR_INPUTLOST || result == DIERR_NOTACQUIRED) {
-		if (SUCCEEDED(IDirectInputDevice2_Acquire(lpDID))) {
-			devacquired = 1;
-			IDirectInputDevice2_Poll(lpDID);
-		} else {
-			devacquired = 0;
-		}
-	}
-
-	if (!devacquired) return;
-
-	t = getticks();
-
-	// use event objects so that we can quickly get indication of when data is ready
-	// to be read and input events processed
-	ev = MsgWaitForMultipleObjects(1, &inputevt, FALSE, 0, 0);
-	if (/*(ev >= WAIT_OBJECT_0) &&*/ (ev < (WAIT_OBJECT_0+1))) {
-		result = IDirectInputDevice2_GetDeviceData(lpDID, sizeof(DIDEVICEOBJECTDATA),
-				(LPDIDEVICEOBJECTDATA)&didod, &dwElements, 0);
-		if (result == DI_OK) {
-			int j;
-
-			for (i=0; i<dwElements; i++) {
-				// check axes
-				for (j=0; j<joynumaxes; j++) {
-					if (axisdefs[j].ofs != didod[i].dwOfs) continue;
-					joyaxis[j] = didod[i].dwData - 32767;
-					break;
-				}
-				if (j<joynumaxes) continue;
-
-				// check buttons
-				for (j=0; j<joynumbuttons; j++) {
-					if (buttondefs[j].ofs != didod[i].dwOfs) continue;
-					if (didod[i].dwData & 0x80) joyb |= (1<<j);
-					else joyb &= ~(1<<j);
-					if (joypresscallback)
-						joypresscallback(j+1, (didod[i].dwData & 0x80)==0x80);
-					break;
-				}
-				if (j<joynumbuttons) continue;
-
-				// check hats
-				for (j=0; j<joynumhats; j++) {
-					if (hatdefs[j].ofs != didod[i].dwOfs) continue;
-					joyhat[j] = didod[i].dwData;
-					break;
-				}
-			}
-
-			/*
-			buildputs("axes:");
-			for (i=0;i<joynumaxes;i++) buildprintf(" %d", joyaxis[i]);
-			buildprintf(" - buttons: %x - hats:", joyb);
-			for (i=0;i<joynumhats;i++) buildprintf(" %d", joyhat[i]);
-			buildputs("\n");
-			*/
-		}
-	}
-}
-
-
-//
-// ShowDInputErrorBox() -- shows an error message box for a DirectInput error
-//
-static void ShowDInputErrorBox(const char *m, HRESULT r)
-{
-	TCHAR msg[1024];
-
-	wsprintf(msg, "%s: %s", m, GetDInputError(r));
-	MessageBox(0, msg, apptitle, MB_OK|MB_ICONSTOP);
-}
-
-
-//
-// GetDInputError() -- stinking huge list of error messages since MS didn't want to include
-//   them in the DLL
-//
-static const char * GetDInputError(HRESULT code)
-{
-	switch (code) {
-		case DI_OK: return "DI_OK";
-		case DI_BUFFEROVERFLOW: return "DI_BUFFEROVERFLOW";
-		case DI_DOWNLOADSKIPPED: return "DI_DOWNLOADSKIPPED";
-		case DI_EFFECTRESTARTED: return "DI_EFFECTRESTARTED";
-		case DI_POLLEDDEVICE: return "DI_POLLEDDEVICE";
-		case DI_TRUNCATED: return "DI_TRUNCATED";
-		case DI_TRUNCATEDANDRESTARTED: return "DI_TRUNCATEDANDRESTARTED";
-		case DIERR_ACQUIRED: return "DIERR_ACQUIRED";
-		case DIERR_ALREADYINITIALIZED: return "DIERR_ALREADYINITIALIZED";
-		case DIERR_BADDRIVERVER: return "DIERR_BADDRIVERVER";
-		case DIERR_BETADIRECTINPUTVERSION: return "DIERR_BETADIRECTINPUTVERSION";
-		case DIERR_DEVICEFULL: return "DIERR_DEVICEFULL";
-		case DIERR_DEVICENOTREG: return "DIERR_DEVICENOTREG";
-		case DIERR_EFFECTPLAYING: return "DIERR_EFFECTPLAYING";
-		case DIERR_HASEFFECTS: return "DIERR_HASEFFECTS";
-		case DIERR_GENERIC: return "DIERR_GENERIC";
-		case DIERR_HANDLEEXISTS: return "DIERR_HANDLEEXISTS";
-		case DIERR_INCOMPLETEEFFECT: return "DIERR_INCOMPLETEEFFECT";
-		case DIERR_INPUTLOST: return "DIERR_INPUTLOST";
-		case DIERR_INVALIDPARAM: return "DIERR_INVALIDPARAM";
-		case DIERR_MOREDATA: return "DIERR_MOREDATA";
-		case DIERR_NOAGGREGATION: return "DIERR_NOAGGREGATION";
-		case DIERR_NOINTERFACE: return "DIERR_NOINTERFACE";
-		case DIERR_NOTACQUIRED: return "DIERR_NOTACQUIRED";
-		case DIERR_NOTBUFFERED: return "DIERR_NOTBUFFERED";
-		case DIERR_NOTDOWNLOADED: return "DIERR_NOTDOWNLOADED";
-		case DIERR_NOTEXCLUSIVEACQUIRED: return "DIERR_NOTEXCLUSIVEACQUIRED";
-		case DIERR_NOTFOUND: return "DIERR_NOTFOUND";
-		case DIERR_NOTINITIALIZED: return "DIERR_NOTINITIALIZED";
-		case DIERR_OLDDIRECTINPUTVERSION: return "DIERR_OLDDIRECTINPUTVERSION";
-		case DIERR_OUTOFMEMORY: return "DIERR_OUTOFMEMORY";
-		case DIERR_UNSUPPORTED: return "DIERR_UNSUPPORTED";
-		case E_PENDING: return "E_PENDING";
-		default: break;
-	}
-	return "Unknown error";
-}
 
 
 
@@ -1450,53 +1004,11 @@ int gettimerfreq(void)
 //  VIDEO
 //=================================================================================================
 
-// DirectDraw objects
-static HMODULE              hDDrawDLL      = NULL;
-static LPDIRECTDRAW         lpDD           = NULL;
-static LPDIRECTDRAWSURFACE  lpDDSPrimary   = NULL;
-static LPDIRECTDRAWSURFACE  lpDDSBack      = NULL;
-static char *               lpOffscreen = NULL;
-static LPDIRECTDRAWPALETTE  lpDDPalette = NULL;
-static BOOL                 bDDrawInited = FALSE;
-static DWORD                DDdwCaps = 0, DDdwCaps2 = 0;
-
 // DIB stuff
-static HDC      hDC         = NULL;	// opengl shares this
 static HDC      hDCSection  = NULL;
 static HBITMAP  hDIBSection = NULL;
 static HPALETTE hPalette    = NULL;
 static VOID    *lpPixels    = NULL;
-
-#define NUM_SYS_COLOURS	25
-static int syscolouridx[NUM_SYS_COLOURS] = {
-	COLOR_SCROLLBAR,		// 1
-	COLOR_BACKGROUND,
-	COLOR_ACTIVECAPTION,
-	COLOR_INACTIVECAPTION,
-	COLOR_MENU,
-	COLOR_WINDOW,
-	COLOR_WINDOWFRAME,
-	COLOR_MENUTEXT,
-	COLOR_WINDOWTEXT,
-	COLOR_CAPTIONTEXT,		// 10
-	COLOR_ACTIVEBORDER,
-	COLOR_INACTIVEBORDER,
-	COLOR_APPWORKSPACE,
-	COLOR_HIGHLIGHT,
-	COLOR_HIGHLIGHTTEXT,
-	COLOR_BTNFACE,
-	COLOR_BTNSHADOW,
-	COLOR_GRAYTEXT,
-	COLOR_BTNTEXT,
-	COLOR_INACTIVECAPTIONTEXT,	// 20
-	COLOR_BTNHIGHLIGHT,
-	COLOR_3DDKSHADOW,
-	COLOR_3DLIGHT,
-	COLOR_INFOTEXT,
-	COLOR_INFOBK			// 25
-};
-static DWORD syscolours[NUM_SYS_COLOURS];
-static char system_colours_saved = 0, bw_colours_set = 0;
 
 static int setgammaramp(WORD gt[3][256]);
 static int getgammaramp(WORD gt[3][256]);
@@ -1509,6 +1021,12 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 	int i, nearest=-1, dx, dy, odx=9999, ody=9999;
 
 	getvalidmodes();
+
+#ifdef USE_OPENGL
+	if (c > 8 && nogl) return -1;
+#else
+	if (c > 8) return -1;
+#endif
 
 	// fix up the passed resolution values to be multiples of 8
 	// and at least 320x200 or at most MAXXDIMxMAXYDIM
@@ -1554,49 +1072,71 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 	return nearest;		// JBF 20031206: Returns the mode number
 }
 
+static void shutdownvideo(void)
+{
+#ifdef USE_OPENGL
+	if (frame) {
+		free(frame);
+		frame = NULL;
+	}
+	if (gl8bitprogram) {
+		bglUseProgram(0);	// Disable shaders, go back to fixed-function.
+		bglDeleteProgram(gl8bitprogram);
+		gl8bitprogram = 0;
+	}
+	if (gl8bitpaltex) {
+		bglDeleteTextures(1, &gl8bitpaltex);
+		gl8bitpaltex = 0;
+	}
+	if (gl8bitframetex) {
+		bglDeleteTextures(1, &gl8bitframetex);
+		gl8bitframetex = 0;
+	}
+	UninitOpenGL();
+#endif
+	UninitDIB();
+
+	if (desktopmodeset) {
+		ChangeDisplaySettings(NULL, 0);
+		desktopmodeset = 0;
+	}
+}
 
 //
 // setvideomode() -- set the video mode
 //
 int setvideomode(int x, int y, int c, int fs)
 {
-	int i,inp;
-	int modenum;
+	int i, modenum, refresh=-1;
 
-	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
-		!videomodereset) {
+	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) && !videomodereset) {
 		OSD_ResizeDisplay(xres,yres);
 		return 0;
 	}
 
 	modenum = checkvideomode(&x,&y,c,fs,0);
 	if (modenum < 0) return -1;
-	if (modenum == 0x7fffffff) {
-		customxdim = x;
-		customydim = y;
-		custombpp  = c;
-		customfs   = fs;
+	if (modenum != 0x7fffffff) {
+		refresh = validmode[modenum].extra;
 	}
-
-	inp = devacquired;
-	AcquireInputDevices(0);
 
 	if (hWindow && gammabrightness) {
 		setgammaramp(sysgamma);
 		gammabrightness = 0;
 	}
 
+	shutdownvideo();
+
 	buildprintf("Setting video mode %dx%d (%d-bit %s)\n",
 			x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
 
-	if (CreateAppWindow(modenum)) return -1;
+	if (CreateAppWindow(x, y, c, fs, refresh)) return -1;
 
 	if (!gammabrightness) {
 		if (getgammaramp(sysgamma) >= 0) gammabrightness = 1;
 		if (gammabrightness && setgamma(curgamma) < 0) gammabrightness = 0;
 	}
 
-	if (inp) AcquireInputDevices(1);
 	modechange=1;
 	videomodereset = 0;
 	//baselayer_onvideomodechange(c>8);
@@ -1618,7 +1158,8 @@ int setvideomode(int x, int y, int c, int fs)
 	buildprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
 	}
 
-#define CHECK(w,h) if ((w < maxx) && (h < maxy))
+#define CHECKL(w,h) if ((w < maxx) && (h < maxy))
+#define CHECKLE(w,h) if ((w <= maxx) && (h <= maxy))
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
 static void cdsenummodes(void)
@@ -1630,27 +1171,27 @@ static void cdsenummodes(void)
 	int nmodes=0;
 	unsigned maxx = MAXXDIM, maxy = MAXYDIM;
 
-
+	// Enumerate display modes.
 	ZeroMemory(&dm,sizeof(DEVMODE));
 	dm.dmSize = sizeof(DEVMODE);
-	while (EnumDisplaySettings(NULL, j, &dm)) {
-		if (dm.dmBitsPerPel > 8) {
-			for (i=0;i<nmodes;i++) {
-				if (modes[i].x == dm.dmPelsWidth
-				 && modes[i].y == dm.dmPelsHeight
-				 && modes[i].bpp == dm.dmBitsPerPel)
-					break;
-			}
-			if ((i==nmodes) ||
-			    (dm.dmDisplayFrequency <= maxrefreshfreq && dm.dmDisplayFrequency > modes[i].freq && maxrefreshfreq > 0) ||
-			    (dm.dmDisplayFrequency > modes[i].freq && maxrefreshfreq == 0)) {
-				if (i==nmodes) nmodes++;
+	while (nmodes < MAXVALIDMODES && EnumDisplaySettings(NULL, j, &dm)) {
+		// Identify the same resolution and bit depth in the existing set.
+		for (i=0;i<nmodes;i++) {
+			if (modes[i].x == dm.dmPelsWidth
+			 && modes[i].y == dm.dmPelsHeight
+			 && modes[i].bpp == dm.dmBitsPerPel)
+				break;
+		}
+		// A new mode, or a same format mode with a better refresh rate match.
+		if ((i==nmodes) ||
+		    (dm.dmDisplayFrequency <= maxrefreshfreq && dm.dmDisplayFrequency > modes[i].freq && maxrefreshfreq > 0) ||
+		    (dm.dmDisplayFrequency > modes[i].freq && maxrefreshfreq == 0)) {
+			if (i==nmodes) nmodes++;
 
-				modes[i].x = dm.dmPelsWidth;
-				modes[i].y = dm.dmPelsHeight;
-				modes[i].bpp = dm.dmBitsPerPel;
-				modes[i].freq = dm.dmDisplayFrequency;
-			}
+			modes[i].x = dm.dmPelsWidth;
+			modes[i].y = dm.dmPelsHeight;
+			modes[i].bpp = dm.dmBitsPerPel;
+			modes[i].freq = dm.dmDisplayFrequency;
 		}
 
 		j++;
@@ -1658,25 +1199,14 @@ static void cdsenummodes(void)
 		dm.dmSize = sizeof(DEVMODE);
 	}
 
+	// Add what was found to the list.
 	for (i=0;i<nmodes;i++) {
-		CHECK(modes[i].x, modes[i].y)
+		CHECKLE(modes[i].x, modes[i].y) {
 			ADDMODE(modes[i].x, modes[i].y, modes[i].bpp, 1, modes[i].freq);
+		}
 	}
 }
 #endif
-
-// mode enumerator
-static HRESULT WINAPI getvalidmodes_enum(DDSURFACEDESC *ddsd, VOID *udata)
-{
-	unsigned maxx = MAXXDIM, maxy = MAXYDIM;
-
-	if (ddsd->ddpfPixelFormat.dwRGBBitCount == 8) {
-		CHECK(ddsd->dwWidth, ddsd->dwHeight)
-		ADDMODE((int)ddsd->dwWidth, (int)ddsd->dwHeight, (int)ddsd->ddpfPixelFormat.dwRGBBitCount, 1,-1);
-	}
-
-	return(DDENUMRET_OK);
-}
 
 static int sortmodes(const struct validmode_t *a, const struct validmode_t *b)
 {
@@ -1696,47 +1226,46 @@ void getvalidmodes(void)
 		{1280,1024},{1280,960},{1280,800},{1280,720},{1152,864},{1024,768},{800,600},{640,480},
 		{640,400},{512,384},{480,360},{400,300},{320,240},{320,200},{0,0}
 	};
-	int cdepths[2] = { 8, 0 };
 	int i, j, maxx=0, maxy=0;
-	HRESULT result;
-
-#if defined(USE_OPENGL) && defined(POLYMOST)
-	if (desktopbpp > 8) cdepths[1] = desktopbpp;
-#endif
 
 	if (modeschecked) return;
 
 	validmodecnt=0;
 	buildputs("Detecting video modes:\n");
 
-	if (bDDrawInited) {
-		// if DirectDraw initialisation didn't fail enumerate fullscreen modes
-
-		result = IDirectDraw_EnumDisplayModes(lpDD, 0, NULL, 0, getvalidmodes_enum);
-		if (result != DD_OK) {
-			buildputs("Unable to enumerate fullscreen modes. Using default list.\n");
-			for (j=0; j < 2; j++) {
-				if (cdepths[j] == 0) continue;
-				for (i=0; defaultres[i][0]; i++)
-					ADDMODE(defaultres[i][0],defaultres[i][1],cdepths[j],1,-1)
-			}
-		}
-	}
-#if defined(USE_OPENGL) && defined(POLYMOST)
-	cdsenummodes();
-#endif
-
-	// windowed modes cant be bigger than the current desktop resolution
+	// Windowed modes can't be bigger than the current desktop resolution.
 	maxx = desktopxdim-1;
 	maxy = desktopydim-1;
 
-	// add windowed modes next
-	for (j=0; j < 2; j++) {
-		if (cdepths[j] == 0) continue;
-		for (i=0; defaultres[i][0]; i++)
-			CHECK(defaultres[i][0],defaultres[i][1])
-				ADDMODE(defaultres[i][0],defaultres[i][1],cdepths[j],0,-1)
+	// Fullscreen 8-bit modes: upsamples to the desktop mode.
+	for (i=0; defaultres[i][0]; i++) {
+		CHECKLE(defaultres[i][0],defaultres[i][1]) {
+			ADDMODE(defaultres[i][0], defaultres[i][1], 8, 1, -1);
+		}
 	}
+
+#if defined(USE_OPENGL) && defined(POLYMOST)
+	// Fullscreen >8-bit modes.
+	if (!nogl) cdsenummodes();
+#endif
+
+	// Windows 8-bit modes
+	for (i=0; defaultres[i][0]; i++) {
+		CHECKL(defaultres[i][0],defaultres[i][1]) {
+			ADDMODE(defaultres[i][0], defaultres[i][1], 8, 0, -1);
+		}
+	}
+
+#if defined(USE_OPENGL) && defined(POLYMOST)
+	// Windowed >8-bit modes
+	if (!nogl) {
+		for (i=0; defaultres[i][0]; i++) {
+			CHECKL(defaultres[i][0],defaultres[i][1]) {
+				ADDMODE(defaultres[i][0], defaultres[i][1], desktopbpp, 0, -1);
+			}
+		}
+	}
+#endif
 
 	qsort((void*)validmode, validmodecnt, sizeof(struct validmode_t), (int(*)(const void*,const void*))sortmodes);
 
@@ -1762,42 +1291,6 @@ void resetvideomode(void)
 //
 void begindrawing(void)
 {
-	int i,j;
-
-	if (bpp > 8) {
-		if (offscreenrendering) return;
-		frameplace = 0;
-		bytesperline = 0;
-		imageSize = 0;
-		modechange = 0;
-		return;
-	}
-
-	if (lockcount++ > 0)
-		return;		// already locked
-
-	if (offscreenrendering) return;
-
-	if (!fullscreen) {
-		frameplace = (intptr_t)lpPixels;
-	} else {
-		frameplace = (intptr_t)lpOffscreen;
-	}
-
-	if (!modechange) return;
-
-	if (!fullscreen) {
-		bytesperline = xres|4;
-	} else {
-		bytesperline = xres|1;
-	}
-
-	imageSize = bytesperline*yres;
-	setvlinebpl(bytesperline);
-
-	j = 0;
-	for(i=0;i<=ydim;i++) ylookup[i] = j, j += bytesperline;
-	modechange=0;
 }
 
 
@@ -1806,15 +1299,6 @@ void begindrawing(void)
 //
 void enddrawing(void)
 {
-	if (bpp > 8) {
-		if (!offscreenrendering) frameplace = 0;
-		return;
-	}
-
-	if (!frameplace) return;
-	if (lockcount > 1) { lockcount--; return; }
-	if (!offscreenrendering) frameplace = 0;
-	lockcount = 0;
 }
 
 
@@ -1824,13 +1308,12 @@ void enddrawing(void)
 void showframe(int w)
 {
 	HRESULT result;
-	DDSURFACEDESC ddsd;
 	char *p,*q;
 	int i,j;
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
-	if (bpp > 8) {
-		if (palfadedelta) {
+	if (!nogl) {
+		if (bpp > 8 && palfadedelta) {
 			bglMatrixMode(GL_PROJECTION);
 			bglPushMatrix();
 			bglLoadIdentity();
@@ -1858,75 +1341,50 @@ void showframe(int w)
 			bglPopMatrix();
 		}
 
-		bwglSwapBuffers(hDC);
+		if (bpp == 8) {
+			bglActiveTexture(GL_TEXTURE0);
+			bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xres, yres, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame);
+
+			bglBegin(GL_QUADS);
+			bglTexCoord2f(0.0, 1.0);
+			bglVertex2i(-1, -1);
+			bglTexCoord2f(1.0, 1.0);
+			bglVertex2i(1, -1);
+			bglTexCoord2f(1.0, 0.0);
+			bglVertex2i(1, 1);
+			bglTexCoord2f(0, 0.0);
+			bglVertex2i(-1, 1);
+			bglEnd();
+		}
+
+		bwglSwapBuffers(hDCGLWindow);
 		return;
 	}
 #endif
 
-	w = 1;	// wait regardless. ken thinks it's better to do so.
+	{
+		if (xres == desktopxdim && yres == desktopydim) {
+			BitBlt(hDCWindow, 0, 0, xres, yres, hDCSection, 0, 0, SRCCOPY);
+		} else {
+			int xpos, ypos, xscl, yscl;
+			int desktopaspect = divscale16(desktopxdim, desktopydim);
+			int frameaspect = divscale16(xres, yres);
 
-	if (offscreenrendering) return;
+			if (desktopaspect >= frameaspect) {
+				// Desktop is at least as wide as the frame. We maximise frame height and centre on width.
+				ypos = 0;
+				yscl = desktopydim;
+				xscl = mulscale16(desktopydim, frameaspect);
+				xpos = (desktopxdim - xscl) >> 1;
+			} else {
+				// Desktop is narrower than the frame. We maximise frame width and centre on height.
+				xpos = 0;
+				xscl = desktopxdim;
+				yscl = divscale16(desktopxdim, frameaspect);
+				ypos = (desktopydim - yscl) >> 1;
+			}
 
-	if (lockcount) {
-		buildprintf("Frame still locked %d times when showframe() called.\n", lockcount);
-		while (lockcount) enddrawing();
-	}
-
-	if (!fullscreen) {
-		BitBlt(hDC, 0, 0, xres, yres, hDCSection, 0, 0, SRCCOPY);
-	} else {
-		if (!w) {
-			if ((result = IDirectDrawSurface_GetBltStatus(lpDDSBack, DDGBS_CANBLT)) == DDERR_WASSTILLDRAWING)
-				return;
-
-			if ((result = IDirectDrawSurface_GetFlipStatus(lpDDSPrimary, DDGFS_CANFLIP)) == DDERR_WASSTILLDRAWING)
-				return;
-		}
-
-		// lock the backbuffer surface
-		memset(&ddsd, 0, sizeof(ddsd));
-		ddsd.dwSize = sizeof(ddsd);
-
-		result = IDirectDrawSurface_Lock(lpDDSBack, NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_NOSYSLOCK | DDLOCK_WAIT, NULL);
-		if (result == DDERR_SURFACELOST) {
-			if (!appactive)
-				return;	// not in a position to restore display anyway
-
-			IDirectDrawSurface_Restore(lpDDSPrimary);
-			result = IDirectDrawSurface_Lock(lpDDSBack, NULL, &ddsd, DDLOCK_SURFACEMEMORYPTR | DDLOCK_NOSYSLOCK | DDLOCK_WAIT, NULL);
-		}
-		if (result != DD_OK) {
-			if (result != DDERR_WASSTILLDRAWING)
-				buildprintf("Failed locking back-buffer surface: %s\n", GetDDrawError(result));
-			return;
-		}
-
-		// copy each scanline
-		p = (char *)ddsd.lpSurface;
-		q = (char *)lpOffscreen;
-		j = xres >> 2;
-
-		for (i=0; i<yres; i++, p+=ddsd.lPitch, q+=bytesperline)
-			copybuf(q,p,j);
-
-		// unlock the backbuffer surface
-		result = IDirectDrawSurface_Unlock(lpDDSBack, NULL);
-		if (result != DD_OK) {
-			buildprintf("Failed unlocking back-buffer surface: %s\n", GetDDrawError(result));
-			return;
-		}
-
-		// flip the chain
-		result = IDirectDrawSurface_Flip(lpDDSPrimary, NULL, w?DDFLIP_WAIT:0);
-		if (result == DDERR_SURFACELOST) {
-			if (!appactive)
-				return;	// not in a position to restore display anyway
-			IDirectDrawSurface_Restore(lpDDSPrimary);
-			result = IDirectDrawSurface_Flip(lpDDSPrimary, NULL, w?DDFLIP_WAIT:0);
-		}
-		if (result != DD_OK) {
-			if (result != DDERR_WASSTILLDRAWING)
-				buildprintf("IDirectDrawSurface_Flip(): %s\n", GetDDrawError(result));
+			StretchBlt(hDCWindow, xpos, ypos, xscl, yscl, hDCSection, 0, 0, xres, yres, SRCCOPY);
 		}
 	}
 }
@@ -1934,122 +1392,31 @@ void showframe(int w)
 
 //
 // setpalette() -- set palette values
-// New behaviour: curpalettefaded is the live palette, and any changes this function
-// makes are done to it and not the base palette.
 //
-int setpalette(int start, int num, unsigned char *dapal)
+int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
 {
-	int i, n;
-	HRESULT result;
-	RGBQUAD *rgb;
-	//HPALETTE hPalPrev;
-
-	struct logpal {
-		WORD palVersion;
-		WORD palNumEntries;
-		PALETTEENTRY palPalEntry[256];
-	} lpal;
-
-	copybuf(curpalettefaded, lpal.palPalEntry, 256);
-
-	for (i=start, n=num; n>0; i++, n--) {
-		/*
-		lpal.palPalEntry[i].peBlue = dapal[0] << 2;
-		lpal.palPalEntry[i].peGreen = dapal[1] << 2;
-		lpal.palPalEntry[i].peRed = dapal[2] << 2;
-		*/
-		curpalettefaded[i].f = lpal.palPalEntry[i].peFlags = PC_RESERVED | PC_NOCOLLAPSE;
-		//dapal += 4;
+#ifdef USE_OPENGL
+	if (gl8bitpaltex) {
+		bglActiveTexture(GL_TEXTURE1);
+		bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, curpalettefaded);
 	}
+#endif
+	if (hDCSection) {
+		RGBQUAD rgb[256];
+		int i;
 
-
-	if (bpp > 8) return 0;	// no palette in opengl
-
-	if (!fullscreen) {
-		if (num > 0) {
-			rgb = (RGBQUAD *)Bmalloc(sizeof(RGBQUAD)*num);
-			for (i=start, n=0; n<num; i++, n++) {
-				rgb[n].rgbBlue = lpal.palPalEntry[i].peBlue;
-				rgb[n].rgbGreen = lpal.palPalEntry[i].peGreen;
-				rgb[n].rgbRed = lpal.palPalEntry[i].peRed;
-				rgb[n].rgbReserved = 0;
-			}
-
-			SetDIBColorTable(hDCSection, start, num, rgb);
-			free(rgb);
+		for (i = 0; i < 256; i++) {
+			rgb[i].rgbBlue = curpalettefaded[i].b;
+			rgb[i].rgbGreen = curpalettefaded[i].g;
+			rgb[i].rgbRed = curpalettefaded[i].r;
+			rgb[i].rgbReserved = 0;
 		}
 
-		if (desktopbpp > 8) return 0;	// only if an 8bit desktop do we do what follows
-
-		// set 0 and 255 to black and white
-		lpal.palVersion = 0x300;
-		lpal.palNumEntries = 256;
-		lpal.palPalEntry[0].peBlue = 0;
-		lpal.palPalEntry[0].peGreen = 0;
-		lpal.palPalEntry[0].peRed = 0;
-		lpal.palPalEntry[0].peFlags = 0;
-		lpal.palPalEntry[255].peBlue = 255;
-		lpal.palPalEntry[255].peGreen = 255;
-		lpal.palPalEntry[255].peRed = 255;
-		lpal.palPalEntry[255].peFlags = 0;
-
-		if (SetSystemPaletteUse(hDC, SYSPAL_NOSTATIC) == SYSPAL_ERROR) {
-			buildputs("Problem setting system palette use.\n");
-			return -1;
-		}
-
-		if (hPalette) {
-			if (num == 0) { start = 0; num = 256; }		// refreshing the palette only
-			SetPaletteEntries(hPalette, start, num, lpal.palPalEntry+start);
-		} else {
-			hPalette = CreatePalette((LOGPALETTE *)lpal.palPalEntry);
-			if (!hPalette) {
-				buildputs("Problem creating palette.\n");
-				return -1;
-			}
-		}
-
-		if (SelectPalette(hDC, hPalette, FALSE) == NULL) {
-			buildputs("Problem selecting palette.\n");
-			return -1;
-		}
-
-		if (RealizePalette(hDC) == GDI_ERROR) {
-			buildputs("Failure realizing palette.\n");
-			return -1;
-		}
-
-		SetBWSystemColours();
-
-	} else {
-		if (!lpDDPalette) return -1;
-		result = IDirectDrawPalette_SetEntries(lpDDPalette, 0, start, num, (PALETTEENTRY*)&lpal.palPalEntry[start]);
-		if (result != DD_OK) {
-			buildprintf("Palette set failed: %s\n", GetDDrawError(result));
-			return -1;
-		}
+		SetDIBColorTable(hDCSection, 0, 256, rgb);
 	}
 
 	return 0;
 }
-
-//
-// getpalette() -- get palette values
-//
-/*
-int getpalette(int start, int num, char *dapal)
-{
-	int i;
-
-	for (i=num; i>0; i--, start++) {
-		dapal[0] = curpalette[start].b >> 2;
-		dapal[1] = curpalette[start].g >> 2;
-		dapal[2] = curpalette[start].r >> 2;
-		dapal += 4;
-	}
-
-	return 0;
-}*/
 
 
 //
@@ -2057,36 +1424,9 @@ int getpalette(int start, int num, char *dapal)
 //
 static int setgammaramp(WORD gt[3][256])
 {
-	if (!fullscreen || bpp > 8) {
-		// GL and windowed mode use DIB method
-		int i;
-		HDC hDC = GetDC(hWindow);
-		i = SetDeviceGammaRamp(hDC, gt) ? 0 : -1;
-		ReleaseDC(hWindow, hDC);
-		return i;
-	} else {
-		// fullscreen uses DirectX
-		LPDIRECTDRAWGAMMACONTROL gam;
-		HRESULT hr;
-
-		if (!(DDdwCaps2 & DDCAPS2_PRIMARYGAMMA)) return -1;
-
-		hr = IDirectDrawSurface_QueryInterface(lpDDSPrimary, &IID_IDirectDrawGammaControl, (LPVOID)&gam);
-		if (hr != DD_OK) {
-			ShowDDrawErrorBox("Error querying gamma control", hr);
-			return -1;
-		}
-
-		hr = IDirectDrawGammaControl_SetGammaRamp(gam, 0, (LPDDGAMMARAMP)gt);
-		if (hr != DD_OK) {
-			IDirectDrawGammaControl_Release(gam);
-			ShowDDrawErrorBox("Error setting gamma ramp", hr);
-			return -1;
-		}
-
-		IDirectDrawGammaControl_Release(gam);
-		return 0;
-	}
+	int i;
+	i = SetDeviceGammaRamp(hDCWindow, gt) ? 0 : -1;
+	return i;
 }
 
 int setgamma(float gamma)
@@ -2108,266 +1448,13 @@ int setgamma(float gamma)
 
 static int getgammaramp(WORD gt[3][256])
 {
+	int i;
+
 	if (!hWindow) return -1;
-	if (!fullscreen || bpp > 8) {
-		int i;
-		HDC hDC = GetDC(hWindow);
-		i = GetDeviceGammaRamp(hDC, gt) ? 0 : -1;
-		ReleaseDC(hWindow, hDC);
-		return i;
-	} else {
-		LPDIRECTDRAWGAMMACONTROL gam;
-		HRESULT hr;
 
-		if (!(DDdwCaps2 & DDCAPS2_PRIMARYGAMMA)) return -1;
+	i = GetDeviceGammaRamp(hDCWindow, gt) ? 0 : -1;
 
-		hr = IDirectDrawSurface_QueryInterface(lpDDSPrimary, &IID_IDirectDrawGammaControl, (LPVOID)&gam);
-		if (hr != DD_OK) {
-			ShowDDrawErrorBox("Error querying gamma control", hr);
-			return -1;
-		}
-
-		hr = IDirectDrawGammaControl_GetGammaRamp(gam, 0, (LPDDGAMMARAMP)gt);
-		if (hr != DD_OK) {
-			IDirectDrawGammaControl_Release(gam);
-			ShowDDrawErrorBox("Error getting gamma ramp", hr);
-			return -1;
-		}
-
-		IDirectDrawGammaControl_Release(gam);
-
-		return 0;
-	}
-}
-
-//
-// InitDirectDraw() -- get DirectDraw started
-//
-
-// device enumerator
-static BOOL WINAPI InitDirectDraw_enum(GUID *lpGUID, LPSTR lpDesc, LPSTR lpName, LPVOID lpContext)
-{
-	buildprintf("    * %s\n", lpDesc);
-	return 1;
-}
-
-static BOOL InitDirectDraw(void)
-{
-	HRESULT result;
-	HRESULT (WINAPI *aDirectDrawCreate)(GUID *, LPDIRECTDRAW *, IUnknown *);
-	HRESULT (WINAPI *aDirectDrawEnumerate)(LPDDENUMCALLBACK, LPVOID);
-	DDCAPS ddcaps;
-
-	if (bDDrawInited) return FALSE;
-
-	buildputs("Initialising DirectDraw...\n");
-
-	// load up the DirectDraw DLL
-	if (!hDDrawDLL) {
-		buildputs("  - Loading DDRAW.DLL\n");
-		hDDrawDLL = LoadLibrary("DDRAW.DLL");
-		if (!hDDrawDLL) {
-			ShowErrorBox("Error loading DDRAW.DLL");
-			return TRUE;
-		}
-	}
-
-	// get the pointer to DirectDrawEnumerate
-	aDirectDrawEnumerate = (void *)GetProcAddress(hDDrawDLL, "DirectDrawEnumerateA");
-	if (!aDirectDrawEnumerate) {
-		ShowErrorBox("Error fetching DirectDrawEnumerate()");
-		UninitDirectDraw();
-		return TRUE;
-	}
-
-	// enumerate the devices to make us look fancy
-	buildputs("  - Enumerating display devices\n");
-	aDirectDrawEnumerate(InitDirectDraw_enum, NULL);
-
-	// get the pointer to DirectDrawCreate
-	aDirectDrawCreate = (void *)GetProcAddress(hDDrawDLL, "DirectDrawCreate");
-	if (!aDirectDrawCreate) {
-		ShowErrorBox("Error fetching DirectDrawCreate()");
-		UninitDirectDraw();
-		return TRUE;
-	}
-
-	// create a new DirectDraw object
-	buildputs("  - Creating DirectDraw object\n");
-	result = aDirectDrawCreate(NULL, &lpDD, NULL);
-	if (result != DD_OK) {
-		ShowDDrawErrorBox("DirectDrawCreate() failed", result);
-		UninitDirectDraw();
-		return TRUE;
-	}
-
-	// fetch capabilities
-	buildputs("  - Checking capabilities\n");
-	ddcaps.dwSize = sizeof(DDCAPS);
-	result = IDirectDraw_GetCaps(lpDD, &ddcaps, NULL);
-	if (result != DD_OK) {
-		buildputs("    Unable to get capabilities.\n");
-	} else {
-		DDdwCaps = ddcaps.dwCaps;
-		DDdwCaps2 = ddcaps.dwCaps2;
-	}
-
-	bDDrawInited = TRUE;
-
-	return FALSE;
-}
-
-
-//
-// UninitDirectDraw() -- clean up DirectDraw
-//
-static void UninitDirectDraw(void)
-{
-	if (bDDrawInited) buildputs("Uninitialising DirectDraw...\n");
-
-	ReleaseDirectDrawSurfaces();
-
-	RestoreDirectDrawMode();
-
-	if (lpDD) {
-		buildputs("  - Releasing DirectDraw object\n");
-		IDirectDraw_Release(lpDD);
-		lpDD = NULL;
-	}
-
-	if (hDDrawDLL) {
-		buildputs("  - Unloading DDRAW.DLL\n");
-		FreeLibrary(hDDrawDLL);
-		hDDrawDLL = NULL;
-	}
-
-	bDDrawInited = FALSE;
-}
-
-
-//
-// RestoreDirectDrawMode() -- resets the screen mode
-//
-static int RestoreDirectDrawMode(void)
-{
-	HRESULT result;
-
-	if (fullscreen == 0 || /*bpp > 8 ||*/ !bDDrawInited) return FALSE;
-
-	if (modesetusing == 1) ChangeDisplaySettings(NULL,0);
-	else if (modesetusing == 0) {
-		// restore previous display mode and set to normal cooperative level
-		result = IDirectDraw_RestoreDisplayMode(lpDD);
-		if (result != DD_OK) {
-			ShowDDrawErrorBox("Error restoring display mode", result);
-			UninitDirectDraw();
-			return TRUE;
-		}
-
-		result = IDirectDraw_SetCooperativeLevel(lpDD, hWindow, DDSCL_NORMAL);
-		if (result != DD_OK) {
-			ShowDDrawErrorBox("Error setting cooperative level", result);
-			UninitDirectDraw();
-			return TRUE;
-		}
-	}
-	modesetusing = -1;
-
-	return FALSE;
-}
-
-
-//
-// ReleaseDirectDrawSurfaces() -- release the front and back buffers
-//
-static void ReleaseDirectDrawSurfaces(void)
-{
-	if (lpDDPalette) {
-		buildputs("  - Releasing palette\n");
-		IDirectDrawPalette_Release(lpDDPalette);
-		lpDDPalette = NULL;
-	}
-
-	if (lpDDSBack) {
-		buildputs("  - Releasing back-buffer surface\n");
-		IDirectDrawSurface_Release(lpDDSBack);
-		lpDDSBack = NULL;
-	}
-
-	if (lpDDSPrimary) {
-		buildputs("  - Releasing primary surface\n");
-		IDirectDrawSurface_Release(lpDDSPrimary);
-		lpDDSPrimary = NULL;
-	}
-
-	if (lpOffscreen) {
-		buildputs("  - Freeing offscreen buffer\n");
-		free(lpOffscreen);
-		lpOffscreen = NULL;
-	}
-}
-
-
-//
-// SetupDirectDraw() -- sets up DirectDraw rendering
-//
-static int SetupDirectDraw(int width, int height)
-{
-	HRESULT result;
-	DDSURFACEDESC ddsd;
-
-	// now create the DirectDraw surfaces
-	ZeroMemory(&ddsd, sizeof(ddsd));
-	ddsd.dwSize = sizeof(ddsd);
-	ddsd.dwFlags = DDSD_CAPS | DDSD_BACKBUFFERCOUNT;
-	ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE | DDSCAPS_FLIP | DDSCAPS_COMPLEX;
-	ddsd.dwBackBufferCount = 2;	// triple-buffer
-
-	buildputs("  - Creating primary surface\n");
-	result = IDirectDraw_CreateSurface(lpDD, &ddsd, &lpDDSPrimary, NULL);
-	if (result != DD_OK) {
-		ShowDDrawErrorBox("Failure creating primary surface", result);
-		UninitDirectDraw();
-		return TRUE;
-	}
-
-	ZeroMemory(&ddsd.ddsCaps, sizeof(ddsd.ddsCaps));
-	ddsd.ddsCaps.dwCaps = DDSCAPS_BACKBUFFER;
-	numpages = 1;	// KJS 20031225
-
-	buildputs("  - Getting back buffer\n");
-	result = IDirectDrawSurface_GetAttachedSurface(lpDDSPrimary, &ddsd.ddsCaps, &lpDDSBack);
-	if (result != DD_OK) {
-		ShowDDrawErrorBox("Failure fetching back-buffer surface", result);
-		UninitDirectDraw();
-		return TRUE;
-	}
-
-	buildputs("  - Allocating offscreen buffer\n");
-	lpOffscreen = (char *)malloc((width|1)*height);
-	if (!lpOffscreen) {
-		ShowErrorBox("Failure allocating offscreen buffer");
-		UninitDirectDraw();
-		return TRUE;
-	}
-
-	// attach a palette to the primary surface
-	buildputs("  - Creating palette\n");
-	result = IDirectDraw_CreatePalette(lpDD, DDPCAPS_8BIT | DDPCAPS_ALLOW256, (PALETTEENTRY*)curpalette, &lpDDPalette, NULL);
-	if (result != DD_OK) {
-		ShowDDrawErrorBox("Failure creating palette", result);
-		UninitDirectDraw();
-		return TRUE;
-	}
-
-	result = IDirectDrawSurface_SetPalette(lpDDSPrimary, lpDDPalette);
-	if (result != DD_OK) {
-		ShowDDrawErrorBox("Failure setting palette", result);
-		UninitDirectDraw();
-		return TRUE;
-	}
-
-	return FALSE;
+	return i;
 }
 
 
@@ -2376,9 +1463,6 @@ static int SetupDirectDraw(int width, int height)
 //
 static void UninitDIB(void)
 {
-	if (desktopbpp <= 8)
-		RestoreSystemColours();
-
 	if (hPalette) {
 		DeleteObject(hPalette);
 		hPalette = NULL;
@@ -2393,11 +1477,6 @@ static void UninitDIB(void)
 		DeleteObject(hDIBSection);
 		hDIBSection = NULL;
 	}
-
-	if (hDC) {
-		ReleaseDC(hWindow, hDC);
-		hDC = NULL;
-	}
 }
 
 
@@ -2410,26 +1489,7 @@ static int SetupDIB(int width, int height)
 		BITMAPINFOHEADER header;
 		RGBQUAD colours[256];
 	} dibsect;
-	int i;
-
-	if (!hDC) {
-		hDC = GetDC(hWindow);
-		if (!hDC) {
-			ShowErrorBox("Error getting device context");
-			return TRUE;
-		}
-	}
-
-	if (hDCSection) {
-		DeleteDC(hDCSection);
-		hDCSection = NULL;
-	}
-
-	// destroy the previous DIB section if it existed
-	if (hDIBSection) {
-		DeleteObject(hDIBSection);
-		hDIBSection = NULL;
-	}
+	int i, bpl;
 
 	// create the new DIB section
 	memset(&dibsect, 0, sizeof(dibsect));
@@ -2443,39 +1503,31 @@ static int SetupDIB(int width, int height)
 	dibsect.header.biClrUsed = 256;
 	dibsect.header.biClrImportant = 256;
 	for (i=0; i<256; i++) {
-		dibsect.colours[i].rgbBlue = curpalette[i].b;
-		dibsect.colours[i].rgbGreen = curpalette[i].g;
-		dibsect.colours[i].rgbRed = curpalette[i].r;
+		dibsect.colours[i].rgbBlue = curpalettefaded[i].b;
+		dibsect.colours[i].rgbGreen = curpalettefaded[i].g;
+		dibsect.colours[i].rgbRed = curpalettefaded[i].r;
 	}
 
-	hDIBSection = CreateDIBSection(hDC, (BITMAPINFO *)&dibsect, DIB_RGB_COLORS, &lpPixels, NULL, 0);
-	if (!hDIBSection) {
-		ReleaseDC(hWindow, hDC);
-		hDC = NULL;
-
+	hDIBSection = CreateDIBSection(hDCWindow, (BITMAPINFO *)&dibsect, DIB_RGB_COLORS, &lpPixels, NULL, 0);
+	if (!hDIBSection || lpPixels == NULL) {
+		UninitDIB();
 		ShowErrorBox("Error creating DIB section");
 		return TRUE;
 	}
 
-	memset(lpPixels, 0, width*height);
+	memset(lpPixels, 0, (((width|1) + 4) & ~3)*height);
 
 	// create a compatible memory DC
-	hDCSection = CreateCompatibleDC(hDC);
+	hDCSection = CreateCompatibleDC(hDCWindow);
 	if (!hDCSection) {
-		ReleaseDC(hWindow, hDC);
-		hDC = NULL;
-
+		UninitDIB();
 		ShowErrorBox("Error creating compatible DC");
 		return TRUE;
 	}
 
 	// select the DIB section into the memory DC
 	if (!SelectObject(hDCSection, hDIBSection)) {
-		ReleaseDC(hWindow, hDC);
-		hDC = NULL;
-		DeleteDC(hDCSection);
-		hDCSection = NULL;
-
+		UninitDIB();
 		ShowErrorBox("Error creating compatible DC");
 		return TRUE;
 	}
@@ -2501,7 +1553,6 @@ int loadgldriver(const char *dll)
 	hGLDLL = LoadLibrary(dll);
 	if (!hGLDLL) return -1;
 
-	glminidriver = (Bstrcasecmp(dll, "opengl32.dll") != 0);
 	return 0;
 }
 
@@ -2528,12 +1579,10 @@ void *getglprocaddress(const char *name, int ext)
 
 
 //
-// ReleaseOpenGL() -- cleans up OpenGL rendering stuff
+// UninitOpenGL() -- cleans up OpenGL rendering
 //
 
-static HWND hGLWindow = NULL;
-
-static void ReleaseOpenGL(void)
+static void UninitOpenGL(void)
 {
 	if (hGLRC) {
 		polymost_glreset();
@@ -2542,9 +1591,9 @@ static void ReleaseOpenGL(void)
 		hGLRC = NULL;
 	}
 	if (hGLWindow) {
-		if (hDC) {
-			ReleaseDC(hGLWindow, hDC);
-			hDC = NULL;
+		if (hDCGLWindow) {
+			ReleaseDC(hGLWindow, hDCGLWindow);
+			hDCGLWindow = NULL;
 		}
 
 		DestroyWindow(hGLWindow);
@@ -2552,149 +1601,255 @@ static void ReleaseOpenGL(void)
 	}
 }
 
-
-//
-// UninitOpenGL() -- unitialises any openGL libraries
-//
-static void UninitOpenGL(void)
-{
-	ReleaseOpenGL();
-}
-
-
 //
 // SetupOpenGL() -- sets up opengl rendering
 //
-static int SetupOpenGL(int width, int height, int bitspp)
+static int SetupOpenGL(int width, int height, int bitspp, int cover)
 {
-	PIXELFORMATDESCRIPTOR pfd = {
+	int pformatattribs[] = {
+		WGL_DRAW_TO_WINDOW_ARB,	GL_TRUE,
+		WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+		WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
+		WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
+		WGL_COLOR_BITS_ARB,     bitspp,
+		WGL_DEPTH_BITS_ARB,     24,
+		WGL_STENCIL_BITS_ARB,   0,
+		WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
+		0,
+	};
+	int contextattribs[] = {
+		WGL_CONTEXT_MAJOR_VERSION_ARB, 2,
+		WGL_CONTEXT_MINOR_VERSION_ARB, 1,
+		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+		0,
+	};
+	UINT numformats;
+	int err, pixelformat;
+
+	// Step 1. Create a fake context with a safe pixel format descriptor.
+	GLuint dummyPixelFormat;
+	PIXELFORMATDESCRIPTOR dummyPfd = {
 		sizeof(PIXELFORMATDESCRIPTOR),
 		1,                             //Version Number
 		PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER, //Must Support these
 		PFD_TYPE_RGBA,                 //Request An RGBA Format
-		0,                        //Select Our Color Depth
+		32,                            //Color Depth
 		0,0,0,0,0,0,                   //Color Bits Ignored
 		0,                             //No Alpha Buffer
 		0,                             //Shift Bit Ignored
 		0,                             //No Accumulation Buffer
 		0,0,0,0,                       //Accumulation Bits Ignored
-		32,                            //16/24/32 Z-Buffer depth
-		0,                             //No Stencil Buffer
+		24,                            //16/24/32 Z-Buffer depth
+		8,                             //Stencil Buffer
 		0,                             //No Auxiliary Buffer
 		PFD_MAIN_PLANE,                //Main Drawing Layer
 		0,                             //Reserved
 		0,0,0                          //Layer Masks Ignored
 	};
-	GLuint PixelFormat;
-	int err;
-	static int warnonce = 0;
-	pfd.cColorBits = bitspp;
+	HDC dummyhDC = 0;
+	HGLRC dummyhGLRC = 0;
+	const char *errmsg = NULL;
 
-	hGLWindow = CreateWindow(
-			WindowClass,
+	dummyhGLwindow = CreateWindow(
+			WINDOW_CLASS,
 			"OpenGL Window",
-			WS_CHILD|WS_VISIBLE,
+			WS_CHILD,
 			0,0,
-			width,height,
+			1,1,
 			hWindow,
 			(HMENU)0,
 			hInstance,
 			NULL);
-	if (!hGLWindow) {
-		ShowErrorBox("Error creating OpenGL child window.");
-		return TRUE;
+	if (!dummyhGLwindow) {
+		errmsg = "Error creating dummy OpenGL child window.";
+		goto fail;
 	}
 
-	hDC = GetDC(hGLWindow);
-	if (!hDC) {
-		ReleaseOpenGL();
-		ShowErrorBox("Error getting device context");
-		return TRUE;
+	dummyhDC = GetDC(dummyhGLwindow);
+	if (!dummyhDC) {
+		errmsg = "Error getting dummy device context";
+		goto fail;
 	}
 
-	if (glminidriver) PixelFormat = bwglChoosePixelFormat(hDC,&pfd);
-	else PixelFormat = ChoosePixelFormat(hDC,&pfd);
-	if (!PixelFormat) {
-		ReleaseOpenGL();
-		ShowErrorBox("Can't choose pixel format");
-		return TRUE;
+	dummyPixelFormat = ChoosePixelFormat(dummyhDC, &dummyPfd);
+	if (!dummyPixelFormat) {
+		errmsg = "Can't choose dummy pixel format";
+		goto fail;
 	}
 
-	if (glminidriver) err = bwglSetPixelFormat(hDC, PixelFormat, &pfd);
-	else err = SetPixelFormat(hDC, PixelFormat, &pfd);
+	err = SetPixelFormat(dummyhDC, dummyPixelFormat, &dummyPfd);
 	if (!err) {
-		ReleaseOpenGL();
-		ShowErrorBox("Can't set pixel format");
-		return TRUE;
+		errmsg = "Can't set dummy pixel format";
+		goto fail;
 	}
 
-	hGLRC = bwglCreateContext(hDC);
+	dummyhGLRC = bwglCreateContext(dummyhDC);
+	if (!dummyhGLRC) {
+		errmsg = "Can't create dummy GL context";
+		goto fail;
+	}
+
+	if (!bwglMakeCurrent(dummyhDC, dummyhGLRC)) {
+		errmsg = "Can't activate dummy GL context";
+		goto fail;
+	}
+
+	// Step 2. Reload the function pointers to get the ARB WGL extensions.
+	if (loadglfunctions(FALSE)) {
+		errmsg = "Can't fetch base GL functions.";
+		goto fail;
+	}
+	if (!bwglGetExtensionsStringARB || !bwglChoosePixelFormatARB || !bwglCreateContextAttribsARB) {
+		errmsg = "Can't fetch WGL functions.";
+		goto fail;
+	} else {
+		//const GLchar *extstr = bwglGetExtensionsStringARB(dummyhDC);
+		//buildprintf("WGL extensions supported: %s\n", extstr);
+		///FIXME check for WGL_ARB_pixel_format and fail if not present.
+	}
+
+	// Step 3. Create the actual window we will use going forward.
+	{
+		int xpos, ypos, xscl, yscl;
+
+		if (cover) {
+			// The desktop resolution is set to the target. Fill the screen.
+			xpos = ypos = 0;
+			xscl = width;
+			yscl = height;
+		} else {
+			// The desktop resolution remains the same and we stretch to fit.
+			int desktopaspect = divscale16(desktopxdim, desktopydim);
+			int frameaspect = divscale16(width, height);
+			if (desktopaspect >= frameaspect) {
+				// Desktop is at least as wide as the frame. We maximise frame height and centre on width.
+				ypos = 0;
+				yscl = desktopydim;
+				xscl = mulscale16(desktopydim, frameaspect);
+				xpos = (desktopxdim - xscl) >> 1;
+			} else {
+				// Desktop is narrower than the frame. We maximise frame width and centre on height.
+				xpos = 0;
+				xscl = desktopxdim;
+				yscl = divscale16(desktopxdim, frameaspect);
+				ypos = (desktopydim - yscl) >> 1;
+			}
+		}
+
+		hGLWindow = CreateWindow(
+				WINDOW_CLASS,
+				"OpenGL Window",
+				WS_CHILD|WS_VISIBLE,
+				xpos, ypos,
+				xscl, yscl,
+				hWindow,
+				(HMENU)0,
+				hInstance,
+				NULL);
+		if (!hGLWindow) {
+			errmsg = "Error creating OpenGL child window.";
+			goto fail;
+		}
+	}
+
+	hDCGLWindow = GetDC(hGLWindow);
+	if (!hDCGLWindow) {
+		errmsg = "Error getting device context.";
+		goto fail;
+	}
+
+	// Step 3. Find and set a suitable pixel format using the new technique.
+	if (!bwglChoosePixelFormatARB(hDCGLWindow, pformatattribs, NULL, 1, &pixelformat, &numformats)) {
+		errmsg = "Can't choose pixel format.";
+		goto fail;
+	} else if (numformats < 1) {
+		errmsg = "No suitable pixel format available.";
+		goto fail;
+	}
+
+	DescribePixelFormat(hDCGLWindow, pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &dummyPfd);
+	err = SetPixelFormat(hDCGLWindow, pixelformat, &dummyPfd);
+	if (!err) {
+		errmsg = "Can't set pixel format.";
+		goto fail;
+	}
+
+	// Step 4. Create a context with the needed profile.
+	hGLRC = bwglCreateContextAttribsARB(hDCGLWindow, 0, contextattribs);
 	if (!hGLRC) {
-		ReleaseOpenGL();
-		ShowErrorBox("Can't create GL RC");
-		return TRUE;
+		errmsg = "Can't create GL context.";
+		goto fail;
 	}
 
-	if (!bwglMakeCurrent(hDC, hGLRC)) {
-		ReleaseOpenGL();
-		ShowErrorBox("Can't activate GL RC");
-		return TRUE;
+	// Scrap the dummy stuff.
+	if (!bwglMakeCurrent(NULL, NULL)) { }
+	if (!bwglDeleteContext(dummyhGLRC)) { }
+	ReleaseDC(dummyhGLwindow, dummyhDC);
+	DestroyWindow(dummyhGLwindow);
+	dummyhGLwindow = NULL;
+	dummyhGLRC = NULL;
+	dummyhDC = NULL;
+
+	if (!bwglMakeCurrent(hDCGLWindow, hGLRC)) {
+		errmsg = "Can't activate GL context";
+		goto fail;
 	}
 
+	// Step 5. Done.
 	polymost_glreset();
-	baselayer_setupopengl();
+	if (baselayer_setupopengl()) {
+		errmsg = "Can't fetch GL functions.";
+		goto fail;
+	}
 
 	numpages = 2;	// KJS 20031225: tell rotatesprite that it's double buffered!
 
 	return FALSE;
+
+fail:
+	ShowErrorBox(errmsg);
+	shutdownvideo();
+
+	if (!bwglMakeCurrent(NULL, NULL)) { }
+
+	if (hGLRC) {
+		if (!bwglDeleteContext(hGLRC)) { }
+	}
+	if (hGLWindow) {
+		if (hDCGLWindow) {
+			ReleaseDC(hGLWindow, hDCGLWindow);
+		}
+	}
+	hDCGLWindow = NULL;
+	hGLRC = NULL;
+	hGLWindow = NULL;
+
+	if (dummyhGLRC) {
+		if (!bwglDeleteContext(dummyhGLRC)) { }
+	}
+	if (dummyhGLwindow) {
+		if (dummyhDC) {
+			ReleaseDC(dummyhGLwindow, dummyhDC);
+		}
+		DestroyWindow(dummyhGLwindow);
+	}
+
+	return TRUE;
 }
 #endif
 
 //
 // CreateAppWindow() -- create the application window
 //
-static BOOL CreateAppWindow(int modenum)
+static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refresh)
 {
 	RECT rect;
 	int w, h, x, y, stylebits = 0, stylebitsex = 0;
-	int width, height, fs, bitspp;
-
 	HRESULT result;
-
-	if (modenum == 0x7fffffff) {
-		width = customxdim;
-		height = customydim;
-		fs = customfs;
-		bitspp = custombpp;
-	} else {
-		width = validmode[modenum].xdim;
-		height = validmode[modenum].ydim;
-		fs = validmode[modenum].fs;
-		bitspp = validmode[modenum].bpp;
-	}
 
 	if (width == xres && height == yres && fs == fullscreen && bitspp == bpp && !videomodereset) return FALSE;
 
 	if (hWindow) {
-		if (bpp > 8) {
-#if defined(USE_OPENGL) && defined(POLYMOST)
-			ReleaseOpenGL();	// release opengl
-#endif
-		} else {
-			ReleaseDirectDrawSurfaces();	// releases directdraw surfaces
-		}
-
-		if (!fs && fullscreen) {
-			// restore previous display mode and set to normal cooperative level
-			RestoreDirectDrawMode();
-#if defined(USE_OPENGL) && defined(POLYMOST)
-		} else if (fs && fullscreen) {
-			// using CDS for GL modes, so restore from DirectDraw
-			if (bpp != bitspp) RestoreDirectDrawMode();
-#endif
-		}
-
-
 		ShowWindow(hWindow, SW_HIDE);	// so Windows redraws what's behind if the window shrinks
 	}
 
@@ -2703,7 +1858,7 @@ static BOOL CreateAppWindow(int modenum)
 		stylebits = WS_POPUP;
 	} else {
 		stylebitsex = 0;
-		stylebits = WINDOW_STYLE;
+		stylebits = (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX);
 	}
 
 	if (!hWindow) {
@@ -2722,6 +1877,12 @@ static BOOL CreateAppWindow(int modenum)
 			0);
 		if (!hWindow) {
 			ShowErrorBox("Unable to create window");
+			return TRUE;
+		}
+
+		hDCWindow = GetDC(hWindow);
+		if (!hDCWindow) {
+			ShowErrorBox("Error getting device context");
 			return TRUE;
 		}
 
@@ -2745,8 +1906,8 @@ static BOOL CreateAppWindow(int modenum)
 		y = (desktopydim - h) / 2;
 	} else {
 		x=y=0;
-		w=width;
-		h=height;
+		w=desktopxdim;
+		h=desktopydim;
 	}
 	SetWindowPos(hWindow, HWND_TOP, x, y, w, h, 0);
 
@@ -2755,38 +1916,60 @@ static BOOL CreateAppWindow(int modenum)
 	SetForegroundWindow(hWindow);
 	SetFocus(hWindow);
 
-	// fullscreen?
-	if (!fs) {
-		if (bitspp > 8) {
-#if defined(USE_OPENGL) && defined(POLYMOST)
-			// yes, start up opengl
-			if (SetupOpenGL(width,height,bitspp)) {
-				return TRUE;
-			}
+	if (bitspp == 8) {
+		int i, j;
+
+#if defined(USE_OPENGL)
+		if (nogl) {
 #endif
-		} else {
-			// no, use DIB section
-			if (SetupDIB(width,height)) {
+			// 8-bit software with no GL shader uses classic Windows DIB blitting.
+			if (SetupDIB(width, height)) {
 				return TRUE;
 			}
+
+			frameplace = (intptr_t)lpPixels;
+			bytesperline = (((width|1) + 4) & ~3);
+#if defined(USE_OPENGL)
+		} else {
+			// Prepare the GLSL shader for 8-bit blitting.
+			if (SetupOpenGL(width, height, bitspp, !fs)) {
+				return TRUE;
+			}
+
+			if (glbuild_prepare_8bit_shader(&gl8bitpaltex, &gl8bitframetex, &gl8bitprogram, width, height) < 0) {
+				shutdownvideo();
+				return -1;
+			}
+
+			bglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+			bglMatrixMode(GL_PROJECTION);
+			bglLoadIdentity();
+			bglMatrixMode(GL_MODELVIEW);
+			bglLoadIdentity();
+
+			frame = (unsigned char *) malloc(width * height);
+			if (!frame) {
+				shutdownvideo();
+				buildputs("Unable to allocate framebuffer\n");
+				return FALSE;
+			}
+
+			frameplace = (intptr_t)frame;
+			bytesperline = width;
 		}
+#endif
 
-		modesetusing = -1;
+		imageSize = bytesperline*height;
+		setvlinebpl(bytesperline);
 
+		for(i=j=0; i<=height; i++) ylookup[i] = j, j += bytesperline;
+		modechange=0;
+
+		numpages = 1;
 	} else {
-		// yes, set up DirectDraw
-
-		// clean up after the DIB renderer if it was being used
-		UninitDIB();
-
-		if (!bDDrawInited) {
-			DestroyWindow(hWindow);
-			hWindow = NULL;
-			return TRUE;
-		}
-
 #if defined(USE_OPENGL) && defined(POLYMOST)
-		if (bitspp > 8) {
+		if (fs) {
 			DEVMODE dmScreenSettings;
 
 			ZeroMemory(&dmScreenSettings, sizeof(DEVMODE));
@@ -2795,8 +1978,8 @@ static BOOL CreateAppWindow(int modenum)
 			dmScreenSettings.dmPelsHeight = height;
 			dmScreenSettings.dmBitsPerPel = bitspp;
 			dmScreenSettings.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
-			if (modenum != 0x7fffffff) {
-				dmScreenSettings.dmDisplayFrequency = validmode[modenum].extra;
+			if (refresh > 0) {
+				dmScreenSettings.dmDisplayFrequency = refresh;
 				dmScreenSettings.dmFields |= DM_DISPLAYFREQUENCY;
 			}
 
@@ -2804,64 +1987,29 @@ static BOOL CreateAppWindow(int modenum)
 				ShowErrorBox("Video mode not supported");
 				return TRUE;
 			}
-
-			ShowWindow(hWindow, SW_SHOWNORMAL);
-			SetForegroundWindow(hWindow);
-			SetFocus(hWindow);
-
-			modesetusing = 1;
-		} else
-#endif
-		{
-			// set exclusive cooperative level
-			result = IDirectDraw_SetCooperativeLevel(lpDD, hWindow, DDSCL_EXCLUSIVE|DDSCL_FULLSCREEN);
-			if (result != DD_OK) {
-				ShowDDrawErrorBox("Error setting cooperative level", result);
-				UninitDirectDraw();
-				return TRUE;
-			}
-
-			result = IDirectDraw_SetDisplayMode(lpDD, width, height, bitspp);
-			if (result != DD_OK) {
-				ShowDDrawErrorBox("Error setting display mode", result);
-				UninitDirectDraw();
-				return TRUE;
-			}
-
-			modesetusing = 0;
+			desktopmodeset = 1;
 		}
 
-		if (bitspp > 8) {
-#if defined(USE_OPENGL) && defined(POLYMOST)
-			// we want an opengl mode
-			if (SetupOpenGL(width,height,bitspp)) {
-				return TRUE;
-			}
-#endif
-		} else {
-			// we want software
-			if (SetupDirectDraw(width,height)) {
-				return TRUE;
-			}
+		ShowWindow(hWindow, SW_SHOWNORMAL);
+		SetForegroundWindow(hWindow);
+		SetFocus(hWindow);
+
+		if (SetupOpenGL(width, height, bitspp, !desktopmodeset)) {
+			return TRUE;
 		}
+
+		frameplace = 0;
+		bytesperline = 0;
+		imageSize = 0;
+#else
+		return FALSE;
+#endif
 	}
-
-#if defined(USE_OPENGL) && defined(POLYMOST)
-	if (bitspp > 8) loadglextensions();
-#endif
 
 	xres = width;
 	yres = height;
 	bpp = bitspp;
 	fullscreen = fs;
-	curvidmode = modenum;
-
-	frameplace = 0;
-	lockcount = 0;
-
-	// bytesperline is set when framebuffer is locked
-	//bytesperline = width;
-	//imageSize = bytesperline*yres;
 
 	modechange = 1;
 	OSD_ResizeDisplay(xres,yres);
@@ -2882,202 +2030,17 @@ static void DestroyAppWindow(void)
 		gammabrightness = 0;
 	}
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
-	UninitOpenGL();
-#endif
-	UninitDirectDraw();
-	UninitDIB();
+	shutdownvideo();
+
+	if (hDCWindow) {
+		ReleaseDC(hWindow, hDCWindow);
+		hDCWindow = NULL;
+	}
 
 	if (hWindow) {
 		DestroyWindow(hWindow);
 		hWindow = NULL;
 	}
-}
-
-
-//
-// SaveSystemColours() -- save the Windows-reserved colours
-//
-static void SaveSystemColours(void)
-{
-	int i;
-
-	if (system_colours_saved) return;
-
-	for (i=0; i<NUM_SYS_COLOURS; i++)
-		syscolours[i] = GetSysColor(syscolouridx[i]);
-
-	system_colours_saved = 1;
-}
-
-
-//
-// SetBWSystemColours() -- set system colours to a black-and-white scheme
-//
-static void SetBWSystemColours(void)
-{
-#define WHI RGB(255,255,255)
-#define BLA RGB(0,0,0)
-static COLORREF syscoloursbw[NUM_SYS_COLOURS] = {
-	WHI, BLA, BLA, WHI, WHI, WHI, WHI, BLA, BLA, WHI,
-	WHI, WHI, WHI, BLA, WHI, WHI, BLA, BLA, BLA, BLA,
-	BLA, BLA, WHI, BLA, WHI
-};
-#undef WHI
-#undef BLA
-	if (!system_colours_saved || bw_colours_set) return;
-
-	SetSysColors(NUM_SYS_COLOURS, syscolouridx, syscoloursbw);
-	bw_colours_set = 1;
-}
-
-
-//
-// RestoreSystemColours() -- restore the Windows-reserved colours
-//
-static void RestoreSystemColours(void)
-{
-	if (!system_colours_saved || !bw_colours_set) return;
-
-	SetSystemPaletteUse(hDC, SYSPAL_STATIC);
-	SetSysColors(NUM_SYS_COLOURS, syscolouridx, syscolours);
-	bw_colours_set = 0;
-}
-
-
-//
-// ShowDDrawErrorBox() -- shows an error message box for a DirectDraw error
-//
-static void ShowDDrawErrorBox(const char *m, HRESULT r)
-{
-	TCHAR msg[1024];
-
-	wsprintf(msg, "%s: %s", m, GetDDrawError(r));
-	MessageBox(0, msg, apptitle, MB_OK|MB_ICONSTOP);
-}
-
-
-//
-// GetDDrawError() -- stinking huge list of error messages since MS didn't want to include
-//   them in the DLL
-//
-static const char * GetDDrawError(HRESULT code)
-{
-	switch (code) {
-		case DD_OK: return "DD_OK";
-		case DDERR_ALREADYINITIALIZED: return "DDERR_ALREADYINITIALIZED";
-		case DDERR_BLTFASTCANTCLIP: return "DDERR_BLTFASTCANTCLIP";
-		case DDERR_CANNOTATTACHSURFACE: return "DDERR_CANNOTATTACHSURFACE";
-		case DDERR_CANNOTDETACHSURFACE: return "DDERR_CANNOTDETACHSURFACE";
-		case DDERR_CANTCREATEDC: return "DDERR_CANTCREATEDC";
-		case DDERR_CANTDUPLICATE: return "DDERR_CANTDUPLICATE";
-		case DDERR_CANTLOCKSURFACE: return "DDERR_CANTLOCKSURFACE";
-		case DDERR_CANTPAGELOCK: return "DDERR_CANTPAGELOCK";
-		case DDERR_CANTPAGEUNLOCK: return "DDERR_CANTPAGEUNLOCK";
-		case DDERR_CLIPPERISUSINGHWND: return "DDERR_CLIPPERISUSINGHWND";
-		case DDERR_COLORKEYNOTSET: return "DDERR_COLORKEYNOTSET";
-		case DDERR_CURRENTLYNOTAVAIL: return "DDERR_CURRENTLYNOTAVAIL";
-		case DDERR_DCALREADYCREATED: return "DDERR_DCALREADYCREATED";
-		case DDERR_DEVICEDOESNTOWNSURFACE: return "DDERR_DEVICEDOESNTOWNSURFACE";
-		case DDERR_DIRECTDRAWALREADYCREATED: return "DDERR_DIRECTDRAWALREADYCREATED";
-		case DDERR_EXCEPTION: return "DDERR_EXCEPTION";
-		case DDERR_EXCLUSIVEMODEALREADYSET: return "DDERR_EXCLUSIVEMODEALREADYSET";
-		case DDERR_EXPIRED: return "DDERR_EXPIRED";
-		case DDERR_GENERIC: return "DDERR_GENERIC";
-		case DDERR_HEIGHTALIGN: return "DDERR_HEIGHTALIGN";
-		case DDERR_HWNDALREADYSET: return "DDERR_HWNDALREADYSET";
-		case DDERR_HWNDSUBCLASSED: return "DDERR_HWNDSUBCLASSED";
-		case DDERR_IMPLICITLYCREATED: return "DDERR_IMPLICITLYCREATED";
-		case DDERR_INCOMPATIBLEPRIMARY: return "DDERR_INCOMPATIBLEPRIMARY";
-		case DDERR_INVALIDCAPS: return "DDERR_INVALIDCAPS";
-		case DDERR_INVALIDCLIPLIST: return "DDERR_INVALIDCLIPLIST";
-		case DDERR_INVALIDDIRECTDRAWGUID: return "DDERR_INVALIDDIRECTDRAWGUID";
-		case DDERR_INVALIDMODE: return "DDERR_INVALIDMODE";
-		case DDERR_INVALIDOBJECT: return "DDERR_INVALIDOBJECT";
-		case DDERR_INVALIDPARAMS: return "DDERR_INVALIDPARAMS";
-		case DDERR_INVALIDPIXELFORMAT: return "DDERR_INVALIDPIXELFORMAT";
-		case DDERR_INVALIDPOSITION: return "DDERR_INVALIDPOSITION";
-		case DDERR_INVALIDRECT: return "DDERR_INVALIDRECT";
-		case DDERR_INVALIDSTREAM: return "DDERR_INVALIDSTREAM";
-		case DDERR_INVALIDSURFACETYPE: return "DDERR_INVALIDSURFACETYPE";
-		case DDERR_LOCKEDSURFACES: return "DDERR_LOCKEDSURFACES";
-		case DDERR_MOREDATA: return "DDERR_MOREDATA";
-		case DDERR_NO3D: return "DDERR_NO3D";
-		case DDERR_NOALPHAHW: return "DDERR_NOALPHAHW";
-		case DDERR_NOBLTHW: return "DDERR_NOBLTHW";
-		case DDERR_NOCLIPLIST: return "DDERR_NOCLIPLIST";
-		case DDERR_NOCLIPPERATTACHED: return "DDERR_NOCLIPPERATTACHED";
-		case DDERR_NOCOLORCONVHW: return "DDERR_NOCOLORCONVHW";
-		case DDERR_NOCOLORKEY: return "DDERR_NOCOLORKEY";
-		case DDERR_NOCOLORKEYHW: return "DDERR_NOCOLORKEYHW";
-		case DDERR_NOCOOPERATIVELEVELSET: return "DDERR_NOCOOPERATIVELEVELSET";
-		case DDERR_NODC: return "DDERR_NODC";
-		case DDERR_NODDROPSHW: return "DDERR_NODDROPSHW";
-		case DDERR_NODIRECTDRAWHW: return "DDERR_NODIRECTDRAWHW";
-		case DDERR_NODIRECTDRAWSUPPORT: return "DDERR_NODIRECTDRAWSUPPORT";
-		case DDERR_NOEMULATION: return "DDERR_NOEMULATION";
-		case DDERR_NOEXCLUSIVEMODE: return "DDERR_NOEXCLUSIVEMODE";
-		case DDERR_NOFLIPHW: return "DDERR_NOFLIPHW";
-		case DDERR_NOFOCUSWINDOW: return "DDERR_NOFOCUSWINDOW";
-		case DDERR_NOGDI: return "DDERR_NOGDI";
-		case DDERR_NOHWND: return "DDERR_NOHWND";
-		case DDERR_NOMIPMAPHW: return "DDERR_NOMIPMAPHW";
-		case DDERR_NOMIRRORHW: return "DDERR_NOMIRRORHW";
-		case DDERR_NONONLOCALVIDMEM: return "DDERR_NONONLOCALVIDMEM";
-		case DDERR_NOOPTIMIZEHW: return "DDERR_NOOPTIMIZEHW";
-		case DDERR_NOOVERLAYDEST: return "DDERR_NOOVERLAYDEST";
-		case DDERR_NOOVERLAYHW: return "DDERR_NOOVERLAYHW";
-		case DDERR_NOPALETTEATTACHED: return "DDERR_NOPALETTEATTACHED";
-		case DDERR_NOPALETTEHW: return "DDERR_NOPALETTEHW";
-		case DDERR_NORASTEROPHW: return "DDERR_NORASTEROPHW";
-		case DDERR_NOROTATIONHW: return "DDERR_NOROTATIONHW";
-		case DDERR_NOSTRETCHHW: return "DDERR_NOSTRETCHHW";
-		case DDERR_NOT4BITCOLOR: return "DDERR_NOT4BITCOLOR";
-		case DDERR_NOT4BITCOLORINDEX: return "DDERR_NOT4BITCOLORINDEX";
-		case DDERR_NOT8BITCOLOR: return "DDERR_NOT8BITCOLOR";
-		case DDERR_NOTAOVERLAYSURFACE: return "DDERR_NOTAOVERLAYSURFACE";
-		case DDERR_NOTEXTUREHW: return "DDERR_NOTEXTUREHW";
-		case DDERR_NOTFLIPPABLE: return "DDERR_NOTFLIPPABLE";
-		case DDERR_NOTFOUND: return "DDERR_NOTFOUND";
-		case DDERR_NOTINITIALIZED: return "DDERR_NOTINITIALIZED";
-		case DDERR_NOTLOADED: return "DDERR_NOTLOADED";
-		case DDERR_NOTLOCKED: return "DDERR_NOTLOCKED";
-		case DDERR_NOTPAGELOCKED: return "DDERR_NOTPAGELOCKED";
-		case DDERR_NOTPALETTIZED: return "DDERR_NOTPALETTIZED";
-		case DDERR_NOVSYNCHW: return "DDERR_NOVSYNCHW";
-		case DDERR_NOZBUFFERHW: return "DDERR_NOZBUFFERHW";
-		case DDERR_NOZOVERLAYHW: return "DDERR_NOZOVERLAYHW";
-		case DDERR_OUTOFCAPS: return "DDERR_OUTOFCAPS";
-		case DDERR_OUTOFMEMORY: return "DDERR_OUTOFMEMORY";
-		case DDERR_OUTOFVIDEOMEMORY: return "DDERR_OUTOFVIDEOMEMORY";
-		case DDERR_OVERLAPPINGRECTS: return "DDERR_OVERLAPPINGRECTS";
-		case DDERR_OVERLAYCANTCLIP: return "DDERR_OVERLAYCANTCLIP";
-		case DDERR_OVERLAYCOLORKEYONLYONEACTIVE: return "DDERR_OVERLAYCOLORKEYONLYONEACTIVE";
-		case DDERR_OVERLAYNOTVISIBLE: return "DDERR_OVERLAYNOTVISIBLE";
-		case DDERR_PALETTEBUSY: return "DDERR_PALETTEBUSY";
-		case DDERR_PRIMARYSURFACEALREADYEXISTS: return "DDERR_PRIMARYSURFACEALREADYEXISTS";
-		case DDERR_REGIONTOOSMALL: return "DDERR_REGIONTOOSMALL";
-		case DDERR_SURFACEALREADYATTACHED: return "DDERR_SURFACEALREADYATTACHED";
-		case DDERR_SURFACEALREADYDEPENDENT: return "DDERR_SURFACEALREADYDEPENDENT";
-		case DDERR_SURFACEBUSY: return "DDERR_SURFACEBUSY";
-		case DDERR_SURFACEISOBSCURED: return "DDERR_SURFACEISOBSCURED";
-		case DDERR_SURFACELOST: return "DDERR_SURFACELOST";
-		case DDERR_SURFACENOTATTACHED: return "DDERR_SURFACENOTATTACHED";
-		case DDERR_TOOBIGHEIGHT: return "DDERR_TOOBIGHEIGHT";
-		case DDERR_TOOBIGSIZE: return "DDERR_TOOBIGSIZE";
-		case DDERR_TOOBIGWIDTH: return "DDERR_TOOBIGWIDTH";
-		case DDERR_UNSUPPORTED: return "DDERR_UNSUPPORTED";
-		case DDERR_UNSUPPORTEDFORMAT: return "DDERR_UNSUPPORTEDFORMAT";
-		case DDERR_UNSUPPORTEDMASK: return "DDERR_UNSUPPORTEDMASK";
-		case DDERR_UNSUPPORTEDMODE: return "DDERR_UNSUPPORTEDMODE";
-		case DDERR_VERTICALBLANKINPROGRESS: return "DDERR_VERTICALBLANKINPROGRESS";
-		case DDERR_VIDEONOTACTIVE: return "DDERR_VIDEONOTACTIVE";
-		case DDERR_WASSTILLDRAWING: return "DDERR_WASSTILLDRAWING";
-		case DDERR_WRONGMODE: return "DDERR_WRONGMODE";
-		case DDERR_XALIGN: return "DDERR_XALIGN";
-		default: break;
-	}
-	return "Unknown error";
 }
 
 
@@ -3127,37 +2090,37 @@ static const int wscantable[256] = {
 /* 2y */ 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
 /* 3y */ 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f,
 /* 4y */ 0x40, 0x41, 0x42, 0x43, 0x44, 0x59, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d, 0x4e, 0x4f,
-/* 5y */ 0x50, 0x51, 0x52, 0x53, 0,    0,    0,    0x57, 0x58, 0,    0,    0,    0,    0,    0,    0,   
-/* 6y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* 7y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* 8y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* 9y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* Ay */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* By */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* Cy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* Dy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* Ey */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* Fy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* 5y */ 0x50, 0x51, 0x52, 0x53, 0,    0,    0,    0x57, 0x58, 0,    0,    0,    0,    0,    0,    0,
+/* 6y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* 7y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* 8y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* 9y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* Ay */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* By */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* Cy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* Dy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* Ey */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* Fy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
 };
 
 static const int wxscantable[256] = {
 /*         x0    x1    x2    x3    x4    x5    x6    x7    x8    x9    xA    xB    xC    xD    xE    xF */
-/* 0y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* 1y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0x9c, 0x9d, 0,    0,   
-/* 2y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* 3y */ 0,    0,    0,    0,    0,    0xb5, 0,    0,    0xb8, 0,    0,    0,    0,    0xb8, 0,    0,   
+/* 0y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* 1y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0x9c, 0x9d, 0,    0,
+/* 2y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* 3y */ 0,    0,    0,    0,    0,    0xb5, 0,    0,    0xb8, 0,    0,    0,    0,    0xb8, 0,    0,
 /* 4y */ 0,    0,    0,    0,    0,    0x45, 0,    0xc7, 0xc8, 0xc9, 0,    0xcb, 0,    0xcd, 0,    0xcf,
-/* 5y */ 0xd0, 0xd1, 0xd2, 0xd3, 0,    0,    0,    0,    0,    0,    0,    0x5b, 0x5c, 0x5d, 0,    0,   
-/* 6y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* 7y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* 8y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* 9y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0x9d, 0,    0,   
-/* Ay */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* By */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* Cy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* Dy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* Ey */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
-/* Fy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,   
+/* 5y */ 0xd0, 0xd1, 0xd2, 0xd3, 0,    0,    0,    0,    0,    0,    0,    0x5b, 0x5c, 0x5d, 0,    0,
+/* 6y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* 7y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* 8y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* 9y */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0x9d, 0,    0,
+/* Ay */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* By */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* Cy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* Dy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* Ey */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
+/* Fy */ 0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,    0,
 };
 
 
@@ -3171,7 +2134,8 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	HRESULT result;
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
-	if (hWnd == hGLWindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
+	if (hGLWindow && hWnd == hGLWindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
+	if (dummyhGLwindow && hWnd == dummyhGLwindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
 #endif
 
 	switch (uMsg) {
@@ -3193,30 +2157,14 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			break;
 
 		case WM_ACTIVATE:
-			if (desktopbpp <= 8) {
-				if (appactive) {
-					setpalette(0,0,0);
-					SetBWSystemColours();
-//					buildputs("Resetting palette.\n");
-				} else {
-					RestoreSystemColours();
-//					buildputs("Resetting system colours.\n");
-				}
-			}
-
-			AcquireInputDevices(appactive);
+//			AcquireInputDevices(appactive);
 			constrainmouse(LOWORD(wParam) != WA_INACTIVE && HIWORD(wParam) == 0);
 			break;
 
 		case WM_SIZE:
 			if (wParam == SIZE_MAXHIDE || wParam == SIZE_MINIMIZED) appactive = 0;
 			else appactive = 1;
-			AcquireInputDevices(appactive);
-			break;
-
-		case WM_PALETTECHANGED:
-			// someone stole the palette so try and steal it back
-			if (appactive && (HWND)wParam != hWindow) setpalette(0,0,0);
+//			AcquireInputDevices(appactive);
 			break;
 
 		case WM_DISPLAYCHANGE:
@@ -3228,7 +2176,6 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			break;
 
 		case WM_PAINT:
-			repaintneeded=1;
 			break;
 
 			// don't draw the frame if fullscreen
@@ -3237,7 +2184,7 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			//return 0;
 
 		case WM_ERASEBKGND:
-			return TRUE;
+			break;//return TRUE;
 
 		case WM_MOVE:
 			windowposx = LOWORD(lParam);
@@ -3367,11 +2314,11 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 
 		case WM_ENTERMENULOOP:
 		case WM_ENTERSIZEMOVE:
-			AcquireInputDevices(0);
+//			AcquireInputDevices(0);
 			return 0;
 		case WM_EXITMENULOOP:
 		case WM_EXITSIZEMOVE:
-			AcquireInputDevices(1);
+//			AcquireInputDevices(1);
 			return 0;
 
 		case WM_DESTROY:
@@ -3407,9 +2354,9 @@ static BOOL RegisterWindowClass(void)
 	wcx.hIcon	= LoadImage(hInstance, MAKEINTRESOURCE(100), IMAGE_ICON,
 				GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR);
 	wcx.hCursor	= LoadCursor(NULL, IDC_ARROW);
-	wcx.hbrBackground = (HBRUSH)COLOR_GRAYTEXT;
+	wcx.hbrBackground = CreateSolidBrush(RGB(0,0,0));
 	wcx.lpszMenuName = NULL;
-	wcx.lpszClassName = WindowClass;
+	wcx.lpszClassName = WINDOW_CLASS;
 	wcx.hIconSm	= LoadImage(hInstance, MAKEINTRESOURCE(100), IMAGE_ICON,
 				GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
 	if (!RegisterClassEx(&wcx)) {
