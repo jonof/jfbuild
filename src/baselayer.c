@@ -197,11 +197,15 @@ int baselayer_init(void)
 }
 
 #ifdef USE_OPENGL
-void baselayer_setupopengl()
+int baselayer_setupopengl(void)
 {
 	char *p,*p2,*p3;
 	static int warnonce = 0;
 	int i;
+
+	if (loadglfunctions(TRUE)) {
+		return -1;
+	}
 
 	memset(&glinfo, 0, sizeof(glinfo));
 	glinfo.vendor     = (const char *) bglGetString(GL_VENDOR);
@@ -253,5 +257,6 @@ void baselayer_setupopengl()
 	free(p);
 
 	glinfo.loaded = 1;
+	return 0;
 }
 #endif

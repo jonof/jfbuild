@@ -136,7 +136,7 @@ static void * getproc_(const char *s, int *err, int fatal, int extension)
 #define GETPROCEXT(s)     getproc_(s,&err,1,1)
 #define GETPROCEXTSOFT(s) getproc_(s,&err,0,1)
 
-int loadglfunctions(void)
+int loadglfunctions(int all)
 {
 	int err=0;
 
@@ -152,6 +152,11 @@ int loadglfunctions(void)
 	bwglGetPixelFormat	= GETPROC("wglGetPixelFormat");
 	bwglSetPixelFormat	= GETPROC("wglSetPixelFormat");
 #endif
+
+	if (!all) {
+		if (err) unloadglfunctions();
+		return err;
+	}
 
 	bglClearColor		= GETPROC("glClearColor");
 	bglClear		= GETPROC("glClear");
@@ -244,7 +249,7 @@ int loadglfunctions(void)
 
 	loadglextensions();
 
-	if (err) unloadgldriver();
+	if (err) unloadglfunctions();
 	return err;
 }
 

@@ -141,7 +141,7 @@ int unloadgldriver(void);
 // baselayer.c
 int baselayer_init(void);
 #ifdef USE_OPENGL
-void baselayer_setupopengl(void);
+int baselayer_setupopengl(void);
 #endif
 
 void makeasmwriteable(void);

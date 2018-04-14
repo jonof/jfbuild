@@ -167,6 +167,7 @@ ifneq (0,$(EFENCE))
 endif
 
 OURCFLAGS+= $(BUILDCFLAGS)
+LIBS+= $(BUILDLIBS)
 
 .PHONY: clean veryclean all utils enginelib editorlib
 
@@ -265,7 +266,7 @@ $(GAME)/rsrc/sdlappicon_%.c: $(GAME)/rsrc/%.png generatesdlappicon$(EXESUFFIX)
 
 
 $(TOOLS)/%.$o: $(TOOLS)/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -I$(SRC) -I$(INC) -c $< -o $@
 
 $(TOOLS)/%.$o: $(TOOLS)/%.cc
 	$(CXX) $(CXXFLAGS) -c $< -o $@

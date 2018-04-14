@@ -88,8 +88,8 @@ void (*mousepresscallback)(int,int) = 0;
 void (*joypresscallback)(int,int) = 0;
 
 struct keytranslate {
-    unsigned char normal;
-    unsigned char controlchar;  // an ASCII control character to insert into the character fifo
+	unsigned char normal;
+	unsigned char controlchar;  // an ASCII control character to insert into the character fifo
 };
 #define WITH_CONTROL_KEY 0x80
 static struct keytranslate keytranslation[SDL_NUM_SCANCODES];
@@ -103,61 +103,61 @@ static SDL_Surface * loadappicon(void);
 
 int wm_msgbox(const char *name, const char *fmt, ...)
 {
-    char buf[1000];
-    va_list va;
+	char buf[1000];
+	va_list va;
 
-    va_start(va,fmt);
-    vsprintf(buf,fmt,va);
-    va_end(va);
+	va_start(va,fmt);
+	vsprintf(buf,fmt,va);
+	va_end(va);
 
 #if defined(__APPLE__)
-    return osx_msgbox(name, buf);
+	return osx_msgbox(name, buf);
 #elif defined HAVE_GTK
-    if (gtkbuild_msgbox(name, buf) >= 0) return 1;
+	if (gtkbuild_msgbox(name, buf) >= 0) return 1;
 #endif
-    puts(buf);
-    puts("   (press Return or Enter to continue)");
-    getchar();
+	puts(buf);
+	puts("   (press Return or Enter to continue)");
+	getchar();
 
-    return 0;
+	return 0;
 }
 
 int wm_ynbox(const char *name, const char *fmt, ...)
 {
-    char buf[1000];
-    char c;
-    va_list va;
-    int r;
+	char buf[1000];
+	char c;
+	va_list va;
+	int r;
 
-    va_start(va,fmt);
-    vsprintf(buf,fmt,va);
-    va_end(va);
+	va_start(va,fmt);
+	vsprintf(buf,fmt,va);
+	va_end(va);
 
 #if defined __APPLE__
-    return osx_ynbox(name, buf);
+	return osx_ynbox(name, buf);
 #elif defined HAVE_GTK
-    if ((r = gtkbuild_ynbox(name, buf)) >= 0) return r;
+	if ((r = gtkbuild_ynbox(name, buf)) >= 0) return r;
 #endif
-    puts(buf);
-    puts("   (type 'Y' or 'N', and press Return or Enter to continue)");
-    do c = getchar(); while (c != 'Y' && c != 'y' && c != 'N' && c != 'n');
-    if (c == 'Y' || c == 'y') return 1;
+	puts(buf);
+	puts("   (type 'Y' or 'N', and press Return or Enter to continue)");
+	do c = getchar(); while (c != 'Y' && c != 'y' && c != 'N' && c != 'n');
+	if (c == 'Y' || c == 'y') return 1;
 
-    return 0;
+	return 0;
 }
 
 void wm_setapptitle(const char *name)
 {
-    if (name) {
-        Bstrncpy(apptitle, name, sizeof(apptitle)-1);
-        apptitle[ sizeof(apptitle)-1 ] = 0;
-    }
+	if (name) {
+		Bstrncpy(apptitle, name, sizeof(apptitle)-1);
+		apptitle[ sizeof(apptitle)-1 ] = 0;
+	}
 
-    if (sdl_window) {
-        SDL_SetWindowTitle(sdl_window, apptitle);
-    }
+	if (sdl_window) {
+		SDL_SetWindowTitle(sdl_window, apptitle);
+	}
 
-    startwin_settitle(apptitle);
+	startwin_settitle(apptitle);
 }
 
 
@@ -173,56 +173,56 @@ void wm_setapptitle(const char *name)
 
 int main(int argc, char *argv[])
 {
-    int r;
+	int r;
 
-    buildkeytranslationtable();
+	buildkeytranslationtable();
 
-    // SDL must be initialised before GTK or else crashing will ensue.
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER)) {
-        buildprintf("Early initialisation of SDL failed! (%s)\n", SDL_GetError());
-        return 1;
-    }
+	// SDL must be initialised before GTK or else crashing will ensue.
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER)) {
+		buildprintf("Early initialisation of SDL failed! (%s)\n", SDL_GetError());
+		return 1;
+	}
 
 #ifdef HAVE_GTK
-    gtkbuild_init(&argc, &argv);
+	gtkbuild_init(&argc, &argv);
 #endif
 
 #ifdef __APPLE__
-    // consume Xcode's "-NSDocumentRevisionsDebugMode xx" parameter
-    _buildargv = calloc(argc+1, sizeof(char *));
-    for (r = _buildargc = 0; r < argc; r++) {
-        if (strcmp(argv[r], "-NSDocumentRevisionsDebugMode") == 0) {
-            r++;
-        } else {
-            _buildargv[_buildargc++] = argv[r];
-        }
-    }
-    _buildargv[_buildargc] = 0;
+	// consume Xcode's "-NSDocumentRevisionsDebugMode xx" parameter
+	_buildargv = calloc(argc+1, sizeof(char *));
+	for (r = _buildargc = 0; r < argc; r++) {
+		if (strcmp(argv[r], "-NSDocumentRevisionsDebugMode") == 0) {
+			r++;
+		} else {
+			_buildargv[_buildargc++] = argv[r];
+		}
+	}
+	_buildargv[_buildargc] = 0;
 #else
-    _buildargc = argc;
-    _buildargv = (const char **)argv;
+	_buildargc = argc;
+	_buildargv = (const char **)argv;
 #endif
 
-    startwin_open();
-    baselayer_init();
+	startwin_open();
+	baselayer_init();
 
-    // This avoids doubled character input in the (OSX) startup window's edit fields.
-    SDL_EventState(SDL_TEXTINPUT, SDL_IGNORE);
+	// This avoids doubled character input in the (OSX) startup window's edit fields.
+	SDL_EventState(SDL_TEXTINPUT, SDL_IGNORE);
 
-    r = app_main(_buildargc, (char const * const*)_buildargv);
+	r = app_main(_buildargc, (char const * const*)_buildargv);
 
 #ifdef __APPLE__
-    free(_buildargv);
+	free(_buildargv);
 #endif
 
-    startwin_close();
+	startwin_close();
 #ifdef HAVE_GTK
-    gtkbuild_exit();
+	gtkbuild_exit();
 #endif
 
-    SDL_Quit();
+	SDL_Quit();
 
-    return r;
+	return r;
 }
 
 
@@ -231,27 +231,27 @@ int main(int argc, char *argv[])
 //
 int initsystem(void)
 {
-    SDL_version linked;
-    SDL_version compiled;
+	SDL_version linked;
+	SDL_version compiled;
 
-    SDL_GetVersion(&linked);
-    SDL_VERSION(&compiled);
+	SDL_GetVersion(&linked);
+	SDL_VERSION(&compiled);
 
-    buildprintf("SDL2 system interface "
-          "(compiled with SDL version %d.%d.%d, runtime version %d.%d.%d)\n",
-        linked.major, linked.minor, linked.patch,
-        compiled.major, compiled.minor, compiled.patch);
+	buildprintf("SDL2 system interface "
+		  "(compiled with SDL version %d.%d.%d, runtime version %d.%d.%d)\n",
+		linked.major, linked.minor, linked.patch,
+		compiled.major, compiled.minor, compiled.patch);
 
-    atexit(uninitsystem);
+	atexit(uninitsystem);
 
 #ifdef USE_OPENGL
-    if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions()) {
-        buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
-        nogl = 1;
-    }
+	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions(FALSE)) {
+		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
+		nogl = 1;
+	}
 #endif
 
-    return 0;
+	return 0;
 }
 
 
@@ -260,14 +260,14 @@ int initsystem(void)
 //
 void uninitsystem(void)
 {
-    uninitinput();
-    uninitmouse();
-    uninittimer();
+	uninitinput();
+	uninitmouse();
+	uninittimer();
 
-    shutdownvideo();
+	shutdownvideo();
 #ifdef USE_OPENGL
-    unloadglfunctions();
-    unloadgldriver();
+	unloadglfunctions();
+	unloadgldriver();
 #endif
 }
 
@@ -277,8 +277,8 @@ void uninitsystem(void)
 //
 void initputs(const char *str)
 {
-    startwin_puts(str);
-    startwin_idle(NULL);
+	startwin_puts(str);
+	startwin_idle(NULL);
 }
 
 
@@ -288,11 +288,11 @@ void initputs(const char *str)
 void debugprintf(const char *f, ...)
 {
 #ifdef DEBUGGINGAIDS
-    va_list va;
+	va_list va;
 
-    va_start(va,f);
-    Bvfprintf(stderr, f, va);
-    va_end(va);
+	va_start(va,f);
+	Bvfprintf(stderr, f, va);
+	va_end(va);
 #endif
 }
 
@@ -315,18 +315,18 @@ static SDL_GameController *controller = NULL;
 //
 int initinput(void)
 {
-    int i,j;
+	int i,j;
 
-    inputdevices = 1|2; // keyboard (1) and mouse (2)
-    mouseacquired = 0;
+	inputdevices = 1|2; // keyboard (1) and mouse (2)
+	mouseacquired = 0;
 
-    memset(keynames,0,sizeof(keynames));
-    for (i=0; i<SDL_NUM_SCANCODES; i++) {
-        if (!keytranslation[i].normal) continue;
-        strncpy(keynames[ keytranslation[i].normal ], SDL_GetScancodeName(i), sizeof(keynames[i])-1);
-    }
+	memset(keynames,0,sizeof(keynames));
+	for (i=0; i<SDL_NUM_SCANCODES; i++) {
+		if (!keytranslation[i].normal) continue;
+		strncpy(keynames[ keytranslation[i].normal ], SDL_GetScancodeName(i), sizeof(keynames[i])-1);
+	}
 
-    if (!SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER)) {
+	if (!SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER)) {
 		int flen, fh;
 		char *dbuf = NULL;
 		SDL_RWops *rwops = NULL;
@@ -378,9 +378,9 @@ int initinput(void)
 				buildprintf("No controllers are usable\n");
 			}
 		}
-    }
+	}
 
-    return 0;
+	return 0;
 }
 
 //
@@ -388,30 +388,30 @@ int initinput(void)
 //
 void uninitinput(void)
 {
-    uninitmouse();
+	uninitmouse();
 
-    if (controller) {
+	if (controller) {
 		SDL_GameControllerClose(controller);
-        controller = NULL;
-    }
+		controller = NULL;
+	}
 }
 
 const char *getkeyname(int num)
 {
-    if ((unsigned)num >= 256) return NULL;
-    return keynames[num];
+	if ((unsigned)num >= 256) return NULL;
+	return keynames[num];
 }
 
 const char *getjoyname(int what, int num)
 {
-    switch (what) {
-        case 0: // axis
+	switch (what) {
+		case 0: // axis
 			return SDL_GameControllerGetStringForAxis(num);
-        case 1: // button
-            return SDL_GameControllerGetStringForButton(num);
-        default:
-            return NULL;
-    }
+		case 1: // button
+			return SDL_GameControllerGetStringForButton(num);
+		default:
+			return NULL;
+	}
 }
 
 //
@@ -419,24 +419,24 @@ const char *getjoyname(int what, int num)
 //
 unsigned char bgetchar(void)
 {
-    unsigned char c;
-    if (keyasciififoplc == keyasciififoend) return 0;
-    c = keyasciififo[keyasciififoplc];
-    keyasciififoplc = ((keyasciififoplc+1)&(KEYFIFOSIZ-1));
+	unsigned char c;
+	if (keyasciififoplc == keyasciififoend) return 0;
+	c = keyasciififo[keyasciififoplc];
+	keyasciififoplc = ((keyasciififoplc+1)&(KEYFIFOSIZ-1));
 #ifdef __APPLE__
-    if (c == SDL_SCANCODE_DELETE) c = SDL_SCANCODE_BACKSPACE;
+	if (c == SDL_SCANCODE_DELETE) c = SDL_SCANCODE_BACKSPACE;
 #endif
-    return c;
+	return c;
 }
 
 int bkbhit(void)
 {
-    return (keyasciififoplc != keyasciififoend);
+	return (keyasciififoplc != keyasciififoend);
 }
 
 void bflushchars(void)
 {
-    keyasciififoplc = keyasciififoend = 0;
+	keyasciififoplc = keyasciififoend = 0;
 }
 
 
@@ -452,9 +452,9 @@ void setjoypresscallback(void (*callback)(int, int)) { joypresscallback = callba
 //
 int initmouse(void)
 {
-    moustat=1;
-    grabmouse(1);
-    return 0;
+	moustat=1;
+	grabmouse(1);
+	return 0;
 }
 
 //
@@ -462,8 +462,8 @@ int initmouse(void)
 //
 void uninitmouse(void)
 {
-    grabmouse(0);
-    moustat=0;
+	grabmouse(0);
+	moustat=0;
 }
 
 
@@ -472,15 +472,15 @@ void uninitmouse(void)
 //
 void grabmouse(int a)
 {
-    if (appactive && moustat) {
-        if (a != mouseacquired) {
-            SDL_SetRelativeMouseMode(a ? SDL_TRUE : SDL_FALSE);
-            mouseacquired = a;
-        }
-    } else {
-        mouseacquired = a;
-    }
-    mousex = mousey = 0;
+	if (appactive && moustat) {
+		if (a != mouseacquired) {
+			SDL_SetRelativeMouseMode(a ? SDL_TRUE : SDL_FALSE);
+			mouseacquired = a;
+		}
+	} else {
+		mouseacquired = a;
+	}
+	mousex = mousey = 0;
 }
 
 
@@ -489,10 +489,10 @@ void grabmouse(int a)
 //
 void readmousexy(int *x, int *y)
 {
-    if (!mouseacquired || !appactive || !moustat) { *x = *y = 0; return; }
-    *x = mousex;
-    *y = mousey;
-    mousex = mousey = 0;
+	if (!mouseacquired || !appactive || !moustat) { *x = *y = 0; return; }
+	*x = mousex;
+	*y = mousey;
+	mousex = mousey = 0;
 }
 
 //
@@ -500,12 +500,12 @@ void readmousexy(int *x, int *y)
 //
 void readmousebstatus(int *b)
 {
-    if (!mouseacquired || !appactive || !moustat) *b = 0;
-    else *b = mouseb;
-    // clear mousewheel events - the game has them now (in *b)
-    // the other mousebuttons are cleared when there's a "button released"
-    // event, but for the mousewheel that doesn't work, as it's released immediately
-    mouseb &= ~(1<<4 | 1<<5);
+	if (!mouseacquired || !appactive || !moustat) *b = 0;
+	else *b = mouseb;
+	// clear mousewheel events - the game has them now (in *b)
+	// the other mousebuttons are cleared when there's a "button released"
+	// event, but for the mousewheel that doesn't work, as it's released immediately
+	mouseb &= ~(1<<4 | 1<<5);
 }
 
 //
@@ -537,17 +537,17 @@ static void (*usertimercallback)(void) = NULL;
 //
 int inittimer(int tickspersecond)
 {
-    if (timerfreq) return 0;    // already installed
+	if (timerfreq) return 0;    // already installed
 
-    buildputs("Initialising timer\n");
+	buildputs("Initialising timer\n");
 
-    timerfreq = SDL_GetPerformanceFrequency();
-    timerticspersec = tickspersecond;
-    timerlastsample = (Uint32)(SDL_GetPerformanceCounter() * timerticspersec / timerfreq);
+	timerfreq = SDL_GetPerformanceFrequency();
+	timerticspersec = tickspersecond;
+	timerlastsample = (Uint32)(SDL_GetPerformanceCounter() * timerticspersec / timerfreq);
 
-    usertimercallback = NULL;
+	usertimercallback = NULL;
 
-    return 0;
+	return 0;
 }
 
 //
@@ -555,9 +555,9 @@ int inittimer(int tickspersecond)
 //
 void uninittimer(void)
 {
-    if (!timerfreq) return;
+	if (!timerfreq) return;
 
-    timerfreq=0;
+	timerfreq=0;
 }
 
 //
@@ -565,17 +565,17 @@ void uninittimer(void)
 //
 void sampletimer(void)
 {
-    int n;
+	int n;
 
-    if (!timerfreq) return;
+	if (!timerfreq) return;
 
-    n = (int)(SDL_GetPerformanceCounter() * timerticspersec / timerfreq) - timerlastsample;
-    if (n>0) {
-        totalclock += n;
-        timerlastsample += n;
-    }
+	n = (int)(SDL_GetPerformanceCounter() * timerticspersec / timerfreq) - timerlastsample;
+	if (n>0) {
+		totalclock += n;
+		timerlastsample += n;
+	}
 
-    if (usertimercallback) for (; n>0; n--) usertimercallback();
+	if (usertimercallback) for (; n>0; n--) usertimercallback();
 }
 
 //
@@ -583,7 +583,7 @@ void sampletimer(void)
 //
 unsigned int getticks(void)
 {
-    return (unsigned int)SDL_GetTicks();
+	return (unsigned int)SDL_GetTicks();
 }
 
 //
@@ -591,7 +591,7 @@ unsigned int getticks(void)
 //
 unsigned int getusecticks(void)
 {
-    return (unsigned int)SDL_GetTicks() * 1000;
+	return (unsigned int)SDL_GetTicks() * 1000;
 }
 
 
@@ -600,7 +600,7 @@ unsigned int getusecticks(void)
 //
 int gettimerfreq(void)
 {
-    return timerticspersec;
+	return timerticspersec;
 }
 
 
@@ -609,12 +609,12 @@ int gettimerfreq(void)
 //
 void (*installusertimercallback(void (*callback)(void)))(void)
 {
-    void (*oldtimercallback)(void);
+	void (*oldtimercallback)(void);
 
-    oldtimercallback = usertimercallback;
-    usertimercallback = callback;
+	oldtimercallback = usertimercallback;
+	usertimercallback = callback;
 
-    return oldtimercallback;
+	return oldtimercallback;
 }
 
 
@@ -635,92 +635,92 @@ void (*installusertimercallback(void (*callback)(void)))(void)
 //
 static int sortmodes(const struct validmode_t *a, const struct validmode_t *b)
 {
-    int x;
+	int x;
 
-    if ((x = a->fs   - b->fs)   != 0) return x;
-    if ((x = a->bpp  - b->bpp)  != 0) return x;
-    if ((x = a->xdim - b->xdim) != 0) return x;
-    if ((x = a->ydim - b->ydim) != 0) return x;
+	if ((x = a->fs   - b->fs)   != 0) return x;
+	if ((x = a->bpp  - b->bpp)  != 0) return x;
+	if ((x = a->xdim - b->xdim) != 0) return x;
+	if ((x = a->ydim - b->ydim) != 0) return x;
 
-    return 0;
+	return 0;
 }
 static char modeschecked=0;
 void getvalidmodes(void)
 {
-    static int defaultres[][2] = {
-        {1920,1200},{1920,1080},{1600,1200},{1680,1050},{1600,900},{1400,1050},{1440,900},{1366,768},
-        {1280,1024},{1280,960},{1280,800},{1280,720},{1152,864},{1024,768},{800,600},{640,480},
-        {640,400},{512,384},{480,360},{400,300},{320,240},{320,200},{0,0}
-    };
-    SDL_DisplayMode mode, desktop;
-    int i, j, maxx=0, maxy=0;
+	static int defaultres[][2] = {
+		{1920,1200},{1920,1080},{1600,1200},{1680,1050},{1600,900},{1400,1050},{1440,900},{1366,768},
+		{1280,1024},{1280,960},{1280,800},{1280,720},{1152,864},{1024,768},{800,600},{640,480},
+		{640,400},{512,384},{480,360},{400,300},{320,240},{320,200},{0,0}
+	};
+	SDL_DisplayMode mode, desktop;
+	int i, j, maxx=0, maxy=0;
 
-    if (modeschecked) return;
+	if (modeschecked) return;
 
-    validmodecnt=0;
+	validmodecnt=0;
 
-    if (SDL_GetNumVideoDisplays() < 1) {
-        buildputs("No video displays available!\n");
-        return;
-    }
+	if (SDL_GetNumVideoDisplays() < 1) {
+		buildputs("No video displays available!\n");
+		return;
+	}
 
-    buildputs("Detecting video modes:\n");
+	buildputs("Detecting video modes:\n");
 
 #define ADDMODE(x,y,c,f) if (validmodecnt<MAXVALIDMODES) { \
-    int mn; \
-    for(mn=0;mn<validmodecnt;mn++) \
-        if (validmode[mn].xdim==x && validmode[mn].ydim==y && \
-            validmode[mn].bpp==c  && validmode[mn].fs==f) break; \
-    if (mn==validmodecnt) { \
-        validmode[validmodecnt].xdim=x; \
-        validmode[validmodecnt].ydim=y; \
-        validmode[validmodecnt].bpp=c; \
-        validmode[validmodecnt].fs=f; \
-        validmodecnt++; \
-        buildprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
-    } \
+	int mn; \
+	for(mn=0;mn<validmodecnt;mn++) \
+		if (validmode[mn].xdim==x && validmode[mn].ydim==y && \
+			validmode[mn].bpp==c  && validmode[mn].fs==f) break; \
+	if (mn==validmodecnt) { \
+		validmode[validmodecnt].xdim=x; \
+		validmode[validmodecnt].ydim=y; \
+		validmode[validmodecnt].bpp=c; \
+		validmode[validmodecnt].fs=f; \
+		validmodecnt++; \
+		buildprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
+	} \
 }
 
 #define CHECKL(w,h) if ((w < maxx) && (h < maxy))
 #define CHECKLE(w,h) if ((w <= maxx) && (h <= maxy))
 
-    SDL_GetDesktopDisplayMode(0, &desktop);
-    maxx = desktop.w;
-    maxy = desktop.h;
+	SDL_GetDesktopDisplayMode(0, &desktop);
+	maxx = desktop.w;
+	maxy = desktop.h;
 
-    // Fullscreen 8-bit modes: upsamples to the desktop mode
-    for (i=0; defaultres[i][0]; i++)
-        CHECKLE(defaultres[i][0],defaultres[i][1])
-            ADDMODE(defaultres[i][0],defaultres[i][1],8,1)
+	// Fullscreen 8-bit modes: upsamples to the desktop mode
+	for (i=0; defaultres[i][0]; i++)
+		CHECKLE(defaultres[i][0],defaultres[i][1])
+			ADDMODE(defaultres[i][0],defaultres[i][1],8,1)
 
-    // Fullscreen >8-bit modes
-    for (j = SDL_GetNumDisplayModes(0) - 1; j >= 0; j--) {
-        SDL_GetDisplayMode(0, j, &mode);
-        if ((mode.w > MAXXDIM) || (mode.h > MAXYDIM)) continue;
-        if (SDL_BITSPERPIXEL(mode.format) < 8) continue;
-        ADDMODE(mode.w, mode.h, SDL_BITSPERPIXEL(mode.format), 1)
-    }
+	// Fullscreen >8-bit modes
+	for (j = SDL_GetNumDisplayModes(0) - 1; j >= 0; j--) {
+		SDL_GetDisplayMode(0, j, &mode);
+		if ((mode.w > MAXXDIM) || (mode.h > MAXYDIM)) continue;
+		if (SDL_BITSPERPIXEL(mode.format) < 8) continue;
+		ADDMODE(mode.w, mode.h, SDL_BITSPERPIXEL(mode.format), 1)
+	}
 
-    // Windowed 8-bit modes
-    for (i=0; defaultres[i][0]; i++) {
-        CHECKL(defaultres[i][0],defaultres[i][1]) {
-            ADDMODE(defaultres[i][0], defaultres[i][1], 8, 0)
-        }
-    }
+	// Windowed 8-bit modes
+	for (i=0; defaultres[i][0]; i++) {
+		CHECKL(defaultres[i][0],defaultres[i][1]) {
+			ADDMODE(defaultres[i][0], defaultres[i][1], 8, 0)
+		}
+	}
 
-    // Windowed >8-bit modes
-    for (i=0; defaultres[i][0]; i++) {
-        CHECKL(defaultres[i][0],defaultres[i][1]) {
-            ADDMODE(defaultres[i][0], defaultres[i][1], SDL_BITSPERPIXEL(desktop.format), 0)
-        }
-    }
+	// Windowed >8-bit modes
+	for (i=0; defaultres[i][0]; i++) {
+		CHECKL(defaultres[i][0],defaultres[i][1]) {
+			ADDMODE(defaultres[i][0], defaultres[i][1], SDL_BITSPERPIXEL(desktop.format), 0)
+		}
+	}
 
 #undef CHECK
 #undef ADDMODE
 
-    qsort((void*)validmode, validmodecnt, sizeof(struct validmode_t), (int(*)(const void*,const void*))sortmodes);
+	qsort((void*)validmode, validmodecnt, sizeof(struct validmode_t), (int(*)(const void*,const void*))sortmodes);
 
-    modeschecked=1;
+	modeschecked=1;
 }
 
 
@@ -729,62 +729,62 @@ void getvalidmodes(void)
 //
 int checkvideomode(int *x, int *y, int c, int fs, int forced)
 {
-    int i, nearest=-1, dx, dy, odx=9999, ody=9999;
+	int i, nearest=-1, dx, dy, odx=9999, ody=9999;
 
-    getvalidmodes();
+	getvalidmodes();
 
 #ifdef USE_OPENGL
-    if (c > 8 && nogl) return -1;
+	if (c > 8 && nogl) return -1;
 #else
-    if (c > 8) return -1;
+	if (c > 8) return -1;
 #endif
 
-    // fix up the passed resolution values to be multiples of 8
-    // and at least 320x200 or at most MAXXDIMxMAXYDIM
-    if (*x < 320) *x = 320;
-    if (*y < 200) *y = 200;
-    if (*x > MAXXDIM) *x = MAXXDIM;
-    if (*y > MAXYDIM) *y = MAXYDIM;
-    *x &= 0xfffffff8l;
+	// fix up the passed resolution values to be multiples of 8
+	// and at least 320x200 or at most MAXXDIMxMAXYDIM
+	if (*x < 320) *x = 320;
+	if (*y < 200) *y = 200;
+	if (*x > MAXXDIM) *x = MAXXDIM;
+	if (*y > MAXYDIM) *y = MAXYDIM;
+	*x &= 0xfffffff8l;
 
-    for (i=0; i<validmodecnt; i++) {
-        if (validmode[i].bpp != c) continue;
-        if (validmode[i].fs != fs) continue;
-        dx = klabs(validmode[i].xdim - *x);
-        dy = klabs(validmode[i].ydim - *y);
-        if (!(dx | dy)) {   // perfect match
-            nearest = i;
-            break;
-        }
-        if ((dx <= odx) && (dy <= ody)) {
-            nearest = i;
-            odx = dx; ody = dy;
-        }
-    }
+	for (i=0; i<validmodecnt; i++) {
+		if (validmode[i].bpp != c) continue;
+		if (validmode[i].fs != fs) continue;
+		dx = klabs(validmode[i].xdim - *x);
+		dy = klabs(validmode[i].ydim - *y);
+		if (!(dx | dy)) {   // perfect match
+			nearest = i;
+			break;
+		}
+		if ((dx <= odx) && (dy <= ody)) {
+			nearest = i;
+			odx = dx; ody = dy;
+		}
+	}
 
 #ifdef ANY_WINDOWED_SIZE
-    if (!forced && (fs&1) == 0 && (nearest < 0 || (validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)))
-        return 0x7fffffffl;
+	if (!forced && (fs&1) == 0 && (nearest < 0 || (validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)))
+		return 0x7fffffffl;
 #endif
 
-    if (nearest < 0) {
-        // no mode that will match (eg. if no fullscreen modes)
-        return -1;
-    }
+	if (nearest < 0) {
+		// no mode that will match (eg. if no fullscreen modes)
+		return -1;
+	}
 
-    *x = validmode[nearest].xdim;
-    *y = validmode[nearest].ydim;
+	*x = validmode[nearest].xdim;
+	*y = validmode[nearest].ydim;
 
-    return nearest;     // JBF 20031206: Returns the mode number
+	return nearest;     // JBF 20031206: Returns the mode number
 }
 
 
 static void shutdownvideo(void)
 {
-    if (frame) {
-        free(frame);
-        frame = NULL;
-    }
+	if (frame) {
+		free(frame);
+		frame = NULL;
+	}
 #ifdef USE_OPENGL
 	if (gl8bitprogram) {
 		bglUseProgram(0);	// Disable shaders, go back to fixed-function.
@@ -800,24 +800,24 @@ static void shutdownvideo(void)
 		gl8bitframetex = 0;
 	}
 #endif
-    if (sdl_texture) {
-        SDL_DestroyTexture(sdl_texture);
-        sdl_texture = NULL;
-    }
-    if (sdl_renderer) {
-        SDL_DestroyRenderer(sdl_renderer);
-        sdl_renderer = NULL;
-    }
-    if (sdl_glcontext) {
-        polymost_glreset();
+	if (sdl_texture) {
+		SDL_DestroyTexture(sdl_texture);
+		sdl_texture = NULL;
+	}
+	if (sdl_renderer) {
+		SDL_DestroyRenderer(sdl_renderer);
+		sdl_renderer = NULL;
+	}
+	if (sdl_glcontext) {
+		polymost_glreset();
 
-        SDL_GL_DeleteContext(sdl_glcontext);
-        sdl_glcontext = NULL;
-    }
-    if (sdl_window) {
-        SDL_DestroyWindow(sdl_window);
-        sdl_window = NULL;
-    }
+		SDL_GL_DeleteContext(sdl_glcontext);
+		sdl_glcontext = NULL;
+	}
+	if (sdl_window) {
+		SDL_DestroyWindow(sdl_window);
+		sdl_window = NULL;
+	}
 }
 
 //
@@ -825,28 +825,28 @@ static void shutdownvideo(void)
 //
 int setvideomode(int x, int y, int c, int fs)
 {
-    int modenum, regrab = 0;
-    int flags;
+	int modenum, regrab = 0;
+	int flags;
 
-    if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
-        !videomodereset) {
-        OSD_ResizeDisplay(xres,yres);
-        return 0;
-    }
+	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
+		!videomodereset) {
+		OSD_ResizeDisplay(xres,yres);
+		return 0;
+	}
 
-    if (checkvideomode(&x,&y,c,fs,0) < 0) return -1;	// Will return if GL mode not available.
+	if (checkvideomode(&x,&y,c,fs,0) < 0) return -1;	// Will return if GL mode not available.
 
-    if (mouseacquired) {
-        regrab = 1;
-        grabmouse(0);
-    }
+	if (mouseacquired) {
+		regrab = 1;
+		grabmouse(0);
+	}
 
-    shutdownvideo();
+	shutdownvideo();
 
-    buildprintf("Setting video mode %dx%d (%d-bpp %s)\n", x,y,c,
-        (fs & 1) ? "fullscreen" : "windowed");
+	buildprintf("Setting video mode %dx%d (%d-bpp %s)\n", x,y,c,
+		(fs & 1) ? "fullscreen" : "windowed");
 
-    do {
+	do {
 		if (!nogl) {
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -857,40 +857,40 @@ int setvideomode(int x, int y, int c, int fs)
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glmultisample);
 		}
 
-        flags = 0;
+		flags = 0;
 		if (!nogl) {
 			flags |= SDL_WINDOW_OPENGL;
 		}
 		if (fs & 1) {
-        	if (c > 8) flags |= SDL_WINDOW_FULLSCREEN;
+			if (c > 8) flags |= SDL_WINDOW_FULLSCREEN;
 			else flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-        }
+		}
 
-        sdl_window = SDL_CreateWindow(apptitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
-        if (!sdl_window) {
-            buildprintf("Error creating window: %s\n", SDL_GetError());
+		sdl_window = SDL_CreateWindow(apptitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
+		if (!sdl_window) {
+			buildprintf("Error creating window: %s\n", SDL_GetError());
 
 			if (glmultisample > 0) {
-                buildprintf("Retrying without multisampling.\n");
-                glmultisample = 0;
-                continue;
-            }
+				buildprintf("Retrying without multisampling.\n");
+				glmultisample = 0;
+				continue;
+			}
 
-            return -1;
-        }
+			return -1;
+		}
 		break;
-    } while (1);
+	} while (1);
 
 #ifndef __APPLE__
-    {
-        SDL_Surface *icon = loadappicon();
-        SDL_SetWindowIcon(sdl_window, icon);
-        SDL_FreeSurface(icon);
-    }
+	{
+		SDL_Surface *icon = loadappicon();
+		SDL_SetWindowIcon(sdl_window, icon);
+		SDL_FreeSurface(icon);
+	}
 #endif
 
-    if (c == 8) {
-        int i, j;
+	if (c == 8) {
+		int i, j;
 
 		if (nogl) {
 			// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
@@ -918,7 +918,10 @@ int setvideomode(int x, int y, int c, int fs)
 				return -1;
 			}
 
-			baselayer_setupopengl();
+			if (baselayer_setupopengl()) {
+				shutdownvideo();
+				return -1;
+			}
 			if (glbuild_prepare_8bit_shader(&gl8bitpaltex, &gl8bitframetex, &gl8bitprogram, x, y) < 0) {
 				shutdownvideo();
 				return -1;
@@ -932,60 +935,63 @@ int setvideomode(int x, int y, int c, int fs)
 			bglLoadIdentity();
 		}
 
-        frame = (unsigned char *) malloc(x * y);
-        if (!frame) {
-            buildputs("Unable to allocate framebuffer\n");
-            return -1;
-        }
+		frame = (unsigned char *) malloc(x * y);
+		if (!frame) {
+			buildputs("Unable to allocate framebuffer\n");
+			return -1;
+		}
 
-        frameplace = (intptr_t) frame;
-        bytesperline = x;
-        imageSize = bytesperline * y;
-        numpages = 1;
+		frameplace = (intptr_t) frame;
+		bytesperline = x;
+		imageSize = bytesperline * y;
+		numpages = 1;
 
-        setvlinebpl(bytesperline);
+		setvlinebpl(bytesperline);
 		for (i = j = 0; i <= y; i++) {
 			ylookup[i] = j;
 			j += bytesperline;
 		}
 
-    } else {
-        sdl_glcontext = SDL_GL_CreateContext(sdl_window);
-        if (!sdl_glcontext) {
-            buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
-            return -1;
-        }
+	} else {
+		sdl_glcontext = SDL_GL_CreateContext(sdl_window);
+		if (!sdl_glcontext) {
+			buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
+			return -1;
+		}
 
-        baselayer_setupopengl();
-        polymost_glreset();
+		if (baselayer_setupopengl()) {
+			shutdownvideo();
+			return -1;
+		}
+		polymost_glreset();
 
-        frameplace = 0;
-        bytesperline = 0;
-        imageSize = 0;
-        numpages = 2;
-    }
+		frameplace = 0;
+		bytesperline = 0;
+		imageSize = 0;
+		numpages = 2;
+	}
 
-    xres = x;
-    yres = y;
-    bpp = c;
-    fullscreen = fs;
-    modechange = 1;
-    videomodereset = 0;
-    OSD_ResizeDisplay(xres,yres);
+	xres = x;
+	yres = y;
+	bpp = c;
+	fullscreen = fs;
+	modechange = 1;
+	videomodereset = 0;
+	OSD_ResizeDisplay(xres,yres);
 
-    gammabrightness = (SDL_SetWindowBrightness(sdl_window, curgamma) == 0);
+	gammabrightness = (SDL_SetWindowBrightness(sdl_window, curgamma) == 0);
 
-    // setpalettefade will set the palette according to whether gamma worked
-    setpalettefade(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);
+	// setpalettefade will set the palette according to whether gamma worked
+	setpalettefade(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);
 
-    if (regrab) grabmouse(1);
+	if (regrab) grabmouse(1);
 
-    startwin_close();
+	startwin_close();
 
-    // Start listening for character input.
-    SDL_EventState(SDL_TEXTINPUT, SDL_ENABLE);
+	// Start listening for character input.
+	SDL_EventState(SDL_TEXTINPUT, SDL_ENABLE);
 
-    return 0;
+	return 0;
 }
 
 
@@ -994,8 +1000,8 @@ int setvideomode(int x, int y, int c, int fs)
 //
 void resetvideomode(void)
 {
-    videomodereset = 1;
-    modeschecked = 0;
+	videomodereset = 1;
+	modeschecked = 0;
 }
 
 
@@ -1020,37 +1026,37 @@ void enddrawing(void)
 //
 void showframe(int UNUSED(w))
 {
-    int i,j;
+	int i,j;
 
 #ifdef USE_OPENGL
 	if (!nogl) {
-        if (bpp > 8 && palfadedelta) {
-            bglMatrixMode(GL_PROJECTION);
-            bglPushMatrix();
-            bglLoadIdentity();
-            bglMatrixMode(GL_MODELVIEW);
-            bglPushMatrix();
-            bglLoadIdentity();
+		if (bpp > 8 && palfadedelta) {
+			bglMatrixMode(GL_PROJECTION);
+			bglPushMatrix();
+			bglLoadIdentity();
+			bglMatrixMode(GL_MODELVIEW);
+			bglPushMatrix();
+			bglLoadIdentity();
 
-            bglDisable(GL_DEPTH_TEST);
-            bglDisable(GL_ALPHA_TEST);
-            bglDisable(GL_TEXTURE_2D);
+			bglDisable(GL_DEPTH_TEST);
+			bglDisable(GL_ALPHA_TEST);
+			bglDisable(GL_TEXTURE_2D);
 
-            bglEnable(GL_BLEND);
-            bglColor4ub(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);
+			bglEnable(GL_BLEND);
+			bglColor4ub(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);
 
-            bglBegin(GL_QUADS);
-            bglVertex2i(-1, -1);
-            bglVertex2i(1, -1);
-            bglVertex2i(1, 1);
-            bglVertex2i(-1, 1);
-            bglEnd();
+			bglBegin(GL_QUADS);
+			bglVertex2i(-1, -1);
+			bglVertex2i(1, -1);
+			bglVertex2i(1, 1);
+			bglVertex2i(-1, 1);
+			bglEnd();
 
-            bglMatrixMode(GL_MODELVIEW);
-            bglPopMatrix();
-            bglMatrixMode(GL_PROJECTION);
-            bglPopMatrix();
-        }
+			bglMatrixMode(GL_MODELVIEW);
+			bglPopMatrix();
+			bglMatrixMode(GL_PROJECTION);
+			bglPopMatrix();
+		}
 
 		if (bpp == 8) {
 			bglActiveTexture(GL_TEXTURE0);
@@ -1068,7 +1074,7 @@ void showframe(int UNUSED(w))
 			bglEnd();
 		}
 
-        SDL_GL_SwapWindow(sdl_window);
+		SDL_GL_SwapWindow(sdl_window);
 		return;
 	}
 #endif
@@ -1119,7 +1125,7 @@ int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal)
 		bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, curpalettefaded);
 	}
 #endif
-    return 0;
+	return 0;
 }
 
 //
@@ -1127,10 +1133,10 @@ int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal)
 //
 int setgamma(float gamma)
 {
-    if (sdl_window) {
-        return SDL_SetWindowBrightness(sdl_window, gamma) == 0;
-    }
-    return 0;
+	if (sdl_window) {
+		return SDL_SetWindowBrightness(sdl_window, gamma) == 0;
+	}
+	return 0;
 }
 
 
@@ -1140,20 +1146,20 @@ int setgamma(float gamma)
 //
 int loadgldriver(const char *soname)
 {
-    const char *name = soname;
-    if (!name) {
-        name = "system OpenGL library";
-    }
+	const char *name = soname;
+	if (!name) {
+		name = "system OpenGL library";
+	}
 
-    buildprintf("Loading %s\n", name);
-    if (SDL_GL_LoadLibrary(soname)) return -1;
-    return 0;
+	buildprintf("Loading %s\n", name);
+	if (SDL_GL_LoadLibrary(soname)) return -1;
+	return 0;
 }
 
 int unloadgldriver(void)
 {
-    SDL_GL_UnloadLibrary();
-    return 0;
+	SDL_GL_UnloadLibrary();
+	return 0;
 }
 
 //
@@ -1161,7 +1167,7 @@ int unloadgldriver(void)
 //
 void *getglprocaddress(const char *name, int UNUSED(ext))
 {
-    return (void*)SDL_GL_GetProcAddress(name);
+	return (void*)SDL_GL_GetProcAddress(name);
 }
 #endif
 
@@ -1170,13 +1176,13 @@ void *getglprocaddress(const char *name, int UNUSED(ext))
 extern struct sdlappicon sdlappicon;
 static SDL_Surface * loadappicon(void)
 {
-    SDL_Surface *surf;
+	SDL_Surface *surf;
 
-    surf = SDL_CreateRGBSurfaceFrom((void*)sdlappicon.pixels,
-            sdlappicon.width, sdlappicon.height, 32, sdlappicon.width*4,
-            0xffl,0xff00l,0xff0000l,0xff000000l);
+	surf = SDL_CreateRGBSurfaceFrom((void*)sdlappicon.pixels,
+			sdlappicon.width, sdlappicon.height, 32, sdlappicon.width*4,
+			0xffl,0xff00l,0xff0000l,0xff000000l);
 
-    return surf;
+	return surf;
 }
 #endif
 
@@ -1197,300 +1203,300 @@ static SDL_Surface * loadappicon(void)
 //
 int handleevents(void)
 {
-    int code, rv=0, j, control;
-    SDL_Event ev;
-    static int firstcall = 1;
-    int eattextinput = 0;
+	int code, rv=0, j, control;
+	SDL_Event ev;
+	static int firstcall = 1;
+	int eattextinput = 0;
 
 #define SetKey(key,state) { \
-    keystatus[key] = state; \
-        if (state) { \
-    keyfifo[keyfifoend] = key; \
-    keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = state; \
-    keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1)); \
-        } \
+	keystatus[key] = state; \
+		if (state) { \
+	keyfifo[keyfifoend] = key; \
+	keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = state; \
+	keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1)); \
+		} \
 }
 
-    while (SDL_PollEvent(&ev)) {
-        switch (ev.type) {
-            case SDL_TEXTINPUT:
-                if (eattextinput) {
-                    eattextinput = 0;
-                    break;
-                }
-                for (j = 0; j < SDL_TEXTINPUTEVENT_TEXT_SIZE && ev.text.text[j]; j++) {
-                    if (ev.text.text[j] & 0x80) {
-                        continue;   // UTF8 character byte
-                    }
-                    code = ev.text.text[j];
-                    if (OSD_HandleChar(code)) {
-                        if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
-                            keyasciififo[keyasciififoend] = code;
-                            keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
-                        }
-                    }
-                }
-                break;
+	while (SDL_PollEvent(&ev)) {
+		switch (ev.type) {
+			case SDL_TEXTINPUT:
+				if (eattextinput) {
+					eattextinput = 0;
+					break;
+				}
+				for (j = 0; j < SDL_TEXTINPUTEVENT_TEXT_SIZE && ev.text.text[j]; j++) {
+					if (ev.text.text[j] & 0x80) {
+						continue;   // UTF8 character byte
+					}
+					code = ev.text.text[j];
+					if (OSD_HandleChar(code)) {
+						if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
+							keyasciififo[keyasciififoend] = code;
+							keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+						}
+					}
+				}
+				break;
 
-            case SDL_KEYUP:
-                // (un)grab mouse with ctrl-g
-                if (ev.key.keysym.sym == SDLK_g
-                    && (ev.key.keysym.mod & KMOD_CTRL)) {
-                    grabmouse(!mouseacquired);
-                    break;
-                }
-                // else: fallthrough
-            case SDL_KEYDOWN:
-                code = keytranslation[ev.key.keysym.scancode].normal;
-                control = keytranslation[ev.key.keysym.scancode].controlchar;
+			case SDL_KEYUP:
+				// (un)grab mouse with ctrl-g
+				if (ev.key.keysym.sym == SDLK_g
+					&& (ev.key.keysym.mod & KMOD_CTRL)) {
+					grabmouse(!mouseacquired);
+					break;
+				}
+				// else: fallthrough
+			case SDL_KEYDOWN:
+				code = keytranslation[ev.key.keysym.scancode].normal;
+				control = keytranslation[ev.key.keysym.scancode].controlchar;
 
-                if (control && ev.key.type == SDL_KEYDOWN) {
-                    int needcontrol = (control & WITH_CONTROL_KEY) == WITH_CONTROL_KEY;
-                    int mod = ev.key.keysym.mod & ~(KMOD_CAPS|KMOD_NUM);
-                    control &= ~WITH_CONTROL_KEY;
+				if (control && ev.key.type == SDL_KEYDOWN) {
+					int needcontrol = (control & WITH_CONTROL_KEY) == WITH_CONTROL_KEY;
+					int mod = ev.key.keysym.mod & ~(KMOD_CAPS|KMOD_NUM);
+					control &= ~WITH_CONTROL_KEY;
 
-                    // May need to insert a control character into the ascii input
-                    // FIFO depending on what the state of the control keys are.
-                    if ((needcontrol  && mod && (mod & KMOD_CTRL) == mod) ||
-                        (!needcontrol && (mod == KMOD_NONE))) {
-                        if (OSD_HandleChar(control)) {
-                            if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
-                                keyasciififo[keyasciififoend] = control;
-                                keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
-                            }
-                        }
-                    }
-                }
+					// May need to insert a control character into the ascii input
+					// FIFO depending on what the state of the control keys are.
+					if ((needcontrol  && mod && (mod & KMOD_CTRL) == mod) ||
+						(!needcontrol && (mod == KMOD_NONE))) {
+						if (OSD_HandleChar(control)) {
+							if (((keyasciififoend+1)&(KEYFIFOSIZ-1)) != keyasciififoplc) {
+								keyasciififo[keyasciififoend] = control;
+								keyasciififoend = ((keyasciififoend+1)&(KEYFIFOSIZ-1));
+							}
+						}
+					}
+				}
 
-                // hook in the osd
-                if (code == OSD_CaptureKey(-1)) {
-                    if (ev.key.type == SDL_KEYDOWN) {
-                        // The character produced by the OSD toggle key needs to be ignored.
-                        eattextinput = 1;
+				// hook in the osd
+				if (code == OSD_CaptureKey(-1)) {
+					if (ev.key.type == SDL_KEYDOWN) {
+						// The character produced by the OSD toggle key needs to be ignored.
+						eattextinput = 1;
 
-                        OSD_ShowDisplay(-1);
-                    }
-                    break;
-                } else if (OSD_HandleKey(code, (ev.key.type == SDL_KEYDOWN)) == 0)
-                    break;
+						OSD_ShowDisplay(-1);
+					}
+					break;
+				} else if (OSD_HandleKey(code, (ev.key.type == SDL_KEYDOWN)) == 0)
+					break;
 
-                if (ev.key.type == SDL_KEYDOWN) {
-                    if (!keystatus[code]) {
-                        SetKey(code, 1);
-                        if (keypresscallback)
-                            keypresscallback(code, 1);
-                    }
-                } else {
-                    SetKey(code, 0);
-                    if (keypresscallback)
-                        keypresscallback(code, 0);
-                }
-                break;
+				if (ev.key.type == SDL_KEYDOWN) {
+					if (!keystatus[code]) {
+						SetKey(code, 1);
+						if (keypresscallback)
+							keypresscallback(code, 1);
+					}
+				} else {
+					SetKey(code, 0);
+					if (keypresscallback)
+						keypresscallback(code, 0);
+				}
+				break;
 
-            case SDL_WINDOWEVENT:
-                if (ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED ||
-                        ev.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
-                    appactive = ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED;
-                    if (mouseacquired && moustat) {
-                        SDL_SetRelativeMouseMode(appactive ? SDL_TRUE : SDL_FALSE);
-                    }
-                    rv=-1;
-                }
-                break;
+			case SDL_WINDOWEVENT:
+				if (ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED ||
+						ev.window.event == SDL_WINDOWEVENT_FOCUS_LOST) {
+					appactive = ev.window.event == SDL_WINDOWEVENT_FOCUS_GAINED;
+					if (mouseacquired && moustat) {
+						SDL_SetRelativeMouseMode(appactive ? SDL_TRUE : SDL_FALSE);
+					}
+					rv=-1;
+				}
+				break;
 
-            case SDL_MOUSEBUTTONDOWN:
-            case SDL_MOUSEBUTTONUP:
-                switch (ev.button.button) {
-                    case SDL_BUTTON_LEFT: j = 0; break;
-                    case SDL_BUTTON_RIGHT: j = 1; break;
-                    case SDL_BUTTON_MIDDLE: j = 2; break;
-                    default: j = -1; break;
-                }
-                if (j<0) break;
+			case SDL_MOUSEBUTTONDOWN:
+			case SDL_MOUSEBUTTONUP:
+				switch (ev.button.button) {
+					case SDL_BUTTON_LEFT: j = 0; break;
+					case SDL_BUTTON_RIGHT: j = 1; break;
+					case SDL_BUTTON_MIDDLE: j = 2; break;
+					default: j = -1; break;
+				}
+				if (j<0) break;
 
-                if (ev.button.state == SDL_PRESSED)
-                    mouseb |= (1<<j);
-                else
-                    mouseb &= ~(1<<j);
+				if (ev.button.state == SDL_PRESSED)
+					mouseb |= (1<<j);
+				else
+					mouseb &= ~(1<<j);
 
-                if (mousepresscallback)
-                    mousepresscallback(j+1, ev.button.state == SDL_PRESSED);
-                break;
+				if (mousepresscallback)
+					mousepresscallback(j+1, ev.button.state == SDL_PRESSED);
+				break;
 
-            case SDL_MOUSEWHEEL:
-                if (ev.wheel.y > 0) {   // Up
-                    j = 5;
-                } else if (ev.wheel.y < 0) {    // Down
-                    j = 4;
-                } else {
-                    break;
-                }
-                mouseb |= 1<<j;
-                // 'release' is done in readmousebstatus()
-                if (mousepresscallback) {
-                    mousepresscallback(j+1, 1);
-                    mousepresscallback(j+1, 0);
-                }
-                break;
+			case SDL_MOUSEWHEEL:
+				if (ev.wheel.y > 0) {   // Up
+					j = 5;
+				} else if (ev.wheel.y < 0) {    // Down
+					j = 4;
+				} else {
+					break;
+				}
+				mouseb |= 1<<j;
+				// 'release' is done in readmousebstatus()
+				if (mousepresscallback) {
+					mousepresscallback(j+1, 1);
+					mousepresscallback(j+1, 0);
+				}
+				break;
 
-            case SDL_MOUSEMOTION:
-                if (!firstcall) {
-                    if (appactive) {
-                        mousex += ev.motion.xrel;
-                        mousey += ev.motion.yrel;
-                    }
-                }
-                break;
+			case SDL_MOUSEMOTION:
+				if (!firstcall) {
+					if (appactive) {
+						mousex += ev.motion.xrel;
+						mousey += ev.motion.yrel;
+					}
+				}
+				break;
 
-            case SDL_CONTROLLERAXISMOTION:
+			case SDL_CONTROLLERAXISMOTION:
 				if (appactive) {
 					joyaxis[ ev.caxis.axis ] = ev.caxis.value;
 				}
-                break;
+				break;
 
-            case SDL_CONTROLLERBUTTONDOWN:
-            case SDL_CONTROLLERBUTTONUP:
-                if (appactive) {
-                    if (ev.cbutton.state == SDL_PRESSED)
-                        joyb |= 1 << ev.cbutton.button;
-                    else
-                        joyb &= ~(1 << ev.cbutton.button);
-                }
-                break;
+			case SDL_CONTROLLERBUTTONDOWN:
+			case SDL_CONTROLLERBUTTONUP:
+				if (appactive) {
+					if (ev.cbutton.state == SDL_PRESSED)
+						joyb |= 1 << ev.cbutton.button;
+					else
+						joyb &= ~(1 << ev.cbutton.button);
+				}
+				break;
 
-            case SDL_QUIT:
-                quitevent = 1;
-                rv=-1;
-                break;
+			case SDL_QUIT:
+				quitevent = 1;
+				rv=-1;
+				break;
 
-            default:
-                //buildprintf("Got event (%d)\n", ev.type);
-                break;
-        }
-    }
+			default:
+				//buildprintf("Got event (%d)\n", ev.type);
+				break;
+		}
+	}
 
-    sampletimer();
-    startwin_idle(NULL);
+	sampletimer();
+	startwin_idle(NULL);
 #undef SetKey
 
-    firstcall = 0;
+	firstcall = 0;
 
-    return rv;
+	return rv;
 }
 
 
 static int buildkeytranslationtable(void)
 {
-    memset(keytranslation,0,sizeof(keytranslation));
+	memset(keytranslation,0,sizeof(keytranslation));
 
 #define MAP(x,y) keytranslation[x].normal = y
 #define MAPC(x,y,c) keytranslation[x].normal = y, keytranslation[x].controlchar = c
 
-    MAPC(SDL_SCANCODE_BACKSPACE, 0xe, 0x8);
-    MAPC(SDL_SCANCODE_TAB,       0xf, 0x9);
-    MAPC(SDL_SCANCODE_RETURN,    0x1c, 0xd);
-    MAP(SDL_SCANCODE_PAUSE,     0x59);  // 0x1d + 0x45 + 0x9d + 0xc5
-    MAP(SDL_SCANCODE_ESCAPE,    0x1);
-    MAP(SDL_SCANCODE_SPACE,     0x39);
-    MAP(SDL_SCANCODE_APOSTROPHE,     0x28);
-    MAP(SDL_SCANCODE_COMMA,     0x33);
-    MAP(SDL_SCANCODE_MINUS,     0xc);
-    MAP(SDL_SCANCODE_PERIOD,    0x34);
-    MAP(SDL_SCANCODE_SLASH,     0x35);
-    MAP(SDL_SCANCODE_0,     0xb);
-    MAP(SDL_SCANCODE_1,     0x2);
-    MAP(SDL_SCANCODE_2,     0x3);
-    MAP(SDL_SCANCODE_3,     0x4);
-    MAP(SDL_SCANCODE_4,     0x5);
-    MAP(SDL_SCANCODE_5,     0x6);
-    MAP(SDL_SCANCODE_6,     0x7);
-    MAP(SDL_SCANCODE_7,     0x8);
-    MAP(SDL_SCANCODE_8,     0x9);
-    MAP(SDL_SCANCODE_9,     0xa);
-    MAP(SDL_SCANCODE_SEMICOLON, 0x27);
-    MAP(SDL_SCANCODE_EQUALS,    0xd);
-    MAPC(SDL_SCANCODE_LEFTBRACKET,   0x1a, 0x1b | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_BACKSLASH, 0x2b, 0x1c | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_RIGHTBRACKET,  0x1b, 0x1d | WITH_CONTROL_KEY);
-    MAP(SDL_SCANCODE_GRAVE, 0x29);
-    MAPC(SDL_SCANCODE_A,     0x1e, 0x1 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_B,     0x30, 0x2 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_C,     0x2e, 0x3 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_D,     0x20, 0x4 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_E,     0x12, 0x5 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_F,     0x21, 0x6 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_G,     0x22, 0x7 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_H,     0x23, 0x8 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_I,     0x17, 0x9 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_J,     0x24, 0xa | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_K,     0x25, 0xb | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_L,     0x26, 0xc | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_M,     0x32, 0xd | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_N,     0x31, 0xe | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_O,     0x18, 0xf | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_P,     0x19, 0x10 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_Q,     0x10, 0x11 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_R,     0x13, 0x12 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_S,     0x1f, 0x13 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_T,     0x14, 0x14 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_U,     0x16, 0x15 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_V,     0x2f, 0x16 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_W,     0x11, 0x17 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_X,     0x2d, 0x18 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_Y,     0x15, 0x19 | WITH_CONTROL_KEY);
-    MAPC(SDL_SCANCODE_Z,     0x2c, 0x1a | WITH_CONTROL_KEY);
-    MAP(SDL_SCANCODE_DELETE,    0xd3);
-    MAP(SDL_SCANCODE_KP_0,       0x52);
-    MAP(SDL_SCANCODE_KP_1,       0x4f);
-    MAP(SDL_SCANCODE_KP_2,       0x50);
-    MAP(SDL_SCANCODE_KP_3,       0x51);
-    MAP(SDL_SCANCODE_KP_4,       0x4b);
-    MAP(SDL_SCANCODE_KP_5,       0x4c);
-    MAP(SDL_SCANCODE_KP_6,       0x4d);
-    MAP(SDL_SCANCODE_KP_7,       0x47);
-    MAP(SDL_SCANCODE_KP_8,       0x48);
-    MAP(SDL_SCANCODE_KP_9,       0x49);
-    MAP(SDL_SCANCODE_KP_PERIOD, 0x53);
-    MAP(SDL_SCANCODE_KP_DIVIDE, 0xb5);
-    MAP(SDL_SCANCODE_KP_MULTIPLY,   0x37);
-    MAP(SDL_SCANCODE_KP_MINUS,  0x4a);
-    MAP(SDL_SCANCODE_KP_PLUS,   0x4e);
-    MAPC(SDL_SCANCODE_KP_ENTER,  0x9c, 0xd);
-    MAP(SDL_SCANCODE_UP,        0xc8);
-    MAP(SDL_SCANCODE_DOWN,      0xd0);
-    MAP(SDL_SCANCODE_RIGHT,     0xcd);
-    MAP(SDL_SCANCODE_LEFT,      0xcb);
-    MAP(SDL_SCANCODE_INSERT,    0xd2);
-    MAP(SDL_SCANCODE_HOME,      0xc7);
-    MAP(SDL_SCANCODE_END,       0xcf);
-    MAP(SDL_SCANCODE_PAGEUP,    0xc9);
-    MAP(SDL_SCANCODE_PAGEDOWN,  0xd1);
-    MAP(SDL_SCANCODE_F1,        0x3b);
-    MAP(SDL_SCANCODE_F2,        0x3c);
-    MAP(SDL_SCANCODE_F3,        0x3d);
-    MAP(SDL_SCANCODE_F4,        0x3e);
-    MAP(SDL_SCANCODE_F5,        0x3f);
-    MAP(SDL_SCANCODE_F6,        0x40);
-    MAP(SDL_SCANCODE_F7,        0x41);
-    MAP(SDL_SCANCODE_F8,        0x42);
-    MAP(SDL_SCANCODE_F9,        0x43);
-    MAP(SDL_SCANCODE_F10,       0x44);
-    MAP(SDL_SCANCODE_F11,       0x57);
-    MAP(SDL_SCANCODE_F12,       0x58);
-    MAP(SDL_SCANCODE_NUMLOCKCLEAR,   0x45);
-    MAP(SDL_SCANCODE_CAPSLOCK,  0x3a);
-    MAP(SDL_SCANCODE_SCROLLLOCK, 0x46);
-    MAP(SDL_SCANCODE_RSHIFT,    0x36);
-    MAP(SDL_SCANCODE_LSHIFT,    0x2a);
-    MAP(SDL_SCANCODE_RCTRL,     0x9d);
-    MAP(SDL_SCANCODE_LCTRL,     0x1d);
-    MAP(SDL_SCANCODE_RALT,      0xb8);
-    MAP(SDL_SCANCODE_LALT,      0x38);
-    MAP(SDL_SCANCODE_LGUI,    0xdb);  // win l
-    MAP(SDL_SCANCODE_RGUI,    0xdc);  // win r
-    MAP(SDL_SCANCODE_PRINTSCREEN,     -2);    // 0xaa + 0xb7
-    MAP(SDL_SCANCODE_SYSREQ,    0x54);  // alt+printscr
-    MAP(SDL_SCANCODE_APPLICATION,      0xdd);  // win menu?
+	MAPC(SDL_SCANCODE_BACKSPACE, 0xe, 0x8);
+	MAPC(SDL_SCANCODE_TAB,       0xf, 0x9);
+	MAPC(SDL_SCANCODE_RETURN,    0x1c, 0xd);
+	MAP(SDL_SCANCODE_PAUSE,     0x59);  // 0x1d + 0x45 + 0x9d + 0xc5
+	MAP(SDL_SCANCODE_ESCAPE,    0x1);
+	MAP(SDL_SCANCODE_SPACE,     0x39);
+	MAP(SDL_SCANCODE_APOSTROPHE,     0x28);
+	MAP(SDL_SCANCODE_COMMA,     0x33);
+	MAP(SDL_SCANCODE_MINUS,     0xc);
+	MAP(SDL_SCANCODE_PERIOD,    0x34);
+	MAP(SDL_SCANCODE_SLASH,     0x35);
+	MAP(SDL_SCANCODE_0,     0xb);
+	MAP(SDL_SCANCODE_1,     0x2);
+	MAP(SDL_SCANCODE_2,     0x3);
+	MAP(SDL_SCANCODE_3,     0x4);
+	MAP(SDL_SCANCODE_4,     0x5);
+	MAP(SDL_SCANCODE_5,     0x6);
+	MAP(SDL_SCANCODE_6,     0x7);
+	MAP(SDL_SCANCODE_7,     0x8);
+	MAP(SDL_SCANCODE_8,     0x9);
+	MAP(SDL_SCANCODE_9,     0xa);
+	MAP(SDL_SCANCODE_SEMICOLON, 0x27);
+	MAP(SDL_SCANCODE_EQUALS,    0xd);
+	MAPC(SDL_SCANCODE_LEFTBRACKET,   0x1a, 0x1b | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_BACKSLASH, 0x2b, 0x1c | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_RIGHTBRACKET,  0x1b, 0x1d | WITH_CONTROL_KEY);
+	MAP(SDL_SCANCODE_GRAVE, 0x29);
+	MAPC(SDL_SCANCODE_A,     0x1e, 0x1 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_B,     0x30, 0x2 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_C,     0x2e, 0x3 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_D,     0x20, 0x4 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_E,     0x12, 0x5 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_F,     0x21, 0x6 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_G,     0x22, 0x7 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_H,     0x23, 0x8 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_I,     0x17, 0x9 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_J,     0x24, 0xa | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_K,     0x25, 0xb | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_L,     0x26, 0xc | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_M,     0x32, 0xd | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_N,     0x31, 0xe | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_O,     0x18, 0xf | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_P,     0x19, 0x10 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_Q,     0x10, 0x11 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_R,     0x13, 0x12 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_S,     0x1f, 0x13 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_T,     0x14, 0x14 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_U,     0x16, 0x15 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_V,     0x2f, 0x16 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_W,     0x11, 0x17 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_X,     0x2d, 0x18 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_Y,     0x15, 0x19 | WITH_CONTROL_KEY);
+	MAPC(SDL_SCANCODE_Z,     0x2c, 0x1a | WITH_CONTROL_KEY);
+	MAP(SDL_SCANCODE_DELETE,    0xd3);
+	MAP(SDL_SCANCODE_KP_0,       0x52);
+	MAP(SDL_SCANCODE_KP_1,       0x4f);
+	MAP(SDL_SCANCODE_KP_2,       0x50);
+	MAP(SDL_SCANCODE_KP_3,       0x51);
+	MAP(SDL_SCANCODE_KP_4,       0x4b);
+	MAP(SDL_SCANCODE_KP_5,       0x4c);
+	MAP(SDL_SCANCODE_KP_6,       0x4d);
+	MAP(SDL_SCANCODE_KP_7,       0x47);
+	MAP(SDL_SCANCODE_KP_8,       0x48);
+	MAP(SDL_SCANCODE_KP_9,       0x49);
+	MAP(SDL_SCANCODE_KP_PERIOD, 0x53);
+	MAP(SDL_SCANCODE_KP_DIVIDE, 0xb5);
+	MAP(SDL_SCANCODE_KP_MULTIPLY,   0x37);
+	MAP(SDL_SCANCODE_KP_MINUS,  0x4a);
+	MAP(SDL_SCANCODE_KP_PLUS,   0x4e);
+	MAPC(SDL_SCANCODE_KP_ENTER,  0x9c, 0xd);
+	MAP(SDL_SCANCODE_UP,        0xc8);
+	MAP(SDL_SCANCODE_DOWN,      0xd0);
+	MAP(SDL_SCANCODE_RIGHT,     0xcd);
+	MAP(SDL_SCANCODE_LEFT,      0xcb);
+	MAP(SDL_SCANCODE_INSERT,    0xd2);
+	MAP(SDL_SCANCODE_HOME,      0xc7);
+	MAP(SDL_SCANCODE_END,       0xcf);
+	MAP(SDL_SCANCODE_PAGEUP,    0xc9);
+	MAP(SDL_SCANCODE_PAGEDOWN,  0xd1);
+	MAP(SDL_SCANCODE_F1,        0x3b);
+	MAP(SDL_SCANCODE_F2,        0x3c);
+	MAP(SDL_SCANCODE_F3,        0x3d);
+	MAP(SDL_SCANCODE_F4,        0x3e);
+	MAP(SDL_SCANCODE_F5,        0x3f);
+	MAP(SDL_SCANCODE_F6,        0x40);
+	MAP(SDL_SCANCODE_F7,        0x41);
+	MAP(SDL_SCANCODE_F8,        0x42);
+	MAP(SDL_SCANCODE_F9,        0x43);
+	MAP(SDL_SCANCODE_F10,       0x44);
+	MAP(SDL_SCANCODE_F11,       0x57);
+	MAP(SDL_SCANCODE_F12,       0x58);
+	MAP(SDL_SCANCODE_NUMLOCKCLEAR,   0x45);
+	MAP(SDL_SCANCODE_CAPSLOCK,  0x3a);
+	MAP(SDL_SCANCODE_SCROLLLOCK, 0x46);
+	MAP(SDL_SCANCODE_RSHIFT,    0x36);
+	MAP(SDL_SCANCODE_LSHIFT,    0x2a);
+	MAP(SDL_SCANCODE_RCTRL,     0x9d);
+	MAP(SDL_SCANCODE_LCTRL,     0x1d);
+	MAP(SDL_SCANCODE_RALT,      0xb8);
+	MAP(SDL_SCANCODE_LALT,      0x38);
+	MAP(SDL_SCANCODE_LGUI,    0xdb);  // win l
+	MAP(SDL_SCANCODE_RGUI,    0xdc);  // win r
+	MAP(SDL_SCANCODE_PRINTSCREEN,     -2);    // 0xaa + 0xb7
+	MAP(SDL_SCANCODE_SYSREQ,    0x54);  // alt+printscr
+	MAP(SDL_SCANCODE_APPLICATION,      0xdd);  // win menu?
 
-    return 0;
+	return 0;
 }

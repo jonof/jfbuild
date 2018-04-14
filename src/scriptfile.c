@@ -175,7 +175,7 @@ int scriptfile_getlinum (scriptfile *sf, char *ptr)
 
 	//for(i=0;i<sf->linenum;i++) if (sf->lineoffs[i] >= ind) return(i+1); //brute force algo
 
-	ind = ((long)ptr) - ((long)sf->textbuf);
+	ind = ((intptr_t)ptr) - ((intptr_t)sf->textbuf);
 
 	for(stp=1;stp+stp<sf->linenum;stp+=stp); //stp = highest power of 2 less than sf->linenum
 	for(i=0;stp;stp>>=1)
@@ -183,9 +183,9 @@ int scriptfile_getlinum (scriptfile *sf, char *ptr)
 	return(i+1); //i = index to highest lineoffs which is less than ind; convert to 1-based line numbers
 }
 
-void scriptfile_preparse (scriptfile *sf, char *tx, long flen)
+void scriptfile_preparse (scriptfile *sf, char *tx, int flen)
 {
-	long i, cr, numcr, nflen, ws, cs, inquote;
+	int i, cr, numcr, nflen, ws, cs, inquote;
 
 		//Count number of lines
 	numcr = 1;
@@ -198,7 +198,7 @@ void scriptfile_preparse (scriptfile *sf, char *tx, long flen)
 	}
 
 	sf->linenum = numcr;
-	sf->lineoffs = (long *)malloc(sf->linenum*sizeof(long));
+	sf->lineoffs = (int *)malloc(sf->linenum*sizeof(int));
 
 		//Preprocess file for comments (// and /*...*/, and convert all whitespace to single spaces)
 	nflen = 0; ws = 0; cs = 0; numcr = 0; inquote = 0;

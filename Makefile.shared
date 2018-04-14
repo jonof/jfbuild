@@ -8,7 +8,7 @@ GLLIBWIN=-lopengl32
 GLLIBBSD=-lopengl32
 GLLIBLIN=-lGL
 
-SDL2CONFIG=$(shell which sdl2-config)
+SDL2CONFIG?=$(shell which sdl2-config)
 
 # Path to the included libsquish
 LIBSQUISH=libsquish
@@ -17,6 +17,7 @@ LIBSQUISH=libsquish
 STDCPPLIB=-lsupc++
 
 BUILDCFLAGS=-I$(LIBSQUISH)
+BUILDLIBS=
 
 # Detect the platform by interrogating the C compiler. This allows
 # cross-compilation by overriding CC etc.
@@ -41,23 +42,22 @@ ifeq ($(PLATFORM),LINUX)
 	RENDERTYPE=SDL
 	EXESUFFIX=
 	ifneq ($(DYNAMIC_OPENGL),1)
-		LIBS+= $(GLLIBLIN)
+		BUILDLIBS+= $(GLLIBLIN)
 	endif
 endif
 ifeq ($(PLATFORM),WINDOWS)
 	RENDERTYPE ?= WIN
 	EXESUFFIX=.exe
-	LIBS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -luxtheme -static
-	#LIBS+= -static-libgcc -static-libstdc++
+	BUILDLIBS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -luxtheme
 	ifneq ($(DYNAMIC_OPENGL),1)
-		LIBS+= $(GLLIBWIN)
+		BUILDLIBS+= $(GLLIBWIN)
 	endif
 endif
 ifeq ($(PLATFORM),BSD)
 	RENDERTYPE=SDL
 	EXESUFFIX=
 	ifneq ($(DYNAMIC_OPENGL),1)
-		LIBS+= $(GLLIBBSD)
+		BUILDLIBS+= $(GLLIBBSD)
 	endif
 endif
 
@@ -80,10 +80,11 @@ ifeq ($(RENDERTYPE),SDL)
 			HAVE_GTK=0
 		endif
 	endif
-else
-	ifeq ($(RENDERTYPE),WIN)
-		LIBS+= -mwindows -ldxguid
-	endif
+endif
+ifeq ($(RENDERTYPE),WIN)
+	BUILDLIBS+= -mwindows -ldxguid
+	#BUILDLIBS+= -static
+	#BUILDLIBS+= -static-libgcc -static-libstdc++
 endif
 
 ifeq ($(findstring x86_64,$(machine)),x86_64)

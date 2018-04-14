@@ -9,6 +9,7 @@
 # include <OpenGL/gl.h>
 #else
 # include <GL/gl.h>
+# include <GL/glcorearb.h>
 #endif
 
 // get this header from http://oss.sgi.com/projects/ogl-sample/registry/
@@ -247,7 +248,7 @@ extern BOOL (WINAPI * bwglSetPixelFormat)(HDC,int,const PIXELFORMATDESCRIPTOR*);
 
 #endif
 
-int loadglfunctions(void);
+int loadglfunctions(int all);   // all==0: the basic ones needed to bootstrap
 int loadglextensions(void);
 void unloadglfunctions(void);
 
