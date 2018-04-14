@@ -2082,6 +2082,7 @@ static void grouscan(int dax1, int dax2, int sectnum, unsigned char dastat)
 		daz = sec->floorz;
 	}
 
+	if (palookup[globalpal] == 0) globalpal = 0;
 	if ((picanm[globalpicnum]&192) != 0) globalpicnum += animateoffs(globalpicnum,sectnum);
 	setgotpic(globalpicnum);
 	if ((tilesizx[globalpicnum] <= 0) || (tilesizy[globalpicnum] <= 0)) return;
@@ -2256,6 +2257,7 @@ static void parascan(int dax1, int dax2, int sectnum, unsigned char dastat, int 
 		botptr = dmost;
 	}
 
+	if (palookup[globalpal] == 0) globalpal = 0;
 	if ((unsigned)globalpicnum >= (unsigned)MAXTILES) globalpicnum = 0;
 	if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum,(short)sectnum);
 	globalshiftval = (picsiz[globalpicnum]>>4);
@@ -3913,6 +3915,7 @@ static void drawmaskwall(short damaskwallcnt)
 	globvis = globalvisibility;
 	if (sec->visibility != 0) globvis = mulscale4(globvis,(int)((unsigned char)(sec->visibility+16)));
 	globalpal = (int)wal->pal;
+	if (palookup[globalpal] == 0) globalpal = 0;
 	globalshiftval = (picsiz[globalpicnum]>>4);
 	if (pow2long[globalshiftval] != tilesizy[globalpicnum]) globalshiftval++;
 	globalshiftval = 32-globalshiftval;
@@ -4973,22 +4976,37 @@ static void initfastcolorlookup(int rscale, int gscale, int bscale)
 //
 static int loadpalette(void)
 {
-	int fil,i;
+	int fil = -1, flen, i;
 
-	if ((fil = kopen4load("palette.dat",0)) < 0) {
-		engineerrstr = "Failed to load PALETTE.DAT!";
-		return 1;
+	if ((fil = kopen4load("palette.dat",0)) < 0) goto badpalette;
+	flen = kfilelength(fil);
+
+	if (kread(fil,palette,768) != 768) {
+		buildputs("loadpalette: truncated palette\n");
+		goto badpalette;
 	}
+	if (kread(fil,&numpalookups,2) != 2) {
+		buildputs("loadpalette: truncated numpalookups\n");
+		goto badpalette;
+	}
+	numpalookups = B_LITTLE16(numpalookups);
 
-	kread(fil,palette,768);
-	kread(fil,&numpalookups,2); numpalookups = B_LITTLE16(numpalookups);
+	// Basic sanity check for an old engine version palette (pre 1995-09-25)
+	// where the number of shades was determined by file length arithmetic.
+	if (768 + 2 + (numpalookups << 8) + 65536 != flen) {
+		buildprintf("loadpalette: damaged or old format palette (%d shades)\n",
+			((flen-32640-768)>>8));
+		goto badpalette;
+	}
 
 	if ((palookup[0] = kmalloc(numpalookups<<8)) == NULL) {
 		engineerrstr = "Failed to allocate palette memory";
+		kclose(fil);
 		return 1;
 	}
 	if ((transluc = kmalloc(65536L)) == NULL) {
 		engineerrstr = "Failed to allocate translucency memory";
+		kclose(fil);
 		return 1;
 	}
 
@@ -5004,6 +5022,11 @@ static int loadpalette(void)
 	initfastcolorlookup(30L,59L,11L);
 
 	return 0;
+
+badpalette:
+	engineerrstr = "Failed to load PALETTE.DAT!";
+	if (fil >= 0) kclose(fil);
+	return 1;
 }
 
 
