@@ -245,7 +245,7 @@ int initsystem(void)
 	atexit(uninitsystem);
 
 #ifdef USE_OPENGL
-	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions(FALSE)) {
+	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions(0)) {
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		nogl = 1;
 	}

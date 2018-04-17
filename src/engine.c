@@ -6925,6 +6925,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	//bytesperline is set in this function
 	oldbpp = bpp;
 	if (setvideomode(daxdim,daydim,dabpp,davidoption) < 0) return(-1);
+	daxdim = xres; daydim = yres;	// The mode set might not be a perfect match to what we asked for.
 
 	// it's possible the previous call protected our code sections again
 	makeasmwriteable();

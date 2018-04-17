@@ -150,7 +150,7 @@ int baselayer_setupopengl(void)
 	static int warnonce = 0;
 	int i;
 
-	if (loadglfunctions(TRUE)) {
+	if (loadglfunctions(1)) {
 		return -1;
 	}
 
