@@ -182,7 +182,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	if (qsetmode != 200) return OSDCMD_OK;
 
 	if (parm->numparms < 1 || parm->numparms > 4) {
-		return OSDCMD_SHOWHELP;		
+		return OSDCMD_SHOWHELP;
 	}
 
 	if (parm->numparms == 4) {
@@ -212,6 +212,25 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
+static int osdcmd_mapversion(const osdfuncparm_t *parm)
+{
+	int newversion;
+
+	if (parm->numparms < 1) {
+		buildprintf("mapversion is %d\n", mapversion);
+		return OSDCMD_OK;
+	}
+	newversion = Batol(parm->parms[0]);
+	if (newversion < 5 || newversion > 8) {
+		return OSDCMD_SHOWHELP;
+	}
+
+	buildprintf("mapversion is now %d (was %d)\n", newversion, mapversion);
+	mapversion = newversion;
+
+	return OSDCMD_OK;
+}
+
 extern char *defsfilename;	// set in bstub.c
 int app_main(int argc, char const * const argv[])
 {
@@ -228,6 +247,7 @@ int app_main(int argc, char const * const argv[])
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
 #endif
+	OSD_RegisterFunction("mapversion","mapversion [ver]: change the map version for save (min 5, max 8)", osdcmd_mapversion);
 
 	wm_setapptitle("BUILD by Ken Silverman");
 
@@ -446,7 +466,11 @@ int app_main(int argc, char const * const argv[])
 
 				updatesector(startposx,startposy,&startsectnum);
 				ExtPreSaveMap();
-				saveboard(boardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
+				if (mapversion < 7) {
+					saveoldboard(boardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
+				} else {
+					saveboard(boardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
+				}
 				ExtSaveMap(boardfilename);
 				break;
 			}
@@ -5079,6 +5103,7 @@ void overheadeditor(void)
 							cursectnum = -1;
 							initspritelists();
 							Bstrcpy(boardfilename,"newboard.map");
+							mapversion = 7;
 							break;
 						} else if (ch == 'N' || ch == 'n' || ch == 13 || ch == ' ') {
 							break;
@@ -5233,8 +5258,13 @@ void overheadeditor(void)
 								}
 							}
 
-							if (mapversion < 7) printmessage16("Map loaded successfully and autoconverted to V7!");
-							else printmessage16("Map loaded successfully.");
+							if (mapversion < 7) {
+								char buf[82];
+								sprintf(buf, "Old map (v%d) loaded successfully.", mapversion);
+								printmessage16(buf);
+							} else {
+								printmessage16("Map loaded successfully.");
+							}
 						}
 						updatenumsprites();
 						startposx = posx;      //this is same
@@ -5324,10 +5354,19 @@ void overheadeditor(void)
 						fixspritesectors();   //Do this before saving!
 						updatesector(startposx,startposy,&startsectnum);
 						ExtPreSaveMap();
-						saveboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+						if (mapversion < 7) {
+							bad = saveoldboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+						} else {
+							bad = saveboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+						}
 						ExtSaveMap(f);
-						printmessage16("Board saved.");
-						Bstrcpy(boardfilename, selectedboardfilename);
+						if (!bad) {
+							printmessage16("Board saved.");
+							Bstrcpy(boardfilename, selectedboardfilename);
+						} else {
+							printmessage16("Board NOT saved!");
+						}
+						showframe(1);
 					}
 					bad = 0;
 				}
@@ -5347,9 +5386,17 @@ void overheadeditor(void)
 						if (!f) f = boardfilename; else f++;
 					}
 					ExtPreSaveMap();
-					saveboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+					if (mapversion < 7) {
+						bad = saveoldboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+					} else {
+						bad = saveboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+					}
 					ExtSaveMap(f);
-					printmessage16("Board saved.");
+					if (!bad) {
+						printmessage16("Board saved.");
+					} else {
+						printmessage16("Board NOT saved!");
+					}
 					showframe(1);
 				}
 				else if (ch == 'q' || ch == 'Q')  //Q
@@ -5393,7 +5440,11 @@ void overheadeditor(void)
 										f = strrchr(boardfilename, '/');
 										if (!f) f = boardfilename; else f++;
 									}
-									saveboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+									if (mapversion < 7) {
+										saveoldboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+									} else {
+										saveboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+									}
 									ExtSaveMap(f);
 									break;
 								} else if (ch == 'n' || ch == 'N' || ch == 13 || ch == ' ') {
@@ -6459,7 +6510,7 @@ badline:
 void printcoords16(int posxe, int posye, short ange)
 {
 	char snotbuf[80];
-	int i,m;
+	int i, maxsect = 0, maxwall = 0, maxspri = 0;
 
 	Bsprintf(snotbuf,"x=%d y=%d ang=%d",posxe,posye,ange);
 	i = 0;
@@ -6472,14 +6523,36 @@ void printcoords16(int posxe, int posye, short ange)
 	}
 	snotbuf[30] = 0;
 
-	m = (numsectors > MAXSECTORSV7 || numwalls > MAXWALLSV7 || numsprites > MAXSPRITESV7);
+	switch (mapversion) {
+		case 5:
+			maxsect = MAXSECTORSV5;
+			maxwall = MAXWALLSV5;
+			maxspri = MAXSPRITESV5;
+			break;
+		case 6:
+			maxsect = MAXSECTORSV6;
+			maxwall = MAXWALLSV6;
+			maxspri = MAXSPRITESV6;
+			break;
+		case 7:
+			maxsect = MAXSECTORSV7;
+			maxwall = MAXWALLSV7;
+			maxspri = MAXSPRITESV7;
+			break;
+		case 8:
+			maxsect = MAXSECTORSV8;
+			maxwall = MAXWALLSV8;
+			maxspri = MAXSPRITESV8;
+			break;
+	}
 
 	printext16(8, ydim-STATUS2DSIZ+128, 11, 6, snotbuf,0);
 
-	Bsprintf(snotbuf,"%d/%d sect. %d/%d walls %d/%d spri.",
-					numsectors,m?MAXSECTORSV8:MAXSECTORSV7,
-					numwalls,m?MAXWALLSV8:MAXWALLSV7,
-					numsprites,m?MAXSPRITESV8:MAXSPRITESV7);
+	Bsprintf(snotbuf,"v%d %d/%d sect %d/%d wall %d/%d spri",
+					mapversion,
+					numsectors, maxsect,
+					numwalls, maxwall,
+					numsprites, maxspri);
 	i = 0;
 	while ((snotbuf[i] != 0) && (i < 46))
 		i++;
@@ -6490,7 +6563,7 @@ void printcoords16(int posxe, int posye, short ange)
 	}
 	snotbuf[46] = 0;
 
-	printext16(264, ydim-STATUS2DSIZ+128, 14+m, 6, snotbuf,0);
+	printext16(264, ydim-STATUS2DSIZ+128, 14, 6, snotbuf,0);
 }
 
 void updatenumsprites(void)

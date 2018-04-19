@@ -23,6 +23,16 @@ extern "C" {
 #define MAXWALLSV7 8192
 #define MAXSPRITESV7 4096
 
+#define MAXSECTORSV6 1024
+#define MAXWALLSV6   8192
+#define MAXSPRITESV6 4096
+#define MAXTILESV6   4096
+
+#define MAXSECTORSV5 1024
+#define MAXWALLSV5   4096
+#define MAXSPRITESV5 4096
+#define MAXTILESV5   4096
+
 #define MAXSECTORS MAXSECTORSV8
 #define MAXWALLS MAXWALLSV8
 #define MAXSPRITES MAXSPRITESV8
@@ -367,6 +377,7 @@ void   initspritelists(void);
 int   loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *daposz, short *daang, short *dacursectnum);
 int   loadmaphack(char *filename);
 int   saveboard(char *filename, int *daposx, int *daposy, int *daposz, short *daang, short *dacursectnum);
+int   saveoldboard(char *filename, int *daposx, int *daposy, int *daposz, short *daang, short *dacursectnum);
 int   loadpics(char *filename, int askedsize);
 void   loadtile(short tilenume);
 int   qloadkvx(int voxindex, char *filename);
