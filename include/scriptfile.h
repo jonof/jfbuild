@@ -1,16 +1,18 @@
 typedef struct {
-	char *textbuf;
-	unsigned int textlength;
-	char *ltextptr;		// pointer to start of the last token fetched (use this for line numbers)
-	char *textptr;
-	char *eof;
-	char *filename;
-	int linenum;
-	int *lineoffs;
+    char *textbuf;
+    unsigned int textlength;
+    char *ltextptr;     // pointer to start of the last token fetched (use this for line numbers)
+    char *textptr;
+    char *eof;
+    char *filename;
+    int linenum;
+    int *lineoffs;
 } scriptfile;
 
 char *scriptfile_gettoken(scriptfile *sf);
+char *scriptfile_peektoken(scriptfile *sf);
 int scriptfile_getnumber(scriptfile *sf, int *num);
+int scriptfile_gethex(scriptfile *sf, int *num);    // For reading specifically hex without requiring an 0x prefix
 int scriptfile_getdouble(scriptfile *sf, double *num);
 int scriptfile_getstring(scriptfile *sf, char **st);
 int scriptfile_getsymbol(scriptfile *sf, int *num);

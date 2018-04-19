@@ -27,7 +27,7 @@ extern unsigned char tempshade, temppal, tempxrepeat, tempyrepeat;
 extern unsigned char somethingintab;
 extern char names[MAXTILES][25];
 
-extern unsigned char buildkeys[NUMBUILDKEYS];
+extern int buildkeys[NUMBUILDKEYS];
 
 extern int ydim16, xdimgame, ydimgame, bppgame, xdim2d, ydim2d, forcesetup;
 

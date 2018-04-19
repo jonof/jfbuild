@@ -27,6 +27,17 @@ char *scriptfile_gettoken(scriptfile *sf)
 	return start;
 }
 
+char *scriptfile_peektoken(scriptfile *sf)
+{
+	scriptfile dupe;
+
+	memcpy(&dupe, sf, sizeof(scriptfile));
+
+	skipoverws(&dupe);
+	if (dupe.textptr >= dupe.eof) return NULL;
+	return dupe.textptr;
+}
+
 int scriptfile_getstring(scriptfile *sf, char **retst)
 {
 	(*retst) = scriptfile_gettoken(sf);
@@ -38,7 +49,7 @@ int scriptfile_getstring(scriptfile *sf, char **retst)
 	return(0);
 }
 
-int scriptfile_getnumber(scriptfile *sf, int *num)
+static int scriptfile_getnumber_radix(scriptfile *sf, int *num, int radix)
 {
 	skipoverws(sf);
 	if (sf->textptr >= sf->eof)
@@ -51,7 +62,7 @@ int scriptfile_getnumber(scriptfile *sf, int *num)
 		sf->textptr++; //hack to treat octal numbers like decimal
 	
 	sf->ltextptr = sf->textptr;
-	(*num) = strtol((const char *)sf->textptr,&sf->textptr,0);
+	(*num) = strtol((const char *)sf->textptr,&sf->textptr,radix);
 	if (!ISWS(*sf->textptr) && *sf->textptr) {
 		char *p = sf->textptr;
 		skipovertoken(sf);
@@ -59,6 +70,16 @@ int scriptfile_getnumber(scriptfile *sf, int *num)
 		return -2;
 	}
 	return 0;
+}
+
+int scriptfile_getnumber(scriptfile *sf, int *num)
+{
+	return scriptfile_getnumber_radix(sf, num, 0);
+}
+
+int scriptfile_gethex(scriptfile *sf, int *num)
+{
+	return scriptfile_getnumber_radix(sf, num, 16);
 }
 
 static double parsedouble(char *ptr, char **end)
@@ -217,6 +238,8 @@ void scriptfile_preparse (scriptfile *sf, char *tx, int flen)
 		}
 
 		if ((!inquote) && ((tx[i] == ' ') || (tx[i] == '\t'))) { ws = 1; continue; } //strip Space/Tab
+		if ((tx[i] == ';') && (!cs)) cs = 1;	// ; comment
+		if ((tx[i] == '#') && (!cs)) cs = 1;	// # comment
 		if ((tx[i] == '/') && (tx[i+1] == '/') && (!cs)) cs = 1;
 		if ((tx[i] == '/') && (tx[i+1] == '*') && (!cs)) { ws = 1; cs = 2; }
 		if ((tx[i] == '*') && (tx[i+1] == '/') && (cs == 2)) { cs = 0; i++; continue; }

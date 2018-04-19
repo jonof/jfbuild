@@ -4,6 +4,7 @@
 #include "build.h"
 #include "editor.h"
 #include "osd.h"
+#include "scriptfile.h"
 
 #ifdef RENDERTYPEWIN
 #include "winlayer.h"
@@ -14,48 +15,10 @@ static int vesares[13][2] = {{320,200},{360,200},{320,240},{360,240},{320,400},
 				{360,400},{640,350},{640,400},{640,480},{800,600},
 				{1024,768},{1280,1024},{1600,1200}};
 
-static int readconfig(BFILE *fp, const char *key, char *value, unsigned len)
-{
-	char buf[1000], *k, *v, *eq;
-	int x=0;
-
-	if (len < 1) return 0;
-
-	Brewind(fp);
-
-	while (1) {
-		if (!Bfgets(buf, 1000, fp)) return 0;
-
-		if (buf[0] == ';') continue;
-
-		eq = Bstrchr(buf, '=');
-		if (!eq) continue;
-
-		k = buf;
-		v = eq+1;
-
-		while (*k == ' ' || *k == '\t') k++;
-		*(eq--) = 0;
-		while ((*eq == ' ' || *eq == '\t') && eq>=k) *(eq--) = 0;
-
-		if (Bstrcasecmp(k, key)) continue;
-		
-		while (*v == ' ' || *k == '\t') v++;
-		eq = v + Bstrlen(v)-1;
-
-		while ((*eq == ' ' || *eq == '\t' || *eq == '\r' || *eq == '\n') && eq>=v) *(eq--) = 0;
-
-		value[--len] = 0;
-		do value[x] = v[x]; while (v[x++] != 0 && len-- > 0);
-
-		return x-1;
-	}
-}
-
 extern short brightness;
 extern int fullscreen;
 extern char option[8];
-extern char keys[NUMBUILDKEYS];
+extern int keys[NUMBUILDKEYS];
 extern double msens;
 
 /*
@@ -96,172 +59,234 @@ extern double msens;
  * 18     = Chat (0xf)
  */
 
+enum {
+	type_bool = 0,	//int
+	type_double = 1,
+	type_int = 2,
+	type_hex = 3,
+};
+
+static int tmprenderer = -1;
+static int tmpbrightness = -1;
+
+static struct {
+	const char *name;
+	int type;
+	void *store;
+	const char *doc;
+} configspec[] = {
+	{ "forcesetup", type_bool, &forcesetup,
+		"; Always show configuration options on startup\n"
+		";   0 - No\n"
+		";   1 - Yes\n"
+    },
+	{ "fullscreen", type_bool, &fullscreen,
+		"; Video mode selection\n"
+		";   0 - Windowed\n"
+		";   1 - Fullscreen\n"
+	},
+	{ "xdim2d", type_int, &xdim2d,
+		"; Video resolution\n"
+	},
+	{ "ydim2d", type_int, &ydim2d, NULL },
+	{ "xdim3d", type_int, &xdimgame, NULL },
+	{ "ydim3d", type_int, &ydimgame, NULL },
+	{ "bpp",    type_int, &bppgame,
+		"; 3D-mode colour depth\n"
+	},
+	{ "renderer", type_int, &tmprenderer,
+		"; 3D-mode renderer type\n"
+		";   0  - classic\n"
+		";   2  - software Polymost\n"
+		";   3  - OpenGL Polymost\n"
+	},
+	{ "brightness", type_int, &tmpbrightness,
+		"; 3D mode brightness setting\n"
+		";   0  - lowest\n"
+		";   15 - highest\n"
+	},
+#if defined(USE_OPENGL) && defined(POLYMOST)
+	{ "glusetexcache", type_bool, &glusetexcache,
+		"; OpenGL mode options\n"
+	},
+#endif
+#ifdef RENDERTYPEWIN
+	{ "maxrefreshfreq", type_int, &maxrefreshfreq,
+		"; Maximum OpenGL mode refresh rate (Windows only, in Hertz)\n"
+	},
+#endif
+	{ "mousesensitivity", type_double, &msens,
+		"; Mouse sensitivity\n"
+	},
+	{ "keyforward", type_hex, &keys[0],
+		"; Key Settings\n"
+		";  Here's a map of all the keyboard scan codes: NOTE: values are listed in hex!\n"
+		"; +---------------------------------------------------------------------------------------------+\n"
+		"; | 01   3B  3C  3D  3E   3F  40  41  42   43  44  57  58          46                           |\n"
+		"; |ESC   F1  F2  F3  F4   F5  F6  F7  F8   F9 F10 F11 F12        SCROLL                         |\n"
+		"; |                                                                                             |\n"
+		"; |29  02  03  04  05  06  07  08  09  0A  0B  0C  0D   0E     D2  C7  C9      45  B5  37  4A   |\n"
+		"; | ` '1' '2' '3' '4' '5' '6' '7' '8' '9' '0'  -   =  BACK    INS HOME PGUP  NUMLK KP/ KP* KP-  |\n"
+		"; |                                                                                             |\n"
+		"; | 0F  10  11  12  13  14  15  16  17  18  19  1A  1B  2B     D3  CF  D1      47  48  49  4E   |\n"
+		"; |TAB  Q   W   E   R   T   Y   U   I   O   P   [   ]    \\    DEL END PGDN    KP7 KP8 KP9 KP+   |\n"
+		"; |                                                                                             |\n"
+		"; | 3A   1E  1F  20  21  22  23  24  25  26  27  28     1C                     4B  4C  4D       |\n"
+		"; |CAPS  A   S   D   F   G   H   J   K   L   ;   '   ENTER                    KP4 KP5 KP6    9C |\n"
+		"; |                                                                                      KPENTER|\n"
+		"; |  2A    2C  2D  2E  2F  30  31  32  33  34  35    36            C8          4F  50  51       |\n"
+		"; |LSHIFT  Z   X   C   V   B   N   M   ,   .   /   RSHIFT          UP         KP1 KP2 KP3       |\n"
+		"; |                                                                                             |\n"
+		"; | 1D     38              39                  B8     9D       CB  D0   CD      52    53        |\n"
+		"; |LCTRL  LALT           SPACE                RALT   RCTRL   LEFT DOWN RIGHT    KP0    KP.      |\n"
+		"; +---------------------------------------------------------------------------------------------+\n"
+	},
+	{ "keybackward", type_hex, &keys[1], NULL },
+	{ "keyturnleft", type_hex, &keys[2], NULL },
+	{ "keyturnright", type_hex, &keys[3], NULL },
+	{ "keyrun", type_hex, &keys[4], NULL },
+	{ "keystrafe", type_hex, &keys[5], NULL },
+	{ "keyfire", type_hex, &keys[6], NULL },
+	{ "keyuse", type_hex, &keys[7], NULL },
+	{ "keystandhigh", type_hex, &keys[8], NULL },
+	{ "keystandlow", type_hex, &keys[9], NULL },
+	{ "keylookup", type_hex, &keys[10], NULL },
+	{ "keylookdown", type_hex, &keys[11], NULL },
+	{ "keystrafeleft", type_hex, &keys[12], NULL },
+	{ "keystraferight", type_hex, &keys[13], NULL },
+	{ "key2dmode", type_hex, &keys[14], NULL },
+	{ "keyviewcycle", type_hex, &keys[15], NULL },
+	{ "key2dzoomin", type_hex, &keys[16], NULL },
+	{ "key2dzoomout", type_hex, &keys[17], NULL },
+	{ "keychat", type_hex, &keys[18], NULL },
+	{ "keyconsole", type_hex, &keys[19], NULL },
+	{ NULL, 0, NULL, NULL }
+};
+
 int loadsetup(const char *fn)
 {
-	BFILE *fp;
-#define VL 32
-	char val[VL];
-	int i;
+	scriptfile *cfg;
+	char *token;
+	int item;
 
-	if ((fp = Bfopen(fn, "rt")) == NULL) return -1;
-
-	if (readconfig(fp, "forcesetup", val, VL) > 0) { if (Batoi(val) != 0) forcesetup = 1; else forcesetup = 0; }
-	if (readconfig(fp, "fullscreen", val, VL) > 0) { if (Batoi(val) != 0) fullscreen = 1; else fullscreen = 0; }
-	if (readconfig(fp, "resolution", val, VL) > 0) {
-		i = Batoi(val) & 0x0f;
-		if ((unsigned)i<13) { xdimgame = xdim2d = vesares[i][0]; ydimgame = ydim2d = vesares[i][1]; }
+	cfg = scriptfile_fromfile(fn);
+	if (!cfg) {
+		return -1;
 	}
-	if (readconfig(fp, "2dresolution", val, VL) > 0) {
-		i = Batoi(val) & 0x0f;
-		if ((unsigned)i<13) { xdim2d = vesares[i][0]; ydim2d = vesares[i][1]; }
-	}
-	if (readconfig(fp, "xdim2d", val, VL) > 0) xdim2d = Batoi(val);
-	if (readconfig(fp, "ydim2d", val, VL) > 0) ydim2d = Batoi(val);
-	if (readconfig(fp, "xdim3d", val, VL) > 0) xdimgame = Batoi(val);
-	if (readconfig(fp, "ydim3d", val, VL) > 0) ydimgame = Batoi(val);
-	if (readconfig(fp, "bpp", val, VL) > 0) bppgame = Batoi(val);
-	if (readconfig(fp, "renderer", val, VL) > 0) { i = Batoi(val); setrendermode(i); }
-	if (readconfig(fp, "brightness", val, VL) > 0) brightness = min(max(Batoi(val),0),15);
 
-#ifdef RENDERTYPEWIN
-	if (readconfig(fp, "maxrefreshfreq", val, VL) > 0) maxrefreshfreq = Batoi(val);
-#endif
+	scriptfile_clearsymbols();
 
 	option[0] = 1;	// vesa all the way...
 	option[1] = 1;	// sound all the way...
 	option[4] = 0;	// no multiplayer
 	option[5] = 0;
 
-	if (readconfig(fp, "keyforward", val, VL) > 0) keys[0] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keybackward", val, VL) > 0) keys[1] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keyturnleft", val, VL) > 0) keys[2] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keyturnright", val, VL) > 0) keys[3] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keyrun", val, VL) > 0) keys[4] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keystrafe", val, VL) > 0) keys[5] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keyfire", val, VL) > 0) keys[6] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keyuse", val, VL) > 0) keys[7] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keystandhigh", val, VL) > 0) keys[8] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keystandlow", val, VL) > 0) keys[9] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keylookup", val, VL) > 0) keys[10] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keylookdown", val, VL) > 0) keys[11] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keystrafeleft", val, VL) > 0) keys[12] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keystraferight", val, VL) > 0) keys[13] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "key2dmode", val, VL) > 0) keys[14] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keyviewcycle", val, VL) > 0) keys[15] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "key2dzoomin", val, VL) > 0) keys[16] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "key2dzoomout", val, VL) > 0) keys[17] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keychat", val, VL) > 0) keys[18] = Bstrtol(val, NULL, 16);
-	if (readconfig(fp, "keyconsole", val, VL) > 0) { keys[19] = Bstrtol(val, NULL, 16); OSD_CaptureKey(keys[19]); }
+	while (1) {
+		token = scriptfile_gettoken(cfg);
+		if (!token) break;	//EOF
 
-	if (readconfig(fp, "mousesensitivity", val, VL) > 0) msens = Bstrtod(val, NULL);
+		for (item = 0; configspec[item].name; item++) {
+			if (!Bstrcasecmp(token, configspec[item].name)) {
+				// Seek past any = symbol.
+				token = scriptfile_peektoken(cfg);
+				if (!Bstrcasecmp("=", token)) {
+					scriptfile_gettoken(cfg);
+				}
 
-	Bfclose(fp);
+				switch (configspec[item].type) {
+					case type_bool: {
+						int value = 0;
+						if (scriptfile_getnumber(cfg, &value)) break;
+						*(int*)configspec[item].store = (value != 0);
+						break;
+					}
+					case type_int: {
+						int value = 0;
+						if (scriptfile_getnumber(cfg, &value)) break;
+						*(int*)configspec[item].store = value;
+						break;
+					}
+					case type_hex: {
+						int value = 0;
+						if (scriptfile_gethex(cfg, &value)) break;
+						*(int*)configspec[item].store = value;
+						break;
+					}
+					case type_double: {
+						double value = 0.0;
+						if (scriptfile_getdouble(cfg, &value)) break;
+						*(double*)configspec[item].store = value;
+						break;
+					}
+					default: {
+						buildputs("loadsetup: unhandled value type\n");
+						break;
+					}
+				}
+				break;
+			}
+		}
+		if (!configspec[item].name) {
+			buildprintf("loadsetup: error on line %d\n", scriptfile_getlinum(cfg, cfg->ltextptr));
+			continue;
+		}
+	}
 
+	if (tmprenderer >= 0) {
+		setrendermode(tmprenderer);
+	}
+	if (tmpbrightness >= 0) {
+		brightness = min(max(tmpbrightness,0),15);
+	}
+	OSD_CaptureKey(keys[19]);
+
+	scriptfile_close(cfg);
+	scriptfile_clearsymbols();
+	
 	return 0;
 }
 
 int writesetup(const char *fn)
 {
 	BFILE *fp;
+	int item;
 
 	fp = Bfopen(fn,"wt");
 	if (!fp) return -1;
+
+	tmpbrightness = brightness;
+	tmprenderer = getrendermode();
 	
-	Bfprintf(fp,
-	"; Always show configuration options on startup\n"
-	";   0 - No\n"
-	";   1 - Yes\n"
-	"forcesetup = %d\n"
-	"\n"
-	"; Video mode selection\n"
-	";   0 - Windowed\n"
-	";   1 - Fullscreen\n"
-	"fullscreen = %d\n"
-	"\n"
-	"; Video resolution\n"
-	"xdim2d = %d\n"
-	"ydim2d = %d\n"
-	"xdim3d = %d\n"
-	"ydim3d = %d\n"
-	"\n"
-	"; 3D-mode colour depth\n"
-	"bpp = %d\n"
-	"\n"
-#ifdef USE_OPENGL
-	"; OpenGL mode options\n"
-	"glusetexcache = %d\n"
-	"\n"
-#endif
-#ifdef RENDERTYPEWIN
-	"; Maximum OpenGL mode refresh rate (Windows only, in Hertz)\n"
-	"maxrefreshfreq = %d\n"
-	"\n"
-#endif
-	"; 3D mode brightness setting\n"
-	";   0  - lowest\n"
-	";   15 - highest\n"
-	"brightness = %d\n"
-	"\n"
-	"; Mouse sensitivity\n"
-	"mousesensitivity = %g\n"
-	"\n"
-	"; Key Settings\n"
-	";  Here's a map of all the keyboard scan codes: NOTE: values are listed in hex!\n"
-	"; +---------------------------------------------------------------------------------------------+\n"
-	"; | 01   3B  3C  3D  3E   3F  40  41  42   43  44  57  58          46                           |\n"
-	"; |ESC   F1  F2  F3  F4   F5  F6  F7  F8   F9 F10 F11 F12        SCROLL                         |\n"
-	"; |                                                                                             |\n"
-	"; |29  02  03  04  05  06  07  08  09  0A  0B  0C  0D   0E     D2  C7  C9      45  B5  37  4A   |\n"
-	"; | ` '1' '2' '3' '4' '5' '6' '7' '8' '9' '0'  -   =  BACK    INS HOME PGUP  NUMLK KP/ KP* KP-  |\n"
-	"; |                                                                                             |\n"
-	"; | 0F  10  11  12  13  14  15  16  17  18  19  1A  1B  2B     D3  CF  D1      47  48  49  4E   |\n"
-	"; |TAB  Q   W   E   R   T   Y   U   I   O   P   [   ]    \\    DEL END PGDN    KP7 KP8 KP9 KP+   |\n"
-	"; |                                                                                             |\n"
-	"; | 3A   1E  1F  20  21  22  23  24  25  26  27  28     1C                     4B  4C  4D       |\n"
-	"; |CAPS  A   S   D   F   G   H   J   K   L   ;   '   ENTER                    KP4 KP5 KP6    9C |\n"
-	"; |                                                                                      KPENTER|\n"
-	"; |  2A    2C  2D  2E  2F  30  31  32  33  34  35    36            C8          4F  50  51       |\n"
-	"; |LSHIFT  Z   X   C   V   B   N   M   ,   .   /   RSHIFT          UP         KP1 KP2 KP3       |\n"
-	"; |                                                                                             |\n"
-	"; | 1D     38              39                  B8     9D       CB  D0   CD      52    53        |\n"
-	"; |LCTRL  LALT           SPACE                RALT   RCTRL   LEFT DOWN RIGHT    KP0    KP.      |\n"
-	"; +---------------------------------------------------------------------------------------------+\n"
-	"\n"
-	"keyforward = %X\n"
-	"keybackward = %X\n"
-	"keyturnleft = %X\n"
-	"keyturnright = %X\n"
-	"keyrun = %X\n"
-	"keystrafe = %X\n"
-	"keyfire = %X\n"
-	"keyuse = %X\n"
-	"keystandhigh = %X\n"
-	"keystandlow = %X\n"
-	"keylookup = %X\n"
-	"keylookdown = %X\n"
-	"keystrafeleft = %X\n"
-	"keystraferight = %X\n"
-	"key2dmode = %X\n"
-	"keyviewcycle = %X\n"
-	"key2dzoomin = %X\n"
-	"key2dzoomout = %X\n"
-	"keychat = %X\n"
-	"keyconsole = %X\n"
-	"\n",
-	
-	forcesetup, fullscreen, xdim2d, ydim2d, xdimgame, ydimgame, bppgame,
-#ifdef USE_OPENGL
-	glusetexcache,
-#endif
-#ifdef RENDERTYPEWIN
-	maxrefreshfreq,
-#endif
-	brightness, msens,
-	keys[0], keys[1], keys[2], keys[3], keys[4], keys[5],
-	keys[6], keys[7], keys[8], keys[9], keys[10], keys[11],
-	keys[12], keys[13], keys[14], keys[15], keys[16], keys[17],
-	keys[18], keys[19]
-		);
+	for (item = 0; configspec[item].name; item++) {
+		if (configspec[item].doc) {
+			if (item > 0) fputs("\n", fp);
+			fputs(configspec[item].doc, fp);
+		}
+		fputs(configspec[item].name, fp);
+		fputs(" = ", fp);
+		switch (configspec[item].type) {
+			case type_bool: {
+				fprintf(fp, "%d\n", (*(int*)configspec[item].store != 0));
+				break;
+			}
+			case type_int: {
+				fprintf(fp, "%d\n", *(int*)configspec[item].store);
+				break;
+			}
+			case type_hex: {
+				fprintf(fp, "%X\n", *(int*)configspec[item].store);
+				break;
+			}
+			case type_double: {
+				fprintf(fp, "%g\n", *(double*)configspec[item].store);
+				break;
+			}
+			default: {
+				fputs("?\n", fp);
+				break;
+			}
+		}
+	}
 
 	Bfclose(fp);
 

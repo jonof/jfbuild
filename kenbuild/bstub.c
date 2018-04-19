@@ -19,7 +19,7 @@ static unsigned char tempbuf[256];
 
 #define NUMOPTIONS 9
 unsigned char option[NUMOPTIONS] = {0,0,0,0,0,0,1,0,0};
-unsigned char keys[NUMBUILDKEYS] =
+int keys[NUMBUILDKEYS] =
 {
 	0xc8,0xd0,0xcb,0xcd,0x2a,0x9d,0x1d,0x39,
 	0x1e,0x2c,0xd1,0xc9,0x33,0x34,
@@ -76,7 +76,7 @@ int ExtInit(void)
 	initgroupfile("stuff.dat");
 	bpp = 8;
 	if (loadsetup("build.cfg") < 0) buildputs("Configuration file not found, using defaults.\n"), rv = 1;
-	Bmemcpy((void *)buildkeys,(void *)keys,NUMBUILDKEYS);   //Trick to make build use setup.dat keys
+	Bmemcpy((void *)buildkeys,(void *)keys,sizeof(buildkeys));   //Trick to make build use setup.dat keys
 	if (option[4] > 0) option[4] = 0;
 	if (initengine()) {
 		wm_msgbox("Build Engine Initialisation Error",
