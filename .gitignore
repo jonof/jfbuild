@@ -4,6 +4,7 @@
 *.lib
 *.exe
 *~
+/src/version-auto.c
 
 /xcode/*.xcodeproj/*.mode1v3
 /xcode/*.xcodeproj/*.pbxuser

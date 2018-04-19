@@ -11,8 +11,6 @@
 #include "cache1d.h"
 #include "editor.h"
 
-#define VERSION "20040115JF"
-
 #include "baselayer.h"
 #ifdef RENDERTYPEWIN
 #include "winlayer.h"
@@ -2687,7 +2685,8 @@ void overheadeditor(void)
 	drawline16(192,ydim-STATUS2DSIZ,192,ydim-STATUS2DSIZ+24,7);
 	printext16(9L,ydim-STATUS2DSIZ+9L,4,-1,kensig,0);
 	printext16(8L,ydim-STATUS2DSIZ+8L,12,-1,kensig,0);
-	printmessage16("Version: "VERSION);
+	sprintf(buffer, "Version: %s", build_version);
+	printmessage16(buffer);
 	drawline16(0,ydim-1-24,xdim-1,ydim-1-24,7);
 	drawline16(256,ydim-1-24,256,ydim-1,7);
 	ydim16 = ydim-STATUS2DSIZ;

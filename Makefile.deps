@@ -29,6 +29,8 @@ $(SRC)/scriptfile.$o: $(SRC)/scriptfile.c $(INC)/scriptfile.h $(INC)/cache1d.h $
 $(SRC)/sdlayer2.$o: $(SRC)/sdlayer2.c $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/build.h $(INC)/osd.h $(INC)/glbuild.h
 $(SRC)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/baselayer.h $(INC)/pragmas.h $(INC)/build.h $(SRC)/a.h $(INC)/osd.h $(SRC)/dxdidf.h $(INC)/glbuild.h
 $(SRC)/gtkbits.$o: $(SRC)/gtkbits.c $(INC)/baselayer.h $(INC)/compat.h $(INC)/build.h
+$(SRC)/version.$o: $(SRC)/version.c
+$(SRC)/version-auto.$o: $(SRC)/version-auto.c
 
 $(SRC)/startwin_editor.$o: $(SRC)/startwin_editor.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(INC)/buildres.h
 $(SRC)/startgtk_editor.$o: $(SRC)/startgtk_editor.c $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h $(INC)/editor.h

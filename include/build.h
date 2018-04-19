@@ -267,6 +267,7 @@ extern int usemodels, usehightile;
 #endif
 
 extern char *engineerrstr;
+extern const char *build_version, *build_date, *build_time;
 
 /*************************************************************************
 POSITION VARIABLES:

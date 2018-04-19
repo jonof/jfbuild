@@ -5348,8 +5348,8 @@ int preinitengine(void)
 	buildprintf("\nBUILD engine by Ken Silverman (http://www.advsys.net/ken)\n"
 	       "Additional improvements by Jonathon Fowler (http://www.jonof.id.au)\n"
 	       "and other contributors. See BUILDLIC.TXT for terms.\n\n"
-	       "%d-bit word size. Built " __DATE__ ".\n\n",
-	       (int)(sizeof(intptr_t) * 8));
+	       "Version %s.\nBuilt %s %s.\n%d-bit word size.\n\n",
+	       build_version, build_date, build_time, (int)(sizeof(intptr_t)<<3));
 
 	// Detect anomalous structure packing.
 	assert(sizeof(sectortype) == 40);

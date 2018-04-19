@@ -186,6 +186,13 @@ alldarwin:
 	cd xcode && xcodebuild -project game.xcodeproj -alltargets -configuration $(style)
 endif
 
+# Source-control version stamping
+ifneq (no,$(shell git --version || echo no))
+ENGINEOBJS+= $(SRC)/version-auto.$o
+else
+ENGINEOBJS+= $(SRC)/version.$o
+endif
+
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX) arttool$(EXESUFFIX)
 
 all: game$(EXESUFFIX) build$(EXESUFFIX)
@@ -285,6 +292,12 @@ ifeq ($(PLATFORM),DARWIN)
 else
 	-rm -f $(ENGINELIB) $(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS)
 endif
+
+.PHONY: $(SRC)/version-auto.c
+$(SRC)/version-auto.c:
+	printf "const char *build_version = \"%s\";\n" $(shell git describe --always || echo git error) > $@
+	echo "const char *build_date = __DATE__;" >> $@
+	echo "const char *build_time = __TIME__;" >> $@
 
 .PHONY: fixlineends
 fixlineends:
