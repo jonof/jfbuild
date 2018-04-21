@@ -1,36 +1,28 @@
 #ifdef USE_OPENGL
 
-#if defined(__APPLE__)
-# include <OpenGL/gl.h>
+#if defined(_MSC_VER)
+#  define WIN32_LEAN_AND_MEAN
+#  include <windows.h>
+#  include <GL/gl.h>
+#elif defined(__APPLE__)
+#  include <OpenGL/gl.h>
+#  define APIENTRY
 #else
-# include <GL/gl.h>
-# include <GL/glcorearb.h>
+#  include <GL/gl.h>
 #endif
 
-// get this header from http://oss.sgi.com/projects/ogl-sample/registry/
-// if you are missing it
-//#include <GL/glext.h>
-#if defined(__APPLE__)
-# include <OpenGL/glext.h>
-#else
-# include "glext.h"
+#ifndef GL_GLEXT_VERSION
+#  include "glext.h"
+#endif
+#ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY
+#  define GL_MAX_TEXTURE_MAX_ANISOTROPY GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
 #endif
 
 #ifdef RENDERTYPEWIN
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <GL/wglext.h>
-#endif
-
-#ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
-#error You should get an updated copy of glext.h from http://oss.sgi.com/projects/ogl-sample/registry/
+#  include "wglext.h"
 #endif
 
 #ifdef DYNAMIC_OPENGL
-
-#ifndef APIENTRY
-# define APIENTRY
-#endif
 
 extern void (APIENTRY * bglClearColor)( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha );
 extern void (APIENTRY * bglClear)( GLbitfield mask );

@@ -2,8 +2,8 @@
 ; Ken Silverman's official web site: "http://www.advsys.net/ken"
 ; See the included license file "BUILDLIC.TXT" for license info.
 
-.586P
-.8087
+.586
+.387
 ;include mmx.inc       ;Include this if using < WATCOM 11.0 WASM
 
 ;Warning: IN THIS FILE, ALL SEGMENTS ARE REMOVED.  THIS MEANS THAT DS:[]

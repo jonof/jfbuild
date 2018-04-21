@@ -170,7 +170,7 @@ int baselayer_setupopengl(void)
 	while ((p2 = Bstrtoken(p3 == p ? p : NULL, " ", (char **) &p3, 1)) != NULL) {
 		if (!Bstrcmp(p2, "GL_EXT_texture_filter_anisotropic")) {
 				// supports anisotropy. get the maximum anisotropy level
-			bglGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glinfo.maxanisotropy);
+			bglGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &glinfo.maxanisotropy);
 		} else if (!Bstrcmp(p2, "GL_EXT_texture_edge_clamp") ||
 			   !Bstrcmp(p2, "GL_SGIS_texture_edge_clamp")) {
 				// supports GL_CLAMP_TO_EDGE or GL_CLAMP_TO_EDGE_SGIS

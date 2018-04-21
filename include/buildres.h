@@ -19,4 +19,11 @@
 #define IDC_STATIC (-1)
 #endif
 
-#define Y_POS(origin,index) (origin + (index * 15))
+#ifdef RC_INVOKED
+#ifndef __DATE__
+#define __DATE__ "0000-00-00"
+#endif
+#ifndef __TIME__
+#define __TIME__ "00:00:00"
+#endif
+#endif

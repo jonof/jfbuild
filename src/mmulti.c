@@ -12,15 +12,25 @@
 //#define MMULTI_DEBUG_SENDRECV_WIRE
 
 #ifdef _WIN32
-#include <mswsock.h>
+#include <winsock2.h>
 #include <ws2tcpip.h>
+#include <mswsock.h>
 
 #define IPV6_RECVPKTINFO IPV6_PKTINFO
 #define IS_INVALID_SOCKET(sock) (sock == INVALID_SOCKET)
+
+#ifndef CMSG_FIRSTHDR
 #define CMSG_FIRSTHDR(m) WSA_CMSG_FIRSTHDR(m)
+#endif
+#ifndef CMSG_NXTHDR
 #define CMSG_NXTHDR(m,c) WSA_CMSG_NXTHDR(m,c)
+#endif
+#ifndef CMSG_LEN
 #define CMSG_LEN(l) WSA_CMSG_LEN(l)
+#endif
+#ifndef CMSG_SPACE
 #define CMSG_SPACE(l) WSA_CMSG_SPACE(l)
+#endif
 #define CMSG_DATA(c) WSA_CMSG_DATA(c)
 
 LPFN_WSASENDMSG WSASendMsgPtr;

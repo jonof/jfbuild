@@ -545,8 +545,11 @@ int initinput(void)
 				joynumaxes = 6;
 			}
 		}
-
-		buildprintf("  - Using controller in port %d\n", xinputusernum);
+		if (xinputusernum >= 0) {
+			buildprintf("  - Using controller in port %d\n", xinputusernum);
+		} else {
+			buildputs("  - No usable controller found\n");
+		}
 	}
 
 	return 0;

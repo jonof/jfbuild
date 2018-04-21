@@ -3,6 +3,8 @@
 *.a
 *.lib
 *.exe
+*.res
+*.map
 *~
 /src/version-auto.c
 

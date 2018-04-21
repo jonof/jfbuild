@@ -5344,12 +5344,21 @@ static int preinitcalled = 0;
 int preinitengine(void)
 {
 	char *e;
+	char compiler[30] = "an unidentified compiler";
+
+#if defined(_MSC_VER)
+	sprintf(compiler, "MS Visual C++ %d.%02d", _MSC_VER/100, _MSC_VER%100);
+#elif defined(__clang__)
+	sprintf(compiler, "Clang %d.%d", __clang_major__, __clang_minor__);
+#elif defined(__GNUC__)
+	sprintf(compiler, "GCC %d.%d", __GNUC__, __GNUC_MINOR__);
+#endif
 
 	buildprintf("\nBUILD engine by Ken Silverman (http://www.advsys.net/ken)\n"
 	       "Additional improvements by Jonathon Fowler (http://www.jonof.id.au)\n"
 	       "and other contributors. See BUILDLIC.TXT for terms.\n\n"
-	       "Version %s.\nBuilt %s %s.\n%d-bit word size.\n\n",
-	       build_version, build_date, build_time, (int)(sizeof(intptr_t)<<3));
+	       "Version %s.\nBuilt %s %s using %s.\n%d-bit word size.\n\n",
+	       build_version, build_date, build_time, compiler, (int)(sizeof(intptr_t)<<3));
 
 	// Detect anomalous structure packing.
 	assert(sizeof(sectortype) == 40);
