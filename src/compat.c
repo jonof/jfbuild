@@ -34,7 +34,6 @@
 #if defined(__WATCOMC__)
 # include <direct.h>
 #elif defined(_MSC_VER)
-# include <io.h>
 #else
 # include <dirent.h>
 # ifdef _WIN32
@@ -592,46 +591,52 @@ boff_t Bfilelength(int fd)
 
 typedef struct {
 #ifdef _MSC_VER
-	long dir;
-	struct _finddata_t fid;
+	HANDLE hfind;
+	WIN32_FIND_DATA fid;
 #else
 	DIR *dir;
+	int rootlen;
+	char *work;
+	int worklen;
 #endif
 	struct Bdirent info;
 	int status;
-	char name[1];
 } BDIR_real;
 
 BDIR* Bopendir(const char *name)
 {
 	BDIR_real *dirr;
+
 #ifdef _MSC_VER
-	char *t,*tt;
-	t = (char*)malloc(strlen(name)+1+4);
-	if (!t) return NULL;
+	char *tname, *tcurs;
 #endif
 
-	dirr = (BDIR_real*)malloc(sizeof(BDIR_real) + strlen(name));
+	dirr = (BDIR_real*)malloc(sizeof(BDIR_real));
 	if (!dirr) {
+		return NULL;
+	}
+	memset(dirr, 0, sizeof(BDIR_real));
+
 #ifdef _MSC_VER
-		free(t);
-#endif
+	tname = (char*)malloc(strlen(name) + 4 + 1);
+	if (!tname) {
+		free(dirr);
 		return NULL;
 	}
 
-#ifdef _MSC_VER
-	strcpy(t,name);
-	tt = t+strlen(name)-1;
-	while (*tt == ' ' && tt>t) tt--;
-	if (*tt != '/' && *tt != '\\') *(++tt) = '/';
-	*(++tt) = '*';
-	*(++tt) = '.';
-	*(++tt) = '*';
-	*(++tt) = 0;
+	strcpy(tname, name);
+	for (tcurs = tname; *tcurs; tcurs++) ;	// Find the end of the string.
+	tcurs--;	// Step back off the null char.
+	while (*tcurs == ' ' && tcurs>tname) tcurs--;	// Remove any trailing whitespace.
+	if (*tcurs != '/' && *tcurs != '\\') *(++tcurs) = '/';
+	*(++tcurs) = '*';
+	*(++tcurs) = '.';
+	*(++tcurs) = '*';
+	*(++tcurs) = 0;
 	
-	dirr->dir = _findfirst(t,&dirr->fid);
-	free(t);
-	if (dirr->dir == -1) {
+	dirr->hfind = FindFirstFile(tname, &dirr->fid);
+	free(tname);
+	if (dirr->hfind == INVALID_HANDLE_VALUE) {
 		free(dirr);
 		return NULL;
 	}
@@ -641,10 +646,22 @@ BDIR* Bopendir(const char *name)
 		free(dirr);
 		return NULL;
 	}
+
+	// Preallocate the work buffer.
+	dirr->rootlen = strlen(name);
+	dirr->worklen = dirr->rootlen + 1 + 64 + 1;
+	dirr->work = (char *)malloc(dirr->worklen);
+	if (!dirr->work) {
+		closedir(dirr->dir);
+		free(dirr);
+		return NULL;
+	}
+
+	strcpy(dirr->work, name);
+	strcat(dirr->work, "/");
 #endif
 
 	dirr->status = 0;
-	strcpy(dirr->name, name);
 	
 	return (BDIR*)dirr;
 }
@@ -652,45 +669,74 @@ BDIR* Bopendir(const char *name)
 struct Bdirent*	Breaddir(BDIR *dir)
 {
 	BDIR_real *dirr = (BDIR_real*)dir;
-	struct dirent *de;
-	struct stat st;
-	char *fn;
 
 #ifdef _MSC_VER
+	LARGE_INTEGER tmp;
+
 	if (dirr->status > 0) {
-		if (_findnext(dirr->dir,&dirr->fid) != 0) {
+		if (FindNextFile(dirr->hfind, &dirr->fid) == 0) {
 			dirr->status = -1;
 			return NULL;
 		}
 	}
-	dirr->info.namlen = strlen(dirr->fid.name);
-	dirr->info.name = dirr->fid.name;
+	dirr->info.namlen = strlen(dirr->fid.cFileName);
+	dirr->info.name = (char *)dirr->fid.cFileName;
+	
+	dirr->info.mode = 0;
+	if (dirr->fid.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) dirr->info.mode |= BS_IFDIR;
+	else dirr->info.mode |= BS_IFREG;
+	if (dirr->fid.dwFileAttributes & FILE_ATTRIBUTE_READONLY) dirr->info.mode |= S_IREAD;
+	else dirr->info.mode |= S_IREAD|S_IWRITE|S_IEXEC;
+
+	tmp.HighPart = dirr->fid.nFileSizeHigh;
+	tmp.LowPart = dirr->fid.nFileSizeLow;
+	dirr->info.size = (boff_t)tmp.QuadPart;
+
+	tmp.HighPart = dirr->fid.ftLastWriteTime.dwHighDateTime;
+	tmp.LowPart = dirr->fid.ftLastWriteTime.dwLowDateTime;
+	tmp.QuadPart -= INT64_C(116444736000000000);
+	dirr->info.mtime = (btime_t)(tmp.QuadPart / 10000000);
+	
 	dirr->status++;
+
 #else
-	de = readdir(dirr->dir);
-	if (de == NULL) {
+    struct dirent *de;
+    struct stat st;
+    int fnlen;
+
+    de = readdir(dirr->dir);
+    if (de == NULL) {
 		dirr->status = -1;
 		return NULL;
 	} else {
 		dirr->status++;
 	}
+
 	dirr->info.namlen = strlen(de->d_name);
 	dirr->info.name   = de->d_name;
-#endif
 	dirr->info.mode = 0;
 	dirr->info.size = 0;
 	dirr->info.mtime = 0;
 
-	fn = (char *)malloc(strlen(dirr->name) + 1 + dirr->info.namlen + 1);
-	if (fn) {
-		sprintf(fn,"%s/%s",dirr->name,dirr->info.name);
-		if (!stat(fn, &st)) {
-			dirr->info.mode = st.st_mode;
-			dirr->info.size = st.st_size;
-			dirr->info.mtime = st.st_mtime;
+	fnlen = dirr->rootlen + 1 + dirr->info.namlen + 1;
+	if (dirr->worklen < fnlen) {
+		char *newwork = (char *)realloc(dirr->work, fnlen);
+		if (!newwork) {
+			dirr->status = -1;
+			return NULL;
 		}
-		free(fn);
+
+		dirr->work = newwork;
+		dirr->worklen = fnlen;
 	}
+
+	strcpy(&dirr->work[dirr->rootlen + 1], dirr->info.name);
+	if (!stat(dirr->work, &st)) {
+        dirr->info.mode = st.st_mode;
+        dirr->info.size = st.st_size;
+        dirr->info.mtime = st.st_mtime;
+	}
+#endif
 
 	return &dirr->info;
 }
@@ -700,8 +746,9 @@ int Bclosedir(BDIR *dir)
 	BDIR_real *dirr = (BDIR_real*)dir;
 	
 #ifdef _MSC_VER
-	_findclose(dirr->dir);
+	FindClose(dirr->hfind);
 #else
+	free(dirr->work);
 	closedir(dirr->dir);
 #endif
 	free(dirr);

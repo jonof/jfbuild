@@ -6056,10 +6056,15 @@ void clearfilenames(void)
 int getfilenames(char *path, char *kind)
 {
 	CACHE1D_FIND_REC *r;
+	int type = 0;
+
+	if (!pathsearchmode && grponlymode) {
+		type = CACHE1D_OPT_NOSTACK;
+	}
 
 	clearfilenames();
-	finddirs = klistpath(path,"*",CACHE1D_FIND_DIR|CACHE1D_FIND_DRIVE|(!pathsearchmode&&grponlymode?CACHE1D_OPT_NOSTACK:0));
-	findfiles = klistpath(path,kind,CACHE1D_FIND_FILE|(!pathsearchmode&&grponlymode?CACHE1D_OPT_NOSTACK:0));
+	finddirs = klistpath(path,"*",CACHE1D_FIND_DIR|CACHE1D_FIND_DRIVE|type);
+	findfiles = klistpath(path,kind,CACHE1D_FIND_FILE|type);
 	for (r = finddirs; r; r=r->next) numdirs++;
 	for (r = findfiles; r; r=r->next) numfiles++;
 

@@ -253,32 +253,32 @@ static inline uint64_t B_SWAP64(uint64_t l) { return (l>>56)|((l>>40)&0xff00)|((
 
 #define BMAX_PATH 260
 
-
-struct Bdirent {
-	unsigned short namlen;
-	char *name;
-	unsigned mode;
-	unsigned size;
-	unsigned mtime;
-};
-typedef void BDIR;
-
-BDIR* Bopendir(const char *name);
-struct Bdirent*	Breaddir(BDIR *dir);
-int Bclosedir(BDIR *dir);
-
-
 #ifdef __compat_h_macrodef__
   typedef FILE BFILE;
 # define bsize_t size_t
 # define bssize_t ssize_t
 # define boff_t off_t
+# define btime_t time_t
 #else
   typedef void     BFILE;
   typedef uint32_t bsize_t;
   typedef int32_t  bssize_t;
   typedef int32_t  boff_t;
+  typedef time_t   btime_t;
 #endif
+
+struct Bdirent {
+    int namlen;
+    char *name;
+    unsigned int mode;
+    boff_t size;
+    btime_t mtime;
+};
+typedef void BDIR;
+
+BDIR* Bopendir(const char *name);
+struct Bdirent* Breaddir(BDIR *dir);
+int Bclosedir(BDIR *dir);
 
 
 #ifdef __compat_h_macrodef__
