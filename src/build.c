@@ -285,12 +285,12 @@ int app_main(int argc, char const * const argv[])
 		}
 		if (!boardfilename[0]) {
 			strncpy(boardfilename, argv[i], BMAX_PATH-4-1);
-			boardfilename[i-BMAX_PATH] = 0;
+			boardfilename[BMAX_PATH-4-1] = 0;
 		}
 	}
 	if (boardfilename[0] == 0) {
 		Bstrcpy(boardfilename,"newboard.map");
-	} else if (Bstrchr(boardfilename,'.') == 0) {
+	} else if (Bstrrchr(boardfilename,'.') == 0) {
 		Bstrcat(boardfilename, ".map");
 	}
 	//Bcanonicalisefilename(boardfilename,0);
