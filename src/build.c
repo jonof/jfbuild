@@ -56,7 +56,7 @@ extern int cachesize, artsize;
 
 static short oldmousebstatus = 0;
 short brightness = 0;
-int zlock = 0x7fffffff, zmode = 0, whitecol, kensplayerheight = 32;
+int zlock = 0x7fffffff, zmode = 0, whitecol, blackcol, kensplayerheight = 32;
 short defaultspritecstat = 0;
 
 static short localartfreq[MAXTILES];
@@ -237,7 +237,7 @@ int app_main(int argc, char const * const argv[])
     int startretval = STARTWIN_RUN;
 	int grpstoadd = 0;
 	char const ** grps = NULL;
-	int i, j, k;
+	int i, j, k, dark, light;
 
 	pathsearchmode = 1;		// unrestrict findfrompath so that full access to the filesystem can be had
 
@@ -353,11 +353,13 @@ int app_main(int argc, char const * const argv[])
 		}
 		setbrightness(brightness,palette,0);
 
-	k = 0;
+	dark = INT_MAX;
+	light = 0;
 	for(i=0;i<256;i++)
 	{
 		j = ((int)palette[i*3])+((int)palette[i*3+1])+((int)palette[i*3+2]);
-		if (j > k) { k = j; whitecol = i; }
+		if (j > light) { light = j; whitecol = i; }
+		if (j < dark) { dark = j; blackcol = i; }
 	}
 
 	for(i=0;i<MAXSECTORS;i++) sector[i].extra = -1;
@@ -425,7 +427,7 @@ int app_main(int argc, char const * const argv[])
 		{
 			keystatus[1] = 0;
 			begindrawing();	//{{{
-			printext256(0,0,whitecol,0,"Really want to quit?",0);
+			printext256(0,0,whitecol,blackcol,"Really want to quit?",0);
 			enddrawing();	//}}}
 
 			showframe(1);
@@ -452,7 +454,7 @@ int app_main(int argc, char const * const argv[])
 	if (asksave)
 	{
 		begindrawing();	//{{{
-		printext256(0,8,whitecol,0,"Save changes?",0);
+		printext256(0,8,whitecol,blackcol,"Save changes?",0);
 		showframe(1);	//}}}
 
 		while ((keystatus[1]|keystatus[0x1c]|keystatus[0x39]|keystatus[0x31]) == 0)
@@ -2501,7 +2503,7 @@ int gettile(int tilenum)
 
 				//drawtilescreen(topleft,tilenum);
 				Bsprintf(snotbuf,"Goto tile: %d_ ",j);
-				printext256(0,0,whitecol,0,snotbuf,0);
+				printext256(0,0,whitecol,blackcol,snotbuf,0);
 				showframe(1);
 
 				if (ch >= '0' && ch <= '9') {
@@ -6869,7 +6871,7 @@ void printmessage256(char name[82])
 	}
 	snotbuf[38] = 0;
 
-	printext256(0L,0L,whitecol,0,snotbuf,0);
+	printext256(0L,0L,whitecol,blackcol,snotbuf,0);
 }
 
 	//Find closest point (*dax, *day) on wall (dawall) to (x, y)
