@@ -7,12 +7,13 @@ enum {
 	METH_MASKED  = 1,
 	METH_TRANS   = 2,
 	METH_INTRANS = 3,
-	
+
 	METH_CLAMPED = 4,
 	METH_LAYERS  = 8,	// when given to drawpoly, renders the additional layers
 };
 
 typedef struct { unsigned char r, g, b, a; } coltype;
+typedef struct { GLfloat r, g, b, a; } coltypef;
 
 extern int rendmode;
 extern float gtang;
@@ -32,6 +33,46 @@ extern int gltexcomprquality;	// 0 = fast, 1 = slow and pretty, 2 = very slow an
 extern int gltexmaxsize;	// 0 means autodetection on first run
 extern int gltexmiplevel;	// discards this many mipmap levels
 
+struct polymostvboitem {
+    struct {    // Vertex
+        GLfloat x, y, z;
+    } v;
+    struct {    // Texture
+        GLfloat s, t;
+    } t;
+};
+
+struct polymostdrawpolycall {
+    GLuint texture0;
+    GLuint texture1;
+    GLfloat alphacut;
+    coltypef colour;
+    coltypef fogcolour;
+    GLfloat fogdensity;
+
+    GLuint indexbuffer;     // Buffer object identifier, or 0 for the global index buffer.
+    GLuint indexcount;      // Number of index items.
+
+    GLuint elementbuffer;   // Buffer object identifier. >0 ignores elementvbo.
+    GLuint elementcount;    // Number of elements in the element buffer. Ignored if elementbuffer >0.
+    struct polymostvboitem *elementvbo; // Elements. elementbuffer must be 0 to recognise this.
+};
+
+// Smallest initial size for the global index buffer.
+#define MINVBOINDEXES 16
+
+struct polymostdrawauxcall {
+    GLuint texture0;
+    coltypef colour;
+    coltypef bgcolour;
+    int mode;
+
+    int elementcount;
+    struct polymostvboitem *elementvbo;
+};
+
+void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw);
+
 int polymost_texmayhavealpha (int dapicnum, int dapalnum);
 void polymost_texinvalidate (int dapicnum, int dapalnum, int dameth);
 void polymost_texinvalidateall (void);
@@ -43,6 +84,8 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	signed char dashade, unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid);
 void polymost_fillpolygon (int npoints);
 int polymost_printext256(int xpos, int ypos, short col, short backcol, const char *name, char fontsize);
+int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col);
+int polymost_plotpixel(int x, int y, unsigned char col);
 void polymost_initosdfuncs(void);
 
 

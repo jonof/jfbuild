@@ -47,6 +47,7 @@
 #  include <stdio.h>
 #  include <string.h>
 #  include <stdlib.h>
+#  include <stddef.h>
 #  include <time.h>
 # endif
 # include <fcntl.h>
@@ -64,7 +65,7 @@
 #ifdef _MSC_VER
 # include "msinttypes/stdint.h"
 # include "msinttypes/inttypes.h"
-#else 
+#else
 # include <stdint.h>
 # include <inttypes.h>
 # include <limits.h>

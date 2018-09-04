@@ -490,13 +490,10 @@ void showmouse(void)
 {
 	int i;
 
-	for(i=1;i<=4;i++)
-	{
-		plotpixel(searchx+i,searchy,whitecol);
-		plotpixel(searchx-i,searchy,whitecol);
-		plotpixel(searchx,searchy-i,whitecol);
-		plotpixel(searchx,searchy+i,whitecol);
-	}
+	drawline256((searchx+1)<<12, (searchy  )<<12, (searchx+5)<<12, (searchy  )<<12, whitecol);
+	drawline256((searchx  )<<12, (searchy+1)<<12, (searchx  )<<12, (searchy+5)<<12, whitecol);
+	drawline256((searchx-1)<<12, (searchy  )<<12, (searchx-5)<<12, (searchy  )<<12, whitecol);
+	drawline256((searchx  )<<12, (searchy-1)<<12, (searchx  )<<12, (searchy-5)<<12, whitecol);
 }
 
 void editinput(void)
@@ -2424,6 +2421,8 @@ int gettile(int tilenum)
 	while ((keystatus[0x1c]|keystatus[1]) == 0)
 	{
 		drawtilescreen(topleft,tilenum);
+		OSD_Draw();
+		showframe(1);
 
 		if (handleevents()) {
 			if (quitevent) quitevent = 0;
@@ -2626,13 +2625,11 @@ int drawtilescreen(int pictopleft, int picbox)
 	dax = ((cnt%(xtiles<<gettilezoom))<<(6-gettilezoom));
 	day = ((cnt/(xtiles<<gettilezoom))<<(6-gettilezoom));
 
-	for(i=0;i<(64>>gettilezoom);i++)
-	{
-		plotpixel(dax+i,day,whitecol);
-		plotpixel(dax+i,day+(63>>gettilezoom),whitecol);
-		plotpixel(dax,day+i,whitecol);
-		plotpixel(dax+(63>>gettilezoom),day+i,whitecol);
-	}
+	i = (63>>gettilezoom);
+	drawline256((dax  )<<12, (day  )<<12, (dax+i)<<12, (day  )<<12, whitecol);
+	drawline256((dax+i)<<12, (day  )<<12, (dax+i)<<12, (day+i)<<12, whitecol);
+	drawline256((dax+i)<<12, (day+i)<<12, (dax  )<<12, (day+i)<<12, whitecol);
+	drawline256((dax  )<<12, (day+i)<<12, (dax  )<<12, (day  )<<12, whitecol);
 
 	i = localartlookup[picbox];
 	Bsprintf(snotbuf,"%d",i);
@@ -2643,7 +2640,6 @@ int drawtilescreen(int pictopleft, int picbox)
     printext256(xdim>>2,ydim-8,whitecol,-1,snotbuf,0);
 
 	enddrawing();	//}}}
-	showframe(1);
 
 	return(0);
 }

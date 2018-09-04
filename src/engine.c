@@ -9962,25 +9962,8 @@ void clearallviews(int dacol)
 //
 void plotpixel(int x, int y, unsigned char col)
 {
-#if defined(POLYMOST) && defined(USE_OPENGL)
-	if (rendmode == 3 && qsetmode == 200) {
-		palette_t p;
-		if (gammabrightness) p = curpalette[col];
-		else {
-			p.r = britable[curbrightness][ curpalette[col].r ];
-			p.g = britable[curbrightness][ curpalette[col].g ];
-			p.b = britable[curbrightness][ curpalette[col].b ];
-		}
-
-		setpolymost2dview();	// JBF 20040205: more efficient setup
-
-		bglBegin(GL_POINTS);
-		 bglColor4ub(p.r,p.g,p.b,255);
-		 bglVertex2i(x,y);
-		bglEnd();
-
-		return;
-	}
+#if defined(POLYMOST)
+	if (!polymost_plotpixel(x,y,col)) return;
 #endif
 
 	begindrawing();	//{{{
@@ -10364,31 +10347,6 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 
 	col = palookup[0][col];
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
-	if (rendmode == 3)
-	{
-		palette_t p;
-		if (gammabrightness) p = curpalette[col];
-		else {
-			p.r = britable[curbrightness][ curpalette[col].r ];
-			p.g = britable[curbrightness][ curpalette[col].g ];
-			p.b = britable[curbrightness][ curpalette[col].b ];
-		}
-
-		setpolymost2dview();	// JBF 20040205: more efficient setup
-
-		//bglEnable(GL_BLEND);	// When using line antialiasing, this is needed
-		bglBegin(GL_LINES);
-			bglColor4ub(p.r,p.g,p.b,255);
-			bglVertex2f((float)x1/4096.0,(float)y1/4096.0);
-			bglVertex2f((float)x2/4096.0,(float)y2/4096.0);
-		bglEnd();
-		//bglDisable(GL_BLEND);
-
-      return;
-   }
-#endif
-
 	dx = x2-x1; dy = y2-y1;
 	if (dx >= 0)
 	{
@@ -10415,6 +10373,10 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		if (y1 > wy2) x1 += scale(wy2-y1,dx,dy), y1 = wy2;
 	}
 
+#if defined(POLYMOST)
+	if (!polymost_drawline256(x1,y1,x2,y2,col)) return;
+#endif
+
 	if (klabs(dx) >= klabs(dy))
 	{
 		if (dx == 0) return;
@@ -10422,6 +10384,7 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		{
 			i = x1; x1 = x2; x2 = i;
 			i = y1; y1 = y2; y2 = i;
+			x1+=4096; x2+=4096;
 		}
 
 		inc = divscale12(dy,dx);
@@ -10444,6 +10407,7 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		{
 			i = x1; x1 = x2; x2 = i;
 			i = y1; y1 = y2; y2 = i;
+			y1+=4096; y2+=4096;
 		}
 
 		inc = divscale12(dx,dy);
@@ -11107,60 +11071,8 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 	if (fontsize) { fontptr = smalltextfont; charxsiz = 4; }
 	else { fontptr = textfont; charxsiz = 8; }
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if defined(POLYMOST)
 	if (!polymost_printext256(xpos,ypos,col,backcol,name,fontsize)) return;
-
-	if (rendmode == 3) {
-		int xx, yy;
-		int lc=-1;
-		palette_t p,b;
-
-		if (gammabrightness) {
-			p = curpalette[col];
-			b = curpalette[backcol];
-		} else {
-			p.r = britable[curbrightness][ curpalette[col].r ];
-			p.g = britable[curbrightness][ curpalette[col].g ];
-			p.b = britable[curbrightness][ curpalette[col].b ];
-			b.r = britable[curbrightness][ curpalette[backcol].r ];
-			b.g = britable[curbrightness][ curpalette[backcol].g ];
-			b.b = britable[curbrightness][ curpalette[backcol].b ];
-		}
-
-		setpolymost2dview();
-		bglDisable(GL_ALPHA_TEST);
-		bglDepthMask(GL_FALSE);	// disable writing to the z-buffer
-
-		bglBegin(GL_POINTS);
-
-		for(i=0;name[i];i++) {
-			letptr = &fontptr[((int)(unsigned char)name[i])<<3];
-			xx = stx-fontsize;
-			yy = ypos+7 + 2; //+1 is hack!
-			for(y=7;y>=0;y--) {
-				for(x=charxsiz-1;x>=0;x--) {
-					if (letptr[y]&pow2char[7-fontsize-x]) {
-						if (lc!=col)
-							bglColor4ub(p.r,p.g,p.b,255);
-						lc = col;
-						bglVertex2i(xx+x,yy);
-					} else if (backcol >= 0) {
-						if (lc!=backcol)
-							bglColor4ub(b.r,b.g,b.b,255);
-						lc = backcol;
-						bglVertex2i(xx+x,yy);
-					}
-				}
-				yy--;
-			}
-			stx += charxsiz;
-		}
-
-		bglEnd();
-		bglDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
-
-		return;
-	}
 #endif
 
 	begindrawing();	//{{{

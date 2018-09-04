@@ -744,6 +744,8 @@ static int md2draw (md2model *m, spritetype *tspr)
 	bglEnable(GL_CULL_FACE);
 	bglCullFace(GL_BACK);
 
+	bglUseProgram(0);
+	bglActiveTexture(GL_TEXTURE0);
 	bglEnable(GL_TEXTURE_2D);
 	bglBindTexture(GL_TEXTURE_2D, ptmh->glpic);
 
@@ -1022,6 +1024,8 @@ static int md3draw (md3model *m, spritetype *tspr)
 	bglEnable(GL_CULL_FACE);
 	bglCullFace(GL_BACK);
 
+	bglUseProgram(0);
+	bglActiveTexture(GL_TEXTURE0);
 	bglEnable(GL_TEXTURE_2D);
 
 	pc[0] = pc[1] = pc[2] = ((float)(numpalookups-min(max(globalshade+m->shadeoff,0),numpalookups)))/((float)numpalookups);
@@ -1865,6 +1869,8 @@ int voxdraw (voxmodel *m, spritetype *tspr)
 	bglEnable(GL_CULL_FACE);
 	bglCullFace(GL_BACK);
 
+	bglUseProgram(0);
+	bglActiveTexture(GL_TEXTURE0);
 	bglEnable(GL_TEXTURE_2D);
 
 	pc[0] = pc[1] = pc[2] = ((float)(numpalookups-min(max(globalshade+m->shadeoff,0),numpalookups)))/((float)numpalookups);

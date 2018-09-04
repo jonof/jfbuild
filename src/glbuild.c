@@ -81,10 +81,16 @@ void (APIENTRY * bglGetTexLevelParameteriv)( GLenum target, GLint level, GLenum 
 void (APIENTRY * bglCompressedTexImage2DARB)(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid *);
 void (APIENTRY * bglGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
 
-// Fog
-void (APIENTRY * bglFogf)( GLenum pname, GLfloat param );
-void (APIENTRY * bglFogi)( GLenum pname, GLint param );
-void (APIENTRY * bglFogfv)( GLenum pname, const GLfloat *params );
+// Buffer objects
+void (APIENTRY * bglBindBuffer)(GLenum target, GLuint buffer);
+void (APIENTRY * bglBufferData)(GLenum target, GLsizeiptr size, const GLvoid * data, GLenum usage);
+void (APIENTRY * bglBufferSubData)(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid * data);
+void (APIENTRY * bglDeleteBuffers)(GLsizei n, const GLuint * buffers);
+void (APIENTRY * bglGenBuffers)(GLsizei n, GLuint * buffers);
+void (APIENTRY * bglDrawElements)( GLenum mode, GLsizei count, GLenum type, const GLvoid *indices );
+void (APIENTRY * bglEnableVertexAttribArray)(GLuint index);
+void (APIENTRY * bglDisableVertexAttribArray)(GLuint index);
+void (APIENTRY * bglVertexAttribPointer)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid * pointer);
 
 // Shaders
 void (APIENTRY * bglActiveTexture)( GLenum texture );
@@ -95,6 +101,7 @@ GLuint (APIENTRY * bglCreateShader)(GLenum type);
 void (APIENTRY * bglDeleteProgram)(GLuint program);
 void (APIENTRY * bglDeleteShader)(GLuint shader);
 void (APIENTRY * bglDetachShader)(GLuint program, GLuint shader);
+GLint (APIENTRY * bglGetAttribLocation)(GLuint program, const GLchar *name);
 void (APIENTRY * bglGetProgramiv)(GLuint program, GLenum pname, GLint *params);
 void (APIENTRY * bglGetProgramInfoLog)(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
 void (APIENTRY * bglGetShaderiv)(GLuint shader, GLenum pname, GLint *params);
@@ -103,6 +110,10 @@ GLint (APIENTRY * bglGetUniformLocation)(GLuint program, const GLchar *name);
 void (APIENTRY * bglLinkProgram)(GLuint program);
 void (APIENTRY * bglShaderSource)(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
 void (APIENTRY * bglUniform1i)(GLint location, GLint v0);
+void (APIENTRY * bglUniform1f)(GLint location, GLfloat v0);
+void (APIENTRY * bglUniform2f)(GLint location, GLfloat v0, GLfloat v1);
+void (APIENTRY * bglUniform3f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
+void (APIENTRY * bglUniform4f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
 void (APIENTRY * bglUseProgram)(GLuint program);
 
 #ifdef RENDERTYPEWIN
@@ -203,9 +214,6 @@ int loadglfunctions(int all)
 	bglTexCoord2d		= GETPROC("glTexCoord2d");
 	bglTexCoord2f		= GETPROC("glTexCoord2f");
 
-	// Lighting
-	bglShadeModel		= GETPROC("glShadeModel");
-
 	// Raster funcs
 	bglReadPixels		= GETPROC("glReadPixels");
 
@@ -223,10 +231,16 @@ int loadglfunctions(int all)
 	bglCompressedTexImage2DARB  = GETPROCEXTSOFT("glCompressedTexImage2DARB");
 	bglGetCompressedTexImageARB = GETPROCEXTSOFT("glGetCompressedTexImageARB");
 
-	// Fog
-	bglFogf			= GETPROC("glFogf");
-	bglFogi			= GETPROC("glFogi");
-	bglFogfv		= GETPROC("glFogfv");
+	// Buffer objects
+	bglBindBuffer		= GETPROCEXT("glBindBuffer");
+	bglBufferData		= GETPROCEXT("glBufferData");
+	bglBufferSubData	= GETPROCEXT("glBufferSubData");
+	bglDeleteBuffers	= GETPROCEXT("glDeleteBuffers");
+	bglGenBuffers		= GETPROCEXT("glGenBuffers");
+	bglDrawElements		= GETPROCEXT("glDrawElements");
+	bglEnableVertexAttribArray = GETPROCEXT("glEnableVertexAttribArray");
+	bglDisableVertexAttribArray = GETPROCEXT("glDisableVertexAttribArray");
+	bglVertexAttribPointer = GETPROCEXT("glVertexAttribPointer");
 
 	// Shaders
 	bglActiveTexture = GETPROCEXT("glActiveTexture");
@@ -237,6 +251,7 @@ int loadglfunctions(int all)
 	bglDeleteProgram = GETPROCEXT("glDeleteProgram");
 	bglDeleteShader  = GETPROCEXT("glDeleteShader");
 	bglDetachShader  = GETPROCEXT("glDetachShader");
+	bglGetAttribLocation = GETPROCEXT("glGetAttribLocation");
 	bglGetProgramiv  = GETPROCEXT("glGetProgramiv");
 	bglGetProgramInfoLog = GETPROCEXT("glGetProgramInfoLog");
 	bglGetShaderiv   = GETPROCEXT("glGetShaderiv");
@@ -246,8 +261,15 @@ int loadglfunctions(int all)
 	bglShaderSource  = GETPROCEXT("glShaderSource");
 	bglUseProgram    = GETPROCEXT("glUseProgram");
 	bglUniform1i     = GETPROCEXT("glUniform1i");
+	bglUniform1f     = GETPROC("glUniform1f");
+	bglUniform2f     = GETPROC("glUniform2f");
+	bglUniform3f     = GETPROC("glUniform3f");
+	bglUniform4f     = GETPROC("glUniform4f");
 
-	if (err) unloadglfunctions();
+	bglCompressedTexImage2DARB  = GETPROCEXTSOFT("glCompressedTexImage2DARB");
+	bglGetCompressedTexImageARB = GETPROCEXTSOFT("glGetCompressedTexImageARB");
+
+	if (err) unloadgldriver();
 	return err;
 }
 
@@ -320,10 +342,16 @@ void unloadglfunctions(void)
 	bglCompressedTexImage2DARB  = NULL;
 	bglGetCompressedTexImageARB = NULL;
 
-	// Fog
-	bglFogf			= NULL;
-	bglFogi			= NULL;
-	bglFogfv		= NULL;
+	// Buffer objects
+	bglBindBuffer		= NULL;
+	bglBufferData		= NULL;
+	bglBufferSubData	= NULL;
+	bglDeleteBuffers	= NULL;
+	bglGenBuffers		= NULL;
+	bglDrawElements		= NULL;
+	bglEnableVertexAttribArray = NULL;
+	bglDisableVertexAttribArray = NULL;
+	bglVertexAttribPointer = NULL;
 
 	// Shaders
 	bglActiveTexture = NULL;
@@ -334,6 +362,7 @@ void unloadglfunctions(void)
 	bglDeleteProgram = NULL;
 	bglDeleteShader  = NULL;
 	bglDetachShader  = NULL;
+	bglGetAttribLocation = NULL;
 	bglGetProgramiv  = NULL;
 	bglGetProgramInfoLog = NULL;
 	bglGetShaderiv   = NULL;
@@ -343,6 +372,10 @@ void unloadglfunctions(void)
 	bglShaderSource  = NULL;
 	bglUseProgram    = NULL;
 	bglUniform1i     = NULL;
+	bglUniform1f     = NULL;
+	bglUniform2f     = NULL;
+	bglUniform3f     = NULL;
+	bglUniform4f     = NULL;
 
 #ifdef RENDERTYPEWIN
 	bwglCreateContext	= NULL;
@@ -360,7 +393,6 @@ void unloadglfunctions(void)
 #else
 
 int loadglfunctions(void) { return 0; }
-int loadglextensions(void) { return 0; }
 void unloadglfunctions(void) { }
 
 #endif  //DYNAMIC_OPENGL
@@ -423,7 +455,7 @@ GLuint glbuild_link_program(int shadercount, GLuint *shaders)
 
 		logtext = (GLchar *)malloc(loglen);
 		bglGetProgramInfoLog(program, loglen, &loglen, logtext);
-		buildprintf("GL program link error: %s\n", logtext);
+		buildprintf("glbuild_link_program: link error: %s\n", logtext);
 		free(logtext);
 
 		bglDeleteProgram(program);

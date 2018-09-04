@@ -85,6 +85,7 @@ ENGINEOBJS+= \
 	$(SRC)/defs.$o \
 	$(SRC)/engine.$o \
 	$(SRC)/polymost.$o \
+	$(SRC)/polymost_shaders.$o \
 	$(SRC)/polymosttex.$o \
 	$(SRC)/polymosttex-squish.$o \
 	$(SRC)/polymosttexcache.$o \
@@ -263,6 +264,11 @@ $(GAME)/rsrc/%.$o: $(GAME)/rsrc/%.c
 
 $(GAME)/%.$(res): $(GAME)/%.rc
 	$(WINDRES) -O coff -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
+
+$(SRC)/%_glsl_fs.c: $(SRC)/%.glsl_fs bin2c$(EXESUFFIX)
+	bin2c$(EXESUFFIX) -text $< default_$(basename $(notdir $<))_glsl_fs > $@
+$(SRC)/%_glsl_vs.c: $(SRC)/%.glsl_vs bin2c$(EXESUFFIX)
+	bin2c$(EXESUFFIX) -text $< default_$(basename $(notdir $<))_glsl_vs > $@
 
 $(GAME)/rsrc/%_gresource.c: $(GAME)/rsrc/%.gresource.xml
 	glib-compile-resources --generate --manual-register --c-name=startgtk --target=$@ --sourcedir=$(GAME)/rsrc $<

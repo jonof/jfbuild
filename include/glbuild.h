@@ -71,9 +71,6 @@ extern void (APIENTRY * bglColor4ub)( GLubyte red, GLubyte green, GLubyte blue, 
 extern void (APIENTRY * bglTexCoord2d)( GLdouble s, GLdouble t );
 extern void (APIENTRY * bglTexCoord2f)( GLfloat s, GLfloat t );
 
-// Lighting
-extern void (APIENTRY * bglShadeModel)( GLenum mode );
-
 // Raster funcs
 extern void (APIENTRY * bglReadPixels)( GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels );
 
@@ -95,10 +92,16 @@ extern void (APIENTRY * bglGetTexLevelParameteriv)( GLenum target, GLint level, 
 extern void (APIENTRY * bglCompressedTexImage2DARB)(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid *);
 extern void (APIENTRY * bglGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
 
-// Fog
-extern void (APIENTRY * bglFogf)( GLenum pname, GLfloat param );
-extern void (APIENTRY * bglFogi)( GLenum pname, GLint param );
-extern void (APIENTRY * bglFogfv)( GLenum pname, const GLfloat *params );
+// Buffer objects
+extern void (APIENTRY * bglBindBuffer)(GLenum target, GLuint buffer);
+extern void (APIENTRY * bglBufferData)(GLenum target, GLsizeiptr size, const GLvoid * data, GLenum usage);
+extern void (APIENTRY * bglBufferSubData)(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid * data);
+extern void (APIENTRY * bglDeleteBuffers)(GLsizei n, const GLuint * buffers);
+extern void (APIENTRY * bglGenBuffers)(GLsizei n, GLuint * buffers);
+extern void (APIENTRY * bglDrawElements)( GLenum mode, GLsizei count, GLenum type, const GLvoid *indices );
+extern void (APIENTRY * bglEnableVertexAttribArray)(GLuint index);
+extern void (APIENTRY * bglDisableVertexAttribArray)(GLuint index);
+extern void (APIENTRY * bglVertexAttribPointer)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid * pointer);
 
 // Shaders
 extern void (APIENTRY * bglActiveTexture)( GLenum texture );
@@ -109,6 +112,7 @@ extern GLuint (APIENTRY * bglCreateShader)(GLenum type);
 extern void (APIENTRY * bglDeleteProgram)(GLuint program);
 extern void (APIENTRY * bglDeleteShader)(GLuint shader);
 extern void (APIENTRY * bglDetachShader)(GLuint program, GLuint shader);
+extern GLint (APIENTRY * bglGetAttribLocation)(GLuint program, const GLchar *name);
 extern void (APIENTRY * bglGetProgramiv)(GLuint program, GLenum pname, GLint *params);
 extern void (APIENTRY * bglGetProgramInfoLog)(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
 extern void (APIENTRY * bglGetShaderiv)(GLuint shader, GLenum pname, GLint *params);
@@ -117,6 +121,10 @@ extern GLint (APIENTRY * bglGetUniformLocation)(GLuint program, const GLchar *na
 extern void (APIENTRY * bglLinkProgram)(GLuint program);
 extern void (APIENTRY * bglShaderSource)(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
 extern void (APIENTRY * bglUniform1i)(GLint location, GLint v0);
+extern void (APIENTRY * bglUniform1f)(GLint location, GLfloat v0);
+extern void (APIENTRY * bglUniform2f)(GLint location, GLfloat v0, GLfloat v1);
+extern void (APIENTRY * bglUniform3f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
+extern void (APIENTRY * bglUniform4f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
 extern void (APIENTRY * bglUseProgram)(GLuint program);
 
 #ifdef RENDERTYPEWIN
@@ -179,10 +187,7 @@ extern HGLRC (WINAPI * bwglCreateContextAttribsARB)(HDC hDC, HGLRC hShareContext
 #define bglColor4f		glColor4f
 #define bglColor4ub		glColor4ub
 #define bglTexCoord2d		glTexCoord2d
-#define bglTexCoord2f		glTexCoord2f
-
-// Lighting
-#define bglShadeModel		glShadeModel
+#define bglTexCoord2f       glTexCoord2f
 
 // Raster funcs
 #define bglReadPixels		glReadPixels
@@ -201,10 +206,16 @@ extern HGLRC (WINAPI * bwglCreateContextAttribsARB)(HDC hDC, HGLRC hShareContext
 #define bglCompressedTexImage2DARB glCompressedTexImage2DARB
 #define bglGetCompressedTexImageARB glGetCompressedTexImageARB
 
-// Fog
-#define bglFogf			glFogf
-#define bglFogi			glFogi
-#define bglFogfv		glFogfv
+// Buffer objects
+#define bglBindBuffer    glBindBuffer
+#define bglBufferData    glBufferData
+#define bglBufferSubData    glBufferSubData
+#define bglDeleteBuffers glDeleteBuffers
+#define bglGenBuffers    glGenBuffers
+#define bglDrawElements  glDrawElements
+#define bglEnableVertexAttribArray glEnableVertexAttribArray
+#define bglDisableVertexAttribArray glDisableVertexAttribArray
+#define bglVertexAttribPointer glVertexAttribPointer
 
 // Shaders
 #define bglActiveTexture glActiveTexture
@@ -215,6 +226,7 @@ extern HGLRC (WINAPI * bwglCreateContextAttribsARB)(HDC hDC, HGLRC hShareContext
 #define bglDeleteProgram glDeleteProgram
 #define bglDeleteShader  glDeleteShader
 #define bglDetachShader  glDetachShader
+#define bglGetAttribLocation glGetAttribLocation
 #define bglGetProgramiv  glGetProgramiv
 #define bglGetProgramInfoLog glGetProgramInfoLog
 #define bglGetShaderiv   glGetShaderiv
@@ -224,6 +236,10 @@ extern HGLRC (WINAPI * bwglCreateContextAttribsARB)(HDC hDC, HGLRC hShareContext
 #define bglShaderSource  glShaderSource
 #define bglUseProgram    glUseProgram
 #define bglUniform1i     glUniform1i
+#define bglUniform1f     glUniform1f
+#define bglUniform2f     glUniform2f
+#define bglUniform3f     glUniform3f
+#define bglUniform4f     glUniform4f
 
 #ifdef RENDERTYPEWIN
 #define bwglCreateContext	wglCreateContext
