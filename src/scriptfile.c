@@ -239,7 +239,6 @@ void scriptfile_preparse (scriptfile *sf, char *tx, int flen)
 
 		if ((!inquote) && ((tx[i] == ' ') || (tx[i] == '\t'))) { ws = 1; continue; } //strip Space/Tab
 		if ((tx[i] == ';') && (!cs)) cs = 1;	// ; comment
-		if ((tx[i] == '#') && (!cs)) cs = 1;	// # comment
 		if ((tx[i] == '/') && (tx[i+1] == '/') && (!cs)) cs = 1;
 		if ((tx[i] == '/') && (tx[i+1] == '*') && (!cs)) { ws = 1; cs = 2; }
 		if ((tx[i] == '*') && (tx[i+1] == '/') && (cs == 2)) { cs = 0; i++; continue; }
