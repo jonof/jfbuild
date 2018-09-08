@@ -4985,17 +4985,22 @@ static int loadpalette(void)
 		buildputs("loadpalette: truncated palette\n");
 		goto badpalette;
 	}
-	if (kread(fil,&numpalookups,2) != 2) {
-		buildputs("loadpalette: truncated numpalookups\n");
-		goto badpalette;
-	}
-	numpalookups = B_LITTLE16(numpalookups);
 
-	// Basic sanity check for an old engine version palette (pre 1995-09-25)
-	// where the number of shades was determined by file length arithmetic.
-	if (768 + 2 + (numpalookups << 8) + 65536 != flen) {
-		buildprintf("loadpalette: damaged or old format palette (%d shades)\n",
-			((flen-32640-768)>>8));
+	if ((flen - 65536 - 2 - 768) % 256 == 0) {
+		// Map format 7+ palette.
+		if (kread(fil,&numpalookups,2) != 2) {
+			buildputs("loadpalette: read error\n");
+			goto badpalette;
+		}
+		numpalookups = B_LITTLE16(numpalookups);
+	} else if ((flen - 32640 - 768) % 256 == 0) {
+		// Old format palette.
+		numpalookups = (flen - 32640 - 768) >> 8;
+		buildprintf("loadpalette: old format palette (%d shades)\n",
+			numpalookups);
+		goto badpalette;
+	} else {
+		buildprintf("loadpalette: damaged palette\n");
 		goto badpalette;
 	}
 
