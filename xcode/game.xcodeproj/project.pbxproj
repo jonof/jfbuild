@@ -13,14 +13,6 @@
 		AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07650A33068500FF2442 /* startwin.editor.nib */; };
 		AB3FE4680C0433D000D5DBDC /* libeditorsupp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */; };
 		AB726D410F046BDE00730EAA /* sound_stub.c in Sources */ = {isa = PBXBuildFile; fileRef = AB726D400F046BDE00730EAA /* sound_stub.c */; };
-		AB726D690F046E7800730EAA /* ascboard.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D610F046E6E00730EAA /* ascboard.map */; };
-		AB726D6A0F046E7800730EAA /* boards.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D620F046E6E00730EAA /* boards.map */; };
-		AB726D6B0F046E7800730EAA /* evilal.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D630F046E6E00730EAA /* evilal.map */; };
-		AB726D6C0F046E7800730EAA /* kensig.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D640F046E6E00730EAA /* kensig.map */; };
-		AB726D6D0F046E7800730EAA /* names.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D650F046E6E00730EAA /* names.h */; };
-		AB726D6E0F046E7800730EAA /* nsnoal.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D660F046E6E00730EAA /* nsnoal.map */; };
-		AB726D6F0F046E7800730EAA /* nukeland.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D670F046E6E00730EAA /* nukeland.map */; };
-		AB726D700F046E7800730EAA /* stuff.dat in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D680F046E6E00730EAA /* stuff.dat */; };
 		AB726D910F046F8000730EAA /* ascboard.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D610F046E6E00730EAA /* ascboard.map */; };
 		AB726D920F046F8000730EAA /* boards.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D620F046E6E00730EAA /* boards.map */; };
 		AB726D930F046F8000730EAA /* evilal.map in CopyFiles */ = {isa = PBXBuildFile; fileRef = AB726D630F046E6E00730EAA /* evilal.map */; };
@@ -108,6 +100,13 @@
 			remoteGlobalIDString = ABAE9C390F0CC81900A528DC;
 			remoteInfo = kgroup;
 		};
+		ABE3625F2149367500BA44B3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = ABE362492144CA6500BA44B3;
+			remoteInfo = bin2c;
+		};
 		ABF1DD211BB82822007DE427 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
@@ -118,23 +117,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		AB69BCEA0A73BFC300F3DCB8 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 16;
-			files = (
-				AB726D690F046E7800730EAA /* ascboard.map in CopyFiles */,
-				AB726D6A0F046E7800730EAA /* boards.map in CopyFiles */,
-				AB726D6B0F046E7800730EAA /* evilal.map in CopyFiles */,
-				AB726D6C0F046E7800730EAA /* kensig.map in CopyFiles */,
-				AB726D6D0F046E7800730EAA /* names.h in CopyFiles */,
-				AB726D6E0F046E7800730EAA /* nsnoal.map in CopyFiles */,
-				AB726D6F0F046E7800730EAA /* nukeland.map in CopyFiles */,
-				AB726D700F046E7800730EAA /* stuff.dat in CopyFiles */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		AB726D9C0F046F8A00730EAA /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -246,6 +228,7 @@
 				AB73601D0A29AA70003261DC /* libeditor.a */,
 				AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */,
 				ABAE9AD60F0B308900A528DC /* arttool */,
+				ABE362602149367500BA44B3 /* bin2c */,
 				ABAE9C3E0F0CC83700A528DC /* kextract */,
 				ABAE9C400F0CC83700A528DC /* kgroup */,
 				ABF1DD221BB82822007DE427 /* transpal */,
@@ -308,7 +291,6 @@
 				AB7360260A29AB08003261DC /* Resources */,
 				AB7360270A29AB08003261DC /* Sources */,
 				AB7360280A29AB08003261DC /* Frameworks */,
-				AB69BCEA0A73BFC300F3DCB8 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -415,6 +397,13 @@
 			fileType = "compiled.mach-o.executable";
 			path = kgroup;
 			remoteRef = ABAE9C3F0F0CC83700A528DC /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		ABE362602149367500BA44B3 /* bin2c */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = bin2c;
+			remoteRef = ABE3625F2149367500BA44B3 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		ABF1DD221BB82822007DE427 /* transpal */ = {

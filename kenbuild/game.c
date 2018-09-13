@@ -417,6 +417,70 @@ int app_main(int argc, char const * const argv[])
     int startretval = STARTWIN_RUN;
     struct startwin_settings settings;
 
+#if defined(PREFIX)
+    {
+        const char *prefixdir = PREFIX;
+        if (prefixdir && prefixdir[0]) {
+            addsearchpath(prefixdir);
+        }
+    }
+#endif
+
+    {
+        char *supportdir = Bgetsupportdir(1);
+        char *appdir = Bgetappdir();
+        char dirpath[BMAX_PATH+1];
+
+        // the OSX app bundle, or on Windows the directory where the EXE was launched
+        if (appdir) {
+            addsearchpath(appdir);
+            free(appdir);
+        }
+
+        // the global support files directory
+        if (supportdir) {
+            Bsnprintf(dirpath, sizeof(dirpath), "%s/KenBuild", supportdir);
+            addsearchpath(dirpath);
+            free(supportdir);
+        }
+    }
+
+    // creating a 'user_profiles_disabled' file in the current working
+    // directory where the game was launched makes the installation
+    // "portable" by writing into the working directory
+    if (access("user_profiles_disabled", F_OK) == 0) {
+        char cwd[BMAX_PATH+1];
+        if (getcwd(cwd, sizeof(cwd))) {
+            addsearchpath(cwd);
+        }
+    } else {
+        char *supportdir;
+        char dirpath[BMAX_PATH+1];
+        int asperr;
+
+        if ((supportdir = Bgetsupportdir(0))) {
+            Bsnprintf(dirpath, sizeof(dirpath), "%s/"
+#if defined(_WIN32) || defined(__APPLE__)
+                "KenBuild"
+#else
+                ".kenbuild"
+#endif
+            , supportdir);
+            asperr = addsearchpath(dirpath);
+            if (asperr == -2) {
+                if (Bmkdir(dirpath, S_IRWXU) == 0) {
+                    asperr = addsearchpath(dirpath);
+                } else {
+                    asperr = -1;
+                }
+            }
+            if (asperr == 0) {
+                chdir(dirpath);
+            }
+            free(supportdir);
+        }
+    }
+
 	buildsetlogfile("console.txt");
 
 #ifdef USE_OPENGL
