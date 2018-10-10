@@ -21,6 +21,8 @@ extern float glox1, gloy1;
 extern double gxyaspect, grhalfxdown10x;
 extern double gcosang, gsinang, gcosang2, gsinang2;
 extern double gchang, gshang, gctang, gstang;
+extern int gfogpalnum;
+extern float gfogdensity;
 
 struct glfiltermodes {
 	char *name;

@@ -63,7 +63,7 @@ typedef struct
 	mdanim_t *animations;
 	mdskinmap_t *skinmap;
 	int numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
-	
+
 		//MD2 specific stuff:
 	int numverts, numglcmds, framebytes, *glcmds;
 	char *frames;
@@ -154,7 +154,7 @@ typedef struct
 	mdanim_t *animations;
 	mdskinmap_t *skinmap;
 	int numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
-	
+
 		//MD3 specific
 	md3head_t head;
 } md3model;
@@ -191,6 +191,10 @@ typedef struct
 	int xsiz, ysiz, zsiz;
 	float xpiv, ypiv, zpiv;
 	int is8bit;
+
+	GLuint vertexbuf;		// 4 per quad.
+	GLuint indexbuf;		// 6 per quad (0, 1, 2, 0, 2, 3)
+	unsigned int indexcount;
 } voxmodel;
 
 extern voxmodel *voxmodels[MAXVOXELS];

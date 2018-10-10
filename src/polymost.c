@@ -107,6 +107,8 @@ float gtang = 0.0;
 double guo, gux, guy; //Screen-based texture mapping parameters
 double gvo, gvx, gvy;
 double gdo, gdx, gdy;
+int gfogpalnum = 0;
+float gfogdensity = 0.f;
 
 #if (USEZBUFFER != 0)
 intptr_t zbufmem = 0;
@@ -139,9 +141,6 @@ int glpolygonmode = 0;     // 0:GL_FILL,1:GL_LINE,2:GL_POINT //FUK
 
 static GLuint texttexture = 0;
 static GLuint nulltexture = 0;
-
-static int fogpalnum = 0;
-static float fogdensity = 0.f;
 
 #define SHADERDEV 1
 static struct {
@@ -956,11 +955,11 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 			draw.alphacut = alphac;
 		}
 
-		draw.fogcolour.r = (float)palookupfog[fogpalnum].r / 63.f;
-		draw.fogcolour.g = (float)palookupfog[fogpalnum].g / 63.f;
-		draw.fogcolour.b = (float)palookupfog[fogpalnum].b / 63.f;
+		draw.fogcolour.r = (float)palookupfog[gfogpalnum].r / 63.f;
+		draw.fogcolour.g = (float)palookupfog[gfogpalnum].g / 63.f;
+		draw.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
 		draw.fogcolour.a = 1.f;
-		draw.fogdensity = fogdensity;
+		draw.fogdensity = gfogdensity;
 
 		hackscx = pth->scalex;
 		hackscy = pth->scaley;
@@ -1804,11 +1803,11 @@ static void polymost_drawalls (int bunch)
 
 #ifdef USE_OPENGL
 	if (!glinfo.hack_nofog && rendmode == 3) {
-		fogpalnum = sec->floorpal;
-		fogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
+		gfogpalnum = sec->floorpal;
+		gfogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
 	} else {
-		fogpalnum = 0;
-		fogdensity = 0.f;
+		gfogpalnum = 0;
+		gfogdensity = 0.f;
 	}
 #endif
 
@@ -1972,10 +1971,10 @@ static void polymost_drawalls (int bunch)
 		{
 				//Parallaxing sky... hacked for Ken's mountain texture; paper-sky only :/
 #ifdef USE_OPENGL
-			float tempfogdensity = fogdensity;
+			float tempfogdensity = gfogdensity;
 			if (rendmode == 3)
 			{
-				fogdensity = 0.f;
+				gfogdensity = 0.f;
 
 					//Use clamping for tiled sky textures
 				for(i=(1<<pskybits)-1;i>0;i--)
@@ -2205,7 +2204,7 @@ static void polymost_drawalls (int bunch)
 			if (rendmode == 3)
 			{
 				skyclamphack = 0;
-				fogdensity = tempfogdensity;
+				gfogdensity = tempfogdensity;
 			}
 #endif
 		}
@@ -2317,10 +2316,10 @@ static void polymost_drawalls (int bunch)
 		else if ((nextsectnum < 0) || (!(sector[nextsectnum].ceilingstat&1)))
 		{
 #ifdef USE_OPENGL
-			float tempfogdensity = fogdensity;
+			float tempfogdensity = gfogdensity;
 			if (rendmode == 3)
 			{
-				fogdensity = 0.f;
+				gfogdensity = 0.f;
 
 					//Use clamping for tiled sky textures
 				for(i=(1<<pskybits)-1;i>0;i--)
@@ -2549,7 +2548,7 @@ static void polymost_drawalls (int bunch)
 			if (rendmode == 3)
 			{
 				skyclamphack = 0;
-				fogdensity = tempfogdensity;
+				gfogdensity = tempfogdensity;
 			}
 #endif
 		}
@@ -3139,11 +3138,11 @@ void polymost_drawmaskwall (int damaskwallcnt)
 
 #ifdef USE_OPENGL
 	if (!glinfo.hack_nofog && rendmode == 3) {
-		fogpalnum = sec->floorpal;
-		fogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
+		gfogpalnum = sec->floorpal;
+		gfogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
 	} else {
-		fogpalnum = 0;
-		fogdensity = 0.f;
+		gfogpalnum = 0;
+		gfogdensity = 0.f;
 	}
 #endif
 
@@ -3243,11 +3242,11 @@ void polymost_drawsprite (int snum)
 
 #ifdef USE_OPENGL
 	if (!glinfo.hack_nofog && rendmode == 3) {
-		fogpalnum = sector[tspr->sectnum].floorpal;
-		fogdensity = gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16)) / 255.f);
+		gfogpalnum = sector[tspr->sectnum].floorpal;
+		gfogdensity = gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16)) / 255.f);
 	} else {
-		fogpalnum = 0;
-		fogdensity = 0.f;
+		gfogpalnum = 0;
+		gfogdensity = 0.f;
 	}
 
 	while (rendmode == 3 && !(spriteext[tspr->owner].flags&SPREXT_NOTMD)) {

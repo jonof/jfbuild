@@ -75,11 +75,13 @@ void clearskins ()
 		if (m->mdnum == 1) {
 			voxmodel *v = (voxmodel*)m;
 			for(j=0;j<MAXPALOOKUPS;j++) {
-				if (v->texid[j]) {
-					bglDeleteTextures(1, &v->texid[j]);
-					v->texid[j] = 0;
-				}
+				if (v->texid[j]) bglDeleteTextures(1, &v->texid[j]);
+				v->texid[j] = 0;
 			}
+			if (v->vertexbuf) bglDeleteBuffers(1, &v->vertexbuf);
+			if (v->indexbuf) bglDeleteBuffers(1, &v->indexbuf);
+			v->vertexbuf = 0;
+			v->indexbuf = 0;
 		} else if (m->mdnum == 2 || m->mdnum == 3) {
 			md2model *m2 = (md2model*)m;
 			mdskinmap_t *sk;
@@ -113,6 +115,10 @@ void clearskins ()
 			if (v->texid[j]) bglDeleteTextures(1,(GLuint*)&v->texid[j]);
 			v->texid[j] = 0;
 		}
+		if (v->vertexbuf) bglDeleteBuffers(1, &v->vertexbuf);
+		if (v->indexbuf) bglDeleteBuffers(1, &v->indexbuf);
+		v->vertexbuf = 0;
+		v->indexbuf = 0;
 	}
 }
 
@@ -349,15 +355,15 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 	PTMHead **tex = 0;
 	mdskinmap_t *sk, *skzero = 0;
     PTMIdent id;
-	
+
 	if (m->mdnum == 2) {
 		surf = 0;
 	}
-	
+
 	if ((unsigned)pal >= (unsigned)MAXPALOOKUPS) {
 		return 0;
 	}
-	
+
 	i = -1;
 	for (sk = m->skinmap; sk; sk = sk->next) {
 		if ((int)sk->palette == pal && sk->skinnum == number && sk->surfnum == surf) {
@@ -392,16 +398,16 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 			//buildprintf("Using MD2/MD3 skin (%d) %s, pal=%d\n",number,skinfile,pal);
 		}
 	}
-	
+
 	if (!skinfile[0]) {
 		return 0;
 	}
-	
+
 	if (*tex && (*tex)->glpic) {
 		// texture already loaded
 		return *tex;
 	}
-	
+
 	if (!(*tex)) {
 		// no PTMHead referenced yet at *tex
 		md_initident(&id, skinfile, hictinting[pal].f);
@@ -410,7 +416,7 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 			return 0;
 		}
 	}
-	
+
 	if (!(*tex)->glpic) {
 		// no texture loaded in the PTMHead yet
 		if ((err = PTM_LoadTextureFile(skinfile, *tex, PTH_CLAMPED, hictinting[pal].f))) {
@@ -466,9 +472,9 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-	
+
 	return (*tex);
-}	
+}
 
 	//Note: even though it says md2model, it works for both md2model&md3model
 static void updateanimation (md2model *m, spritetype *tspr)
@@ -560,7 +566,7 @@ static md2model *md2load (int fil, const char *filnam)
 	head.ofsuv = B_LITTLE32(head.ofsuv);           head.ofstris = B_LITTLE32(head.ofstris);
 	head.ofsframes = B_LITTLE32(head.ofsframes);   head.ofsglcmds = B_LITTLE32(head.ofsglcmds);
 	head.ofseof = B_LITTLE32(head.ofseof);
-	
+
 	if ((head.id != 0x32504449) || (head.vers != 8)) { free(m); return(0); } //"IDP2"
 
 	m->numskins = head.numskins;
@@ -582,14 +588,14 @@ static md2model *md2load (int fil, const char *filnam)
 		char *f = (char *)m->frames;
 		int *l,j;
 		md2frame_t *fr;
-		
+
 		for (i = m->numframes-1; i>=0; i--) {
 			fr = (md2frame_t *)f;
 			l = (int *)&fr->mul;
 			for (j=5;j>=0;j--) l[j] = B_LITTLE32(l[j]);
 			f += m->framebytes;
 		}
-		
+
 		for (i = m->numglcmds-1; i>=0; i--) {
 			m->glcmds[i] = B_LITTLE32(m->glcmds[i]);
 		}
@@ -645,7 +651,7 @@ static int md2draw (md2model *m, spritetype *tspr)
 	// Parkar: Moved up to be able to use k0 for the y-flipping code
 	k0 = tspr->z;
 	if ((globalorientation&128) && !((globalorientation&48)==32)) k0 += (float)((tilesizy[tspr->picnum]*tspr->yrepeat)<<1);
-	
+
 	// Parkar: Changed to use the same method as centeroriented sprites
 	if (globalorientation&8) //y-flipping
 	{
@@ -659,7 +665,7 @@ static int md2draw (md2model *m, spritetype *tspr)
 	m0.y *= f; m1.y *= f; a0.y *= f;
 	f = ((float)tspr->yrepeat)/64*m->bscale;
 	m0.z *= f; m1.z *= f; a0.z *= f;
-	
+
 	// floor aligned
 	k1 = tspr->y;
 	if((globalorientation&48)==32)
@@ -690,11 +696,11 @@ static int md2draw (md2model *m, spritetype *tspr)
 	mat[1] = k4*k6 + k5*k7; mat[5] = gchang*gctang; mat[ 9] = k4*k7 - k5*k6; mat[13] = k2*k6 + k3*k7;
 	k6 =           gcosang2*gchang; k7 =           gsinang2*gchang;
 	mat[2] = k4*k6 + k5*k7; mat[6] =-gshang;        mat[10] = k4*k7 - k5*k6; mat[14] = k2*k6 + k3*k7;
-	
+
 	mat[12] += a0.y*mat[0] + a0.z*mat[4] + a0.x*mat[ 8];
 	mat[13] += a0.y*mat[1] + a0.z*mat[5] + a0.x*mat[ 9];
 	mat[14] += a0.y*mat[2] + a0.z*mat[6] + a0.x*mat[10];
-	
+
 	// floor aligned
 	if((globalorientation&48)==32)
 	{
@@ -702,7 +708,7 @@ static int md2draw (md2model *m, spritetype *tspr)
         f = mat[5]; mat[5] = mat[9]*16.0; mat[9] = -f*(1.0/16.0);
         f = mat[6]; mat[6] = mat[10]*16.0; mat[10] = -f*(1.0/16.0);
     }
-    
+
 		//Mirrors
 	if (grhalfxdown10x < 0) { mat[0] = -mat[0]; mat[4] = -mat[4]; mat[8] = -mat[8]; mat[12] = -mat[12]; }
 
@@ -819,7 +825,7 @@ static md3model *md3load (int fil)
 	filehead.tags = B_LITTLE32(filehead.tags);
 	filehead.surfs = B_LITTLE32(filehead.surfs);
 	m->head.eof = B_LITTLE32(filehead.eof);
-	
+
 	if ((m->head.id != 0x33504449) && (m->head.vers != 15)) { free(m); return(0); } //"IDP3"
 
 	m->numskins = m->head.numskins; //<- dead code?
@@ -842,12 +848,12 @@ static md3model *md3load (int fil)
 #if B_BIG_ENDIAN != 0
 	{
 		int *l;
-		
+
 		for (i = m->head.numframes-1; i>=0; i--) {
 			l = (int *)&m->head.frames[i].min;
 			for (j=3+3+3+1-1;j>=0;j--) l[j] = B_LITTLE32(l[j]);
 		}
-		
+
 		for (i = m->head.numtags-1; i>=0; i--) {
 			l = (int *)&m->head.tags[i].p;
 			for (j=3+3+3+3-1;j>=0;j--) l[j] = B_LITTLE32(l[j]);
@@ -901,7 +907,7 @@ static md3model *md3load (int fil)
 #if B_BIG_ENDIAN != 0
 		{
 			int *l;
-			
+
 			for (i=s->numtris-1;i>=0;i--) {
 				for (j=2;j>=0;j--) s->tris[i].i[j] = B_LITTLE32(s->tris[i].i[j]);
 			}
@@ -964,7 +970,7 @@ static int md3draw (md3model *m, spritetype *tspr)
 	m0.y *= f; m1.y *= f; a0.y *= f;
 	f = ((float)tspr->yrepeat)/64*m->bscale;
 	m0.z *= f; m1.z *= f; a0.z *= f;
-	
+
 	// floor aligned
 	k1 = tspr->y;
 	if((globalorientation&48)==32)
@@ -1007,10 +1013,10 @@ static int md3draw (md3model *m, spritetype *tspr)
 		f = mat[5]; mat[5] = mat[9]*16.0; mat[9] = -f*(1.0/16.0);
 		f = mat[6]; mat[6] = mat[10]*16.0; mat[10] = -f*(1.0/16.0);
 	}
-    
+
 	//Mirrors
 	if (grhalfxdown10x < 0) { mat[0] = -mat[0]; mat[4] = -mat[4]; mat[8] = -mat[8]; mat[12] = -mat[12]; }
-	
+
 //------------
 	//bit 10 is an ugly hack in game.c\animatesprites telling MD2SPRITE
 	//to use Z-buffer hacks to hide overdraw problems with the shadows
@@ -1181,12 +1187,12 @@ unsigned gloadtex (int *picbuf, int xsiz, int ysiz, int is8bit, int dapal)
 	cptr = (unsigned char*)&britable[gammabrightness ? 0 : curbrightness][0];
 	if (!is8bit)
 	{
-	for(i=xsiz*ysiz-1;i>=0;i--)
-	{
-		pic2[i].b = cptr[pic[i].r];
-		pic2[i].g = cptr[pic[i].g];
-		pic2[i].r = cptr[pic[i].b];
-		pic2[i].a = 255;
+		for(i=xsiz*ysiz-1;i>=0;i--)
+		{
+			pic2[i].b = cptr[pic[i].r];
+			pic2[i].g = cptr[pic[i].g];
+			pic2[i].r = cptr[pic[i].b];
+			pic2[i].a = 255;
 		}
 	}
 	else
@@ -1609,9 +1615,9 @@ static int loadkvx (const char *filnam)
 	kread(fil,&xsiz,4);     xsiz = B_LITTLE32(xsiz);
 	kread(fil,&ysiz,4);     ysiz = B_LITTLE32(ysiz);
 	kread(fil,&zsiz,4);     zsiz = B_LITTLE32(zsiz);
-	kread(fil,&i,4); xpiv = ((float)B_LITTLE32(i))/256.0;
-	kread(fil,&i,4); ypiv = ((float)B_LITTLE32(i))/256.0;
-	kread(fil,&i,4); zpiv = ((float)B_LITTLE32(i))/256.0;
+	kread(fil,&i,4);        xpiv = ((float)B_LITTLE32(i))/256.0;
+	kread(fil,&i,4);        ypiv = ((float)B_LITTLE32(i))/256.0;
+	kread(fil,&i,4);        zpiv = ((float)B_LITTLE32(i))/256.0;
 	klseek(fil,(xsiz+1)<<2,SEEK_CUR);
 	ysizp1 = ysiz+1;
 	i = xsiz*ysizp1*sizeof(short);
@@ -1659,6 +1665,7 @@ static int loadkvx (const char *filnam)
 static int loadkv6 (const char *filnam)
 {
 	int i, j, x, y, z, numvoxs, z0, z1, fil;
+	float f;
 	unsigned short *ylen;
 	unsigned char c[8];
 
@@ -1667,9 +1674,9 @@ static int loadkv6 (const char *filnam)
 	kread(fil,&xsiz,4);    xsiz = B_LITTLE32(xsiz);
 	kread(fil,&ysiz,4);    ysiz = B_LITTLE32(ysiz);
 	kread(fil,&zsiz,4);    zsiz = B_LITTLE32(zsiz);
-	kread(fil,&i,4);       xpiv = (float)(B_LITTLE32(i));
-	kread(fil,&i,4);       ypiv = (float)(B_LITTLE32(i));
-	kread(fil,&i,4);       zpiv = (float)(B_LITTLE32(i));
+    kread(fil,&f,4);       xpiv = B_LITTLEFLOAT(f);
+    kread(fil,&f,4);       ypiv = B_LITTLEFLOAT(f);
+    kread(fil,&f,4);       zpiv = B_LITTLEFLOAT(f);
 	kread(fil,&numvoxs,4); numvoxs = B_LITTLE32(numvoxs);
 
 	ylen = (unsigned short *)malloc(xsiz*ysiz*sizeof(unsigned short));
@@ -1794,14 +1801,15 @@ voxmodel *voxload (const char *filnam)
 	return(vm);
 }
 
+static int voxloadbufs(voxmodel *m);
+
 	//Draw voxel model as perfect cubes
 int voxdraw (voxmodel *m, spritetype *tspr)
 {
 	point3d fp, m0, a0;
-	int i, j, k, fi, *lptr, xx, yy, zz;
-	float ru, rv, uhack[2], vhack[2], phack[2], clut[6] = {1,1,1,1,1,1}; //1.02,1.02,0.94,1.06,0.98,0.98};
+	int i, j, k, *lptr;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], omat[16], pc[4];
-	vert_t *vptr;
+	struct polymostdrawpolycall draw;
 
 	//updateanimation((md2model *)m,tspr);
 	if ((tspr->cstat&48)==32) return 0;
@@ -1869,10 +1877,6 @@ int voxdraw (voxmodel *m, spritetype *tspr)
 	bglEnable(GL_CULL_FACE);
 	bglCullFace(GL_BACK);
 
-	bglUseProgram(0);
-	bglActiveTexture(GL_TEXTURE0);
-	bglEnable(GL_TEXTURE_2D);
-
 	pc[0] = pc[1] = pc[2] = ((float)(numpalookups-min(max(globalshade+m->shadeoff,0),numpalookups)))/((float)numpalookups);
 	pc[0] *= (float)hictinting[globalpal].r / 255.0;
 	pc[1] *= (float)hictinting[globalpal].g / 255.0;
@@ -1890,46 +1894,36 @@ int voxdraw (voxmodel *m, spritetype *tspr)
 	mat[12] -= (m->xpiv*mat[0] + m->ypiv*mat[4] + (m->zpiv+m->zsiz*.5)*mat[ 8]);
 	mat[13] -= (m->xpiv*mat[1] + m->ypiv*mat[5] + (m->zpiv+m->zsiz*.5)*mat[ 9]);
 	mat[14] -= (m->xpiv*mat[2] + m->ypiv*mat[6] + (m->zpiv+m->zsiz*.5)*mat[10]);
-	bglMatrixMode(GL_MODELVIEW); //Let OpenGL (and perhaps hardware :) handle the matrix rotation
 	mat[3] = mat[7] = mat[11] = 0.f; mat[15] = 1.f;
-
+	bglMatrixMode(GL_MODELVIEW); //Let OpenGL (and perhaps hardware :) handle the matrix rotation
 	bglLoadMatrixf(mat);
 
-	ru = 1.f/((float)m->mytexx);
-	rv = 1.f/((float)m->mytexy);
-#if (VOXBORDWIDTH == 0)
-	uhack[0] = ru*.125; uhack[1] = -uhack[0];
-	vhack[0] = rv*.125; vhack[1] = -vhack[0];
-#endif
-	phack[0] = 0; phack[1] = 1.f/256.f;
-
-	if (!m->texid[globalpal]) m->texid[globalpal] = gloadtex(m->mytex,m->mytexx,m->mytexy,m->is8bit,globalpal);
-					 else bglBindTexture(GL_TEXTURE_2D,m->texid[globalpal]);
-	bglBegin(GL_QUADS);
-	for(i=0,fi=0;i<m->qcnt;i++)
-	{
-		if (i == m->qfacind[fi]) { f = clut[fi++]; bglColor4f(pc[0]*f,pc[1]*f,pc[2]*f,pc[3]*f); }
-		vptr = &m->quad[i].v[0];
-
-		xx = vptr[0].x+vptr[2].x;
-		yy = vptr[0].y+vptr[2].y;
-		zz = vptr[0].z+vptr[2].z;
-
-		for(j=0;j<4;j++)
-		{
-#if (VOXBORDWIDTH == 0)
-			bglTexCoord2f(((float)vptr[j].u)*ru+uhack[vptr[j].u!=vptr[0].u],
-							  ((float)vptr[j].v)*rv+vhack[vptr[j].v!=vptr[0].v]);
-#else
-			bglTexCoord2f(((float)vptr[j].u)*ru,((float)vptr[j].v)*rv);
-#endif
-			fp.x = ((float)vptr[j].x) - phack[xx>vptr[j].x*2] + phack[xx<vptr[j].x*2];
-			fp.y = ((float)vptr[j].y) - phack[yy>vptr[j].y*2] + phack[yy<vptr[j].y*2];
-			fp.z = ((float)vptr[j].z) - phack[zz>vptr[j].z*2] + phack[zz<vptr[j].z*2];
-			bglVertex3fv((float *)&fp);
-		}
+	if (!m->texid[globalpal]) {
+		m->texid[globalpal] = gloadtex(m->mytex,m->mytexx,m->mytexy,m->is8bit,globalpal);
 	}
-	bglEnd();
+
+	draw.texture0 = m->texid[globalpal];
+	draw.texture1 = 0;
+	draw.alphacut = 0.32;
+	draw.colour.r = pc[0];
+	draw.colour.g = pc[1];
+	draw.colour.b = pc[2];
+	draw.colour.a = pc[3];
+	draw.fogcolour.r = (float)palookupfog[gfogpalnum].r / 63.f;
+	draw.fogcolour.g = (float)palookupfog[gfogpalnum].g / 63.f;
+	draw.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
+	draw.fogcolour.a = 1.f;
+	draw.fogdensity = gfogdensity;
+
+	if (!m->vertexbuf || !m->indexbuf) {
+		voxloadbufs(m);
+	}
+	draw.indexcount = m->indexcount;
+	draw.indexbuffer = m->indexbuf;
+	draw.elementbuffer = m->vertexbuf;
+	draw.elementcount = 0;
+	draw.elementvbo = NULL;
+	polymost_drawpoly_glcall(GL_TRIANGLES, &draw);
 
 //------------
 	bglDisable(GL_CULL_FACE);
@@ -1941,6 +1935,78 @@ int voxdraw (voxmodel *m, spritetype *tspr)
 	}
 	bglLoadIdentity();
 	return 1;
+}
+
+static int voxloadbufs(voxmodel *m)
+{
+	int i, j, vxi, ixi, xx, yy, zz;
+	vert_t *vptr;
+	GLfloat ru, rv, phack[2];
+#if (VOXBORDWIDTH == 0)
+	GLfloat uhack[2], vhack[2];
+#endif
+	int numindexes, numvertexes;
+	GLushort *indexes;
+	struct polymostvboitem *vertexes;
+
+	ru = 1.f/((GLfloat)m->mytexx);
+	rv = 1.f/((GLfloat)m->mytexy);
+	phack[0] = 0; phack[1] = 1.f/256.f;
+#if (VOXBORDWIDTH == 0)
+	uhack[0] = ru*.125; uhack[1] = -uhack[0];
+	vhack[0] = rv*.125; vhack[1] = -vhack[0];
+#endif
+
+	numindexes = 6 * m->qcnt;
+	numvertexes = 4 * m->qcnt;
+	indexes = (GLushort *)malloc(numindexes * sizeof(GLushort));
+	vertexes = (struct polymostvboitem *)malloc(numvertexes * sizeof(struct polymostvboitem));
+
+	for(i=0,vxi=0,ixi=0;i<m->qcnt;i++)
+	{
+		vptr = &m->quad[i].v[0];
+
+		xx = vptr[0].x+vptr[2].x;
+		yy = vptr[0].y+vptr[2].y;
+		zz = vptr[0].z+vptr[2].z;
+
+		indexes[ixi+0] = vxi+0;
+		indexes[ixi+1] = vxi+1;
+		indexes[ixi+2] = vxi+2;
+		indexes[ixi+3] = vxi+0;
+		indexes[ixi+4] = vxi+2;
+		indexes[ixi+5] = vxi+3;
+		ixi += 6;
+
+		for(j=0;j<4;j++)
+		{
+#if (VOXBORDWIDTH == 0)
+			vertexes[vxi+j].t.s = ((GLfloat)vptr[j].u)*ru+uhack[vptr[j].u!=vptr[0].u];
+			vertexes[vxi+j].t.t = ((GLfloat)vptr[j].v)*rv+vhack[vptr[j].v!=vptr[0].v];
+#else
+			vertexes[vxi+j].t.s = ((GLfloat)vptr[j].u)*ru;
+			vertexes[vxi+j].t.t = ((GLfloat)vptr[j].v)*rv;
+#endif
+			vertexes[vxi+j].v.x = ((GLfloat)vptr[j].x) - phack[xx>vptr[j].x*2] + phack[xx<vptr[j].x*2];
+			vertexes[vxi+j].v.y = ((GLfloat)vptr[j].y) - phack[yy>vptr[j].y*2] + phack[yy<vptr[j].y*2];
+			vertexes[vxi+j].v.z = ((GLfloat)vptr[j].z) - phack[zz>vptr[j].z*2] + phack[zz<vptr[j].z*2];
+		}
+		vxi += 4;
+	}
+
+	bglGenBuffers(1, &m->indexbuf);
+	bglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->indexbuf);
+	bglBufferData(GL_ELEMENT_ARRAY_BUFFER, numindexes * sizeof(GLushort), indexes, GL_STATIC_DRAW);
+	m->indexcount = numindexes;
+
+	bglGenBuffers(1, &m->vertexbuf);
+	bglBindBuffer(GL_ARRAY_BUFFER, m->vertexbuf);
+	bglBufferData(GL_ARRAY_BUFFER, numvertexes * sizeof(struct polymostvboitem), vertexes, GL_STATIC_DRAW);
+
+	free(indexes);
+	free(vertexes);
+
+	return 0;
 }
 
 //---------------------------------------- VOX LIBRARY ENDS ----------------------------------------
