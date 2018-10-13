@@ -41,7 +41,9 @@ typedef struct
 	int ofsskins, ofsuv, ofstris, ofsframes, ofsglcmds, ofseof; //ofsskins: skin names (64 bytes each)
 } md2head_t;
 
-typedef struct { unsigned char v[3], ni; } md2vert_t; //compressed vertex coords (x,y,z)
+typedef struct { unsigned char v[3], ni; } md2vert_t; //compressed vertex coords (x,y,z), light normal index
+typedef struct { short u, v; } md2uv_t;	//compressed texture coords
+typedef struct { short ivert[3], iuv[3]; } md2tri_t;	//indices of vertices and tex coords for each point of a triangle
 typedef struct
 {
 	point3d mul, add; //scale&translation vector
@@ -65,8 +67,11 @@ typedef struct
 	int numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
 
 		//MD2 specific stuff:
-	int numverts, numglcmds, framebytes, *glcmds;
+	int numverts, numuv, numtris, framebytes;
+	int skinxsiz, skinysiz;
 	char *frames;
+	md2uv_t *uvs;
+	md2tri_t *tris;
 	char *basepath;   // pointer to string of base path
 	char *skinfn;   // pointer to first of numskins 64-char strings
 } md2model;
