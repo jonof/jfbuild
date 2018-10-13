@@ -1353,34 +1353,6 @@ void showframe(int w)
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
 	if (!nogl) {
-		if (bpp > 8 && palfadedelta) {
-			bglMatrixMode(GL_PROJECTION);
-			bglPushMatrix();
-			bglLoadIdentity();
-			bglMatrixMode(GL_MODELVIEW);
-			bglPushMatrix();
-			bglLoadIdentity();
-
-			bglDisable(GL_DEPTH_TEST);
-			bglDisable(GL_ALPHA_TEST);
-			bglDisable(GL_TEXTURE_2D);
-
-			bglEnable(GL_BLEND);
-			bglColor4ub(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);
-
-			bglBegin(GL_QUADS);
-			bglVertex2i(-1, -1);
-			bglVertex2i(1, -1);
-			bglVertex2i(1, 1);
-			bglVertex2i(-1, 1);
-			bglEnd();
-
-			bglMatrixMode(GL_MODELVIEW);
-			bglPopMatrix();
-			bglMatrixMode(GL_PROJECTION);
-			bglPopMatrix();
-		}
-
 		if (bpp == 8) {
 			bglActiveTexture(GL_TEXTURE0);
 			bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xres, yres, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame);

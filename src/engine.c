@@ -7681,6 +7681,10 @@ void nextpage(void)
 			enddrawing();	//}}}
 
 			OSD_Draw();
+#if defined(POLYMOST)
+			polymost_palfade();
+#endif
+
 			showframe(0);
 
 			/*

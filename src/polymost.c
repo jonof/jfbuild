@@ -774,7 +774,7 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 	bglDisableVertexAttribArray(polymostglsl.attrib_texcoord);
 }
 
-static void drawaux_glcall(GLenum mode, struct polymostdrawauxcall *draw)
+static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *draw)
 {
 	bglUseProgram(polymostauxglsl.program);
 	bglBindBuffer(GL_ARRAY_BUFFER, polymostauxglsl.elementbuffer);
@@ -808,6 +808,64 @@ static void drawaux_glcall(GLenum mode, struct polymostdrawauxcall *draw)
 
 	bglDisableVertexAttribArray(polymostauxglsl.attrib_vertex);
 	bglDisableVertexAttribArray(polymostauxglsl.attrib_texcoord);
+}
+
+int polymost_palfade(void)
+{
+#ifndef USE_OPENGL
+	return -1;
+#else
+	struct polymostdrawauxcall draw;
+	struct polymostvboitem vboitem[4];
+
+	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
+	if (palfadedelta == 0) return 0;
+
+	draw.mode = 2;	// Solid colour.
+
+	draw.colour.r = palfadergb.r / 255.f;
+	draw.colour.g = palfadergb.g / 255.f;
+	draw.colour.b = palfadergb.b / 255.f;
+	draw.colour.a = palfadedelta / 255.f;
+
+	vboitem[0].v.x = -1.f;
+	vboitem[0].v.y = -1.f;
+	vboitem[0].v.z = 0.f;
+
+	vboitem[1].v.x = 1.f;
+	vboitem[1].v.y = -1.f;
+	vboitem[1].v.z = 0.f;
+
+	vboitem[2].v.x = 1.f;
+	vboitem[2].v.y = 1.f;
+	vboitem[2].v.z = 0.f;
+
+	vboitem[3].v.x = -1.f;
+	vboitem[3].v.y = 1.f;
+	vboitem[3].v.z = 0.f;
+
+	draw.elementcount = 4;
+	draw.elementvbo = vboitem;
+
+	bglMatrixMode(GL_PROJECTION);
+	bglPushMatrix();
+	bglLoadIdentity();
+	bglMatrixMode(GL_MODELVIEW);
+	bglPushMatrix();
+	bglLoadIdentity();
+
+	bglDisable(GL_DEPTH_TEST);
+	bglEnable(GL_BLEND);
+
+	polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
+
+	bglMatrixMode(GL_MODELVIEW);
+	bglPopMatrix();
+	bglMatrixMode(GL_PROJECTION);
+	bglPopMatrix();
+
+	return 0;
+#endif
 }
 
 #endif
@@ -4147,7 +4205,7 @@ int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 	draw.elementcount = 4;
 	draw.elementvbo = vboitem;
 
-	drawaux_glcall(GL_TRIANGLE_FAN, &draw);
+	polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
 
 	return(0);
 #endif
@@ -4245,7 +4303,7 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 		vboitem[3].t.t = ty+tyc;
 
 		xpos += (8>>fontsize);
-		drawaux_glcall(GL_TRIANGLE_FAN, &draw);
+		polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
 	}
 
 	bglDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
@@ -4294,7 +4352,7 @@ int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 	draw.elementcount = 2;
 	draw.elementvbo = vboitem;
 
-	drawaux_glcall(GL_LINES, &draw);
+	polymost_drawaux_glcall(GL_LINES, &draw);
 
 	bglDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
 
@@ -4337,7 +4395,7 @@ int polymost_plotpixel(int x, int y, unsigned char col)
 	draw.elementcount = 1;
 	draw.elementvbo = vboitem;
 
-	drawaux_glcall(GL_POINTS, &draw);
+	polymost_drawaux_glcall(GL_POINTS, &draw);
 
 	bglDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
 
