@@ -874,7 +874,6 @@ int polymost_palfade(void)
 	//    n must be <= 8 (assume clipping can double number of vertices)
 	//method: 0:solid, 1:masked(255 is transparent), 2:transluscent #1, 3:transluscent #2
 	//    +4 means it's a sprite, so wraparound isn't needed
-static int pow2xsplit = 0, skyclamphack = 0;
 void drawpoly (double *dpx, double *dpy, int n, int method)
 {
 	#define PI 3.14159265358979323
@@ -971,8 +970,6 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 		struct polymostdrawpolycall draw;
 		struct polymostvboitem vboitem[MINVBOINDEXES];
 
-		if (skyclamphack) method |= METH_CLAMPED;
-
 		if (usehightile) ptflags |= PTH_HIGHTILE;
 		if (method & METH_CLAMPED) ptflags |= PTH_CLAMPED;
 		if (drawingskybox) ptflags |= PTH_SKYBOX;
@@ -1061,7 +1058,7 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 		draw.elementvbo = vboitem;
 
 			//Hack for walls&masked walls which use textures that are not a power of 2
-		if ((pow2xsplit) && (tsizx != xx))
+		if ((method & METH_POW2XSPLIT) && (tsizx != xx))
 		{
 			if (!dorot)
 			{
@@ -1655,14 +1652,14 @@ int testvisiblemost (float x0, float x1)
 	return(0);
 }
 
-static int domostpolymethod = 0;
-
-void domost (float x0, float y0, float x1, float y1)
+void domost (float x0, float y0, float x1, float y1, int polymethod)
 {
 	double dpx[4], dpy[4];
 	float d, f, n, t, slop, dx, dx0, dx1, nx, nx0, ny0, nx1, ny1;
 	float spx[4], spy[4], cy[2], cv[2];
 	int i, j, k, z, ni, vcnt = 0, scnt, newi, dir, spt[4];
+
+	polymethod |= METH_LAYERS;
 
 	if (x0 < x1)
 	{
@@ -1776,24 +1773,24 @@ void domost (float x0, float y0, float x1, float y1)
 					case 1: case 2:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
-						dpx[2] = dx0; dpy[2] = ny0; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
+						dpx[2] = dx0; dpy[2] = ny0; drawpoly(dpx,dpy,3,polymethod);
 						vsp[i].cy[0] = ny0; vsp[i].ctag = gtag; break;
 					case 3: case 6:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
-						dpx[2] = dx1; dpy[2] = ny1; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
+						dpx[2] = dx1; dpy[2] = ny1; drawpoly(dpx,dpy,3,polymethod);
 						vsp[i].cy[1] = ny1; vsp[i].ctag = gtag; break;
 					case 4: case 5: case 7:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = ny1;
-						dpx[3] = dx0; dpy[3] = ny0; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
+						dpx[3] = dx0; dpy[3] = ny0; drawpoly(dpx,dpy,4,polymethod);
 						vsp[i].cy[0] = ny0; vsp[i].cy[1] = ny1; vsp[i].ctag = gtag; break;
 					case 8:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,polymethod);
 						vsp[i].ctag = vsp[i].ftag = -1; break;
 					default: break;
 				}
@@ -1805,24 +1802,24 @@ void domost (float x0, float y0, float x1, float y1)
 					case 7: case 6:
 						dpx[0] = dx0; dpy[0] = ny0;
 						dpx[1] = dx1; dpy[1] = vsp[i].fy[1];
-						dpx[2] = dx0; dpy[2] = vsp[i].fy[0]; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
+						dpx[2] = dx0; dpy[2] = vsp[i].fy[0]; drawpoly(dpx,dpy,3,polymethod);
 						vsp[i].fy[0] = ny0; vsp[i].ftag = gtag; break;
 					case 5: case 2:
 						dpx[0] = dx0; dpy[0] = vsp[i].fy[0];
 						dpx[1] = dx1; dpy[1] = ny1;
-						dpx[2] = dx1; dpy[2] = vsp[i].fy[1]; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
+						dpx[2] = dx1; dpy[2] = vsp[i].fy[1]; drawpoly(dpx,dpy,3,polymethod);
 						vsp[i].fy[1] = ny1; vsp[i].ftag = gtag; break;
 					case 4: case 3: case 1:
 						dpx[0] = dx0; dpy[0] = ny0;
 						dpx[1] = dx1; dpy[1] = ny1;
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,polymethod);
 						vsp[i].fy[0] = ny0; vsp[i].fy[1] = ny1; vsp[i].ftag = gtag; break;
 					case 0:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,polymethod);
 						vsp[i].ctag = vsp[i].ftag = -1; break;
 					default: break;
 				}
@@ -1855,7 +1852,7 @@ static void polymost_drawalls (int bunch)
 	double fx, fy, x0, x1, y0, y1, cy0, cy1, fy0, fy1, xp0, yp0, xp1, yp1, ryp0, ryp1, nx0, ny0, nx1, ny1;
 	double t, r, t0, t1, ocy0, ocy1, ofy0, ofy1, oxp0, oyp0, ft[4];
 	double oguo, ogux, oguy;
-	int i, x, y, z, cz, fz, wallnum, sectnum, nextsectnum;
+	int i, x, y, z, cz, fz, wallnum, sectnum, nextsectnum, domostmethod;
 
 	sectnum = thesector[bunchfirst[bunch]]; sec = &sector[sectnum];
 
@@ -1918,7 +1915,7 @@ static void polymost_drawalls (int bunch)
 		cy1 = ((float)(cz-globalposz))*ryp1 + ghoriz;
 		fy1 = ((float)(fz-globalposz))*ryp1 + ghoriz;
 
-
+		domostmethod = 0;
 		globalpicnum = sec->floorpicnum; globalshade = sec->floorshade; globalpal = (int)((unsigned char)sec->floorpal);
 		globalorientation = sec->floorstat;
 		if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum,sectnum);
@@ -2020,10 +2017,9 @@ static void polymost_drawalls (int bunch)
 												  else { gux *= r; guy *= r; guo *= r; }
 				}
 			}
-			domostpolymethod = (globalorientation>>7)&3;
-			if (globalposz >= getflorzofslope(sectnum,globalposx,globalposy)) domostpolymethod = -1; //Back-face culling
-			pow2xsplit = 0; domost(x0,fy0,x1,fy1); //flor
-			domostpolymethod = 0;
+			domostmethod = (globalorientation>>7)&3;
+			if (globalposz >= getflorzofslope(sectnum,globalposx,globalposy)) domostmethod = -1; //Back-face culling
+			domost(x0,fy0,x1,fy1,domostmethod); //flor
 		}
 		else if ((nextsectnum < 0) || (!(sector[nextsectnum].floorstat&1)))
 		{
@@ -2037,7 +2033,7 @@ static void polymost_drawalls (int bunch)
 					//Use clamping for tiled sky textures
 				for(i=(1<<pskybits)-1;i>0;i--)
 					if (pskyoff[i] != pskyoff[i-1])
-						{ skyclamphack = 1; break; }
+						{ domostmethod = METH_CLAMPED; break; }
 			}
 #endif
 			if (bpp == 8 || !usehightile || !hicfindsubst(globalpicnum,globalpal,1))
@@ -2055,7 +2051,7 @@ static void polymost_drawalls (int bunch)
 				gux = 0; guy = 0; guo = 0;
 				gvx = 0; gvy = (double)(tilesizy[globalpicnum]-1)*gdy; gvo = (double)(tilesizy[globalpicnum-1])*gdo;
 				oy = (((double)tilesizy[globalpicnum])*dd[0]-vv[0])/vv[1];
-				if ((oy > fy0) && (oy > fy1)) domost(x0,oy,x1,oy);
+				if ((oy > fy0) && (oy > fy1)) domost(x0,oy,x1,oy,domostmethod);
 				else if ((oy > fy0) != (oy > fy1))
 				{     //  fy0                      fy1
 						//     \                    /
@@ -2063,9 +2059,9 @@ static void polymost_drawalls (int bunch)
 						//        \              /
 						//         fy1        fy0
 					ox = (oy-fy0)*(x1-x0)/(fy1-fy0) + x0;
-					if (oy > fy0) { domost(x0,oy,ox,oy); domost(ox,oy,x1,fy1); }
-							  else { domost(x0,fy0,ox,oy); domost(ox,oy,x1,oy); }
-				} else domost(x0,fy0,x1,fy1);
+					if (oy > fy0) { domost(x0,oy,ox,oy,domostmethod); domost(ox,oy,x1,fy1,domostmethod); }
+							  else { domost(x0,fy0,ox,oy,domostmethod); domost(ox,oy,x1,oy,domostmethod); }
+				} else domost(x0,fy0,x1,fy1,domostmethod);
 
 
 				gdx = 0; gdy = 0; gdo = dd[0];
@@ -2086,7 +2082,7 @@ static void polymost_drawalls (int bunch)
 					ox = fx; fx = ((double)((y<<(11-pskybits))-globalang))*oz+ghalfx;
 					if (fx > x1) { fx = x1; i = -1; }
 
-					pow2xsplit = 0; domost(ox,(ox-x0)*r+fy0,fx,(fx-x0)*r+fy0); //flor
+					domost(ox,(ox-x0)*r+fy0,fx,(fx-x0)*r+fy0,domostmethod); //flor
 				} while (i >= 0);
 
 			}
@@ -2097,8 +2093,7 @@ static void polymost_drawalls (int bunch)
 				double nfy0, nfy1;
 				int skywalx[4] = {-512,512,512,-512}, skywaly[4] = {-512,-512,512,512};
 
-				pow2xsplit = 0;
-				skyclamphack = 1;
+				domostmethod = METH_CLAMPED;
 
 				for(i=0;i<4;i++)
 				{
@@ -2188,7 +2183,7 @@ static void polymost_drawalls (int bunch)
 #ifdef USE_OPENGL
 					drawingskybox = 6; //ceiling/5th texture/index 4 of skybox
 #endif
-					if ((_fy0 > nfy0) && (_fy1 > nfy1)) domost(_x0,_fy0,_x1,_fy1);
+					if ((_fy0 > nfy0) && (_fy1 > nfy1)) domost(_x0,_fy0,_x1,_fy1,domostmethod);
 					else if ((_fy0 > nfy0) != (_fy1 > nfy1))
 					{
 							//(ox,oy) is intersection of: (_x0,_cy0)-(_x1,_cy1)
@@ -2199,9 +2194,9 @@ static void polymost_drawalls (int bunch)
 						t = (_fy0-nfy0)/(nfy1-nfy0-_fy1+_fy0);
 						ox = _x0 + (_x1-_x0)*t;
 						oy = _fy0 + (_fy1-_fy0)*t;
-						if (nfy0 > _fy0) { domost(_x0,nfy0,ox,oy); domost(ox,oy,_x1,_fy1); }
-										else { domost(_x0,_fy0,ox,oy); domost(ox,oy,_x1,nfy1); }
-					} else domost(_x0,nfy0,_x1,nfy1);
+						if (nfy0 > _fy0) { domost(_x0,nfy0,ox,oy,domostmethod); domost(ox,oy,_x1,_fy1,domostmethod); }
+										else { domost(_x0,_fy0,ox,oy,domostmethod); domost(ox,oy,_x1,nfy1,domostmethod); }
+					} else domost(_x0,nfy0,_x1,nfy1,domostmethod);
 
 						//wall of skybox
 #ifdef USE_OPENGL
@@ -2219,7 +2214,7 @@ static void polymost_drawalls (int bunch)
 					gvx = (_t0-_t1)*t;
 					gvy = (_ox1-_ox0)*t;
 					gvo = -gvx*_ox0 - gvy*_t0;
-					if ((_cy0 > nfy0) && (_cy1 > nfy1)) domost(_x0,_cy0,_x1,_cy1);
+					if ((_cy0 > nfy0) && (_cy1 > nfy1)) domost(_x0,_cy0,_x1,_cy1,domostmethod);
 					else if ((_cy0 > nfy0) != (_cy1 > nfy1))
 					{
 							//(ox,oy) is intersection of: (_x0,_fy0)-(_x1,_fy1)
@@ -2230,9 +2225,9 @@ static void polymost_drawalls (int bunch)
 						t = (_cy0-nfy0)/(nfy1-nfy0-_cy1+_cy0);
 						ox = _x0 + (_x1-_x0)*t;
 						oy = _cy0 + (_cy1-_cy0)*t;
-						if (nfy0 > _cy0) { domost(_x0,nfy0,ox,oy); domost(ox,oy,_x1,_cy1); }
-										else { domost(_x0,_cy0,ox,oy); domost(ox,oy,_x1,nfy1); }
-					} else domost(_x0,nfy0,_x1,nfy1);
+						if (nfy0 > _cy0) { domost(_x0,nfy0,ox,oy,domostmethod); domost(ox,oy,_x1,_cy1,domostmethod); }
+										else { domost(_x0,_cy0,ox,oy,domostmethod); domost(ox,oy,_x1,nfy1,domostmethod); }
+					} else domost(_x0,nfy0,_x1,nfy1,domostmethod);
 				}
 
 					//Floor of skybox
@@ -2251,9 +2246,8 @@ static void polymost_drawalls (int bunch)
 				guo = (double)ft[0]*gdo; gvo = (double)ft[1]*gdo;
 				guo += (double)(ft[2]-gux)*ghalfx;
 				gvo -= (double)(ft[3]+gvx)*ghalfx;
-				domost(x0,fy0,x1,fy1);
+				domost(x0,fy0,x1,fy1,domostmethod);
 
-				skyclamphack = 0;
 #ifdef USE_OPENGL
 				drawingskybox = 0;
 #endif
@@ -2261,12 +2255,12 @@ static void polymost_drawalls (int bunch)
 #ifdef USE_OPENGL
 			if (rendmode == 3)
 			{
-				skyclamphack = 0;
 				gfogdensity = tempfogdensity;
 			}
 #endif
 		}
 
+		domostmethod = 0;
 		globalpicnum = sec->ceilingpicnum; globalshade = sec->ceilingshade; globalpal = (int)((unsigned char)sec->ceilingpal);
 		globalorientation = sec->ceilingstat;
 		if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum,sectnum);
@@ -2366,10 +2360,9 @@ static void polymost_drawalls (int bunch)
 												  else { gux *= r; guy *= r; guo *= r; }
 				}
 			}
-			domostpolymethod = (globalorientation>>7)&3;
-			if (globalposz <= getceilzofslope(sectnum,globalposx,globalposy)) domostpolymethod = -1; //Back-face culling
-			pow2xsplit = 0; domost(x1,cy1,x0,cy0); //ceil
-			domostpolymethod = 0;
+			domostmethod = (globalorientation>>7)&3;
+			if (globalposz <= getceilzofslope(sectnum,globalposx,globalposy)) domostmethod = -1; //Back-face culling
+			domost(x1,cy1,x0,cy0,domostmethod); //ceil
 		}
 		else if ((nextsectnum < 0) || (!(sector[nextsectnum].ceilingstat&1)))
 		{
@@ -2382,7 +2375,7 @@ static void polymost_drawalls (int bunch)
 					//Use clamping for tiled sky textures
 				for(i=(1<<pskybits)-1;i>0;i--)
 					if (pskyoff[i] != pskyoff[i-1])
-						{ skyclamphack = 1; break; }
+						{ domostmethod = METH_CLAMPED; break; }
 			}
 #endif
 				//Parallaxing sky...
@@ -2401,7 +2394,7 @@ static void polymost_drawalls (int bunch)
 				gux = 0; guy = 0; guo = 0;
 				gvx = 0; gvy = 0; gvo = 0;
 				oy = -vv[0]/vv[1];
-				if ((oy < cy0) && (oy < cy1)) domost(x1,oy,x0,oy);
+				if ((oy < cy0) && (oy < cy1)) domost(x1,oy,x0,oy,domostmethod);
 				else if ((oy < cy0) != (oy < cy1))
 				{      /*         cy1        cy0
 						//        /             \
@@ -2410,9 +2403,9 @@ static void polymost_drawalls (int bunch)
 						//  cy0                     cy1
 						*/
 					ox = (oy-cy0)*(x1-x0)/(cy1-cy0) + x0;
-					if (oy < cy0) { domost(ox,oy,x0,oy); domost(x1,cy1,ox,oy); }
-								else { domost(ox,oy,x0,cy0); domost(x1,oy,ox,oy); }
-				} else domost(x1,cy1,x0,cy0);
+					if (oy < cy0) { domost(ox,oy,x0,oy,domostmethod); domost(x1,cy1,ox,oy,domostmethod); }
+								else { domost(ox,oy,x0,cy0,domostmethod); domost(x1,oy,ox,oy,domostmethod); }
+				} else domost(x1,cy1,x0,cy0,domostmethod);
 
 				gdx = 0; gdy = 0; gdo = dd[0];
 				gux = gdo*(t*((double)xdimscale)*((double)yxaspect)*((double)viewingrange))/(16384.0*65536.0*65536.0*5.0*1024.0);
@@ -2431,7 +2424,7 @@ static void polymost_drawalls (int bunch)
 					y++;
 					ox = fx; fx = ((double)((y<<(11-pskybits))-globalang))*oz+ghalfx;
 					if (fx > x1) { fx = x1; i = -1; }
-					pow2xsplit = 0; domost(fx,(fx-x0)*r+cy0,ox,(ox-x0)*r+cy0); //ceil
+					domost(fx,(fx-x0)*r+cy0,ox,(ox-x0)*r+cy0,domostmethod); //ceil
 				} while (i >= 0);
 			}
 			else
@@ -2441,8 +2434,7 @@ static void polymost_drawalls (int bunch)
 				double ncy0, ncy1;
 				int skywalx[4] = {-512,512,512,-512}, skywaly[4] = {-512,-512,512,512};
 
-				pow2xsplit = 0;
-				skyclamphack = 1;
+				domostmethod = METH_CLAMPED;
 
 				for(i=0;i<4;i++)
 				{
@@ -2531,7 +2523,7 @@ static void polymost_drawalls (int bunch)
 					guo = (double)ft[0]*gdo; gvo = (double)ft[1]*gdo;
 					guo += (double)(ft[2]-gux)*ghalfx;
 					gvo -= (double)(ft[3]+gvx)*ghalfx;
-					if ((_cy0 < ncy0) && (_cy1 < ncy1)) domost(_x1,_cy1,_x0,_cy0);
+					if ((_cy0 < ncy0) && (_cy1 < ncy1)) domost(_x1,_cy1,_x0,_cy0,domostmethod);
 					else if ((_cy0 < ncy0) != (_cy1 < ncy1))
 					{
 							//(ox,oy) is intersection of: (_x0,_cy0)-(_x1,_cy1)
@@ -2542,9 +2534,9 @@ static void polymost_drawalls (int bunch)
 						t = (_cy0-ncy0)/(ncy1-ncy0-_cy1+_cy0);
 						ox = _x0 + (_x1-_x0)*t;
 						oy = _cy0 + (_cy1-_cy0)*t;
-						if (ncy0 < _cy0) { domost(ox,oy,_x0,ncy0); domost(_x1,_cy1,ox,oy); }
-										else { domost(ox,oy,_x0,_cy0); domost(_x1,ncy1,ox,oy); }
-					} else domost(_x1,ncy1,_x0,ncy0);
+						if (ncy0 < _cy0) { domost(ox,oy,_x0,ncy0,domostmethod); domost(_x1,_cy1,ox,oy,domostmethod); }
+										else { domost(ox,oy,_x0,_cy0,domostmethod); domost(_x1,ncy1,ox,oy,domostmethod); }
+					} else domost(_x1,ncy1,_x0,ncy0,domostmethod);
 
 						//wall of skybox
 #ifdef USE_OPENGL
@@ -2562,7 +2554,7 @@ static void polymost_drawalls (int bunch)
 					gvx = (_t0-_t1)*t;
 					gvy = (_ox1-_ox0)*t;
 					gvo = -gvx*_ox0 - gvy*_t0;
-					if ((_fy0 < ncy0) && (_fy1 < ncy1)) domost(_x1,_fy1,_x0,_fy0);
+					if ((_fy0 < ncy0) && (_fy1 < ncy1)) domost(_x1,_fy1,_x0,_fy0,domostmethod);
 					else if ((_fy0 < ncy0) != (_fy1 < ncy1))
 					{
 							//(ox,oy) is intersection of: (_x0,_fy0)-(_x1,_fy1)
@@ -2573,9 +2565,9 @@ static void polymost_drawalls (int bunch)
 						t = (_fy0-ncy0)/(ncy1-ncy0-_fy1+_fy0);
 						ox = _x0 + (_x1-_x0)*t;
 						oy = _fy0 + (_fy1-_fy0)*t;
-						if (ncy0 < _fy0) { domost(ox,oy,_x0,ncy0); domost(_x1,_fy1,ox,oy); }
-										else { domost(ox,oy,_x0,_fy0); domost(_x1,ncy1,ox,oy); }
-					} else domost(_x1,ncy1,_x0,ncy0);
+						if (ncy0 < _fy0) { domost(ox,oy,_x0,ncy0,domostmethod); domost(_x1,_fy1,ox,oy,domostmethod); }
+										else { domost(ox,oy,_x0,_fy0,domostmethod); domost(_x1,ncy1,ox,oy,domostmethod); }
+					} else domost(_x1,ncy1,_x0,ncy0,domostmethod);
 				}
 
 					//Floor of skybox
@@ -2595,9 +2587,8 @@ static void polymost_drawalls (int bunch)
 				guo += (double)(ft[2]-gux)*ghalfx;
 				gvo -= (double)(ft[3]+gvx)*ghalfx;
 				gvx = -gvx; gvy = -gvy; gvo = -gvo; //y-flip skybox floor
-				domost(x1,cy1,x0,cy0);
+				domost(x1,cy1,x0,cy0,domostmethod);
 
-				skyclamphack = 0;
 #ifdef USE_OPENGL
 				drawingskybox = 0;
 #endif
@@ -2605,7 +2596,6 @@ static void polymost_drawalls (int bunch)
 #ifdef USE_OPENGL
 			if (rendmode == 3)
 			{
-				skyclamphack = 0;
 				gfogdensity = tempfogdensity;
 			}
 #endif
@@ -2686,7 +2676,7 @@ static void polymost_drawalls (int bunch)
 				}
 				if (wal->cstat&256) { gvx = -gvx; gvy = -gvy; gvo = -gvo; } //yflip
 
-				pow2xsplit = 1; domost(x1,ocy1,x0,ocy0);
+				domost(x1,ocy1,x0,ocy0,METH_POW2XSPLIT);
 
 				if (wal->cstat&8) { gux = ogux; guy = oguy; guo = oguo; }
 			}
@@ -2722,7 +2712,7 @@ static void polymost_drawalls (int bunch)
 				}
 				if (nwal->cstat&256) { gvx = -gvx; gvy = -gvy; gvo = -gvo; } //yflip
 
-				pow2xsplit = 1; domost(x0,ofy0,x1,ofy1);
+				domost(x0,ofy0,x1,ofy1,METH_POW2XSPLIT);
 
 				if (wal->cstat&(2+8)) { guo = oguo; gux = ogux; guy = oguy; }
 			}
@@ -2753,7 +2743,7 @@ static void polymost_drawalls (int bunch)
 				guo = gdo*t - guo;
 			}
 			if (wal->cstat&256) { gvx = -gvx; gvy = -gvy; gvo = -gvo; } //yflip
-			pow2xsplit = 1; domost(x0,-10000,x1,-10000);
+			domost(x0,-10000,x1,-10000,METH_POW2XSPLIT);
 		}
 
 		if (nextsectnum >= 0)
@@ -3191,8 +3181,9 @@ void polymost_drawmaskwall (int damaskwallcnt)
 	}
 	if (wal->cstat&256) { gvx = -gvx; gvy = -gvy; gvo = -gvo; } //yflip
 
-	method = METH_MASKED; pow2xsplit = 1;
+	method = METH_MASKED;
 	if (wal->cstat&128) { if (!(wal->cstat&512)) method = METH_TRANS; else method = METH_INTRANS; }
+	method |= METH_POW2XSPLIT | METH_LAYERS;
 
 #ifdef USE_OPENGL
 	if (!glinfo.hack_nofog && rendmode == 3) {
@@ -3268,7 +3259,7 @@ void polymost_drawmaskwall (int damaskwallcnt)
 	}
 	if (n < 3) return;
 
-	drawpoly(dpx,dpy,n,method | METH_LAYERS);
+	drawpoly(dpx,dpy,n,method);
 }
 
 void polymost_drawsprite (int snum)
@@ -3295,8 +3286,9 @@ void polymost_drawsprite (int snum)
 		yoff = (int)((signed char)((picanm[globalpicnum]>>16)&255))+((int)tspr->yoffset);
 	}
 
-	method = METH_MASKED + METH_CLAMPED;
-	if (tspr->cstat&2) { if (!(tspr->cstat&512)) method = METH_TRANS + METH_CLAMPED; else method = METH_INTRANS + METH_CLAMPED; }
+	method = METH_MASKED;
+	if (tspr->cstat&2) { if (!(tspr->cstat&512)) method = METH_TRANS; else method = METH_INTRANS; }
+	method |= METH_CLAMPED | METH_LAYERS;
 
 #ifdef USE_OPENGL
 	if (!glinfo.hack_nofog && rendmode == 3) {
@@ -3370,7 +3362,7 @@ void polymost_drawsprite (int snum)
 				if (py[2] > sy0) py[2] = py[3] = sy0;
 			}
 
-			pow2xsplit = 0; drawpoly(px,py,4,method | METH_LAYERS);
+			drawpoly(px,py,4,method);
 			break;
 		case 1: //Wall sprite
 
@@ -3486,7 +3478,7 @@ void polymost_drawsprite (int snum)
 			px[1] = sx1; py[1] = sc1;
 			px[2] = sx1; py[2] = sf1;
 			px[3] = sx0; py[3] = sf0;
-			pow2xsplit = 0; drawpoly(px,py,4,method | METH_LAYERS);
+			drawpoly(px,py,4,method);
 			break;
 		case 2: //Floor sprite
 
@@ -3574,7 +3566,7 @@ void polymost_drawsprite (int snum)
 				guo = ((float)tilesizx[globalpicnum])*gdo - guo;
 			}
 
-			pow2xsplit = 0; drawpoly(px,py,npoints,method | METH_LAYERS);
+			drawpoly(px,py,npoints,method);
 			break;
 
 		case 3: //Voxel sprite
@@ -3861,7 +3853,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 			if ((d < y2) != (d < 0)) { py[n] = fy; px[n] = (px2[zz]-px2[z])*d/y2 + px2[z]; n++; }
 			z = zz;
 		} while (z);
-		pow2xsplit = 0; drawpoly(px,py,n,method);
+		drawpoly(px,py,n,method);
 	}
 
 #ifdef USE_OPENGL

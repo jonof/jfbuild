@@ -9,7 +9,8 @@ enum {
 	METH_INTRANS = 3,
 
 	METH_CLAMPED = 4,
-	METH_LAYERS  = 8,	// when given to drawpoly, renders the additional layers
+	METH_LAYERS  = 8,	    // when given to drawpoly, renders the additional texture layers
+    METH_POW2XSPLIT = 16,   // when given to drawpoly, splits polygons for non-2^x-capable GL devices
 };
 
 typedef struct { unsigned char r, g, b, a; } coltype;
