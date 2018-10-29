@@ -70,6 +70,9 @@ struct polymostdrawauxcall {
     coltypef bgcolour;
     int mode;
 
+    GLuint indexcount;      // Number of index items.
+    GLushort *indexes;      // Array of indexes, or NULL to use the global index buffer.
+
     int elementcount;
     struct polymostvboitem *elementvbo;
 };
@@ -80,6 +83,7 @@ int polymost_texmayhavealpha (int dapicnum, int dapalnum);
 void polymost_texinvalidate (int dapicnum, int dapalnum, int dameth);
 void polymost_texinvalidateall (void);
 void polymost_glinit(void);
+void polymost_nextpage(void);
 int polymost_palfade(void);
 void polymost_drawrooms (void);
 void polymost_drawmaskwall (int damaskwallcnt);

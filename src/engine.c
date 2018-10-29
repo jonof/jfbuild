@@ -7682,7 +7682,7 @@ void nextpage(void)
 
 			OSD_Draw();
 #if defined(POLYMOST)
-			polymost_palfade();
+			polymost_nextpage();
 #endif
 
 			showframe(0);

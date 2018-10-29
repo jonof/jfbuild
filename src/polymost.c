@@ -160,6 +160,7 @@ static struct {
 static struct {
 	GLuint program;
 	GLuint elementbuffer;
+	GLuint indexbuffer;
 	GLint attrib_vertex;		// Vertex (vec3)
 	GLint attrib_texcoord;		// Texture coordinate (vec2)
 	GLint uniform_texture;      // Character bitmap (sampler2D)
@@ -459,6 +460,10 @@ void polymost_glreset ()
 		bglDeleteProgram(polymostglsl.program);
 		polymostglsl.program = 0;
 	}
+	if (polymostauxglsl.indexbuffer) {
+		bglDeleteBuffers(1, &polymostauxglsl.indexbuffer);
+		polymostauxglsl.indexbuffer = 0;
+	}
 	if (polymostauxglsl.program) {
 		bglDeleteProgram(polymostauxglsl.program);
 		polymostauxglsl.program = 0;
@@ -633,6 +638,9 @@ static void polymost_loadshaders(void)
 
 		// Generate a buffer object for vertex/colour elements and pre-allocate its memory.
 		bglGenBuffers(1, &polymostauxglsl.elementbuffer);
+
+		// Generate a buffer object for ad-hoc indexes.
+		bglGenBuffers(1, &polymostauxglsl.indexbuffer);
 	}
 
 	// Generate a buffer object for element indexes and populate it with an
@@ -777,8 +785,17 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *draw)
 {
 	bglUseProgram(polymostauxglsl.program);
+
 	bglBindBuffer(GL_ARRAY_BUFFER, polymostauxglsl.elementbuffer);
-	bglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
+	bglBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
+
+	if (draw->indexes) {
+		bglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, polymostauxglsl.indexbuffer);
+		bglBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indexcount * sizeof(GLushort), draw->indexes, GL_STREAM_DRAW);
+	} else {
+		bglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
+		checkindexbuffer(draw->indexcount);
+	}
 
 	bglEnableVertexAttribArray(polymostauxglsl.attrib_vertex);
 	bglEnableVertexAttribArray(polymostauxglsl.attrib_texcoord);
@@ -801,13 +818,15 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 	);
 	bglUniform1i(polymostauxglsl.uniform_mode, draw->mode);
 
-	bglBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
-	checkindexbuffer(draw->elementcount);
-
-	bglDrawElements(mode, draw->elementcount, GL_UNSIGNED_SHORT, 0);
+	bglDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
 
 	bglDisableVertexAttribArray(polymostauxglsl.attrib_vertex);
 	bglDisableVertexAttribArray(polymostauxglsl.attrib_texcoord);
+}
+
+void polymost_nextpage(void)
+{
+	polymost_palfade();
 }
 
 int polymost_palfade(void)
@@ -844,6 +863,8 @@ int polymost_palfade(void)
 	vboitem[3].v.y = 1.f;
 	vboitem[3].v.z = 0.f;
 
+	draw.indexcount = 4;
+	draw.indexes = NULL;
 	draw.elementcount = 4;
 	draw.elementvbo = vboitem;
 
@@ -4057,6 +4078,7 @@ void polymost_fillpolygon (int npoints)
 	PTHead *pth;
 	float alphac=0.0;
 	int i, j, k;
+	unsigned short ptflags = 0;
 	struct polymostdrawpolycall draw;
 
 	globalx1 = mulscale16(globalx1,xyaspect);
@@ -4077,12 +4099,15 @@ void polymost_fillpolygon (int npoints)
 
 	if (gloy1 != -1) setpolymost2dview(); //disables blending, texturing, and depth testing
 
+	if ((unsigned int)globalpicnum >= MAXTILES) globalpicnum = 0;
+	if (!palookup[globalpal]) globalpal = 0;
+
+	if (usehightile) ptflags |= PTH_HIGHTILE;
+
 	draw.texture0 = 0;
-	pth = PT_GetHead(globalpicnum, globalpal, usehightile ? PTH_HIGHTILE : 0, 0);
-	if (pth) {
-		if (pth->pic[PTHPIC_BASE]) {
-			draw.texture0 = pth->pic[ PTHPIC_BASE ]->glpic;
-		}
+	pth = PT_GetHead(globalpicnum, globalpal, ptflags, 0);
+	if (pth && pth->pic[PTHPIC_BASE]) {
+		draw.texture0 = pth->pic[ PTHPIC_BASE ]->glpic;
 	}
 	draw.texture1 = nulltexture;
 	draw.alphacut = 0.f;
@@ -4194,6 +4219,8 @@ int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 	vboitem[3].t.s = 0.f;
 	vboitem[3].t.t = ydimepad;
 
+	draw.indexcount = 4;
+	draw.indexes = NULL;
 	draw.elementcount = 4;
 	draw.elementvbo = vboitem;
 
@@ -4209,10 +4236,11 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	return -1;
 #else
 	GLfloat tx, ty, txc, tyc, tyoff, cx, cy;
-	int c;
+	int c, indexcnt, vbocnt;
 	palette_t colour;
 	struct polymostdrawauxcall draw;
-	struct polymostvboitem vboitem[4];
+	struct polymostvboitem vboitem[80*4];
+	GLushort vboindexes[80*6];
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
@@ -4263,39 +4291,58 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	txc = cx/256.f;
 	tyc = cy/128.f;
 
+	draw.indexes = vboindexes;
 	draw.elementvbo = vboitem;
-	draw.elementcount = 4;
 
-	for (c=0; name[c]; c++) {
-		tx = (GLfloat)(name[c]%32)/32.0;
-		ty = ((GLfloat)(name[c]/32) + tyoff)/16.0;
+	c = 0;
+	indexcnt = vbocnt = 0;
+	while (name[c]) {
+		for (; name[c] && indexcnt < 80*6; c++) {
+			tx = (GLfloat)(name[c]%32)/32.0;
+			ty = ((GLfloat)(name[c]/32) + tyoff)/16.0;
 
-		vboitem[0].v.x = (GLfloat)xpos;
-		vboitem[0].v.y = (GLfloat)ypos;
-		vboitem[0].v.z = 0.f;
-		vboitem[0].t.s = tx;
-		vboitem[0].t.t = ty;
+			vboindexes[indexcnt + 0] = vbocnt+0;
+			vboindexes[indexcnt + 1] = vbocnt+1;
+			vboindexes[indexcnt + 2] = vbocnt+2;
+			vboindexes[indexcnt + 3] = vbocnt+0;
+			vboindexes[indexcnt + 4] = vbocnt+2;
+			vboindexes[indexcnt + 5] = vbocnt+3;
 
-		vboitem[1].v.x = (GLfloat)xpos+cx;
-		vboitem[1].v.y = (GLfloat)ypos;
-		vboitem[1].v.z = 0.f;
-		vboitem[1].t.s = tx+txc;
-		vboitem[1].t.t = ty;
+			vboitem[vbocnt + 0].v.x = (GLfloat)xpos;
+			vboitem[vbocnt + 0].v.y = (GLfloat)ypos;
+			vboitem[vbocnt + 0].v.z = 0.f;
+			vboitem[vbocnt + 0].t.s = tx;
+			vboitem[vbocnt + 0].t.t = ty;
 
-		vboitem[2].v.x = (GLfloat)xpos+cx;
-		vboitem[2].v.y = (GLfloat)ypos+cy;
-		vboitem[2].v.z = 0.f;
-		vboitem[2].t.s = tx+txc;
-		vboitem[2].t.t = ty+tyc;
+			vboitem[vbocnt + 1].v.x = (GLfloat)xpos+cx;
+			vboitem[vbocnt + 1].v.y = (GLfloat)ypos;
+			vboitem[vbocnt + 1].v.z = 0.f;
+			vboitem[vbocnt + 1].t.s = tx+txc;
+			vboitem[vbocnt + 1].t.t = ty;
 
-		vboitem[3].v.x = (GLfloat)xpos;
-		vboitem[3].v.y = (GLfloat)ypos+cy;
-		vboitem[3].v.z = 0.f;
-		vboitem[3].t.s = tx;
-		vboitem[3].t.t = ty+tyc;
+			vboitem[vbocnt + 2].v.x = (GLfloat)xpos+cx;
+			vboitem[vbocnt + 2].v.y = (GLfloat)ypos+cy;
+			vboitem[vbocnt + 2].v.z = 0.f;
+			vboitem[vbocnt + 2].t.s = tx+txc;
+			vboitem[vbocnt + 2].t.t = ty+tyc;
 
-		xpos += (8>>fontsize);
-		polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
+			vboitem[vbocnt + 3].v.x = (GLfloat)xpos;
+			vboitem[vbocnt + 3].v.y = (GLfloat)ypos+cy;
+			vboitem[vbocnt + 3].v.z = 0.f;
+			vboitem[vbocnt + 3].t.s = tx;
+			vboitem[vbocnt + 3].t.t = ty+tyc;
+
+			indexcnt += 6;
+			vbocnt += 4;
+			xpos += (8>>fontsize);
+		}
+
+		draw.indexcount = indexcnt;
+		draw.elementcount = vbocnt;
+
+		polymost_drawaux_glcall(GL_TRIANGLES, &draw);
+
+		indexcnt = vbocnt = 0;
 	}
 
 	bglDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
@@ -4341,6 +4388,8 @@ int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 	vboitem[1].v.y = (GLfloat)(y2+2048)/4096.f;
 	vboitem[1].v.z = 0.f;
 
+	draw.indexcount = 2;
+	draw.indexes = NULL;
 	draw.elementcount = 2;
 	draw.elementvbo = vboitem;
 
@@ -4384,6 +4433,8 @@ int polymost_plotpixel(int x, int y, unsigned char col)
 	vboitem[0].v.y = (GLfloat)y;
 	vboitem[0].v.z = 0.f;
 
+	draw.indexcount = 1;
+	draw.indexes = NULL;
 	draw.elementcount = 1;
 	draw.elementvbo = vboitem;
 
