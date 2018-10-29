@@ -37,6 +37,16 @@ extern int gltexcomprquality;	// 0 = fast, 1 = slow and pretty, 2 = very slow an
 extern int gltexmaxsize;	// 0 means autodetection on first run
 extern int gltexmiplevel;	// discards this many mipmap levels
 
+#ifdef DEBUGGINGAIDS
+struct polymostcallcounts {
+    int drawpoly_glcall;
+    int drawaux_glcall;
+    int drawpoly;
+    int domost;
+};
+extern struct polymostcallcounts polymostcallcounts;
+#endif
+
 extern const GLfloat gidentitymat[4][4];
 extern GLfloat gdrawroomsprojmat[4][4];      // Proj. matrix for drawrooms() calls.
 extern GLfloat grotatespriteprojmat[4][4];   // Proj. matrix for rotatesprite() calls.

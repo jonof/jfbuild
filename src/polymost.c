@@ -191,6 +191,11 @@ GLfloat gorthoprojmat[4][4];          // Proj. matrix for 2D (aux) calls.
 static int polymost_preparetext(void);
 #endif
 
+#ifdef DEBUGGINGAIDS
+static int polymostshowcallcounts = 0;
+struct polymostcallcounts polymostcallcounts;
+#endif
+
 #if defined(USE_MSC_PRAGMAS)
 static inline void ftol (float f, int *a)
 {
@@ -751,6 +756,10 @@ void polymost_setview(void)
 
 void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 {
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawpoly_glcall++;
+#endif
+
 	bglUseProgram(polymostglsl.program);
 
 	if (draw->elementbuffer > 0) {
@@ -814,6 +823,10 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 
 static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *draw)
 {
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawaux_glcall++;
+#endif
+
 	bglUseProgram(polymostauxglsl.program);
 
 	bglBindBuffer(GL_ARRAY_BUFFER, polymostauxglsl.elementbuffer);
@@ -859,6 +872,22 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 void polymost_nextpage(void)
 {
 	polymost_palfade();
+
+#ifdef DEBUGGINGAIDS
+	if (polymostshowcallcounts) {
+		char buf[1024];
+		sprintf(buf,
+			"drawpoly_glcall(%d) drawaux_glcall(%d) "
+			"drawpoly(%d) domost(%d)",
+	    		polymostcallcounts.drawpoly_glcall,
+	    		polymostcallcounts.drawaux_glcall,
+	    		polymostcallcounts.drawpoly,
+	    		polymostcallcounts.domost
+		);
+		polymost_printext256(0, 8, 31, -1, buf, 1);
+	}
+	memset(&polymostcallcounts, 0, sizeof(polymostcallcounts));
+#endif
 }
 
 int polymost_palfade(void)
@@ -925,6 +954,10 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 	int i, j, k, x, y, z, nn, ix0, ix1, mini, maxi, tsizx, tsizy, tsizxm1 = 0, tsizym1 = 0, ltsizy = 0;
 	int xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0, ymulnice = 0, dorot;
 	unsigned char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
+
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawpoly++;
+#endif
 
 	if (method == -1) return;
 
@@ -1707,6 +1740,9 @@ static void domost (float x0, float y0, float x1, float y1, int polymethod)
 	float spx[4], spy[4], cy[2], cv[2];
 	int i, j, k, z, ni, vcnt = 0, scnt, newi, dir, spt[4];
 
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.domost++;
+#endif
 	polymethod |= METH_LAYERS;
 
 	if (x0 < x1)
@@ -4637,6 +4673,13 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 		}
 		return OSDCMD_OK;
 	}
+#ifdef DEBUGGINGAIDS
+	else if (!Bstrcasecmp(parm->name, "debugshowcallcounts")) {
+		if (showval) { buildprintf("debugshowcallcounts is %d\n", polymostshowcallcounts); }
+		else polymostshowcallcounts = (val != 0);
+		return OSDCMD_OK;
+	}
+#endif
 #endif
 	return OSDCMD_SHOWHELP;
 }
@@ -4735,6 +4778,7 @@ void polymost_initosdfuncs(void)
 #ifdef DEBUGGINGAIDS
 	OSD_RegisterFunction("debugdumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",osdcmd_debugdumptexturedefs);
 	OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",osdcmd_debugtexturehash);
+	OSD_RegisterFunction("debugshowcallcounts","debugshowcallcounts: display rendering call counts",osdcmd_polymostvars);
 #endif
 #endif
 	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
