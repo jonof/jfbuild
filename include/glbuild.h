@@ -125,6 +125,7 @@ extern void (APIENTRY * bglUniform1f)(GLint location, GLfloat v0);
 extern void (APIENTRY * bglUniform2f)(GLint location, GLfloat v0, GLfloat v1);
 extern void (APIENTRY * bglUniform3f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
 extern void (APIENTRY * bglUniform4f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+extern void (APIENTRY * bglUniformMatrix4fv)(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
 extern void (APIENTRY * bglUseProgram)(GLuint program);
 
 #ifdef RENDERTYPEWIN
@@ -240,6 +241,7 @@ extern HGLRC (WINAPI * bwglCreateContextAttribsARB)(HDC hDC, HGLRC hShareContext
 #define bglUniform2f     glUniform2f
 #define bglUniform3f     glUniform3f
 #define bglUniform4f     glUniform4f
+#define bglUniformMatrix4fv glUniformMatrix4fv
 
 #ifdef RENDERTYPEWIN
 #define bwglCreateContext	wglCreateContext

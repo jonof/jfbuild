@@ -15,7 +15,7 @@ struct glinfo glinfo = {
 	"Unknown",	// renderer
 	"0.0.0",	// version
 	"",		// extensions
-	
+
 	1.0,		// max anisotropy
 	0,		// brga texture format
 	0,		// clamp-to-edge support
@@ -25,8 +25,6 @@ struct glinfo glinfo = {
 	0,		// nvidia multisampling hint
 	0,		// multitexturing
 	0,		// envcombine
-	
-	0,		// no fog hack flag
 };
 #endif
 
@@ -60,17 +58,17 @@ static int osdcmd_hicsetpalettetint(const osdfuncparm_t *parm)
 {
 	int pal, cols[3], eff;
 	char *p;
-	
+
 	if (parm->numparms != 5) return OSDCMD_SHOWHELP;
-	
+
 	pal = Batol(parm->parms[0]);
 	cols[0] = Batol(parm->parms[1]);
 	cols[1] = Batol(parm->parms[2]);
 	cols[2] = Batol(parm->parms[3]);
 	eff = Batol(parm->parms[4]);
-	
+
 	hicsetpalettetint(pal,cols[0],cols[1],cols[2],eff);
-	
+
 	return OSDCMD_OK;
 }
 #endif
@@ -85,7 +83,7 @@ static int osdcmd_glinfo(const osdfuncparm_t *UNUSED(parm))
 static int osdcmd_vars(const osdfuncparm_t *parm)
 {
 	int showval = (parm->numparms < 1);
-	
+
 	if (!Bstrcasecmp(parm->name, "screencaptureformat")) {
 		const char *fmts[2][2] = { {"TGA", "PCX"}, {"0", "1"} };
 		if (showval) { buildprintf("captureformat is %s\n", fmts[captureformat][0]); }
@@ -115,7 +113,7 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 int baselayer_init(void)
 {
     OSD_Init();
-    
+
 #ifdef POLYMOST
 	OSD_RegisterFunction("setrendermode","setrendermode <number>: sets the engine's rendering mode.\n"
 			"Mode numbers are:\n"
@@ -139,7 +137,7 @@ int baselayer_init(void)
 #endif
 	OSD_RegisterFunction("glinfo","glinfo: shows OpenGL information about the current OpenGL mode",osdcmd_glinfo);
 #endif
-	
+
 	return 0;
 }
 
@@ -147,7 +145,6 @@ int baselayer_init(void)
 int baselayer_setupopengl(void)
 {
 	char *p,*p2,*p3;
-	static int warnonce = 0;
 	int i;
 
 	if (loadglfunctions(1)) {
@@ -159,11 +156,11 @@ int baselayer_setupopengl(void)
 	glinfo.renderer   = (const char *) bglGetString(GL_RENDERER);
 	glinfo.version    = (const char *) bglGetString(GL_VERSION);
 	glinfo.extensions = (const char *) bglGetString(GL_EXTENSIONS);
-	
+
 	glinfo.maxanisotropy = 1.0;
 	glinfo.bgra = 0;
 	glinfo.texcompr = 0;
-	
+
 	// process the extensions string and flag stuff we recognize
 	p = strdup(glinfo.extensions);
 	p3 = p;
@@ -184,11 +181,6 @@ int baselayer_setupopengl(void)
 		} else if (!Bstrcmp(p2, "GL_ARB_texture_non_power_of_two")) {
 				// support non-power-of-two texture sizes
 			glinfo.texnpot = 1;
-		} else if (!Bstrcmp(p2, "WGL_3DFX_gamma_control")) {
-				// 3dfx cards have issues with fog
-			glinfo.hack_nofog = 1;
-			if (!(warnonce&1)) buildputs("3dfx card detected: OpenGL fog disabled\n");
-			warnonce |= 1;
 		} else if (!Bstrcmp(p2, "GL_ARB_multisample")) {
 				// supports multisampling
 			glinfo.multisample = 1;
@@ -210,12 +202,12 @@ int baselayer_setupopengl(void)
 void baselayer_dumpglinfo(void)
 {
 	char *s,*t,*u,i;
-	
+
 	if (!glinfo.loaded) {
 		buildputs("OpenGL information not available.\n");
 		return;
 	}
-	
+
 	buildprintf("OpenGL Information:\n"
 	           " Version:  %s\n"
 		   " Vendor:   %s\n"

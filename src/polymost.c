@@ -149,6 +149,8 @@ static struct {
 	GLuint elementbuffersize;
 	GLint attrib_vertex;		// Vertex (vec3)
 	GLint attrib_texcoord;		// Texture coordinate (vec2)
+	GLint uniform_modelview;	// Modelview matrix (mat4)
+	GLint uniform_projection;	// Projection matrix (mat4)
 	GLint uniform_texture;      // Base texture (sampler2D)
 	GLint uniform_glowtexture;  // Glow texture (sampler2D)
 	GLint uniform_alphacut;     // Alpha test cutoff (float)
@@ -163,6 +165,7 @@ static struct {
 	GLuint indexbuffer;
 	GLint attrib_vertex;		// Vertex (vec3)
 	GLint attrib_texcoord;		// Texture coordinate (vec2)
+	GLint uniform_projection;	// Projection matrix (mat4)
 	GLint uniform_texture;      // Character bitmap (sampler2D)
 	GLint uniform_colour;		// Colour (vec4)
 	GLint uniform_bgcolour;     // Background colour (vec4)
@@ -174,6 +177,16 @@ static struct {
 
 static GLuint elementindexbuffer = 0;
 static GLuint elementindexbuffersize = 0;
+
+const GLfloat gidentitymat[4][4] = {
+	{1.f, 0.f, 0.f, 0.f},
+	{0.f, 1.f, 0.f, 0.f},
+	{0.f, 0.f, 1.f, 0.f},
+	{0.f, 0.f, 0.f, 1.f},
+};
+GLfloat gdrawroomsprojmat[4][4];      // Proj. matrix for drawrooms() calls.
+GLfloat grotatespriteprojmat[4][4];   // Proj. matrix for rotatesprite() calls.
+GLfloat gorthoprojmat[4][4];          // Proj. matrix for 2D (aux) calls.
 
 static int polymost_preparetext(void);
 #endif
@@ -581,6 +594,8 @@ static void polymost_loadshaders(void)
 	if (polymostglsl.program) {
 		polymostglsl.attrib_vertex       = polymost_get_attrib(polymostglsl.program, "a_vertex");
 		polymostglsl.attrib_texcoord     = polymost_get_attrib(polymostglsl.program, "a_texcoord");
+		polymostglsl.uniform_modelview   = polymost_get_uniform(polymostglsl.program, "u_modelview");
+		polymostglsl.uniform_projection  = polymost_get_uniform(polymostglsl.program, "u_projection");
 		polymostglsl.uniform_texture     = polymost_get_uniform(polymostglsl.program, "u_texture");
 		polymostglsl.uniform_glowtexture = polymost_get_uniform(polymostglsl.program, "u_glowtexture");
 		polymostglsl.uniform_alphacut    = polymost_get_uniform(polymostglsl.program, "u_alphacut");
@@ -628,6 +643,7 @@ static void polymost_loadshaders(void)
 	if (polymostauxglsl.program) {
 		polymostauxglsl.attrib_vertex    = polymost_get_attrib(polymostauxglsl.program, "a_vertex");
 		polymostauxglsl.attrib_texcoord  = polymost_get_attrib(polymostauxglsl.program, "a_texcoord");
+		polymostauxglsl.uniform_projection = polymost_get_uniform(polymostauxglsl.program, "u_projection");
 		polymostauxglsl.uniform_texture  = polymost_get_uniform(polymostauxglsl.program, "u_texture");
 		polymostauxglsl.uniform_colour   = polymost_get_uniform(polymostauxglsl.program, "u_colour");
 		polymostauxglsl.uniform_bgcolour = polymost_get_uniform(polymostauxglsl.program, "u_bgcolour");
@@ -699,7 +715,6 @@ void resizeglcheck ()
 	{
 		bglClearColor(1.0,1.0,1.0,0.0);
 		bglClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-		bglDisable(GL_TEXTURE_2D);
 	}
 
 	if ((glox1 != windowx1) || (gloy1 != windowy1) || (glox2 != windowx2) || (gloy2 != windowy2))
@@ -708,18 +723,30 @@ void resizeglcheck ()
 		glox2 = windowx2; gloy2 = windowy2;
 
 		bglViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
-
-		bglMatrixMode(GL_PROJECTION);
-		memset(m,0,sizeof(m));
-		m[0][0] = (float)ydimen; m[0][2] = 1.0;
-		m[1][1] = (float)xdimen; m[1][2] = 1.0;
-		m[2][2] = 1.0; m[2][3] = (float)ydimen;
-		m[3][2] =-1.0;
-		bglLoadMatrixf(&m[0][0]);
-
-		bglMatrixMode(GL_MODELVIEW);
-		bglLoadIdentity();
 	}
+}
+
+void polymost_setview(void)
+{
+	memset(gdrawroomsprojmat,0,sizeof(gdrawroomsprojmat));
+	gdrawroomsprojmat[0][0] = (float)ydimen; gdrawroomsprojmat[0][2] = 1.0;
+	gdrawroomsprojmat[1][1] = (float)xdimen; gdrawroomsprojmat[1][2] = 1.0;
+	gdrawroomsprojmat[2][2] = 1.0; gdrawroomsprojmat[2][3] = (float)ydimen;
+	gdrawroomsprojmat[3][2] =-1.0;
+
+	memset(grotatespriteprojmat,0,sizeof(grotatespriteprojmat));
+	grotatespriteprojmat[0][0] = grotatespriteprojmat[2][3] = 1.0;
+	grotatespriteprojmat[1][1] = ((float)xdim)/((float)ydim);
+	grotatespriteprojmat[2][2] = 1.0001;
+	grotatespriteprojmat[3][2] = 1-grotatespriteprojmat[2][2];
+
+	memset(gorthoprojmat,0,sizeof(gorthoprojmat));
+	gorthoprojmat[0][0] = 2/(float)xdim;
+	gorthoprojmat[1][1] = -2/(float)ydim;
+	gorthoprojmat[2][2] = -1.0;
+	gorthoprojmat[3][3] = 1.0;
+	gorthoprojmat[3][0] = -1.0;
+	gorthoprojmat[3][1] = 1.0;
 }
 
 void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
@@ -776,6 +803,9 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 		draw->fogdensity
 	);
 
+	bglUniformMatrix4fv(polymostglsl.uniform_modelview, 1, GL_FALSE, draw->modelview);
+	bglUniformMatrix4fv(polymostglsl.uniform_projection, 1, GL_FALSE, draw->projection);
+
 	bglDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
 
 	bglDisableVertexAttribArray(polymostglsl.attrib_vertex);
@@ -818,6 +848,8 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 	);
 	bglUniform1i(polymostauxglsl.uniform_mode, draw->mode);
 
+	bglUniformMatrix4fv(polymostauxglsl.uniform_projection, 1, GL_FALSE, &gorthoprojmat[0][0]);
+
 	bglDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
 
 	bglDisableVertexAttribArray(polymostauxglsl.attrib_vertex);
@@ -847,20 +879,20 @@ int polymost_palfade(void)
 	draw.colour.b = palfadergb.b / 255.f;
 	draw.colour.a = palfadedelta / 255.f;
 
-	vboitem[0].v.x = -1.f;
-	vboitem[0].v.y = -1.f;
+	vboitem[0].v.x = 0.f;
+	vboitem[0].v.y = 0.f;
 	vboitem[0].v.z = 0.f;
 
-	vboitem[1].v.x = 1.f;
-	vboitem[1].v.y = -1.f;
+	vboitem[1].v.x = (float)xdim;
+	vboitem[1].v.y = 0.f;
 	vboitem[1].v.z = 0.f;
 
-	vboitem[2].v.x = 1.f;
-	vboitem[2].v.y = 1.f;
+	vboitem[2].v.x = (float)xdim;
+	vboitem[2].v.y = (float)ydim;
 	vboitem[2].v.z = 0.f;
 
-	vboitem[3].v.x = -1.f;
-	vboitem[3].v.y = 1.f;
+	vboitem[3].v.x = 0.f;
+	vboitem[3].v.y = (float)ydim;
 	vboitem[3].v.z = 0.f;
 
 	draw.indexcount = 4;
@@ -868,22 +900,10 @@ int polymost_palfade(void)
 	draw.elementcount = 4;
 	draw.elementvbo = vboitem;
 
-	bglMatrixMode(GL_PROJECTION);
-	bglPushMatrix();
-	bglLoadIdentity();
-	bglMatrixMode(GL_MODELVIEW);
-	bglPushMatrix();
-	bglLoadIdentity();
-
 	bglDisable(GL_DEPTH_TEST);
 	bglEnable(GL_BLEND);
 
 	polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
-
-	bglMatrixMode(GL_MODELVIEW);
-	bglPopMatrix();
-	bglMatrixMode(GL_PROJECTION);
-	bglPopMatrix();
 
 	return 0;
 #endif
@@ -1072,6 +1092,13 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 			draw.colour.r *= (float)hictinting[globalpal].r / 255.0;
 			draw.colour.g *= (float)hictinting[globalpal].g / 255.0;
 			draw.colour.b *= (float)hictinting[globalpal].b / 255.0;
+		}
+
+		draw.modelview = &gidentitymat[0][0];
+		if (method & METH_ROTATESPRITE) {
+			draw.projection = &grotatespriteprojmat[0][0];
+		} else {
+			draw.projection = &gdrawroomsprojmat[0][0];
 		}
 
 		draw.indexbuffer = 0;
@@ -1551,7 +1578,7 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 	//                /          \
 	// (px[3],py[3]).--------------.(px[2],py[2])
 	*/
-void initmosts (double *px, double *py, int n)
+static void initmosts (double *px, double *py, int n)
 {
 	int i, j, k, imin;
 
@@ -1628,7 +1655,7 @@ void initmosts (double *px, double *py, int n)
 	vsp[VSPMAX-1].n = vcnt; vsp[vcnt].p = VSPMAX-1;
 }
 
-void vsdel (int i)
+static void vsdel (int i)
 {
 	int pi, ni;
 		//Delete i
@@ -1644,7 +1671,7 @@ void vsdel (int i)
 	vsp[VSPMAX-1].n = i;
 }
 
-int vsinsaft (int i)
+static int vsinsaft (int i)
 {
 	int r;
 		//i = next element from empty list
@@ -1661,7 +1688,7 @@ int vsinsaft (int i)
 	return(r);
 }
 
-int testvisiblemost (float x0, float x1)
+static int testvisiblemost (float x0, float x1)
 {
 	int i, newi;
 
@@ -1673,7 +1700,7 @@ int testvisiblemost (float x0, float x1)
 	return(0);
 }
 
-void domost (float x0, float y0, float x1, float y1, int polymethod)
+static void domost (float x0, float y0, float x1, float y1, int polymethod)
 {
 	double dpx[4], dpy[4];
 	float d, f, n, t, slop, dx, dx0, dx1, nx, nx0, ny0, nx1, ny1;
@@ -1878,13 +1905,8 @@ static void polymost_drawalls (int bunch)
 	sectnum = thesector[bunchfirst[bunch]]; sec = &sector[sectnum];
 
 #ifdef USE_OPENGL
-	if (!glinfo.hack_nofog && rendmode == 3) {
-		gfogpalnum = sec->floorpal;
-		gfogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
-	} else {
-		gfogpalnum = 0;
-		gfogdensity = 0.f;
-	}
+	gfogpalnum = sec->floorpal;
+	gfogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
 #endif
 
 		//DRAW WALLS SECTION!
@@ -3207,13 +3229,8 @@ void polymost_drawmaskwall (int damaskwallcnt)
 	method |= METH_POW2XSPLIT | METH_LAYERS;
 
 #ifdef USE_OPENGL
-	if (!glinfo.hack_nofog && rendmode == 3) {
-		gfogpalnum = sec->floorpal;
-		gfogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
-	} else {
-		gfogpalnum = 0;
-		gfogdensity = 0.f;
-	}
+	gfogpalnum = sec->floorpal;
+	gfogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
 #endif
 
 	for(i=0;i<2;i++)
@@ -3312,25 +3329,20 @@ void polymost_drawsprite (int snum)
 	method |= METH_CLAMPED | METH_LAYERS;
 
 #ifdef USE_OPENGL
-	if (!glinfo.hack_nofog && rendmode == 3) {
-		gfogpalnum = sector[tspr->sectnum].floorpal;
-		gfogdensity = gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16)) / 255.f);
-	} else {
-		gfogpalnum = 0;
-		gfogdensity = 0.f;
-	}
+	gfogpalnum = sector[tspr->sectnum].floorpal;
+	gfogdensity = gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16)) / 255.f);
 
 	while (rendmode == 3 && !(spriteext[tspr->owner].flags&SPREXT_NOTMD)) {
 		if (usemodels && tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
-			if (mddraw(tspr)) return;
+			if (mddraw(tspr, 0)) return;
 			break;	// else, render as flat sprite
 		}
 		if (usevoxels && (tspr->cstat&48)!=48 && tiletovox[tspr->picnum] >= 0 && voxmodels[ tiletovox[tspr->picnum] ]) {
-			if (voxdraw(voxmodels[ tiletovox[tspr->picnum] ], tspr)) return;
+			if (voxdraw(voxmodels[ tiletovox[tspr->picnum] ], tspr, 0)) return;
 			break;	// else, render as flat sprite
 		}
 		if ((tspr->cstat&48)==48 && voxmodels[ tspr->picnum ]) {
-			voxdraw(voxmodels[ tspr->picnum ], tspr);
+			voxdraw(voxmodels[ tspr->picnum ], tspr, 0);
 			return;
 		}
 		break;
@@ -3688,20 +3700,6 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 			if ((dastat&10) == 2) bglViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
 			else { bglViewport(0,0,xdim,ydim); glox1 = -1; } //Force fullscreen (glox1=-1 forces it to restore)
 
-			bglMatrixMode(GL_PROJECTION);
-			memset(m,0,sizeof(m));
-			if ((dastat&10) == 2)
-			{
-				m[0][0] = (float)ydimen; m[0][2] = 1.0;
-				m[1][1] = (float)xdimen; m[1][2] = 1.0;
-				m[2][2] = 1.0; m[2][3] = (float)ydimen;
-				m[3][2] =-1.0;
-			}
-			else { m[0][0] = m[2][3] = 1.0; m[1][1] = ((float)xdim)/((float)ydim); m[2][2] = 1.0001; m[3][2] = 1-m[2][2]; }
-			bglLoadMatrixf(&m[0][0]);
-			bglMatrixMode(GL_MODELVIEW);
-			bglLoadIdentity();
-
 			if (hudmem[(dastat&4)>>2][picnum].flags&8) //NODEPTH flag
 				bglDisable(GL_DEPTH_TEST);
 			else
@@ -3714,7 +3712,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 				}
 			}
 
-			mddraw(&tspr);
+			mddraw(&tspr, !!((dastat&10) != 2));
 
 			viewingrange = oldviewingrange;
 			gxyaspect = ogxyaspect;
@@ -3748,15 +3746,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	if (rendmode == 3)
 	{
 		bglViewport(0,0,xdim,ydim); glox1 = -1; //Force fullscreen (glox1=-1 forces it to restore)
-		bglMatrixMode(GL_PROJECTION);
-		memset(m,0,sizeof(m));
-		m[0][0] = m[2][3] = 1.0; m[1][1] = ((float)xdim)/((float)ydim); m[2][2] = 1.0001; m[3][2] = 1-m[2][2];
-		bglPushMatrix(); bglLoadMatrixf(&m[0][0]);
-		bglMatrixMode(GL_MODELVIEW);
-		bglLoadIdentity();
-
 		bglDisable(GL_DEPTH_TEST);
-		bglDisable(GL_ALPHA_TEST);
 	}
 #endif
 
@@ -3767,6 +3757,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 		 if (dastat&1) { if (!(dastat&32)) method = METH_TRANS; else method = METH_INTRANS; }
 	}
 	method |= METH_CLAMPED; //Use OpenGL clamping - dorotatesprite never repeats
+	method |= METH_ROTATESPRITE;	//Use rotatesprite projection
 
 	xsiz = tilesizx[globalpicnum]; ysiz = tilesizy[globalpicnum];
 	if (dastat&16) { xoff = 0; yoff = 0; }
@@ -3876,12 +3867,6 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 		} while (z);
 		drawpoly(px,py,n,method);
 	}
-
-#ifdef USE_OPENGL
-	if (rendmode == 3) {
-		bglMatrixMode(GL_PROJECTION); bglPopMatrix();
-	}
-#endif
 
 	globalpicnum = ogpicnum;
 	globalshade  = ogshade;
@@ -4097,8 +4082,6 @@ void polymost_fillpolygon (int npoints)
 		((float *)ry1)[i] = ((float)ry1[i])/4096.0;
 	}
 
-	if (gloy1 != -1) setpolymost2dview(); //disables blending, texturing, and depth testing
-
 	if ((unsigned int)globalpicnum >= MAXTILES) globalpicnum = 0;
 	if (!palookup[globalpal]) globalpal = 0;
 
@@ -4127,6 +4110,9 @@ void polymost_fillpolygon (int npoints)
 		draw.colour.g *= (float)hictinting[globalpal].g / 255.0;
 		draw.colour.b *= (float)hictinting[globalpal].b / 255.0;
 	}
+
+	draw.modelview = &gidentitymat[0][0];
+	draw.projection = &gorthoprojmat[0][0];
 
 	draw.indexbuffer = 0;
 	draw.elementbuffer = 0;

@@ -114,6 +114,7 @@ void (APIENTRY * bglUniform1f)(GLint location, GLfloat v0);
 void (APIENTRY * bglUniform2f)(GLint location, GLfloat v0, GLfloat v1);
 void (APIENTRY * bglUniform3f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
 void (APIENTRY * bglUniform4f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+void (APIENTRY * bglUniformMatrix4fv)(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
 void (APIENTRY * bglUseProgram)(GLuint program);
 
 #ifdef RENDERTYPEWIN
@@ -265,6 +266,7 @@ int loadglfunctions(int all)
 	bglUniform2f     = GETPROC("glUniform2f");
 	bglUniform3f     = GETPROC("glUniform3f");
 	bglUniform4f     = GETPROC("glUniform4f");
+	bglUniformMatrix4fv = GETPROC("glUniformMatrix4fv");
 
 	bglCompressedTexImage2DARB  = GETPROCEXTSOFT("glCompressedTexImage2DARB");
 	bglGetCompressedTexImageARB = GETPROCEXTSOFT("glGetCompressedTexImageARB");
@@ -376,6 +378,7 @@ void unloadglfunctions(void)
 	bglUniform2f     = NULL;
 	bglUniform3f     = NULL;
 	bglUniform4f     = NULL;
+	bglUniformMatrix4fv = NULL;
 
 #ifdef RENDERTYPEWIN
 	bwglCreateContext	= NULL;

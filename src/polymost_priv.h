@@ -11,6 +11,7 @@ enum {
 	METH_CLAMPED = 4,
 	METH_LAYERS  = 8,	    // when given to drawpoly, renders the additional texture layers
     METH_POW2XSPLIT = 16,   // when given to drawpoly, splits polygons for non-2^x-capable GL devices
+    METH_ROTATESPRITE = 32, // when given to drawpoly, use the rotatesprite projection matrix
 };
 
 typedef struct { unsigned char r, g, b, a; } coltype;
@@ -36,6 +37,11 @@ extern int gltexcomprquality;	// 0 = fast, 1 = slow and pretty, 2 = very slow an
 extern int gltexmaxsize;	// 0 means autodetection on first run
 extern int gltexmiplevel;	// discards this many mipmap levels
 
+extern const GLfloat gidentitymat[4][4];
+extern GLfloat gdrawroomsprojmat[4][4];      // Proj. matrix for drawrooms() calls.
+extern GLfloat grotatespriteprojmat[4][4];   // Proj. matrix for rotatesprite() calls.
+extern GLfloat gorthoprojmat[4][4];          // Proj. matrix for 2D (aux) calls.
+
 struct polymostvboitem {
     struct {    // Vertex
         GLfloat x, y, z;
@@ -53,12 +59,15 @@ struct polymostdrawpolycall {
     coltypef fogcolour;
     GLfloat fogdensity;
 
+    const GLfloat *modelview;     // 4x4 matrices.
+    const GLfloat *projection;
+
     GLuint indexbuffer;     // Buffer object identifier, or 0 for the global index buffer.
     GLuint indexcount;      // Number of index items.
 
     GLuint elementbuffer;   // Buffer object identifier. >0 ignores elementvbo.
     GLuint elementcount;    // Number of elements in the element buffer. Ignored if elementbuffer >0.
-    struct polymostvboitem *elementvbo; // Elements. elementbuffer must be 0 to recognise this.
+    const struct polymostvboitem *elementvbo; // Elements. elementbuffer must be 0 to recognise this.
 };
 
 // Smallest initial size for the global index buffer.
@@ -95,6 +104,6 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const cha
 int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col);
 int polymost_plotpixel(int x, int y, unsigned char col);
 void polymost_initosdfuncs(void);
-
+void polymost_setview(void);
 
 #endif

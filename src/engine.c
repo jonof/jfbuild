@@ -5597,7 +5597,6 @@ void drawrooms(int daposx, int daposy, int daposz,
 
 	begindrawing();	//{{{
 
-	//frameoffset = frameplace + viewoffset;
 	frameoffset = frameplace + windowy1*bytesperline + windowx1;
 
 	numhits = xdimen; numscans = 0; numbunches = 0;
@@ -9603,11 +9602,9 @@ void setview(int x1, int y1, int x2, int y2)
 		{ startumost[i] = windowy1, startdmost[i] = windowy2+1; }
 	for(i=windowx2+1;i<xdim;i++) { startumost[i] = 1, startdmost[i] = 0; }
 
-	/*
-	begindrawing();	//{{{
-	viewoffset = windowy1*bytesperline + windowx1;
-	enddrawing();	//}}}
-	*/
+#if defined POLYMOST && defined USE_OPENGL
+	polymost_setview();
+#endif
 }
 
 
@@ -11493,17 +11490,11 @@ void setpolymost2dview(void)
 
 	if (gloy1 != -1) {
 		bglViewport(0,0,xres,yres);
-		bglMatrixMode(GL_PROJECTION);
-		bglLoadIdentity();
-		bglOrtho(0,xres,yres,0,-1,1);
-		bglMatrixMode(GL_MODELVIEW);
-		bglLoadIdentity();
 	}
 
 	gloy1 = -1;
 
 	bglDisable(GL_DEPTH_TEST);
-	bglDisable(GL_TEXTURE_2D);
 	bglDisable(GL_BLEND);
 #endif
 }

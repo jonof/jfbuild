@@ -53,8 +53,6 @@ struct glinfo {
 	char nvmultisamplehint;
 	char multitex;
 	char envcombine;
-
-	char hack_nofog;
 };
 extern struct glinfo glinfo;
 #endif

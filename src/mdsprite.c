@@ -640,7 +640,7 @@ static md2model *md2load (int fil, const char *filnam)
 	return(m);
 }
 
-static int md2draw (md2model *m, spritetype *tspr)
+static int md2draw (md2model *m, spritetype *tspr, int method)
 {
 	point3d fp, m0, m1, a0, a1;
 	md2frame_t *f0, *f1;
@@ -731,8 +731,6 @@ static int md2draw (md2model *m, spritetype *tspr)
 	if (grhalfxdown10x < 0) { mat[0] = -mat[0]; mat[4] = -mat[4]; mat[8] = -mat[8]; mat[12] = -mat[12]; }
 
 	mat[3] = mat[7] = mat[11] = 0.f; mat[15] = 1.f;
-	bglMatrixMode(GL_MODELVIEW); //Let OpenGL (and perhaps hardware :) handle the matrix rotation
-	bglLoadMatrixf(mat);
 
 // ------ Unnecessarily clean (lol) code to generate translation/rotation matrix for MD2 ends ------
 
@@ -789,6 +787,13 @@ static int md2draw (md2model *m, spritetype *tspr)
 	draw.fogcolour.a = 1.f;
 	draw.fogdensity = gfogdensity;
 
+	if (method & 1) {
+		draw.projection = &grotatespriteprojmat[0][0];
+	} else {
+		draw.projection = &gdrawroomsprojmat[0][0];
+	}
+	draw.modelview = mat;
+
 	draw.indexcount = 3 * m->numtris;
 	draw.indexbuffer = 0;
 	draw.elementbuffer = 0;
@@ -803,7 +808,6 @@ static int md2draw (md2model *m, spritetype *tspr)
 		bglDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 		bglDepthRange(0.0,0.99999);
 	}
-	bglLoadIdentity();
 
 	return 1;
 }
@@ -949,7 +953,7 @@ static md3model *md3load (int fil)
 	return(m);
 }
 
-static int md3draw (md3model *m, spritetype *tspr)
+static int md3draw (md3model *m, spritetype *tspr, int method)
 {
 	point3d fp, m0, m1, a0, a1;
 	md3xyzn_t *v0, *v1;
@@ -1034,8 +1038,6 @@ static int md3draw (md3model *m, spritetype *tspr)
 	if (grhalfxdown10x < 0) { mat[0] = -mat[0]; mat[4] = -mat[4]; mat[8] = -mat[8]; mat[12] = -mat[12]; }
 
 	mat[3] = mat[7] = mat[11] = 0.f; mat[15] = 1.f;
-	bglMatrixMode(GL_MODELVIEW); //Let OpenGL (and perhaps hardware :) handle the matrix rotation
-	bglLoadMatrixf(mat);
 
 //------------
 	//bit 10 is an ugly hack in game.c\animatesprites telling MD2SPRITE
@@ -1072,6 +1074,13 @@ static int md3draw (md3model *m, spritetype *tspr)
 	draw.indexbuffer = 0;
 	draw.elementbuffer = 0;
 	draw.elementvbo = elementvbo;
+
+	if (method & 1) {
+		draw.projection = &grotatespriteprojmat[0][0];
+	} else {
+		draw.projection = &gdrawroomsprojmat[0][0];
+	}
+	draw.modelview = mat;
 
 	for(surfi=0;surfi<m->head.numsurfs;surfi++)
 	{
@@ -1129,7 +1138,6 @@ static int md3draw (md3model *m, spritetype *tspr)
 		bglDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 		bglDepthRange(0.0,0.99999);
 	}
-	bglLoadIdentity();
 
 	return 1;
 }
@@ -1817,7 +1825,7 @@ voxmodel *voxload (const char *filnam)
 static int voxloadbufs(voxmodel *m);
 
 	//Draw voxel model as perfect cubes
-int voxdraw (voxmodel *m, spritetype *tspr)
+int voxdraw (voxmodel *m, spritetype *tspr, int method)
 {
 	point3d fp, m0, a0;
 	int i, j, k, *lptr;
@@ -1908,8 +1916,6 @@ int voxdraw (voxmodel *m, spritetype *tspr)
 	mat[13] -= (m->xpiv*mat[1] + m->ypiv*mat[5] + (m->zpiv+m->zsiz*.5)*mat[ 9]);
 	mat[14] -= (m->xpiv*mat[2] + m->ypiv*mat[6] + (m->zpiv+m->zsiz*.5)*mat[10]);
 	mat[3] = mat[7] = mat[11] = 0.f; mat[15] = 1.f;
-	bglMatrixMode(GL_MODELVIEW); //Let OpenGL (and perhaps hardware :) handle the matrix rotation
-	bglLoadMatrixf(mat);
 
 	if (!m->texid[globalpal]) {
 		m->texid[globalpal] = gloadtex(m->mytex,m->mytexx,m->mytexy,m->is8bit,globalpal);
@@ -1927,6 +1933,13 @@ int voxdraw (voxmodel *m, spritetype *tspr)
 	draw.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
 	draw.fogcolour.a = 1.f;
 	draw.fogdensity = gfogdensity;
+
+	if (method & 1) {
+		draw.projection = &grotatespriteprojmat[0][0];
+	} else {
+		draw.projection = &gdrawroomsprojmat[0][0];
+	}
+	draw.modelview = mat;
 
 	if (!m->vertexbuf || !m->indexbuf) {
 		voxloadbufs(m);
@@ -1946,7 +1959,6 @@ int voxdraw (voxmodel *m, spritetype *tspr)
 		bglDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 		bglDepthRange(0.0,0.99999);
 	}
-	bglLoadIdentity();
 	return 1;
 }
 
@@ -2045,7 +2057,8 @@ mdmodel *mdload (const char *filnam)
 	return(vm);
 }
 
-int mddraw (spritetype *tspr)
+// method: 0 = drawrooms projection, 1 = rotatesprite projection
+int mddraw (spritetype *tspr, int method)
 {
 	mdanim_t *anim;
 	mdmodel *vm;
@@ -2064,9 +2077,9 @@ int mddraw (spritetype *tspr)
 	}
 
 	vm = models[tile2model[tspr->picnum].modelid];
-	if (vm->mdnum == 1) { return voxdraw((voxmodel *)vm,tspr); }
-	if (vm->mdnum == 2) { return md2draw((md2model *)vm,tspr); }
-	if (vm->mdnum == 3) { return md3draw((md3model *)vm,tspr); }
+	if (vm->mdnum == 1) { return voxdraw((voxmodel *)vm,tspr,method); }
+	if (vm->mdnum == 2) { return md2draw((md2model *)vm,tspr,method); }
+	if (vm->mdnum == 3) { return md3draw((md3model *)vm,tspr,method); }
 	return 0;
 }
 
