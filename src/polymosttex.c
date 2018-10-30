@@ -772,6 +772,7 @@ static int pt_load_hightile(PTHead * pth)
 		}
 
         PTM_InitIdent(&id, pth);
+        id.layer = texture;
         pth->pic[texture] = PTM_GetHead(&id);
 		
 		if ((err = PTM_LoadTextureFile(filename, pth->pic[texture], pth->flags, effects))) {
