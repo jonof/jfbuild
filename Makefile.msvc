@@ -58,7 +58,7 @@ CC=cl
 AS=ml
 RC=rc
 LINK=link
-OURCFLAGS=/nologo /MD $(flags_cl) /DKSFORBUILD /I$(INC) /I$(LIBSQUISH)
+OURCFLAGS=/nologo /MD $(flags_cl) /DKSFORBUILD /I$(INC) /I$(LIBSQUISH) /I$(SRC)
 GAMECFLAGS=/I$(GAME)
 ASFLAGS=/nologo /coff
 LINKFLAGS=/opt:ref /nologo $(flags_link)
@@ -74,6 +74,7 @@ ENGINEOBJS=$(SRC)\a-c.$o \
 	$(SRC)\defs.$o \
 	$(SRC)\engine.$o \
 	$(SRC)\polymost.$o \
+	$(SRC)\polymost_shaders.$o \
 	$(SRC)\polymosttex.$o \
 	$(SRC)\polymosttex-squish.$o \
 	$(SRC)\polymosttexcache.$o \
@@ -135,7 +136,7 @@ BUILDLIBS=$(BUILDLIBS) opengl32.lib
 !if $(NOASM)
 BUILDCFLAGS=$(BUILDCFLAGS) /DNOASM
 !endif
-	
+
 LIBS=$(LIBS) $(BUILDLIBS)
 CFLAGS=$(CFLAGS) $(BUILDCFLAGS)
 
@@ -147,7 +148,7 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 !endif
 
 # RULES
-.SUFFIXES: .masm .cc
+.SUFFIXES: .masm .cc .glsl_fs .glsl_vs
 
 {$(SRC)}.masm{$(SRC)}.$o:
 	$(AS) /c $(ASFLAGS) /Fo$@ $<
@@ -167,6 +168,9 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 {$(TOOLS)}.c{$(TOOLS)}.$o:
 	$(CC) /c $(CFLAGS) /Fo$@ $<
 
+{$(TOOLS)}.cc{$(TOOLS)}.$o:
+	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
+
 {$(GAME)}.c{$(GAME)}.$o:
 	$(CC) /c $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) /Fo$@ $<
 
@@ -175,6 +179,11 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 
 {$(GAME)}.rc{$(GAME)}.$(res):
 	$(RC) $(RFLAGS) /fo$@ /r $<
+
+{$(SRC)}.glsl_fs{$(SRC)}.glsl_fs_c:
+	bin2c$(EXESUFFIX) -text $< default_$(@B)_glsl_fs > $@
+{$(SRC)}.glsl_vs{$(SRC)}.glsl_vs_c:
+	bin2c$(EXESUFFIX) -text $< default_$(@B)_glsl_vs > $@
 
 # TARGETS
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2map$(EXESUFFIX) wad2map$(EXESUFFIX)
@@ -193,7 +202,7 @@ $(SRC)\$(EDITORLIB): $(EDITOROBJS)
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
 	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS "/LIBPATH:$(DXROOT)\lib" $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
-	
+
 build$(EXESUFFIX): $(EDITOREXEOBJS)
 	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS "/LIBPATH:$(DXROOT)\lib" $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
@@ -213,6 +222,9 @@ wad2map$(EXESUFFIX): $(TOOLS)\wad2map.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 wad2art$(EXESUFFIX): $(TOOLS)\wad2art.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
 
+bin2c$(EXESUFFIX): $(TOOLS)\bin2c.$o
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
+
 
 $(SRC)\version-auto.c:
 	powershell $(TOOLS)\generateversion.ps1 > $@
@@ -220,7 +232,7 @@ $(SRC)\version-auto.c:
 # DEPENDENCIES
 !include Makefile.deps
 
-# PHONIES	
+# PHONIES
 clean:
 	-del /q $(ENGINEOBJS) $(LIBSQUISHOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS)
 veryclean: clean

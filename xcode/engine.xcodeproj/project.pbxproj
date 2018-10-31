@@ -779,10 +779,10 @@
 			);
 			name = "Generate GL shaders .c";
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/polymost_glsl_fs.c",
-				"$(DERIVED_FILE_DIR)/polymostaux_glsl_fs.c",
-				"$(DERIVED_FILE_DIR)/polymost_glsl_vs.c",
-				"$(DERIVED_FILE_DIR)/polymostaux_glsl_vs.c",
+				"$(DERIVED_FILE_DIR)/polymost.glsl_fs_c",
+				"$(DERIVED_FILE_DIR)/polymostaux.glsl_fs_c",
+				"$(DERIVED_FILE_DIR)/polymost.glsl_vs_c",
+				"$(DERIVED_FILE_DIR)/polymostaux.glsl_vs_c",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;

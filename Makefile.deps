@@ -14,7 +14,7 @@ $(SRC)/engine.$o: $(SRC)/engine.c $(INC)/compat.h $(INC)/build.h $(INC)/pragmas.
 $(SRC)/polymost.$o: $(SRC)/polymost.c $(INC)/compat.h $(INC)/build.h $(INC)/glbuild.h $(INC)/pragmas.h $(INC)/baselayer.h $(INC)/osd.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h $(SRC)/mdsprite_priv.h
 $(SRC)/polymosttex.$o: $(SRC)/polymosttex.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/glbuild.h $(SRC)/kplib.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h
 $(SRC)/polymosttex-squish.$o: $(SRC)/polymosttex-squish.cc $(LIBSQUISH)/squish.h $(INC)/glbuild.h $(SRC)/polymost_priv.h
-$(SRC)/polymost_shaders.$o: $(SRC)/polymost_shaders.c $(SRC)/polymost_glsl_fs.c $(SRC)/polymost_glsl_vs.c $(SRC)/polymostaux_glsl_fs.c $(SRC)/polymostaux_glsl_vs.c
+$(SRC)/polymost_shaders.$o: $(SRC)/polymost_shaders.c $(SRC)/polymost.glsl_fs_c $(SRC)/polymost.glsl_vs_c $(SRC)/polymostaux.glsl_fs_c $(SRC)/polymostaux.glsl_vs_c
 $(SRC)/polymosttexcache.$o: $(SRC)/polymosttexcache.c $(SRC)/polymosttexcache.h $(INC)/compat.h $(INC)/baselayer.h $(INC)/glbuild.h $(INC)/build.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h
 $(SRC)/hightile.$o: $(SRC)/hightile.c $(SRC)/kplib.h $(SRC)/hightile_priv.h
 $(SRC)/mdsprite.$o: $(SRC)/mdsprite.c $(INC)/compat.h $(INC)/build.h $(INC)/glbuild.h $(SRC)/kplib.h $(INC)/pragmas.h $(INC)/cache1d.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
@@ -37,10 +37,10 @@ $(SRC)/startwin_editor.$o: $(SRC)/startwin_editor.c $(INC)/build.h $(INC)/editor
 $(SRC)/startgtk_editor.$o: $(SRC)/startgtk_editor.c $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h $(INC)/editor.h
 
 # Derived source files from shader files
-$(SRC)/polymost_glsl_fs.c: $(SRC)/polymost.glsl_fs
-$(SRC)/polymost_glsl_vs.c: $(SRC)/polymost.glsl_vs
-$(SRC)/polymostaux_glsl_fs.c: $(SRC)/polymostaux.glsl_fs
-$(SRC)/polymostaux_glsl_vs.c: $(SRC)/polymostaux.glsl_vs
+$(SRC)/polymost.glsl_fs_c: $(SRC)/polymost.glsl_fs
+$(SRC)/polymost.glsl_vs_c: $(SRC)/polymost.glsl_vs
+$(SRC)/polymostaux.glsl_fs_c: $(SRC)/polymostaux.glsl_fs
+$(SRC)/polymostaux.glsl_vs_c: $(SRC)/polymostaux.glsl_vs
 
 # KenBuild test game
 $(GAME)/game.$o: $(GAME)/game.c $(INC)/compat.h $(INC)/build.h $(GAME)/names.h $(INC)/pragmas.h $(INC)/cache1d.h $(GAME)/game.h $(INC)/osd.h $(INC)/baselayer.h

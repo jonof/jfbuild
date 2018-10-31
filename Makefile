@@ -265,9 +265,13 @@ $(GAME)/rsrc/%.$o: $(GAME)/rsrc/%.c
 $(GAME)/%.$(res): $(GAME)/%.rc
 	$(WINDRES) -O coff -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
 
-$(SRC)/%_glsl_fs.c: $(SRC)/%.glsl_fs bin2c$(EXESUFFIX)
+$(SRC)/%.$o: $(SRC)/%.glsl_fs_c
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
+$(SRC)/%.$o: $(SRC)/%.glsl_vs_c
+	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
+$(SRC)/%.glsl_fs_c: $(SRC)/%.glsl_fs bin2c$(EXESUFFIX)
 	bin2c$(EXESUFFIX) -text $< default_$(basename $(notdir $<))_glsl_fs > $@
-$(SRC)/%_glsl_vs.c: $(SRC)/%.glsl_vs bin2c$(EXESUFFIX)
+$(SRC)/%.glsl_vs_c: $(SRC)/%.glsl_vs bin2c$(EXESUFFIX)
 	bin2c$(EXESUFFIX) -text $< default_$(basename $(notdir $<))_glsl_vs > $@
 
 $(GAME)/rsrc/%_gresource.c: $(GAME)/rsrc/%.gresource.xml

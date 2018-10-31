@@ -215,11 +215,11 @@ int loadglfunctions(int all)
 	bglShaderSource  = GETPROCEXT("glShaderSource");
 	bglUseProgram    = GETPROCEXT("glUseProgram");
 	bglUniform1i     = GETPROCEXT("glUniform1i");
-	bglUniform1f     = GETPROC("glUniform1f");
-	bglUniform2f     = GETPROC("glUniform2f");
-	bglUniform3f     = GETPROC("glUniform3f");
-	bglUniform4f     = GETPROC("glUniform4f");
-	bglUniformMatrix4fv = GETPROC("glUniformMatrix4fv");
+	bglUniform1f     = GETPROCEXT("glUniform1f");
+	bglUniform2f     = GETPROCEXT("glUniform2f");
+	bglUniform3f     = GETPROCEXT("glUniform3f");
+	bglUniform4f     = GETPROCEXT("glUniform4f");
+	bglUniformMatrix4fv = GETPROCEXT("glUniformMatrix4fv");
 
 	bglCompressedTexImage2DARB  = GETPROCEXTSOFT("glCompressedTexImage2DARB");
 	bglGetCompressedTexImageARB = GETPROCEXTSOFT("glGetCompressedTexImageARB");

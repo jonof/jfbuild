@@ -6,13 +6,16 @@
 *.res
 *.map
 *~
+*.pdb
 /src/version-auto.c
+/src/*.glsl_[fv]s_c
 
 /xcode/*.xcodeproj/*.mode1v3
 /xcode/*.xcodeproj/*.pbxuser
 /xcode/*.xcodeproj/project.xcworkspace
 /xcode/*.xcodeproj/xcuserdata
 /xcode/build
+/.vs
 /Makefile.user
 /console.txt
 /kenbuild-data/*

@@ -22,7 +22,7 @@
 #include <stdarg.h>
 #include <commdlg.h>
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 #include "glbuild.h"
 #endif
 
@@ -54,13 +54,11 @@ static WORD sysgamma[3][256];
 extern int gammabrightness;
 extern float curgamma;
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 // OpenGL stuff
 static HGLRC hGLRC = 0;
 static HANDLE hGLDLL;
-static GLuint gl8bitpaltex = 0;		// The 1D texture holding the palette.
-static GLuint gl8bitframetex = 0;	// The 2D texture holding the frame.
-static GLuint gl8bitprogram = 0;	// The shader program for rendering the 8bit frame.
+static glbuild8bit gl8bit;
 static unsigned char nogl=0;
 static unsigned char *frame = NULL;
 
@@ -433,7 +431,7 @@ int initsystem(void)
 
 	frameplace=0;
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions(FALSE)) {
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		nogl = 1;
@@ -460,7 +458,7 @@ void uninitsystem(void)
 	win_allowtaskswitching(1);
 
 	shutdownvideo();
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 	unloadglfunctions();
 	unloadgldriver();
 #endif
@@ -1119,19 +1117,7 @@ static void shutdownvideo(void)
 		free(frame);
 		frame = NULL;
 	}
-	if (gl8bitprogram) {
-		bglUseProgram(0);	// Disable shaders, go back to fixed-function.
-		bglDeleteProgram(gl8bitprogram);
-		gl8bitprogram = 0;
-	}
-	if (gl8bitpaltex) {
-		bglDeleteTextures(1, &gl8bitpaltex);
-		gl8bitpaltex = 0;
-	}
-	if (gl8bitframetex) {
-		bglDeleteTextures(1, &gl8bitframetex);
-		gl8bitframetex = 0;
-	}
+	glbuild_delete_8bit_shader(&gl8bit);
 	UninitOpenGL();
 #endif
 	UninitDIB();
@@ -1201,7 +1187,7 @@ int setvideomode(int x, int y, int c, int fs)
 #define CHECKL(w,h) if ((w < maxx) && (h < maxy))
 #define CHECKLE(w,h) if ((w <= maxx) && (h <= maxy))
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 static void cdsenummodes(void)
 {
 	DEVMODE dm;
@@ -1284,7 +1270,7 @@ void getvalidmodes(void)
 		}
 	}
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 	// Fullscreen >8-bit modes.
 	if (!nogl) cdsenummodes();
 #endif
@@ -1296,7 +1282,7 @@ void getvalidmodes(void)
 		}
 	}
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 	// Windowed >8-bit modes
 	if (!nogl) {
 		for (i=0; defaultres[i][0]; i++) {
@@ -1351,22 +1337,11 @@ void showframe(int w)
 	char *p,*q;
 	int i,j;
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 	if (!nogl) {
 		if (bpp == 8) {
-			bglActiveTexture(GL_TEXTURE0);
-			bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xres, yres, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame);
-
-			bglBegin(GL_QUADS);
-			bglTexCoord2f(0.0, 1.0);
-			bglVertex2i(-1, -1);
-			bglTexCoord2f(1.0, 1.0);
-			bglVertex2i(1, -1);
-			bglTexCoord2f(1.0, 0.0);
-			bglVertex2i(1, 1);
-			bglTexCoord2f(0, 0.0);
-			bglVertex2i(-1, 1);
-			bglEnd();
+			glbuild_update_8bit_frame(&gl8bit, frame, xres, yres);
+			glbuild_draw_8bit_frame(&gl8bit);
 		}
 
 		bwglSwapBuffers(hDCGLWindow);
@@ -1408,9 +1383,9 @@ void showframe(int w)
 int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
 {
 #ifdef USE_OPENGL
-	if (gl8bitpaltex) {
-		bglActiveTexture(GL_TEXTURE1);
-		bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, curpalettefaded);
+	if (!nogl && bpp == 8) {
+		glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
+		return 0;
 	}
 #endif
 	if (hDCSection) {
@@ -1547,7 +1522,7 @@ static int SetupDIB(int width, int height)
 	return FALSE;
 }
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 
 //
 // loadgldriver -- loads an OpenGL DLL
@@ -1808,7 +1783,6 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 	}
 
 	// Step 5. Done.
-	polymost_glreset();
 	if (baselayer_setupopengl()) {
 		errmsg = "Can't fetch GL functions.";
 		goto fail;
@@ -1948,17 +1922,10 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 				return TRUE;
 			}
 
-			if (glbuild_prepare_8bit_shader(&gl8bitpaltex, &gl8bitframetex, &gl8bitprogram, width, height) < 0) {
+			if (glbuild_prepare_8bit_shader(&gl8bit, width, height) < 0) {
 				shutdownvideo();
 				return -1;
 			}
-
-			bglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-			bglMatrixMode(GL_PROJECTION);
-			bglLoadIdentity();
-			bglMatrixMode(GL_MODELVIEW);
-			bglLoadIdentity();
 
 			frame = (unsigned char *) malloc(width * height);
 			if (!frame) {
@@ -1980,7 +1947,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 
 		numpages = 1;
 	} else {
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 		if (fs) {
 			DEVMODE dmScreenSettings;
 
@@ -2145,7 +2112,7 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	POINT pt;
 	HRESULT result;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if defined(USE_OPENGL)
 	if (hGLWindow && hWnd == hGLWindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
 	if (dummyhGLwindow && hWnd == dummyhGLwindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
 #endif

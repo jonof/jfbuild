@@ -12,11 +12,11 @@
 // for more details, but here is an example of how to use it:
 //   make bin2c
 //   ./bin2c -text src/namehere.glsl_fs default_namehere_glsl_fs \
-//      > src/namehere_glsl_fs.c
+//      > src/namehere.glsl_fs_c
 
-#include "polymost_glsl_vs.c"
-#include "polymost_glsl_fs.c"
-#include "polymostaux_glsl_vs.c"
-#include "polymostaux_glsl_fs.c"
+#include "polymost.glsl_vs_c"
+#include "polymost.glsl_fs_c"
+#include "polymostaux.glsl_vs_c"
+#include "polymostaux.glsl_fs_c"
 
 #endif
