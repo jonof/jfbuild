@@ -13,7 +13,6 @@
 void (APIENTRY * bglClearColor)( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha );
 void (APIENTRY * bglClear)( GLbitfield mask );
 void (APIENTRY * bglColorMask)( GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha );
-void (APIENTRY * bglAlphaFunc)( GLenum func, GLclampf ref );
 void (APIENTRY * bglBlendFunc)( GLenum sfactor, GLenum dfactor );
 void (APIENTRY * bglCullFace)( GLenum mode );
 void (APIENTRY * bglFrontFace)( GLenum mode );
@@ -29,36 +28,12 @@ GLenum (APIENTRY * bglGetError)( void );
 const GLubyte* (APIENTRY * bglGetString)( GLenum name );
 void (APIENTRY * bglHint)( GLenum target, GLenum mode );
 void (APIENTRY * bglPixelStorei)( GLenum pname, GLint param );
+void (APIENTRY * bglViewport)( GLint x, GLint y, GLsizei width, GLsizei height );
 
 // Depth
 void (APIENTRY * bglDepthFunc)( GLenum func );
 void (APIENTRY * bglDepthMask)( GLboolean flag );
 void (APIENTRY * bglDepthRange)( GLclampd near_val, GLclampd far_val );
-
-// Matrix
-void (APIENTRY * bglMatrixMode)( GLenum mode );
-void (APIENTRY * bglOrtho)( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val );
-void (APIENTRY * bglFrustum)( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val );
-void (APIENTRY * bglViewport)( GLint x, GLint y, GLsizei width, GLsizei height );
-void (APIENTRY * bglPushMatrix)( void );
-void (APIENTRY * bglPopMatrix)( void );
-void (APIENTRY * bglLoadIdentity)( void );
-void (APIENTRY * bglLoadMatrixf)( const GLfloat *m );
-
-// Drawing
-void (APIENTRY * bglBegin)( GLenum mode );
-void (APIENTRY * bglEnd)( void );
-void (APIENTRY * bglVertex2f)( GLfloat x, GLfloat y );
-void (APIENTRY * bglVertex2i)( GLint x, GLint y );
-void (APIENTRY * bglVertex3d)( GLdouble x, GLdouble y, GLdouble z );
-void (APIENTRY * bglVertex3fv)( const GLfloat *v );
-void (APIENTRY * bglColor4f)( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha );
-void (APIENTRY * bglColor4ub)( GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha );
-void (APIENTRY * bglTexCoord2d)( GLdouble s, GLdouble t );
-void (APIENTRY * bglTexCoord2f)( GLfloat s, GLfloat t );
-
-// Lighting
-void (APIENTRY * bglShadeModel)( GLenum mode );
 
 // Raster funcs
 void (APIENTRY * bglReadPixels)( GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels );
@@ -171,7 +146,6 @@ int loadglfunctions(int all)
 	bglClearColor		= GETPROC("glClearColor");
 	bglClear		= GETPROC("glClear");
 	bglColorMask		= GETPROC("glColorMask");
-	bglAlphaFunc		= GETPROC("glAlphaFunc");
 	bglBlendFunc		= GETPROC("glBlendFunc");
 	bglCullFace		= GETPROC("glCullFace");
 	bglFrontFace		= GETPROC("glFrontFace");
@@ -187,33 +161,12 @@ int loadglfunctions(int all)
 	bglGetString		= GETPROC("glGetString");
 	bglHint			= GETPROC("glHint");
 	bglPixelStorei	= GETPROC("glPixelStorei");
+	bglViewport		= GETPROC("glViewport");
 
 	// Depth
 	bglDepthFunc		= GETPROC("glDepthFunc");
 	bglDepthMask		= GETPROC("glDepthMask");
 	bglDepthRange		= GETPROC("glDepthRange");
-
-	// Matrix
-	bglMatrixMode		= GETPROC("glMatrixMode");
-	bglOrtho		= GETPROC("glOrtho");
-	bglFrustum		= GETPROC("glFrustum");
-	bglViewport		= GETPROC("glViewport");
-	bglPushMatrix		= GETPROC("glPushMatrix");
-	bglPopMatrix		= GETPROC("glPopMatrix");
-	bglLoadIdentity		= GETPROC("glLoadIdentity");
-	bglLoadMatrixf		= GETPROC("glLoadMatrixf");
-
-	// Drawing
-	bglBegin		= GETPROC("glBegin");
-	bglEnd			= GETPROC("glEnd");
-	bglVertex2f		= GETPROC("glVertex2f");
-	bglVertex2i		= GETPROC("glVertex2i");
-	bglVertex3d		= GETPROC("glVertex3d");
-	bglVertex3fv		= GETPROC("glVertex3fv");
-	bglColor4f		= GETPROC("glColor4f");
-	bglColor4ub		= GETPROC("glColor4ub");
-	bglTexCoord2d		= GETPROC("glTexCoord2d");
-	bglTexCoord2f		= GETPROC("glTexCoord2f");
 
 	// Raster funcs
 	bglReadPixels		= GETPROC("glReadPixels");
@@ -280,7 +233,6 @@ void unloadglfunctions(void)
 	bglClearColor		= NULL;
 	bglClear		= NULL;
 	bglColorMask		= NULL;
-	bglAlphaFunc		= NULL;
 	bglBlendFunc		= NULL;
 	bglCullFace		= NULL;
 	bglFrontFace		= NULL;
@@ -296,36 +248,12 @@ void unloadglfunctions(void)
 	bglGetString		= NULL;
 	bglHint			= NULL;
 	bglPixelStorei	= NULL;
+	bglViewport		= NULL;
 
 	// Depth
 	bglDepthFunc		= NULL;
 	bglDepthMask		= NULL;
 	bglDepthRange		= NULL;
-
-	// Matrix
-	bglMatrixMode		= NULL;
-	bglOrtho		= NULL;
-	bglFrustum		= NULL;
-	bglViewport		= NULL;
-	bglPushMatrix		= NULL;
-	bglPopMatrix		= NULL;
-	bglLoadIdentity		= NULL;
-	bglLoadMatrixf		= NULL;
-
-	// Drawing
-	bglBegin		= NULL;
-	bglEnd			= NULL;
-	bglVertex2f		= NULL;
-	bglVertex2i		= NULL;
-	bglVertex3d		= NULL;
-	bglVertex3fv		= NULL;
-	bglColor4f		= NULL;
-	bglColor4ub		= NULL;
-	bglTexCoord2d		= NULL;
-	bglTexCoord2f		= NULL;
-
-	// Lighting
-	bglShadeModel		= NULL;
 
 	// Raster funcs
 	bglReadPixels		= NULL;
