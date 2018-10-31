@@ -64,9 +64,7 @@ extern float curgamma;
 
 #ifdef USE_OPENGL
 // OpenGL stuff.
-static GLuint gl8bitpaltex = 0;		// The 1D texture holding the palette.
-static GLuint gl8bitframetex = 0;	// The 2D texture holding the frame.
-static GLuint gl8bitprogram = 0;	// The shader program for rendering the 8bit frame.
+static glbuild8bit gl8bit;
 static char nogl=0;
 #endif
 
@@ -800,19 +798,7 @@ static void shutdownvideo(void)
 		frame = NULL;
 	}
 #ifdef USE_OPENGL
-	if (gl8bitprogram) {
-		bglUseProgram(0);	// Disable shaders, go back to fixed-function.
-		bglDeleteProgram(gl8bitprogram);
-		gl8bitprogram = 0;
-	}
-	if (gl8bitpaltex) {
-		bglDeleteTextures(1, &gl8bitpaltex);
-		gl8bitpaltex = 0;
-	}
-	if (gl8bitframetex) {
-		bglDeleteTextures(1, &gl8bitframetex);
-		gl8bitframetex = 0;
-	}
+	glbuild_delete_8bit_shader(&gl8bit);
 #endif
 	if (sdl_texture) {
 		SDL_DestroyTexture(sdl_texture);
@@ -936,17 +922,11 @@ int setvideomode(int x, int y, int c, int fs)
 				shutdownvideo();
 				return -1;
 			}
-			if (glbuild_prepare_8bit_shader(&gl8bitpaltex, &gl8bitframetex, &gl8bitprogram, x, y) < 0) {
+
+            if (glbuild_prepare_8bit_shader(&gl8bit, x, y) < 0) {
 				shutdownvideo();
 				return -1;
 			}
-
-			bglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-			bglMatrixMode(GL_PROJECTION);
-			bglLoadIdentity();
-			bglMatrixMode(GL_MODELVIEW);
-			bglLoadIdentity();
 		}
 
 		frame = (unsigned char *) malloc(x * y);
@@ -1045,19 +1025,8 @@ void showframe(int UNUSED(w))
 #ifdef USE_OPENGL
 	if (!nogl) {
 		if (bpp == 8) {
-			bglActiveTexture(GL_TEXTURE0);
-			bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xres, yres, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame);
-
-			bglBegin(GL_QUADS);
-			bglTexCoord2f(0.0, 1.0);
-			bglVertex2i(-1, -1);
-			bglTexCoord2f(1.0, 1.0);
-			bglVertex2i(1, -1);
-			bglTexCoord2f(1.0, 0.0);
-			bglVertex2i(1, 1);
-			bglTexCoord2f(0, 0.0);
-			bglVertex2i(-1, 1);
-			bglEnd();
+			glbuild_update_8bit_frame(&gl8bit, frame, xres, yres);
+			glbuild_draw_8bit_frame(&gl8bit);
 		}
 
 		SDL_GL_SwapWindow(sdl_window);
@@ -1106,10 +1075,7 @@ void showframe(int UNUSED(w))
 int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
 {
 #ifdef USE_OPENGL
-	if (gl8bitpaltex) {
-		bglActiveTexture(GL_TEXTURE1);
-		bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, curpalettefaded);
-	}
+	glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
 #endif
 	return 0;
 }

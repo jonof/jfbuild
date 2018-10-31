@@ -257,11 +257,25 @@ extern HGLRC (WINAPI * bwglCreateContextAttribsARB)(HDC hDC, HGLRC hShareContext
 
 #endif
 
+typedef struct {
+    GLuint program;
+    GLuint paltex;
+    GLuint frametex;
+    GLint attrib_vertex;    // vec2
+    GLint attrib_texcoord;  // vec2
+    GLuint buffer_indexes;
+    GLuint buffer_elements;
+} glbuild8bit;
+
 int loadglfunctions(int all);   // all==0: the basic ones needed to bootstrap
 void unloadglfunctions(void);
 
 GLuint glbuild_compile_shader(GLuint type, const GLchar *source);
 GLuint glbuild_link_program(int shadercount, GLuint *shaders);
-int glbuild_prepare_8bit_shader(GLuint *paltex, GLuint *frametex, GLuint *program, int resx, int resy);		// <0 = error
+int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy);        // <0 = error
+void glbuild_delete_8bit_shader(glbuild8bit *state);
+void glbuild_update_8bit_palette(glbuild8bit *state, const GLvoid *pal);
+void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx, int resy);
+void glbuild_draw_8bit_frame(glbuild8bit *state);
 
 #endif //USE_OPENGL

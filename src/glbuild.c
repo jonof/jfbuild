@@ -472,64 +472,159 @@ GLuint glbuild_link_program(int shadercount, GLuint *shaders)
 	return program;
 }
 
-int glbuild_prepare_8bit_shader(GLuint *paltex, GLuint *frametex, GLuint *program, int resx, int resy)
+int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy)
 {
-	GLuint shader = 0, prog = 0;
+	GLuint shaders[2] = {0,0}, prog = 0;
 	GLint status = 0;
 
-	static const GLchar *shadersrc = \
-	"#version 110\n"
-	"uniform sampler1D palette;\n"
-	"uniform sampler2D frame;\n"
+	static const GLchar *vertexshadersrc = \
+	"#version 120\n"
+	"attribute vec2 a_vertex;\n"
+	"attribute vec2 a_texcoord;\n"
+	"varying vec2 v_texcoord;\n"
+	"void main(void)\n"
+	"{\n"
+    "  v_texcoord = a_texcoord;\n"
+    "  gl_Position = vec4(a_vertex, 0.0, 1.0);\n"
+	"}\n";
+
+	static const GLchar *fragmentshadersrc = \
+	"#version 120\n"
+	"uniform sampler1D u_palette;\n"
+	"uniform sampler2D u_frame;\n"
+	"varying vec2 v_texcoord;\n"
 	"void main(void)\n"
 	"{\n"
 	"  float pixelvalue;\n"
 	"  vec3 palettevalue;\n"
-	"  pixelvalue = texture2D(frame, gl_TexCoord[0].xy).r;\n"
-	"  palettevalue = texture1D(palette, pixelvalue).rgb;\n"
+	"  pixelvalue = texture2D(u_frame, v_texcoord).r;\n"
+	"  palettevalue = texture1D(u_palette, pixelvalue).rgb;\n"
 	"  gl_FragColor = vec4(palettevalue, 1.0);\n"
 	"}\n";
 
+	// Buffer contents: indexes and texcoord/vertex elements.
+	static const GLushort indexes[6] = { 0, 1, 2, 0, 2, 3 };
+	static const GLfloat elements[4][4] = {
+		// tx, ty,  vx, vy
+		{ 0.0, 1.0, -1.0, -1.0 },
+		{ 1.0, 1.0,  1.0, -1.0 },
+		{ 1.0, 0.0,  1.0,  1.0 },
+		{ 0.0, 0.0, -1.0,  1.0 },
+	};
+
 	// Initialise texture objects for the palette and framebuffer.
 	// The textures will be uploaded on the first rendered frame.
-	bglGenTextures(1, paltex);
+	bglGenTextures(1, &state->paltex);
 	bglActiveTexture(GL_TEXTURE1);
-	bglBindTexture(GL_TEXTURE_1D, *paltex);
+	bglBindTexture(GL_TEXTURE_1D, state->paltex);
 	bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);	// Allocates memory.
 	bglTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	bglTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-	bglGenTextures(1, frametex);
+	bglGenTextures(1, &state->frametex);
 	bglActiveTexture(GL_TEXTURE0);
-	bglBindTexture(GL_TEXTURE_2D, *frametex);
+	bglBindTexture(GL_TEXTURE_2D, state->frametex);
 	bglTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, resx, resy, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, NULL);	// Allocates memory.
 	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-	// Prepare the fragment shader.
-	shader = glbuild_compile_shader(GL_FRAGMENT_SHADER, shadersrc);
-	if (!shader) {
+	bglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	// Prepare the vertex and fragment shaders.
+	shaders[0] = glbuild_compile_shader(GL_VERTEX_SHADER, vertexshadersrc);
+	shaders[1] = glbuild_compile_shader(GL_FRAGMENT_SHADER, fragmentshadersrc);
+	if (!shaders[0] || !shaders[1]) {
+		if (shaders[0]) bglDeleteShader(shaders[0]);
+		if (shaders[1]) bglDeleteShader(shaders[1]);
 		return -1;
 	}
 
 	// Prepare the shader program.
-	prog = glbuild_link_program(1, &shader);
+	prog = glbuild_link_program(2, shaders);
 	if (!prog) {
-		bglDeleteShader(shader);
+		bglDeleteShader(shaders[0]);
+		bglDeleteShader(shaders[1]);
 		return -1;
 	}
 
 	// Shaders were detached in glbuild_link_program.
-	bglDeleteShader(shader);
+	bglDeleteShader(shaders[0]);
+	bglDeleteShader(shaders[1]);
 
 	// Connect the textures to the program.
 	bglUseProgram(prog);
-	bglUniform1i(bglGetUniformLocation(prog, "palette"), 1);
-	bglUniform1i(bglGetUniformLocation(prog, "frame"), 0);
+	bglUniform1i(bglGetUniformLocation(prog, "u_palette"), 1);
+	bglUniform1i(bglGetUniformLocation(prog, "u_frame"), 0);
 
-	*program = prog;
+	state->program = prog;
+	state->attrib_vertex = bglGetAttribLocation(prog, "a_vertex");
+	state->attrib_texcoord = bglGetAttribLocation(prog, "a_texcoord");
+
+	// Prepare buffer objects for the vertex/texcoords and indexes.
+	bglGenBuffers(1, &state->buffer_indexes);
+	bglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->buffer_indexes);
+	bglBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexes), indexes, GL_STATIC_DRAW);
+
+	bglGenBuffers(1, &state->buffer_elements);
+	bglBindBuffer(GL_ARRAY_BUFFER, state->buffer_elements);
+	bglBufferData(GL_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+
+	bglEnableVertexAttribArray(state->attrib_vertex);
+	bglEnableVertexAttribArray(state->attrib_texcoord);
+
+	bglVertexAttribPointer(state->attrib_texcoord, 2, GL_FLOAT, GL_FALSE,
+		sizeof(GLfloat)*4, 0);
+	bglVertexAttribPointer(state->attrib_vertex, 2, GL_FLOAT, GL_FALSE,
+		sizeof(GLfloat)*4, sizeof(GLfloat)*2);
+
 	return 0;
 }
 
+void glbuild_delete_8bit_shader(glbuild8bit *state)
+{
+	if (state->program) {
+		bglDisableVertexAttribArray(state->attrib_vertex);
+		bglDisableVertexAttribArray(state->attrib_texcoord);
+
+		bglUseProgram(0);	// Disable shaders, go back to fixed-function.
+		bglDeleteProgram(state->program);
+		state->program = 0;
+	}
+	if (state->paltex) {
+		bglDeleteTextures(1, &state->paltex);
+		state->paltex = 0;
+	}
+	if (state->frametex) {
+		bglDeleteTextures(1, &state->frametex);
+		state->frametex = 0;
+	}
+	if (state->buffer_indexes) {
+		bglDeleteBuffers(1, &state->buffer_indexes);
+		state->buffer_indexes = 0;
+	}
+	if (state->buffer_elements) {
+		bglDeleteBuffers(1, &state->buffer_elements);
+		state->buffer_elements = 0;
+	}
+}
+
+void glbuild_update_8bit_palette(glbuild8bit *state, const GLvoid *pal)
+{
+	bglActiveTexture(GL_TEXTURE1);
+	bglBindTexture(GL_TEXTURE_1D, state->paltex);
+	bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, pal);
+}
+
+void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx, int resy)
+{
+	bglActiveTexture(GL_TEXTURE0);
+	bglBindTexture(GL_TEXTURE_2D, state->frametex);
+	bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, resx, resy, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame);
+}
+
+void glbuild_draw_8bit_frame(glbuild8bit *state)
+{
+	bglDrawElements(GL_TRIANGLE_FAN, 6, GL_UNSIGNED_SHORT, 0);
+}
 
 #endif  //USE_OPENGL
