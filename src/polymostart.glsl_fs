@@ -11,29 +11,25 @@ uniform float u_fullbright;
 
 varying vec2 v_texcoord;
 
-vec4 applyfog(vec4 inputcolour) {
+float distance(void) {
     const float LOG2_E = 1.442695;
     float dist = gl_FragCoord.z / gl_FragCoord.w;
     float densdist = u_fogdensity * dist;
-    float amount = 1.0 - clamp(exp2(-densdist * densdist * LOG2_E), 0.0, 1.0);
-    //float amount = 1.0 - clamp(exp(-densdist), 0.0, 1.0);
-    return mix(inputcolour, u_fogcolour, amount);
+    return clamp(exp2(-densdist * densdist * LOG2_E), 0.0, 1.0);
 }
 
 void main(void)
 {
     float pixelvalue;
     vec4 palettevalue;
+    vec3 palettecoord;
 
     pixelvalue = texture2D(u_texture, v_texcoord).r;
     if (u_ismasked && pixelvalue == 1.0) {
         discard;
     }
 
-    palettevalue = texture3D(u_paltexture, vec3(pixelvalue, u_palnum, 1.0 - u_colour.r));
-    if (pixelvalue < u_fullbright) {
-        gl_FragColor = vec4(applyfog(palettevalue).rgb, u_colour.a);
-    } else {
-        gl_FragColor = vec4(palettevalue.rgb, u_colour.a);
-    }
+    palettecoord = vec3(pixelvalue, u_palnum, clamp(1.0 - u_colour.r * distance(), 0.0, 1.0));
+    palettevalue = texture3D(u_paltexture, palettecoord);
+    gl_FragColor = vec4(palettevalue.rgb, u_colour.a);
 }
