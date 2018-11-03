@@ -1396,7 +1396,7 @@ static int buildkeytranslationtable(void)
 	MAPC(SDL_SCANCODE_TAB,       0xf, 0x9);
 	MAPC(SDL_SCANCODE_RETURN,    0x1c, 0xd);
 	MAP(SDL_SCANCODE_PAUSE,     0x59);  // 0x1d + 0x45 + 0x9d + 0xc5
-	MAP(SDL_SCANCODE_ESCAPE,    0x1);
+	MAPC(SDL_SCANCODE_ESCAPE,    0x1, 0x1b);
 	MAP(SDL_SCANCODE_SPACE,     0x39);
 	MAP(SDL_SCANCODE_APOSTROPHE,     0x28);
 	MAP(SDL_SCANCODE_COMMA,     0x33);
