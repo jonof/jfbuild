@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdarg.h>
+#include <commdlg.h>
 
 #if defined(USE_OPENGL) && defined(POLYMOST)
 #include "glbuild.h"
@@ -204,6 +205,42 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 	r = MessageBox((HWND)win_gethwnd(),buf,name,MB_YESNO|MB_TASKMODAL);
 	if (r==IDYES) return 1;
 	return 0;
+}
+
+//
+// wm_filechooser() -- display a file selector dialogue box
+//
+char * wm_filechooser(const char *initialdir, const char *type, int foropen)
+{
+	OPENFILENAME ofn;
+	char filter[100], *filterp = filter;
+	char filename[BMAX_PATH+1];
+
+	if (strlen(initialdir) >= sizeof(filename)) initialdir = "";
+
+	// ext Files\0*.ext\0\0
+	memset(filter, 0, sizeof(filter));
+	sprintf(filterp, "%s Files", type);
+	filterp += strlen(filterp) + 1;
+	sprintf(filterp, "*.%s", type);
+
+	strcpy(filename, initialdir);
+
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = hWindow;
+	ofn.lpstrFilter = filter;
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFile = filename;
+	ofn.nMaxFile = sizeof(filename);
+	ofn.Flags = OFN_DONTADDTORECENT | OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+	ofn.lpstrDefExt = type;
+
+	if (foropen ? GetOpenFileName(&ofn) : GetSaveFileName(&ofn)) {
+		return strdup(filename);
+	} else {
+		return strdup("");
+	}
 }
 
 //

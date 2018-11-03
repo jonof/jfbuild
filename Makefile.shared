@@ -48,7 +48,7 @@ endif
 ifeq ($(PLATFORM),WINDOWS)
 	RENDERTYPE ?= WIN
 	EXESUFFIX=.exe
-	BUILDLIBS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -luxtheme -lxinput9_1_0
+	BUILDLIBS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -lcomdlg32 -luxtheme -lxinput9_1_0
 	ifneq ($(DYNAMIC_OPENGL),1)
 		BUILDLIBS+= $(GLLIBWIN)
 	endif

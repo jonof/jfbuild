@@ -5039,7 +5039,7 @@ void overheadeditor(void)
 		if (keystatus[1] > 0)
 		{
 			keystatus[1] = 0;
-			printmessage16("(N)ew, (L)oad, (S)ave, save (A)s, (Q)uit");
+			printmessage16("(N)ew, (L)oad/from (G)RP, (S)ave, save (A)s, (Q)uit");
 			showframe(1);
 			bflushchars();
 			bad = 1;
@@ -5113,10 +5113,43 @@ void overheadeditor(void)
 					printmessage16("");
 					showframe(1);
 				}
-				else if (ch == 'l' || ch == 'L')  //L
+				else if (ch == 'l' || ch == 'L' || ch == 'g' || ch == 'G')  //L and G
 				{
+					char * filename = NULL;
+
 					bad = 0;
-					i = menuselect();
+					printmessage16("Load board...");
+					showframe(1);
+
+					if (ch == 'g' || ch == 'G') {
+						pathsearchmode = 0;
+						i = menuselect();
+					} else {
+						while (1) {
+							filename = wm_filechooser(boardfilename, "map", 1);
+							if (filename) {
+								if (strlen(filename)+1 > sizeof(selectedboardfilename)) {
+									printmessage16("File path is too long.");
+									showframe(1);
+									free(filename);
+									continue;
+								}
+
+								if (!filename[0]) {
+									i = -1;
+								} else {
+									strcpy(selectedboardfilename, filename);
+									i = 0;
+								}
+								free(filename);
+							} else {
+								// Fallback behaviour.
+								i = menuselect();
+							}
+							break;
+						}
+					}
+
 					if (i < 0)
 					{
 						if (i == -2)
@@ -5279,23 +5312,59 @@ void overheadeditor(void)
 				}
 				else if (ch == 'a' || ch == 'A')  //A
 				{
+					char * filename = NULL;
+
 					bad = 0;
+					printmessage16("Save board as...");
+					showframe(1);
 
 					Bstrcpy(selectedboardfilename, boardfilename);
-					if (Bstrrchr(boardfilename, '/'))
-						Bstrcpy(boardfilename, Bstrrchr(boardfilename, '/')+1);
 
-					i = 0;
-					while ((boardfilename[i] != 0) && (i < 64))
-						i++;
-					if (boardfilename[i-4] == '.')
-						i -= 4;
-					boardfilename[i] = 0;
+					while (1) {
+						filename = wm_filechooser(selectedboardfilename, "map", 0);
+						if (filename) {
+							if (strlen(filename)+1 > sizeof(selectedboardfilename)) {
+								printmessage16("File path is too long.");
+								showframe(1);
+								free(filename);
+								continue;
+							}
+
+							if (!filename[0]) {
+								bad = 1;	// Cancel.
+							} else {
+								strcpy(selectedboardfilename, filename);
+								bad = 2;	// OK.
+							}
+							free(filename);
+							filename = NULL;
+							pathsearchmode = 1;	// Local fs.
+						} else {
+							// Fallback behaviour.
+							bad = 0;
+						}
+						break;
+					}
+
+					// Find where the filename starts on the path.
+					filename = Bstrrchr(selectedboardfilename, '/');
+#ifdef _WIN32
+					filename = max(filename, Bstrrchr(selectedboardfilename, '\\'));
+#endif
+					if (filename) {
+						filename += 1;	// Skip the '/'
+					} else {
+						filename = selectedboardfilename;
+					}
+
+					// Cut off any .map extension.
+					for (i = strlen(filename) - 1; i >= 0 && filename[i] != '.'; i--) { }
+					if (i > 0 && Bstrcasecmp(&filename[i], ".map") == 0) filename[i] = 0;
 
 					bflushchars();
 					while (bad == 0)
 					{
-						Bsprintf(buffer,"Save as: %s_", boardfilename);
+						Bsprintf(buffer,"Save as: %s_", filename);
 						printmessage16(buffer);
 						showframe(1);
 
@@ -5310,45 +5379,28 @@ void overheadeditor(void)
 						else if (ch > 0) {
 							if (i > 0 && (ch == 8 || ch == 127)) {
 								i--;
-								boardfilename[i] = 0;
+								filename[i] = 0;
 							}
-							else if (i < 8 && ch > 32 && ch < 128)
+							else if (strlen(selectedboardfilename) < sizeof(selectedboardfilename)-5
+								&& ch > 32 && ch < 128)
 							{
-								boardfilename[i++] = ch;
-								boardfilename[i] = 0;
+								filename[i++] = ch;
+								filename[i] = 0;
 							}
 						}
 					}
 					if (bad == 1)
 					{
-						Bstrcpy(boardfilename, selectedboardfilename);
 						keystatus[1] = 0;
 						printmessage16("Operation cancelled");
 						showframe(1);
 					}
 					if (bad == 2)
 					{
-						char *f;
 						keystatus[0x1c] = 0;
 
-						boardfilename[i] = '.';
-						boardfilename[i+1] = 'm';
-						boardfilename[i+2] = 'a';
-						boardfilename[i+3] = 'p';
-						boardfilename[i+4] = 0;
-
-						if (Bstrrchr(selectedboardfilename,'/'))
-							Bstrcpy(Bstrrchr(selectedboardfilename, '/')+1, boardfilename);
-						else
-							Bstrcpy(selectedboardfilename, boardfilename);
-						if (pathsearchmode) f = selectedboardfilename;
-						else {
-							// virtual filesystem mode can't save to directories so drop the file into
-							// the current directory
-							f = strrchr(selectedboardfilename, '/');
-							if (!f) f = selectedboardfilename; else f++;
-						}
-						Bsprintf(buffer,"Saving to %s...",f);
+						strcat(filename, ".map");
+						Bsprintf(buffer,"Saving to %s...",filename);
 						printmessage16(buffer);
 						showframe(1);
 
@@ -5356,14 +5408,14 @@ void overheadeditor(void)
 						updatesector(startposx,startposy,&startsectnum);
 						ExtPreSaveMap();
 						if (mapversion < 7) {
-							bad = saveoldboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+							bad = saveoldboard(selectedboardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
 						} else {
-							bad = saveboard(f,&startposx,&startposy,&startposz,&startang,&startsectnum);
+							bad = saveboard(selectedboardfilename,&startposx,&startposy,&startposz,&startang,&startsectnum);
 						}
-						ExtSaveMap(f);
+						ExtSaveMap(selectedboardfilename);
+						Bstrcpy(boardfilename, selectedboardfilename);
 						if (!bad) {
 							printmessage16("Board saved.");
-							Bstrcpy(boardfilename, selectedboardfilename);
 						} else {
 							printmessage16("Board NOT saved!");
 						}
