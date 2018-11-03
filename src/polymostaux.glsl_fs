@@ -1,6 +1,7 @@
 #version 110
 
 uniform sampler2D u_texture;
+uniform sampler3D u_paltexture;
 uniform vec4 u_colour;
 uniform vec4 u_bgcolour;
 uniform int u_mode;
@@ -22,5 +23,9 @@ void main(void)
     } else if (u_mode == 2) {
         // Foreground colour.
         gl_FragColor = u_colour;
+    } else if (u_mode == 3) {
+        // Tile screen (ART).
+        pixel = texture3D(u_paltexture, vec3(texture2D(u_texture, v_texcoord).r, 0.0, 0.0));
+        gl_FragColor = mix(u_bgcolour, pixel, pixel.a);
     }
 }

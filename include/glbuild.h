@@ -56,7 +56,9 @@ struct glbuild_funcs {
     								   GLenum format, GLenum type,
     								   const GLvoid *pixels );
     void (APIENTRY * glTexImage2D)( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels );
+    void (APIENTRY * glTexImage3D)( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid *pixels );
     void (APIENTRY * glTexSubImage2D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels );	// 1.1
+    void (APIENTRY * glTexSubImage3D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid *pixels );
     void (APIENTRY * glTexParameterf)( GLenum target, GLenum pname, GLfloat param );
     void (APIENTRY * glTexParameteri)( GLenum target, GLenum pname, GLint param );
     void (APIENTRY * glGetTexLevelParameteriv)( GLenum target, GLint level, GLenum pname, GLint *params );

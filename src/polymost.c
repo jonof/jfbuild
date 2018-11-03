@@ -145,8 +145,6 @@ static GLuint nulltexture = 0;
 #define SHADERDEV 1
 static struct {
 	GLuint program;             // GLSL program object.
-	GLuint elementbuffer;
-	GLuint elementbuffersize;
 	GLint attrib_vertex;		// Vertex (vec3)
 	GLint attrib_texcoord;		// Texture coordinate (vec2)
 	GLint uniform_modelview;	// Modelview matrix (mat4)
@@ -160,24 +158,51 @@ static struct {
 } polymostglsl;
 
 static struct {
+	GLuint program;				// GLSL program object for rendering ART tiles.
+	GLuint palettetex;			// GLSL 3D texture for the palette and its lookups.
+	GLint attrib_vertex;		// Vertex (vec3)
+	GLint attrib_texcoord;		// Texture coordinate (vec2)
+	GLint uniform_modelview;	// Modelview matrix (mat4)
+	GLint uniform_projection;	// Projection matrix (mat4)
+	GLint uniform_texture;		// Base texture (sampler2D)
+	GLint uniform_paltexture;	// Palette lookup texture (sampler3D)
+	GLint uniform_colour;		// Colour (vec4)
+	GLint uniform_palnum;		// Palette lookup offset (float)
+	GLint uniform_fogcolour;    // Fog colour   (vec4)
+	GLint uniform_fogdensity;   // Fog density  (float)
+	GLint uniform_ismasked;
+	GLint uniform_fullbright;	// Palette index that starts the fullbright range.
+} polymostartglsl;
+
+static struct {
 	GLuint program;
-	GLuint elementbuffer;
-	GLuint indexbuffer;
 	GLint attrib_vertex;		// Vertex (vec3)
 	GLint attrib_texcoord;		// Texture coordinate (vec2)
 	GLint uniform_projection;	// Projection matrix (mat4)
 	GLint uniform_texture;      // Character bitmap (sampler2D)
+	GLint uniform_paltexture;	// Palette lookup texture (sampler3D)
 	GLint uniform_colour;		// Colour (vec4)
 	GLint uniform_bgcolour;     // Background colour (vec4)
 	GLint uniform_mode;	        // Operation mode (int)
 		// 0 = texture is mask, render vertex colour/bgcolour.
 		// 1 = texture is image, blend with bgcolour.
 		// 2 = draw solid colour.
+		// 3 = texture is ART-format image, blend with bgcolour.
 } polymostauxglsl;
 
-static GLuint elementindexbuffer = 0;
-static GLuint elementindexbuffersize = 0;
+// GL buffer of ascending indexes.
+static GLuint linearindexbuffer = 0;
+static GLuint linearindexbuffersize = 0;
 
+// GL buffer for adhoc index uploads.
+static GLuint adhocindexbuffer = 0;
+static GLuint adhocindexbuffersize = 0;
+
+// GL buffer for adhoc vertex/texcoord uploads.
+static GLuint elementbuffer = 0;
+static GLuint elementbuffersize = 0;
+
+// 4x4 identity matrix.
 const GLfloat gidentitymat[4][4] = {
 	{1.f, 0.f, 0.f, 0.f},
 	{0.f, 1.f, 0.f, 0.f},
@@ -467,22 +492,32 @@ void polymost_glreset ()
 		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
-	if (elementindexbuffer) {
-		glfunc.glDeleteBuffers(1, &elementindexbuffer);
-		elementindexbuffersize = 0;
-		elementindexbuffer = 0;
+	if (linearindexbuffer) {
+		glfunc.glDeleteBuffers(1, &linearindexbuffer);
+		linearindexbuffersize = 0;
+		linearindexbuffer = 0;
 	}
-	if (polymostglsl.elementbuffer) {
-		glfunc.glDeleteBuffers(1, &polymostglsl.elementbuffer);
-		polymostglsl.elementbuffer = 0;
+	if (adhocindexbuffer) {
+		glfunc.glDeleteBuffers(1, &adhocindexbuffer);
+		adhocindexbuffersize = 0;
+		adhocindexbuffer = 0;
+	}
+	if (elementbuffer) {
+		glfunc.glDeleteBuffers(1, &elementbuffer);
+		elementbuffersize = 0;
+		elementbuffer = 0;
 	}
 	if (polymostglsl.program) {
 		glfunc.glDeleteProgram(polymostglsl.program);
 		polymostglsl.program = 0;
 	}
-	if (polymostauxglsl.indexbuffer) {
-		glfunc.glDeleteBuffers(1, &polymostauxglsl.indexbuffer);
-		polymostauxglsl.indexbuffer = 0;
+	if (polymostartglsl.palettetex) {
+		glfunc.glDeleteTextures(1, &polymostartglsl.palettetex);
+		polymostartglsl.palettetex = 0;
+	}
+	if (polymostartglsl.program) {
+		glfunc.glDeleteProgram(polymostartglsl.program);
+		polymostartglsl.program = 0;
 	}
 	if (polymostauxglsl.program) {
 		glfunc.glDeleteProgram(polymostauxglsl.program);
@@ -557,24 +592,47 @@ static GLuint polymost_load_shader(GLuint shadertype, const char *defaultsrc, co
 	return shader;
 }
 
-static void checkindexbuffer(int size)
+static void checklinearindexbuffer(int size)
 {
 	GLushort *indexes, i;
 
-	if (size <= elementindexbuffersize) return;
+	glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, linearindexbuffer);
+
+	if (size <= linearindexbuffersize) return;
 
 	indexes = (GLushort *) malloc(sizeof(GLushort)*size);
 	for (i = 0; i < size; i++) indexes[i] = i;
-	glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
-	glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*size, indexes, GL_STATIC_DRAW);
-	free(indexes);
 
-	elementindexbuffersize = size;
+	glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*size, indexes, GL_STATIC_DRAW);
+	linearindexbuffersize = size;
+
+	free(indexes);
+}
+
+static void checkadhocindexbuffer(int size)
+{
+	glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, adhocindexbuffer);
+
+	if (size <= adhocindexbuffersize) return;
+
+	glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*size, 0, GL_STREAM_DRAW);
+	adhocindexbuffersize = size;
+}
+
+static void checkelementbuffer(int size)
+{
+	glfunc.glBindBuffer(GL_ARRAY_BUFFER, elementbuffer);
+
+	if (size <= elementbuffersize) return;
+
+	glfunc.glBufferData(GL_ARRAY_BUFFER, sizeof(struct polymostvboitem)*size, 0, GL_STREAM_DRAW);
+	elementbuffersize = size;
 }
 
 static void polymost_loadshaders(void)
 {
 	extern const char default_polymost_glsl_fs[];
+	extern const char default_polymostart_glsl_fs[];
 	extern const char default_polymost_glsl_vs[];
 
 	extern const char default_polymostaux_glsl_fs[];
@@ -583,11 +641,6 @@ static void polymost_loadshaders(void)
 	GLuint shader[2] = {0,0};
 
 	// General texture rendering shader.
-	if (polymostglsl.program) {
-		glfunc.glDeleteProgram(polymostglsl.program);
-		polymostglsl.program = 0;
-	}
-
 	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
 		default_polymost_glsl_vs, "polymost.glsl_vs");
 	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
@@ -613,12 +666,46 @@ static void polymost_loadshaders(void)
 		glfunc.glUseProgram(polymostglsl.program);
 		glfunc.glUniform1i(polymostglsl.uniform_texture, 0);		//GL_TEXTURE0
 		glfunc.glUniform1i(polymostglsl.uniform_glowtexture, 1);	//GL_TEXTURE1
+	}
 
-		// Generate a buffer object for vertex/colour elements and pre-allocate its memory.
-		glfunc.glGenBuffers(1, &polymostglsl.elementbuffer);
-		polymostglsl.elementbuffersize = MINVBOINDEXES;
-		glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostglsl.elementbuffer);
-		glfunc.glBufferData(GL_ARRAY_BUFFER, sizeof(struct polymostvboitem)*MINVBOINDEXES, NULL, GL_STREAM_DRAW);
+	// ART texture rendering shader.
+	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
+		default_polymost_glsl_vs, "polymost.glsl_vs");
+	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
+		default_polymostart_glsl_fs, "polymostart.glsl_fs");
+	if (shader[0] && shader[1]) {
+		polymostartglsl.program = glbuild_link_program(2, shader);
+	}
+	if (shader[0]) glfunc.glDeleteShader(shader[0]);
+	if (shader[1]) glfunc.glDeleteShader(shader[1]);
+
+	if (polymostartglsl.program) {
+		polymostartglsl.attrib_vertex       = polymost_get_attrib(polymostartglsl.program, "a_vertex");
+		polymostartglsl.attrib_texcoord     = polymost_get_attrib(polymostartglsl.program, "a_texcoord");
+		polymostartglsl.uniform_modelview   = polymost_get_uniform(polymostartglsl.program, "u_modelview");
+		polymostartglsl.uniform_projection  = polymost_get_uniform(polymostartglsl.program, "u_projection");
+		polymostartglsl.uniform_texture     = polymost_get_uniform(polymostartglsl.program, "u_texture");
+		polymostartglsl.uniform_paltexture  = polymost_get_uniform(polymostartglsl.program, "u_paltexture");
+		polymostartglsl.uniform_colour      = polymost_get_uniform(polymostartglsl.program, "u_colour");
+		polymostartglsl.uniform_palnum      = polymost_get_uniform(polymostartglsl.program, "u_palnum");
+		polymostartglsl.uniform_fogcolour   = polymost_get_uniform(polymostartglsl.program, "u_fogcolour");
+		polymostartglsl.uniform_fogdensity  = polymost_get_uniform(polymostartglsl.program, "u_fogdensity");
+		polymostartglsl.uniform_ismasked    = polymost_get_uniform(polymostartglsl.program, "u_ismasked");
+		polymostartglsl.uniform_fullbright  = polymost_get_uniform(polymostartglsl.program, "u_fullbright");
+
+		glfunc.glUseProgram(polymostartglsl.program);
+		glfunc.glUniform1i(polymostartglsl.uniform_texture, 0);		//GL_TEXTURE0
+		glfunc.glUniform1i(polymostartglsl.uniform_paltexture, 1);	//GL_TEXTURE1
+
+		glfunc.glGenTextures(1, &polymostartglsl.palettetex);
+		glfunc.glActiveTexture(GL_TEXTURE1);
+		glfunc.glBindTexture(GL_TEXTURE_3D, polymostartglsl.palettetex);
+		glfunc.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, 256, MAXPALOOKUPS, numpalookups, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);	// Allocate memory.
+		glfunc.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glfunc.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glfunc.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glfunc.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glfunc.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 	}
 
 	// A fully transparent texture for the case when a glow texture is not needed.
@@ -632,11 +719,6 @@ static void polymost_loadshaders(void)
 	}
 
 	// Engine auxiliary shader.
-	if (polymostauxglsl.program) {
-		glfunc.glDeleteProgram(polymostauxglsl.program);
-		polymostauxglsl.program = 0;
-	}
-
 	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
 		default_polymostaux_glsl_vs, "polymostaux.glsl_vs");
 	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
@@ -652,24 +734,28 @@ static void polymost_loadshaders(void)
 		polymostauxglsl.attrib_texcoord  = polymost_get_attrib(polymostauxglsl.program, "a_texcoord");
 		polymostauxglsl.uniform_projection = polymost_get_uniform(polymostauxglsl.program, "u_projection");
 		polymostauxglsl.uniform_texture  = polymost_get_uniform(polymostauxglsl.program, "u_texture");
+		polymostauxglsl.uniform_paltexture = polymost_get_uniform(polymostauxglsl.program, "u_paltexture");
 		polymostauxglsl.uniform_colour   = polymost_get_uniform(polymostauxglsl.program, "u_colour");
 		polymostauxglsl.uniform_bgcolour = polymost_get_uniform(polymostauxglsl.program, "u_bgcolour");
 		polymostauxglsl.uniform_mode     = polymost_get_uniform(polymostauxglsl.program, "u_mode");
 
 		glfunc.glUseProgram(polymostauxglsl.program);
 		glfunc.glUniform1i(polymostauxglsl.uniform_texture, 0);	//GL_TEXTURE0
-
-		// Generate a buffer object for vertex/colour elements and pre-allocate its memory.
-		glfunc.glGenBuffers(1, &polymostauxglsl.elementbuffer);
-
-		// Generate a buffer object for ad-hoc indexes.
-		glfunc.glGenBuffers(1, &polymostauxglsl.indexbuffer);
+		glfunc.glUniform1i(polymostauxglsl.uniform_paltexture, 1);	//GL_TEXTURE1
 	}
 
 	// Generate a buffer object for element indexes and populate it with an
 	// initial set of ascending indices, the way drawpoly() will generate points.
-	glfunc.glGenBuffers(1, &elementindexbuffer);
-	checkindexbuffer(MINVBOINDEXES);
+	glfunc.glGenBuffers(1, &linearindexbuffer);
+	checklinearindexbuffer(MINVBOINDEXES);
+
+	// Generate a buffer object for adhoc indexes.
+	glfunc.glGenBuffers(1, &adhocindexbuffer);
+	checkadhocindexbuffer(MINVBOINDEXES);
+
+	// Generate a buffer object for vertex/colour elements and pre-allocate its memory.
+	glfunc.glGenBuffers(1, &elementbuffer);
+	checkelementbuffer(MINVBOINDEXES);
 }
 
 // one-time initialisation of OpenGL for polymost
@@ -755,33 +841,80 @@ void polymost_setview(void)
 	gorthoprojmat[3][1] = 1.0;
 }
 
-void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
+static void drawpoly_glcall_art(GLenum mode, struct polymostdrawpolycall *draw)
 {
-#ifdef DEBUGGINGAIDS
-	polymostcallcounts.drawpoly_glcall++;
-#endif
+	glfunc.glUseProgram(polymostartglsl.program);
 
+	if (draw->elementbuffer > 0) {
+		glfunc.glBindBuffer(GL_ARRAY_BUFFER, draw->elementbuffer);
+	} else {
+		// Drawing from the passed elementvbo items.
+		checkelementbuffer(draw->elementcount);
+		glfunc.glBufferSubData(GL_ARRAY_BUFFER, 0, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo);
+	}
+
+	if (draw->indexbuffer > 0) {
+		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, draw->indexbuffer);
+	} else {
+		checklinearindexbuffer(draw->indexcount);
+	}
+
+	glfunc.glEnableVertexAttribArray(polymostartglsl.attrib_vertex);
+	glfunc.glEnableVertexAttribArray(polymostartglsl.attrib_texcoord);
+
+	glfunc.glVertexAttribPointer(polymostartglsl.attrib_vertex, 3, GL_FLOAT, GL_FALSE,
+		sizeof(struct polymostvboitem), offsetof(struct polymostvboitem, v));
+	glfunc.glVertexAttribPointer(polymostartglsl.attrib_texcoord, 2, GL_FLOAT, GL_FALSE,
+		sizeof(struct polymostvboitem), offsetof(struct polymostvboitem, t));
+
+	glfunc.glActiveTexture(GL_TEXTURE0);
+	glfunc.glBindTexture(GL_TEXTURE_2D, draw->texture0);
+
+	glfunc.glActiveTexture(GL_TEXTURE1);
+	glfunc.glBindTexture(GL_TEXTURE_3D, polymostartglsl.palettetex);
+
+	glfunc.glUniform4f(
+		polymostartglsl.uniform_colour,
+		draw->colour.r, draw->colour.g, draw->colour.b, draw->colour.a
+	);
+	glfunc.glUniform1f(polymostartglsl.uniform_palnum, (float)draw->palnum / (float)(MAXPALOOKUPS-1));
+	glfunc.glUniform1f(polymostartglsl.uniform_fullbright, (float)polymosttexfullbright / 255.f);
+	glfunc.glUniform1i(polymostartglsl.uniform_ismasked, draw->ismasked);
+
+	glfunc.glUniform4f(
+		polymostartglsl.uniform_fogcolour,
+		draw->fogcolour.r, draw->fogcolour.g, draw->fogcolour.b, draw->fogcolour.a
+	);
+	glfunc.glUniform1f(
+		polymostartglsl.uniform_fogdensity,
+		draw->fogdensity
+	);
+
+	glfunc.glUniformMatrix4fv(polymostartglsl.uniform_modelview, 1, GL_FALSE, draw->modelview);
+	glfunc.glUniformMatrix4fv(polymostartglsl.uniform_projection, 1, GL_FALSE, draw->projection);
+
+	glfunc.glDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
+
+	glfunc.glDisableVertexAttribArray(polymostartglsl.attrib_vertex);
+	glfunc.glDisableVertexAttribArray(polymostartglsl.attrib_texcoord);
+}
+
+static void drawpoly_glcall_hightile(GLenum mode, struct polymostdrawpolycall *draw)
+{
 	glfunc.glUseProgram(polymostglsl.program);
 
 	if (draw->elementbuffer > 0) {
 		glfunc.glBindBuffer(GL_ARRAY_BUFFER, draw->elementbuffer);
 	} else {
 		// Drawing from the passed elementvbo items.
-		glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostglsl.elementbuffer);
-		if (draw->elementcount > polymostglsl.elementbuffersize) {
-			// Element buffer needs to grow.
-			glfunc.glBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
-			polymostglsl.elementbuffersize = draw->elementcount;
-		} else {
-			glfunc.glBufferSubData(GL_ARRAY_BUFFER, 0, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo);
-		}
+		checkelementbuffer(draw->elementcount);
+		glfunc.glBufferSubData(GL_ARRAY_BUFFER, 0, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo);
 	}
 
 	if (draw->indexbuffer > 0) {
 		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, draw->indexbuffer);
 	} else {
-		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
-		checkindexbuffer(draw->indexcount);
+		checklinearindexbuffer(draw->indexcount);
 	}
 
 	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_vertex);
@@ -804,6 +937,7 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 		polymostglsl.uniform_colour,
 		draw->colour.r, draw->colour.g, draw->colour.b, draw->colour.a
 	);
+
 	glfunc.glUniform4f(
 		polymostglsl.uniform_fogcolour,
 		draw->fogcolour.r, draw->fogcolour.g, draw->fogcolour.b, draw->fogcolour.a
@@ -822,6 +956,19 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_texcoord);
 }
 
+void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
+{
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawpoly_glcall++;
+#endif
+	if (draw->mode == 0) {
+		drawpoly_glcall_art(mode, draw);
+	} else {
+		drawpoly_glcall_hightile(mode, draw);
+	}
+}
+
+
 static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *draw)
 {
 #ifdef DEBUGGINGAIDS
@@ -830,15 +977,14 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 
 	glfunc.glUseProgram(polymostauxglsl.program);
 
-	glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostauxglsl.elementbuffer);
-	glfunc.glBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
+	checkelementbuffer(draw->elementcount);
+	glfunc.glBufferSubData(GL_ARRAY_BUFFER, 0, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo);
 
 	if (draw->indexes) {
-		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, polymostauxglsl.indexbuffer);
-		glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indexcount * sizeof(GLushort), draw->indexes, GL_STREAM_DRAW);
+		checkadhocindexbuffer(draw->indexcount);
+		glfunc.glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, draw->indexcount * sizeof(GLushort), draw->indexes);
 	} else {
-		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
-		checkindexbuffer(draw->indexcount);
+		checklinearindexbuffer(draw->indexcount);
 	}
 
 	glfunc.glEnableVertexAttribArray(polymostauxglsl.attrib_vertex);
@@ -851,6 +997,11 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 
 	glfunc.glActiveTexture(GL_TEXTURE0);
 	glfunc.glBindTexture(GL_TEXTURE_2D, draw->texture0);
+
+	if (draw->mode == 3) {
+		glfunc.glActiveTexture(GL_TEXTURE1);
+		glfunc.glBindTexture(GL_TEXTURE_3D, polymostartglsl.palettetex);
+	}
 
 	glfunc.glUniform4f(
 		polymostauxglsl.uniform_colour,
@@ -1051,6 +1202,8 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 
 		pth = PT_GetHead(globalpicnum, globalpal, ptflags, 0);
 
+		draw.mode = 0;	// ART default.
+
 		// Base texture.
 		draw.texture0 = 0;
 		if (pth) {
@@ -1059,6 +1212,9 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 			}
 			if (pth->pic[picidx]) {
 				draw.texture0 = pth->pic[picidx]->glpic;
+			}
+			if (pth->flags & PTH_HIGHTILE) {
+				draw.mode = 1;
 			}
 		}
 
@@ -1110,6 +1266,8 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 			}
 		}
 
+		draw.palnum = globalpal;
+		draw.ismasked = !!(method & (METH_MASKED | METH_TRANS));
 		draw.colour.r = draw.colour.g = draw.colour.b =
 			((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 		switch(method & (METH_MASKED | METH_TRANS))
@@ -4124,15 +4282,22 @@ void polymost_fillpolygon (int npoints)
 
 	if (usehightile) ptflags |= PTH_HIGHTILE;
 
+	draw.mode = 0;	// ART default.
 	draw.texture0 = 0;
 	pth = PT_GetHead(globalpicnum, globalpal, ptflags, 0);
 	if (pth && pth->pic[PTHPIC_BASE]) {
 		draw.texture0 = pth->pic[ PTHPIC_BASE ]->glpic;
 	}
+	if (pth->flags & PTH_HIGHTILE) {
+		draw.mode = 1;
+	}
+
 	draw.texture1 = nulltexture;
 	draw.alphacut = 0.f;
 	draw.fogdensity = 0.f;
 
+	draw.palnum = globalpal;
+	draw.ismasked = 0;
 	draw.colour.r = draw.colour.g = draw.colour.b =
 		((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 	switch ((globalorientation>>7)&3) {
@@ -4211,6 +4376,7 @@ int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 		if (pth->pic[PTHPIC_BASE]) {
 			draw.texture0 = pth->pic[PTHPIC_BASE]->glpic;
 		}
+		if (!(pth->flags & PTH_HIGHTILE)) draw.mode = 3;	// ART.
 	}
 
 	draw.bgcolour.r = bgcolour.r / 255.f;
@@ -4523,6 +4689,36 @@ static int polymost_preparetext(void)
 	return 0;
 }
 
+void polymost_setpalette(coltype *pal)
+{
+	coltype *paldata, *palshade;
+	unsigned char *palookupshade;
+	int paln, palx, pals;
+
+	paldata = (coltype *)calloc(MAXPALOOKUPS * numpalookups, 256 * sizeof(coltype));
+	if (!paldata) {
+		buildprintf("polymost_setpalette error: could not allocate memory");
+		return;
+	}
+
+	for (pals = 0; pals < numpalookups; pals++) {
+		palshade = paldata + pals * MAXPALOOKUPS * 256;
+		for (paln = 0; paln < MAXPALOOKUPS; paln++) {
+			if (!palookup[paln]) continue;
+			palookupshade = palookup[paln] + pals * 256;
+			for (palx = 0; palx < 256; palx++) {
+				palshade[256 * paln + palx] = pal[ palookupshade[palx] ];
+			}
+		}
+	}
+
+	glfunc.glActiveTexture(GL_TEXTURE1);
+	glfunc.glBindTexture(GL_TEXTURE_3D, polymostartglsl.palettetex);
+	glfunc.glTexSubImage3D(GL_TEXTURE_3D, 0, 0, 0, 0, 256, MAXPALOOKUPS, numpalookups, GL_RGBA, GL_UNSIGNED_BYTE, paldata);
+
+	free(paldata);
+}
+
 #endif
 
 // Console commands by JBF
@@ -4749,7 +4945,9 @@ static int osdcmd_debugtexturehash(const osdfuncparm_t * UNUSED(parm))
 #ifdef SHADERDEV
 static int osdcmd_debugreloadshaders(const osdfuncparm_t *UNUSED(parm))
 {
+    polymost_glreset();
 	polymost_loadshaders();
+    polymost_setpalette((coltype *)curpalette);
 	return OSDCMD_OK;
 }
 #endif

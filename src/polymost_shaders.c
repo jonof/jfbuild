@@ -16,6 +16,7 @@
 
 #include "polymost.glsl_vs_c"
 #include "polymost.glsl_fs_c"
+#include "polymostart.glsl_fs_c"
 #include "polymostaux.glsl_vs_c"
 #include "polymostaux.glsl_fs_c"
 

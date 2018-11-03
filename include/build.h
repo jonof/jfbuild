@@ -386,7 +386,7 @@ int   allocatepermanenttile(short tilenume, int xsiz, int ysiz);
 void   copytilepiece(int tilenume1, int sx1, int sy1, int xsiz, int ysiz, int tilenume2, int sx2, int sy2);
 int    makepalookup(int palnum, unsigned char *remapbuf, signed char r, signed char g, signed char b, unsigned char dastat);
 void   setvgapalette(void);
-void   setbrightness(int dabrightness, unsigned char *dapal, char noapply);
+void   setbrightness(int dabrightness, unsigned char *dapal, char mode);
 void   setpalettefade(unsigned char r, unsigned char g, unsigned char b, unsigned char offset);
 void   squarerotatetile(short tilenume);
 

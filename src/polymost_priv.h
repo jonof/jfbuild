@@ -62,12 +62,21 @@ struct polymostvboitem {
 };
 
 struct polymostdrawpolycall {
+    int mode;               // 0 = ART, 1 = Hightile
+
+    // Common
     GLuint texture0;
-    GLuint texture1;
-    GLfloat alphacut;
-    coltypef colour;
+    GLuint texture1;        // Ignored by ART; auto set to palette.
     coltypef fogcolour;
     GLfloat fogdensity;
+    coltypef colour;
+
+    // ART
+    GLushort palnum;
+    GLint ismasked;
+
+    // Hightile
+    GLfloat alphacut;
 
     const GLfloat *modelview;     // 4x4 matrices.
     const GLfloat *projection;
@@ -113,6 +122,7 @@ void polymost_fillpolygon (int npoints);
 int polymost_printext256(int xpos, int ypos, short col, short backcol, const char *name, char fontsize);
 int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col);
 int polymost_plotpixel(int x, int y, unsigned char col);
+void polymost_setpalette(coltype *pal);
 void polymost_initosdfuncs(void);
 void polymost_setview(void);
 

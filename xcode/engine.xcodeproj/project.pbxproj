@@ -157,6 +157,7 @@
 
 /* Begin PBXFileReference section */
 		AB1751260CEF5AF8003AF128 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Users/jonof/Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
+		AB356ECD218B00D500EC2805 /* polymostart.glsl_fs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = polymostart.glsl_fs; sourceTree = "<group>"; };
 		AB3B2A0D0EE3FC0400944CD1 /* hightile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hightile.c; sourceTree = "<group>"; };
 		AB3B2A1C0EE3FCF900944CD1 /* polymost.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymost.c; sourceTree = "<group>"; };
 		AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mdsprite.c; sourceTree = "<group>"; };
@@ -396,6 +397,7 @@
 		AB735F730A29A3AC003261DC /* src */ = {
 			isa = PBXGroup;
 			children = (
+				AB356ECD218B00D500EC2805 /* polymostart.glsl_fs */,
 				ABE362562144F78100BA44B3 /* polymost.glsl_vs */,
 				ABE3624D2144CC9000BA44B3 /* polymost.glsl_fs */,
 				ABE362572146955700BA44B3 /* polymostaux.glsl_vs */,
@@ -776,6 +778,7 @@
 				"$(SRCROOT)/../src/polymostaux.glsl_fs",
 				"$(SRCROOT)/../src/polymost.glsl_vs",
 				"$(SRCROOT)/../src/polymostaux.glsl_vs",
+				"$(SRCROOT)/../src/polymostart.glsl_fs",
 			);
 			name = "Generate GL shaders .c";
 			outputPaths = (
@@ -783,10 +786,11 @@
 				"$(DERIVED_FILE_DIR)/polymostaux.glsl_fs_c",
 				"$(DERIVED_FILE_DIR)/polymost.glsl_vs_c",
 				"$(DERIVED_FILE_DIR)/polymostaux.glsl_vs_c",
+				"$(DERIVED_FILE_DIR)/polymostart.glsl_fs_c",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_0 default_polymost_glsl_fs > $SCRIPT_OUTPUT_FILE_0\n$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_1 default_polymostaux_glsl_fs > $SCRIPT_OUTPUT_FILE_1\n$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_2 default_polymost_glsl_vs > $SCRIPT_OUTPUT_FILE_2\n$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_3 default_polymostaux_glsl_vs > $SCRIPT_OUTPUT_FILE_3\n";
+			shellScript = "$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_0 default_polymost_glsl_fs > $SCRIPT_OUTPUT_FILE_0\n$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_1 default_polymostaux_glsl_fs > $SCRIPT_OUTPUT_FILE_1\n$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_2 default_polymost_glsl_vs > $SCRIPT_OUTPUT_FILE_2\n$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_3 default_polymostaux_glsl_vs > $SCRIPT_OUTPUT_FILE_3\n$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_4 default_polymostart_glsl_fs > $SCRIPT_OUTPUT_FILE_4\n";
 			showEnvVarsInLog = 0;
 		};
 		ABE362522144CE3700BA44B3 /* ShellScript */ = {

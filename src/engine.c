@@ -81,6 +81,7 @@ int ebpbak, espbak;
 intptr_t slopalookup[SLOPALOOKUPSIZ];
 #if defined(USE_OPENGL)
 palette_t palookupfog[MAXPALOOKUPS];
+static unsigned int lastpalettesum = 0;
 #endif
 
 int artversion, mapversion=7L;	// JBF 20040211: default mapversion to 7
@@ -7630,6 +7631,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	}
 #endif
 
+	lastpalettesum = 0;
 	setbrightness(curbrightness,&palette[0],0);
 	clearallviews(0L);
 
@@ -9790,15 +9792,18 @@ void setvgapalette(void)
 //
 // setbrightness
 //
-static unsigned int lastpalettesum = 0;
-void setbrightness(int dabrightness, unsigned char *dapal, char noapply)
+void setbrightness(int dabrightness, unsigned char *dapal, char mode)
 {
+	// mode & 1 - update the palette but don't activate it
+	// mode & 2 - don't invalidate polymost textures
+	// mode & 4 - ignore dabrightness, just change palette
+
 	int i, k, j;
 	float f;
 	unsigned int newpalettesum, lastbright;
 
 	lastbright = curbrightness;
-	if (!(noapply&4))
+	if (!(mode&4))
 		curbrightness = min(max((int)dabrightness,0),15);
 
 	curgamma = 1.0 + ((float)curbrightness / 10.0);
@@ -9810,26 +9815,31 @@ void setbrightness(int dabrightness, unsigned char *dapal, char noapply)
 		curpalette[i].r = dapal[i*3+0] << 2;
 		curpalette[i].g = dapal[i*3+1] << 2;
 		curpalette[i].b = dapal[i*3+2] << 2;
-		curpalette[i].f = 0;
+		curpalette[i].f = (i == 255 ? 0 : 255);
 
 		// brightness adjust the palette
 		curpalettefaded[i].b = (tempbuf[k++] = britable[j][ curpalette[i].b ]);
 		curpalettefaded[i].g = (tempbuf[k++] = britable[j][ curpalette[i].g ]);
 		curpalettefaded[i].r = (tempbuf[k++] = britable[j][ curpalette[i].r ]);
-		curpalettefaded[i].f = tempbuf[k++] = 0;
+		curpalettefaded[i].f = tempbuf[k++] = curpalette[i].f;
 	}
 
-	if ((noapply&1) == 0) setpalette(0,256,(unsigned char*)tempbuf);
+	if ((mode&1) == 0) setpalette(0,256,(unsigned char*)tempbuf);
 
 #if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode == 3) {
 		newpalettesum = crc32once((unsigned char *)curpalettefaded, sizeof(curpalettefaded));
 
-		// only reset the textures if the preserve flag (bit 1 of noapply) is clear and
-		// either (a) the new palette is different to the last, or (b) the brightness
-		// changed and we couldn't set it using hardware gamma
-		if (!(noapply&2) && (newpalettesum != lastpalettesum))
-			polymost_texinvalidateall();
+		if (newpalettesum != lastpalettesum) {
+			// only reset the textures if the preserve flag (bit 1 of noapply) is clear and
+			// either (a) the new palette is different to the last, or (b) the brightness
+			// changed and we couldn't set it using hardware gamma
+			if (!(mode&2))
+				polymost_texinvalidateall();
+
+			// Conveniently, coltype and palette_t are congruent.
+			polymost_setpalette((coltype *)curpalette);
+		}
 
 		lastpalettesum = newpalettesum;
 	}

@@ -58,7 +58,9 @@ int glbuild_loadfunctions(void)
 	INIT_PROC(glBindTexture);
 	INIT_PROC(glTexImage1D);
 	INIT_PROC(glTexImage2D);
+	INIT_PROC(glTexImage3D);
 	INIT_PROC(glTexSubImage2D);
+	INIT_PROC(glTexSubImage3D);
 	INIT_PROC(glTexParameterf);
 	INIT_PROC(glTexParameteri);
 	INIT_PROC(glGetTexLevelParameteriv);

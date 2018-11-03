@@ -773,6 +773,7 @@ static int md2draw (md2model *m, spritetype *tspr, int method)
 		}
 	}
 
+	draw.mode = 1;	// Hightile.
 	draw.texture0 = ptmh->glpic;
 	draw.texture1 = 0;
 	draw.alphacut = 0.32;
@@ -1058,6 +1059,7 @@ static int md3draw (md3model *m, spritetype *tspr, int method)
 	if (m->usesalpha || (tspr->cstat&2)) glfunc.glEnable(GL_BLEND); else glfunc.glDisable(GL_BLEND); //Sprites with alpha in texture
 //------------
 
+	draw.mode = 1;	// Hightile.
 	draw.texture1 = 0;
 	draw.alphacut = 0.32;
 	draw.colour.r = pc[0];
@@ -1918,6 +1920,7 @@ int voxdraw (voxmodel *m, spritetype *tspr, int method)
 		m->texid[globalpal] = gloadtex(m->mytex,m->mytexx,m->mytexy,m->is8bit,globalpal);
 	}
 
+	draw.mode = 1;	// Hightile.
 	draw.texture0 = m->texid[globalpal];
 	draw.texture1 = 0;
 	draw.alphacut = 0.32;
