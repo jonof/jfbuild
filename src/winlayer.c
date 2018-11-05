@@ -1259,11 +1259,9 @@ void getvalidmodes(void)
 	validmodecnt=0;
 	buildputs("Detecting video modes:\n");
 
-	// Windowed modes can't be bigger than the current desktop resolution.
-	maxx = desktopxdim-1;
-	maxy = desktopydim-1;
-
 	// Fullscreen 8-bit modes: upsamples to the desktop mode.
+	maxx = desktopxdim;
+	maxy = desktopydim;
 	for (i=0; defaultres[i][0]; i++) {
 		CHECKLE(defaultres[i][0],defaultres[i][1]) {
 			ADDMODE(defaultres[i][0], defaultres[i][1], 8, 1, -1);
@@ -1274,6 +1272,10 @@ void getvalidmodes(void)
 	// Fullscreen >8-bit modes.
 	if (!nogl) cdsenummodes();
 #endif
+
+	// Windowed modes can't be bigger than the current desktop resolution.
+	maxx = desktopxdim-1;
+	maxy = desktopydim-1;
 
 	// Windows 8-bit modes
 	for (i=0; defaultres[i][0]; i++) {
