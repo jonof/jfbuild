@@ -1352,7 +1352,7 @@ void showframe(int w)
 #endif
 
 	{
-		if (xres == desktopxdim && yres == desktopydim) {
+		if ((xres == desktopxdim && yres == desktopydim) || !fullscreen) {
 			BitBlt(hDCWindow, 0, 0, xres, yres, hDCSection, 0, 0, SRCCOPY);
 		} else {
 			int xpos, ypos, xscl, yscl;
@@ -1795,7 +1795,9 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 	return FALSE;
 
 fail:
-	ShowErrorBox(errmsg);
+	if (bpp > 8) {
+		ShowErrorBox(errmsg);
+	}
 	shutdownvideo();
 
 	if (!bwglMakeCurrent(NULL, NULL)) { }
@@ -1921,7 +1923,10 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
 			if (SetupOpenGL(width, height, bitspp, !fs)) {
-				return TRUE;
+				// No luck. Write off OpenGL and try DIB.
+				buildputs("OpenGL initialisation failed. Falling back to DIB mode.\n");
+				nogl = 1;
+				return CreateAppWindow(width, height, bitspp, fs, refresh);
 			}
 
 			if (glbuild_prepare_8bit_shader(&gl8bit, width, height) < 0) {
