@@ -11503,13 +11503,29 @@ void setpolymost2dview(void)
 void buildprintf(const char *fmt, ...)
 {
 	char tmpstr[1024];
-	va_list va;
+	va_list va, vac;
 
 	va_start(va, fmt);
-	Bvsnprintf(tmpstr, 1024, fmt, va);
-	va_end(va);
 
-    buildputs(tmpstr);
+	va_copy(vac, va);
+	vfprintf(stdout, fmt, vac);
+	va_end(vac);
+
+	if (logfile) {
+		va_copy(vac, va);
+		vfprintf(logfile, fmt, vac);
+		va_end(vac);
+	}
+
+	va_copy(vac, va);
+	Bvsnprintf(tmpstr, sizeof(tmpstr)-1, fmt, vac);
+	tmpstr[sizeof(tmpstr)-1] = 0;
+	va_end(vac);
+
+	initputs(tmpstr);
+	OSD_Puts(tmpstr);
+
+	va_end(va);
 }
 
 void buildputs(const char *str)
