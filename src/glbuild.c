@@ -41,6 +41,9 @@ int glbuild_loadfunctions(void)
 	INIT_PROC(glGetFloatv);
 	INIT_PROC(glGetIntegerv);
 	INIT_PROC(glGetString);
+#if (USE_OPENGL == USE_GL3)
+	INIT_PROC(glGetStringi);
+#endif
 	INIT_PROC(glGetError);
 	INIT_PROC(glHint);
 	INIT_PROC(glPixelStorei);
@@ -80,6 +83,11 @@ int glbuild_loadfunctions(void)
 	INIT_PROC(glEnableVertexAttribArray);
 	INIT_PROC(glDisableVertexAttribArray);
 	INIT_PROC(glVertexAttribPointer);
+#if (USE_OPENGL == USE_GL3)
+    INIT_PROC(glBindVertexArray);
+    INIT_PROC(glDeleteVertexArrays);
+    INIT_PROC(glGenVertexArrays);
+#endif
 
 	// Shaders
 	INIT_PROC(glActiveTexture);
@@ -133,8 +141,10 @@ void glbuild_check_errors(const char *file, int line)
 			case GL_INVALID_OPERATION: str = "GL_INVALID_OPERATION"; break;
 			case GL_INVALID_FRAMEBUFFER_OPERATION: str = "GL_INVALID_FRAMEBUFFER_OPERATION"; break;
 			case GL_OUT_OF_MEMORY: str = "GL_OUT_OF_MEMORY"; break;
-#if (USE_OPENGL != USE_GLES2)
+#ifdef GL_STACK_UNDERFLOW
 			case GL_STACK_UNDERFLOW: str = "GL_STACK_UNDERFLOW"; break;
+#endif
+#ifdef GL_STACK_OVERFLOW
 			case GL_STACK_OVERFLOW: str = "GL_STACK_OVERFLOW"; break;
 #endif
 			default: str = "(unknown)"; break;
@@ -143,18 +153,65 @@ void glbuild_check_errors(const char *file, int line)
 	}
 }
 
+static GLchar *glbuild_cook_source(const GLchar *source, const char *spec)
+{
+	GLchar *cooked, *pos, *match, *end;
+	const char *marker = "#glbuild(";
+	const int markerlen = 9;
+	int keep;
+
+	cooked = strdup(source);
+	if (!cooked) {
+		debugprintf("glbuild_cook_source: couldn't duplicate source\n");
+		return NULL;
+	}
+	pos = cooked;
+	do {
+		match = strstr(pos, marker);
+		if (!match) break;
+
+		end = strchr(match, ')');
+		if (!end) break;
+
+		if (!strncmp(match + markerlen, spec, end-match-markerlen)) {
+			// Marker matches the spec. Overwrite it with spaces to uncomment the line.
+			for (; match <= end; match++) *match = ' ';
+		} else {
+			// Overwrite the line with spaces.
+			for (; *match && *match != '\n' && *match != '\r'; match++) *match = ' ';
+		}
+		pos = end;
+	} while(pos);
+
+	return cooked;
+}
+
 GLuint glbuild_compile_shader(GLuint type, const GLchar *source)
 {
 	GLuint shader;
 	GLint status;
+	GLchar *cookedsource;
 
 	shader = glfunc.glCreateShader(type);
 	if (!shader) {
 		return 0;
 	}
 
-	glfunc.glShaderSource(shader, 1, &source, NULL);
+#if (USE_OPENGL == USE_GLES2)
+	cookedsource = glbuild_cook_source(source, "ES2");
+#elif (USE_OPENGL == USE_GL3)
+	cookedsource = glbuild_cook_source(source, "3");
+#else
+	cookedsource = glbuild_cook_source(source, "2");
+#endif
+	if (!cookedsource) {
+		glfunc.glDeleteShader(shader);
+		return 0;
+	}
+
+	glfunc.glShaderSource(shader, 1, &cookedsource, NULL);
 	glfunc.glCompileShader(shader);
+	free(cookedsource);
 
 	glfunc.glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
 	if (status == GL_FALSE) {
@@ -220,45 +277,8 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	GLuint shaders[2] = {0,0}, prog = 0;
 	GLint status = 0;
 
-	static const GLchar *vertexshadersrc =
-#if (USE_OPENGL == USE_GLES2)
-	"#version 100\n"
-#else
-	"#version 110\n"
-	"#define mediump\n"
-#endif
-	"\n"
-	"attribute mediump vec2 a_vertex;\n"
-	"attribute mediump vec2 a_texcoord;\n"
-	"varying mediump vec2 v_texcoord;\n"
-	"\n"
-	"void main(void)\n"
-	"{\n"
-    "  v_texcoord = a_texcoord;\n"
-    "  gl_Position = vec4(a_vertex, 0.0, 1.0);\n"
-	"}\n";
-
-	static const GLchar *fragmentshadersrc =
-#if (USE_OPENGL == USE_GLES2)
-	"#version 100\n"
-#else
-	"#version 110\n"
-	"#define mediump\n"
-	"#define lowp\n"
-#endif
-	"\n"
-	"uniform sampler2D u_palette;\n"
-	"uniform sampler2D u_frame;\n"
-	"varying mediump vec2 v_texcoord;\n"
-	"\n"
-	"void main(void)\n"
-	"{\n"
-	"  lowp float pixelvalue;\n"
-	"  lowp vec3 palettevalue;\n"
-	"  pixelvalue = texture2D(u_frame, v_texcoord).r;\n"
-	"  palettevalue = texture2D(u_palette, vec2(pixelvalue, 0.5)).rgb;\n"
-	"  gl_FragColor = vec4(palettevalue, 1.0);\n"
-	"}\n";
+	extern const char default_glbuild_fs_glsl[];
+	extern const char default_glbuild_vs_glsl[];
 
 	float tx = (float)resx / (float)stride, ty = 1.0;
 	int tsizx = stride, tsizy = resy;
@@ -314,8 +334,8 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	glfunc.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	// Prepare the vertex and fragment shaders.
-	shaders[0] = glbuild_compile_shader(GL_VERTEX_SHADER, vertexshadersrc);
-	shaders[1] = glbuild_compile_shader(GL_FRAGMENT_SHADER, fragmentshadersrc);
+	shaders[0] = glbuild_compile_shader(GL_VERTEX_SHADER, default_glbuild_vs_glsl);
+	shaders[1] = glbuild_compile_shader(GL_FRAGMENT_SHADER, default_glbuild_fs_glsl);
 	if (!shaders[0] || !shaders[1]) {
 		if (shaders[0]) glfunc.glDeleteShader(shaders[0]);
 		if (shaders[1]) glfunc.glDeleteShader(shaders[1]);
@@ -343,6 +363,11 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	state->attrib_vertex = glfunc.glGetAttribLocation(prog, "a_vertex");
 	state->attrib_texcoord = glfunc.glGetAttribLocation(prog, "a_texcoord");
 
+#if (USE_OPENGL == USE_GL3)
+	glfunc.glGenVertexArrays(1, &state->vao);
+	glfunc.glBindVertexArray(state->vao);
+#endif
+
 	// Prepare buffer objects for the vertex/texcoords and indexes.
 	glfunc.glGenBuffers(1, &state->buffer_indexes);
 	glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state->buffer_indexes);
@@ -352,13 +377,17 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	glfunc.glBindBuffer(GL_ARRAY_BUFFER, state->buffer_elements);
 	glfunc.glBufferData(GL_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
-	glfunc.glEnableVertexAttribArray(state->attrib_vertex);
 	glfunc.glEnableVertexAttribArray(state->attrib_texcoord);
-
 	glfunc.glVertexAttribPointer(state->attrib_texcoord, 2, GL_FLOAT, GL_FALSE,
 		sizeof(GLfloat)*4, (const GLvoid *)0);
+
+    glfunc.glEnableVertexAttribArray(state->attrib_vertex);
 	glfunc.glVertexAttribPointer(state->attrib_vertex, 2, GL_FLOAT, GL_FALSE,
 		sizeof(GLfloat)*4, (const GLvoid *)(sizeof(GLfloat)*2));
+
+#if (USE_OPENGL == USE_GL3)
+    glfunc.glBindVertexArray(0);
+#endif
 
 	// Set some persistent GL state.
 	glfunc.glClearColor(0.0, 0.0, 0.0, 0.0);
@@ -370,9 +399,10 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 void glbuild_delete_8bit_shader(glbuild8bit *state)
 {
 	if (state->program) {
+#if (USE_OPENGL != USE_GL3)
 		glfunc.glDisableVertexAttribArray(state->attrib_vertex);
 		glfunc.glDisableVertexAttribArray(state->attrib_texcoord);
-
+#endif
 		glfunc.glUseProgram(0);	// Disable shaders, go back to fixed-function.
 		glfunc.glDeleteProgram(state->program);
 		state->program = 0;
@@ -385,6 +415,13 @@ void glbuild_delete_8bit_shader(glbuild8bit *state)
 		glfunc.glDeleteTextures(1, &state->frametex);
 		state->frametex = 0;
 	}
+#if (USE_OPENGL == USE_GL3)
+	if (state->vao) {
+		glfunc.glBindVertexArray(0);
+		glfunc.glDeleteVertexArrays(1, &state->vao);
+		state->vao = 0;
+	}
+#endif
 	if (state->buffer_indexes) {
 		glfunc.glDeleteBuffers(1, &state->buffer_indexes);
 		state->buffer_indexes = 0;
@@ -419,6 +456,9 @@ void glbuild_draw_8bit_frame(glbuild8bit *state)
 {
 #if (USE_OPENGL == USE_GLES2)
 	glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+#endif
+#if (USE_OPENGL == USE_GL3)
+	glfunc.glBindVertexArray(state->vao);
 #endif
 	glfunc.glDrawElements(GL_TRIANGLE_FAN, 6, GL_UNSIGNED_SHORT, 0);
 }

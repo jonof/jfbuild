@@ -1904,9 +1904,15 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 	// Step 4. Create a context with the needed profile.
 	if (wglfunc.wglCreateContextAttribsARB) {
 		int contextattribs[] = {
+#if (USE_OPENGL == USE_GL3)
+			WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+			WGL_CONTEXT_MINOR_VERSION_ARB, 2,
+			WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+#else
 			WGL_CONTEXT_MAJOR_VERSION_ARB, 2,
 			WGL_CONTEXT_MINOR_VERSION_ARB, 1,
 			WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+#endif
 			0,
 		};
 		if (!wglfunc.have_ARB_create_context_profile) {

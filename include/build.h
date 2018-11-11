@@ -16,6 +16,7 @@
 #  define USE_OPENGL 0
 #endif
 #define USE_GL2 2
+#define USE_GL3 3
 #define USE_GLES2 12
 
 #include "compat.h"

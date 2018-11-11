@@ -7565,7 +7565,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 
 #if USE_POLYMOST && USE_OPENGL
 	if (dabpp > 8) rendmode = 3;	// GL renderer
-	else if (dabpp == 8 && oldbpp > 8) rendmode = 0;	// going from GL to software activates softpolymost
+	else if (dabpp == 8 && oldbpp != 8) rendmode = 0;	// going from GL to software activates classic
 #endif
 
 	xdim = daxdim; ydim = daydim;

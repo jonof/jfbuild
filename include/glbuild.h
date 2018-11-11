@@ -16,10 +16,19 @@
 #    include <windows.h>
 #    include <GL/gl.h>
 #  elif defined(__APPLE__)
-#    include <OpenGL/gl.h>
+#    if (USE_OPENGL == USE_GL3)
+#      include <stddef.h>
+#      include <OpenGL/gl3.h>
+#    else
+#      include <OpenGL/gl.h>
+#    endif
 #    define APIENTRY
 #  else
-#    include <GL/gl.h>
+#    if (USE_OPENGL == USE_GL3)
+#      include <GL/glcorearb.h>
+#    else
+#      include <GL/gl.h>
+#    endif
 #  endif
 #  ifndef GL_GLEXT_VERSION
 #    include "glext.h"
@@ -58,6 +67,9 @@ struct glbuild_funcs {
     void (APIENTRY * glGetFloatv)( GLenum pname, GLfloat *params );
     void (APIENTRY * glGetIntegerv)( GLenum pname, GLint *params );
     const GLubyte* (APIENTRY * glGetString)( GLenum name );
+#if (USE_OPENGL == USE_GL3)
+    const GLubyte* (APIENTRY * glGetStringi)(GLenum name, GLuint index);
+#endif
     GLenum (APIENTRY * glGetError)( GLvoid );
     void (APIENTRY * glHint)( GLenum target, GLenum mode );
     void (APIENTRY * glPixelStorei)( GLenum pname, GLint param );
@@ -97,6 +109,11 @@ struct glbuild_funcs {
     void (APIENTRY * glEnableVertexAttribArray)(GLuint index);
     void (APIENTRY * glDisableVertexAttribArray)(GLuint index);
     void (APIENTRY * glVertexAttribPointer)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid * pointer);
+#if (USE_OPENGL == USE_GL3)
+    void (APIENTRY * glBindVertexArray)(GLuint array);
+    void (APIENTRY * glDeleteVertexArrays)(GLsizei n, const GLuint *arrays);
+    void (APIENTRY * glGenVertexArrays)(GLsizei n, GLuint *arrays);
+#endif
 
     // Shaders
     void (APIENTRY * glActiveTexture)( GLenum texture );
@@ -137,6 +154,7 @@ typedef struct {
     GLuint program;
     GLuint paltex;
     GLuint frametex;
+    GLuint vao;
     GLint attrib_vertex;    // vec2
     GLint attrib_texcoord;  // vec2
     GLuint buffer_indexes;

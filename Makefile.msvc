@@ -5,6 +5,7 @@
 #  USE_OPENGL     - enables OpenGL support in Polymost
 #     Define as 0 to disable OpenGL
 #     Define as 1 (or 2) for GL 2.0/2.1 profile
+#     Define as 3 for GL 3.2 Core profile
 #  USE_ASM        - enables the use of assembly code
 USE_POLYMOST=1
 USE_OPENGL=1
@@ -85,6 +86,8 @@ ENGINEOBJS=$(SRC)\a-c.$o \
 	$(SRC)\hightile.$o \
 	$(SRC)\mdsprite.$o \
 	$(SRC)\glbuild.$o \
+	$(SRC)\glbuild_fs.$o \
+	$(SRC)\glbuild_vs.$o \
 	$(SRC)\kplib.$o \
 	$(SRC)\mmulti.$o \
 	$(SRC)\osd.$o \

@@ -147,6 +147,7 @@ static GLuint nulltexture = 0;
 
 #define SHADERDEV 1
 static struct {
+	GLuint vao;					// Vertex array object.
 	GLuint program;             // GLSL program object.
 	GLuint elementbuffer;
 	GLint attrib_vertex;		// Vertex (vec3)
@@ -162,6 +163,7 @@ static struct {
 } polymostglsl;
 
 static struct {
+	GLuint vao;					// Vertex array object.
 	GLuint program;
 	GLuint elementbuffer;
 	GLuint indexbuffer;
@@ -467,6 +469,9 @@ void polymost_glreset ()
 
 	if (glfunc.glUseProgram) {
 		glfunc.glUseProgram(0);
+#if (USE_OPENGL == USE_GL3)
+		glfunc.glBindVertexArray(0);
+#endif
 		glfunc.glBindBuffer(GL_ARRAY_BUFFER, 0);
 		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
@@ -476,6 +481,13 @@ void polymost_glreset ()
 		elementindexbuffersize = 0;
 		elementindexbuffer = 0;
 	}
+
+#if (USE_OPENGL == USE_GL3)
+	if (polymostglsl.vao) {
+		glfunc.glDeleteVertexArrays(1, &polymostglsl.vao);
+		polymostglsl.vao = 0;
+	}
+#endif
 	if (polymostglsl.elementbuffer) {
 		glfunc.glDeleteBuffers(1, &polymostglsl.elementbuffer);
 		polymostglsl.elementbuffer = 0;
@@ -484,6 +496,13 @@ void polymost_glreset ()
 		glfunc.glDeleteProgram(polymostglsl.program);
 		polymostglsl.program = 0;
 	}
+
+#if (USE_OPENGL == USE_GL3)
+	if (polymostauxglsl.vao) {
+		glfunc.glDeleteVertexArrays(1, &polymostauxglsl.vao);
+		polymostauxglsl.vao = 0;
+	}
+#endif
 	if (polymostauxglsl.indexbuffer) {
 		glfunc.glDeleteBuffers(1, &polymostauxglsl.indexbuffer);
 		polymostauxglsl.indexbuffer = 0;
@@ -582,39 +601,11 @@ static void checkindexbuffer(unsigned int size)
 
 static void polymost_loadshaders(void)
 {
-#if (USE_OPENGL == USE_GLES2)
-	extern const char default_polymost_es2_fs_glsl[];
-	extern const char default_polymost_es2_vs_glsl[];
-
-	const char *polymost_glsl_fs_source = default_polymost_es2_fs_glsl;
-	const char *polymost_glsl_fs_file = "polymost_es2_fs.glsl";
-	const char *polymost_glsl_vs_source = default_polymost_es2_vs_glsl;
-	const char *polymost_glsl_vs_file = "polymost_es2_vs.glsl";
-
-	extern const char default_polymostaux_es2_fs_glsl[];
-	extern const char default_polymostaux_es2_vs_glsl[];
-
-	const char *polymostaux_glsl_fs_source = default_polymostaux_es2_fs_glsl;
-	const char *polymostaux_glsl_fs_file = "polymostaux_es2_fs.glsl";
-	const char *polymostaux_glsl_vs_source = default_polymostaux_es2_vs_glsl;
-	const char *polymostaux_glsl_vs_file = "polymostaux_es2_vs.glsl";
-#else
 	extern const char default_polymost_fs_glsl[];
 	extern const char default_polymost_vs_glsl[];
 
-	const char *polymost_glsl_fs_source = default_polymost_fs_glsl;
-	const char *polymost_glsl_fs_file = "polymost_fs.glsl";
-	const char *polymost_glsl_vs_source = default_polymost_vs_glsl;
-	const char *polymost_glsl_vs_file = "polymost_vs.glsl";
-
 	extern const char default_polymostaux_fs_glsl[];
 	extern const char default_polymostaux_vs_glsl[];
-
-	const char *polymostaux_glsl_fs_source = default_polymostaux_fs_glsl;
-	const char *polymostaux_glsl_fs_file = "polymostaux.glsl_fs";
-	const char *polymostaux_glsl_vs_source = default_polymostaux_vs_glsl;
-	const char *polymostaux_glsl_vs_file = "polymostaux.glsl_vs";
-#endif
 
 	GLuint shader[2] = {0,0};
 
@@ -624,10 +615,8 @@ static void polymost_loadshaders(void)
 		polymostglsl.program = 0;
 	}
 
-	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
-		polymost_glsl_vs_source, polymost_glsl_vs_file);
-	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
-		polymost_glsl_fs_source, polymost_glsl_fs_file);
+	shader[0] = polymost_load_shader(GL_VERTEX_SHADER, default_polymost_vs_glsl, "polymost_vs.glsl");
+	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER, default_polymost_fs_glsl, "polymost_fs.glsl");
 	if (shader[0] && shader[1]) {
 		polymostglsl.program = glbuild_link_program(2, shader);
 	}
@@ -646,6 +635,13 @@ static void polymost_loadshaders(void)
 		polymostglsl.uniform_fogcolour   = polymost_get_uniform(polymostglsl.program, "u_fogcolour");
 		polymostglsl.uniform_fogdensity  = polymost_get_uniform(polymostglsl.program, "u_fogdensity");
 
+#if (USE_OPENGL == USE_GL3)
+		glfunc.glGenVertexArrays(1, &polymostglsl.vao);
+        glfunc.glBindVertexArray(polymostglsl.vao);
+        glfunc.glEnableVertexAttribArray(polymostglsl.attrib_vertex);
+        glfunc.glEnableVertexAttribArray(polymostglsl.attrib_texcoord);
+#endif
+
 		glfunc.glUseProgram(polymostglsl.program);
 		glfunc.glUniform1i(polymostglsl.uniform_texture, 0);		//GL_TEXTURE0
 		glfunc.glUniform1i(polymostglsl.uniform_glowtexture, 1);	//GL_TEXTURE1
@@ -656,10 +652,10 @@ static void polymost_loadshaders(void)
 
 	// A fully transparent texture for the case when a glow texture is not needed.
 	if (!nulltexture) {
-		const char pix = 0;
+		const char pix[4] = {0,0,0,0};
 		glfunc.glGenTextures(1, &nulltexture);
 		glfunc.glBindTexture(GL_TEXTURE_2D, nulltexture);
-		glfunc.glTexImage2D(GL_TEXTURE_2D,0,GL_ALPHA,1,1,0,GL_ALPHA,GL_UNSIGNED_BYTE,(GLvoid*)&pix);
+		glfunc.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,1,1,0,GL_RGBA,GL_UNSIGNED_BYTE,(GLvoid*)&pix);
 		glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 		glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 	}
@@ -670,10 +666,8 @@ static void polymost_loadshaders(void)
 		polymostauxglsl.program = 0;
 	}
 
-	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
-		polymostaux_glsl_vs_source, polymostaux_glsl_vs_file);
-	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
-		polymostaux_glsl_fs_source, polymostaux_glsl_fs_file);
+	shader[0] = polymost_load_shader(GL_VERTEX_SHADER, default_polymostaux_vs_glsl, "polymostaux_vs.glsl");
+	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER, default_polymostaux_fs_glsl, "polymostaux_fs.glsl");
 	if (shader[0] && shader[1]) {
 		polymostauxglsl.program = glbuild_link_program(2, shader);
 	}
@@ -688,6 +682,13 @@ static void polymost_loadshaders(void)
 		polymostauxglsl.uniform_colour   = polymost_get_uniform(polymostauxglsl.program, "u_colour");
 		polymostauxglsl.uniform_bgcolour = polymost_get_uniform(polymostauxglsl.program, "u_bgcolour");
 		polymostauxglsl.uniform_mode     = polymost_get_uniform(polymostauxglsl.program, "u_mode");
+
+#if (USE_OPENGL == USE_GL3)
+		glfunc.glGenVertexArrays(1, &polymostauxglsl.vao);
+        glfunc.glBindVertexArray(polymostauxglsl.vao);
+        glfunc.glEnableVertexAttribArray(polymostauxglsl.attrib_vertex);
+        glfunc.glEnableVertexAttribArray(polymostauxglsl.attrib_texcoord);
+#endif
 
 		glfunc.glUseProgram(polymostauxglsl.program);
 		glfunc.glUniform1i(polymostauxglsl.uniform_texture, 0);	//GL_TEXTURE0
@@ -805,6 +806,13 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 
 	glfunc.glUseProgram(polymostglsl.program);
 
+#if (USE_OPENGL == USE_GL3)
+    glfunc.glBindVertexArray(polymostglsl.vao);
+#else
+    glfunc.glEnableVertexAttribArray(polymostglsl.attrib_vertex);
+    glfunc.glEnableVertexAttribArray(polymostglsl.attrib_texcoord);
+#endif
+
 	if (draw->elementbuffer > 0) {
 		glfunc.glBindBuffer(GL_ARRAY_BUFFER, draw->elementbuffer);
 	} else {
@@ -819,9 +827,6 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
 		checkindexbuffer(draw->indexcount);
 	}
-
-	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_vertex);
-	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_texcoord);
 
 	glfunc.glVertexAttribPointer(polymostglsl.attrib_vertex, 3, GL_FLOAT, GL_FALSE,
 		sizeof(struct polymostvboitem), (const GLvoid *)offsetof(struct polymostvboitem, v));
@@ -854,8 +859,12 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 
 	glfunc.glDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
 
+#if (USE_OPENGL == USE_GL3)
+    glfunc.glBindVertexArray(0);
+#else
 	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_vertex);
 	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_texcoord);
+#endif
 }
 
 static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *draw)
@@ -865,6 +874,13 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 #endif
 
 	glfunc.glUseProgram(polymostauxglsl.program);
+
+#if (USE_OPENGL == USE_GL3)
+    glfunc.glBindVertexArray(polymostauxglsl.vao);
+#else
+    glfunc.glEnableVertexAttribArray(polymostauxglsl.attrib_vertex);
+	glfunc.glEnableVertexAttribArray(polymostauxglsl.attrib_texcoord);
+#endif
 
 	glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostauxglsl.elementbuffer);
 	glfunc.glBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
@@ -876,9 +892,6 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
 		checkindexbuffer(draw->indexcount);
 	}
-
-	glfunc.glEnableVertexAttribArray(polymostauxglsl.attrib_vertex);
-	glfunc.glEnableVertexAttribArray(polymostauxglsl.attrib_texcoord);
 
 	glfunc.glVertexAttribPointer(polymostauxglsl.attrib_vertex, 3, GL_FLOAT, GL_FALSE,
 		sizeof(struct polymostvboitem), (const GLvoid *)offsetof(struct polymostvboitem, v));
@@ -902,8 +915,12 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 
 	glfunc.glDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
 
+#if (USE_OPENGL == USE_GL3)
+    glfunc.glBindVertexArray(0);
+#else
 	glfunc.glDisableVertexAttribArray(polymostauxglsl.attrib_vertex);
 	glfunc.glDisableVertexAttribArray(polymostauxglsl.attrib_texcoord);
+#endif
 }
 
 static void polymost_palfade(void)
@@ -4515,31 +4532,31 @@ int polymost_plotpixel(int x, int y, unsigned char col)
 
 static int polymost_preparetext(void)
 {
-	unsigned char *tbuf, *cptr, *tptr;
+	unsigned char *cptr;
+	unsigned int *tbuf, *tptr;
 	int h,i,j,l;
 
 	if (texttexture) {
 		return 0;
 	}
 
-	// construct a 256x128 8-bit alpha-only texture for the font glyph matrix
+	// construct a 256x128 rgba texture for the font glyph matrix
 	glfunc.glGenTextures(1,&texttexture);
 	if (!texttexture) return -1;
 
-	tbuf = (unsigned char *)Bmalloc(256*128);
+	tbuf = (unsigned int *)Bcalloc(256*128, sizeof(unsigned int));
 	if (!tbuf) {
 		glfunc.glDeleteTextures(1,&texttexture);
 		texttexture = 0;
 		return -1;
 	}
-	Bmemset(tbuf, 0, 256*128);
 
 	cptr = (unsigned char*)textfont;
 	for (h=0;h<256;h++) {
 		tptr = tbuf + (h%32)*8 + (h/32)*256*8;
 		for (i=0;i<8;i++) {
 			for (j=0;j<8;j++) {
-				if (cptr[h*8+i] & pow2char[7-j]) tptr[j] = 255;
+				if (cptr[h*8+i] & pow2char[7-j]) tptr[j] = 0xffffffff;
 			}
 			tptr += 256;
 		}
@@ -4550,7 +4567,7 @@ static int polymost_preparetext(void)
 		tptr = tbuf + 256*64 + (h%32)*8 + (h/32)*256*8;
 		for (i=1;i<7;i++) {
 			for (j=2;j<6;j++) {
-				if (cptr[h*8+i] & pow2char[7-j]) tptr[j-2] = 255;
+				if (cptr[h*8+i] & pow2char[7-j]) tptr[j-2] = 0xffffffff;
 			}
 			tptr += 256;
 		}
@@ -4558,7 +4575,7 @@ static int polymost_preparetext(void)
 
 	glfunc.glActiveTexture(GL_TEXTURE0);
 	glfunc.glBindTexture(GL_TEXTURE_2D, texttexture);
-	glfunc.glTexImage2D(GL_TEXTURE_2D,0,GL_ALPHA,256,128,0,GL_ALPHA,GL_UNSIGNED_BYTE,(GLvoid*)tbuf);
+	glfunc.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,256,128,0,GL_RGBA,GL_UNSIGNED_BYTE,(GLvoid*)tbuf);
 	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 	free(tbuf);

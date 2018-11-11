@@ -101,6 +101,8 @@
 		ABD03E2A1A518A4A0012B9D1 /* transpal.c in Sources */ = {isa = PBXBuildFile; fileRef = ABAE9ADD0F0B310900A528DC /* transpal.c */; };
 		ABE3624B2144CA9000BA44B3 /* bin2c.cc in Sources */ = {isa = PBXBuildFile; fileRef = ABE3624A2144CA9000BA44B3 /* bin2c.cc */; };
 		ABF1DD191BB7D0F5007DE427 /* asmprot.c in Sources */ = {isa = PBXBuildFile; fileRef = ABF1DD181BB7D0F5007DE427 /* asmprot.c */; };
+		ABFABB3E25455F0E0005398A /* glbuild_fs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABFABB3425455EF80005398A /* glbuild_fs.glsl */; };
+		ABFABB3F25455F0E0005398A /* glbuild_vs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABFABB3325455EF80005398A /* glbuild_vs.glsl */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -263,6 +265,8 @@
 		ABE362562144F78100BA44B3 /* polymost_vs.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = polymost_vs.glsl; sourceTree = "<group>"; };
 		ABE362572146955700BA44B3 /* polymostaux_vs.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = polymostaux_vs.glsl; sourceTree = "<group>"; };
 		ABF1DD181BB7D0F5007DE427 /* asmprot.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = asmprot.c; sourceTree = "<group>"; };
+		ABFABB3325455EF80005398A /* glbuild_vs.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = glbuild_vs.glsl; sourceTree = "<group>"; };
+		ABFABB3425455EF80005398A /* glbuild_fs.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = glbuild_fs.glsl; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -410,6 +414,8 @@
 		AB735F730A29A3AC003261DC /* src */ = {
 			isa = PBXGroup;
 			children = (
+				ABFABB3425455EF80005398A /* glbuild_fs.glsl */,
+				ABFABB3325455EF80005398A /* glbuild_vs.glsl */,
 				ABE362562144F78100BA44B3 /* polymost_vs.glsl */,
 				ABE3624D2144CC9000BA44B3 /* polymost_fs.glsl */,
 				ABE362572146955700BA44B3 /* polymostaux_vs.glsl */,
@@ -815,6 +821,8 @@
 				AB735F650A29A39D003261DC /* defs.c in Sources */,
 				AB735F660A29A39D003261DC /* engine.c in Sources */,
 				AB735F670A29A39D003261DC /* glbuild.c in Sources */,
+				ABFABB3E25455F0E0005398A /* glbuild_fs.glsl in Sources */,
+				ABFABB3F25455F0E0005398A /* glbuild_vs.glsl in Sources */,
 				AB735F680A29A39D003261DC /* kplib.c in Sources */,
 				AB735F6C0A29A39D003261DC /* mmulti.c in Sources */,
 				AB735F6D0A29A39D003261DC /* osd.c in Sources */,
@@ -825,6 +833,10 @@
 				AB3B2A0E0EE3FC0400944CD1 /* hightile.c in Sources */,
 				ABBB1E8D21C7926D00DD438B /* rg_etc1.cpp in Sources */,
 				AB3B2A1D0EE3FCF900944CD1 /* polymost.c in Sources */,
+				AB4F6B7023118E6C00713ACC /* polymost_vs.glsl in Sources */,
+				AB4F6B7123118E7000713ACC /* polymost_fs.glsl in Sources */,
+				AB4F6B7223118E7B00713ACC /* polymostaux_vs.glsl in Sources */,
+				AB4F6B7323118E7F00713ACC /* polymostaux_fs.glsl in Sources */,
 				AB3B2AE10EE403E000944CD1 /* mdsprite.c in Sources */,
 				AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */,
 				AB48BD6D208C0AEA00E38090 /* version-auto.c in Sources */,
@@ -842,10 +854,6 @@
 				AB6728650F1096AF000C7D92 /* rangefit.cpp in Sources */,
 				AB67286B0F1096AF000C7D92 /* singlecolourfit.cpp in Sources */,
 				AB67286D0F1096AF000C7D92 /* squish.cpp in Sources */,
-				AB4F6B7023118E6C00713ACC /* polymost_vs.glsl in Sources */,
-				AB4F6B7123118E7000713ACC /* polymost_fs.glsl in Sources */,
-				AB4F6B7223118E7B00713ACC /* polymostaux_vs.glsl in Sources */,
-				AB4F6B7323118E7F00713ACC /* polymostaux_fs.glsl in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -966,7 +974,7 @@
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"USE_POLYMOST=1",
-					"USE_OPENGL=1",
+					"USE_OPENGL=3",
 					RENDERTYPESDL,
 					DEBUGGINGAIDS,
 					MMULTI_DEBUG_SENDRECV,
@@ -989,7 +997,7 @@
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"USE_POLYMOST=1",
-					"USE_OPENGL=1",
+					"USE_OPENGL=3",
 					RENDERTYPESDL,
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.8;

@@ -9,6 +9,7 @@
 #  USE_OPENGL     - enables OpenGL support in Polymost
 #     Define as 0 to disable OpenGL
 #     Define as USE_GL2 (or 1 or 2) for GL 2.0/2.1 profile
+#     Define as USE_GL3 (or 3) for GL 3.2 Core profile
 #     Define as USE_GLES2 (or 12) for GLES 2.0 profile
 #  USE_ASM        - enables the use of assembly code
 #
@@ -84,18 +85,16 @@ ENGINEOBJS+= \
 	$(SRC)/polymost.$o \
 	$(SRC)/polymost_fs.$o \
 	$(SRC)/polymost_vs.$o \
-	$(SRC)/polymost_es2_fs.$o \
-	$(SRC)/polymost_es2_vs.$o \
 	$(SRC)/polymostaux_fs.$o \
 	$(SRC)/polymostaux_vs.$o \
-	$(SRC)/polymostaux_es2_fs.$o \
-	$(SRC)/polymostaux_es2_vs.$o \
 	$(SRC)/polymosttex.$o \
 	$(SRC)/polymosttexcache.$o \
 	$(SRC)/polymosttexcompress.$o \
 	$(SRC)/hightile.$o \
 	$(SRC)/mdsprite.$o \
 	$(SRC)/glbuild.$o \
+	$(SRC)/glbuild_fs.$o \
+	$(SRC)/glbuild_vs.$o \
 	$(SRC)/kplib.$o \
 	$(SRC)/mmulti.$o \
 	$(SRC)/osd.$o \

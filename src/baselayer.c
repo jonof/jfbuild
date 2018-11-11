@@ -225,16 +225,38 @@ static void glext_enumerate(void (*callback)(const char *)) {
 	const char *ext = NULL;
 	GLint extn = 0, numexts = 0;
 
-	const char *extstr = (const char *) glfunc.glGetString(GL_EXTENSIONS);
-	workstr = workptr = strdup(extstr);
+#if (USE_OPENGL == USE_GL3)
+	if (glinfo.majver >= 3) {
+		glfunc.glGetIntegerv(GL_NUM_EXTENSIONS, &numexts);
+	} else
+#endif
+	{
+		const char *extstr = (const char *) glfunc.glGetString(GL_EXTENSIONS);
+		workstr = workptr = strdup(extstr);
+	}
 
 	while (1) {
-		ext = Bstrtoken(workptr, " ", &nextptr, 1);
-		if (!ext) break;
+#if (USE_OPENGL == USE_GL3)
+		if (glinfo.majver >= 3) {
+			if (extn == numexts) break;
+			ext = (const char *) glfunc.glGetStringi(GL_EXTENSIONS, extn);
+		} else
+#endif
+		{
+			ext = Bstrtoken(workptr, " ", &nextptr, 1);
+			if (!ext) break;
+		}
 
 		callback(ext);
 
-		workptr = NULL;
+#if (USE_OPENGL == USE_GL3)
+		if (glinfo.majver >= 3) {
+			extn++;
+		} else
+#endif
+		{
+			workptr = NULL;
+		}
 	}
 
 	if (workstr) free(workstr);
@@ -346,14 +368,25 @@ int baselayer_setupopengl(void)
 	sscanf(glver, "%d.%d", &glinfo.majver, &glinfo.minver);
 #endif
 
+	sscanf((const char *) glfunc.glGetString(GL_VERSION), "%d.%d",
+		&glinfo.majver, &glinfo.minver);
 	glinfo.maxanisotropy = 1.0;
 	glfunc.glGetIntegerv(GL_MAX_TEXTURE_SIZE, &glinfo.maxtexsize);
 	glfunc.glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &glinfo.multitex);
 	glfunc.glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &glinfo.maxvertexattribs);
+
 #if (USE_OPENGL == USE_GLES2)
 	glinfo.clamptoedge = 1;
 	glinfo.glslmajver = 1;
 	glinfo.glslminver = 0;
+#elif (USE_OPENGL == USE_GL3)
+	glinfo.bgra = 1;
+	glinfo.clamptoedge = 1;
+	glinfo.texnpot = 1;
+	glinfo.multisample = 1;
+
+	glver = (const char *) glfunc.glGetString(GL_SHADING_LANGUAGE_VERSION);
+	sscanf(glver, "%d.%d", &glinfo.glslmajver, &glinfo.glslminver);
 #endif
 
 	glext_enumerate(glext_enumerate_configure);
@@ -404,7 +437,7 @@ static void dumpglinfo(void)
 		return;
 	}
 
-	if (glinfo.glslmajver == 1 && glinfo.glslmajver == 0) {
+	if (glinfo.glslmajver == 1 && glinfo.glslminver == 0) {
 		glslverstr = "1.00";
 	} else if (glinfo.glslmajver >= 1) {
 		glslverstr = (const char *) glfunc.glGetString(GL_SHADING_LANGUAGE_VERSION);
