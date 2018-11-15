@@ -10,7 +10,7 @@ char *osx_gethomedir(void)
                                                           create:FALSE
                                                            error:nil];
     if (url) {
-        return strdup([url fileSystemRepresentation]);
+        return strdup([[url path] UTF8String]);
     }
     return NULL;
 }
@@ -32,7 +32,7 @@ char *osx_getsupportdir(int global)
                                                           create:FALSE
                                                            error:nil];
     if (url) {
-        return strdup([url fileSystemRepresentation]);
+        return strdup([[url path] UTF8String]);
     }
     return NULL;
 }

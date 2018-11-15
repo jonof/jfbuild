@@ -93,7 +93,7 @@ LIBSQUISHOBJS=$(LIBSQUISH)\alpha.$o $(LIBSQUISH)\clusterfit.$o \
 	      $(LIBSQUISH)\colourblock.$o $(LIBSQUISH)\colourfit.$o \
 	      $(LIBSQUISH)\colourset.$o $(LIBSQUISH)\maths.$o \
 	      $(LIBSQUISH)\rangefit.$o $(LIBSQUISH)\singlecolourfit.$o \
-	      $(LIBSQUISH)\squish.$o # $(LIBSQUISH)\msvc.$o
+	      $(LIBSQUISH)\squish.$o
 
 EDITOROBJS=$(SRC)\build.$o \
 	$(SRC)\startwin_editor.$o \

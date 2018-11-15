@@ -1,3 +1,17 @@
+1.15
+* parallel compression using openmp with cmake (Marian Krivos / Stefan Roettger)
+* parallel decompression using openmp with cmake (Stefan Roettger)
+
+1.14
+* backport BGRA support
+* backport BC4 and BC5 support
+* backport BlockMSE support
+
+1.11-1.13
+* added support for CMake and QMake (Stefan Roettger)
+* misc. minor changes on the build system (Stefan Roettger)
+* added svg icon (Stefan Roettger)
+
 1.10
 * Iterative cluster fit is now considered to be a new compression mode
 * The core cluster fit is now 4x faster using contributions by Ignacio
