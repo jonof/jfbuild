@@ -9,7 +9,7 @@ char *osx_gethomedir(void)
                                                appropriateForURL:nil
                                                           create:FALSE
                                                            error:nil];
-    if (url) {
+    if (url && [url isFileURL]) {
         return strdup([[url path] UTF8String]);
     }
     return NULL;
@@ -31,7 +31,7 @@ char *osx_getsupportdir(int global)
                                                appropriateForURL:nil
                                                           create:FALSE
                                                            error:nil];
-    if (url) {
+    if (url && [url isFileURL]) {
         return strdup([[url path] UTF8String]);
     }
     return NULL;
@@ -40,21 +40,15 @@ char *osx_getsupportdir(int global)
 int osx_msgbox(const char *name, const char *msg)
 {
 	NSString *mmsg = [[NSString alloc] initWithUTF8String: msg];
-
-#if defined(MAC_OS_X_VERSION_10_3) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_3)
 	NSAlert *alert = [[NSAlert alloc] init];
-	[alert addButtonWithTitle: @"OK"];
+
+    [alert addButtonWithTitle: @"OK"];
 	[alert setInformativeText: mmsg];
 	[alert setAlertStyle: NSInformationalAlertStyle];
 
-	[alert runModal];
+    [alert runModal];
 
-	[alert release];
-
-#else
-	NSRunAlertPanel(nil, mmsg, @"OK", nil, nil);
-#endif
-
+    [alert release];
 	[mmsg release];
 	return 0;
 }
@@ -62,10 +56,8 @@ int osx_msgbox(const char *name, const char *msg)
 int osx_ynbox(const char *name, const char *msg)
 {
 	NSString *mmsg = [[NSString alloc] initWithUTF8String: msg];
+    NSAlert *alert = [[NSAlert alloc] init];
 	int r;
-
-#if defined(MAC_OS_X_VERSION_10_3) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_3)
-	NSAlert *alert = [[NSAlert alloc] init];
 
 	[alert addButtonWithTitle:@"Yes"];
 	[alert addButtonWithTitle:@"No"];
@@ -75,10 +67,40 @@ int osx_ynbox(const char *name, const char *msg)
 	r = ([alert runModal] == NSAlertFirstButtonReturn);
 
 	[alert release];
-#else
-	r = (NSRunAlertPanel(nil, mmsg, @"Yes", @"No", nil) == NSAlertDefaultReturn);
-#endif
-
 	[mmsg release];
 	return r;
+}
+
+char * osx_filechooser(const char *initialdir, const char *type, int foropen)
+{
+    NSSavePanel *panel = nil;
+    NSModalResponse resp;
+    NSArray *filetypes = [[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:type], nil];
+    NSURL *initialurl = [NSURL fileURLWithPath:[NSString stringWithUTF8String:initialdir]];
+    char * ret;
+
+    if (foropen) {
+        panel = [NSOpenPanel openPanel];    // Inherits from NSSavePanel.
+    } else {
+        panel = [NSSavePanel savePanel];
+    }
+    [panel setAllowedFileTypes:filetypes];
+    [panel setDirectoryURL:[initialurl baseURL]];
+    [panel setNameFieldStringValue:[initialurl lastPathComponent]];
+
+    resp = [panel runModal];
+    if (resp == NSFileHandlingPanelOKButton) {
+        NSURL *file = [panel URL];
+        if ([file isFileURL]) {
+            ret = strdup([[file path] UTF8String]);
+        }
+    } else {
+        ret = strdup("");
+    }
+
+    [panel release];
+    [filetypes release];
+    [initialurl release];
+
+    return ret;
 }

@@ -81,7 +81,8 @@ static char keynames[256][24];
 int mousex=0,mousey=0,mouseb=0;
 int joyaxis[SDL_CONTROLLER_AXIS_MAX], joyb=0;
 char joynumaxes=0, joynumbuttons=0;
-
+static char mouseacquired=0,moustat=0;
+static SDL_GameController *controller = NULL;
 
 void (*keypresscallback)(int,int) = 0;
 void (*mousepresscallback)(int,int) = 0;
@@ -144,6 +145,22 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 	if (c == 'Y' || c == 'y') return 1;
 
 	return 0;
+}
+
+char * wm_filechooser(const char *initialdir, const char *type, int foropen)
+{
+#if defined __APPLE__
+    char *rv;
+    if (mouseacquired && moustat) {
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+    }
+    rv = osx_filechooser(initialdir, type, foropen);
+    if (mouseacquired && moustat) {
+        SDL_SetRelativeMouseMode(SDL_TRUE);
+    }
+    return rv;
+#endif
+	return NULL;
 }
 
 void wm_setapptitle(const char *name)
@@ -306,9 +323,6 @@ void debugprintf(const char *f, ...)
 // ---------------------------------------
 //
 //
-
-static char mouseacquired=0,moustat=0;
-static SDL_GameController *controller = NULL;
 
 //
 // initinput() -- init input system
@@ -1396,7 +1410,7 @@ static int buildkeytranslationtable(void)
 	MAPC(SDL_SCANCODE_TAB,       0xf, 0x9);
 	MAPC(SDL_SCANCODE_RETURN,    0x1c, 0xd);
 	MAP(SDL_SCANCODE_PAUSE,     0x59);  // 0x1d + 0x45 + 0x9d + 0xc5
-	MAP(SDL_SCANCODE_ESCAPE,    0x1);
+	MAPC(SDL_SCANCODE_ESCAPE,    0x1, 0x1b);
 	MAP(SDL_SCANCODE_SPACE,     0x39);
 	MAP(SDL_SCANCODE_APOSTROPHE,     0x28);
 	MAP(SDL_SCANCODE_COMMA,     0x33);

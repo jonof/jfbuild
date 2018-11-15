@@ -393,6 +393,9 @@ void ExtPreSaveMap(void)
 
 void ExtSaveMap(const char *mapname)
 {
+	char title[256];
+	Bsprintf(title, "BUILD by Ken Silverman - %s", mapname);
+	wm_setapptitle(title);
 }
 
 const char *ExtGetSectorCaption(short sectnum)

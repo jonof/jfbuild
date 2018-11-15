@@ -117,7 +117,7 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\a.$o
 
 RENDERTYPE=WIN
 BUILDCFLAGS=/DRENDERTYPEWIN=1
-BUILDLIBS=user32.lib gdi32.lib shell32.lib ws2_32.lib comctl32.lib uxtheme.lib xinput9_1_0.lib
+BUILDLIBS=user32.lib gdi32.lib shell32.lib ws2_32.lib comctl32.lib comdlg32.lib uxtheme.lib xinput9_1_0.lib
 
 !if $(SUPERBUILD)
 BUILDCFLAGS=$(BUILDCFLAGS) /DSUPERBUILD
