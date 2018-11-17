@@ -14,13 +14,12 @@
 #  SUPERBUILD     - enables voxels
 #  POLYMOST       - enables Polymost renderer
 #  USE_OPENGL     - enables OpenGL support in Polymost
-#  DYNAMIC_OPENGL - enables run-time loading of OpenGL library
+#     Define as 1 or 2 for GL 2.1 profile
 #  NOASM          - disables the use of assembly code
 #
 SUPERBUILD ?= 1
 POLYMOST ?= 1
 USE_OPENGL ?= 1
-DYNAMIC_OPENGL ?= 1
 NOASM ?= 0
 
 # Debugging options
@@ -270,9 +269,9 @@ $(SRC)/%.$o: $(SRC)/%.glsl_fs_c
 $(SRC)/%.$o: $(SRC)/%.glsl_vs_c
 	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 $(SRC)/%.glsl_fs_c: $(SRC)/%.glsl_fs bin2c$(EXESUFFIX)
-	bin2c$(EXESUFFIX) -text $< default_$(basename $(notdir $<))_glsl_fs > $@
+	./bin2c$(EXESUFFIX) -text $< default_$(basename $(notdir $<))_glsl_fs > $@
 $(SRC)/%.glsl_vs_c: $(SRC)/%.glsl_vs bin2c$(EXESUFFIX)
-	bin2c$(EXESUFFIX) -text $< default_$(basename $(notdir $<))_glsl_vs > $@
+	./bin2c$(EXESUFFIX) -text $< default_$(basename $(notdir $<))_glsl_vs > $@
 
 $(GAME)/rsrc/%_gresource.c: $(GAME)/rsrc/%.gresource.xml
 	glib-compile-resources --generate --manual-register --c-name=startgtk --target=$@ --sourcedir=$(GAME)/rsrc $<

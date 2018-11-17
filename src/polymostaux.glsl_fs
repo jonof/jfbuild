@@ -1,4 +1,4 @@
-#version 120
+#version 110
 
 uniform sampler2D u_texture;
 uniform vec4 u_colour;

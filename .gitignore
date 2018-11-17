@@ -16,7 +16,7 @@
 /xcode/*.xcodeproj/xcuserdata
 /xcode/build
 /.vs
-/Makefile.user
+/Makefile.*user
 /console.txt
 /kenbuild-data/*
 

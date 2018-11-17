@@ -1,4 +1,4 @@
-#version 120
+#version 110
 
 attribute vec3 a_vertex;
 attribute vec2 a_texcoord;

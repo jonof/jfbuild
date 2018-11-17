@@ -9897,11 +9897,11 @@ void clearview(int dacol)
 			p.g = britable[curbrightness][ curpalette[dacol].g ];
 			p.b = britable[curbrightness][ curpalette[dacol].b ];
 		}
-		bglClearColor(((float)p.r)/255.0,
+		glfunc.glClearColor(((float)p.r)/255.0,
 					  ((float)p.g)/255.0,
 					  ((float)p.b)/255.0,
 					  0);
-		bglClear(GL_COLOR_BUFFER_BIT);
+		glfunc.glClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}
 #endif
@@ -9938,12 +9938,12 @@ void clearallviews(int dacol)
 			p.g = britable[curbrightness][ curpalette[dacol].g ];
 			p.b = britable[curbrightness][ curpalette[dacol].b ];
 		}
-		bglViewport(0,0,xdim,ydim); glox1 = -1;
-		bglClearColor(((float)p.r)/255.0,
+		glfunc.glViewport(0,0,xdim,ydim); glox1 = -1;
+		glfunc.glClearColor(((float)p.r)/255.0,
 					  ((float)p.g)/255.0,
 					  ((float)p.b)/255.0,
 					  0);
-		bglClear(GL_COLOR_BUFFER_BIT);
+		glfunc.glClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}
 #endif
@@ -11189,7 +11189,7 @@ int screencapture_tga(char *filename, char inverseit)
 			// 24bit
 			inversebuf = kmalloc(xdim*ydim*3);
 			if (inversebuf) {
-				bglReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
+				glfunc.glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
 				j = xdim*ydim*3;
 				for (i=0; i<j; i+=3) {
 					c = inversebuf[i];
@@ -11343,7 +11343,7 @@ int screencapture_pcx(char *filename, char inverseit)
 			// 24bit
 			inversebuf = kmalloc(xdim*ydim*3);
 			if (inversebuf) {
-				bglReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
+				glfunc.glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
 				for (i=ydim-1; i>=0; i--) {
 					writepcxline(inversebuf+i*xdim*3,   xdim, 3, fil);
 					writepcxline(inversebuf+i*xdim*3+1, xdim, 3, fil);
@@ -11489,13 +11489,13 @@ void setpolymost2dview(void)
 	if (rendmode < 3) return;
 
 	if (gloy1 != -1) {
-		bglViewport(0,0,xres,yres);
+		glfunc.glViewport(0,0,xres,yres);
 	}
 
 	gloy1 = -1;
 
-	bglDisable(GL_DEPTH_TEST);
-	bglDisable(GL_BLEND);
+	glfunc.glDisable(GL_DEPTH_TEST);
+	glfunc.glDisable(GL_BLEND);
 #endif
 }
 

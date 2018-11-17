@@ -83,11 +83,11 @@ void clearskins ()
 		if (m->mdnum == 1) {
 			voxmodel *v = (voxmodel*)m;
 			for(j=0;j<MAXPALOOKUPS;j++) {
-				if (v->texid[j]) bglDeleteTextures(1, &v->texid[j]);
+				if (v->texid[j]) glfunc.glDeleteTextures(1, &v->texid[j]);
 				v->texid[j] = 0;
 			}
-			if (v->vertexbuf) bglDeleteBuffers(1, &v->vertexbuf);
-			if (v->indexbuf) bglDeleteBuffers(1, &v->indexbuf);
+			if (v->vertexbuf) glfunc.glDeleteBuffers(1, &v->vertexbuf);
+			if (v->indexbuf) glfunc.glDeleteBuffers(1, &v->indexbuf);
 			v->vertexbuf = 0;
 			v->indexbuf = 0;
 		} else if (m->mdnum == 2 || m->mdnum == 3) {
@@ -96,7 +96,7 @@ void clearskins ()
 			for(j=0;j<m2->numskins*(HICEFFECTMASK+1);j++)
 			{
 				if (m2->tex[j] && m2->tex[j]->glpic) {
-					bglDeleteTextures(1, &m2->tex[j]->glpic);
+					glfunc.glDeleteTextures(1, &m2->tex[j]->glpic);
 					m2->tex[j]->glpic = 0;
 				}
 			}
@@ -108,7 +108,7 @@ void clearskins ()
 				for(j=0;j<(HICEFFECTMASK+1);j++)
 				{
 					if (sk->tex[j] && sk->tex[j]->glpic) {
-						bglDeleteTextures(1, &sk->tex[j]->glpic);
+						glfunc.glDeleteTextures(1, &sk->tex[j]->glpic);
 						sk->tex[j]->glpic = 0;
 					}
 				}
@@ -120,11 +120,11 @@ void clearskins ()
 	{
 		voxmodel *v = (voxmodel*)voxmodels[i]; if (!v) continue;
 		for(j=0;j<MAXPALOOKUPS;j++) {
-			if (v->texid[j]) bglDeleteTextures(1,(GLuint*)&v->texid[j]);
+			if (v->texid[j]) glfunc.glDeleteTextures(1,(GLuint*)&v->texid[j]);
 			v->texid[j] = 0;
 		}
-		if (v->vertexbuf) bglDeleteBuffers(1, &v->vertexbuf);
-		if (v->indexbuf) bglDeleteBuffers(1, &v->indexbuf);
+		if (v->vertexbuf) glfunc.glDeleteBuffers(1, &v->vertexbuf);
+		if (v->indexbuf) glfunc.glDeleteBuffers(1, &v->indexbuf);
 		v->vertexbuf = 0;
 		v->indexbuf = 0;
 	}
@@ -468,12 +468,12 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 		m->skinloaded = 1+number;
 	}
 
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 	if (glinfo.maxanisotropy > 1.0)
-		bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
+		glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
+	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
 
 	return (*tex);
 }
@@ -748,20 +748,19 @@ static int md2draw (md2model *m, spritetype *tspr, int method)
 	//to use Z-buffer hacks to hide overdraw problems with the shadows
 	if (tspr->cstat&1024)
 	{
-		bglDepthFunc(GL_LESS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
-		bglDepthRange(0.0,0.9999);
+		glfunc.glDepthFunc(GL_LESS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		glfunc.glDepthRange(0.0,0.9999);
 	}
-	bglPushAttrib(GL_POLYGON_BIT);
-	if ((grhalfxdown10x >= 0) ^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)) bglFrontFace(GL_CW); else bglFrontFace(GL_CCW);
-	bglEnable(GL_CULL_FACE);
-	bglCullFace(GL_BACK);
+	if ((grhalfxdown10x >= 0) ^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)) glfunc.glFrontFace(GL_CW); else glfunc.glFrontFace(GL_CCW);
+	glfunc.glEnable(GL_CULL_FACE);
+	glfunc.glCullFace(GL_BACK);
 
 	pc[0] = pc[1] = pc[2] = ((float)(numpalookups-min(max(globalshade+m->shadeoff,0),numpalookups)))/((float)numpalookups);
 	pc[0] *= (float)hictinting[globalpal].r / 255.0;
 	pc[1] *= (float)hictinting[globalpal].g / 255.0;
 	pc[2] *= (float)hictinting[globalpal].b / 255.0;
 	if (tspr->cstat&2) { if (!(tspr->cstat&512)) pc[3] = 0.66; else pc[3] = 0.33; } else pc[3] = 1.0;
-	if (m->usesalpha || (tspr->cstat&2)) bglEnable(GL_BLEND); else bglDisable(GL_BLEND); //Sprites with alpha in texture
+	if (m->usesalpha || (tspr->cstat&2)) glfunc.glEnable(GL_BLEND); else glfunc.glDisable(GL_BLEND); //Sprites with alpha in texture
 
 	for (i=0, vbi=0; i<m->numtris; i++, vbi+=3) {
 		md2tri_t *tri = &m->tris[i];
@@ -801,12 +800,12 @@ static int md2draw (md2model *m, spritetype *tspr, int method)
 	draw.elementvbo = elementvbo;
 	polymost_drawpoly_glcall(GL_TRIANGLES, &draw);
 
-	bglDisable(GL_CULL_FACE);
-	bglPopAttrib();
+	glfunc.glDisable(GL_CULL_FACE);
+	glfunc.glFrontFace(GL_CCW);
 	if (tspr->cstat&1024)
 	{
-		bglDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
-		bglDepthRange(0.0,0.99999);
+		glfunc.glDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		glfunc.glDepthRange(0.0,0.99999);
 	}
 
 	return 1;
@@ -1044,20 +1043,19 @@ static int md3draw (md3model *m, spritetype *tspr, int method)
 	//to use Z-buffer hacks to hide overdraw problems with the shadows
 	if (tspr->cstat&1024)
 	{
-		bglDepthFunc(GL_LESS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
-		bglDepthRange(0.0,0.9999);
+		glfunc.glDepthFunc(GL_LESS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		glfunc.glDepthRange(0.0,0.9999);
 	}
-	bglPushAttrib(GL_POLYGON_BIT);
-	if ((grhalfxdown10x >= 0) ^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)) bglFrontFace(GL_CW); else bglFrontFace(GL_CCW);
-	bglEnable(GL_CULL_FACE);
-	bglCullFace(GL_BACK);
+	if ((grhalfxdown10x >= 0) ^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)) glfunc.glFrontFace(GL_CW); else glfunc.glFrontFace(GL_CCW);
+	glfunc.glEnable(GL_CULL_FACE);
+	glfunc.glCullFace(GL_BACK);
 
 	pc[0] = pc[1] = pc[2] = ((float)(numpalookups-min(max(globalshade+m->shadeoff,0),numpalookups)))/((float)numpalookups);
 	pc[0] *= (float)hictinting[globalpal].r / 255.0;
 	pc[1] *= (float)hictinting[globalpal].g / 255.0;
 	pc[2] *= (float)hictinting[globalpal].b / 255.0;
 	if (tspr->cstat&2) { if (!(tspr->cstat&512)) pc[3] = 0.66; else pc[3] = 0.33; } else pc[3] = 1.0;
-	if (m->usesalpha || (tspr->cstat&2)) bglEnable(GL_BLEND); else bglDisable(GL_BLEND); //Sprites with alpha in texture
+	if (m->usesalpha || (tspr->cstat&2)) glfunc.glEnable(GL_BLEND); else glfunc.glDisable(GL_BLEND); //Sprites with alpha in texture
 //------------
 
 	draw.texture1 = 0;
@@ -1131,12 +1129,12 @@ static int md3draw (md3model *m, spritetype *tspr, int method)
 	}
 
 //------------
-	bglDisable(GL_CULL_FACE);
-	bglPopAttrib();
+	glfunc.glDisable(GL_CULL_FACE);
+	glfunc.glFrontFace(GL_CCW);
 	if (tspr->cstat&1024)
 	{
-		bglDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
-		bglDepthRange(0.0,0.99999);
+		glfunc.glDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		glfunc.glDepthRange(0.0,0.99999);
 	}
 
 	return 1;
@@ -1228,11 +1226,11 @@ unsigned gloadtex (int *picbuf, int xsiz, int ysiz, int is8bit, int dapal)
 		}
 	}
 
-	bglGenTextures(1,(GLuint*)&rtexid);
-	bglBindTexture(GL_TEXTURE_2D,rtexid);
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-	bglTexImage2D(GL_TEXTURE_2D,0,4,xsiz,ysiz,0,GL_RGBA,GL_UNSIGNED_BYTE,(unsigned char *)pic2);
+	glfunc.glGenTextures(1,(GLuint*)&rtexid);
+	glfunc.glBindTexture(GL_TEXTURE_2D,rtexid);
+	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	glfunc.glTexImage2D(GL_TEXTURE_2D,0,4,xsiz,ysiz,0,GL_RGBA,GL_UNSIGNED_BYTE,(unsigned char *)pic2);
 	free(pic2);
 	return(rtexid);
 }
@@ -1890,20 +1888,19 @@ int voxdraw (voxmodel *m, spritetype *tspr, int method)
 	//to use Z-buffer hacks to hide overdraw problems with the shadows
 	if (tspr->cstat&1024)
 	{
-		bglDepthFunc(GL_LESS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
-		bglDepthRange(0.0,0.9999);
+		glfunc.glDepthFunc(GL_LESS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		glfunc.glDepthRange(0.0,0.9999);
 	}
-	bglPushAttrib(GL_POLYGON_BIT);
-	if ((grhalfxdown10x >= 0) /*^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)*/) bglFrontFace(GL_CW); else bglFrontFace(GL_CCW);
-	bglEnable(GL_CULL_FACE);
-	bglCullFace(GL_BACK);
+	if ((grhalfxdown10x >= 0) /*^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)*/) glfunc.glFrontFace(GL_CW); else glfunc.glFrontFace(GL_CCW);
+	glfunc.glEnable(GL_CULL_FACE);
+	glfunc.glCullFace(GL_BACK);
 
 	pc[0] = pc[1] = pc[2] = ((float)(numpalookups-min(max(globalshade+m->shadeoff,0),numpalookups)))/((float)numpalookups);
 	pc[0] *= (float)hictinting[globalpal].r / 255.0;
 	pc[1] *= (float)hictinting[globalpal].g / 255.0;
 	pc[2] *= (float)hictinting[globalpal].b / 255.0;
 	if (tspr->cstat&2) { if (!(tspr->cstat&512)) pc[3] = 0.66; else pc[3] = 0.33; } else pc[3] = 1.0;
-	if (tspr->cstat&2) bglEnable(GL_BLEND); else bglDisable(GL_BLEND);
+	if (tspr->cstat&2) glfunc.glEnable(GL_BLEND); else glfunc.glDisable(GL_BLEND);
 //------------
 
 		//transform to Build coords
@@ -1952,12 +1949,12 @@ int voxdraw (voxmodel *m, spritetype *tspr, int method)
 	polymost_drawpoly_glcall(GL_TRIANGLES, &draw);
 
 //------------
-	bglDisable(GL_CULL_FACE);
-	bglPopAttrib();
+	glfunc.glDisable(GL_CULL_FACE);
+	glfunc.glFrontFace(GL_CCW);
 	if (tspr->cstat&1024)
 	{
-		bglDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
-		bglDepthRange(0.0,0.99999);
+		glfunc.glDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		glfunc.glDepthRange(0.0,0.99999);
 	}
 	return 1;
 }
@@ -2019,14 +2016,14 @@ static int voxloadbufs(voxmodel *m)
 		vxi += 4;
 	}
 
-	bglGenBuffers(1, &m->indexbuf);
-	bglBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->indexbuf);
-	bglBufferData(GL_ELEMENT_ARRAY_BUFFER, numindexes * sizeof(GLushort), indexes, GL_STATIC_DRAW);
+	glfunc.glGenBuffers(1, &m->indexbuf);
+	glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m->indexbuf);
+	glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, numindexes * sizeof(GLushort), indexes, GL_STATIC_DRAW);
 	m->indexcount = numindexes;
 
-	bglGenBuffers(1, &m->vertexbuf);
-	bglBindBuffer(GL_ARRAY_BUFFER, m->vertexbuf);
-	bglBufferData(GL_ARRAY_BUFFER, numvertexes * sizeof(struct polymostvboitem), vertexes, GL_STATIC_DRAW);
+	glfunc.glGenBuffers(1, &m->vertexbuf);
+	glfunc.glBindBuffer(GL_ARRAY_BUFFER, m->vertexbuf);
+	glfunc.glBufferData(GL_ARRAY_BUFFER, numvertexes * sizeof(struct polymostvboitem), vertexes, GL_STATIC_DRAW);
 
 	free(indexes);
 	free(vertexes);

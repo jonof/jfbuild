@@ -4,12 +4,11 @@
 #  SUPERBUILD     - enables voxels
 #  POLYMOST       - enables Polymost renderer
 #  USE_OPENGL     - enables OpenGL support in Polymost
-#  DYNAMIC_OPENGL - enables run-time loading of OpenGL library
+#     Define as 1 or 2 for GL 2.1 profile
 #  NOASM          - disables the use of assembly code
 SUPERBUILD=1
 POLYMOST=1
 USE_OPENGL=1
-DYNAMIC_OPENGL=1
 NOASM=0
 
 RELEASE=1
@@ -50,7 +49,7 @@ flags_cl=$(flags_cl) /O2
 flags_link=/RELEASE
 !else
 # debugging options
-flags_cl=$(flags_cl) /Ot /Z7
+flags_cl=$(flags_cl) /Ot /Z7 /DDEBUGGINGAIDS
 flags_link=/DEBUG
 !endif
 
@@ -127,11 +126,7 @@ BUILDCFLAGS=$(BUILDCFLAGS) /DSUPERBUILD
 BUILDCFLAGS=$(BUILDCFLAGS) /DPOLYMOST
 !endif
 !if $(USE_OPENGL)
-BUILDCFLAGS=$(BUILDCFLAGS) /DUSE_OPENGL
-!if $(DYNAMIC_OPENGL)
-BUILDCFLAGS=$(BUILDCFLAGS) /DDYNAMIC_OPENGL
-BUILDLIBS=$(BUILDLIBS) opengl32.lib
-!endif
+BUILDCFLAGS=$(BUILDCFLAGS) /DUSE_OPENGL=$(USE_OPENGL)
 !endif
 !if $(NOASM)
 BUILDCFLAGS=$(BUILDCFLAGS) /DNOASM
