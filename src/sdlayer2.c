@@ -4,6 +4,11 @@
 //
 // Use SDL2 from http://www.libsdl.org
 
+// have stdio.h declare vasprintf
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE 1
+#endif
+
 #if defined __APPLE__
 # include <SDL2/SDL.h>
 #else
@@ -104,47 +109,90 @@ static SDL_Surface * loadappicon(void);
 
 int wm_msgbox(const char *name, const char *fmt, ...)
 {
-	char buf[1000];
+	char *buf = NULL;
+	int rv;
 	va_list va;
 
 	va_start(va,fmt);
-	vsprintf(buf,fmt,va);
+	rv = vasprintf(&buf,fmt,va);
 	va_end(va);
 
-#if defined(__APPLE__)
-	return osx_msgbox(name, buf);
-#elif defined HAVE_GTK
-	if (gtkbuild_msgbox(name, buf) >= 0) return 1;
-#endif
-	puts(buf);
-	puts("   (press Return or Enter to continue)");
-	getchar();
+	if (rv < 0) return -1;
 
-	return 0;
+	do {
+		rv = 0;
+
+#if defined HAVE_GTK
+		if (gtkbuild_msgbox(name, buf) >= 0) {
+			rv = 1;
+			break;
+		}
+#endif
+		if (SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, name, buf, sdl_window) >= 0) {
+			rv = 1;
+			break;
+		}
+
+		puts(buf);
+		puts("   (press Return or Enter to continue)");
+		getchar();
+	} while(0);
+
+	free(buf);
+
+	return rv;
 }
 
 int wm_ynbox(const char *name, const char *fmt, ...)
 {
-	char buf[1000];
-	char c;
+	char *buf = NULL, ch;
+	int rv;
 	va_list va;
-	int r;
 
 	va_start(va,fmt);
-	vsprintf(buf,fmt,va);
+	rv = vasprintf(&buf,fmt,va);
 	va_end(va);
 
-#if defined __APPLE__
-	return osx_ynbox(name, buf);
-#elif defined HAVE_GTK
-	if ((r = gtkbuild_ynbox(name, buf)) >= 0) return r;
-#endif
-	puts(buf);
-	puts("   (type 'Y' or 'N', and press Return or Enter to continue)");
-	do c = getchar(); while (c != 'Y' && c != 'y' && c != 'N' && c != 'n');
-	if (c == 'Y' || c == 'y') return 1;
+	if (rv < 0) return -1;
 
-	return 0;
+	SDL_MessageBoxButtonData buttons[2] = {
+		{ SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT, 1, "Yes" },
+		{ SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT, 0, "No" },
+	};
+	SDL_MessageBoxData msgbox = {
+		SDL_MESSAGEBOX_INFORMATION,
+		sdl_window,
+		name,
+		buf,
+		SDL_arraysize(buttons),
+		buttons,
+		NULL
+	};
+
+	do {
+		rv = 0;
+
+#if defined HAVE_GTK
+		if ((rv = gtkbuild_ynbox(name, buf)) >= 0) {
+			break;
+		}
+#endif
+		if (SDL_ShowMessageBox(&msgbox, &rv) >= 0) {
+			rv = (rv == 1);
+			break;
+		}
+
+		puts(buf);
+		puts("   (type 'Y' or 'N', and press Return or Enter to continue)");
+		do {
+			ch = getchar();
+			rv = (ch == 'Y' || ch == 'y');
+		} while (ch != 'Y' && ch != 'y' && ch != 'N' && ch != 'n');
+	} while(0);
+
+	free(buf);
+
+	return rv;
 }
 
 char * wm_filechooser(const char *initialdir, const char *type, int foropen)
@@ -155,6 +203,7 @@ char * wm_filechooser(const char *initialdir, const char *type, int foropen)
         SDL_SetRelativeMouseMode(SDL_FALSE);
     }
     rv = osx_filechooser(initialdir, type, foropen);
+    SDL_RaiseWindow(sdl_window);
     if (mouseacquired && moustat) {
         SDL_SetRelativeMouseMode(SDL_TRUE);
     }

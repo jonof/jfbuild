@@ -15,6 +15,11 @@
 # define SCREWED_UP_CPP
 #endif
 
+// have stdio.h declare vasprintf
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE 1
+#endif
+
 #ifdef __cplusplus
 
 // have stdint.h declare the C99 INTxx_C macros

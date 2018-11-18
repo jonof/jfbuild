@@ -5,8 +5,6 @@ char *osx_gethomedir(void);
 char *osx_getappdir(void);
 char *osx_getsupportdir(int global);
 
-int osx_msgbox(const char *name, const char *msg);
-int osx_ynbox(const char *name, const char *msg);
 char * osx_filechooser(const char *initialdir, const char *type, int foropen);
 
 #endif

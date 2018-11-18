@@ -37,40 +37,6 @@ char *osx_getsupportdir(int global)
     return NULL;
 }
 
-int osx_msgbox(const char *name, const char *msg)
-{
-	NSString *mmsg = [[NSString alloc] initWithUTF8String: msg];
-	NSAlert *alert = [[NSAlert alloc] init];
-
-    [alert addButtonWithTitle: @"OK"];
-	[alert setInformativeText: mmsg];
-	[alert setAlertStyle: NSInformationalAlertStyle];
-
-    [alert runModal];
-
-    [alert release];
-	[mmsg release];
-	return 0;
-}
-
-int osx_ynbox(const char *name, const char *msg)
-{
-	NSString *mmsg = [[NSString alloc] initWithUTF8String: msg];
-    NSAlert *alert = [[NSAlert alloc] init];
-	int r;
-
-	[alert addButtonWithTitle:@"Yes"];
-	[alert addButtonWithTitle:@"No"];
-	[alert setInformativeText: mmsg];
-	[alert setAlertStyle: NSInformationalAlertStyle];
-
-	r = ([alert runModal] == NSAlertFirstButtonReturn);
-
-	[alert release];
-	[mmsg release];
-	return r;
-}
-
 char * osx_filechooser(const char *initialdir, const char *type, int foropen)
 {
     NSSavePanel *panel = nil;
