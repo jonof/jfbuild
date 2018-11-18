@@ -18,232 +18,111 @@
 #  define GL_MAX_TEXTURE_MAX_ANISOTROPY GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
 #endif
 
-#ifdef RENDERTYPEWIN
-#  include "wglext.h"
-#endif
+struct glbuild_funcs {
+    void (APIENTRY * glClearColor)( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha );
+    void (APIENTRY * glClear)( GLbitfield mask );
+    void (APIENTRY * glColorMask)( GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha );
+    void (APIENTRY * glBlendFunc)( GLenum sfactor, GLenum dfactor );
+    void (APIENTRY * glCullFace)( GLenum mode );
+    void (APIENTRY * glFrontFace)( GLenum mode );
+    void (APIENTRY * glPolygonOffset)( GLfloat factor, GLfloat units );
+    void (APIENTRY * glPolygonMode)( GLenum face, GLenum mode );
+    void (APIENTRY * glEnable)( GLenum cap );
+    void (APIENTRY * glDisable)( GLenum cap );
+    void (APIENTRY * glGetFloatv)( GLenum pname, GLfloat *params );
+    void (APIENTRY * glGetIntegerv)( GLenum pname, GLint *params );
+    const GLubyte* (APIENTRY * glGetString)( GLenum name );
+    GLenum (APIENTRY * glGetError)( void );
+    void (APIENTRY * glHint)( GLenum target, GLenum mode );
+    void (APIENTRY * glPixelStorei)( GLenum pname, GLint param );
+    void (APIENTRY * glViewport)( GLint x, GLint y, GLsizei width, GLsizei height );
 
-#ifdef DYNAMIC_OPENGL
+    // Depth
+    void (APIENTRY * glDepthFunc)( GLenum func );
+    void (APIENTRY * glDepthMask)( GLboolean flag );
+    void (APIENTRY * glDepthRange)( GLclampd near_val, GLclampd far_val );
 
-extern void (APIENTRY * bglClearColor)( GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha );
-extern void (APIENTRY * bglClear)( GLbitfield mask );
-extern void (APIENTRY * bglColorMask)( GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha );
-extern void (APIENTRY * bglAlphaFunc)( GLenum func, GLclampf ref );
-extern void (APIENTRY * bglBlendFunc)( GLenum sfactor, GLenum dfactor );
-extern void (APIENTRY * bglCullFace)( GLenum mode );
-extern void (APIENTRY * bglFrontFace)( GLenum mode );
-extern void (APIENTRY * bglPolygonOffset)( GLfloat factor, GLfloat units );
-extern void (APIENTRY * bglPolygonMode)( GLenum face, GLenum mode );
-extern void (APIENTRY * bglEnable)( GLenum cap );
-extern void (APIENTRY * bglDisable)( GLenum cap );
-extern void (APIENTRY * bglGetFloatv)( GLenum pname, GLfloat *params );
-extern void (APIENTRY * bglGetIntegerv)( GLenum pname, GLint *params );
-extern void (APIENTRY * bglPushAttrib)( GLbitfield mask );
-extern void (APIENTRY * bglPopAttrib)( void );
-extern GLenum (APIENTRY * bglGetError)( void );
-extern const GLubyte* (APIENTRY * bglGetString)( GLenum name );
-extern void (APIENTRY * bglHint)( GLenum target, GLenum mode );
-extern void (APIENTRY * bglPixelStorei)( GLenum pname, GLint param );
+    // Raster funcs
+    void (APIENTRY * glReadPixels)( GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels );
 
-// Depth
-extern void (APIENTRY * bglDepthFunc)( GLenum func );
-extern void (APIENTRY * bglDepthMask)( GLboolean flag );
-extern void (APIENTRY * bglDepthRange)( GLclampd near_val, GLclampd far_val );
+    // Texture mapping
+    void (APIENTRY * glTexEnvf)( GLenum target, GLenum pname, GLfloat param );
+    void (APIENTRY * glGenTextures)( GLsizei n, GLuint *textures );
+    void (APIENTRY * glDeleteTextures)( GLsizei n, const GLuint *textures);
+    void (APIENTRY * glBindTexture)( GLenum target, GLuint texture );
+    void (APIENTRY * glTexImage1D)( GLenum target, GLint level,
+    								   GLint internalFormat,
+    								   GLsizei width, GLint border,
+    								   GLenum format, GLenum type,
+    								   const GLvoid *pixels );
+    void (APIENTRY * glTexImage2D)( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels );
+    void (APIENTRY * glTexSubImage2D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels );	// 1.1
+    void (APIENTRY * glTexParameterf)( GLenum target, GLenum pname, GLfloat param );
+    void (APIENTRY * glTexParameteri)( GLenum target, GLenum pname, GLint param );
+    void (APIENTRY * glGetTexLevelParameteriv)( GLenum target, GLint level, GLenum pname, GLint *params );
+    void (APIENTRY * glCompressedTexImage2DARB)(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid *);
+    void (APIENTRY * glGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
 
-// Matrix
-extern void (APIENTRY * bglMatrixMode)( GLenum mode );
-extern void (APIENTRY * bglOrtho)( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val );
-extern void (APIENTRY * bglFrustum)( GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble near_val, GLdouble far_val );
-extern void (APIENTRY * bglViewport)( GLint x, GLint y, GLsizei width, GLsizei height );
-extern void (APIENTRY * bglPushMatrix)( void );
-extern void (APIENTRY * bglPopMatrix)( void );
-extern void (APIENTRY * bglLoadIdentity)( void );
-extern void (APIENTRY * bglLoadMatrixf)( const GLfloat *m );
+    // Buffer objects
+    void (APIENTRY * glBindBuffer)(GLenum target, GLuint buffer);
+    void (APIENTRY * glBufferData)(GLenum target, GLsizeiptr size, const GLvoid * data, GLenum usage);
+    void (APIENTRY * glBufferSubData)(GLenum target, GLintptr offset, GLsizeiptr size, const GLvoid * data);
+    void (APIENTRY * glDeleteBuffers)(GLsizei n, const GLuint * buffers);
+    void (APIENTRY * glGenBuffers)(GLsizei n, GLuint * buffers);
+    void (APIENTRY * glDrawElements)( GLenum mode, GLsizei count, GLenum type, const GLvoid *indices );
+    void (APIENTRY * glEnableVertexAttribArray)(GLuint index);
+    void (APIENTRY * glDisableVertexAttribArray)(GLuint index);
+    void (APIENTRY * glVertexAttribPointer)(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid * pointer);
 
-// Drawing
-extern void (APIENTRY * bglBegin)( GLenum mode );
-extern void (APIENTRY * bglEnd)( void );
-extern void (APIENTRY * bglVertex2f)( GLfloat x, GLfloat y );
-extern void (APIENTRY * bglVertex2i)( GLint x, GLint y );
-extern void (APIENTRY * bglVertex3d)( GLdouble x, GLdouble y, GLdouble z );
-extern void (APIENTRY * bglVertex3fv)( const GLfloat *v );
-extern void (APIENTRY * bglColor4f)( GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha );
-extern void (APIENTRY * bglColor4ub)( GLubyte red, GLubyte green, GLubyte blue, GLubyte alpha );
-extern void (APIENTRY * bglTexCoord2d)( GLdouble s, GLdouble t );
-extern void (APIENTRY * bglTexCoord2f)( GLfloat s, GLfloat t );
+    // Shaders
+    void (APIENTRY * glActiveTexture)( GLenum texture );
+    void (APIENTRY * glAttachShader)(GLuint program, GLuint shader);
+    void (APIENTRY * glCompileShader)(GLuint shader);
+    GLuint (APIENTRY * glCreateProgram)(void);
+    GLuint (APIENTRY * glCreateShader)(GLenum type);
+    void (APIENTRY * glDeleteProgram)(GLuint program);
+    void (APIENTRY * glDeleteShader)(GLuint shader);
+    void (APIENTRY * glDetachShader)(GLuint program, GLuint shader);
+    GLint (APIENTRY * glGetAttribLocation)(GLuint program, const GLchar *name);
+    void (APIENTRY * glGetProgramiv)(GLuint program, GLenum pname, GLint *params);
+    void (APIENTRY * glGetProgramInfoLog)(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+    void (APIENTRY * glGetShaderiv)(GLuint shader, GLenum pname, GLint *params);
+    void (APIENTRY * glGetShaderInfoLog)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
+    GLint (APIENTRY * glGetUniformLocation)(GLuint program, const GLchar *name);
+    void (APIENTRY * glLinkProgram)(GLuint program);
+    void (APIENTRY * glShaderSource)(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
+    void (APIENTRY * glUniform1i)(GLint location, GLint v0);
+    void (APIENTRY * glUniform1f)(GLint location, GLfloat v0);
+    void (APIENTRY * glUniform2f)(GLint location, GLfloat v0, GLfloat v1);
+    void (APIENTRY * glUniform3f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2);
+    void (APIENTRY * glUniform4f)(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3);
+    void (APIENTRY * glUniformMatrix4fv)(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value);
+    void (APIENTRY * glUseProgram)(GLuint program);
+};
 
-// Lighting
-extern void (APIENTRY * bglShadeModel)( GLenum mode );
+extern struct glbuild_funcs glfunc;
 
-// Raster funcs
-extern void (APIENTRY * bglReadPixels)( GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLvoid *pixels );
+typedef struct {
+    GLuint program;
+    GLuint paltex;
+    GLuint frametex;
+    GLint attrib_vertex;    // vec2
+    GLint attrib_texcoord;  // vec2
+    GLuint buffer_indexes;
+    GLuint buffer_elements;
+} glbuild8bit;
 
-// Texture mapping
-extern void (APIENTRY * bglTexEnvf)( GLenum target, GLenum pname, GLfloat param );
-extern void (APIENTRY * bglGenTextures)( GLsizei n, GLuint *textures );	// 1.1
-extern void (APIENTRY * bglDeleteTextures)( GLsizei n, const GLuint *textures);	// 1.1
-extern void (APIENTRY * bglBindTexture)( GLenum target, GLuint texture );	// 1.1
-extern void (APIENTRY * bglTexImage1D)( GLenum target, GLint level,
-								   GLint internalFormat,
-								   GLsizei width, GLint border,
-								   GLenum format, GLenum type,
-								   const GLvoid *pixels );
-extern void (APIENTRY * bglTexImage2D)( GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid *pixels );
-extern void (APIENTRY * bglTexSubImage2D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels );	// 1.1
-extern void (APIENTRY * bglTexParameterf)( GLenum target, GLenum pname, GLfloat param );
-extern void (APIENTRY * bglTexParameteri)( GLenum target, GLenum pname, GLint param );
-extern void (APIENTRY * bglGetTexLevelParameteriv)( GLenum target, GLint level, GLenum pname, GLint *params );
-extern void (APIENTRY * bglCompressedTexImage2DARB)(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid *);
-extern void (APIENTRY * bglGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
-
-// Fog
-extern void (APIENTRY * bglFogf)( GLenum pname, GLfloat param );
-extern void (APIENTRY * bglFogi)( GLenum pname, GLint param );
-extern void (APIENTRY * bglFogfv)( GLenum pname, const GLfloat *params );
-
-// Shaders
-extern void (APIENTRY * bglActiveTexture)( GLenum texture );
-extern void (APIENTRY * bglAttachShader)(GLuint program, GLuint shader);
-extern void (APIENTRY * bglCompileShader)(GLuint shader);
-extern GLuint (APIENTRY * bglCreateProgram)(void);
-extern GLuint (APIENTRY * bglCreateShader)(GLenum type);
-extern void (APIENTRY * bglDeleteProgram)(GLuint program);
-extern void (APIENTRY * bglDeleteShader)(GLuint shader);
-extern void (APIENTRY * bglDetachShader)(GLuint program, GLuint shader);
-extern void (APIENTRY * bglGetProgramiv)(GLuint program, GLenum pname, GLint *params);
-extern void (APIENTRY * bglGetProgramInfoLog)(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
-extern void (APIENTRY * bglGetShaderiv)(GLuint shader, GLenum pname, GLint *params);
-extern void (APIENTRY * bglGetShaderInfoLog)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
-extern GLint (APIENTRY * bglGetUniformLocation)(GLuint program, const GLchar *name);
-extern void (APIENTRY * bglLinkProgram)(GLuint program);
-extern void (APIENTRY * bglShaderSource)(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
-extern void (APIENTRY * bglUniform1i)(GLint location, GLint v0);
-extern void (APIENTRY * bglUseProgram)(GLuint program);
-
-#ifdef RENDERTYPEWIN
-// Windows
-extern HGLRC (WINAPI * bwglCreateContext)(HDC);
-extern BOOL (WINAPI * bwglDeleteContext)(HGLRC);
-extern PROC (WINAPI * bwglGetProcAddress)(LPCSTR);
-extern BOOL (WINAPI * bwglMakeCurrent)(HDC,HGLRC);
-extern BOOL (WINAPI * bwglSwapBuffers)(HDC);
-
-extern const char * (WINAPI * bwglGetExtensionsStringARB)(HDC hdc);
-extern BOOL (WINAPI * bwglChoosePixelFormatARB)(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
-extern HGLRC (WINAPI * bwglCreateContextAttribsARB)(HDC hDC, HGLRC hShareContext, const int *attribList);
-#endif
-
-#else	// DYNAMIC_OPENGL
-
-#define bglClearColor		glClearColor
-#define bglClear		glClear
-#define bglColorMask		glColorMask
-#define bglAlphaFunc		glAlphaFunc
-#define bglBlendFunc		glBlendFunc
-#define bglCullFace		glCullFace
-#define bglFrontFace		glFrontFace
-#define bglPolygonOffset	glPolygonOffset
-#define bglPolygonMode    glPolygonMode
-#define bglEnable		glEnable
-#define bglDisable		glDisable
-#define bglGetFloatv		glGetFloatv
-#define bglGetIntegerv		glGetIntegerv
-#define bglPushAttrib		glPushAttrib
-#define bglPopAttrib		glPopAttrib
-#define bglGetError		glGetError
-#define bglGetString		glGetString
-#define bglHint			glHint
-#define bglPixelStorei	glPixelStorei
-
-// Depth
-#define bglDepthFunc		glDepthFunc
-#define bglDepthMask		glDepthMask
-#define bglDepthRange		glDepthRange
-
-// Matrix
-#define bglMatrixMode		glMatrixMode
-#define bglOrtho		glOrtho
-#define bglFrustum		glFrustum
-#define bglViewport		glViewport
-#define bglPushMatrix		glPushMatrix
-#define bglPopMatrix		glPopMatrix
-#define bglLoadIdentity		glLoadIdentity
-#define bglLoadMatrixf		glLoadMatrixf
-
-// Drawing
-#define bglBegin		glBegin
-#define bglEnd			glEnd
-#define bglVertex2f		glVertex2f
-#define bglVertex2i		glVertex2i
-#define bglVertex3d		glVertex3d
-#define bglVertex3fv		glVertex3fv
-#define bglColor4f		glColor4f
-#define bglColor4ub		glColor4ub
-#define bglTexCoord2d		glTexCoord2d
-#define bglTexCoord2f		glTexCoord2f
-
-// Lighting
-#define bglShadeModel		glShadeModel
-
-// Raster funcs
-#define bglReadPixels		glReadPixels
-
-// Texture mapping
-#define bglTexEnvf		glTexEnvf
-#define bglGenTextures		glGenTextures
-#define bglDeleteTextures	glDeleteTextures
-#define bglBindTexture		glBindTexture
-#define bglTexImage1D		glTexImage1D
-#define bglTexImage2D		glTexImage2D
-#define bglTexSubImage2D	glTexSubImage2D
-#define bglTexParameterf	glTexParameterf
-#define bglTexParameteri	glTexParameteri
-#define bglGetTexLevelParameteriv glGetTexLevelParameteriv
-#define bglCompressedTexImage2DARB glCompressedTexImage2DARB
-#define bglGetCompressedTexImageARB glGetCompressedTexImageARB
-
-// Fog
-#define bglFogf			glFogf
-#define bglFogi			glFogi
-#define bglFogfv		glFogfv
-
-// Shaders
-#define bglActiveTexture glActiveTexture
-#define bglAttachShader  glAttachShader
-#define bglCompileShader glCompileShader
-#define bglCreateProgram glCreateProgram
-#define bglCreateShader  glCreateShader
-#define bglDeleteProgram glDeleteProgram
-#define bglDeleteShader  glDeleteShader
-#define bglDetachShader  glDetachShader
-#define bglGetProgramiv  glGetProgramiv
-#define bglGetProgramInfoLog glGetProgramInfoLog
-#define bglGetShaderiv   glGetShaderiv
-#define bglGetShaderInfoLog glGetShaderInfoLog
-#define bglGetUniformLocation glGetUniformLocation
-#define bglLinkProgram   glLinkProgram
-#define bglShaderSource  glShaderSource
-#define bglUseProgram    glUseProgram
-#define bglUniform1i     glUniform1i
-
-#ifdef RENDERTYPEWIN
-#define bwglCreateContext	wglCreateContext
-#define bwglDeleteContext	wglDeleteContext
-#define bwglGetProcAddress	wglGetProcAddress
-#define bwglMakeCurrent		wglMakeCurrent
-#define bwglSwapBuffers     wglSwapBuffers
-
-#define bwglGetExtensionsStringARB  wglGetExtensionsStringARB
-#define bwglChoosePixelFormatARB    wglChoosePixelFormatARB
-#define bwglCreateContextAttribsARB wglCreateContentAttribsARB
-#endif
-
-#endif
-
-int loadglfunctions(int all);   // all==0: the basic ones needed to bootstrap
-void unloadglfunctions(void);
+int glbuild_loadfunctions(void);
+void glbuild_unloadfunctions(void);
+void glbuild_check_errors(const char *file, int line);
+#define GLBUILD_CHECK_ERRORS() glbuild_check_errors(__FILE__, __LINE__)
 
 GLuint glbuild_compile_shader(GLuint type, const GLchar *source);
 GLuint glbuild_link_program(int shadercount, GLuint *shaders);
-int glbuild_prepare_8bit_shader(GLuint *paltex, GLuint *frametex, GLuint *program, int resx, int resy);		// <0 = error
+int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stride);        // <0 = error
+void glbuild_delete_8bit_shader(glbuild8bit *state);
+void glbuild_update_8bit_palette(glbuild8bit *state, const GLvoid *pal);
+void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx, int resy, int stride);
+void glbuild_draw_8bit_frame(glbuild8bit *state);
 
 #endif //USE_OPENGL

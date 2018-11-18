@@ -68,6 +68,7 @@ Low priority:
 #ifdef POLYMOST
 
 #include "build.h"
+#include "compat.h"
 #include "glbuild.h"
 #include "pragmas.h"
 #include "baselayer.h"
@@ -106,6 +107,8 @@ float gtang = 0.0;
 double guo, gux, guy; //Screen-based texture mapping parameters
 double gvo, gvx, gvy;
 double gdo, gdx, gdy;
+int gfogpalnum = 0;
+float gfogdensity = 0.f;
 
 #if (USEZBUFFER != 0)
 intptr_t zbufmem = 0;
@@ -135,9 +138,62 @@ int gltexmaxsize = 0;      // 0 means autodetection on first run
 int gltexmiplevel = 0;		// discards this many mipmap levels
 static int lastglpolygonmode = 0; //FUK
 int glpolygonmode = 0;     // 0:GL_FILL,1:GL_LINE,2:GL_POINT //FUK
-static GLuint polymosttext = 0;
+
+static GLuint texttexture = 0;
+static GLuint nulltexture = 0;
+
+#define SHADERDEV 1
+static struct {
+	GLuint program;             // GLSL program object.
+	GLuint elementbuffer;
+	GLuint elementbuffersize;
+	GLint attrib_vertex;		// Vertex (vec3)
+	GLint attrib_texcoord;		// Texture coordinate (vec2)
+	GLint uniform_modelview;	// Modelview matrix (mat4)
+	GLint uniform_projection;	// Projection matrix (mat4)
+	GLint uniform_texture;      // Base texture (sampler2D)
+	GLint uniform_glowtexture;  // Glow texture (sampler2D)
+	GLint uniform_alphacut;     // Alpha test cutoff (float)
+	GLint uniform_colour;		// Colour (vec4)
+	GLint uniform_fogcolour;    // Fog colour   (vec4)
+	GLint uniform_fogdensity;   // Fog density  (float)
+} polymostglsl;
+
+static struct {
+	GLuint program;
+	GLuint elementbuffer;
+	GLuint indexbuffer;
+	GLint attrib_vertex;		// Vertex (vec3)
+	GLint attrib_texcoord;		// Texture coordinate (vec2)
+	GLint uniform_projection;	// Projection matrix (mat4)
+	GLint uniform_texture;      // Character bitmap (sampler2D)
+	GLint uniform_colour;		// Colour (vec4)
+	GLint uniform_bgcolour;     // Background colour (vec4)
+	GLint uniform_mode;	        // Operation mode (int)
+		// 0 = texture is mask, render vertex colour/bgcolour.
+		// 1 = texture is image, blend with bgcolour.
+		// 2 = draw solid colour.
+} polymostauxglsl;
+
+static GLuint elementindexbuffer = 0;
+static GLuint elementindexbuffersize = 0;
+
+const GLfloat gidentitymat[4][4] = {
+	{1.f, 0.f, 0.f, 0.f},
+	{0.f, 1.f, 0.f, 0.f},
+	{0.f, 0.f, 1.f, 0.f},
+	{0.f, 0.f, 0.f, 1.f},
+};
+GLfloat gdrawroomsprojmat[4][4];      // Proj. matrix for drawrooms() calls.
+GLfloat grotatespriteprojmat[4][4];   // Proj. matrix for rotatesprite() calls.
+GLfloat gorthoprojmat[4][4];          // Proj. matrix for 2D (aux) calls.
 
 static int polymost_preparetext(void);
+#endif
+
+#ifdef DEBUGGINGAIDS
+static int polymostshowcallcounts = 0;
+struct polymostcallcounts polymostcallcounts;
 #endif
 
 #if defined(USE_MSC_PRAGMAS)
@@ -253,7 +309,6 @@ static void drawline2d (float x0, float y0, float x1, float y1, unsigned char co
 #ifdef USE_OPENGL
 
 static int drawingskybox = 0;
-static int fog_is_on = 0;
 
 int polymost_texmayhavealpha (int dapicnum, int dapalnum)
 {
@@ -279,7 +334,7 @@ void polymost_texinvalidate (int dapicnum, int dapalnum, int dameth)
 {
 	PTIter iter;
 	PTHead * pth;
-	
+
 	iter = PTIterNewMatch(
 		PTITER_PICNUM | PTITER_PALNUM | PTITER_FLAGS,
 		dapicnum, dapalnum, PTH_CLAMPED, (dameth & METH_CLAMPED) ? PTH_CLAMPED : 0
@@ -321,26 +376,26 @@ void gltexapplyprops (void)
 	int i;
 	PTIter iter;
 	PTHead * pth;
-	
+
 	if (glinfo.maxanisotropy > 1.0)
 	{
 		if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) glanisotropy = (int)glinfo.maxanisotropy;
 	}
-	
+
 	if (gltexfiltermode < 0) gltexfiltermode = 0;
 	else if (gltexfiltermode >= (int)numglfiltermodes) gltexfiltermode = numglfiltermodes-1;
-	
+
 	iter = PTIterNew();
 	while ((pth = PTIterNext(iter)) != 0) {
 		for (i = 0; i < PTHPIC_SIZE; i++) {
 			if (pth->pic[i] == 0 || pth->pic[i]->glpic == 0) {
 				continue;
 			}
-			bglBindTexture(GL_TEXTURE_2D,pth->pic[i]->glpic);
-			bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-			bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+			glfunc.glBindTexture(GL_TEXTURE_2D,pth->pic[i]->glpic);
+			glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+			glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 			if (glinfo.maxanisotropy > 1.0) {
-				bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+				glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 			}
 		}
 	}
@@ -358,22 +413,22 @@ void gltexapplyprops (void)
 			for (j=0;j<m->numskins*(HICEFFECTMASK+1);j++)
 			{
 				if (!m->tex[j] || !m->tex[j]->glpic) continue;
-				bglBindTexture(GL_TEXTURE_2D,m->tex[j]->glpic);
-				bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-				bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+				glfunc.glBindTexture(GL_TEXTURE_2D,m->tex[j]->glpic);
+				glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+				glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 				if (glinfo.maxanisotropy > 1.0)
-					bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+					glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 			}
 
 			for (sk=m->skinmap;sk;sk=sk->next)
 				for (j=0;j<(HICEFFECTMASK+1);j++)
 				{
 					if (!sk->tex[j] || !sk->tex[j]->glpic) continue;
-					bglBindTexture(GL_TEXTURE_2D,sk->tex[j]->glpic);
-					bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
-					bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+					glfunc.glBindTexture(GL_TEXTURE_2D,sk->tex[j]->glpic);
+					glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
+					glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
 					if (glinfo.maxanisotropy > 1.0)
-						bglTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+						glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 				}
 			}
 		}
@@ -403,13 +458,218 @@ void polymost_glreset ()
 		PTReset();
 		clearskins();
 	}
-	
-	if (polymosttext) {
-		bglDeleteTextures(1, &polymosttext);
-		polymosttext = 0;
-	}
-	
+
 	glox1 = -1;
+
+	if (glfunc.glUseProgram) {
+		glfunc.glUseProgram(0);
+		glfunc.glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
+
+	if (elementindexbuffer) {
+		glfunc.glDeleteBuffers(1, &elementindexbuffer);
+		elementindexbuffersize = 0;
+		elementindexbuffer = 0;
+	}
+	if (polymostglsl.elementbuffer) {
+		glfunc.glDeleteBuffers(1, &polymostglsl.elementbuffer);
+		polymostglsl.elementbuffer = 0;
+	}
+	if (polymostglsl.program) {
+		glfunc.glDeleteProgram(polymostglsl.program);
+		polymostglsl.program = 0;
+	}
+	if (polymostauxglsl.indexbuffer) {
+		glfunc.glDeleteBuffers(1, &polymostauxglsl.indexbuffer);
+		polymostauxglsl.indexbuffer = 0;
+	}
+	if (polymostauxglsl.program) {
+		glfunc.glDeleteProgram(polymostauxglsl.program);
+		polymostauxglsl.program = 0;
+	}
+
+	if (texttexture) {
+		glfunc.glDeleteTextures(1, &texttexture);
+		texttexture = 0;
+	}
+
+	if (nulltexture) {
+		glfunc.glDeleteTextures(1, &nulltexture);
+		nulltexture = 0;
+	}
+}
+
+static GLint polymost_get_attrib(GLuint program, const GLchar *name)
+{
+	GLint attribloc = glfunc.glGetAttribLocation(program, name);
+	if (attribloc < 0) {
+		buildprintf("polymost_get_attrib: could not get location of attribute \"%s\"\n", name);
+	}
+	return attribloc;
+}
+
+static GLint polymost_get_uniform(GLuint program, const GLchar *name)
+{
+	GLint uniformloc = glfunc.glGetUniformLocation(program, name);
+	if (uniformloc < 0) {
+		buildprintf("polymost_get_uniform: could not get location of uniform \"%s\"\n", name);
+	}
+	return uniformloc;
+}
+
+static GLuint polymost_load_shader(GLuint shadertype, const char *defaultsrc, const char *filename)
+{
+	const GLchar *shadersrc = defaultsrc;
+	GLuint shader = 0;
+
+#ifdef SHADERDEV
+	GLchar *fileshadersrc = NULL;
+	int shadersrclen = 0;
+	BFILE *shaderfh = NULL;
+
+	shaderfh = fopen(filename, "rb");
+	if (shaderfh) {
+		fseek(shaderfh, 0, SEEK_END);
+		shadersrclen = (int)ftell(shaderfh);
+		fseek(shaderfh, 0, SEEK_SET);
+
+		fileshadersrc = (GLchar *)calloc(1, shadersrclen + 1);
+		fread(fileshadersrc, shadersrclen, 1, shaderfh);
+
+		fclose(shaderfh);
+		shaderfh = NULL;
+
+		buildprintf("polymost_load_shader: loaded %s (%d bytes)\n", filename, shadersrclen);
+		shadersrc = fileshadersrc;
+	}
+#endif
+
+	shader = glbuild_compile_shader(shadertype, shadersrc);
+
+#ifdef SHADERDEV
+	if (fileshadersrc) {
+		free(fileshadersrc);
+		fileshadersrc = NULL;
+	}
+#endif
+
+	return shader;
+}
+
+static void checkindexbuffer(int size)
+{
+	GLushort *indexes, i;
+
+	if (size <= elementindexbuffersize) return;
+
+	indexes = (GLushort *) malloc(sizeof(GLushort)*size);
+	for (i = 0; i < size; i++) indexes[i] = i;
+	glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
+	glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*size, indexes, GL_STATIC_DRAW);
+	free(indexes);
+
+	elementindexbuffersize = size;
+}
+
+static void polymost_loadshaders(void)
+{
+	extern const char default_polymost_glsl_fs[];
+	extern const char default_polymost_glsl_vs[];
+
+	extern const char default_polymostaux_glsl_fs[];
+	extern const char default_polymostaux_glsl_vs[];
+
+	GLuint shader[2] = {0,0};
+
+	// General texture rendering shader.
+	if (polymostglsl.program) {
+		glfunc.glDeleteProgram(polymostglsl.program);
+		polymostglsl.program = 0;
+	}
+
+	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
+		default_polymost_glsl_vs, "polymost.glsl_vs");
+	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
+		default_polymost_glsl_fs, "polymost.glsl_fs");
+	if (shader[0] && shader[1]) {
+		polymostglsl.program = glbuild_link_program(2, shader);
+	}
+	if (shader[0]) glfunc.glDeleteShader(shader[0]);
+	if (shader[1]) glfunc.glDeleteShader(shader[1]);
+
+	if (polymostglsl.program) {
+		polymostglsl.attrib_vertex       = polymost_get_attrib(polymostglsl.program, "a_vertex");
+		polymostglsl.attrib_texcoord     = polymost_get_attrib(polymostglsl.program, "a_texcoord");
+		polymostglsl.uniform_modelview   = polymost_get_uniform(polymostglsl.program, "u_modelview");
+		polymostglsl.uniform_projection  = polymost_get_uniform(polymostglsl.program, "u_projection");
+		polymostglsl.uniform_texture     = polymost_get_uniform(polymostglsl.program, "u_texture");
+		polymostglsl.uniform_glowtexture = polymost_get_uniform(polymostglsl.program, "u_glowtexture");
+		polymostglsl.uniform_alphacut    = polymost_get_uniform(polymostglsl.program, "u_alphacut");
+		polymostglsl.uniform_colour      = polymost_get_uniform(polymostglsl.program, "u_colour");
+		polymostglsl.uniform_fogcolour   = polymost_get_uniform(polymostglsl.program, "u_fogcolour");
+		polymostglsl.uniform_fogdensity  = polymost_get_uniform(polymostglsl.program, "u_fogdensity");
+
+		glfunc.glUseProgram(polymostglsl.program);
+		glfunc.glUniform1i(polymostglsl.uniform_texture, 0);		//GL_TEXTURE0
+		glfunc.glUniform1i(polymostglsl.uniform_glowtexture, 1);	//GL_TEXTURE1
+
+		// Generate a buffer object for vertex/colour elements and pre-allocate its memory.
+		glfunc.glGenBuffers(1, &polymostglsl.elementbuffer);
+		polymostglsl.elementbuffersize = MINVBOINDEXES;
+		glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostglsl.elementbuffer);
+		glfunc.glBufferData(GL_ARRAY_BUFFER, sizeof(struct polymostvboitem)*MINVBOINDEXES, NULL, GL_STREAM_DRAW);
+	}
+
+	// A fully transparent texture for the case when a glow texture is not needed.
+	if (!nulltexture) {
+		const char pix = 0;
+		glfunc.glGenTextures(1, &nulltexture);
+		glfunc.glBindTexture(GL_TEXTURE_2D, nulltexture);
+		glfunc.glTexImage2D(GL_TEXTURE_2D,0,GL_ALPHA,1,1,0,GL_ALPHA,GL_UNSIGNED_BYTE,(GLvoid*)&pix);
+		glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+		glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	}
+
+	// Engine auxiliary shader.
+	if (polymostauxglsl.program) {
+		glfunc.glDeleteProgram(polymostauxglsl.program);
+		polymostauxglsl.program = 0;
+	}
+
+	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
+		default_polymostaux_glsl_vs, "polymostaux.glsl_vs");
+	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
+		default_polymostaux_glsl_fs, "polymostaux.glsl_fs");
+	if (shader[0] && shader[1]) {
+		polymostauxglsl.program = glbuild_link_program(2, shader);
+	}
+	if (shader[0]) glfunc.glDeleteShader(shader[0]);
+	if (shader[1]) glfunc.glDeleteShader(shader[1]);
+
+	if (polymostauxglsl.program) {
+		polymostauxglsl.attrib_vertex    = polymost_get_attrib(polymostauxglsl.program, "a_vertex");
+		polymostauxglsl.attrib_texcoord  = polymost_get_attrib(polymostauxglsl.program, "a_texcoord");
+		polymostauxglsl.uniform_projection = polymost_get_uniform(polymostauxglsl.program, "u_projection");
+		polymostauxglsl.uniform_texture  = polymost_get_uniform(polymostauxglsl.program, "u_texture");
+		polymostauxglsl.uniform_colour   = polymost_get_uniform(polymostauxglsl.program, "u_colour");
+		polymostauxglsl.uniform_bgcolour = polymost_get_uniform(polymostauxglsl.program, "u_bgcolour");
+		polymostauxglsl.uniform_mode     = polymost_get_uniform(polymostauxglsl.program, "u_mode");
+
+		glfunc.glUseProgram(polymostauxglsl.program);
+		glfunc.glUniform1i(polymostauxglsl.uniform_texture, 0);	//GL_TEXTURE0
+
+		// Generate a buffer object for vertex/colour elements and pre-allocate its memory.
+		glfunc.glGenBuffers(1, &polymostauxglsl.elementbuffer);
+
+		// Generate a buffer object for ad-hoc indexes.
+		glfunc.glGenBuffers(1, &polymostauxglsl.indexbuffer);
+	}
+
+	// Generate a buffer object for element indexes and populate it with an
+	// initial set of ascending indices, the way drawpoly() will generate points.
+	glfunc.glGenBuffers(1, &elementindexbuffer);
+	checkindexbuffer(MINVBOINDEXES);
 }
 
 // one-time initialisation of OpenGL for polymost
@@ -417,32 +677,20 @@ void polymost_glinit()
 {
 	GLfloat col[4];
 
-	bglEnable(GL_TEXTURE_2D);
-	bglShadeModel(GL_SMOOTH); //GL_FLAT
-	bglClearColor(0,0,0,0.5); //Black Background
-	bglHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST); //Use FASTEST for ortho!
-	bglDisable(GL_DITHER);
+	glfunc.glClearColor(0,0,0,0.5); //Black Background
+	glfunc.glDisable(GL_DITHER);
 
-	bglFogi(GL_FOG_MODE,GL_EXP); //GL_EXP(default),GL_EXP2,GL_LINEAR
-	//bglHint(GL_FOG_HINT,GL_NICEST);
-	bglFogf(GL_FOG_DENSITY,1.0); //must be > 0, default is 1
-	bglFogf(GL_FOG_START,0.0); //default is 0
-	bglFogf(GL_FOG_END,1.0); //default is 1
-	col[0] = 0; col[1] = 0; col[2] = 0; col[3] = 0; //range:0 to 1
-	bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
+	glfunc.glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-	bglBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-
-	//bglHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-	//bglEnable(GL_LINE_SMOOTH);
-
-	bglPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	glfunc.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	if (glmultisample > 0 && glinfo.multisample) {
 		if (glinfo.nvmultisamplehint)
-			bglHint(GL_MULTISAMPLE_FILTER_HINT_NV, glnvmultisamplehint ? GL_NICEST:GL_FASTEST);
-		bglEnable(GL_MULTISAMPLE_ARB);
+			glfunc.glHint(GL_MULTISAMPLE_FILTER_HINT_NV, glnvmultisamplehint ? GL_NICEST:GL_FASTEST);
+		glfunc.glEnable(GL_MULTISAMPLE_ARB);
 	}
+
+	polymost_loadshaders();
 }
 
 void resizeglcheck ()
@@ -451,7 +699,7 @@ void resizeglcheck ()
 
 	if (glredbluemode < lastglredbluemode) {
 		glox1 = -1;
-		bglColorMask(1,1,1,1);
+		glfunc.glColorMask(1,1,1,1);
 	} else if (glredbluemode != lastglredbluemode) {
 		redblueclearcnt = 0;
 	}
@@ -464,16 +712,15 @@ void resizeglcheck ()
 		switch(glpolygonmode)
 		{
 			default:
-			case 0: bglPolygonMode(GL_FRONT_AND_BACK,GL_FILL); break;
-			case 1: bglPolygonMode(GL_FRONT_AND_BACK,GL_LINE); break;
-			case 2: bglPolygonMode(GL_FRONT_AND_BACK,GL_POINT); break;
+			case 0: glfunc.glPolygonMode(GL_FRONT_AND_BACK,GL_FILL); break;
+			case 1: glfunc.glPolygonMode(GL_FRONT_AND_BACK,GL_LINE); break;
+			case 2: glfunc.glPolygonMode(GL_FRONT_AND_BACK,GL_POINT); break;
 		}
 	}
 	if (glpolygonmode) //FUK
 	{
-		bglClearColor(1.0,1.0,1.0,0.0);
-		bglClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-		bglDisable(GL_TEXTURE_2D);
+		glfunc.glClearColor(1.0,1.0,1.0,0.0);
+		glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	}
 
 	if ((glox1 != windowx1) || (gloy1 != windowy1) || (glox2 != windowx2) || (gloy2 != windowy2))
@@ -481,24 +728,215 @@ void resizeglcheck ()
 		glox1 = windowx1; gloy1 = windowy1;
 		glox2 = windowx2; gloy2 = windowy2;
 
-		bglViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
+		glfunc.glViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
+	}
+}
 
-		bglMatrixMode(GL_PROJECTION);
-		memset(m,0,sizeof(m));
-		m[0][0] = (float)ydimen; m[0][2] = 1.0;
-		m[1][1] = (float)xdimen; m[1][2] = 1.0;
-		m[2][2] = 1.0; m[2][3] = (float)ydimen;
-		m[3][2] =-1.0;
-		bglLoadMatrixf(&m[0][0]);
+void polymost_setview(void)
+{
+	memset(gdrawroomsprojmat,0,sizeof(gdrawroomsprojmat));
+	gdrawroomsprojmat[0][0] = (float)ydimen; gdrawroomsprojmat[0][2] = 1.0;
+	gdrawroomsprojmat[1][1] = (float)xdimen; gdrawroomsprojmat[1][2] = 1.0;
+	gdrawroomsprojmat[2][2] = 1.0; gdrawroomsprojmat[2][3] = (float)ydimen;
+	gdrawroomsprojmat[3][2] =-1.0;
 
-		bglMatrixMode(GL_MODELVIEW);
-		bglLoadIdentity();
+	memset(grotatespriteprojmat,0,sizeof(grotatespriteprojmat));
+	grotatespriteprojmat[0][0] = grotatespriteprojmat[2][3] = 1.0;
+	grotatespriteprojmat[1][1] = ((float)xdim)/((float)ydim);
+	grotatespriteprojmat[2][2] = 1.0001;
+	grotatespriteprojmat[3][2] = 1-grotatespriteprojmat[2][2];
 
-		if (!glinfo.hack_nofog) {
-			bglEnable(GL_FOG);
-			fog_is_on = 1;
+	memset(gorthoprojmat,0,sizeof(gorthoprojmat));
+	gorthoprojmat[0][0] = 2/(float)xdim;
+	gorthoprojmat[1][1] = -2/(float)ydim;
+	gorthoprojmat[2][2] = -1.0;
+	gorthoprojmat[3][3] = 1.0;
+	gorthoprojmat[3][0] = -1.0;
+	gorthoprojmat[3][1] = 1.0;
+}
+
+void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
+{
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawpoly_glcall++;
+#endif
+
+	glfunc.glUseProgram(polymostglsl.program);
+
+	if (draw->elementbuffer > 0) {
+		glfunc.glBindBuffer(GL_ARRAY_BUFFER, draw->elementbuffer);
+	} else {
+		// Drawing from the passed elementvbo items.
+		glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostglsl.elementbuffer);
+		if (draw->elementcount > polymostglsl.elementbuffersize) {
+			// Element buffer needs to grow.
+			glfunc.glBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
+			polymostglsl.elementbuffersize = draw->elementcount;
+		} else {
+			glfunc.glBufferSubData(GL_ARRAY_BUFFER, 0, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo);
 		}
 	}
+
+	if (draw->indexbuffer > 0) {
+		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, draw->indexbuffer);
+	} else {
+		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
+		checkindexbuffer(draw->indexcount);
+	}
+
+	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_vertex);
+	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_texcoord);
+
+	glfunc.glVertexAttribPointer(polymostglsl.attrib_vertex, 3, GL_FLOAT, GL_FALSE,
+		sizeof(struct polymostvboitem), (const GLvoid *)offsetof(struct polymostvboitem, v));
+	glfunc.glVertexAttribPointer(polymostglsl.attrib_texcoord, 2, GL_FLOAT, GL_FALSE,
+		sizeof(struct polymostvboitem), (const GLvoid *)offsetof(struct polymostvboitem, t));
+
+	glfunc.glActiveTexture(GL_TEXTURE0);
+	glfunc.glBindTexture(GL_TEXTURE_2D, draw->texture0);
+
+	glfunc.glActiveTexture(GL_TEXTURE1);
+	glfunc.glBindTexture(GL_TEXTURE_2D, draw->texture1 ? draw->texture1 : nulltexture);
+
+	glfunc.glUniform1f(polymostglsl.uniform_alphacut, draw->alphacut);
+
+	glfunc.glUniform4f(
+		polymostglsl.uniform_colour,
+		draw->colour.r, draw->colour.g, draw->colour.b, draw->colour.a
+	);
+	glfunc.glUniform4f(
+		polymostglsl.uniform_fogcolour,
+		draw->fogcolour.r, draw->fogcolour.g, draw->fogcolour.b, draw->fogcolour.a
+	);
+	glfunc.glUniform1f(
+		polymostglsl.uniform_fogdensity,
+		draw->fogdensity
+	);
+
+	glfunc.glUniformMatrix4fv(polymostglsl.uniform_modelview, 1, GL_FALSE, draw->modelview);
+	glfunc.glUniformMatrix4fv(polymostglsl.uniform_projection, 1, GL_FALSE, draw->projection);
+
+	glfunc.glDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
+
+	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_vertex);
+	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_texcoord);
+}
+
+static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *draw)
+{
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawaux_glcall++;
+#endif
+
+	glfunc.glUseProgram(polymostauxglsl.program);
+
+	glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostauxglsl.elementbuffer);
+	glfunc.glBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
+
+	if (draw->indexes) {
+		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, polymostauxglsl.indexbuffer);
+		glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indexcount * sizeof(GLushort), draw->indexes, GL_STREAM_DRAW);
+	} else {
+		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
+		checkindexbuffer(draw->indexcount);
+	}
+
+	glfunc.glEnableVertexAttribArray(polymostauxglsl.attrib_vertex);
+	glfunc.glEnableVertexAttribArray(polymostauxglsl.attrib_texcoord);
+
+	glfunc.glVertexAttribPointer(polymostauxglsl.attrib_vertex, 3, GL_FLOAT, GL_FALSE,
+		sizeof(struct polymostvboitem), (const GLvoid *)offsetof(struct polymostvboitem, v));
+	glfunc.glVertexAttribPointer(polymostauxglsl.attrib_texcoord, 2, GL_FLOAT, GL_FALSE,
+		sizeof(struct polymostvboitem), (const GLvoid *)offsetof(struct polymostvboitem, t));
+
+	glfunc.glActiveTexture(GL_TEXTURE0);
+	glfunc.glBindTexture(GL_TEXTURE_2D, draw->texture0);
+
+	glfunc.glUniform4f(
+		polymostauxglsl.uniform_colour,
+		draw->colour.r, draw->colour.g, draw->colour.b, draw->colour.a
+	);
+	glfunc.glUniform4f(
+		polymostauxglsl.uniform_bgcolour,
+		draw->bgcolour.r, draw->bgcolour.g, draw->bgcolour.b, draw->bgcolour.a
+	);
+	glfunc.glUniform1i(polymostauxglsl.uniform_mode, draw->mode);
+
+	glfunc.glUniformMatrix4fv(polymostauxglsl.uniform_projection, 1, GL_FALSE, &gorthoprojmat[0][0]);
+
+	glfunc.glDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
+
+	glfunc.glDisableVertexAttribArray(polymostauxglsl.attrib_vertex);
+	glfunc.glDisableVertexAttribArray(polymostauxglsl.attrib_texcoord);
+}
+
+void polymost_nextpage(void)
+{
+	polymost_palfade();
+
+#ifdef DEBUGGINGAIDS
+	if (polymostshowcallcounts) {
+		char buf[1024];
+		sprintf(buf,
+			"drawpoly_glcall(%d) drawaux_glcall(%d) "
+			"drawpoly(%d) domost(%d)",
+	    		polymostcallcounts.drawpoly_glcall,
+	    		polymostcallcounts.drawaux_glcall,
+	    		polymostcallcounts.drawpoly,
+	    		polymostcallcounts.domost
+		);
+		polymost_printext256(0, 8, 31, -1, buf, 1);
+	}
+	memset(&polymostcallcounts, 0, sizeof(polymostcallcounts));
+#endif
+}
+
+int polymost_palfade(void)
+{
+#ifndef USE_OPENGL
+	return -1;
+#else
+	struct polymostdrawauxcall draw;
+	struct polymostvboitem vboitem[4];
+
+	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
+	if (palfadedelta == 0) return 0;
+
+	draw.mode = 2;	// Solid colour.
+
+	draw.colour.r = palfadergb.r / 255.f;
+	draw.colour.g = palfadergb.g / 255.f;
+	draw.colour.b = palfadergb.b / 255.f;
+	draw.colour.a = palfadedelta / 255.f;
+
+	vboitem[0].v.x = 0.f;
+	vboitem[0].v.y = 0.f;
+	vboitem[0].v.z = 0.f;
+
+	vboitem[1].v.x = (float)xdim;
+	vboitem[1].v.y = 0.f;
+	vboitem[1].v.z = 0.f;
+
+	vboitem[2].v.x = (float)xdim;
+	vboitem[2].v.y = (float)ydim;
+	vboitem[2].v.z = 0.f;
+
+	vboitem[3].v.x = 0.f;
+	vboitem[3].v.y = (float)ydim;
+	vboitem[3].v.z = 0.f;
+
+	draw.indexcount = 4;
+	draw.indexes = NULL;
+	draw.elementcount = 4;
+	draw.elementvbo = vboitem;
+
+	glfunc.glDisable(GL_DEPTH_TEST);
+	glfunc.glEnable(GL_BLEND);
+
+	polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
+
+	return 0;
+#endif
 }
 
 #endif
@@ -507,7 +945,6 @@ void resizeglcheck ()
 	//    n must be <= 8 (assume clipping can double number of vertices)
 	//method: 0:solid, 1:masked(255 is transparent), 2:transluscent #1, 3:transluscent #2
 	//    +4 means it's a sprite, so wraparound isn't needed
-static int pow2xsplit = 0, skyclamphack = 0;
 void drawpoly (double *dpx, double *dpy, int n, int method)
 {
 	#define PI 3.14159265358979323
@@ -518,8 +955,9 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 	int i, j, k, x, y, z, nn, ix0, ix1, mini, maxi, tsizx, tsizy, tsizxm1 = 0, tsizym1 = 0, ltsizy = 0;
 	int xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0, ymulnice = 0, dorot;
 	unsigned char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
-#ifdef USE_OPENGL
-	PTHead * pth = 0;
+
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawpoly++;
 #endif
 
 	if (method == -1) return;
@@ -600,33 +1038,58 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 #ifdef USE_OPENGL
 	if (rendmode == 3)
 	{
-		float hackscx, hackscy, alphac = 0.0;
+		float hackscx, hackscy;
 		unsigned short ptflags = 0;
-		int drawlayers = 1 << PTHPIC_BASE, drawinglayer = PTHPIC_BASE, picidx = PTHPIC_BASE;
-		GLuint glpic = 0;
-		
-		if (skyclamphack) method |= METH_CLAMPED;
-		
+		int picidx = PTHPIC_BASE;
+		PTHead * pth = 0;
+		struct polymostdrawpolycall draw;
+		struct polymostvboitem vboitem[MINVBOINDEXES];
+
 		if (usehightile) ptflags |= PTH_HIGHTILE;
 		if (method & METH_CLAMPED) ptflags |= PTH_CLAMPED;
 		if (drawingskybox) ptflags |= PTH_SKYBOX;
-		
+
 		pth = PT_GetHead(globalpicnum, globalpal, ptflags, 0);
+
+		// Base texture.
+		draw.texture0 = 0;
 		if (pth) {
 			if (drawingskybox) {
 				picidx = drawingskybox - 1;
 			}
 			if (pth->pic[picidx]) {
-				glpic = pth->pic[picidx]->glpic;
+				draw.texture0 = pth->pic[picidx]->glpic;
 			}
 		}
-		bglBindTexture(GL_TEXTURE_2D, glpic);
-		
+
+		// Glow texture.
+		draw.texture1 = nulltexture;
 		if ((method & METH_LAYERS) && pth && !drawingskybox) {
 			if (pth->pic[ PTHPIC_GLOW ]) {
-				drawlayers |= (1 << PTHPIC_GLOW);
+				draw.texture1 = pth->pic[ PTHPIC_GLOW ]->glpic;
 			}
 		}
+
+		if (!(method & (METH_MASKED | METH_TRANS))) {
+			glfunc.glDisable(GL_BLEND);
+			draw.alphacut = 0.f;
+		} else {
+			float alphac = 0.32;
+			if (pth && pth->repldef && pth->repldef->alphacut >= 0.0) {
+				alphac = pth->repldef->alphacut;
+			}
+			if (usegoodalpha) alphac = 0.0;
+			if (!waloff[globalpicnum]) alphac = 0.0;	// invalid textures ignore the alpha cutoff settings
+
+			glfunc.glEnable(GL_BLEND);
+			draw.alphacut = alphac;
+		}
+
+		draw.fogcolour.r = (float)palookupfog[gfogpalnum].r / 63.f;
+		draw.fogcolour.g = (float)palookupfog[gfogpalnum].g / 63.f;
+		draw.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
+		draw.fogcolour.a = 1.f;
+		draw.fogdensity = gfogdensity;
 
 		hackscx = pth->scalex;
 		hackscy = pth->scaley;
@@ -636,21 +1099,6 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 		yy      = pth->pic[picidx]->sizy;
 		ox2     = (double)1.0/(double)xx;
 		oy2     = (double)1.0/(double)yy;
-
-		if (!(method & (METH_MASKED | METH_TRANS))) {
-			bglDisable(GL_BLEND);
-			bglDisable(GL_ALPHA_TEST);
-		} else {
-			float al = 0.32;
-			if (pth && pth->repldef && pth->repldef->alphacut >= 0.0) {
-				al = pth->repldef->alphacut;
-			}
-			if (usegoodalpha) al = 0.0;
-			if (!waloff[globalpicnum]) al = 0.0;	// invalid textures ignore the alpha cutoff settings
-			bglEnable(GL_BLEND);
-			bglEnable(GL_ALPHA_TEST);
-			bglAlphaFunc(GL_GREATER,al);
-		}
 
 		if (!dorot)
 		{
@@ -662,33 +1110,38 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 			}
 		}
 
+		draw.colour.r = draw.colour.g = draw.colour.b =
+			((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
+		switch(method & (METH_MASKED | METH_TRANS))
 		{
-			float pc[3];
-			f = ((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
-			pc[0] = pc[1] = pc[2] = f;
-			switch(method & (METH_MASKED | METH_TRANS))
-			{
-				case METH_SOLID:   alphac = 1.0; break;
-				case METH_MASKED:  alphac = 1.0; break;
-				case METH_TRANS:   alphac = 0.66; break;
-				case METH_INTRANS: alphac = 0.33; break;
-			}
-			// tinting happens only to hightile textures, and only if the texture we're
-			// rendering isn't for the same palette as what we asked for
-			if (pth && (pth->flags & PTH_HIGHTILE) && (globalpal != pth->repldef->palnum)) {
-				// apply tinting for replaced textures
-				pc[0] *= (float)hictinting[globalpal].r / 255.0;
-				pc[1] *= (float)hictinting[globalpal].g / 255.0;
-				pc[2] *= (float)hictinting[globalpal].b / 255.0;
-			}
-			bglColor4f(pc[0],pc[1],pc[2],alphac);
+			case METH_SOLID:   draw.colour.a = 1.0; break;
+			case METH_MASKED:  draw.colour.a = 1.0; break;
+			case METH_TRANS:   draw.colour.a = 0.66; break;
+			case METH_INTRANS: draw.colour.a = 0.33; break;
+		}
+		// tinting happens only to hightile textures, and only if the texture we're
+		// rendering isn't for the same palette as what we asked for
+		if (pth && (pth->flags & PTH_HIGHTILE) && (globalpal != pth->repldef->palnum)) {
+			// apply tinting for replaced textures
+			draw.colour.r *= (float)hictinting[globalpal].r / 255.0;
+			draw.colour.g *= (float)hictinting[globalpal].g / 255.0;
+			draw.colour.b *= (float)hictinting[globalpal].b / 255.0;
 		}
 
-			//Hack for walls&masked walls which use textures that are not a power of 2
-		if ((pow2xsplit) && (tsizx != xx))
-		{
-			int odrawlayers = drawlayers;
+		draw.modelview = &gidentitymat[0][0];
+		if (method & METH_ROTATESPRITE) {
+			draw.projection = &grotatespriteprojmat[0][0];
+		} else {
+			draw.projection = &gdrawroomsprojmat[0][0];
+		}
 
+		draw.indexbuffer = 0;
+		draw.elementbuffer = 0;
+		draw.elementvbo = vboitem;
+
+			//Hack for walls&masked walls which use textures that are not a power of 2
+		if ((method & METH_POW2XSPLIT) && (tsizx != xx))
+		{
 			if (!dorot)
 			{
 				ngdx = gdx; ngdy = gdy; ngdo = gdo+(ngdx+ngdy)*.5;
@@ -792,114 +1245,48 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 				} while (i);
 				if (nn < 3) continue;
 
-				drawlayers = odrawlayers;
-				drawinglayer = PTHPIC_BASE;
-				do {
-					if ((drawlayers & (1 << drawinglayer)) == 0) {
-						drawinglayer++;
-						continue;
-					}
-					
-					if (pth->pic[drawinglayer] == 0) {
-						continue;
-					}
-					
-					switch (drawinglayer) {
-						case PTHPIC_BASE:
-							bglDepthMask(GL_TRUE);
-							break;
-						case PTHPIC_GLOW:
-							bglColor4f(1.f,1.f,1.f,alphac);
-							if (fog_is_on) bglDisable(GL_FOG);
-							bglEnable(GL_BLEND);	// blend with what's under us
-							bglDepthMask(GL_FALSE);	// don't update the Z buffer
-							bglBindTexture(GL_TEXTURE_2D, pth->pic[PTHPIC_GLOW]->glpic);
-							break;
-						default:
-							break;
-					}
+				for(i=0;i<nn;i++)
+				{
+					ox = uu[i]; oy = vv[i];
+					dp = ox*ngdx + oy*ngdy + ngdo;
+					up = ox*ngux + oy*nguy + nguo;
+					vp = ox*ngvx + oy*ngvy + ngvo;
+					r = 1.0/dp;
 
-					bglBegin(GL_TRIANGLE_FAN);
-					for(i=0;i<nn;i++)
-					{
-						ox = uu[i]; oy = vv[i];
-						dp = ox*ngdx + oy*ngdy + ngdo;
-						up = ox*ngux + oy*nguy + nguo;
-						vp = ox*ngvx + oy*ngvy + ngvo;
-						r = 1.0/dp;
-						bglTexCoord2d((up*r-du0+uoffs)*ox2,vp*r*oy2);
-						bglVertex3d((ox-ghalfx)*r*grhalfxdown10x,(ghoriz-oy)*r*grhalfxdown10,r*(1.0/1024.0));
-					}
-					bglEnd();
+					vboitem[i].v.x = (ox-ghalfx)*r*grhalfxdown10x;
+					vboitem[i].v.y = (ghoriz-oy)*r*grhalfxdown10;
+					vboitem[i].v.z = r*(1.0/1024.0);
+					vboitem[i].t.s = (up*r-du0+uoffs)*ox2;
+					vboitem[i].t.t = vp*r*oy2;
+				}
+				draw.indexcount = nn;
+				draw.elementcount = nn;
 
-					switch (drawinglayer) {
-						case PTHPIC_BASE:
-							break;
-						case PTHPIC_GLOW:
-							if (fog_is_on) bglEnable(GL_FOG);
-							break;
-						default:
-							break;
-					}
-					
-					drawlayers &= ~(1 << drawinglayer);
-					drawinglayer++;
-				} while (drawlayers);
+				glfunc.glDepthMask(GL_TRUE);
+				polymost_drawpoly_glcall(GL_TRIANGLE_FAN, &draw);
 			}
 		}
-		else
+		else if (n > 0)
 		{
 			ox2 *= hackscx; oy2 *= hackscy;
 
-			do {
-				if ((drawlayers & (1 << drawinglayer)) == 0) {
-					drawinglayer++;
-					continue;
-				}
+			for(i=0;i<n;i++)
+			{
+				r = 1.0/dd[i];
 
-				if (pth->pic[drawinglayer] == 0) {
-					continue;
-				}
-				
-				switch (drawinglayer) {
-					case PTHPIC_BASE:
-						bglDepthMask(GL_TRUE);
-						break;
-					case PTHPIC_GLOW:
-						bglColor4f(1.f,1.f,1.f,alphac);
-						if (fog_is_on) bglDisable(GL_FOG);
-						bglEnable(GL_BLEND);	// blend with what's under us
-						bglDepthMask(GL_FALSE);	// don't update the Z buffer
-						bglBindTexture(GL_TEXTURE_2D, pth->pic[PTHPIC_GLOW]->glpic);
-						break;
-					default:
-						break;
-				}
-				
-				bglBegin(GL_TRIANGLE_FAN);
-				for(i=0;i<n;i++)
-				{
-					r = 1.0/dd[i];
-					bglTexCoord2d(uu[i]*r*ox2,vv[i]*r*oy2);
-					bglVertex3d((px[i]-ghalfx)*r*grhalfxdown10x,(ghoriz-py[i])*r*grhalfxdown10,r*(1.0/1024.0));
-				}
-				bglEnd();
-				
-				switch (drawinglayer) {
-					case PTHPIC_BASE:
-						break;
-					case PTHPIC_GLOW:
-						if (fog_is_on) bglEnable(GL_FOG);
-						break;
-					default:
-						break;
-				}
-				
-				drawlayers &= ~(1 << drawinglayer);
-				drawinglayer++;
-			} while (drawlayers);
+				vboitem[i].v.x = (px[i]-ghalfx)*r*grhalfxdown10x;
+				vboitem[i].v.y = (ghoriz-py[i])*r*grhalfxdown10;
+				vboitem[i].v.z = r*(1.0/1024.0);
+				vboitem[i].t.s = uu[i]*r*ox2;
+				vboitem[i].t.t = vv[i]*r*oy2;
+			}
+			draw.indexcount = n;
+			draw.elementcount = n;
+
+			glfunc.glDepthMask(GL_TRUE);
+			polymost_drawpoly_glcall(GL_TRIANGLE_FAN, &draw);
 		}
-		
+
 		return;
 	}
 #endif
@@ -1225,7 +1612,7 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 	//                /          \
 	// (px[3],py[3]).--------------.(px[2],py[2])
 	*/
-void initmosts (double *px, double *py, int n)
+static void initmosts (double *px, double *py, int n)
 {
 	int i, j, k, imin;
 
@@ -1302,7 +1689,7 @@ void initmosts (double *px, double *py, int n)
 	vsp[VSPMAX-1].n = vcnt; vsp[vcnt].p = VSPMAX-1;
 }
 
-void vsdel (int i)
+static void vsdel (int i)
 {
 	int pi, ni;
 		//Delete i
@@ -1318,7 +1705,7 @@ void vsdel (int i)
 	vsp[VSPMAX-1].n = i;
 }
 
-int vsinsaft (int i)
+static int vsinsaft (int i)
 {
 	int r;
 		//i = next element from empty list
@@ -1335,7 +1722,7 @@ int vsinsaft (int i)
 	return(r);
 }
 
-int testvisiblemost (float x0, float x1)
+static int testvisiblemost (float x0, float x1)
 {
 	int i, newi;
 
@@ -1347,15 +1734,18 @@ int testvisiblemost (float x0, float x1)
 	return(0);
 }
 
-static int domostpolymethod = 0;
-
-void domost (float x0, float y0, float x1, float y1)
+static void domost (float x0, float y0, float x1, float y1, int polymethod)
 {
 	double dpx[4], dpy[4];
 	float d, f, n, t, slop, dx, dx0, dx1, nx, nx0, ny0, nx1, ny1;
 	float spx[4], spy[4], cy[2], cv[2];
 	int i, j, k, z, ni, vcnt = 0, scnt, newi, dir, spt[4];
-	
+
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.domost++;
+#endif
+	polymethod |= METH_LAYERS;
+
 	if (x0 < x1)
 	{
 		dir = 1; //clip dmost (floor)
@@ -1369,7 +1759,7 @@ void domost (float x0, float y0, float x1, float y1)
 		dir = 0; //clip umost (ceiling)
 		//y0 += .01; y1 += .01; //necessary?
 	}
-	
+
 	slop = (y1-y0)/(x1-x0);
 	for(i=vsp[0].n;i;i=newi)
 	{
@@ -1468,24 +1858,24 @@ void domost (float x0, float y0, float x1, float y1)
 					case 1: case 2:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
-						dpx[2] = dx0; dpy[2] = ny0; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
+						dpx[2] = dx0; dpy[2] = ny0; drawpoly(dpx,dpy,3,polymethod);
 						vsp[i].cy[0] = ny0; vsp[i].ctag = gtag; break;
 					case 3: case 6:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
-						dpx[2] = dx1; dpy[2] = ny1; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
+						dpx[2] = dx1; dpy[2] = ny1; drawpoly(dpx,dpy,3,polymethod);
 						vsp[i].cy[1] = ny1; vsp[i].ctag = gtag; break;
 					case 4: case 5: case 7:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = ny1;
-						dpx[3] = dx0; dpy[3] = ny0; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
+						dpx[3] = dx0; dpy[3] = ny0; drawpoly(dpx,dpy,4,polymethod);
 						vsp[i].cy[0] = ny0; vsp[i].cy[1] = ny1; vsp[i].ctag = gtag; break;
 					case 8:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,polymethod);
 						vsp[i].ctag = vsp[i].ftag = -1; break;
 					default: break;
 				}
@@ -1497,31 +1887,31 @@ void domost (float x0, float y0, float x1, float y1)
 					case 7: case 6:
 						dpx[0] = dx0; dpy[0] = ny0;
 						dpx[1] = dx1; dpy[1] = vsp[i].fy[1];
-						dpx[2] = dx0; dpy[2] = vsp[i].fy[0]; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
+						dpx[2] = dx0; dpy[2] = vsp[i].fy[0]; drawpoly(dpx,dpy,3,polymethod);
 						vsp[i].fy[0] = ny0; vsp[i].ftag = gtag; break;
 					case 5: case 2:
 						dpx[0] = dx0; dpy[0] = vsp[i].fy[0];
 						dpx[1] = dx1; dpy[1] = ny1;
-						dpx[2] = dx1; dpy[2] = vsp[i].fy[1]; drawpoly(dpx,dpy,3,domostpolymethod | METH_LAYERS);
+						dpx[2] = dx1; dpy[2] = vsp[i].fy[1]; drawpoly(dpx,dpy,3,polymethod);
 						vsp[i].fy[1] = ny1; vsp[i].ftag = gtag; break;
 					case 4: case 3: case 1:
 						dpx[0] = dx0; dpy[0] = ny0;
 						dpx[1] = dx1; dpy[1] = ny1;
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,polymethod);
 						vsp[i].fy[0] = ny0; vsp[i].fy[1] = ny1; vsp[i].ftag = gtag; break;
 					case 0:
 						dpx[0] = dx0; dpy[0] = vsp[i].cy[0];
 						dpx[1] = dx1; dpy[1] = vsp[i].cy[1];
 						dpx[2] = dx1; dpy[2] = vsp[i].fy[1];
-						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,domostpolymethod | METH_LAYERS);
+						dpx[3] = dx0; dpy[3] = vsp[i].fy[0]; drawpoly(dpx,dpy,4,polymethod);
 						vsp[i].ctag = vsp[i].ftag = -1; break;
 					default: break;
 				}
 			}
 		}
 	}
-	
+
 	gtag++;
 
 		//Combine neighboring vertical strips with matching collinear top&bottom edges
@@ -1547,20 +1937,13 @@ static void polymost_drawalls (int bunch)
 	double fx, fy, x0, x1, y0, y1, cy0, cy1, fy0, fy1, xp0, yp0, xp1, yp1, ryp0, ryp1, nx0, ny0, nx1, ny1;
 	double t, r, t0, t1, ocy0, ocy1, ofy0, ofy1, oxp0, oyp0, ft[4];
 	double oguo, ogux, oguy;
-	int i, x, y, z, cz, fz, wallnum, sectnum, nextsectnum;
+	int i, x, y, z, cz, fz, wallnum, sectnum, nextsectnum, domostmethod;
 
 	sectnum = thesector[bunchfirst[bunch]]; sec = &sector[sectnum];
 
 #ifdef USE_OPENGL
-	if (!glinfo.hack_nofog && rendmode == 3) {
-		float col[4];
-		col[0] = (float)palookupfog[sec->floorpal].r / 63.f;
-		col[1] = (float)palookupfog[sec->floorpal].g / 63.f;
-		col[2] = (float)palookupfog[sec->floorpal].b / 63.f;
-		col[3] = 0;
-		bglFogfv(GL_FOG_COLOR,col);
-		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
-	}
+	gfogpalnum = sec->floorpal;
+	gfogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
 #endif
 
 		//DRAW WALLS SECTION!
@@ -1612,7 +1995,7 @@ static void polymost_drawalls (int bunch)
 		cy1 = ((float)(cz-globalposz))*ryp1 + ghoriz;
 		fy1 = ((float)(fz-globalposz))*ryp1 + ghoriz;
 
-
+		domostmethod = 0;
 		globalpicnum = sec->floorpicnum; globalshade = sec->floorshade; globalpal = (int)((unsigned char)sec->floorpal);
 		globalorientation = sec->floorstat;
 		if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum,sectnum);
@@ -1714,26 +2097,23 @@ static void polymost_drawalls (int bunch)
 												  else { gux *= r; guy *= r; guo *= r; }
 				}
 			}
-			domostpolymethod = (globalorientation>>7)&3;
-			if (globalposz >= getflorzofslope(sectnum,globalposx,globalposy)) domostpolymethod = -1; //Back-face culling
-			pow2xsplit = 0; domost(x0,fy0,x1,fy1); //flor
-			domostpolymethod = 0;
+			domostmethod = (globalorientation>>7)&3;
+			if (globalposz >= getflorzofslope(sectnum,globalposx,globalposy)) domostmethod = -1; //Back-face culling
+			domost(x0,fy0,x1,fy1,domostmethod); //flor
 		}
 		else if ((nextsectnum < 0) || (!(sector[nextsectnum].floorstat&1)))
 		{
 				//Parallaxing sky... hacked for Ken's mountain texture; paper-sky only :/
 #ifdef USE_OPENGL
+			float tempfogdensity = gfogdensity;
 			if (rendmode == 3)
 			{
-				if (!glinfo.hack_nofog) {
-					bglDisable(GL_FOG);
-					fog_is_on = 0;
-				}
+				gfogdensity = 0.f;
 
 					//Use clamping for tiled sky textures
 				for(i=(1<<pskybits)-1;i>0;i--)
 					if (pskyoff[i] != pskyoff[i-1])
-						{ skyclamphack = 1; break; }
+						{ domostmethod = METH_CLAMPED; break; }
 			}
 #endif
 			if (bpp == 8 || !usehightile || !hicfindsubst(globalpicnum,globalpal,1))
@@ -1751,7 +2131,7 @@ static void polymost_drawalls (int bunch)
 				gux = 0; guy = 0; guo = 0;
 				gvx = 0; gvy = (double)(tilesizy[globalpicnum]-1)*gdy; gvo = (double)(tilesizy[globalpicnum-1])*gdo;
 				oy = (((double)tilesizy[globalpicnum])*dd[0]-vv[0])/vv[1];
-				if ((oy > fy0) && (oy > fy1)) domost(x0,oy,x1,oy);
+				if ((oy > fy0) && (oy > fy1)) domost(x0,oy,x1,oy,domostmethod);
 				else if ((oy > fy0) != (oy > fy1))
 				{     //  fy0                      fy1
 						//     \                    /
@@ -1759,9 +2139,9 @@ static void polymost_drawalls (int bunch)
 						//        \              /
 						//         fy1        fy0
 					ox = (oy-fy0)*(x1-x0)/(fy1-fy0) + x0;
-					if (oy > fy0) { domost(x0,oy,ox,oy); domost(ox,oy,x1,fy1); }
-							  else { domost(x0,fy0,ox,oy); domost(ox,oy,x1,oy); }
-				} else domost(x0,fy0,x1,fy1);
+					if (oy > fy0) { domost(x0,oy,ox,oy,domostmethod); domost(ox,oy,x1,fy1,domostmethod); }
+							  else { domost(x0,fy0,ox,oy,domostmethod); domost(ox,oy,x1,oy,domostmethod); }
+				} else domost(x0,fy0,x1,fy1,domostmethod);
 
 
 				gdx = 0; gdy = 0; gdo = dd[0];
@@ -1782,7 +2162,7 @@ static void polymost_drawalls (int bunch)
 					ox = fx; fx = ((double)((y<<(11-pskybits))-globalang))*oz+ghalfx;
 					if (fx > x1) { fx = x1; i = -1; }
 
-					pow2xsplit = 0; domost(ox,(ox-x0)*r+fy0,fx,(fx-x0)*r+fy0); //flor
+					domost(ox,(ox-x0)*r+fy0,fx,(fx-x0)*r+fy0,domostmethod); //flor
 				} while (i >= 0);
 
 			}
@@ -1793,8 +2173,7 @@ static void polymost_drawalls (int bunch)
 				double nfy0, nfy1;
 				int skywalx[4] = {-512,512,512,-512}, skywaly[4] = {-512,-512,512,512};
 
-				pow2xsplit = 0;
-				skyclamphack = 1;
+				domostmethod = METH_CLAMPED;
 
 				for(i=0;i<4;i++)
 				{
@@ -1884,7 +2263,7 @@ static void polymost_drawalls (int bunch)
 #ifdef USE_OPENGL
 					drawingskybox = 6; //ceiling/5th texture/index 4 of skybox
 #endif
-					if ((_fy0 > nfy0) && (_fy1 > nfy1)) domost(_x0,_fy0,_x1,_fy1);
+					if ((_fy0 > nfy0) && (_fy1 > nfy1)) domost(_x0,_fy0,_x1,_fy1,domostmethod);
 					else if ((_fy0 > nfy0) != (_fy1 > nfy1))
 					{
 							//(ox,oy) is intersection of: (_x0,_cy0)-(_x1,_cy1)
@@ -1895,9 +2274,9 @@ static void polymost_drawalls (int bunch)
 						t = (_fy0-nfy0)/(nfy1-nfy0-_fy1+_fy0);
 						ox = _x0 + (_x1-_x0)*t;
 						oy = _fy0 + (_fy1-_fy0)*t;
-						if (nfy0 > _fy0) { domost(_x0,nfy0,ox,oy); domost(ox,oy,_x1,_fy1); }
-										else { domost(_x0,_fy0,ox,oy); domost(ox,oy,_x1,nfy1); }
-					} else domost(_x0,nfy0,_x1,nfy1);
+						if (nfy0 > _fy0) { domost(_x0,nfy0,ox,oy,domostmethod); domost(ox,oy,_x1,_fy1,domostmethod); }
+										else { domost(_x0,_fy0,ox,oy,domostmethod); domost(ox,oy,_x1,nfy1,domostmethod); }
+					} else domost(_x0,nfy0,_x1,nfy1,domostmethod);
 
 						//wall of skybox
 #ifdef USE_OPENGL
@@ -1915,7 +2294,7 @@ static void polymost_drawalls (int bunch)
 					gvx = (_t0-_t1)*t;
 					gvy = (_ox1-_ox0)*t;
 					gvo = -gvx*_ox0 - gvy*_t0;
-					if ((_cy0 > nfy0) && (_cy1 > nfy1)) domost(_x0,_cy0,_x1,_cy1);
+					if ((_cy0 > nfy0) && (_cy1 > nfy1)) domost(_x0,_cy0,_x1,_cy1,domostmethod);
 					else if ((_cy0 > nfy0) != (_cy1 > nfy1))
 					{
 							//(ox,oy) is intersection of: (_x0,_fy0)-(_x1,_fy1)
@@ -1926,9 +2305,9 @@ static void polymost_drawalls (int bunch)
 						t = (_cy0-nfy0)/(nfy1-nfy0-_cy1+_cy0);
 						ox = _x0 + (_x1-_x0)*t;
 						oy = _cy0 + (_cy1-_cy0)*t;
-						if (nfy0 > _cy0) { domost(_x0,nfy0,ox,oy); domost(ox,oy,_x1,_cy1); }
-										else { domost(_x0,_cy0,ox,oy); domost(ox,oy,_x1,nfy1); }
-					} else domost(_x0,nfy0,_x1,nfy1);
+						if (nfy0 > _cy0) { domost(_x0,nfy0,ox,oy,domostmethod); domost(ox,oy,_x1,_cy1,domostmethod); }
+										else { domost(_x0,_cy0,ox,oy,domostmethod); domost(ox,oy,_x1,nfy1,domostmethod); }
+					} else domost(_x0,nfy0,_x1,nfy1,domostmethod);
 				}
 
 					//Floor of skybox
@@ -1947,9 +2326,8 @@ static void polymost_drawalls (int bunch)
 				guo = (double)ft[0]*gdo; gvo = (double)ft[1]*gdo;
 				guo += (double)(ft[2]-gux)*ghalfx;
 				gvo -= (double)(ft[3]+gvx)*ghalfx;
-				domost(x0,fy0,x1,fy1);
+				domost(x0,fy0,x1,fy1,domostmethod);
 
-				skyclamphack = 0;
 #ifdef USE_OPENGL
 				drawingskybox = 0;
 #endif
@@ -1957,15 +2335,12 @@ static void polymost_drawalls (int bunch)
 #ifdef USE_OPENGL
 			if (rendmode == 3)
 			{
-				skyclamphack = 0;
-				if (!glinfo.hack_nofog) {
-					bglEnable(GL_FOG);
-					fog_is_on = 1;
-				}
+				gfogdensity = tempfogdensity;
 			}
 #endif
 		}
 
+		domostmethod = 0;
 		globalpicnum = sec->ceilingpicnum; globalshade = sec->ceilingshade; globalpal = (int)((unsigned char)sec->ceilingpal);
 		globalorientation = sec->ceilingstat;
 		if (picanm[globalpicnum]&192) globalpicnum += animateoffs(globalpicnum,sectnum);
@@ -2065,25 +2440,22 @@ static void polymost_drawalls (int bunch)
 												  else { gux *= r; guy *= r; guo *= r; }
 				}
 			}
-			domostpolymethod = (globalorientation>>7)&3;
-			if (globalposz <= getceilzofslope(sectnum,globalposx,globalposy)) domostpolymethod = -1; //Back-face culling
-			pow2xsplit = 0; domost(x1,cy1,x0,cy0); //ceil
-			domostpolymethod = 0;
+			domostmethod = (globalorientation>>7)&3;
+			if (globalposz <= getceilzofslope(sectnum,globalposx,globalposy)) domostmethod = -1; //Back-face culling
+			domost(x1,cy1,x0,cy0,domostmethod); //ceil
 		}
 		else if ((nextsectnum < 0) || (!(sector[nextsectnum].ceilingstat&1)))
 		{
 #ifdef USE_OPENGL
+			float tempfogdensity = gfogdensity;
 			if (rendmode == 3)
 			{
-				if (!glinfo.hack_nofog) {
-					bglDisable(GL_FOG);
-					fog_is_on = 0;
-				}
+				gfogdensity = 0.f;
 
 					//Use clamping for tiled sky textures
 				for(i=(1<<pskybits)-1;i>0;i--)
 					if (pskyoff[i] != pskyoff[i-1])
-						{ skyclamphack = 1; break; }
+						{ domostmethod = METH_CLAMPED; break; }
 			}
 #endif
 				//Parallaxing sky...
@@ -2102,7 +2474,7 @@ static void polymost_drawalls (int bunch)
 				gux = 0; guy = 0; guo = 0;
 				gvx = 0; gvy = 0; gvo = 0;
 				oy = -vv[0]/vv[1];
-				if ((oy < cy0) && (oy < cy1)) domost(x1,oy,x0,oy);
+				if ((oy < cy0) && (oy < cy1)) domost(x1,oy,x0,oy,domostmethod);
 				else if ((oy < cy0) != (oy < cy1))
 				{      /*         cy1        cy0
 						//        /             \
@@ -2111,9 +2483,9 @@ static void polymost_drawalls (int bunch)
 						//  cy0                     cy1
 						*/
 					ox = (oy-cy0)*(x1-x0)/(cy1-cy0) + x0;
-					if (oy < cy0) { domost(ox,oy,x0,oy); domost(x1,cy1,ox,oy); }
-								else { domost(ox,oy,x0,cy0); domost(x1,oy,ox,oy); }
-				} else domost(x1,cy1,x0,cy0);
+					if (oy < cy0) { domost(ox,oy,x0,oy,domostmethod); domost(x1,cy1,ox,oy,domostmethod); }
+								else { domost(ox,oy,x0,cy0,domostmethod); domost(x1,oy,ox,oy,domostmethod); }
+				} else domost(x1,cy1,x0,cy0,domostmethod);
 
 				gdx = 0; gdy = 0; gdo = dd[0];
 				gux = gdo*(t*((double)xdimscale)*((double)yxaspect)*((double)viewingrange))/(16384.0*65536.0*65536.0*5.0*1024.0);
@@ -2132,7 +2504,7 @@ static void polymost_drawalls (int bunch)
 					y++;
 					ox = fx; fx = ((double)((y<<(11-pskybits))-globalang))*oz+ghalfx;
 					if (fx > x1) { fx = x1; i = -1; }
-					pow2xsplit = 0; domost(fx,(fx-x0)*r+cy0,ox,(ox-x0)*r+cy0); //ceil
+					domost(fx,(fx-x0)*r+cy0,ox,(ox-x0)*r+cy0,domostmethod); //ceil
 				} while (i >= 0);
 			}
 			else
@@ -2142,8 +2514,7 @@ static void polymost_drawalls (int bunch)
 				double ncy0, ncy1;
 				int skywalx[4] = {-512,512,512,-512}, skywaly[4] = {-512,-512,512,512};
 
-				pow2xsplit = 0;
-				skyclamphack = 1;
+				domostmethod = METH_CLAMPED;
 
 				for(i=0;i<4;i++)
 				{
@@ -2232,7 +2603,7 @@ static void polymost_drawalls (int bunch)
 					guo = (double)ft[0]*gdo; gvo = (double)ft[1]*gdo;
 					guo += (double)(ft[2]-gux)*ghalfx;
 					gvo -= (double)(ft[3]+gvx)*ghalfx;
-					if ((_cy0 < ncy0) && (_cy1 < ncy1)) domost(_x1,_cy1,_x0,_cy0);
+					if ((_cy0 < ncy0) && (_cy1 < ncy1)) domost(_x1,_cy1,_x0,_cy0,domostmethod);
 					else if ((_cy0 < ncy0) != (_cy1 < ncy1))
 					{
 							//(ox,oy) is intersection of: (_x0,_cy0)-(_x1,_cy1)
@@ -2243,9 +2614,9 @@ static void polymost_drawalls (int bunch)
 						t = (_cy0-ncy0)/(ncy1-ncy0-_cy1+_cy0);
 						ox = _x0 + (_x1-_x0)*t;
 						oy = _cy0 + (_cy1-_cy0)*t;
-						if (ncy0 < _cy0) { domost(ox,oy,_x0,ncy0); domost(_x1,_cy1,ox,oy); }
-										else { domost(ox,oy,_x0,_cy0); domost(_x1,ncy1,ox,oy); }
-					} else domost(_x1,ncy1,_x0,ncy0);
+						if (ncy0 < _cy0) { domost(ox,oy,_x0,ncy0,domostmethod); domost(_x1,_cy1,ox,oy,domostmethod); }
+										else { domost(ox,oy,_x0,_cy0,domostmethod); domost(_x1,ncy1,ox,oy,domostmethod); }
+					} else domost(_x1,ncy1,_x0,ncy0,domostmethod);
 
 						//wall of skybox
 #ifdef USE_OPENGL
@@ -2263,7 +2634,7 @@ static void polymost_drawalls (int bunch)
 					gvx = (_t0-_t1)*t;
 					gvy = (_ox1-_ox0)*t;
 					gvo = -gvx*_ox0 - gvy*_t0;
-					if ((_fy0 < ncy0) && (_fy1 < ncy1)) domost(_x1,_fy1,_x0,_fy0);
+					if ((_fy0 < ncy0) && (_fy1 < ncy1)) domost(_x1,_fy1,_x0,_fy0,domostmethod);
 					else if ((_fy0 < ncy0) != (_fy1 < ncy1))
 					{
 							//(ox,oy) is intersection of: (_x0,_fy0)-(_x1,_fy1)
@@ -2274,9 +2645,9 @@ static void polymost_drawalls (int bunch)
 						t = (_fy0-ncy0)/(ncy1-ncy0-_fy1+_fy0);
 						ox = _x0 + (_x1-_x0)*t;
 						oy = _fy0 + (_fy1-_fy0)*t;
-						if (ncy0 < _fy0) { domost(ox,oy,_x0,ncy0); domost(_x1,_fy1,ox,oy); }
-										else { domost(ox,oy,_x0,_fy0); domost(_x1,ncy1,ox,oy); }
-					} else domost(_x1,ncy1,_x0,ncy0);
+						if (ncy0 < _fy0) { domost(ox,oy,_x0,ncy0,domostmethod); domost(_x1,_fy1,ox,oy,domostmethod); }
+										else { domost(ox,oy,_x0,_fy0,domostmethod); domost(_x1,ncy1,ox,oy,domostmethod); }
+					} else domost(_x1,ncy1,_x0,ncy0,domostmethod);
 				}
 
 					//Floor of skybox
@@ -2296,9 +2667,8 @@ static void polymost_drawalls (int bunch)
 				guo += (double)(ft[2]-gux)*ghalfx;
 				gvo -= (double)(ft[3]+gvx)*ghalfx;
 				gvx = -gvx; gvy = -gvy; gvo = -gvo; //y-flip skybox floor
-				domost(x1,cy1,x0,cy0);
+				domost(x1,cy1,x0,cy0,domostmethod);
 
-				skyclamphack = 0;
 #ifdef USE_OPENGL
 				drawingskybox = 0;
 #endif
@@ -2306,11 +2676,7 @@ static void polymost_drawalls (int bunch)
 #ifdef USE_OPENGL
 			if (rendmode == 3)
 			{
-				skyclamphack = 0;
-				if (!glinfo.hack_nofog) {
-					bglEnable(GL_FOG);
-					fog_is_on = 1;
-				}
+				gfogdensity = tempfogdensity;
 			}
 #endif
 		}
@@ -2390,7 +2756,7 @@ static void polymost_drawalls (int bunch)
 				}
 				if (wal->cstat&256) { gvx = -gvx; gvy = -gvy; gvo = -gvo; } //yflip
 
-				pow2xsplit = 1; domost(x1,ocy1,x0,ocy0);
+				domost(x1,ocy1,x0,ocy0,METH_POW2XSPLIT);
 
 				if (wal->cstat&8) { gux = ogux; guy = oguy; guo = oguo; }
 			}
@@ -2426,7 +2792,7 @@ static void polymost_drawalls (int bunch)
 				}
 				if (nwal->cstat&256) { gvx = -gvx; gvy = -gvy; gvo = -gvo; } //yflip
 
-				pow2xsplit = 1; domost(x0,ofy0,x1,ofy1);
+				domost(x0,ofy0,x1,ofy1,METH_POW2XSPLIT);
 
 				if (wal->cstat&(2+8)) { guo = oguo; gux = ogux; guy = oguy; }
 			}
@@ -2457,7 +2823,7 @@ static void polymost_drawalls (int bunch)
 				guo = gdo*t - guo;
 			}
 			if (wal->cstat&256) { gvx = -gvx; gvy = -gvy; gvo = -gvo; } //yflip
-			pow2xsplit = 1; domost(x0,-10000,x1,-10000);
+			domost(x0,-10000,x1,-10000,METH_POW2XSPLIT);
 		}
 
 		if (nextsectnum >= 0)
@@ -2592,32 +2958,31 @@ void polymost_drawrooms ()
 	{
 		resizeglcheck();
 
-		//bglClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-		bglEnable(GL_TEXTURE_2D);
-		//bglTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE); //default anyway
-		bglEnable(GL_DEPTH_TEST);
-		bglDepthFunc(GL_ALWAYS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		//glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+		//glfunc.glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE); //default anyway
+		glfunc.glEnable(GL_DEPTH_TEST);
+		glfunc.glDepthFunc(GL_ALWAYS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 
-		//bglPolygonOffset(1,1); //Supposed to make sprites pasted on walls or floors not disappear
-		bglDepthRange(0.00001,1.0); //<- this is more widely supported than glPolygonOffset
+		//glfunc.glPolygonOffset(1,1); //Supposed to make sprites pasted on walls or floors not disappear
+		glfunc.glDepthRange(0.00001,1.0); //<- this is more widely supported than glPolygonOffset
 
 		 //Enable this for OpenGL red-blue glasses mode :)
 		if (glredbluemode)
 		{
 			float m[4][4];
 			static int grbfcnt = 0; grbfcnt++;
-			if (redblueclearcnt < numpages) { redblueclearcnt++; bglColorMask(1,1,1,1); bglClear(GL_COLOR_BUFFER_BIT); }
+			if (redblueclearcnt < numpages) { redblueclearcnt++; glfunc.glColorMask(1,1,1,1); glfunc.glClear(GL_COLOR_BUFFER_BIT); }
 			if (grbfcnt&1)
 			{
-				bglViewport(windowx1-16,yres-(windowy2+1),windowx2-(windowx1-16)+1,windowy2-windowy1+1);
-				bglColorMask(1,0,0,1);
+				glfunc.glViewport(windowx1-16,yres-(windowy2+1),windowx2-(windowx1-16)+1,windowy2-windowy1+1);
+				glfunc.glColorMask(1,0,0,1);
 				globalposx += singlobalang/1024;
 				globalposy -= cosglobalang/1024;
 			}
 			else
 			{
-				bglViewport(windowx1,yres-(windowy2+1),windowx2+16-windowx1+1,windowy2-windowy1+1);
-				bglColorMask(0,1,1,1);
+				glfunc.glViewport(windowx1,yres-(windowy2+1),windowx2+16-windowx1+1,windowy2-windowy1+1);
+				glfunc.glColorMask(0,1,1,1);
 				globalposx -= singlobalang/1024;
 				globalposy += cosglobalang/1024;
 			}
@@ -2803,10 +3168,10 @@ void polymost_drawrooms ()
 #ifdef USE_OPENGL
 	if (rendmode == 3)
 	{
-		bglDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		glfunc.glDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 
-		//bglPolygonOffset(0,0);
-		bglDepthRange(0.0,0.99999); //<- this is more widely supported than glPolygonOffset
+		//glfunc.glPolygonOffset(0,0);
+		glfunc.glDepthRange(0.0,0.99999); //<- this is more widely supported than glPolygonOffset
 	}
 #endif
 
@@ -2896,19 +3261,13 @@ void polymost_drawmaskwall (int damaskwallcnt)
 	}
 	if (wal->cstat&256) { gvx = -gvx; gvy = -gvy; gvo = -gvo; } //yflip
 
-	method = METH_MASKED; pow2xsplit = 1;
+	method = METH_MASKED;
 	if (wal->cstat&128) { if (!(wal->cstat&512)) method = METH_TRANS; else method = METH_INTRANS; }
+	method |= METH_POW2XSPLIT | METH_LAYERS;
 
 #ifdef USE_OPENGL
-	if (!glinfo.hack_nofog && rendmode == 3) {
-		float col[4];
-		col[0] = (float)palookupfog[sec->floorpal].r / 63.f;
-		col[1] = (float)palookupfog[sec->floorpal].g / 63.f;
-		col[2] = (float)palookupfog[sec->floorpal].b / 63.f;
-		col[3] = 0;
-		bglFogfv(GL_FOG_COLOR,col);
-		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sec->visibility+16))));
-	}
+	gfogpalnum = sec->floorpal;
+	gfogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
 #endif
 
 	for(i=0;i<2;i++)
@@ -2975,7 +3334,7 @@ void polymost_drawmaskwall (int damaskwallcnt)
 	}
 	if (n < 3) return;
 
-	drawpoly(dpx,dpy,n,method | METH_LAYERS);
+	drawpoly(dpx,dpy,n,method);
 }
 
 void polymost_drawsprite (int snum)
@@ -3002,31 +3361,25 @@ void polymost_drawsprite (int snum)
 		yoff = (int)((signed char)((picanm[globalpicnum]>>16)&255))+((int)tspr->yoffset);
 	}
 
-	method = METH_MASKED + METH_CLAMPED;
-	if (tspr->cstat&2) { if (!(tspr->cstat&512)) method = METH_TRANS + METH_CLAMPED; else method = METH_INTRANS + METH_CLAMPED; }
+	method = METH_MASKED;
+	if (tspr->cstat&2) { if (!(tspr->cstat&512)) method = METH_TRANS; else method = METH_INTRANS; }
+	method |= METH_CLAMPED | METH_LAYERS;
 
 #ifdef USE_OPENGL
-	if (!glinfo.hack_nofog && rendmode == 3) {
-		float col[4];
-		col[0] = (float)palookupfog[sector[tspr->sectnum].floorpal].r / 63.f;
-		col[1] = (float)palookupfog[sector[tspr->sectnum].floorpal].g / 63.f;
-		col[2] = (float)palookupfog[sector[tspr->sectnum].floorpal].b / 63.f;
-		col[3] = 0;
-		bglFogfv(GL_FOG_COLOR,col); //default is 0,0,0,0
-		bglFogf(GL_FOG_DENSITY,gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16))));
-	}
+	gfogpalnum = sector[tspr->sectnum].floorpal;
+	gfogdensity = gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16)) / 255.f);
 
 	while (rendmode == 3 && !(spriteext[tspr->owner].flags&SPREXT_NOTMD)) {
 		if (usemodels && tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
-			if (mddraw(tspr)) return;
+			if (mddraw(tspr, 0)) return;
 			break;	// else, render as flat sprite
 		}
 		if (usevoxels && (tspr->cstat&48)!=48 && tiletovox[tspr->picnum] >= 0 && voxmodels[ tiletovox[tspr->picnum] ]) {
-			if (voxdraw(voxmodels[ tiletovox[tspr->picnum] ], tspr)) return;
+			if (voxdraw(voxmodels[ tiletovox[tspr->picnum] ], tspr, 0)) return;
 			break;	// else, render as flat sprite
 		}
 		if ((tspr->cstat&48)==48 && voxmodels[ tspr->picnum ]) {
-			voxdraw(voxmodels[ tspr->picnum ], tspr);
+			voxdraw(voxmodels[ tspr->picnum ], tspr, 0);
 			return;
 		}
 		break;
@@ -3079,10 +3432,10 @@ void polymost_drawsprite (int snum)
 				if (py[2] > sy0) py[2] = py[3] = sy0;
 			}
 
-			pow2xsplit = 0; drawpoly(px,py,4,method | METH_LAYERS);
+			drawpoly(px,py,4,method);
 			break;
 		case 1: //Wall sprite
-			
+
 				//Project 3D to 2D
 			if (globalorientation&4) xoff = -xoff;
 			if (globalorientation&8) yoff = -yoff;
@@ -3182,7 +3535,7 @@ void polymost_drawsprite (int snum)
 					sf1 = ((float)(sector[tspr->sectnum].floorz-globalposz))*ryp1 + ghoriz;
 				}
 			}
-			
+
 			if (sx0 > sx1)
 			{
 				if (globalorientation&64) return; //1-sided sprite
@@ -3195,10 +3548,10 @@ void polymost_drawsprite (int snum)
 			px[1] = sx1; py[1] = sc1;
 			px[2] = sx1; py[2] = sf1;
 			px[3] = sx0; py[3] = sf0;
-			pow2xsplit = 0; drawpoly(px,py,4,method | METH_LAYERS);
+			drawpoly(px,py,4,method);
 			break;
 		case 2: //Floor sprite
-			
+
 			if ((globalorientation&64) != 0)
 				if ((globalposz > tspr->z) == (!(globalorientation&8)))
 					return;
@@ -3283,7 +3636,7 @@ void polymost_drawsprite (int snum)
 				guo = ((float)tilesizx[globalpicnum])*gdo - guo;
 			}
 
-			pow2xsplit = 0; drawpoly(px,py,npoints,method | METH_LAYERS);
+			drawpoly(px,py,npoints,method);
 			break;
 
 		case 3: //Voxel sprite
@@ -3381,36 +3734,22 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 			tspr.owner = uniqid+MAXSPRITES;
 			globalorientation = (dastat&1)+((dastat&32)<<4)+((dastat&4)<<1);
 
-			if ((dastat&10) == 2) bglViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
-			else { bglViewport(0,0,xdim,ydim); glox1 = -1; } //Force fullscreen (glox1=-1 forces it to restore)
-
-			bglMatrixMode(GL_PROJECTION);
-			memset(m,0,sizeof(m));
-			if ((dastat&10) == 2)
-			{
-				m[0][0] = (float)ydimen; m[0][2] = 1.0;
-				m[1][1] = (float)xdimen; m[1][2] = 1.0;
-				m[2][2] = 1.0; m[2][3] = (float)ydimen;
-				m[3][2] =-1.0;
-			}
-			else { m[0][0] = m[2][3] = 1.0; m[1][1] = ((float)xdim)/((float)ydim); m[2][2] = 1.0001; m[3][2] = 1-m[2][2]; }
-			bglLoadMatrixf(&m[0][0]);
-			bglMatrixMode(GL_MODELVIEW);
-			bglLoadIdentity();
+			if ((dastat&10) == 2) glfunc.glViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
+			else { glfunc.glViewport(0,0,xdim,ydim); glox1 = -1; } //Force fullscreen (glox1=-1 forces it to restore)
 
 			if (hudmem[(dastat&4)>>2][picnum].flags&8) //NODEPTH flag
-				bglDisable(GL_DEPTH_TEST);
+				glfunc.glDisable(GL_DEPTH_TEST);
 			else
 			{
-				bglEnable(GL_DEPTH_TEST);
+				glfunc.glEnable(GL_DEPTH_TEST);
 				if (onumframes != numframes)
 				{
 					onumframes = numframes;
-					bglClear(GL_DEPTH_BUFFER_BIT);
+					glfunc.glClear(GL_DEPTH_BUFFER_BIT);
 				}
 			}
 
-			mddraw(&tspr);
+			mddraw(&tspr, !!((dastat&10) != 2));
 
 			viewingrange = oldviewingrange;
 			gxyaspect = ogxyaspect;
@@ -3443,17 +3782,8 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 #ifdef USE_OPENGL
 	if (rendmode == 3)
 	{
-		bglViewport(0,0,xdim,ydim); glox1 = -1; //Force fullscreen (glox1=-1 forces it to restore)
-		bglMatrixMode(GL_PROJECTION);
-		memset(m,0,sizeof(m));
-		m[0][0] = m[2][3] = 1.0; m[1][1] = ((float)xdim)/((float)ydim); m[2][2] = 1.0001; m[3][2] = 1-m[2][2];
-		bglPushMatrix(); bglLoadMatrixf(&m[0][0]);
-		bglMatrixMode(GL_MODELVIEW);
-		bglLoadIdentity();
-
-		bglDisable(GL_DEPTH_TEST);
-		bglDisable(GL_ALPHA_TEST);
-		bglEnable(GL_TEXTURE_2D);
+		glfunc.glViewport(0,0,xdim,ydim); glox1 = -1; //Force fullscreen (glox1=-1 forces it to restore)
+		glfunc.glDisable(GL_DEPTH_TEST);
 	}
 #endif
 
@@ -3463,7 +3793,8 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 		 method = METH_MASKED;
 		 if (dastat&1) { if (!(dastat&32)) method = METH_TRANS; else method = METH_INTRANS; }
 	}
-	method |= METH_CLAMPED; //Use OpenGL clamping - dorotatesprite never repeats 
+	method |= METH_CLAMPED; //Use OpenGL clamping - dorotatesprite never repeats
+	method |= METH_ROTATESPRITE;	//Use rotatesprite projection
 
 	xsiz = tilesizx[globalpicnum]; ysiz = tilesizy[globalpicnum];
 	if (dastat&16) { xoff = 0; yoff = 0; }
@@ -3571,14 +3902,8 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 			if ((d < y2) != (d < 0)) { py[n] = fy; px[n] = (px2[zz]-px2[z])*d/y2 + px2[z]; n++; }
 			z = zz;
 		} while (z);
-		pow2xsplit = 0; drawpoly(px,py,n,method);
+		drawpoly(px,py,n,method);
 	}
-
-#ifdef USE_OPENGL
-	if (rendmode == 3) {
-		bglMatrixMode(GL_PROJECTION); bglPopMatrix();
-	}
-#endif
 
 	globalpicnum = ogpicnum;
 	globalshade  = ogshade;
@@ -3598,10 +3923,12 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 
 #ifdef USE_OPENGL
 static float trapextx[2];
-static void drawtrap (float x0, float x1, float y0, float x2, float x3, float y1)
+static void drawtrap (float x0, float x1, float y0, float x2, float x3, float y1,
+	struct polymostdrawpolycall *draw)
 {
 	float px[4], py[4];
 	int i, n;
+	struct polymostvboitem vboitem[4];
 
 	if (y0 == y1) return;
 	px[0] = x0; py[0] = y0;  py[2] = y1;
@@ -3609,18 +3936,24 @@ static void drawtrap (float x0, float x1, float y0, float x2, float x3, float y1
 	else if (x2 == x3) { px[1] = x1; py[1] = y0; px[2] = x3; n = 3; }
 	else               { px[1] = x1; py[1] = y0; px[2] = x3; px[3] = x2; py[3] = y1; n = 4; }
 
-	bglBegin(GL_TRIANGLE_FAN);
 	for(i=0;i<n;i++)
 	{
 		px[i] = min(max(px[i],trapextx[0]),trapextx[1]);
-		bglTexCoord2f(px[i]*gux + py[i]*guy + guo,
-						  px[i]*gvx + py[i]*gvy + gvo);
-		bglVertex2f(px[i],py[i]);
+		vboitem[i].t.s = px[i]*gux + py[i]*guy + guo;
+		vboitem[i].t.t = px[i]*gvx + py[i]*gvy + gvo;
+		vboitem[i].v.x = px[i];
+		vboitem[i].v.y = py[i];
+		vboitem[i].v.z = 0.f;
 	}
-	bglEnd();
+	draw->indexcount = n;
+	draw->elementcount = n;
+	draw->elementvbo = vboitem;
+	polymost_drawpoly_glcall(GL_TRIANGLE_FAN, draw);
+	draw->elementvbo = NULL;
 }
 
-static void tessectrap (float *px, float *py, int *point2, int numpoints)
+static void tessectrap (float *px, float *py, int *point2, int numpoints,
+	struct polymostdrawpolycall *draw)
 {
 	float x0, x1, m0, m1;
 	int i, j, k, z, i0, i1, i2, i3, npoints, gap, numrst;
@@ -3628,12 +3961,14 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints)
 	static int allocpoints = 0, *slist = 0, *npoint2 = 0;
 	typedef struct { float x, y, xi; int i; } raster;
 	static raster *rst = 0;
+	static struct polymostvboitem *vboitem = NULL;
 	if (numpoints+16 > allocpoints) //16 for safety
 	{
 		allocpoints = numpoints+16;
 		rst = (raster*)realloc(rst,allocpoints*sizeof(raster));
 		slist = (int*)realloc(slist,allocpoints*sizeof(int));
 		npoint2 = (int*)realloc(npoint2,allocpoints*sizeof(int));
+		vboitem = (struct polymostvboitem *)realloc(vboitem, allocpoints*sizeof(struct polymostvboitem));
 	}
 
 		//Remove unnecessary collinear points:
@@ -3661,15 +3996,19 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints)
 	}
 	if (z != 3) //Simple polygon... early out
 	{
-		bglBegin(GL_TRIANGLE_FAN);
 		for(i=0;i<npoints;i++)
 		{
 			j = slist[i];
-			bglTexCoord2f(px[j]*gux + py[j]*guy + guo,
-							  px[j]*gvx + py[j]*gvy + gvo);
-			bglVertex2f(px[j],py[j]);
+			vboitem[i].t.s = px[j]*gux + py[j]*guy + guo;
+			vboitem[i].t.t = px[j]*gvx + py[j]*gvy + gvo;
+			vboitem[i].v.x = px[j];
+			vboitem[i].v.y = py[j];
+			vboitem[i].v.z = 0.f;
 		}
-		bglEnd();
+		draw->indexcount = npoints;
+		draw->elementcount = npoints;
+		draw->elementvbo = vboitem;
+		polymost_drawpoly_glcall(GL_TRIANGLE_FAN, draw);
 		return;
 	}
 
@@ -3710,7 +4049,7 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints)
 
 				x0 = (py[i1] - rst[j  ].y)*rst[j  ].xi + rst[j  ].x;
 				x1 = (py[i1] - rst[j+1].y)*rst[j+1].xi + rst[j+1].x;
-				drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1]);
+				drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1],draw);
 				rst[j  ].x = x0; rst[j  ].y = py[i1];
 				rst[j+3].x = x1; rst[j+3].y = py[i1];
 			}
@@ -3734,7 +4073,7 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints)
 				{
 					x0 = (py[i1] - rst[j  ].y)*rst[j  ].xi + rst[j  ].x;
 					if ((i == j) && (i1 == i2)) x1 = x0; else x1 = (py[i1] - rst[j+1].y)*rst[j+1].xi + rst[j+1].x;
-					drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1]);
+					drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1],draw);
 					rst[j  ].x = x0; rst[j  ].y = py[i1];
 					rst[j+1].x = x1; rst[j+1].y = py[i1];
 				}
@@ -3744,7 +4083,7 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints)
 			{
 				x0 = (py[i1] - rst[j  ].y)*rst[j  ].xi + rst[j  ].x;
 				x1 = (py[i1] - rst[j+1].y)*rst[j+1].xi + rst[j+1].x;
-				drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1]);
+				drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1],draw);
 				rst[j  ].x = x0; rst[j  ].y = py[i1];
 				rst[j+1].x = x1; rst[j+1].y = py[i1];
 
@@ -3759,8 +4098,10 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints)
 void polymost_fillpolygon (int npoints)
 {
 	PTHead *pth;
-	float f, a=0.0;
+	float alphac=0.0;
 	int i, j, k;
+	unsigned short ptflags = 0;
+	struct polymostdrawpolycall draw;
 
 	globalx1 = mulscale16(globalx1,xyaspect);
 	globaly2 = mulscale16(globaly2,xyaspect);
@@ -3778,31 +4119,55 @@ void polymost_fillpolygon (int npoints)
 		((float *)ry1)[i] = ((float)ry1[i])/4096.0;
 	}
 
-	if (gloy1 != -1) setpolymost2dview(); //disables blending, texturing, and depth testing
-	bglEnable(GL_ALPHA_TEST);
-	bglEnable(GL_TEXTURE_2D);
-	pth = PT_GetHead(globalpicnum, globalpal, usehightile ? PTH_HIGHTILE : 0, 0);
-	bglBindTexture(GL_TEXTURE_2D, (pth && pth->pic[PTHPIC_BASE]) ? pth->pic[ PTHPIC_BASE ]->glpic : 0);
+	if ((unsigned int)globalpicnum >= MAXTILES) globalpicnum = 0;
+	if (!palookup[globalpal]) globalpal = 0;
 
-	f = ((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
+	if (usehightile) ptflags |= PTH_HIGHTILE;
+
+	draw.texture0 = 0;
+	pth = PT_GetHead(globalpicnum, globalpal, ptflags, 0);
+	if (pth && pth->pic[PTHPIC_BASE]) {
+		draw.texture0 = pth->pic[ PTHPIC_BASE ]->glpic;
+	}
+	draw.texture1 = nulltexture;
+	draw.alphacut = 0.f;
+	draw.fogdensity = 0.f;
+
+	draw.colour.r = draw.colour.g = draw.colour.b =
+		((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 	switch ((globalorientation>>7)&3) {
 		case 0:
-		case 1: a = 1.0; bglDisable(GL_BLEND); break;
-		case 2: a = 0.66; bglEnable(GL_BLEND); break;
-		case 3: a = 0.33; bglEnable(GL_BLEND); break;
+		case 1: draw.colour.a = 1.0; glfunc.glDisable(GL_BLEND); break;
+		case 2: draw.colour.a = 0.66; glfunc.glEnable(GL_BLEND); break;
+		case 3: draw.colour.a = 0.33; glfunc.glEnable(GL_BLEND); break;
 	}
-	bglColor4f(f,f,f,a);
+	if (pth && (pth->flags & PTH_HIGHTILE) && (globalpal != pth->repldef->palnum)) {
+		// apply tinting for replaced textures
+		draw.colour.r *= (float)hictinting[globalpal].r / 255.0;
+		draw.colour.g *= (float)hictinting[globalpal].g / 255.0;
+		draw.colour.b *= (float)hictinting[globalpal].b / 255.0;
+	}
 
-	tessectrap((float *)rx1,(float *)ry1,xb1,npoints);
+	draw.modelview = &gidentitymat[0][0];
+	draw.projection = &gorthoprojmat[0][0];
+
+	draw.indexbuffer = 0;
+	draw.elementbuffer = 0;
+	tessectrap((float *)rx1,(float *)ry1,xb1,npoints,&draw);
 }
 #endif
 
 int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 {
-#ifdef USE_OPENGL
+#ifndef USE_OPENGL
+	return -1;
+#else
 	float xdime, ydime, xdimepad, ydimepad, scx, scy;
 	int i;
 	PTHead *pth;
+	palette_t bgcolour;
+	struct polymostdrawauxcall draw;
+	struct polymostvboitem vboitem[4];
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
@@ -3823,12 +4188,6 @@ int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 	}
 
 	pth = PT_GetHead(wallnum, 0, (usehightile ? PTH_HIGHTILE : 0) | PTH_CLAMPED, 0);
-	
-	if (!pth || !pth->pic[PTHPIC_BASE]) {
-		return 0;
-	}
-	
-	bglBindTexture(GL_TEXTURE_2D, pth->pic[PTHPIC_BASE]->glpic);
 
 	if (pth) {
 		xdimepad = (float)pth->pic[PTHPIC_BASE]->tsizx / (float)pth->pic[PTHPIC_BASE]->sizx;
@@ -3838,42 +4197,59 @@ int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 		ydimepad = 1.0;
 	}
 
-	bglDisable(GL_ALPHA_TEST);
-
-	if (!pth || (pth->pic[PTHPIC_BASE]->flags & PTH_HASALPHA)) {
-		bglDisable(GL_TEXTURE_2D);
-		bglBegin(GL_TRIANGLE_FAN);
-		if (gammabrightness) {
-			bglColor4f((float)curpalette[255].r/255.0,
-					   (float)curpalette[255].g/255.0,
-					   (float)curpalette[255].b/255.0,
-					   1);
-		} else {
-			bglColor4f((float)britable[curbrightness][ curpalette[255].r ] / 255.0,
-					   (float)britable[curbrightness][ curpalette[255].g ] / 255.0,
-					   (float)britable[curbrightness][ curpalette[255].b ] / 255.0,
-					   1);
-		}
-		bglVertex2f((float)tilex    ,(float)tiley    );
-		bglVertex2f((float)tilex+scx,(float)tiley    );
-		bglVertex2f((float)tilex+scx,(float)tiley+scy);
-		bglVertex2f((float)tilex    ,(float)tiley+scy);
-		bglEnd();
+	bgcolour = curpalette[255];
+	if (!gammabrightness) {
+		bgcolour.r = britable[curbrightness][bgcolour.r];
+		bgcolour.g = britable[curbrightness][bgcolour.g];
+		bgcolour.b = britable[curbrightness][bgcolour.b];
 	}
 
-	bglColor4f(1,1,1,1);
-	bglEnable(GL_TEXTURE_2D);
-	bglEnable(GL_BLEND);
-	bglBegin(GL_TRIANGLE_FAN);
-	bglTexCoord2f(       0,       0); bglVertex2f((float)tilex    ,(float)tiley    );
-	bglTexCoord2f(xdimepad,       0); bglVertex2f((float)tilex+scx,(float)tiley    );
-	bglTexCoord2f(xdimepad,ydimepad); bglVertex2f((float)tilex+scx,(float)tiley+scy);
-	bglTexCoord2f(       0,ydimepad); bglVertex2f((float)tilex    ,(float)tiley+scy);
-	bglEnd();
-	
+	draw.mode = 1;	// Tile.
+
+	draw.texture0 = nulltexture;
+	if (pth) {
+		if (pth->pic[PTHPIC_BASE]) {
+			draw.texture0 = pth->pic[PTHPIC_BASE]->glpic;
+		}
+	}
+
+	draw.bgcolour.r = bgcolour.r / 255.f;
+	draw.bgcolour.g = bgcolour.g / 255.f;
+	draw.bgcolour.b = bgcolour.b / 255.f;
+	draw.bgcolour.a = 1.f;
+
+	vboitem[0].v.x = (GLfloat)tilex;
+	vboitem[0].v.y = (GLfloat)tiley;
+	vboitem[0].v.z = 0.f;
+	vboitem[0].t.s = 0.f;
+	vboitem[0].t.t = 0.f;
+
+	vboitem[1].v.x = (GLfloat)tilex+scx;
+	vboitem[1].v.y = (GLfloat)tiley;
+	vboitem[1].v.z = 0.f;
+	vboitem[1].t.s = xdimepad;
+	vboitem[1].t.t = 0.f;
+
+	vboitem[2].v.x = (GLfloat)tilex+scx;
+	vboitem[2].v.y = (GLfloat)tiley+scy;
+	vboitem[2].v.z = 0.f;
+	vboitem[2].t.s = xdimepad;
+	vboitem[2].t.t = ydimepad;
+
+	vboitem[3].v.x = (GLfloat)tilex;
+	vboitem[3].v.y = (GLfloat)tiley+scy;
+	vboitem[3].v.z = 0.f;
+	vboitem[3].t.s = 0.f;
+	vboitem[3].t.t = ydimepad;
+
+	draw.indexcount = 4;
+	draw.indexes = NULL;
+	draw.elementcount = 4;
+	draw.elementvbo = vboitem;
+
+	polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
+
 	return(0);
-#else
-	return -1;
 #endif
 }
 
@@ -3882,63 +4258,213 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 #ifndef USE_OPENGL
 	return -1;
 #else
-	GLfloat tx, ty, txc, tyc;
-	int c;
-	palette_t p,b;
+	GLfloat tx, ty, txc, tyc, tyoff, cx, cy;
+	int c, indexcnt, vbocnt;
+	palette_t colour;
+	struct polymostdrawauxcall draw;
+	struct polymostvboitem vboitem[80*4];
+	GLushort vboindexes[80*6];
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
-	if (gammabrightness) {
-		p = curpalette[col];
-		b = curpalette[backcol];
-	} else {
-		p.r = britable[curbrightness][ curpalette[col].r ];
-		p.g = britable[curbrightness][ curpalette[col].g ];
-		p.b = britable[curbrightness][ curpalette[col].b ];
-		b.r = britable[curbrightness][ curpalette[backcol].r ];
-		b.g = britable[curbrightness][ curpalette[backcol].g ];
-		b.b = britable[curbrightness][ curpalette[backcol].b ];
+	polymost_preparetext();
+	setpolymost2dview();	// disables blending, texturing, and depth testing
+	glfunc.glDepthMask(GL_FALSE);	// disable writing to the z-buffer
+	glfunc.glEnable(GL_BLEND);
+
+	draw.mode = 0;	// Text.
+
+	draw.texture0 = texttexture;
+
+	colour = curpalette[col];
+	if (!gammabrightness) {
+		colour.r = britable[curbrightness][ colour.r ];
+		colour.g = britable[curbrightness][ colour.g ];
+		colour.b = britable[curbrightness][ colour.b ];
 	}
+	draw.colour.r = colour.r / 255.f;
+	draw.colour.g = colour.g / 255.f;
+	draw.colour.b = colour.b / 255.f;
+	draw.colour.a = 1.f;
+
+	colour = curpalette[min(0, backcol)];
+	if (!gammabrightness) {
+		colour.r = britable[curbrightness][ colour.r ];
+		colour.g = britable[curbrightness][ colour.g ];
+		colour.b = britable[curbrightness][ colour.b ];
+	}
+	draw.bgcolour.r = colour.r / 255.f;
+	draw.bgcolour.g = colour.g / 255.f;
+	draw.bgcolour.b = colour.b / 255.f;
+	if (backcol >= 0) {
+		draw.bgcolour.a = 1.f;
+	} else {
+		draw.bgcolour.a = 0.f;
+	}
+
+	if (fontsize) {
+		tyoff = 8.f;
+		cx = 4.f;
+		cy = 6.f;
+	} else {
+		tyoff = 0.f;
+		cx = 8.f;
+		cy = 8.f;
+	}
+	txc = cx/256.f;
+	tyc = cy/128.f;
+
+	draw.indexes = vboindexes;
+	draw.elementvbo = vboitem;
+
+	c = 0;
+	indexcnt = vbocnt = 0;
+	while (name[c]) {
+		for (; name[c] && indexcnt < 80*6; c++) {
+			tx = (GLfloat)(name[c]%32)/32.0;
+			ty = ((GLfloat)(name[c]/32) + tyoff)/16.0;
+
+			vboindexes[indexcnt + 0] = vbocnt+0;
+			vboindexes[indexcnt + 1] = vbocnt+1;
+			vboindexes[indexcnt + 2] = vbocnt+2;
+			vboindexes[indexcnt + 3] = vbocnt+0;
+			vboindexes[indexcnt + 4] = vbocnt+2;
+			vboindexes[indexcnt + 5] = vbocnt+3;
+
+			vboitem[vbocnt + 0].v.x = (GLfloat)xpos;
+			vboitem[vbocnt + 0].v.y = (GLfloat)ypos;
+			vboitem[vbocnt + 0].v.z = 0.f;
+			vboitem[vbocnt + 0].t.s = tx;
+			vboitem[vbocnt + 0].t.t = ty;
+
+			vboitem[vbocnt + 1].v.x = (GLfloat)xpos+cx;
+			vboitem[vbocnt + 1].v.y = (GLfloat)ypos;
+			vboitem[vbocnt + 1].v.z = 0.f;
+			vboitem[vbocnt + 1].t.s = tx+txc;
+			vboitem[vbocnt + 1].t.t = ty;
+
+			vboitem[vbocnt + 2].v.x = (GLfloat)xpos+cx;
+			vboitem[vbocnt + 2].v.y = (GLfloat)ypos+cy;
+			vboitem[vbocnt + 2].v.z = 0.f;
+			vboitem[vbocnt + 2].t.s = tx+txc;
+			vboitem[vbocnt + 2].t.t = ty+tyc;
+
+			vboitem[vbocnt + 3].v.x = (GLfloat)xpos;
+			vboitem[vbocnt + 3].v.y = (GLfloat)ypos+cy;
+			vboitem[vbocnt + 3].v.z = 0.f;
+			vboitem[vbocnt + 3].t.s = tx;
+			vboitem[vbocnt + 3].t.t = ty+tyc;
+
+			indexcnt += 6;
+			vbocnt += 4;
+			xpos += (8>>fontsize);
+		}
+
+		draw.indexcount = indexcnt;
+		draw.elementcount = vbocnt;
+
+		polymost_drawaux_glcall(GL_TRIANGLES, &draw);
+
+		indexcnt = vbocnt = 0;
+	}
+
+	glfunc.glDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
+
+	return 0;
+#endif
+}
+
+int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col)
+{
+#ifndef USE_OPENGL
+	return -1;
+#else
+	palette_t colour;
+	struct polymostdrawauxcall draw;
+	struct polymostvboitem vboitem[2];
+
+	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
 	polymost_preparetext();
+	setpolymost2dview();	// disables blending, texturing, and depth testing
+	glfunc.glDepthMask(GL_FALSE);	// disable writing to the z-buffer
+	glfunc.glEnable(GL_BLEND);
+
+	draw.mode = 2;	// Solid colour.
+
+	colour = curpalette[col];
+	if (!gammabrightness) {
+		colour.r = britable[curbrightness][ colour.r ];
+		colour.g = britable[curbrightness][ colour.g ];
+		colour.b = britable[curbrightness][ colour.b ];
+	}
+	draw.colour.r = colour.r / 255.f;
+	draw.colour.g = colour.g / 255.f;
+	draw.colour.b = colour.b / 255.f;
+	draw.colour.a = 1.f;
+
+	vboitem[0].v.x = (GLfloat)(x1+2048)/4096.f;
+	vboitem[0].v.y = (GLfloat)(y1+2048)/4096.f;
+	vboitem[0].v.z = 0.f;
+
+	vboitem[1].v.x = (GLfloat)(x2+2048)/4096.f;
+	vboitem[1].v.y = (GLfloat)(y2+2048)/4096.f;
+	vboitem[1].v.z = 0.f;
+
+	draw.indexcount = 2;
+	draw.indexes = NULL;
+	draw.elementcount = 2;
+	draw.elementvbo = vboitem;
+
+	polymost_drawaux_glcall(GL_LINES, &draw);
+
+	glfunc.glDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
+
+	return 0;
+#endif
+}
+
+int polymost_plotpixel(int x, int y, unsigned char col)
+{
+#ifndef USE_OPENGL
+	return -1;
+#else
+	palette_t colour;
+	struct polymostdrawauxcall draw;
+	struct polymostvboitem vboitem[1];
+
+	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
 	setpolymost2dview();	// disables blending, texturing, and depth testing
-	bglDisable(GL_ALPHA_TEST);
-	bglDepthMask(GL_FALSE);	// disable writing to the z-buffer
+	glfunc.glDepthMask(GL_FALSE);	// disable writing to the z-buffer
+	glfunc.glEnable(GL_BLEND);
 
-	if (backcol >= 0) {
-		bglColor4ub(b.r,b.g,b.b,255);
-		c = Bstrlen(name);
-		
-		bglBegin(GL_QUADS);
-		bglVertex2i(xpos,ypos);
-		bglVertex2i(xpos,ypos+(fontsize?6:8));
-		bglVertex2i(xpos+(c<<(3-fontsize)),ypos+(fontsize?6:8));
-		bglVertex2i(xpos+(c<<(3-fontsize)),ypos);
-		bglEnd();
+	draw.mode = 2;	// Solid colour.
+
+	colour = curpalette[col];
+	if (!gammabrightness) {
+		colour.r = britable[curbrightness][ colour.r ];
+		colour.g = britable[curbrightness][ colour.g ];
+		colour.b = britable[curbrightness][ colour.b ];
 	}
+	draw.colour.r = colour.r / 255.f;
+	draw.colour.g = colour.g / 255.f;
+	draw.colour.b = colour.b / 255.f;
+	draw.colour.a = 1.f;
 
-	bglEnable(GL_TEXTURE_2D);
-	bglEnable(GL_BLEND);
-	bglColor4ub(p.r,p.g,p.b,255);
-	txc = fontsize ? (4.0/256.0) : (8.0/256.0);
-	tyc = fontsize ? (6.0/128.0) : (8.0/128.0);
-	bglBegin(GL_QUADS);
-	for (c=0; name[c]; c++) {
-		tx = (float)(name[c]%32)/32.0;
-		ty = (float)((name[c]/32) + (fontsize*8))/16.0;
+	vboitem[0].v.x = (GLfloat)x;
+	vboitem[0].v.y = (GLfloat)y;
+	vboitem[0].v.z = 0.f;
 
-		bglTexCoord2f(tx,ty);         bglVertex2i(xpos,ypos);
-		bglTexCoord2f(tx+txc,ty);     bglVertex2i(xpos+(8>>fontsize),ypos);
-		bglTexCoord2f(tx+txc,ty+tyc); bglVertex2i(xpos+(8>>fontsize),ypos+(fontsize?6:8));
-		bglTexCoord2f(tx,ty+tyc);     bglVertex2i(xpos,ypos+(fontsize?6:8));
-		
-		xpos += (8>>fontsize);
-	}
-	bglEnd();
+	draw.indexcount = 1;
+	draw.indexes = NULL;
+	draw.elementcount = 1;
+	draw.elementvbo = vboitem;
 
-	bglDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
-	
+	polymost_drawaux_glcall(GL_POINTS, &draw);
+
+	glfunc.glDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
+
 	return 0;
 #endif
 }
@@ -3949,22 +4475,18 @@ static int polymost_preparetext(void)
 	unsigned char *tbuf, *cptr, *tptr;
 	int h,i,j,l;
 
-	bglUseProgram(0);
-	bglActiveTexture(GL_TEXTURE0);
-
-	if (polymosttext) {
-		bglBindTexture(GL_TEXTURE_2D, polymosttext);
+	if (texttexture) {
 		return 0;
 	}
 
 	// construct a 256x128 8-bit alpha-only texture for the font glyph matrix
-	bglGenTextures(1,&polymosttext);
-	if (!polymosttext) return -1;
+	glfunc.glGenTextures(1,&texttexture);
+	if (!texttexture) return -1;
 
 	tbuf = (unsigned char *)Bmalloc(256*128);
 	if (!tbuf) {
-		bglDeleteTextures(1,&polymosttext);
-		polymosttext = 0;
+		glfunc.glDeleteTextures(1,&texttexture);
+		texttexture = 0;
 		return -1;
 	}
 	Bmemset(tbuf, 0, 256*128);
@@ -3991,14 +4513,16 @@ static int polymost_preparetext(void)
 		}
 	}
 
-	bglBindTexture(GL_TEXTURE_2D, polymosttext);
-	bglTexImage2D(GL_TEXTURE_2D,0,GL_ALPHA,256,128,0,GL_ALPHA,GL_UNSIGNED_BYTE,(GLvoid*)tbuf);
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-	bglTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+	glfunc.glActiveTexture(GL_TEXTURE0);
+	glfunc.glBindTexture(GL_TEXTURE_2D, texttexture);
+	glfunc.glTexImage2D(GL_TEXTURE_2D,0,GL_ALPHA,256,128,0,GL_ALPHA,GL_UNSIGNED_BYTE,(GLvoid*)tbuf);
+	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 	free(tbuf);
 
 	return 0;
 }
+
 #endif
 
 // Console commands by JBF
@@ -4076,7 +4600,7 @@ static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *UNUSED(parm))
 static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 {
 	int showval = (parm->numparms < 1), val = 0;
-	
+
 	if (!showval) val = atoi(parm->parms[0]);
 	if (!Bstrcasecmp(parm->name, "usemodels")) {
 		if (showval) { buildprintf("usemodels is %d\n", usemodels); }
@@ -4150,19 +4674,28 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 		}
 		return OSDCMD_OK;
 	}
+#ifdef DEBUGGINGAIDS
+	else if (!Bstrcasecmp(parm->name, "debugshowcallcounts")) {
+		if (showval) { buildprintf("debugshowcallcounts is %d\n", polymostshowcallcounts); }
+		else polymostshowcallcounts = (val != 0);
+		return OSDCMD_OK;
+	}
+#endif
 #endif
 	return OSDCMD_SHOWHELP;
 }
 
-#if 1
+#ifdef USE_OPENGL
+
+#ifdef DEBUGGINGAIDS
 // because I'm lazy
-static int dumptexturedefs(const osdfuncparm_t * UNUSED(parm))
+static int osdcmd_debugdumptexturedefs(const osdfuncparm_t * UNUSED(parm))
 {
 	hicreplctyp *hr;
 	int i;
-	
+
 	if (!hicfirstinit) return OSDCMD_OK;
-	
+
 	buildprintf("// Begin Texture Dump\n");
 	for (i=0;i<MAXTILES;i++) {
 		hr = hicreplc[i];
@@ -4177,20 +4710,20 @@ static int dumptexturedefs(const osdfuncparm_t * UNUSED(parm))
 		buildprintf("}\n");
 	}
 	buildprintf("// End Texture Dump\n");
-	
+
 	return OSDCMD_OK;	// no replacement found
 }
 
-static int debugtexturehash(const osdfuncparm_t * UNUSED(parm))
+static int osdcmd_debugtexturehash(const osdfuncparm_t * UNUSED(parm))
 {
 	PTIter iter;
 	PTHead * pth;
 	int i;
-	
+
 	if (!hicfirstinit) {
 		return OSDCMD_OK;
 	}
-	
+
 	buildprintf("// Begin texture hash dump\n");
 	iter = PTIterNew();
 	while ((pth = PTIterNext(iter)) != 0) {
@@ -4208,10 +4741,20 @@ static int debugtexturehash(const osdfuncparm_t * UNUSED(parm))
 	}
 	PTIterFree(iter);
 	buildprintf("// End texture hash dump\n");
-		
+
 	return OSDCMD_OK;	// no replacement found
 }
 #endif
+
+#ifdef SHADERDEV
+static int osdcmd_debugreloadshaders(const osdfuncparm_t *UNUSED(parm))
+{
+	polymost_loadshaders();
+	return OSDCMD_OK;
+}
+#endif
+
+#endif //ifdef USE_OPENGL
 
 void polymost_initosdfuncs(void)
 {
@@ -4230,13 +4773,17 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("glnvmultisamplehint","glnvmultisamplehint: enable/disable Nvidia multisampling hinting",osdcmd_polymostvars);
 	OSD_RegisterFunction("polymosttexverbosity","polymosttexverbosity: sets the level of chatter during texture loading. 0 = none, 1 = errors (default), 2 = all",osdcmd_polymostvars);
 	OSD_RegisterFunction("forcetexcacherebuild","forcetexcacherebuild: invalidates the compressed texture cache", osdcmd_forcetexcacherebuild);
+#ifdef SHADERDEV
+	OSD_RegisterFunction("debugreloadshaders","debugreloadshaders: reloads the OpenGL shaders",osdcmd_debugreloadshaders);
+#endif
+#ifdef DEBUGGINGAIDS
+	OSD_RegisterFunction("debugdumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",osdcmd_debugdumptexturedefs);
+	OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",osdcmd_debugtexturehash);
+	OSD_RegisterFunction("debugshowcallcounts","debugshowcallcounts: display rendering call counts",osdcmd_polymostvars);
+#endif
 #endif
 	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
-#if 1
-	OSD_RegisterFunction("dumptexturedefs","dumptexturedefs: dumps all texture definitions in the new style",dumptexturedefs);
-	OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",debugtexturehash);
-#endif
 }
 
 void polymost_precache_begin()
@@ -4257,7 +4804,7 @@ void polymost_precache(int dapicnum, int dapalnum, int datype)
 	unsigned short flags;
 
 	if (rendmode < 3) return;
-	
+
 	if (!palookup[dapalnum]) return;//dapalnum = 0;
 
 		//FIXME
@@ -4295,6 +4842,9 @@ int polymost_precache_run(int* done, int* total)
 #else /* POLYMOST */
 
 int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen) { return -1; }
+int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col) { return -1; }
+int polymost_plotpixel(int x, int y, unsigned char col) { return -1; }
+int polymost_printext256(int xpos, int ypos, short col, short backcol, const  char *name, char fontsize) { return -1; }
 
 #endif
 

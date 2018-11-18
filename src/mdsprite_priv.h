@@ -41,7 +41,9 @@ typedef struct
 	int ofsskins, ofsuv, ofstris, ofsframes, ofsglcmds, ofseof; //ofsskins: skin names (64 bytes each)
 } md2head_t;
 
-typedef struct { unsigned char v[3], ni; } md2vert_t; //compressed vertex coords (x,y,z)
+typedef struct { unsigned char v[3], ni; } md2vert_t; //compressed vertex coords (x,y,z), light normal index
+typedef struct { short u, v; } md2uv_t;	//compressed texture coords
+typedef struct { short ivert[3], iuv[3]; } md2tri_t;	//indices of vertices and tex coords for each point of a triangle
 typedef struct
 {
 	point3d mul, add; //scale&translation vector
@@ -63,10 +65,13 @@ typedef struct
 	mdanim_t *animations;
 	mdskinmap_t *skinmap;
 	int numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
-	
+
 		//MD2 specific stuff:
-	int numverts, numglcmds, framebytes, *glcmds;
+	int numverts, numuv, numtris, framebytes;
+	int skinxsiz, skinysiz;
 	char *frames;
+	md2uv_t *uvs;
+	md2tri_t *tris;
 	char *basepath;   // pointer to string of base path
 	char *skinfn;   // pointer to first of numskins 64-char strings
 } md2model;
@@ -154,7 +159,7 @@ typedef struct
 	mdanim_t *animations;
 	mdskinmap_t *skinmap;
 	int numskins, skinloaded;   // set to 1+numofskin when a skin is loaded and the tex coords are modified,
-	
+
 		//MD3 specific
 	md3head_t head;
 } md3model;
@@ -191,6 +196,10 @@ typedef struct
 	int xsiz, ysiz, zsiz;
 	float xpiv, ypiv, zpiv;
 	int is8bit;
+
+	GLuint vertexbuf;		// 4 per quad.
+	GLuint indexbuf;		// 6 per quad (0, 1, 2, 0, 2, 3)
+	unsigned int indexcount;
 } voxmodel;
 
 extern voxmodel *voxmodels[MAXVOXELS];
@@ -204,10 +213,10 @@ void freeallmodels (void);
 void clearskins (void);
 void voxfree (voxmodel *m);
 voxmodel *voxload (const char *filnam);
-int voxdraw (voxmodel *m, spritetype *tspr);
+int voxdraw (voxmodel *m, spritetype *tspr, int method);
 
 void mdinit (void);
 PTMHead * mdloadskin (md2model *m, int number, int pal, int surf);
-int mddraw (spritetype *);
+int mddraw (spritetype *, int method);
 
 #endif

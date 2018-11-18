@@ -11,7 +11,7 @@ OBJ=obj.watcom
 !endif
 INC=include
 !ifndef CFLAGS
-CFLAGS=-dSUPERBUILD -dPOLYMOST -dUSE_OPENGL -dDYNAMIC_OPENGL -dKSFORBUILD
+CFLAGS=-dSUPERBUILD -dPOLYMOST -dUSE_OPENGL -dKSFORBUILD
 !endif
 
 o=obj
@@ -39,7 +39,7 @@ RC=wrc
 CFLAGS+= -zq -5r -s -orb -fp5 $(TARGETOPTS) -d2 -dRENDERTYPEWIN=1 &
 	-i=$(INC) -i=$(SRC) -i=$(DXROOT)\include -i=..\jfaud\inc
 GAMECFLAGS=-i=$(GAME)
-LIBS=dxguid.lib wsock32.lib ..\jfaud\jfaud.lib winmm.lib #opengl32.lib
+LIBS=dxguid.lib wsock32.lib ..\jfaud\jfaud.lib winmm.lib
 ASFLAGS=# -d1
 EXESUFFIX=.exe
 
@@ -129,7 +129,7 @@ game$(EXESUFFIX): $(GAMEEXEOBJS) $(OBJ)\gameres.$(res) $(OBJ)\$(ENGINELIB)
 		LIBPATH  $(FMODROOT)\lib &
 		LIBPATH  $(OBJ) &
 		LIBRARY  { $(ENGINELIB) $(LIBS) }
-	
+
 build$(EXESUFFIX): $(EDITOREXEOBJS) $(OBJ)\buildres.$(res) $(OBJ)\$(ENGINELIB) $(OBJ)\$(EDITORLIB)
 	wlink	NAME     $@ &
 		SYSTEM   WIN95 &
@@ -156,7 +156,7 @@ wad2map$(EXESUFFIX): $(OBJ)\wad2map.$o $(OBJ)\pragmas.$o $(OBJ)\compat.$o
 # DEPENDENCIES
 !include Makefile.deps
 
-# PHONIES	
+# PHONIES
 clean: .SYMBOLIC
 	-erase /q $(OBJ)\* game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS) *.err
 

@@ -37,7 +37,7 @@ typedef struct PTMHash_typ PTMHash;
 struct PTIter_typ {
 	int i;
 	PTHash *pth;
-	
+
 	// criteria for doing selective matching
 	int match;
 	int picnum;
@@ -95,7 +95,7 @@ static void detect_texture_size()
 {
 	if (gltexmaxsize <= 0) {
 		GLint siz = 0;
-		bglGetIntegerv(GL_MAX_TEXTURE_SIZE, &siz);
+		glfunc.glGetIntegerv(GL_MAX_TEXTURE_SIZE, &siz);
 		if (siz == 0) {
 			gltexmaxsize = 6;   // 2^6 = 64 == default GL max texture size
 		} else {
@@ -116,14 +116,14 @@ static void detect_texture_size()
 void PTM_InitIdent(PTMIdent *id, PTHead *pth)
 {
     memset(id, 0, sizeof(PTMIdent));
-    
+
     if (!pth) {
         return;
     }
-    
+
 	if (pth->flags & PTH_HIGHTILE) {
         id->type = PTMIDENT_HIGHTILE;
-		
+
 		if (!pth->repldef) {
 			if (polymosttexverbosity >= 1) {
 				buildprintf("PolymostTex: cannot calculate texture id for pth with no repldef\n");
@@ -131,7 +131,7 @@ void PTM_InitIdent(PTMIdent *id, PTHead *pth)
 			memset(id, 0, 16);
 			return;
 		}
-		
+
 		id->flags = pth->flags & (PTH_CLAMPED | PTH_SKYBOX);
 		id->effects = (pth->palnum != pth->repldef->palnum)
             ? hictinting[pth->palnum].f : 0;
@@ -160,12 +160,12 @@ PTMHead * PTM_GetHead(const PTMIdent *id)
 	PTMHash * ptmh;
 	int i;
     unsigned int idcrc;
-    
+
     idcrc = crc32once((unsigned char *)id, sizeof(PTMIdent));
-	
+
 	i = ptm_gethashhead(idcrc);
 	ptmh = ptmhashhead[i];
-	
+
 	while (ptmh) {
         if (ptmh->idcrc == idcrc &&
             memcmp(&ptmh->id, id, sizeof(PTMIdent)) == 0) {
@@ -173,17 +173,17 @@ PTMHead * PTM_GetHead(const PTMIdent *id)
 		}
 		ptmh = ptmh->next;
 	}
-	
+
 	ptmh = (PTMHash *) malloc(sizeof(PTMHash));
 	if (ptmh) {
 		memset(ptmh, 0, sizeof(PTMHash));
-		
+
         ptmh->idcrc = idcrc;
 		memcpy(&ptmh->id, id, sizeof(PTMIdent));
 		ptmh->next = ptmhashhead[i];
 		ptmhashhead[i] = ptmh;
 	}
-	
+
 	return &ptmh->head;
 }
 
@@ -205,21 +205,21 @@ static int ptm_loadcachedtexturefile(const char* filename, PTMHead* ptmh, int fl
 	if (!tdef) {
 		return -1;
 	}
-	
+
 	if (polymosttexverbosity >= 2) {
 		buildprintf("PolymostTex: loaded %s (effects %d, flags %d) from cache\n",
 				   tdef->filename, tdef->effects, tdef->flags);
 	}
 
 	if (ptmh->glpic == 0) {
-		bglGenTextures(1, &ptmh->glpic);
+		glfunc.glGenTextures(1, &ptmh->glpic);
 	}
 	ptmh->tsizx = tdef->tsizx;
 	ptmh->tsizy = tdef->tsizy;
 	ptmh->sizx  = tdef->mipmap[0].sizx;
 	ptmh->sizy  = tdef->mipmap[0].sizy;
 	ptmh->flags = tdef->flags & PTH_HASALPHA;
-	bglBindTexture(GL_TEXTURE_2D, ptmh->glpic);
+	glfunc.glBindTexture(GL_TEXTURE_2D, ptmh->glpic);
 
 	mipmap = 0;
 	if (! (flags & PTH_NOMIPLEVEL)) {
@@ -233,18 +233,18 @@ static int ptm_loadcachedtexturefile(const char* filename, PTMHead* ptmh, int fl
 		// the maximum size permitted by the GL driver
 		mipmap++;
 	}
-	
+
 	for (i = 0; i + mipmap < tdef->nummipmaps; i++) {
-		bglCompressedTexImage2DARB(GL_TEXTURE_2D, i,
+		glfunc.glCompressedTexImage2DARB(GL_TEXTURE_2D, i,
 								   tdef->format,
 								   tdef->mipmap[i + mipmap].sizx,
 								   tdef->mipmap[i + mipmap].sizy,
 								   0, tdef->mipmap[i + mipmap].length,
 								   (const GLvoid *) tdef->mipmap[i + mipmap].data);
 	}
-	
+
 	PTCacheFreeTile(tdef);
-	
+
 	return 0;
 }
 
@@ -265,21 +265,21 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	char * picdata = 0;
 	PTCacheTile * tdef = 0;
 	int writetocache = 0, iscached = 0;
-	
+
 	if (!(flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcache && glusetexcompr) {
 		iscached = PTCacheHasTile(filename, effects, (flags & PTH_CLAMPED));
-		
+
 		// if the texture exists in the cache but the original file is newer,
 		// ignore what's in the cache and overwrite it
 		/*if (iscached && filemtime(filename) > filemtime(cacheitem)) {
 			iscached = 0;
 		}*/
-		
+
 		if (!iscached) {
 			writetocache = 1;
 		}
 	}
-	
+
 	if (iscached) {
 		if (ptm_loadcachedtexturefile(filename, ptmh, flags, effects) == 0) {
 			return 0;
@@ -291,26 +291,26 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 		return -1;
 	}
 	picdatalen = kfilelength(filh);
-	
+
 	picdata = (char *) malloc(picdatalen);
 	if (!picdata) {
 		kclose(filh);
 		return -2;
 	}
-	
+
 	if (kread(filh, picdata, picdatalen) != picdatalen) {
 		kclose(filh);
 		return -3;
 	}
-	
+
 	kclose(filh);
-	
+
 	kpgetdim(picdata, picdatalen, (int *) &tex.tsizx, (int *) &tex.tsizy);
 	if (tex.tsizx == 0 || tex.tsizy == 0) {
 		free(picdata);
 		return -4;
 	}
-	
+
 	if (!glinfo.texnpot || writetocache) {
 		for (tex.sizx = 1; tex.sizx < tex.tsizx; tex.sizx += tex.sizx) ;
 		for (tex.sizy = 1; tex.sizy < tex.tsizy; tex.sizy += tex.sizy) ;
@@ -318,29 +318,29 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 		tex.sizx = tex.tsizx;
 		tex.sizy = tex.tsizy;
 	}
-	
+
 	tex.pic = (coltype *) malloc(tex.sizx * tex.sizy * sizeof(coltype));
 	if (!tex.pic) {
 		return -2;
 	}
 	memset(tex.pic, 0, tex.sizx * tex.sizy * sizeof(coltype));
-	
+
 	if (kprender(picdata, picdatalen, tex.pic, tex.sizx * sizeof(coltype), tex.sizx, tex.sizy, 0, 0)) {
 		free(picdata);
 		free(tex.pic);
 		return -5;
 	}
-	
+
 	free(picdata);
 	picdata = 0;
-	
+
 	ptm_applyeffects(&tex, effects);	// updates tex.hasalpha
-	
+
 	ptmh->flags = 0;
 	if (tex.hasalpha) {
 		ptmh->flags |= PTH_HASALPHA;
 	}
-	
+
 	if (! (flags & PTH_CLAMPED) || (flags & PTH_SKYBOX)) { //Duplicate texture pixels (wrapping tricks for non power of 2 texture sizes)
 		if (tex.sizx > tex.tsizx) {	//Copy left to right
 			coltype * lptr = tex.pic;
@@ -352,7 +352,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 			memcpy(&tex.pic[tex.sizx * tex.tsizy], tex.pic, (tex.sizy - tex.tsizy) * tex.sizx << 2);
 		}
 	}
-	
+
 	tex.rawfmt = GL_BGRA;
 	if (!glinfo.bgra || glusetexcompr) {
 		// texture compression requires rgba ordering for libsquish
@@ -362,12 +362,12 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 		}
 		tex.rawfmt = GL_RGBA;
 	}
-	
+
 	ptmh->tsizx = tex.tsizx;
 	ptmh->tsizy = tex.tsizy;
 	ptmh->sizx  = tex.sizx;
 	ptmh->sizy  = tex.sizy;
-	
+
 	if (writetocache) {
 		int nmips = 0;
 		while (max(1, (tex.sizx >> nmips)) > 1 ||
@@ -375,15 +375,15 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 			nmips++;
 		}
 		nmips++;
-		
+
 		tdef = PTCacheAllocNewTile(nmips);
 		tdef->filename = strdup(filename);
 		tdef->effects = effects;
 		tdef->flags = (flags | ptmh->flags) & (PTH_CLAMPED | PTH_HASALPHA);
 	}
-	
+
 	ptm_uploadtexture(ptmh, flags, &tex, tdef);
-	
+
 	if (writetocache) {
 		if (polymosttexverbosity >= 2) {
 			buildprintf("PolymostTex: writing %s (effects %d, flags %d) to cache\n",
@@ -393,13 +393,13 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 		PTCacheFreeTile(tdef);
 		tdef = 0;
 	}
-	
-	
+
+
 	if (tex.pic) {
 		free(tex.pic);
 		tex.pic = 0;
 	}
-	
+
 	return 0;
 }
 
@@ -442,9 +442,9 @@ static PTHash * pt_findhash(int picnum, int palnum, unsigned short flags, int cr
 	int i = pt_gethashhead(picnum);
 	PTHash * pth;
 	PTHash * basepth;	// palette 0 in case we find we need it
-	
+
 	unsigned short flagmask = flags & (PTH_HIGHTILE | PTH_CLAMPED | PTH_SKYBOX);
-	
+
 	// first, try and find an existing match for our parameters
 	pth = pthashhead[i];
 	while (pth) {
@@ -457,16 +457,16 @@ static PTHash * pt_findhash(int picnum, int palnum, unsigned short flags, int cr
 			}
 			return pth;
 		}
-		
+
 		pth = pth->next;
 	}
-	
+
 	if (!create) {
 		return 0;
 	} else {
 		// we didn't find one, so we have to create one
 		hicreplctyp * replc = 0;
-		
+
 		if ((flags & PTH_HIGHTILE)) {
 			replc = hicfindsubst(picnum, palnum, (flags & PTH_SKYBOX));
 		}
@@ -476,15 +476,15 @@ static PTHash * pt_findhash(int picnum, int palnum, unsigned short flags, int cr
 			return 0;
 		}
 		memset(pth, 0, sizeof(PTHash));
-		
+
 		pth->next = pthashhead[i];
 		pth->head.picnum  = picnum;
 		pth->head.palnum  = palnum;
 		pth->head.flags   = flagmask;
 		pth->head.repldef = replc;
-		
+
 		pthashhead[i] = pth;
-		
+
 		if (replc && replc->palnum != palnum) {
 			// we were given a substitute by hightile, so
 			if (hictinting[palnum].f & HICEFFECTMASK) {
@@ -512,7 +512,7 @@ static PTHash * pt_findhash(int picnum, int palnum, unsigned short flags, int cr
 			}
 		}
 	}
-	
+
 	return pth;
 }
 
@@ -525,7 +525,7 @@ static void pt_unload(PTHash * pth)
 	int i;
 	for (i = PTHPIC_SIZE - 1; i>=0; i--) {
 		if (pth->head.pic[i] && pth->head.pic[i]->glpic) {
-			bglDeleteTextures(1, &pth->head.pic[i]->glpic);
+			glfunc.glDeleteTextures(1, &pth->head.pic[i]->glpic);
 			pth->head.pic[i]->glpic = 0;
 		}
 	}
@@ -547,13 +547,13 @@ static int pt_load(PTHash * pth)
 		(pth->head.pic[PTHPIC_BASE]->flags & PTH_DIRTY) == 0) {
 		return 1;	// loaded
 	}
-	
+
 	if ((pth->head.flags & PTH_HIGHTILE)) {
 		// try and load from a replacement
 		if (pt_load_hightile(&pth->head)) {
 			return 1;
 		}
-		
+
 		// if that failed, get the hash for the ART version and
 		//   defer this to there
 		pth->deferto = pt_findhash(
@@ -565,11 +565,11 @@ static int pt_load(PTHash * pth)
 		}
 		return pt_load(pth->deferto);
 	}
-	
+
 	if (pt_load_art(&pth->head)) {
 		return 1;
 	}
-	
+
 	// we're SOL
 	return 0;
 }
@@ -602,7 +602,7 @@ static int pt_load_art(PTHead * pth)
 			tex.sizy = tex.tsizy;
 		}
 	}
-	
+
 	tex.rawfmt = GL_RGBA;
 
 	memcpy(&fbtex, &tex, sizeof(PTTexture));
@@ -610,12 +610,12 @@ static int pt_load_art(PTHead * pth)
 	if (!waloff[pth->picnum]) {
 		loadtile(pth->picnum);
 	}
-	
+
 	tex.pic = (coltype *) malloc(tex.sizx * tex.sizy * sizeof(coltype));
 	if (!tex.pic) {
 		return 0;
 	}
-	
+
 	// fullbright is initialised transparent
 	fbtex.pic = (coltype *) malloc(tex.sizx * tex.sizy * sizeof(coltype));
 	if (!fbtex.pic) {
@@ -623,7 +623,7 @@ static int pt_load_art(PTHead * pth)
 		return 0;
 	}
 	memset(fbtex.pic, 0, tex.sizx * tex.sizy * sizeof(coltype));
-	
+
 	if (!waloff[pth->picnum]) {
 		// Force invalid textures to draw something - an almost purely transparency texture
 		// This allows the Z-buffer to be updated for mirrors (which are invalidated textures)
@@ -668,7 +668,7 @@ static int pt_load_art(PTHead * pth)
 					wpptr->g = britable[curbrightness][ curpalette[dacol].g ];
 					wpptr->b = britable[curbrightness][ curpalette[dacol].b ];
 				}
-				
+
 				if (dacol >= polymosttexfullbright && dacol < 255) {
 					*fpptr = *wpptr;
 					hasfullbright = 1;
@@ -676,13 +676,13 @@ static int pt_load_art(PTHead * pth)
 			}
 		}
 	}
-	
+
 	pth->scalex = 1.0;
 	pth->scaley = 1.0;
 	pth->flags &= ~(PTH_HASALPHA | PTH_SKYBOX);
 	pth->flags |= (PTH_NOCOMPRESS | PTH_NOMIPLEVEL);
 	tex.hasalpha = hasalpha;
-	
+
     PTM_InitIdent(&id, pth);
     id.layer = PTHPIC_BASE;
 	pth->pic[PTHPIC_BASE] = PTM_GetHead(&id);
@@ -691,7 +691,7 @@ static int pt_load_art(PTHead * pth)
 	pth->pic[PTHPIC_BASE]->sizx  = tex.sizx;
 	pth->pic[PTHPIC_BASE]->sizy  = tex.sizy;
 	ptm_uploadtexture(pth->pic[PTHPIC_BASE], pth->flags, &tex, 0);
-	
+
 	if (hasfullbright) {
         id.layer = PTHPIC_GLOW;
 		pth->pic[PTHPIC_GLOW] = PTM_GetHead(&id);
@@ -707,14 +707,14 @@ static int pt_load_art(PTHead * pth)
 		pth->pic[PTHPIC_GLOW] = 0;//FIXME should really call a disposal function
 	}
 	pt_load_applyparameters(pth);
-	
+
 	if (tex.pic) {
 		free(tex.pic);
 	}
 	if (fbtex.pic) {
 		free(fbtex.pic);
 	}
-	
+
 	return 1;
 }
 
@@ -740,14 +740,14 @@ static int pt_load_hightile(PTHead * pth)
 	} else if (pth->repldef->ignore) {
 		return 0;
 	}
-	
+
 	effects = (pth->palnum != pth->repldef->palnum) ? hictinting[pth->palnum].f : 0;
 
 	pth->flags &= ~(PTH_NOCOMPRESS | PTH_HASALPHA);
 	if (pth->repldef->flags & HIC_NOCOMPRESS) {
 		pth->flags |= PTH_NOCOMPRESS;
 	}
-	
+
 	for (texture = 0; texture < PTHPIC_SIZE; texture++) {
 		if (pth->flags & PTH_SKYBOX) {
 			if (texture >= 6) {
@@ -766,14 +766,15 @@ static int pt_load_hightile(PTHead * pth)
 					continue;
 			}
 		}
-	
+
 		if (!filename) {
 			continue;
 		}
 
         PTM_InitIdent(&id, pth);
+        id.layer = texture;
         pth->pic[texture] = PTM_GetHead(&id);
-		
+
 		if ((err = PTM_LoadTextureFile(filename, pth->pic[texture], pth->flags, effects))) {
 			if (polymosttexverbosity >= 1) {
 				const char * errstr = PTM_GetLoadTextureFileErrorString(err);
@@ -792,12 +793,12 @@ static int pt_load_hightile(PTHead * pth)
 				pth->scaley = (float)pth->pic[texture]->tsizy / (float)tilesizy[pth->picnum];
 			}
 		}
-		
+
 		loaded[texture] = 1;
 	}
 
 	pt_load_applyparameters(pth);
-	
+
 	if (pth->flags & PTH_SKYBOX) {
 		int i = 0;
 		for (texture = 0; texture < 6; texture++) i += loaded[texture];
@@ -814,36 +815,36 @@ static int pt_load_hightile(PTHead * pth)
 static void pt_load_applyparameters(PTHead * pth)
 {
 	int i;
-	
+
 	for (i = 0; i < PTHPIC_SIZE; i++) {
 		if (pth->pic[i] == 0 || pth->pic[i]->glpic == 0) {
 			continue;
 		}
-		
-		bglBindTexture(GL_TEXTURE_2D, pth->pic[i]->glpic);
-		
+
+		glfunc.glBindTexture(GL_TEXTURE_2D, pth->pic[i]->glpic);
+
 		if (gltexfiltermode < 0) {
 			gltexfiltermode = 0;
 		} else if (gltexfiltermode >= (int)numglfiltermodes) {
 			gltexfiltermode = numglfiltermodes-1;
 		}
-		bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glfiltermodes[gltexfiltermode].mag);
-		bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glfiltermodes[gltexfiltermode].min);
-		
+		glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glfiltermodes[gltexfiltermode].mag);
+		glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glfiltermodes[gltexfiltermode].min);
+
 		if (glinfo.maxanisotropy > 1.0) {
 			if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) {
 				glanisotropy = (int)glinfo.maxanisotropy;
 			}
-			bglTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, glanisotropy);
+			glfunc.glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, glanisotropy);
 		}
-		
+
 		if (! (pth->flags & PTH_CLAMPED)) {
-			bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		} else {     //For sprite textures, clamping looks better than wrapping
 			GLint c = glinfo.clamptoedge ? GL_CLAMP_TO_EDGE : GL_CLAMP;
-			bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, c);
-			bglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, c);
+			glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, c);
+			glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, c);
 		}
 	}
 }
@@ -861,7 +862,7 @@ static void ptm_fixtransparency(PTTexture * tex, int clamped)
 	int dox, doy, naxsiz2;
 	int daxsiz = tex->tsizx, daysiz = tex->tsizy;
 	int daxsiz2 = tex->sizx, daysiz2 = tex->sizy;
-	
+
 	dox = daxsiz2-1;
 	doy = daysiz2-1;
 	if (clamped) {
@@ -872,9 +873,9 @@ static void ptm_fixtransparency(PTTexture * tex, int clamped)
 		daxsiz = daxsiz2;
 		daysiz = daysiz2;
 	}
-	
+
 	daxsiz--; daysiz--; naxsiz2 = -daxsiz2; // Hacks for optimization inside loop
-	
+
 	// Set transparent pixels to average color of neighboring opaque pixels
 	// Doing this makes bilinear filtering look much better for masked textures (I.E. sprites)
 	for (y = doy; y >= 0; y--) {
@@ -943,7 +944,7 @@ static void ptm_applyeffects(PTTexture * tex, int effects)
 	int alph = 255;
 	int x, y;
 	coltype * tptr = tex->pic;
-	
+
 	if (effects == 0 && gammabrightness) {
 		// use a quicker scan for alpha since we don't need
 		// to be swizzling texel components
@@ -955,7 +956,7 @@ static void ptm_applyeffects(PTTexture * tex, int effects)
 	} else {
 		unsigned char *brit = &britable[gammabrightness ? 0 : curbrightness][0];
 		coltype tcol;
-		
+
 		for (y = tex->tsizy - 1; y >= 0; y--, tptr += tex->sizx) {
 			for (x = tex->tsizx - 1; x >= 0; x--) {
 				tcol.b = brit[tptr[x].b];
@@ -963,7 +964,7 @@ static void ptm_applyeffects(PTTexture * tex, int effects)
 				tcol.r = brit[tptr[x].r];
 				tcol.a = tptr[x].a;
 				alph &= tptr[x].a;
-				
+
 				if (effects & HICEFFECT_GREYSCALE) {
 					float y;
 					y  = 0.3  * (float)tcol.r;
@@ -977,7 +978,7 @@ static void ptm_applyeffects(PTTexture * tex, int effects)
 					tcol.g = 255-tcol.g;
 					tcol.r = 255-tcol.r;
 				}
-				
+
 				tptr[x] = tcol;
 			}
 		}
@@ -997,14 +998,14 @@ static void ptm_mipscale(PTTexture * tex)
 	GLsizei x, y;
 	coltype *wpptr, *rpptr;
 	int r, g, b, a, k;
-	
+
 	newx = max(1, (tex->sizx >> 1));
 	newy = max(1, (tex->sizy >> 1));
-	
+
 	for (y = 0; y < newy; y++) {
 		wpptr = &tex->pic[y * newx];
 		rpptr = &tex->pic[(y << 1) * tex->sizx];
-		
+
 		for (x = 0; x < newx; x++, wpptr++, rpptr += 2) {
 			r = g = b = a = k = 0;
 			if (rpptr[0].a) {
@@ -1064,7 +1065,7 @@ static void ptm_mipscale(PTTexture * tex)
 			//if (wpptr->a) wpptr->a = 255;
 		}
 	}
-	
+
 	tex->sizx = newx;
 	tex->sizy = newy;
 }
@@ -1088,7 +1089,7 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 	int starttime;
 
 	detect_texture_size();
-	
+
 	if (!(flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcompr) {
 		intexfmt = tex->hasalpha
 		         ? GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
@@ -1107,12 +1108,12 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 	}
 
 	if (ptm->glpic == 0) {
-		bglGenTextures(1, &ptm->glpic);
+		glfunc.glGenTextures(1, &ptm->glpic);
 	}
-	bglBindTexture(GL_TEXTURE_2D, ptm->glpic);
+	glfunc.glBindTexture(GL_TEXTURE_2D, ptm->glpic);
 
 	ptm_fixtransparency(tex, (flags & PTH_CLAMPED));
-	
+
 	mipmap = 0;
 	if (! (flags & PTH_NOMIPLEVEL)) {
 		// if we aren't instructed to preserve all mipmap levels,
@@ -1125,14 +1126,14 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 		// the maximum size permitted by the GL driver
 		mipmap++;
 	}
-	
+
 	for ( ;
 	     mipmap > 0 && (tex->sizx > 1 || tex->sizy > 1);
 	     mipmap--) {
 		if (compress && tdef) {
 			comprsize = squish_GetStorageRequirements(tex->sizx, tex->sizy, intexfmt);
 			comprdata = (unsigned char *) malloc(comprsize);
-			
+
 			starttime = getticks();
 			squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
 			if (polymosttexverbosity >= 2) {
@@ -1141,24 +1142,24 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 					   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
 					   (float)(getticks() - starttime) / 1000.f);
 			}
-			
+
 			tdef->mipmap[tdefmip].sizx = tex->sizx;
 			tdef->mipmap[tdefmip].sizy = tex->sizy;
 			tdef->mipmap[tdefmip].length = comprsize;
 			tdef->mipmap[tdefmip].data = comprdata;
 			tdefmip++;
-			
+
 			comprdata = 0;
 		}
-		
+
 		ptm_mipscale(tex);
 		ptm_fixtransparency(tex, (flags & PTH_CLAMPED));
 	}
-	
+
 	if (compress) {
 		comprsize = squish_GetStorageRequirements(tex->sizx, tex->sizy, intexfmt);
 		comprdata = (unsigned char *) malloc(comprsize);
-		
+
 		starttime = getticks();
 		squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
 		if (polymosttexverbosity >= 2) {
@@ -1167,7 +1168,7 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 				   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
 				   (float)(getticks() - starttime) / 1000.f);
 		}
-		
+
 		if (tdef) {
 			tdef->mipmap[tdefmip].sizx = tex->sizx;
 			tdef->mipmap[tdefmip].sizy = tex->sizy;
@@ -1175,22 +1176,22 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 			tdef->mipmap[tdefmip].data = comprdata;
 			tdefmip++;
 		}
-		
-		bglCompressedTexImage2DARB(GL_TEXTURE_2D, 0,
+
+		glfunc.glCompressedTexImage2DARB(GL_TEXTURE_2D, 0,
 			intexfmt, tex->sizx, tex->sizy, 0,
 			comprsize, (const GLvoid *) comprdata);
-		
+
 		if (tdef) {
 			// we need to retain each mipmap for the tdef struct, so
 			// force each mipmap to be allocated afresh in the loop below
 			comprdata = 0;
 		}
 	} else {
-		bglTexImage2D(GL_TEXTURE_2D, 0,
+		glfunc.glTexImage2D(GL_TEXTURE_2D, 0,
 			intexfmt, tex->sizx, tex->sizy, 0, tex->rawfmt,
 			GL_UNSIGNED_BYTE, (const GLvoid *) tex->pic);
 	}
-	
+
 	for (mipmap = 1; tex->sizx > 1 || tex->sizy > 1; mipmap++) {
 		ptm_mipscale(tex);
 		ptm_fixtransparency(tex, (flags & PTH_CLAMPED));
@@ -1209,7 +1210,7 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 					   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
 					   (float)(getticks() - starttime) / 1000.f);
 			}
-			
+
 			if (tdef) {
 				tdef->mipmap[tdefmip].sizx = tex->sizx;
 				tdef->mipmap[tdefmip].sizy = tex->sizy;
@@ -1217,8 +1218,8 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 				tdef->mipmap[tdefmip].data = comprdata;
 				tdefmip++;
 			}
-			
-			bglCompressedTexImage2DARB(GL_TEXTURE_2D, mipmap,
+
+			glfunc.glCompressedTexImage2DARB(GL_TEXTURE_2D, mipmap,
 						intexfmt, tex->sizx, tex->sizy, 0,
 						comprsize, (const GLvoid *) comprdata);
 
@@ -1228,15 +1229,15 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 				comprdata = 0;
 			}
 		} else {
-			bglTexImage2D(GL_TEXTURE_2D, mipmap,
+			glfunc.glTexImage2D(GL_TEXTURE_2D, mipmap,
 				intexfmt, tex->sizx, tex->sizy, 0, tex->rawfmt,
 				GL_UNSIGNED_BYTE, (const GLvoid *) tex->pic);
 		}
 	}
-	
+
 	ptm->flags = 0;
 	ptm->flags |= (tex->hasalpha ? PTH_HASALPHA : 0);
-	
+
 	if (comprdata) {
 		free(comprdata);
 	}
@@ -1250,7 +1251,7 @@ void PTBeginPriming(void)
 {
 	PTHash * pth;
 	int i;
-	
+
 	for (i=PTHASHHEADSIZ-1; i>=0; i--) {
 		pth = pthashhead[i];
 		while (pth) {
@@ -1258,7 +1259,7 @@ void PTBeginPriming(void)
 			pth = pth->next;
 		}
 	}
-	
+
 	primecnt = 0;
 	primedone = 0;
 	primepos = 0;
@@ -1270,7 +1271,7 @@ void PTBeginPriming(void)
 void PTMarkPrime(int picnum, int palnum, unsigned short flags)
 {
 	PTHash * pth;
-	
+
 	pth = pt_findhash(picnum, palnum, flags, 1);
 	if (pth) {
 		if (pth->primecnt == 0) {
@@ -1289,15 +1290,15 @@ void PTMarkPrime(int picnum, int palnum, unsigned short flags)
 int PTDoPrime(int* done, int* total)
 {
 	PTHash * pth;
-	
+
 	if (primepos >= PTHASHHEADSIZ) {
 		// done
 		return 0;
 	}
-	
+
 	if (primepos == 0) {
 		int i;
-		
+
 		// first, unload all the textures that are not marked
 		for (i=PTHASHHEADSIZ-1; i>=0; i--) {
 			pth = pthashhead[i];
@@ -1309,7 +1310,7 @@ int PTDoPrime(int* done, int* total)
 			}
 		}
 	}
-	
+
 	pth = pthashhead[primepos];
 	while (pth) {
 		if (pth->primecnt > 0) {
@@ -1318,11 +1319,11 @@ int PTDoPrime(int* done, int* total)
 		}
 		pth = pth->next;
 	}
-	
+
 	*done = primedone;
 	*total = primecnt;
 	primepos++;
-	
+
 	return (primepos < PTHASHHEADSIZ);
 }
 
@@ -1333,7 +1334,7 @@ void PTReset()
 {
 	PTHash * pth;
 	int i;
-	
+
 	for (i=PTHASHHEADSIZ-1; i>=0; i--) {
 		pth = pthashhead[i];
 		while (pth) {
@@ -1351,7 +1352,7 @@ void PTClear()
 	PTHash * pth, * next;
 	PTMHash * ptmh, * mnext;
 	int i;
-	
+
 	for (i=PTHASHHEADSIZ-1; i>=0; i--) {
 		pth = pthashhead[i];
 		while (pth) {
@@ -1362,7 +1363,7 @@ void PTClear()
 		}
 		pthashhead[i] = 0;
 	}
-	
+
 	for (i=PTMHASHHEADSIZ-1; i>=0; i--) {
 		ptmh = ptmhashhead[i];
 		while (ptmh) {
@@ -1387,21 +1388,21 @@ void PTClear()
 PTHead * PT_GetHead(int picnum, int palnum, unsigned short flags, int peek)
 {
 	PTHash * pth;
-	
+
 	pth = pt_findhash(picnum, palnum, flags, peek == 0);
 	if (pth == 0) {
 		return 0;
 	}
-	
+
 	if (!pt_load(pth)) {
 		return 0;
 	}
-	
+
 	while (pth->deferto) {
 		// this might happen if pt_load needs to defer to ART
 		pth = pth->deferto;
 	}
-	
+
 	return &pth->head;
 }
 
@@ -1466,12 +1467,12 @@ static void ptiter_seekforward(PTIter iter)
 PTIter PTIterNewMatch(int match, int picnum, int palnum, unsigned short flagsmask, unsigned short flags)
 {
 	PTIter iter;
-	
+
 	iter = (PTIter) malloc(sizeof(struct PTIter_typ));
 	if (!iter) {
 		return 0;
 	}
-	
+
 	iter->i = 0;
 	iter->pth = pthashhead[0];
 	iter->match = match;
@@ -1479,7 +1480,7 @@ PTIter PTIterNewMatch(int match, int picnum, int palnum, unsigned short flagsmas
 	iter->palnum = palnum;
 	iter->flagsmask = flagsmask;
 	iter->flags = flags;
-	
+
 	if ((match & PTITER_PICNUM)) {
 		iter->i = pt_gethashhead(picnum);
 		iter->pth = pthashhead[iter->i];
@@ -1488,9 +1489,9 @@ PTIter PTIterNewMatch(int match, int picnum, int palnum, unsigned short flagsmas
 			return iter;
 		}
 	}
-	
+
 	ptiter_seekforward(iter);
-	
+
 	return iter;
 }
 
@@ -1511,18 +1512,18 @@ PTIter PTIterNew(void)
 PTHead * PTIterNext(PTIter iter)
 {
 	PTHead * found = 0;
-	
+
 	if (!iter) return 0;
-	
+
 	if (iter->pth == 0) {
 		return 0;
 	}
-	
+
 	found = &iter->pth->head;
 	iter->pth = iter->pth->next;
 
 	ptiter_seekforward(iter);
-	
+
 	return found;
 }
 

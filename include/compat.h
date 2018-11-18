@@ -52,6 +52,7 @@
 #  include <stdio.h>
 #  include <string.h>
 #  include <stdlib.h>
+#  include <stddef.h>
 #  include <time.h>
 # endif
 # include <fcntl.h>
@@ -69,7 +70,7 @@
 #ifdef _MSC_VER
 # include "msinttypes/stdint.h"
 # include "msinttypes/inttypes.h"
-#else 
+#else
 # include <stdint.h>
 # include <inttypes.h>
 # include <limits.h>
@@ -165,6 +166,16 @@ static inline uint32_t B_SWAP32(uint32_t l) { return ((l>>8)&0xff00)|((l&0xff00)
 static inline uint64_t B_SWAP64(uint64_t l) { return (l>>56)|((l>>40)&0xff00)|((l>>24)&0xff0000)|((l>>8)&0xff000000)|((l&255)<<56)|((l&0xff00)<<40)|((l&0xff0000)<<24)|((l&0xff000000)<<8); }
 #endif
 
+static inline float B_SWAPFLOAT(float f) {
+    union {
+        float f;
+        uint32_t i;
+    } x;
+    x.f = f;
+    x.i = B_SWAP32(x.i);
+    return x.f;
+}
+
 #if B_LITTLE_ENDIAN == 1
 # define B_LITTLE64(x) (x)
 # define B_BIG64(x)    B_SWAP64(x)
@@ -172,6 +183,8 @@ static inline uint64_t B_SWAP64(uint64_t l) { return (l>>56)|((l>>40)&0xff00)|((
 # define B_BIG32(x)    B_SWAP32(x)
 # define B_LITTLE16(x) (x)
 # define B_BIG16(x)    B_SWAP16(x)
+# define B_LITTLEFLOAT(x) (x)
+# define B_BIGFLOAT(x) B_SWAPFLOAT(x)
 #elif B_BIG_ENDIAN == 1
 # define B_LITTLE64(x) B_SWAP64(x)
 # define B_BIG64(x)    (x)
@@ -179,6 +192,8 @@ static inline uint64_t B_SWAP64(uint64_t l) { return (l>>56)|((l>>40)&0xff00)|((
 # define B_BIG32(x)    (x)
 # define B_LITTLE16(x) B_SWAP16(x)
 # define B_BIG16(x)    (x)
+# define B_LITTLEFLOAT(x) B_SWAPFLOAT(x)
+# define B_BIGFLOAT(x) (x)
 #endif
 
 #ifdef __compat_h_macrodef__

@@ -5597,7 +5597,6 @@ void drawrooms(int daposx, int daposy, int daposz,
 
 	begindrawing();	//{{{
 
-	//frameoffset = frameplace + viewoffset;
 	frameoffset = frameplace + windowy1*bytesperline + windowx1;
 
 	numhits = xdimen; numscans = 0; numbunches = 0;
@@ -7681,6 +7680,10 @@ void nextpage(void)
 			enddrawing();	//}}}
 
 			OSD_Draw();
+#if defined(POLYMOST)
+			polymost_nextpage();
+#endif
+
 			showframe(0);
 
 			/*
@@ -9599,11 +9602,9 @@ void setview(int x1, int y1, int x2, int y2)
 		{ startumost[i] = windowy1, startdmost[i] = windowy2+1; }
 	for(i=windowx2+1;i<xdim;i++) { startumost[i] = 1, startdmost[i] = 0; }
 
-	/*
-	begindrawing();	//{{{
-	viewoffset = windowy1*bytesperline + windowx1;
-	enddrawing();	//}}}
-	*/
+#if defined POLYMOST && defined USE_OPENGL
+	polymost_setview();
+#endif
 }
 
 
@@ -9896,11 +9897,11 @@ void clearview(int dacol)
 			p.g = britable[curbrightness][ curpalette[dacol].g ];
 			p.b = britable[curbrightness][ curpalette[dacol].b ];
 		}
-		bglClearColor(((float)p.r)/255.0,
+		glfunc.glClearColor(((float)p.r)/255.0,
 					  ((float)p.g)/255.0,
 					  ((float)p.b)/255.0,
 					  0);
-		bglClear(GL_COLOR_BUFFER_BIT);
+		glfunc.glClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}
 #endif
@@ -9937,12 +9938,12 @@ void clearallviews(int dacol)
 			p.g = britable[curbrightness][ curpalette[dacol].g ];
 			p.b = britable[curbrightness][ curpalette[dacol].b ];
 		}
-		bglViewport(0,0,xdim,ydim); glox1 = -1;
-		bglClearColor(((float)p.r)/255.0,
+		glfunc.glViewport(0,0,xdim,ydim); glox1 = -1;
+		glfunc.glClearColor(((float)p.r)/255.0,
 					  ((float)p.g)/255.0,
 					  ((float)p.b)/255.0,
 					  0);
-		bglClear(GL_COLOR_BUFFER_BIT);
+		glfunc.glClear(GL_COLOR_BUFFER_BIT);
 		return;
 	}
 #endif
@@ -9962,25 +9963,8 @@ void clearallviews(int dacol)
 //
 void plotpixel(int x, int y, unsigned char col)
 {
-#if defined(POLYMOST) && defined(USE_OPENGL)
-	if (rendmode == 3 && qsetmode == 200) {
-		palette_t p;
-		if (gammabrightness) p = curpalette[col];
-		else {
-			p.r = britable[curbrightness][ curpalette[col].r ];
-			p.g = britable[curbrightness][ curpalette[col].g ];
-			p.b = britable[curbrightness][ curpalette[col].b ];
-		}
-
-		setpolymost2dview();	// JBF 20040205: more efficient setup
-
-		bglBegin(GL_POINTS);
-		 bglColor4ub(p.r,p.g,p.b,255);
-		 bglVertex2i(x,y);
-		bglEnd();
-
-		return;
-	}
+#if defined(POLYMOST)
+	if (!polymost_plotpixel(x,y,col)) return;
 #endif
 
 	begindrawing();	//{{{
@@ -10364,31 +10348,6 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 
 	col = palookup[0][col];
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
-	if (rendmode == 3)
-	{
-		palette_t p;
-		if (gammabrightness) p = curpalette[col];
-		else {
-			p.r = britable[curbrightness][ curpalette[col].r ];
-			p.g = britable[curbrightness][ curpalette[col].g ];
-			p.b = britable[curbrightness][ curpalette[col].b ];
-		}
-
-		setpolymost2dview();	// JBF 20040205: more efficient setup
-
-		//bglEnable(GL_BLEND);	// When using line antialiasing, this is needed
-		bglBegin(GL_LINES);
-			bglColor4ub(p.r,p.g,p.b,255);
-			bglVertex2f((float)x1/4096.0,(float)y1/4096.0);
-			bglVertex2f((float)x2/4096.0,(float)y2/4096.0);
-		bglEnd();
-		//bglDisable(GL_BLEND);
-
-      return;
-   }
-#endif
-
 	dx = x2-x1; dy = y2-y1;
 	if (dx >= 0)
 	{
@@ -10415,6 +10374,10 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		if (y1 > wy2) x1 += scale(wy2-y1,dx,dy), y1 = wy2;
 	}
 
+#if defined(POLYMOST)
+	if (!polymost_drawline256(x1,y1,x2,y2,col)) return;
+#endif
+
 	if (klabs(dx) >= klabs(dy))
 	{
 		if (dx == 0) return;
@@ -10422,6 +10385,7 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		{
 			i = x1; x1 = x2; x2 = i;
 			i = y1; y1 = y2; y2 = i;
+			x1+=4096; x2+=4096;
 		}
 
 		inc = divscale12(dy,dx);
@@ -10444,6 +10408,7 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		{
 			i = x1; x1 = x2; x2 = i;
 			i = y1; y1 = y2; y2 = i;
+			y1+=4096; y2+=4096;
 		}
 
 		inc = divscale12(dx,dy);
@@ -11107,60 +11072,8 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 	if (fontsize) { fontptr = smalltextfont; charxsiz = 4; }
 	else { fontptr = textfont; charxsiz = 8; }
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if defined(POLYMOST)
 	if (!polymost_printext256(xpos,ypos,col,backcol,name,fontsize)) return;
-
-	if (rendmode == 3) {
-		int xx, yy;
-		int lc=-1;
-		palette_t p,b;
-
-		if (gammabrightness) {
-			p = curpalette[col];
-			b = curpalette[backcol];
-		} else {
-			p.r = britable[curbrightness][ curpalette[col].r ];
-			p.g = britable[curbrightness][ curpalette[col].g ];
-			p.b = britable[curbrightness][ curpalette[col].b ];
-			b.r = britable[curbrightness][ curpalette[backcol].r ];
-			b.g = britable[curbrightness][ curpalette[backcol].g ];
-			b.b = britable[curbrightness][ curpalette[backcol].b ];
-		}
-
-		setpolymost2dview();
-		bglDisable(GL_ALPHA_TEST);
-		bglDepthMask(GL_FALSE);	// disable writing to the z-buffer
-
-		bglBegin(GL_POINTS);
-
-		for(i=0;name[i];i++) {
-			letptr = &fontptr[((int)(unsigned char)name[i])<<3];
-			xx = stx-fontsize;
-			yy = ypos+7 + 2; //+1 is hack!
-			for(y=7;y>=0;y--) {
-				for(x=charxsiz-1;x>=0;x--) {
-					if (letptr[y]&pow2char[7-fontsize-x]) {
-						if (lc!=col)
-							bglColor4ub(p.r,p.g,p.b,255);
-						lc = col;
-						bglVertex2i(xx+x,yy);
-					} else if (backcol >= 0) {
-						if (lc!=backcol)
-							bglColor4ub(b.r,b.g,b.b,255);
-						lc = backcol;
-						bglVertex2i(xx+x,yy);
-					}
-				}
-				yy--;
-			}
-			stx += charxsiz;
-		}
-
-		bglEnd();
-		bglDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
-
-		return;
-	}
 #endif
 
 	begindrawing();	//{{{
@@ -11276,7 +11189,7 @@ int screencapture_tga(char *filename, char inverseit)
 			// 24bit
 			inversebuf = kmalloc(xdim*ydim*3);
 			if (inversebuf) {
-				bglReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
+				glfunc.glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
 				j = xdim*ydim*3;
 				for (i=0; i<j; i+=3) {
 					c = inversebuf[i];
@@ -11430,7 +11343,7 @@ int screencapture_pcx(char *filename, char inverseit)
 			// 24bit
 			inversebuf = kmalloc(xdim*ydim*3);
 			if (inversebuf) {
-				bglReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
+				glfunc.glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
 				for (i=ydim-1; i>=0; i--) {
 					writepcxline(inversebuf+i*xdim*3,   xdim, 3, fil);
 					writepcxline(inversebuf+i*xdim*3+1, xdim, 3, fil);
@@ -11576,19 +11489,13 @@ void setpolymost2dview(void)
 	if (rendmode < 3) return;
 
 	if (gloy1 != -1) {
-		bglViewport(0,0,xres,yres);
-		bglMatrixMode(GL_PROJECTION);
-		bglLoadIdentity();
-		bglOrtho(0,xres,yres,0,-1,1);
-		bglMatrixMode(GL_MODELVIEW);
-		bglLoadIdentity();
+		glfunc.glViewport(0,0,xres,yres);
 	}
 
 	gloy1 = -1;
 
-	bglDisable(GL_DEPTH_TEST);
-	bglDisable(GL_TEXTURE_2D);
-	bglDisable(GL_BLEND);
+	glfunc.glDisable(GL_DEPTH_TEST);
+	glfunc.glDisable(GL_BLEND);
 #endif
 }
 
@@ -11596,13 +11503,29 @@ void setpolymost2dview(void)
 void buildprintf(const char *fmt, ...)
 {
 	char tmpstr[1024];
-	va_list va;
+	va_list va, vac;
 
 	va_start(va, fmt);
-	Bvsnprintf(tmpstr, 1024, fmt, va);
-	va_end(va);
 
-    buildputs(tmpstr);
+	va_copy(vac, va);
+	vfprintf(stdout, fmt, vac);
+	va_end(vac);
+
+	if (logfile) {
+		va_copy(vac, va);
+		vfprintf(logfile, fmt, vac);
+		va_end(vac);
+	}
+
+	va_copy(vac, va);
+	Bvsnprintf(tmpstr, sizeof(tmpstr)-1, fmt, vac);
+	tmpstr[sizeof(tmpstr)-1] = 0;
+	va_end(vac);
+
+	initputs(tmpstr);
+	OSD_Puts(tmpstr);
+
+	va_end(va);
 }
 
 void buildputs(const char *str)

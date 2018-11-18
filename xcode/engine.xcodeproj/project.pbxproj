@@ -80,6 +80,7 @@
 		AB735FD00A29A994003261DC /* editor.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735FC60A29A8FD003261DC /* editor.h */; };
 		AB735FD10A29A99A003261DC /* build.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC20A29A8E5003261DC /* build.c */; };
 		AB735FD20A29A99A003261DC /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC30A29A8E5003261DC /* config.c */; };
+		AB73C4EA207A50B200121BF7 /* osxbits.m in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5C0A29A39C003261DC /* osxbits.m */; };
 		ABA9E3070FEF9D170024231F /* a.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3020FEF9D170024231F /* a.h */; };
 		ABA9E3080FEF9D170024231F /* kplib.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3030FEF9D170024231F /* kplib.h */; };
 		ABA9E3090FEF9D170024231F /* osxbits.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3040FEF9D170024231F /* osxbits.h */; };
@@ -92,6 +93,8 @@
 		ABAE9C4B0F0CCCC700A528DC /* compat.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F510A29A39C003261DC /* compat.c */; };
 		ABAE9C4D0F0CCCCF00A528DC /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
 		ABD03E2A1A518A4A0012B9D1 /* transpal.c in Sources */ = {isa = PBXBuildFile; fileRef = ABAE9ADD0F0B310900A528DC /* transpal.c */; };
+		ABE3623B21413C7200BA44B3 /* polymost_shaders.c in Sources */ = {isa = PBXBuildFile; fileRef = ABE3623A21413C7100BA44B3 /* polymost_shaders.c */; };
+		ABE3624B2144CA9000BA44B3 /* bin2c.cc in Sources */ = {isa = PBXBuildFile; fileRef = ABE3624A2144CA9000BA44B3 /* bin2c.cc */; };
 		ABF1DD191BB7D0F5007DE427 /* asmprot.c in Sources */ = {isa = PBXBuildFile; fileRef = ABF1DD181BB7D0F5007DE427 /* asmprot.c */; };
 /* End PBXBuildFile section */
 
@@ -130,6 +133,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = ABD03E201A5189E00012B9D1;
 			remoteInfo = transpal;
+		};
+		ABE3624F2144CD5900BA44B3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB735F3A0A29A24A003261DC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = ABE362422144CA6500BA44B3;
+			remoteInfo = bin2c;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -231,6 +241,13 @@
 		ABAE9C2E0F0CC80200A528DC /* kextract */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = kextract; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABAE9C390F0CC81900A528DC /* kgroup */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = kgroup; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABD03E211A5189E00012B9D1 /* transpal */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = transpal; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABE3623A21413C7100BA44B3 /* polymost_shaders.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymost_shaders.c; sourceTree = "<group>"; };
+		ABE362492144CA6500BA44B3 /* bin2c */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bin2c; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABE3624A2144CA9000BA44B3 /* bin2c.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bin2c.cc; sourceTree = "<group>"; };
+		ABE3624D2144CC9000BA44B3 /* polymost.glsl_fs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = polymost.glsl_fs; sourceTree = "<group>"; };
+		ABE3624E2144CC9000BA44B3 /* polymostaux.glsl_fs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = polymostaux.glsl_fs; sourceTree = "<group>"; };
+		ABE362562144F78100BA44B3 /* polymost.glsl_vs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = polymost.glsl_vs; sourceTree = "<group>"; };
+		ABE362572146955700BA44B3 /* polymostaux.glsl_vs */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = polymostaux.glsl_vs; sourceTree = "<group>"; };
 		ABF1DD181BB7D0F5007DE427 /* asmprot.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = asmprot.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -282,6 +299,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		ABD03E1E1A5189E00012B9D1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ABE362452144CA6500BA44B3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -355,6 +379,7 @@
 				ABAE9C2E0F0CC80200A528DC /* kextract */,
 				ABAE9C390F0CC81900A528DC /* kgroup */,
 				ABD03E211A5189E00012B9D1 /* transpal */,
+				ABE362492144CA6500BA44B3 /* bin2c */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -371,6 +396,11 @@
 		AB735F730A29A3AC003261DC /* src */ = {
 			isa = PBXGroup;
 			children = (
+				ABE362562144F78100BA44B3 /* polymost.glsl_vs */,
+				ABE3624D2144CC9000BA44B3 /* polymost.glsl_fs */,
+				ABE362572146955700BA44B3 /* polymostaux.glsl_vs */,
+				ABE3624E2144CC9000BA44B3 /* polymostaux.glsl_fs */,
+				ABE3623A21413C7100BA44B3 /* polymost_shaders.c */,
 				ABA9E3020FEF9D170024231F /* a.h */,
 				ABA9E3030FEF9D170024231F /* kplib.h */,
 				ABA9E3040FEF9D170024231F /* osxbits.h */,
@@ -461,6 +491,7 @@
 		ABAE9ADA0F0B30D500A528DC /* Tools */ = {
 			isa = PBXGroup;
 			children = (
+				ABE3624A2144CA9000BA44B3 /* bin2c.cc */,
 				ABAE9ADB0F0B310900A528DC /* kextract.c */,
 				ABAE9ADC0F0B310900A528DC /* kgroup.c */,
 				ABAE9ADD0F0B310900A528DC /* transpal.c */,
@@ -541,13 +572,16 @@
 			buildConfigurationList = AB735F4B0A29A2DD003261DC /* Build configuration list for PBXNativeTarget "engine" */;
 			buildPhases = (
 				AB735F450A29A2DC003261DC /* Headers */,
+				ABE362512144CD6000BA44B3 /* Generate GL shaders .c */,
 				AB48BD6B208C090300E38090 /* Generate version-auto.c */,
 				AB735F460A29A2DC003261DC /* Sources */,
 				AB735F470A29A2DC003261DC /* Frameworks */,
+				ABE362522144CE3700BA44B3 /* ShellScript */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				ABE362502144CD5900BA44B3 /* PBXTargetDependency */,
 			);
 			name = engine;
 			productName = engine;
@@ -637,6 +671,22 @@
 			productReference = ABD03E211A5189E00012B9D1 /* transpal */;
 			productType = "com.apple.product-type.tool";
 		};
+		ABE362422144CA6500BA44B3 /* bin2c */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = ABE362462144CA6500BA44B3 /* Build configuration list for PBXNativeTarget "bin2c" */;
+			buildPhases = (
+				ABE362432144CA6500BA44B3 /* Sources */,
+				ABE362452144CA6500BA44B3 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = bin2c;
+			productName = arttool;
+			productReference = ABE362492144CA6500BA44B3 /* bin2c */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -691,6 +741,7 @@
 				AB735FCB0A29A916003261DC /* editor */,
 				AB3FE44A0C04336F00D5DBDC /* editorsupp */,
 				ABAE9AD10F0B307500A528DC /* arttool */,
+				ABE362422144CA6500BA44B3 /* bin2c */,
 				ABAE9C270F0CC80200A528DC /* kextract */,
 				ABAE9C320F0CC81900A528DC /* kgroup */,
 				ABD03E201A5189E00012B9D1 /* transpal */,
@@ -715,6 +766,42 @@
 			shellScript = "cd $PROJECT_DIR/..\ngitdescribe=$(git describe --always 2>/dev/null || echo git error)\n\ncat >src/version-auto.c <<EOT\nconst char *build_version = \"$gitdescribe\";\nconst char *build_date = __DATE__;\nconst char *build_time = __TIME__;\nEOT";
 			showEnvVarsInLog = 0;
 		};
+		ABE362512144CD6000BA44B3 /* Generate GL shaders .c */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../src/polymost.glsl_fs",
+				"$(SRCROOT)/../src/polymostaux.glsl_fs",
+				"$(SRCROOT)/../src/polymost.glsl_vs",
+				"$(SRCROOT)/../src/polymostaux.glsl_vs",
+			);
+			name = "Generate GL shaders .c";
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/polymost.glsl_fs_c",
+				"$(DERIVED_FILE_DIR)/polymostaux.glsl_fs_c",
+				"$(DERIVED_FILE_DIR)/polymost.glsl_vs_c",
+				"$(DERIVED_FILE_DIR)/polymostaux.glsl_vs_c",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_0 default_polymost_glsl_fs > $SCRIPT_OUTPUT_FILE_0\n$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_1 default_polymostaux_glsl_fs > $SCRIPT_OUTPUT_FILE_1\n$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_2 default_polymost_glsl_vs > $SCRIPT_OUTPUT_FILE_2\n$BUILT_PRODUCTS_DIR/bin2c -text $SCRIPT_INPUT_FILE_3 default_polymostaux_glsl_vs > $SCRIPT_OUTPUT_FILE_3\n";
+			showEnvVarsInLog = 0;
+		};
+		ABE362522144CE3700BA44B3 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -732,6 +819,7 @@
 			files = (
 				AB735F600A29A39C003261DC /* a-c.c in Sources */,
 				AB735F610A29A39D003261DC /* baselayer.c in Sources */,
+				ABE3623B21413C7200BA44B3 /* polymost_shaders.c in Sources */,
 				AB735F620A29A39D003261DC /* cache1d.c in Sources */,
 				AB735F630A29A39D003261DC /* compat.c in Sources */,
 				AB735F640A29A39D003261DC /* crc32.c in Sources */,
@@ -789,6 +877,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				ABAE9C410F0CC83D00A528DC /* kextract.c in Sources */,
+				AB73C4EA207A50B200121BF7 /* osxbits.m in Sources */,
 				ABAE9C440F0CC85E00A528DC /* compat.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -807,6 +896,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				ABD03E2A1A518A4A0012B9D1 /* transpal.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ABE362432144CA6500BA44B3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ABE3624B2144CA9000BA44B3 /* bin2c.cc in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -837,6 +934,11 @@
 			isa = PBXTargetDependency;
 			target = ABD03E201A5189E00012B9D1 /* transpal */;
 			targetProxy = ABD03E281A518A1F0012B9D1 /* PBXContainerItemProxy */;
+		};
+		ABE362502144CD5900BA44B3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = ABE362422144CA6500BA44B3 /* bin2c */;
+			targetProxy = ABE3624F2144CD5900BA44B3 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -871,12 +973,11 @@
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
-				GCC_OPTIMIZATION_LEVEL = 1;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					SUPERBUILD,
 					POLYMOST,
-					USE_OPENGL,
-					DYNAMIC_OPENGL,
+					"USE_OPENGL=1",
 					USE_A_C,
 					NOASM,
 					RENDERTYPESDL,
@@ -902,8 +1003,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					SUPERBUILD,
 					POLYMOST,
-					USE_OPENGL,
-					DYNAMIC_OPENGL,
+					"USE_OPENGL=1",
 					USE_A_C,
 					NOASM,
 					RENDERTYPESDL,
@@ -1028,6 +1128,22 @@
 			};
 			name = Release;
 		};
+		ABE362472144CA6500BA44B3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		ABE362482144CA6500BA44B3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1108,6 +1224,15 @@
 			buildConfigurations = (
 				ABD03E261A5189E00012B9D1 /* Debug */,
 				ABD03E271A5189E00012B9D1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		ABE362462144CA6500BA44B3 /* Build configuration list for PBXNativeTarget "bin2c" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				ABE362472144CA6500BA44B3 /* Debug */,
+				ABE362482144CA6500BA44B3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

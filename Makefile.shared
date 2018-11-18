@@ -3,11 +3,6 @@
 ENGINELIB=src/libengine.a
 EDITORLIB=src/libbuild.a
 
-# These are used when DYNAMIC_OPENGL is false
-GLLIBWIN=-lopengl32
-GLLIBBSD=-lopengl32
-GLLIBLIN=-lGL
-
 SDL2CONFIG?=$(shell which sdl2-config)
 
 # Path to the included libsquish
@@ -41,24 +36,15 @@ endif
 ifeq ($(PLATFORM),LINUX)
 	RENDERTYPE=SDL
 	EXESUFFIX=
-	ifneq ($(DYNAMIC_OPENGL),1)
-		BUILDLIBS+= $(GLLIBLIN)
-	endif
 endif
 ifeq ($(PLATFORM),WINDOWS)
 	RENDERTYPE ?= WIN
 	EXESUFFIX=.exe
 	BUILDLIBS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -lcomdlg32 -luxtheme -lxinput9_1_0
-	ifneq ($(DYNAMIC_OPENGL),1)
-		BUILDLIBS+= $(GLLIBWIN)
-	endif
 endif
 ifeq ($(PLATFORM),BSD)
 	RENDERTYPE=SDL
 	EXESUFFIX=
-	ifneq ($(DYNAMIC_OPENGL),1)
-		BUILDLIBS+= $(GLLIBBSD)
-	endif
 endif
 
 ifeq ($(RENDERTYPE),SDL)
@@ -100,10 +86,7 @@ ifneq (0,$(POLYMOST))
   BUILDCFLAGS+= -DPOLYMOST
 endif
 ifneq (0,$(USE_OPENGL))
-  BUILDCFLAGS+= -DUSE_OPENGL
-  ifneq (0,$(DYNAMIC_OPENGL))
-    BUILDCFLAGS+= -DDYNAMIC_OPENGL
-  endif
+  BUILDCFLAGS+= -DUSE_OPENGL=$(USE_OPENGL)
 endif
 ifneq (0,$(NOASM))
   BUILDCFLAGS+= -DNOASM

@@ -22,8 +22,9 @@
 #include <stdarg.h>
 #include <commdlg.h>
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 #include "glbuild.h"
+#include "wglext.h"
 #endif
 
 #include "build.h"
@@ -54,19 +55,33 @@ static WORD sysgamma[3][256];
 extern int gammabrightness;
 extern float curgamma;
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 // OpenGL stuff
 static HGLRC hGLRC = 0;
 static HANDLE hGLDLL;
-static GLuint gl8bitpaltex = 0;		// The 1D texture holding the palette.
-static GLuint gl8bitframetex = 0;	// The 2D texture holding the frame.
-static GLuint gl8bitprogram = 0;	// The shader program for rendering the 8bit frame.
+static glbuild8bit gl8bit;
 static unsigned char nogl=0;
 static unsigned char *frame = NULL;
 
 static HWND hGLWindow = NULL;
 static HWND dummyhGLwindow = NULL;
 static HDC hDCGLWindow = NULL;
+
+static struct winlayer_glfuncs {
+	HGLRC (WINAPI * wglCreateContext)(HDC);
+	BOOL (WINAPI * wglDeleteContext)(HGLRC);
+	PROC (WINAPI * wglGetProcAddress)(LPCSTR);
+	BOOL (WINAPI * wglMakeCurrent)(HDC,HGLRC);
+	BOOL (WINAPI * wglSwapBuffers)(HDC);
+
+	const char * (WINAPI * wglGetExtensionsStringARB)(HDC hdc);
+	BOOL (WINAPI * wglChoosePixelFormatARB)(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
+	HGLRC (WINAPI * wglCreateContextAttribsARB)(HDC hDC, HGLRC hShareContext, const int *attribList);
+	BOOL (WINAPI * wglSwapIntervalEXT)(int interval);
+	int (WINAPI * wglGetSwapIntervalEXT)(void);
+
+	int have_ARB_create_context_profile;
+} wglfunc;
 #endif
 
 static LPTSTR GetWindowsErrorMsg(DWORD code);
@@ -96,6 +111,7 @@ static unsigned modeschecked=0;
 unsigned maxrefreshfreq=60;
 char modechange=1;
 char offscreenrendering=0;
+int glswapinterval = 1;
 int glcolourdepth=32;
 char videomodereset = 0;
 
@@ -409,6 +425,31 @@ static int set_maxrefreshfreq(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
+#if defined(USE_OPENGL)
+static int set_glswapinterval(const osdfuncparm_t *parm)
+{
+	int interval;
+
+	if (!wglfunc.wglSwapIntervalEXT || nogl) {
+		buildputs("glswapinterval is not adjustable\n");
+		return OSDCMD_OK;
+	}
+	if (parm->numparms == 0) {
+		buildprintf("glswapinterval = %d\n", glswapinterval);
+		return OSDCMD_OK;
+	}
+	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
+
+	interval = Batol(parm->parms[0]);
+	if (interval < 0 || interval > 2) return OSDCMD_SHOWHELP;
+
+	glswapinterval = interval;
+	wglfunc.wglSwapIntervalEXT(interval);
+
+	return OSDCMD_OK;
+}
+#endif
+
 //
 // initsystem() -- init systems
 //
@@ -433,10 +474,27 @@ int initsystem(void)
 
 	frameplace=0;
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
-	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions(FALSE)) {
+#if defined(USE_OPENGL)
+	memset(&wglfunc, 0, sizeof(wglfunc));
+	nogl = loadgldriver(getenv("BUILD_GLDRV"));
+	if (!nogl) {
+		// Load the core WGL functions.
+		wglfunc.wglGetProcAddress = getglprocaddress("wglGetProcAddress", 0);
+		wglfunc.wglCreateContext  = getglprocaddress("wglCreateContext", 0);
+		wglfunc.wglDeleteContext  = getglprocaddress("wglDeleteContext", 0);
+		wglfunc.wglMakeCurrent    = getglprocaddress("wglMakeCurrent", 0);
+		wglfunc.wglSwapBuffers    = getglprocaddress("wglSwapBuffers", 0);
+		nogl = !wglfunc.wglGetProcAddress ||
+		 	   !wglfunc.wglCreateContext ||
+		 	   !wglfunc.wglDeleteContext ||
+		 	   !wglfunc.wglMakeCurrent ||
+		 	   !wglfunc.wglSwapBuffers;
+	}
+	if (nogl) {
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
-		nogl = 1;
+		memset(&wglfunc, 0, sizeof(wglfunc));
+	} else {
+		OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes (0 = no vsync, max 2)", set_glswapinterval);
 	}
 #endif
 
@@ -460,8 +518,9 @@ void uninitsystem(void)
 	win_allowtaskswitching(1);
 
 	shutdownvideo();
-#if defined(USE_OPENGL) && defined(POLYMOST)
-	unloadglfunctions();
+#if defined(USE_OPENGL)
+	glbuild_unloadfunctions();
+	memset(&wglfunc, 0, sizeof(wglfunc));
 	unloadgldriver();
 #endif
 }
@@ -485,13 +544,15 @@ void debugprintf(const char *f, ...)
 	va_list va;
 	char buf[1024];
 
-	if (!IsDebuggerPresent()) return;
-
 	va_start(va,f);
 	Bvsnprintf(buf, 1024, f, va);
 	va_end(va);
 
-	OutputDebugString(buf);
+	if (IsDebuggerPresent()) {
+		OutputDebugString(buf);
+	} else {
+		fputs(buf, stdout);
+	}
 #endif
 }
 
@@ -1119,19 +1180,7 @@ static void shutdownvideo(void)
 		free(frame);
 		frame = NULL;
 	}
-	if (gl8bitprogram) {
-		bglUseProgram(0);	// Disable shaders, go back to fixed-function.
-		bglDeleteProgram(gl8bitprogram);
-		gl8bitprogram = 0;
-	}
-	if (gl8bitpaltex) {
-		bglDeleteTextures(1, &gl8bitpaltex);
-		gl8bitpaltex = 0;
-	}
-	if (gl8bitframetex) {
-		bglDeleteTextures(1, &gl8bitframetex);
-		gl8bitframetex = 0;
-	}
+	glbuild_delete_8bit_shader(&gl8bit);
 	UninitOpenGL();
 #endif
 	UninitDIB();
@@ -1201,7 +1250,7 @@ int setvideomode(int x, int y, int c, int fs)
 #define CHECKL(w,h) if ((w < maxx) && (h < maxy))
 #define CHECKLE(w,h) if ((w <= maxx) && (h <= maxy))
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 static void cdsenummodes(void)
 {
 	DEVMODE dm;
@@ -1273,21 +1322,23 @@ void getvalidmodes(void)
 	validmodecnt=0;
 	buildputs("Detecting video modes:\n");
 
-	// Windowed modes can't be bigger than the current desktop resolution.
-	maxx = desktopxdim-1;
-	maxy = desktopydim-1;
-
 	// Fullscreen 8-bit modes: upsamples to the desktop mode.
+	maxx = desktopxdim;
+	maxy = desktopydim;
 	for (i=0; defaultres[i][0]; i++) {
 		CHECKLE(defaultres[i][0],defaultres[i][1]) {
 			ADDMODE(defaultres[i][0], defaultres[i][1], 8, 1, -1);
 		}
 	}
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 	// Fullscreen >8-bit modes.
 	if (!nogl) cdsenummodes();
 #endif
+
+	// Windowed modes can't be bigger than the current desktop resolution.
+	maxx = desktopxdim-1;
+	maxy = desktopydim-1;
 
 	// Windows 8-bit modes
 	for (i=0; defaultres[i][0]; i++) {
@@ -1296,7 +1347,7 @@ void getvalidmodes(void)
 		}
 	}
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 	// Windowed >8-bit modes
 	if (!nogl) {
 		for (i=0; defaultres[i][0]; i++) {
@@ -1351,59 +1402,20 @@ void showframe(int w)
 	char *p,*q;
 	int i,j;
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 	if (!nogl) {
-		if (bpp > 8 && palfadedelta) {
-			bglMatrixMode(GL_PROJECTION);
-			bglPushMatrix();
-			bglLoadIdentity();
-			bglMatrixMode(GL_MODELVIEW);
-			bglPushMatrix();
-			bglLoadIdentity();
-
-			bglDisable(GL_DEPTH_TEST);
-			bglDisable(GL_ALPHA_TEST);
-			bglDisable(GL_TEXTURE_2D);
-
-			bglEnable(GL_BLEND);
-			bglColor4ub(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);
-
-			bglBegin(GL_QUADS);
-			bglVertex2i(-1, -1);
-			bglVertex2i(1, -1);
-			bglVertex2i(1, 1);
-			bglVertex2i(-1, 1);
-			bglEnd();
-
-			bglMatrixMode(GL_MODELVIEW);
-			bglPopMatrix();
-			bglMatrixMode(GL_PROJECTION);
-			bglPopMatrix();
-		}
-
 		if (bpp == 8) {
-			bglActiveTexture(GL_TEXTURE0);
-			bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xres, yres, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame);
-
-			bglBegin(GL_QUADS);
-			bglTexCoord2f(0.0, 1.0);
-			bglVertex2i(-1, -1);
-			bglTexCoord2f(1.0, 1.0);
-			bglVertex2i(1, -1);
-			bglTexCoord2f(1.0, 0.0);
-			bglVertex2i(1, 1);
-			bglTexCoord2f(0, 0.0);
-			bglVertex2i(-1, 1);
-			bglEnd();
+			glbuild_update_8bit_frame(&gl8bit, frame, xres, yres, bytesperline);
+			glbuild_draw_8bit_frame(&gl8bit);
 		}
 
-		bwglSwapBuffers(hDCGLWindow);
+		wglfunc.wglSwapBuffers(hDCGLWindow);
 		return;
 	}
 #endif
 
 	{
-		if (xres == desktopxdim && yres == desktopydim) {
+		if ((xres == desktopxdim && yres == desktopydim) || !fullscreen) {
 			BitBlt(hDCWindow, 0, 0, xres, yres, hDCSection, 0, 0, SRCCOPY);
 		} else {
 			int xpos, ypos, xscl, yscl;
@@ -1436,9 +1448,9 @@ void showframe(int w)
 int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
 {
 #ifdef USE_OPENGL
-	if (gl8bitpaltex) {
-		bglActiveTexture(GL_TEXTURE1);
-		bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, curpalettefaded);
+	if (!nogl && bpp == 8) {
+		glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
+		return 0;
 	}
 #endif
 	if (hDCSection) {
@@ -1575,7 +1587,7 @@ static int SetupDIB(int width, int height)
 	return FALSE;
 }
 
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 
 //
 // loadgldriver -- loads an OpenGL DLL
@@ -1609,12 +1621,15 @@ int unloadgldriver(void)
 //
 void *getglprocaddress(const char *name, int ext)
 {
+	void *func = NULL;
 	if (!hGLDLL) return NULL;
-	if (ext) {
-		return (void*)bwglGetProcAddress(name);
-	} else {
-		return (void*)GetProcAddress(hGLDLL, name);
+	if (ext && wglfunc.wglGetProcAddress) {
+		func = wglfunc.wglGetProcAddress(name);
 	}
+	if (!func) {
+		func = GetProcAddress(hGLDLL, name);
+	}
+	return func;
 }
 
 
@@ -1626,8 +1641,8 @@ static void UninitOpenGL(void)
 {
 	if (hGLRC) {
 		polymost_glreset();
-		if (!bwglMakeCurrent(0,0)) { }
-		if (!bwglDeleteContext(hGLRC)) { }
+		if (!wglfunc.wglMakeCurrent(0,0)) { }
+		if (!wglfunc.wglDeleteContext(hGLRC)) { }
 		hGLRC = NULL;
 	}
 	if (hGLWindow) {
@@ -1641,29 +1656,51 @@ static void UninitOpenGL(void)
 	}
 }
 
+// Enumerate the WGL interface extensions.
+static void EnumWGLExts(HDC hdc)
+{
+	const GLchar *extstr;
+	char *workstr, *workptr, *nextptr = NULL, *ext = NULL;
+	int ack;
+
+	wglfunc.wglGetExtensionsStringARB = getglprocaddress("wglGetExtensionsStringARB", 1);
+	if (!wglfunc.wglGetExtensionsStringARB) {
+		debugprintf("Note: OpenGL does not provide WGL_ARB_extensions_string extension.\n");
+		return;
+	}
+
+	extstr = wglfunc.wglGetExtensionsStringARB(hdc);
+
+	debugprintf("WGL extensions supported:\n");
+	workstr = workptr = strdup(extstr);
+	while ((ext = Bstrtoken(workptr, " ", &nextptr, 1)) != NULL) {
+		if (!strcmp(ext, "WGL_ARB_pixel_format")) {
+			wglfunc.wglChoosePixelFormatARB = getglprocaddress("wglChoosePixelFormatARB", 1);
+			ack = !wglfunc.wglChoosePixelFormatARB ? '!' : '+';
+		} else if (!strcmp(ext, "WGL_ARB_create_context")) {
+			wglfunc.wglCreateContextAttribsARB = getglprocaddress("wglCreateContextAttribsARB", 1);
+			ack = !wglfunc.wglCreateContextAttribsARB ? '!' : '+';
+		} else if (!strcmp(ext, "WGL_ARB_create_context_profile")) {
+			wglfunc.have_ARB_create_context_profile = 1;
+			ack = '+';
+		} else if (!strcmp(ext, "WGL_EXT_swap_control")) {
+			wglfunc.wglSwapIntervalEXT = getglprocaddress("wglSwapIntervalEXT", 1);
+			wglfunc.wglGetSwapIntervalEXT = getglprocaddress("wglGetSwapIntervalEXT", 1);
+			ack = (!wglfunc.wglSwapIntervalEXT || !wglfunc.wglGetSwapIntervalEXT) ? '!' : '+';
+		} else {
+			ack = ' ';
+		}
+		debugprintf("  %s %c\n", ext, ack);
+		workptr = NULL;
+	}
+	free(workstr);
+}
+
 //
 // SetupOpenGL() -- sets up opengl rendering
 //
 static int SetupOpenGL(int width, int height, int bitspp, int cover)
 {
-	int pformatattribs[] = {
-		WGL_DRAW_TO_WINDOW_ARB,	GL_TRUE,
-		WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
-		WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
-		WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
-		WGL_COLOR_BITS_ARB,     bitspp,
-		WGL_DEPTH_BITS_ARB,     24,
-		WGL_STENCIL_BITS_ARB,   0,
-		WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
-		0,
-	};
-	int contextattribs[] = {
-		WGL_CONTEXT_MAJOR_VERSION_ARB, 2,
-		WGL_CONTEXT_MINOR_VERSION_ARB, 1,
-		WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
-		0,
-	};
-	UINT numformats;
 	int err, pixelformat;
 
 	// Step 1. Create a fake context with a safe pixel format descriptor.
@@ -1723,30 +1760,19 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 		goto fail;
 	}
 
-	dummyhGLRC = bwglCreateContext(dummyhDC);
+	dummyhGLRC = wglfunc.wglCreateContext(dummyhDC);
 	if (!dummyhGLRC) {
 		errmsg = "Can't create dummy GL context";
 		goto fail;
 	}
 
-	if (!bwglMakeCurrent(dummyhDC, dummyhGLRC)) {
+	if (!wglfunc.wglMakeCurrent(dummyhDC, dummyhGLRC)) {
 		errmsg = "Can't activate dummy GL context";
 		goto fail;
 	}
 
-	// Step 2. Reload the function pointers to get the ARB WGL extensions.
-	if (loadglfunctions(FALSE)) {
-		errmsg = "Can't fetch base GL functions.";
-		goto fail;
-	}
-	if (!bwglGetExtensionsStringARB || !bwglChoosePixelFormatARB || !bwglCreateContextAttribsARB) {
-		errmsg = "Can't fetch WGL functions.";
-		goto fail;
-	} else {
-		//const GLchar *extstr = bwglGetExtensionsStringARB(dummyhDC);
-		//buildprintf("WGL extensions supported: %s\n", extstr);
-		///FIXME check for WGL_ARB_pixel_format and fail if not present.
-	}
+	// Step 2. Check the WGL extensions.
+	EnumWGLExts(dummyhDC);
 
 	// Step 3. Create the actual window we will use going forward.
 	{
@@ -1798,13 +1824,51 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 		goto fail;
 	}
 
-	// Step 3. Find and set a suitable pixel format using the new technique.
-	if (!bwglChoosePixelFormatARB(hDCGLWindow, pformatattribs, NULL, 1, &pixelformat, &numformats)) {
-		errmsg = "Can't choose pixel format.";
-		goto fail;
-	} else if (numformats < 1) {
-		errmsg = "No suitable pixel format available.";
-		goto fail;
+	// Step 3. Find and set a suitable pixel format.
+	if (wglfunc.wglChoosePixelFormatARB) {
+		UINT numformats;
+		int pformatattribs[] = {
+			WGL_DRAW_TO_WINDOW_ARB,	GL_TRUE,
+			WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+			WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
+			WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
+			WGL_COLOR_BITS_ARB,     bitspp,
+			WGL_DEPTH_BITS_ARB,     24,
+			WGL_STENCIL_BITS_ARB,   0,
+			WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
+			0,
+		};
+		if (!wglfunc.wglChoosePixelFormatARB(hDCGLWindow, pformatattribs, NULL, 1, &pixelformat, &numformats)) {
+			errmsg = "Can't choose pixel format.";
+			goto fail;
+		} else if (numformats < 1) {
+			errmsg = "No suitable pixel format available.";
+			goto fail;
+		}
+	} else {
+		PIXELFORMATDESCRIPTOR pfd = {
+			sizeof(PIXELFORMATDESCRIPTOR),
+			1,                             //Version Number
+			PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER, //Must Support these
+			PFD_TYPE_RGBA,                 //Request An RGBA Format
+			bitspp,                        //Color Depth
+			0,0,0,0,0,0,                   //Color Bits Ignored
+			0,                             //No Alpha Buffer
+			0,                             //Shift Bit Ignored
+			0,                             //No Accumulation Buffer
+			0,0,0,0,                       //Accumulation Bits Ignored
+			24,                            //16/24/32 Z-Buffer depth
+			0,                             //Stencil Buffer
+			0,                             //No Auxiliary Buffer
+			PFD_MAIN_PLANE,                //Main Drawing Layer
+			0,                             //Reserved
+			0,0,0                          //Layer Masks Ignored
+		};
+		pixelformat = ChoosePixelFormat(hDCGLWindow, &pfd);
+		if (!pixelformat) {
+			errmsg = "Can't choose pixel format";
+			goto fail;
+		}
 	}
 
 	DescribePixelFormat(hDCGLWindow, pixelformat, sizeof(PIXELFORMATDESCRIPTOR), &dummyPfd);
@@ -1815,45 +1879,75 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 	}
 
 	// Step 4. Create a context with the needed profile.
-	hGLRC = bwglCreateContextAttribsARB(hDCGLWindow, 0, contextattribs);
-	if (!hGLRC) {
-		errmsg = "Can't create GL context.";
-		goto fail;
+	if (wglfunc.wglCreateContextAttribsARB) {
+		int contextattribs[] = {
+			WGL_CONTEXT_MAJOR_VERSION_ARB, 2,
+			WGL_CONTEXT_MINOR_VERSION_ARB, 1,
+			WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+			0,
+		};
+		if (!wglfunc.have_ARB_create_context_profile) {
+			contextattribs[4] = 0;	//WGL_CONTEXT_PROFILE_MASK_ARB
+		}
+		hGLRC = wglfunc.wglCreateContextAttribsARB(hDCGLWindow, 0, contextattribs);
+		if (!hGLRC) {
+			errmsg = "Can't create GL context.";
+			goto fail;
+		}
+	} else {
+		hGLRC = wglfunc.wglCreateContext(hDCGLWindow);
+		if (!hGLRC) {
+			errmsg = "Can't create GL context.";
+			goto fail;
+		}
 	}
 
 	// Scrap the dummy stuff.
-	if (!bwglMakeCurrent(NULL, NULL)) { }
-	if (!bwglDeleteContext(dummyhGLRC)) { }
+	if (!wglfunc.wglMakeCurrent(NULL, NULL)) { }
+	if (!wglfunc.wglDeleteContext(dummyhGLRC)) { }
 	ReleaseDC(dummyhGLwindow, dummyhDC);
 	DestroyWindow(dummyhGLwindow);
 	dummyhGLwindow = NULL;
 	dummyhGLRC = NULL;
 	dummyhDC = NULL;
 
-	if (!bwglMakeCurrent(hDCGLWindow, hGLRC)) {
+	if (!wglfunc.wglMakeCurrent(hDCGLWindow, hGLRC)) {
 		errmsg = "Can't activate GL context";
 		goto fail;
 	}
 
 	// Step 5. Done.
-	polymost_glreset();
-	if (baselayer_setupopengl()) {
-		errmsg = "Can't fetch GL functions.";
-		goto fail;
+	switch (baselayer_setupopengl()) {
+		case 0:
+			break;
+		case -1:
+			errmsg = "Can't load required OpenGL function pointers.";
+			goto fail;
+		case -2:
+			errmsg = "Minimum OpenGL requirements are not met.";
+			goto fail;
+		default:
+			errmsg = "Other OpenGL initialisation error.";
+			goto fail;
 	}
 
+	if (wglfunc.wglSwapIntervalEXT) {
+		wglfunc.wglSwapIntervalEXT(glswapinterval);
+	}
 	numpages = 2;	// KJS 20031225: tell rotatesprite that it's double buffered!
 
 	return FALSE;
 
 fail:
-	ShowErrorBox(errmsg);
+	if (bpp > 8) {
+		ShowErrorBox(errmsg);
+	}
 	shutdownvideo();
 
-	if (!bwglMakeCurrent(NULL, NULL)) { }
+	if (!wglfunc.wglMakeCurrent(NULL, NULL)) { }
 
 	if (hGLRC) {
-		if (!bwglDeleteContext(hGLRC)) { }
+		if (!wglfunc.wglDeleteContext(hGLRC)) { }
 	}
 	if (hGLWindow) {
 		if (hDCGLWindow) {
@@ -1865,7 +1959,7 @@ fail:
 	hGLWindow = NULL;
 
 	if (dummyhGLRC) {
-		if (!bwglDeleteContext(dummyhGLRC)) { }
+		if (!wglfunc.wglDeleteContext(dummyhGLRC)) { }
 	}
 	if (dummyhGLwindow) {
 		if (dummyhDC) {
@@ -1973,22 +2067,20 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
 			if (SetupOpenGL(width, height, bitspp, !fs)) {
-				return TRUE;
+				// No luck. Write off OpenGL and try DIB.
+				buildputs("OpenGL initialisation failed. Falling back to DIB mode.\n");
+				nogl = 1;
+				return CreateAppWindow(width, height, bitspp, fs, refresh);
 			}
 
-			if (glbuild_prepare_8bit_shader(&gl8bitpaltex, &gl8bitframetex, &gl8bitprogram, width, height) < 0) {
+			bytesperline = (((width|1) + 4) & ~3);
+
+			if (glbuild_prepare_8bit_shader(&gl8bit, width, height, bytesperline) < 0) {
 				shutdownvideo();
 				return -1;
 			}
 
-			bglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-			bglMatrixMode(GL_PROJECTION);
-			bglLoadIdentity();
-			bglMatrixMode(GL_MODELVIEW);
-			bglLoadIdentity();
-
-			frame = (unsigned char *) malloc(width * height);
+			frame = (unsigned char *) malloc(bytesperline * height);
 			if (!frame) {
 				shutdownvideo();
 				buildputs("Unable to allocate framebuffer\n");
@@ -1996,7 +2088,6 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 			}
 
 			frameplace = (intptr_t)frame;
-			bytesperline = width;
 		}
 #endif
 
@@ -2008,7 +2099,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 
 		numpages = 1;
 	} else {
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if defined(USE_OPENGL)
 		if (fs) {
 			DEVMODE dmScreenSettings;
 
@@ -2173,7 +2264,7 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	POINT pt;
 	HRESULT result;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if defined(USE_OPENGL)
 	if (hGLWindow && hWnd == hGLWindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
 	if (dummyhGLwindow && hWnd == dummyhGLwindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
 #endif

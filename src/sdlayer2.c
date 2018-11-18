@@ -55,7 +55,6 @@ char quitevent=0, appactive=1;
 
 // video
 static SDL_Window *sdl_window;
-static SDL_GLContext sdl_glcontext;
 static SDL_Renderer *sdl_renderer;	// For non-GL 8-bit mode output.
 static SDL_Texture *sdl_texture;	// For non-GL 8-bit mode output.
 static unsigned char *frame;
@@ -68,11 +67,12 @@ extern int gammabrightness;
 extern float curgamma;
 
 #ifdef USE_OPENGL
-// OpenGL stuff.
-static GLuint gl8bitpaltex = 0;		// The 1D texture holding the palette.
-static GLuint gl8bitframetex = 0;	// The 2D texture holding the frame.
-static GLuint gl8bitprogram = 0;	// The shader program for rendering the 8bit frame.
+static SDL_GLContext sdl_glcontext;
+static glbuild8bit gl8bit;
 static char nogl=0;
+static int glswapinterval = 1;
+
+static int set_glswapinterval(const osdfuncparm_t *parm);
 #endif
 
 // input
@@ -311,10 +311,12 @@ int initsystem(void)
 	atexit(uninitsystem);
 
 #ifdef USE_OPENGL
-	if (loadgldriver(getenv("BUILD_GLDRV")) || loadglfunctions(0)) {
+	nogl = loadgldriver(getenv("BUILD_GLDRV"));
+	if (nogl) {
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
-		nogl = 1;
 	}
+
+	OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes (0 = no vsync, max 2)", set_glswapinterval);
 #endif
 
 	return 0;
@@ -332,7 +334,7 @@ void uninitsystem(void)
 
 	shutdownvideo();
 #ifdef USE_OPENGL
-	unloadglfunctions();
+	glbuild_unloadfunctions();
 	unloadgldriver();
 #endif
 }
@@ -849,18 +851,12 @@ static void shutdownvideo(void)
 		frame = NULL;
 	}
 #ifdef USE_OPENGL
-	if (gl8bitprogram) {
-		bglUseProgram(0);	// Disable shaders, go back to fixed-function.
-		bglDeleteProgram(gl8bitprogram);
-		gl8bitprogram = 0;
-	}
-	if (gl8bitpaltex) {
-		bglDeleteTextures(1, &gl8bitpaltex);
-		gl8bitpaltex = 0;
-	}
-	if (gl8bitframetex) {
-		bglDeleteTextures(1, &gl8bitframetex);
-		gl8bitframetex = 0;
+	glbuild_delete_8bit_shader(&gl8bit);
+	if (sdl_glcontext) {
+		polymost_glreset();
+
+		SDL_GL_DeleteContext(sdl_glcontext);
+		sdl_glcontext = NULL;
 	}
 #endif
 	if (sdl_texture) {
@@ -870,12 +866,6 @@ static void shutdownvideo(void)
 	if (sdl_renderer) {
 		SDL_DestroyRenderer(sdl_renderer);
 		sdl_renderer = NULL;
-	}
-	if (sdl_glcontext) {
-		polymost_glreset();
-
-		SDL_GL_DeleteContext(sdl_glcontext);
-		sdl_glcontext = NULL;
 	}
 	if (sdl_window) {
 		SDL_DestroyWindow(sdl_window);
@@ -910,20 +900,22 @@ int setvideomode(int x, int y, int c, int fs)
 		(fs & 1) ? "fullscreen" : "windowed");
 
 	do {
+		flags = 0;
+
+#ifdef USE_OPENGL
 		if (!nogl) {
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
 			SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, glmultisample > 0);
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glmultisample);
-		}
 
-		flags = 0;
-		if (!nogl) {
 			flags |= SDL_WINDOW_OPENGL;
 		}
+#endif
+
 		if (fs & 1) {
 			if (c > 8) flags |= SDL_WINDOW_FULLSCREEN;
 			else flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
@@ -933,11 +925,13 @@ int setvideomode(int x, int y, int c, int fs)
 		if (!sdl_window) {
 			buildprintf("Error creating window: %s\n", SDL_GetError());
 
+#ifdef USE_OPENGL
 			if (glmultisample > 0) {
 				buildprintf("Retrying without multisampling.\n");
 				glmultisample = 0;
 				continue;
 			}
+#endif
 
 			return -1;
 		}
@@ -953,9 +947,14 @@ int setvideomode(int x, int y, int c, int fs)
 #endif
 
 	if (c == 8) {
-		int i, j;
+		int i, j, pitch;
 
+		// Round up to a multiple of 4.
+		pitch = (((x|1) + 4) & ~3);
+
+#ifdef USE_OPENGL
 		if (nogl) {
+#endif
 			// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
 			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 
@@ -973,6 +972,7 @@ int setvideomode(int x, int y, int c, int fs)
 				buildprintf("Error creating texture: %s\n", SDL_GetError());
 				return -1;
 			}
+#ifdef USE_OPENGL
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
 			sdl_glcontext = SDL_GL_CreateContext(sdl_window);
@@ -985,27 +985,22 @@ int setvideomode(int x, int y, int c, int fs)
 				shutdownvideo();
 				return -1;
 			}
-			if (glbuild_prepare_8bit_shader(&gl8bitpaltex, &gl8bitframetex, &gl8bitprogram, x, y) < 0) {
+
+			if (glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch) < 0) {
 				shutdownvideo();
 				return -1;
 			}
-
-			bglPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-			bglMatrixMode(GL_PROJECTION);
-			bglLoadIdentity();
-			bglMatrixMode(GL_MODELVIEW);
-			bglLoadIdentity();
 		}
+#endif
 
-		frame = (unsigned char *) malloc(x * y);
+		frame = (unsigned char *) malloc(pitch * y);
 		if (!frame) {
 			buildputs("Unable to allocate framebuffer\n");
 			return -1;
 		}
 
 		frameplace = (intptr_t) frame;
-		bytesperline = x;
+		bytesperline = pitch;
 		imageSize = bytesperline * y;
 		numpages = 1;
 
@@ -1016,6 +1011,7 @@ int setvideomode(int x, int y, int c, int fs)
 		}
 
 	} else {
+#ifdef USE_OPENGL
 		sdl_glcontext = SDL_GL_CreateContext(sdl_window);
 		if (!sdl_glcontext) {
 			buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
@@ -1032,6 +1028,9 @@ int setvideomode(int x, int y, int c, int fs)
 		bytesperline = 0;
 		imageSize = 0;
 		numpages = 2;
+#else
+		return -1;
+#endif
 	}
 
 	xres = x;
@@ -1041,6 +1040,13 @@ int setvideomode(int x, int y, int c, int fs)
 	modechange = 1;
 	videomodereset = 0;
 	OSD_ResizeDisplay(xres,yres);
+#ifdef USE_OPENGL
+	if (sdl_glcontext) {
+		if (SDL_GL_SetSwapInterval(glswapinterval) < 0) {
+			buildputs("note: OpenGL swap interval could not be changed\n");
+		}
+	}
+#endif
 
 	gammabrightness = (SDL_SetWindowBrightness(sdl_window, curgamma) == 0);
 
@@ -1093,48 +1099,9 @@ void showframe(int UNUSED(w))
 
 #ifdef USE_OPENGL
 	if (!nogl) {
-		if (bpp > 8 && palfadedelta) {
-			bglMatrixMode(GL_PROJECTION);
-			bglPushMatrix();
-			bglLoadIdentity();
-			bglMatrixMode(GL_MODELVIEW);
-			bglPushMatrix();
-			bglLoadIdentity();
-
-			bglDisable(GL_DEPTH_TEST);
-			bglDisable(GL_ALPHA_TEST);
-			bglDisable(GL_TEXTURE_2D);
-
-			bglEnable(GL_BLEND);
-			bglColor4ub(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);
-
-			bglBegin(GL_QUADS);
-			bglVertex2i(-1, -1);
-			bglVertex2i(1, -1);
-			bglVertex2i(1, 1);
-			bglVertex2i(-1, 1);
-			bglEnd();
-
-			bglMatrixMode(GL_MODELVIEW);
-			bglPopMatrix();
-			bglMatrixMode(GL_PROJECTION);
-			bglPopMatrix();
-		}
-
 		if (bpp == 8) {
-			bglActiveTexture(GL_TEXTURE0);
-			bglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, xres, yres, GL_LUMINANCE, GL_UNSIGNED_BYTE, frame);
-
-			bglBegin(GL_QUADS);
-			bglTexCoord2f(0.0, 1.0);
-			bglVertex2i(-1, -1);
-			bglTexCoord2f(1.0, 1.0);
-			bglVertex2i(1, -1);
-			bglTexCoord2f(1.0, 0.0);
-			bglVertex2i(1, 1);
-			bglTexCoord2f(0, 0.0);
-			bglVertex2i(-1, 1);
-			bglEnd();
+			glbuild_update_8bit_frame(&gl8bit, frame, xres, yres, bytesperline);
+			glbuild_draw_8bit_frame(&gl8bit);
 		}
 
 		SDL_GL_SwapWindow(sdl_window);
@@ -1155,18 +1122,17 @@ void showframe(int UNUSED(w))
 		out = pixels;
 		for (x = xres - 1; x >= 0; x--) {
 #if 0
-			out[0] = curpalettefaded[*in].b;
-			out[1] = curpalettefaded[*in].g;
-			out[2] = curpalettefaded[*in].r;
-			out[3] = 0;
+			out[(x<<2)+0] = curpalettefaded[in[x]].b;
+			out[(x<<2)+1] = curpalettefaded[in[x]].g;
+			out[(x<<2)+2] = curpalettefaded[in[x]].r;
+			out[(x<<2)+3] = 0;
 #else
 			// RGBA -> BGRA, ignoring A
-			*(unsigned int *)out = B_SWAP32(*(unsigned int *)&curpalettefaded[*in]) >> 8;
+			((unsigned int *)out)[x] = B_SWAP32(*(unsigned int *)&curpalettefaded[in[x]]) >> 8;
 #endif
-			in += 1;
-			out += 4;
 		}
 		pixels += pitch;
+		in += bytesperline;
 	}
 
 	SDL_UnlockTexture(sdl_texture);
@@ -1183,10 +1149,7 @@ void showframe(int UNUSED(w))
 int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
 {
 #ifdef USE_OPENGL
-	if (gl8bitpaltex) {
-		bglActiveTexture(GL_TEXTURE1);
-		bglTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, curpalettefaded);
-	}
+	glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
 #endif
 	return 0;
 }
@@ -1563,3 +1526,30 @@ static int buildkeytranslationtable(void)
 
 	return 0;
 }
+
+#if defined(USE_OPENGL)
+static int set_glswapinterval(const osdfuncparm_t *parm)
+{
+	int interval;
+
+	if (nogl) {
+		buildputs("glswapinterval is not adjustable\n");
+		return OSDCMD_OK;
+	}
+	if (parm->numparms == 0) {
+		buildprintf("glswapinterval = %d\n", glswapinterval);
+		return OSDCMD_OK;
+	}
+	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
+
+	interval = Batol(parm->parms[0]);
+	if (interval < 0 || interval > 2) return OSDCMD_SHOWHELP;
+
+	if (SDL_GL_SetSwapInterval(interval) < 0) {
+		buildputs("note: OpenGL swap interval could not be changed\n");
+	} else {
+		glswapinterval = interval;
+	}
+	return OSDCMD_OK;
+}
+#endif
