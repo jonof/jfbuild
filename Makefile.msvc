@@ -176,8 +176,10 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 	$(RC) $(RFLAGS) /fo$@ /r $<
 
 {$(SRC)}.glsl_fs{$(SRC)}.glsl_fs_c:
+	if not exist bin2c$(EXESUFFIX) $(MAKE) /f Makefile.msvc /$(MAKEFLAGS) /nologo bin2c$(EXESUFFIX)
 	bin2c$(EXESUFFIX) -text $< default_$(@B)_glsl_fs > $@
 {$(SRC)}.glsl_vs{$(SRC)}.glsl_vs_c:
+	if not exist bin2c$(EXESUFFIX) $(MAKE) /f Makefile.msvc /$(MAKEFLAGS) /nologo bin2c$(EXESUFFIX)
 	bin2c$(EXESUFFIX) -text $< default_$(@B)_glsl_vs > $@
 
 # TARGETS
@@ -220,9 +222,10 @@ wad2art$(EXESUFFIX): $(TOOLS)\wad2art.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 bin2c$(EXESUFFIX): $(TOOLS)\bin2c.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
 
-
-$(SRC)\version-auto.c:
+$(SRC)\version-auto.c: AlwaysBuild
 	powershell $(TOOLS)\generateversion.ps1 > $@
+
+AlwaysBuild: ;
 
 # DEPENDENCIES
 !include Makefile.deps
