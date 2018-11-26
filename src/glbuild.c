@@ -33,7 +33,9 @@ int glbuild_loadfunctions(void)
 	INIT_PROC(glCullFace);
 	INIT_PROC(glFrontFace);
 	INIT_PROC(glPolygonOffset);
+#if (USE_OPENGL != USE_GLES2)
 	INIT_PROC(glPolygonMode);
+#endif
 	INIT_PROC(glEnable);
 	INIT_PROC(glDisable);
 	INIT_PROC(glGetFloatv);
@@ -47,7 +49,11 @@ int glbuild_loadfunctions(void)
 	// Depth
 	INIT_PROC(glDepthFunc);
 	INIT_PROC(glDepthMask);
+#if (USE_OPENGL == USE_GLES2)
+	INIT_PROC(glDepthRangef);
+#else
 	INIT_PROC(glDepthRange);
+#endif
 
 	// Raster funcs
 	INIT_PROC(glReadPixels);
@@ -57,12 +63,10 @@ int glbuild_loadfunctions(void)
 	INIT_PROC(glGenTextures);
 	INIT_PROC(glDeleteTextures);
 	INIT_PROC(glBindTexture);
-	INIT_PROC(glTexImage1D);
 	INIT_PROC(glTexImage2D);
 	INIT_PROC(glTexSubImage2D);
 	INIT_PROC(glTexParameterf);
 	INIT_PROC(glTexParameteri);
-	INIT_PROC(glGetTexLevelParameteriv);
 	INIT_PROC_SOFT(glCompressedTexImage2DARB);
 	INIT_PROC_SOFT(glGetCompressedTexImageARB);
 
@@ -105,6 +109,12 @@ int glbuild_loadfunctions(void)
 	INIT_PROC_SOFT(glCompressedTexImage2DARB);
 	INIT_PROC_SOFT(glGetCompressedTexImageARB);
 
+#if (USE_OPENGL == USE_GLES2)
+    INIT_PROC_SOFT(glDebugMessageCallbackKHR);
+#else
+    INIT_PROC_SOFT(glDebugMessageCallback);
+#endif
+
 	if (err) unloadgldriver();
 	return err;
 }
@@ -126,8 +136,10 @@ void glbuild_check_errors(const char *file, int line)
 			case GL_INVALID_OPERATION: str = "GL_INVALID_OPERATION"; break;
 			case GL_INVALID_FRAMEBUFFER_OPERATION: str = "GL_INVALID_FRAMEBUFFER_OPERATION"; break;
 			case GL_OUT_OF_MEMORY: str = "GL_OUT_OF_MEMORY"; break;
+#if (USE_OPENGL != USE_GLES2)
 			case GL_STACK_UNDERFLOW: str = "GL_STACK_UNDERFLOW"; break;
 			case GL_STACK_OVERFLOW: str = "GL_STACK_OVERFLOW"; break;
+#endif
 			default: str = "(unknown)"; break;
 		}
 		debugprintf("GL error [%s:%d]: (%d) %s\n", file, line, err, str);
@@ -211,28 +223,43 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	GLuint shaders[2] = {0,0}, prog = 0;
 	GLint status = 0;
 
-	static const GLchar *vertexshadersrc = \
+	static const GLchar *vertexshadersrc =
+#if (USE_OPENGL == USE_GLES2)
+	"#version 100\n"
+#else
 	"#version 110\n"
-	"attribute vec2 a_vertex;\n"
-	"attribute vec2 a_texcoord;\n"
-	"varying vec2 v_texcoord;\n"
+	"#define mediump\n"
+#endif
+	"\n"
+	"attribute mediump vec2 a_vertex;\n"
+	"attribute mediump vec2 a_texcoord;\n"
+	"varying mediump vec2 v_texcoord;\n"
+	"\n"
 	"void main(void)\n"
 	"{\n"
     "  v_texcoord = a_texcoord;\n"
     "  gl_Position = vec4(a_vertex, 0.0, 1.0);\n"
 	"}\n";
 
-	static const GLchar *fragmentshadersrc = \
+	static const GLchar *fragmentshadersrc =
+#if (USE_OPENGL == USE_GLES2)
+	"#version 100\n"
+#else
 	"#version 110\n"
-	"uniform sampler1D u_palette;\n"
+	"#define mediump\n"
+	"#define lowp\n"
+#endif
+	"\n"
+	"uniform sampler2D u_palette;\n"
 	"uniform sampler2D u_frame;\n"
-	"varying vec2 v_texcoord;\n"
+	"varying mediump vec2 v_texcoord;\n"
+	"\n"
 	"void main(void)\n"
 	"{\n"
-	"  float pixelvalue;\n"
-	"  vec3 palettevalue;\n"
+	"  lowp float pixelvalue;\n"
+	"  lowp vec3 palettevalue;\n"
 	"  pixelvalue = texture2D(u_frame, v_texcoord).r;\n"
-	"  palettevalue = texture1D(u_palette, pixelvalue).rgb;\n"
+	"  palettevalue = texture2D(u_palette, vec2(pixelvalue, 0.5)).rgb;\n"
 	"  gl_FragColor = vec4(palettevalue, 1.0);\n"
 	"}\n";
 
@@ -256,21 +283,36 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 		{ 0.0, 0.0, -1.0,  1.0 },
 	};
 
+	GLint clamp = glinfo.clamptoedge ? GL_CLAMP_TO_EDGE : GL_CLAMP;
+	GLenum intfmt, extfmt;
+
 	// Initialise texture objects for the palette and framebuffer.
 	// The textures will be uploaded on the first rendered frame.
 	glfunc.glGenTextures(1, &state->paltex);
 	glfunc.glActiveTexture(GL_TEXTURE1);
-	glfunc.glBindTexture(GL_TEXTURE_1D, state->paltex);
-	glfunc.glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);	// Allocates memory.
-	glfunc.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glfunc.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glfunc.glBindTexture(GL_TEXTURE_2D, state->paltex);
+	glfunc.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);	// Allocates memory.
+	glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, clamp);
+	glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, clamp);
+
+#if (USE_OPENGL == USE_GLES2)
+	intfmt = GL_LUMINANCE;
+	extfmt = GL_LUMINANCE;
+#else
+	intfmt = GL_RGB;
+	extfmt = GL_RED;
+#endif
 
 	glfunc.glGenTextures(1, &state->frametex);
 	glfunc.glActiveTexture(GL_TEXTURE0);
 	glfunc.glBindTexture(GL_TEXTURE_2D, state->frametex);
-	glfunc.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, tsizx, tsizy, 0, GL_RED, GL_UNSIGNED_BYTE, NULL);	// Allocates memory.
+	glfunc.glTexImage2D(GL_TEXTURE_2D, 0, intfmt, tsizx, tsizy, 0, extfmt, GL_UNSIGNED_BYTE, NULL);	// Allocates memory.
 	glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, clamp);
+	glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, clamp);
 
 	glfunc.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
@@ -321,6 +363,10 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	glfunc.glVertexAttribPointer(state->attrib_vertex, 2, GL_FLOAT, GL_FALSE,
 		sizeof(GLfloat)*4, (const GLvoid *)(sizeof(GLfloat)*2));
 
+	// Set some persistent GL state.
+	glfunc.glClearColor(0.0, 0.0, 0.0, 0.0);
+	glfunc.glDisable(GL_DEPTH_TEST);
+
 	return 0;
 }
 
@@ -355,19 +401,28 @@ void glbuild_delete_8bit_shader(glbuild8bit *state)
 void glbuild_update_8bit_palette(glbuild8bit *state, const GLvoid *pal)
 {
 	glfunc.glActiveTexture(GL_TEXTURE1);
-	glfunc.glBindTexture(GL_TEXTURE_1D, state->paltex);
-	glfunc.glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, pal);
+	glfunc.glBindTexture(GL_TEXTURE_2D, state->paltex);
+	glfunc.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pal);
 }
 
 void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx, int resy, int stride)
 {
+#if (USE_OPENGL == USE_GLES2)
+	GLenum extfmt = GL_LUMINANCE;
+#else
+	GLenum extfmt = GL_RED;
+#endif
+
 	glfunc.glActiveTexture(GL_TEXTURE0);
 	glfunc.glBindTexture(GL_TEXTURE_2D, state->frametex);
-	glfunc.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, stride, resy, GL_RED, GL_UNSIGNED_BYTE, frame);
+	glfunc.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, stride, resy, extfmt, GL_UNSIGNED_BYTE, frame);
 }
 
 void glbuild_draw_8bit_frame(glbuild8bit *state)
 {
+#if (USE_OPENGL == USE_GLES2)
+	glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+#endif
 	glfunc.glDrawElements(GL_TRIANGLE_FAN, 6, GL_UNSIGNED_SHORT, 0);
 }
 

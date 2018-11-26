@@ -49,10 +49,16 @@ typedef struct {
 	char bgra;
 	char clamptoedge;
 	char texcompr;
+	char texcomprdxt1;
+	char texcomprdxt5;
 	char texnpot;
-	int multitex;
 	char multisample;
 	char nvmultisamplehint;
+
+	int multitex;
+	int maxtexsize;
+	int maxvertexattribs;
+	char debugext;
 } baselayer_glinfo;
 extern baselayer_glinfo glinfo;
 #endif

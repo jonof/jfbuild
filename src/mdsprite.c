@@ -750,7 +750,11 @@ static int md2draw (md2model *m, spritetype *tspr, int method)
 	if (tspr->cstat&1024)
 	{
 		glfunc.glDepthFunc(GL_LESS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+#if (USE_OPENGL == USE_GLES2)
+		glfunc.glDepthRangef(0.f,0.9999f);
+#else
 		glfunc.glDepthRange(0.0,0.9999);
+#endif
 	}
 	if ((grhalfxdown10x >= 0) ^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)) glfunc.glFrontFace(GL_CW); else glfunc.glFrontFace(GL_CCW);
 	glfunc.glEnable(GL_CULL_FACE);
@@ -806,7 +810,11 @@ static int md2draw (md2model *m, spritetype *tspr, int method)
 	if (tspr->cstat&1024)
 	{
 		glfunc.glDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+#if (USE_OPENGL == USE_GLES2)
+		glfunc.glDepthRangef(0.f,0.99999f);
+#else
 		glfunc.glDepthRange(0.0,0.99999);
+#endif
 	}
 
 	return 1;
@@ -1045,7 +1053,11 @@ static int md3draw (md3model *m, spritetype *tspr, int method)
 	if (tspr->cstat&1024)
 	{
 		glfunc.glDepthFunc(GL_LESS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+#if (USE_OPENGL == USE_GLES2)
+		glfunc.glDepthRangef(0.f,0.9999f);
+#else
 		glfunc.glDepthRange(0.0,0.9999);
+#endif
 	}
 	if ((grhalfxdown10x >= 0) ^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)) glfunc.glFrontFace(GL_CW); else glfunc.glFrontFace(GL_CCW);
 	glfunc.glEnable(GL_CULL_FACE);
@@ -1135,7 +1147,11 @@ static int md3draw (md3model *m, spritetype *tspr, int method)
 	if (tspr->cstat&1024)
 	{
 		glfunc.glDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+#if (USE_OPENGL == USE_GLES2)
+		glfunc.glDepthRangef(0.f,0.99999f);
+#else
 		glfunc.glDepthRange(0.0,0.99999);
+#endif
 	}
 
 	return 1;
@@ -1231,7 +1247,7 @@ unsigned gloadtex (int *picbuf, int xsiz, int ysiz, int is8bit, int dapal)
 	glfunc.glBindTexture(GL_TEXTURE_2D,rtexid);
 	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-	glfunc.glTexImage2D(GL_TEXTURE_2D,0,4,xsiz,ysiz,0,GL_RGBA,GL_UNSIGNED_BYTE,(unsigned char *)pic2);
+	glfunc.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,xsiz,ysiz,0,GL_RGBA,GL_UNSIGNED_BYTE,(unsigned char *)pic2);
 	free(pic2);
 	return(rtexid);
 }
@@ -1890,7 +1906,11 @@ int voxdraw (voxmodel *m, spritetype *tspr, int method)
 	if (tspr->cstat&1024)
 	{
 		glfunc.glDepthFunc(GL_LESS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+#if (USE_OPENGL == USE_GLES2)
+		glfunc.glDepthRangef(0.f,0.9999f);
+#else
 		glfunc.glDepthRange(0.0,0.9999);
+#endif
 	}
 	if ((grhalfxdown10x >= 0) /*^ ((globalorientation&8) != 0) ^ ((globalorientation&4) != 0)*/) glfunc.glFrontFace(GL_CW); else glfunc.glFrontFace(GL_CCW);
 	glfunc.glEnable(GL_CULL_FACE);
@@ -1955,7 +1975,11 @@ int voxdraw (voxmodel *m, spritetype *tspr, int method)
 	if (tspr->cstat&1024)
 	{
 		glfunc.glDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+#if (USE_OPENGL == USE_GLES2)
+		glfunc.glDepthRangef(0.f,0.99999f);
+#else
 		glfunc.glDepthRange(0.0,0.99999);
+#endif
 	}
 	return 1;
 }

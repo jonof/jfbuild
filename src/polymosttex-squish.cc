@@ -26,9 +26,9 @@ static int getflags(int format)
 			break;
 	}
 
-	if (format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT) {
+	if (format == 1) {
 		flags |= squish::kDxt1;
-	} else if (format == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT) {
+	} else if (format == 5) {
 		flags |= squish::kDxt5;
 	}
 

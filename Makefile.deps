@@ -40,6 +40,10 @@ $(SRC)/polymost_fs.c: $(SRC)/polymost_fs.glsl
 $(SRC)/polymost_vs.c: $(SRC)/polymost_vs.glsl
 $(SRC)/polymostaux_fs.c: $(SRC)/polymostaux_fs.glsl
 $(SRC)/polymostaux_vs.c: $(SRC)/polymostaux_vs.glsl
+$(SRC)/polymost_es2_fs.c: $(SRC)/polymost_es2_fs.glsl
+$(SRC)/polymost_es2_vs.c: $(SRC)/polymost_es2_vs.glsl
+$(SRC)/polymostaux_es2_fs.c: $(SRC)/polymostaux_es2_fs.glsl
+$(SRC)/polymostaux_es2_vs.c: $(SRC)/polymostaux_es2_vs.glsl
 
 # KenBuild test game
 $(GAME)/game.$o: $(GAME)/game.c $(INC)/compat.h $(INC)/build.h $(GAME)/names.h $(INC)/pragmas.h $(INC)/cache1d.h $(GAME)/game.h $(GAME)/kdmsound.h $(INC)/osd.h $(INC)/baselayer.h

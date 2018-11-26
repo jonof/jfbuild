@@ -580,11 +580,39 @@ static void checkindexbuffer(unsigned int size)
 
 static void polymost_loadshaders(void)
 {
+#if (USE_OPENGL == USE_GLES2)
+	extern const char default_polymost_es2_fs_glsl[];
+	extern const char default_polymost_es2_vs_glsl[];
+
+	const char *polymost_glsl_fs_source = default_polymost_es2_fs_glsl;
+	const char *polymost_glsl_fs_file = "polymost_es2_fs.glsl";
+	const char *polymost_glsl_vs_source = default_polymost_es2_vs_glsl;
+	const char *polymost_glsl_vs_file = "polymost_es2_vs.glsl";
+
+	extern const char default_polymostaux_es2_fs_glsl[];
+	extern const char default_polymostaux_es2_vs_glsl[];
+
+	const char *polymostaux_glsl_fs_source = default_polymostaux_es2_fs_glsl;
+	const char *polymostaux_glsl_fs_file = "polymostaux_es2_fs.glsl";
+	const char *polymostaux_glsl_vs_source = default_polymostaux_es2_vs_glsl;
+	const char *polymostaux_glsl_vs_file = "polymostaux_es2_vs.glsl";
+#else
 	extern const char default_polymost_fs_glsl[];
 	extern const char default_polymost_vs_glsl[];
 
+	const char *polymost_glsl_fs_source = default_polymost_fs_glsl;
+	const char *polymost_glsl_fs_file = "polymost_fs.glsl";
+	const char *polymost_glsl_vs_source = default_polymost_vs_glsl;
+	const char *polymost_glsl_vs_file = "polymost_vs.glsl";
+
 	extern const char default_polymostaux_fs_glsl[];
 	extern const char default_polymostaux_vs_glsl[];
+
+	const char *polymostaux_glsl_fs_source = default_polymostaux_fs_glsl;
+	const char *polymostaux_glsl_fs_file = "polymostaux.glsl_fs";
+	const char *polymostaux_glsl_vs_source = default_polymostaux_vs_glsl;
+	const char *polymostaux_glsl_vs_file = "polymostaux.glsl_vs";
+#endif
 
 	GLuint shader[2] = {0,0};
 
@@ -595,9 +623,9 @@ static void polymost_loadshaders(void)
 	}
 
 	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
-		default_polymost_vs_glsl, "polymost_vs.glsl");
+		polymost_glsl_vs_source, polymost_glsl_vs_file);
 	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
-		default_polymost_fs_glsl, "polymost_fs.glsl");
+		polymost_glsl_fs_source, polymost_glsl_fs_file);
 	if (shader[0] && shader[1]) {
 		polymostglsl.program = glbuild_link_program(2, shader);
 	}
@@ -641,9 +669,9 @@ static void polymost_loadshaders(void)
 	}
 
 	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
-		default_polymostaux_vs_glsl, "polymostaux_vs.glsl");
+		polymostaux_glsl_vs_source, polymostaux_glsl_vs_file);
 	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
-		default_polymostaux_fs_glsl, "polymostaux_fs.glsl");
+		polymostaux_glsl_fs_source, polymostaux_glsl_fs_file);
 	if (shader[0] && shader[1]) {
 		polymostauxglsl.program = glbuild_link_program(2, shader);
 	}
@@ -688,9 +716,11 @@ void polymost_glinit()
 	glfunc.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 	if (glmultisample > 0 && glinfo.multisample) {
+#if (USE_OPENGL != USE_GLES2)
 		if (glinfo.nvmultisamplehint)
 			glfunc.glHint(GL_MULTISAMPLE_FILTER_HINT_NV, glnvmultisamplehint ? GL_NICEST:GL_FASTEST);
 		glfunc.glEnable(GL_MULTISAMPLE_ARB);
+#endif
 	}
 
 	polymost_loadshaders();
@@ -708,6 +738,7 @@ void resizeglcheck ()
 	}
 	lastglredbluemode = glredbluemode;
 
+#if (USE_OPENGL != USE_GLES2)
 		//FUK
 	if (lastglpolygonmode != glpolygonmode)
 	{
@@ -725,6 +756,7 @@ void resizeglcheck ()
 		glfunc.glClearColor(1.0,1.0,1.0,0.0);
 		glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	}
+#endif
 
 	if ((glox1 != windowx1) || (gloy1 != windowy1) || (glox2 != windowx2) || (gloy2 != windowy2))
 	{
@@ -2952,7 +2984,11 @@ void polymost_drawrooms ()
 		glfunc.glDepthFunc(GL_ALWAYS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 
 		//glfunc.glPolygonOffset(1,1); //Supposed to make sprites pasted on walls or floors not disappear
+#if (USE_OPENGL == USE_GLES2)
+		glfunc.glDepthRangef(0.00001f,1.f); //<- this is more widely supported than glPolygonOffset
+#else
 		glfunc.glDepthRange(0.00001,1.0); //<- this is more widely supported than glPolygonOffset
+#endif
 
 		 //Enable this for OpenGL red-blue glasses mode :)
 		if (glredbluemode)
@@ -3159,7 +3195,11 @@ void polymost_drawrooms ()
 		glfunc.glDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 
 		//glfunc.glPolygonOffset(0,0);
+#if (USE_OPENGL == USE_GLES2)
+		glfunc.glDepthRangef(0.f,0.99999f); //<- this is more widely supported than glPolygonOffset
+#else
 		glfunc.glDepthRange(0.0,0.99999); //<- this is more widely supported than glPolygonOffset
+#endif
 	}
 #endif
 

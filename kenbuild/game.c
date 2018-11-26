@@ -118,7 +118,7 @@ unsigned char keys[NUMKEYS] =
 	0x1e,0x2c,0xd1,0xc9,0x33,0x34,
 	0x9c,0x1c,0xd,0xc,0xf,0x2b
 };
-int xdimgame = 320, ydimgame = 200, bppgame = 8, xdim2d = 640, ydim2d = 480;	// JBF 20050318: config.c expects to find these
+int xdimgame = 640, ydimgame = 480, bppgame = 8, xdim2d = 640, ydim2d = 480;	// JBF 20050318: config.c expects to find these
 int forcesetup = 1;
 
 static int digihz[8] = {6000,8000,11025,16000,22050,32000,44100,48000};
