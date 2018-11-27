@@ -241,10 +241,8 @@ int app_main(int argc, char const * const argv[])
 
 	pathsearchmode = 1;		// unrestrict findfrompath so that full access to the filesystem can be had
 
-#ifdef USE_OPENGL
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
-#endif
 	OSD_RegisterFunction("mapversion","mapversion [ver]: change the map version for save (min 5, max 8)", osdcmd_mapversion);
 
 	wm_setapptitle("BUILD by Ken Silverman");
@@ -412,9 +410,7 @@ int app_main(int argc, char const * const argv[])
 		ExtPreCheckKeys();
 
 		drawrooms(posx,posy,posz,ang,horiz,cursectnum);
-#ifdef SUPERBUILD
 		ExtAnalyzeSprites();
-#endif
 		drawmasks();
 
 		ExtCheckKeys();
@@ -2555,7 +2551,9 @@ int drawtilescreen(int pictopleft, int picbox)
 
 	begindrawing(); //{{{
 
+#if USE_POLYMOST && USE_OPENGL
 	setpolymost2dview();	// JBF 20040205: set to 2d rendering
+#endif
 
 	pinc = ylookup[1];
 	clearview(blackcol);
@@ -2574,7 +2572,10 @@ int drawtilescreen(int pictopleft, int picbox)
 
 				dax = ((cnt%(xtiles<<gettilezoom))<<(6-gettilezoom));
 				day = ((cnt/(xtiles<<gettilezoom))<<(6-gettilezoom));
-				if (polymost_drawtilescreen(dax, day, wallnum, 64>>gettilezoom)) {
+#if USE_POLYMOST && USE_OPENGL
+				if (polymost_drawtilescreen(dax, day, wallnum, 64>>gettilezoom))
+#endif
+				{
 					vidpos = ylookup[day]+dax+frameplace;
 					if ((xdime <= (64>>gettilezoom)) && (ydime <= (64>>gettilezoom)))
 					{
@@ -6060,9 +6061,7 @@ short getnumber256(char namestart[80], short num, int maxnumber, char sign)
 		}
 
 		drawrooms(posx,posy,posz,ang,horiz,cursectnum);
-#ifdef SUPERBUILD
 		ExtAnalyzeSprites();
-#endif
 		drawmasks();
 
 		ch = bgetchar();

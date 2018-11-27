@@ -22,12 +22,13 @@
 #include <stdarg.h>
 #include <commdlg.h>
 
-#if defined(USE_OPENGL)
+#include "build.h"
+
+#if USE_OPENGL
 #include "glbuild.h"
 #include "wglext.h"
 #endif
 
-#include "build.h"
 #include "winlayer.h"
 #include "pragmas.h"
 #include "a.h"
@@ -55,7 +56,7 @@ static WORD sysgamma[3][256];
 extern int gammabrightness;
 extern float curgamma;
 
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 // OpenGL stuff
 static HGLRC hGLRC = 0;
 static HANDLE hGLDLL;
@@ -425,7 +426,7 @@ static int set_maxrefreshfreq(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 static int set_glswapinterval(const osdfuncparm_t *parm)
 {
 	int interval;
@@ -474,7 +475,7 @@ int initsystem(void)
 
 	frameplace=0;
 
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 	memset(&wglfunc, 0, sizeof(wglfunc));
 	nogl = loadgldriver(getenv("BUILD_GLDRV"));
 	if (!nogl) {
@@ -518,7 +519,7 @@ void uninitsystem(void)
 	win_allowtaskswitching(1);
 
 	shutdownvideo();
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 	glbuild_unloadfunctions();
 	memset(&wglfunc, 0, sizeof(wglfunc));
 	unloadgldriver();
@@ -1123,7 +1124,7 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 
 	getvalidmodes();
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	if (c > 8 && nogl) return -1;
 #else
 	if (c > 8) return -1;
@@ -1175,7 +1176,7 @@ int checkvideomode(int *x, int *y, int c, int fs, int forced)
 
 static void shutdownvideo(void)
 {
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	if (frame) {
 		free(frame);
 		frame = NULL;
@@ -1250,7 +1251,7 @@ int setvideomode(int x, int y, int c, int fs)
 #define CHECKL(w,h) if ((w < maxx) && (h < maxy))
 #define CHECKLE(w,h) if ((w <= maxx) && (h <= maxy))
 
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 static void cdsenummodes(void)
 {
 	DEVMODE dm;
@@ -1331,7 +1332,7 @@ void getvalidmodes(void)
 		}
 	}
 
-#if defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	// Fullscreen >8-bit modes.
 	if (!nogl) cdsenummodes();
 #endif
@@ -1347,7 +1348,7 @@ void getvalidmodes(void)
 		}
 	}
 
-#if defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	// Windowed >8-bit modes
 	if (!nogl) {
 		for (i=0; defaultres[i][0]; i++) {
@@ -1402,7 +1403,7 @@ void showframe(int w)
 	char *p,*q;
 	int i,j;
 
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 	if (!nogl) {
 		if (bpp == 8) {
 			glbuild_update_8bit_frame(&gl8bit, frame, xres, yres, bytesperline);
@@ -1447,7 +1448,7 @@ void showframe(int w)
 //
 int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
 {
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	if (!nogl && bpp == 8) {
 		glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
 		return 0;
@@ -1587,7 +1588,7 @@ static int SetupDIB(int width, int height)
 	return FALSE;
 }
 
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 
 //
 // loadgldriver -- loads an OpenGL DLL
@@ -1640,7 +1641,9 @@ void *getglprocaddress(const char *name, int ext)
 static void UninitOpenGL(void)
 {
 	if (hGLRC) {
+#if USE_POLYMOST
 		polymost_glreset();
+#endif
 		if (!wglfunc.wglMakeCurrent(0,0)) { }
 		if (!wglfunc.wglDeleteContext(hGLRC)) { }
 		hGLRC = NULL;
@@ -1970,7 +1973,8 @@ fail:
 
 	return TRUE;
 }
-#endif
+
+#endif	//USE_OPENGL
 
 //
 // CreateAppWindow() -- create the application window
@@ -2053,7 +2057,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 	if (bitspp == 8) {
 		int i, j;
 
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 		if (nogl) {
 #endif
 			// 8-bit software with no GL shader uses classic Windows DIB blitting.
@@ -2063,7 +2067,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 
 			frameplace = (intptr_t)lpPixels;
 			bytesperline = (((width|1) + 4) & ~3);
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
 			if (SetupOpenGL(width, height, bitspp, !fs)) {
@@ -2099,7 +2103,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 
 		numpages = 1;
 	} else {
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 		if (fs) {
 			DEVMODE dmScreenSettings;
 
@@ -2264,7 +2268,7 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 	POINT pt;
 	HRESULT result;
 
-#if defined(USE_OPENGL)
+#if USE_OPENGL
 	if (hGLWindow && hWnd == hGLWindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
 	if (dummyhGLwindow && hWnd == dummyhGLwindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
 #endif

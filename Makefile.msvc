@@ -1,15 +1,13 @@
 # Build Makefile for Microsoft NMake
 
 # Engine options - these may be overridden by game makefiles
-#  SUPERBUILD     - enables voxels
-#  POLYMOST       - enables Polymost renderer
+#  USE_POLYMOST   - enables Polymost renderer
 #  USE_OPENGL     - enables OpenGL support in Polymost
 #     Define as 1 or 2 for GL 2.1 profile
-#  NOASM          - disables the use of assembly code
-SUPERBUILD=1
-POLYMOST=1
+#  USE_ASM        - enables the use of assembly code
+USE_POLYMOST=1
 USE_OPENGL=1
-NOASM=0
+USE_ASM=1
 
 RELEASE=1
 
@@ -36,7 +34,7 @@ LIBSQUISH=libsquish
 flags_cl=
 flags_rc=
 !if "$(PLATFORM)" == "X64"
-NOASM=1
+USE_ASM=0
 flags_cl=
 flags_rc=/d_M_AMD64
 !else
@@ -111,7 +109,7 @@ EDITOREXEOBJS=$(GAME)\bstub.$o \
 	$(SRC)\$(EDITORLIB) \
 	$(SRC)\$(ENGINELIB)
 
-!if !$(NOASM)
+!if $(USE_ASM)
 ENGINEOBJS=$(ENGINEOBJS) $(SRC)\a.$o
 !endif
 
@@ -119,17 +117,14 @@ RENDERTYPE=WIN
 BUILDCFLAGS=/DRENDERTYPEWIN=1
 BUILDLIBS=user32.lib gdi32.lib shell32.lib ws2_32.lib comctl32.lib comdlg32.lib uxtheme.lib xinput9_1_0.lib
 
-!if $(SUPERBUILD)
-BUILDCFLAGS=$(BUILDCFLAGS) /DSUPERBUILD
-!endif
-!if $(POLYMOST)
-BUILDCFLAGS=$(BUILDCFLAGS) /DPOLYMOST
+!if $(USE_POLYMOST)
+BUILDCFLAGS=$(BUILDCFLAGS) /DUSE_POLYMOST=$(USE_POLYMOST)
 !endif
 !if $(USE_OPENGL)
 BUILDCFLAGS=$(BUILDCFLAGS) /DUSE_OPENGL=$(USE_OPENGL)
 !endif
-!if $(NOASM)
-BUILDCFLAGS=$(BUILDCFLAGS) /DNOASM
+!if $(USE_ASM)
+BUILDCFLAGS=$(BUILDCFLAGS) /DUSE_ASM=$(USE_ASM)
 !endif
 
 LIBS=$(LIBS) $(BUILDLIBS)

@@ -65,20 +65,22 @@ Low priority:
 
 **************************************************************************************************/
 
-#ifdef POLYMOST
-
 #include "build.h"
-#include "compat.h"
+
+#if USE_POLYMOST
+
 #include "glbuild.h"
 #include "pragmas.h"
 #include "baselayer.h"
 #include "osd.h"
 #include "engine_priv.h"
 #include "polymost_priv.h"
-#include "hightile_priv.h"
-#include "polymosttex_priv.h"
-#include "polymosttexcache.h"
-#include "mdsprite_priv.h"
+#if USE_OPENGL
+# include "hightile_priv.h"
+# include "polymosttex_priv.h"
+# include "polymosttexcache.h"
+# include "mdsprite_priv.h"
+#endif
 extern char textfont[2048], smalltextfont[2048];
 
 int rendmode = 0;
@@ -107,15 +109,16 @@ float gtang = 0.0;
 double guo, gux, guy; //Screen-based texture mapping parameters
 double gvo, gvx, gvy;
 double gdo, gdx, gdy;
-int gfogpalnum = 0;
-float gfogdensity = 0.f;
 
 #if (USEZBUFFER != 0)
 intptr_t zbufmem = 0;
 int zbufysiz = 0, zbufbpl = 0, *zbufoff = 0;
 #endif
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
+int gfogpalnum = 0;
+float gfogdensity = 0.f;
+
 int glredbluemode = 0;
 static int lastglredbluemode = 0, redblueclearcnt = 0;
 
@@ -189,7 +192,7 @@ GLfloat grotatespriteprojmat[4][4];   // Proj. matrix for rotatesprite() calls.
 GLfloat gorthoprojmat[4][4];          // Proj. matrix for 2D (aux) calls.
 
 static int polymost_preparetext(void);
-#endif
+#endif //USE_OPENGL
 
 #ifdef DEBUGGINGAIDS
 static int polymostshowcallcounts = 0;
@@ -306,7 +309,7 @@ static void drawline2d (float x0, float y0, float x1, float y1, unsigned char co
 	}
 }
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 
 static int drawingskybox = 0;
 
@@ -893,9 +896,6 @@ void polymost_nextpage(void)
 
 int polymost_palfade(void)
 {
-#ifndef USE_OPENGL
-	return -1;
-#else
 	struct polymostdrawauxcall draw;
 	struct polymostvboitem vboitem[4];
 
@@ -936,10 +936,9 @@ int polymost_palfade(void)
 	polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
 
 	return 0;
-#endif
 }
 
-#endif
+#endif //USE_OPENGL
 
 	//(dpx,dpy) specifies an n-sided polygon. The polygon must be a convex clockwise loop.
 	//    n must be <= 8 (assume clipping can double number of vertices)
@@ -1035,7 +1034,7 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 	if (j < 3) return;
 	n = j;
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	if (rendmode == 3)
 	{
 		float hackscx, hackscy;
@@ -1941,7 +1940,7 @@ static void polymost_drawalls (int bunch)
 
 	sectnum = thesector[bunchfirst[bunch]]; sec = &sector[sectnum];
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	gfogpalnum = sec->floorpal;
 	gfogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
 #endif
@@ -2104,7 +2103,7 @@ static void polymost_drawalls (int bunch)
 		else if ((nextsectnum < 0) || (!(sector[nextsectnum].floorstat&1)))
 		{
 				//Parallaxing sky... hacked for Ken's mountain texture; paper-sky only :/
-#ifdef USE_OPENGL
+#if USE_OPENGL
 			float tempfogdensity = gfogdensity;
 			if (rendmode == 3)
 			{
@@ -2115,8 +2114,8 @@ static void polymost_drawalls (int bunch)
 					if (pskyoff[i] != pskyoff[i-1])
 						{ domostmethod = METH_CLAMPED; break; }
 			}
-#endif
 			if (bpp == 8 || !usehightile || !hicfindsubst(globalpicnum,globalpal,1))
+#endif
 			{
 				dd[0] = (float)xdimen*.0000001; //Adjust sky depth based on screen size!
 				t = (double)((1<<(picsiz[globalpicnum]&15))<<pskybits);
@@ -2166,6 +2165,7 @@ static void polymost_drawalls (int bunch)
 				} while (i >= 0);
 
 			}
+#if USE_OPENGL
 			else  //NOTE: code copied from ceiling code... lots of duplicated stuff :/
 			{     //Skybox code for parallax ceiling!
 				double _xp0, _yp0, _xp1, _yp1, _oxp0, _oyp0, _t0, _t1, _nx0, _ny0, _nx1, _ny1;
@@ -2260,9 +2260,8 @@ static void polymost_drawalls (int bunch)
 					guo += (double)(ft[2]-gux)*ghalfx;
 					gvo -= (double)(ft[3]+gvx)*ghalfx;
 					gvx = -gvx; gvy = -gvy; gvo = -gvo; //y-flip skybox floor
-#ifdef USE_OPENGL
+
 					drawingskybox = 6; //ceiling/5th texture/index 4 of skybox
-#endif
 					if ((_fy0 > nfy0) && (_fy1 > nfy1)) domost(_x0,_fy0,_x1,_fy1,domostmethod);
 					else if ((_fy0 > nfy0) != (_fy1 > nfy1))
 					{
@@ -2279,9 +2278,7 @@ static void polymost_drawalls (int bunch)
 					} else domost(_x0,nfy0,_x1,nfy1,domostmethod);
 
 						//wall of skybox
-#ifdef USE_OPENGL
 					drawingskybox = i+1; //i+1th texture/index i of skybox
-#endif
 					gdx = (_ryp0-_ryp1)*gxyaspect*(1.f/512.f) / (_ox0-_ox1);
 					gdy = 0;
 					gdo = _ryp0*gxyaspect*(1.f/512.f) - gdx*_ox0;
@@ -2311,9 +2308,7 @@ static void polymost_drawalls (int bunch)
 				}
 
 					//Floor of skybox
-#ifdef USE_OPENGL
 				drawingskybox = 5; //floor/6th texture/index 5 of skybox
-#endif
 				ft[0] = 512/16; ft[1] = -512/-16;
 				ft[2] = ((float)cosglobalang)*(1.f/2147483648.f);
 				ft[3] = ((float)singlobalang)*(1.f/2147483648.f);
@@ -2328,11 +2323,8 @@ static void polymost_drawalls (int bunch)
 				gvo -= (double)(ft[3]+gvx)*ghalfx;
 				domost(x0,fy0,x1,fy1,domostmethod);
 
-#ifdef USE_OPENGL
 				drawingskybox = 0;
-#endif
 			}
-#ifdef USE_OPENGL
 			if (rendmode == 3)
 			{
 				gfogdensity = tempfogdensity;
@@ -2446,7 +2438,7 @@ static void polymost_drawalls (int bunch)
 		}
 		else if ((nextsectnum < 0) || (!(sector[nextsectnum].ceilingstat&1)))
 		{
-#ifdef USE_OPENGL
+#if USE_OPENGL
 			float tempfogdensity = gfogdensity;
 			if (rendmode == 3)
 			{
@@ -2457,9 +2449,9 @@ static void polymost_drawalls (int bunch)
 					if (pskyoff[i] != pskyoff[i-1])
 						{ domostmethod = METH_CLAMPED; break; }
 			}
-#endif
 				//Parallaxing sky...
 			if (bpp == 8 || !usehightile || !hicfindsubst(globalpicnum,globalpal,1))
+#endif
 			{
 					//Render for parallaxtype == 0 / paper-sky
 				dd[0] = (float)xdimen*.0000001; //Adjust sky depth based on screen size!
@@ -2507,6 +2499,7 @@ static void polymost_drawalls (int bunch)
 					domost(fx,(fx-x0)*r+cy0,ox,(ox-x0)*r+cy0,domostmethod); //ceil
 				} while (i >= 0);
 			}
+#if USE_OPENGL
 			else
 			{     //Skybox code for parallax ceiling!
 				double _xp0, _yp0, _xp1, _yp1, _oxp0, _oyp0, _t0, _t1, _nx0, _ny0, _nx1, _ny1;
@@ -2588,9 +2581,8 @@ static void polymost_drawalls (int bunch)
 						//(_x0,ncy0)-(_x1,ncy1)
 
 						//ceiling of skybox
-#ifdef USE_OPENGL
+
 					drawingskybox = 5; //ceiling/5th texture/index 4 of skybox
-#endif
 					ft[0] = 512/16; ft[1] = -512/-16;
 					ft[2] = ((float)cosglobalang)*(1.f/2147483648.f);
 					ft[3] = ((float)singlobalang)*(1.f/2147483648.f);
@@ -2619,9 +2611,7 @@ static void polymost_drawalls (int bunch)
 					} else domost(_x1,ncy1,_x0,ncy0,domostmethod);
 
 						//wall of skybox
-#ifdef USE_OPENGL
 					drawingskybox = i+1; //i+1th texture/index i of skybox
-#endif
 					gdx = (_ryp0-_ryp1)*gxyaspect*(1.f/512.f) / (_ox0-_ox1);
 					gdy = 0;
 					gdo = _ryp0*gxyaspect*(1.f/512.f) - gdx*_ox0;
@@ -2651,9 +2641,7 @@ static void polymost_drawalls (int bunch)
 				}
 
 					//Floor of skybox
-#ifdef USE_OPENGL
 				drawingskybox = 6; //floor/6th texture/index 5 of skybox
-#endif
 				ft[0] = 512/16; ft[1] = 512/-16;
 				ft[2] = ((float)cosglobalang)*(1.f/2147483648.f);
 				ft[3] = ((float)singlobalang)*(1.f/2147483648.f);
@@ -2669,11 +2657,8 @@ static void polymost_drawalls (int bunch)
 				gvx = -gvx; gvy = -gvy; gvo = -gvo; //y-flip skybox floor
 				domost(x1,cy1,x0,cy0,domostmethod);
 
-#ifdef USE_OPENGL
 				drawingskybox = 0;
-#endif
 			}
-#ifdef USE_OPENGL
 			if (rendmode == 3)
 			{
 				gfogdensity = tempfogdensity;
@@ -2953,7 +2938,7 @@ void polymost_drawrooms ()
 	begindrawing();
 	frameoffset = frameplace + windowy1*bytesperline + windowx1;
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	if (rendmode == 3)
 	{
 		resizeglcheck();
@@ -3165,7 +3150,7 @@ void polymost_drawrooms ()
 		bunchfirst[closest] = bunchfirst[numbunches];
 		bunchlast[closest] = bunchlast[numbunches];
 	}
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	if (rendmode == 3)
 	{
 		glfunc.glDepthFunc(GL_LEQUAL); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
@@ -3265,7 +3250,7 @@ void polymost_drawmaskwall (int damaskwallcnt)
 	if (wal->cstat&128) { if (!(wal->cstat&512)) method = METH_TRANS; else method = METH_INTRANS; }
 	method |= METH_POW2XSPLIT | METH_LAYERS;
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	gfogpalnum = sec->floorpal;
 	gfogdensity = gvisibility*((float)((unsigned char)(sec->visibility+16)) / 255.f);
 #endif
@@ -3365,7 +3350,7 @@ void polymost_drawsprite (int snum)
 	if (tspr->cstat&2) { if (!(tspr->cstat&512)) method = METH_TRANS; else method = METH_INTRANS; }
 	method |= METH_CLAMPED | METH_LAYERS;
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	gfogpalnum = sector[tspr->sectnum].floorpal;
 	gfogdensity = gvisibility*((float)((unsigned char)(sector[tspr->sectnum].visibility+16)) / 255.f);
 
@@ -3668,7 +3653,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	double d, cosang, sinang, cosang2, sinang2, px[8], py[8], px2[8], py2[8];
 	float m[4][4];
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	if (rendmode == 3 && usemodels && hudmem[(dastat&4)>>2][picnum].angadd)
 	{
 		if ((tile2model[picnum].modelid >= 0) && (tile2model[picnum].framenum >= 0))
@@ -3779,7 +3764,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	ogctang = gctang; gctang = 1.0;
 	ogstang = gstang; gstang = 0.0;
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 	if (rendmode == 3)
 	{
 		glfunc.glViewport(0,0,xdim,ydim); glox1 = -1; //Force fullscreen (glox1=-1 forces it to restore)
@@ -3921,7 +3906,8 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	gstang = ogstang;
 }
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
+
 static float trapextx[2];
 static void drawtrap (float x0, float x1, float y0, float x2, float x3, float y1,
 	struct polymostdrawpolycall *draw)
@@ -4155,13 +4141,9 @@ void polymost_fillpolygon (int npoints)
 	draw.elementbuffer = 0;
 	tessectrap((float *)rx1,(float *)ry1,xb1,npoints,&draw);
 }
-#endif
 
 int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 {
-#ifndef USE_OPENGL
-	return -1;
-#else
 	float xdime, ydime, xdimepad, ydimepad, scx, scy;
 	int i;
 	PTHead *pth;
@@ -4250,14 +4232,10 @@ int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 	polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
 
 	return(0);
-#endif
 }
 
 int polymost_printext256(int xpos, int ypos, short col, short backcol, const  char *name, char fontsize)
 {
-#ifndef USE_OPENGL
-	return -1;
-#else
 	GLfloat tx, ty, txc, tyc, tyoff, cx, cy;
 	int c, indexcnt, vbocnt;
 	palette_t colour;
@@ -4371,14 +4349,10 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	glfunc.glDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
 
 	return 0;
-#endif
 }
 
 int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 {
-#ifndef USE_OPENGL
-	return -1;
-#else
 	palette_t colour;
 	struct polymostdrawauxcall draw;
 	struct polymostvboitem vboitem[2];
@@ -4421,14 +4395,10 @@ int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 	glfunc.glDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
 
 	return 0;
-#endif
 }
 
 int polymost_plotpixel(int x, int y, unsigned char col)
 {
-#ifndef USE_OPENGL
-	return -1;
-#else
 	palette_t colour;
 	struct polymostdrawauxcall draw;
 	struct polymostvboitem vboitem[1];
@@ -4466,10 +4436,8 @@ int polymost_plotpixel(int x, int y, unsigned char col)
 	glfunc.glDepthMask(GL_TRUE);	// re-enable writing to the z-buffer
 
 	return 0;
-#endif
 }
 
-#ifdef USE_OPENGL
 static int polymost_preparetext(void)
 {
 	unsigned char *tbuf, *cptr, *tptr;
@@ -4523,169 +4491,50 @@ static int polymost_preparetext(void)
 	return 0;
 }
 
-#endif
-
-// Console commands by JBF
-#ifdef USE_OPENGL
-static int gltexturemode(const osdfuncparm_t *parm)
+void polymost_precache_begin()
 {
-	int m;
-	const char *p;
-
-	if (parm->numparms != 1) {
-		buildprintf("Current texturing mode is %s\n", glfiltermodes[gltexfiltermode].name);
-		buildprintf("  Vaild modes are:\n");
-		for (m = 0; m < (int)numglfiltermodes; m++)
-			buildprintf("     %d - %s\n",m,glfiltermodes[m].name);
-
-		return OSDCMD_OK;
-	}
-
-	m = Bstrtoul(parm->parms[0], (char **)&p, 10);
-	if (p == parm->parms[0]) {
-		// string
-		for (m = 0; m < (int)numglfiltermodes; m++) {
-			if (!Bstrcasecmp(parm->parms[0], glfiltermodes[m].name)) break;
-		}
-		if (m == numglfiltermodes) m = gltexfiltermode;   // no change
-	} else {
-		if (m < 0) m = 0;
-		else if (m >= (int)numglfiltermodes) m = numglfiltermodes - 1;
-	}
-
-	if (m != gltexfiltermode) {
-		gltexfiltermode = m;
-		gltexapplyprops();
-	}
-
-	buildprintf("Texture filtering mode changed to %s\n", glfiltermodes[gltexfiltermode].name );
-
-	return OSDCMD_OK;
+	PTBeginPriming();
 }
 
-static int gltextureanisotropy(const osdfuncparm_t *parm)
+void polymost_precache(int dapicnum, int dapalnum, int datype)
 {
-	int l;
-	const char *p;
+	// dapicnum and dapalnum are like you'd expect
+	// datype is 0 for a wall/floor/ceiling and 1 for a sprite
+	//    basically this just means walls are repeating
+	//    while sprites are clamped
+	int mid;
+	unsigned short flags;
 
-	if (parm->numparms != 1) {
-		buildprintf("Current texture anisotropy is %d\n", glanisotropy);
-		buildprintf("  Maximum is %f\n", glinfo.maxanisotropy);
+	if (rendmode < 3) return;
 
-		return OSDCMD_OK;
+	if (!palookup[dapalnum]) return;//dapalnum = 0;
+
+		//FIXME
+	//buildprintf("precached %d %d type %d\n", dapicnum, dapalnum, datype);
+	flags = (datype & 1) ? PTH_CLAMPED :0;
+	if (usehightile) flags |= PTH_HIGHTILE;
+	PTMarkPrime(dapicnum, dapalnum, flags);
+
+	if (datype == 0) return;
+
+	mid = md_tilehasmodel(dapicnum);
+	if (mid < 0 || models[mid]->mdnum < 2) return;
+
+	{
+		int i,j=0;
+
+		if (models[mid]->mdnum == 3)
+			j = ((md3model *)models[mid])->head.numsurfs;
+
+		for (i=0;i<=j;i++)
+			mdloadskin((md2model*)models[mid], 0, dapalnum, i);
 	}
-
-	l = Bstrtoul(parm->parms[0], (char **)&p, 10);
-	if (l < 0 || l > glinfo.maxanisotropy) l = 0;
-
-	if (l != gltexfiltermode) {
-		glanisotropy = l;
-		gltexapplyprops();
-	}
-
-	buildprintf("Texture anisotropy changed to %d\n", glanisotropy );
-
-	return OSDCMD_OK;
 }
 
-static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *UNUSED(parm))
+int polymost_precache_run(int* done, int* total)
 {
-	PTCacheForceRebuild();
-	buildprintf("Compressed texture cache invalidated. Use 'restartvid' to reinitialise it.\n");
-	return OSDCMD_OK;
+	return PTDoPrime(done, total);
 }
-
-#endif
-
-static int osdcmd_polymostvars(const osdfuncparm_t *parm)
-{
-	int showval = (parm->numparms < 1), val = 0;
-
-	if (!showval) val = atoi(parm->parms[0]);
-	if (!Bstrcasecmp(parm->name, "usemodels")) {
-		if (showval) { buildprintf("usemodels is %d\n", usemodels); }
-		else usemodels = (val != 0);
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "usehightile")) {
-		if (showval) { buildprintf("usehightile is %d\n", usehightile); }
-		else usehightile = (val != 0);
-		return OSDCMD_OK;
-	}
-#ifdef USE_OPENGL
-	else if (!Bstrcasecmp(parm->name, "glusetexcompr")) {
-		if (showval) { buildprintf("glusetexcompr is %d\n", glusetexcompr); }
-		else glusetexcompr = (val != 0);
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "gltexcomprquality")) {
-		if (showval) { buildprintf("gltexcomprquality is %d\n", gltexcomprquality); }
-		else {
-			if (val < 0 || val > 2) val = 0;
-			gltexcomprquality = val;
-		}
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "glredbluemode")) {
-		if (showval) { buildprintf("glredbluemode is %d\n", glredbluemode); }
-		else glredbluemode = (val != 0);
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "gltexturemaxsize")) {
-		if (showval) { buildprintf("gltexturemaxsize is %d\n", gltexmaxsize); }
-		else gltexmaxsize = val;
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "gltexturemiplevel")) {
-		if (showval) { buildprintf("gltexturemiplevel is %d\n", gltexmiplevel); }
-		else gltexmiplevel = val;
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "usegoodalpha")) {
-		if (showval) { buildprintf("usegoodalpha is %d\n", usegoodalpha); }
-		else usegoodalpha = (val != 0);
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "glpolygonmode")) {
-		if (showval) { buildprintf("glpolygonmode is %d\n", glpolygonmode); }
-		else glpolygonmode = val;
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "glusetexcache")) {
-		if (showval) { buildprintf("glusetexcache is %d\n", glusetexcache); }
-		else glusetexcache = (val != 0);
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "glmultisample")) {
-		if (showval) { buildprintf("glmultisample is %d\n", glmultisample); }
-		else glmultisample = max(0,val);
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "glnvmultisamplehint")) {
-		if (showval) { buildprintf("glnvmultisamplehint is %d\n", glnvmultisamplehint); }
-		else glnvmultisamplehint = (val != 0);
-		return OSDCMD_OK;
-	}
-	else if (!Bstrcasecmp(parm->name, "polymosttexverbosity")) {
-		if (showval) { buildprintf("polymosttexverbosity is %d\n", polymosttexverbosity); }
-		else {
-			if (val < 0 || val > 2) val = 1;
-			polymosttexverbosity = val;
-		}
-		return OSDCMD_OK;
-	}
-#ifdef DEBUGGINGAIDS
-	else if (!Bstrcasecmp(parm->name, "debugshowcallcounts")) {
-		if (showval) { buildprintf("debugshowcallcounts is %d\n", polymostshowcallcounts); }
-		else polymostshowcallcounts = (val != 0);
-		return OSDCMD_OK;
-	}
-#endif
-#endif
-	return OSDCMD_SHOWHELP;
-}
-
-#ifdef USE_OPENGL
 
 #ifdef DEBUGGINGAIDS
 // because I'm lazy
@@ -4754,16 +4603,174 @@ static int osdcmd_debugreloadshaders(const osdfuncparm_t *UNUSED(parm))
 }
 #endif
 
-#endif //ifdef USE_OPENGL
+static int osdcmd_gltexturemode(const osdfuncparm_t *parm)
+{
+	int m;
+	const char *p;
+
+	if (parm->numparms != 1) {
+		buildprintf("Current texturing mode is %s\n", glfiltermodes[gltexfiltermode].name);
+		buildprintf("  Vaild modes are:\n");
+		for (m = 0; m < (int)numglfiltermodes; m++)
+			buildprintf("     %d - %s\n",m,glfiltermodes[m].name);
+
+		return OSDCMD_OK;
+	}
+
+	m = Bstrtoul(parm->parms[0], (char **)&p, 10);
+	if (p == parm->parms[0]) {
+		// string
+		for (m = 0; m < (int)numglfiltermodes; m++) {
+			if (!Bstrcasecmp(parm->parms[0], glfiltermodes[m].name)) break;
+		}
+		if (m == numglfiltermodes) m = gltexfiltermode;   // no change
+	} else {
+		if (m < 0) m = 0;
+		else if (m >= (int)numglfiltermodes) m = numglfiltermodes - 1;
+	}
+
+	if (m != gltexfiltermode) {
+		gltexfiltermode = m;
+		gltexapplyprops();
+	}
+
+	buildprintf("Texture filtering mode changed to %s\n", glfiltermodes[gltexfiltermode].name );
+
+	return OSDCMD_OK;
+}
+
+static int osdcmd_gltextureanisotropy(const osdfuncparm_t *parm)
+{
+	int l;
+	const char *p;
+
+	if (parm->numparms != 1) {
+		buildprintf("Current texture anisotropy is %d\n", glanisotropy);
+		buildprintf("  Maximum is %f\n", glinfo.maxanisotropy);
+
+		return OSDCMD_OK;
+	}
+
+	l = Bstrtoul(parm->parms[0], (char **)&p, 10);
+	if (l < 0 || l > glinfo.maxanisotropy) l = 0;
+
+	if (l != gltexfiltermode) {
+		glanisotropy = l;
+		gltexapplyprops();
+	}
+
+	buildprintf("Texture anisotropy changed to %d\n", glanisotropy );
+
+	return OSDCMD_OK;
+}
+
+static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *UNUSED(parm))
+{
+	PTCacheForceRebuild();
+	buildprintf("Compressed texture cache invalidated. Use 'restartvid' to reinitialise it.\n");
+	return OSDCMD_OK;
+}
+
+#endif //USE_OPENGL
+
+static int osdcmd_polymostvars(const osdfuncparm_t *parm)
+{
+	int showval = (parm->numparms < 1), val = 0;
+
+	if (!showval) val = atoi(parm->parms[0]);
+#if USE_OPENGL
+	if (!Bstrcasecmp(parm->name, "usemodels")) {
+		if (showval) { buildprintf("usemodels is %d\n", usemodels); }
+		else usemodels = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "usehightile")) {
+		if (showval) { buildprintf("usehightile is %d\n", usehightile); }
+		else usehightile = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glusetexcompr")) {
+		if (showval) { buildprintf("glusetexcompr is %d\n", glusetexcompr); }
+		else glusetexcompr = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "gltexcomprquality")) {
+		if (showval) { buildprintf("gltexcomprquality is %d\n", gltexcomprquality); }
+		else {
+			if (val < 0 || val > 2) val = 0;
+			gltexcomprquality = val;
+		}
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glredbluemode")) {
+		if (showval) { buildprintf("glredbluemode is %d\n", glredbluemode); }
+		else glredbluemode = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "gltexturemaxsize")) {
+		if (showval) { buildprintf("gltexturemaxsize is %d\n", gltexmaxsize); }
+		else gltexmaxsize = val;
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "gltexturemiplevel")) {
+		if (showval) { buildprintf("gltexturemiplevel is %d\n", gltexmiplevel); }
+		else gltexmiplevel = val;
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "usegoodalpha")) {
+		if (showval) { buildprintf("usegoodalpha is %d\n", usegoodalpha); }
+		else usegoodalpha = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glpolygonmode")) {
+		if (showval) { buildprintf("glpolygonmode is %d\n", glpolygonmode); }
+		else glpolygonmode = val;
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glusetexcache")) {
+		if (showval) { buildprintf("glusetexcache is %d\n", glusetexcache); }
+		else glusetexcache = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glmultisample")) {
+		if (showval) { buildprintf("glmultisample is %d\n", glmultisample); }
+		else glmultisample = max(0,val);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glnvmultisamplehint")) {
+		if (showval) { buildprintf("glnvmultisamplehint is %d\n", glnvmultisamplehint); }
+		else glnvmultisamplehint = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "polymosttexverbosity")) {
+		if (showval) { buildprintf("polymosttexverbosity is %d\n", polymosttexverbosity); }
+		else {
+			if (val < 0 || val > 2) val = 1;
+			polymosttexverbosity = val;
+		}
+		return OSDCMD_OK;
+	}
+#ifdef DEBUGGINGAIDS
+	else if (!Bstrcasecmp(parm->name, "debugshowcallcounts")) {
+		if (showval) { buildprintf("debugshowcallcounts is %d\n", polymostshowcallcounts); }
+		else polymostshowcallcounts = (val != 0);
+		return OSDCMD_OK;
+	}
+#endif
+#endif //USE_OPENGL
+	return OSDCMD_SHOWHELP;
+}
 
 void polymost_initosdfuncs(void)
 {
-#ifdef USE_OPENGL
+#if USE_OPENGL
+	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
+	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
 	OSD_RegisterFunction("glusetexcompr","glusetexcompr: enable/disable OpenGL texture compression",osdcmd_polymostvars);
 	OSD_RegisterFunction("gltexcomprquality","gltexcomprquality: sets texture compression quality. 0 = fast (default), 1 = slow, 2 = very slow",osdcmd_polymostvars);
 	OSD_RegisterFunction("glredbluemode","glredbluemode: enable/disable experimental OpenGL red-blue glasses mode",osdcmd_polymostvars);
-	OSD_RegisterFunction("gltexturemode", "gltexturemode: changes the texture filtering settings", gltexturemode);
-	OSD_RegisterFunction("gltextureanisotropy", "gltextureanisotropy: changes the OpenGL texture anisotropy setting", gltextureanisotropy);
+	OSD_RegisterFunction("gltexturemode", "gltexturemode: changes the texture filtering settings", osdcmd_gltexturemode);
+	OSD_RegisterFunction("gltextureanisotropy", "gltextureanisotropy: changes the OpenGL texture anisotropy setting", osdcmd_gltextureanisotropy);
 	OSD_RegisterFunction("gltexturemaxsize","gltexturemaxsize: changes the maximum OpenGL texture size limit",osdcmd_polymostvars);
 	OSD_RegisterFunction("gltexturemiplevel","gltexturemiplevel: changes the highest OpenGL mipmap level used",osdcmd_polymostvars);
 	OSD_RegisterFunction("usegoodalpha","usegoodalpha: enable/disable better looking OpenGL alpha hack",osdcmd_polymostvars);
@@ -4781,71 +4788,9 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("debugtexturehash","debugtexturehash: dumps all the entries in the texture hash",osdcmd_debugtexturehash);
 	OSD_RegisterFunction("debugshowcallcounts","debugshowcallcounts: display rendering call counts",osdcmd_polymostvars);
 #endif
-#endif
-	OSD_RegisterFunction("usemodels","usemodels: enable/disable model rendering in >8-bit mode",osdcmd_polymostvars);
-	OSD_RegisterFunction("usehightile","usehightile: enable/disable hightile texture rendering in >8-bit mode",osdcmd_polymostvars);
+#endif	//USE_OPENGL
 }
 
-void polymost_precache_begin()
-{
-#ifdef USE_OPENGL
-	PTBeginPriming();
-#endif
-}
-
-void polymost_precache(int dapicnum, int dapalnum, int datype)
-{
-#ifdef USE_OPENGL
-	// dapicnum and dapalnum are like you'd expect
-	// datype is 0 for a wall/floor/ceiling and 1 for a sprite
-	//    basically this just means walls are repeating
-	//    while sprites are clamped
-	int mid;
-	unsigned short flags;
-
-	if (rendmode < 3) return;
-
-	if (!palookup[dapalnum]) return;//dapalnum = 0;
-
-		//FIXME
-	//buildprintf("precached %d %d type %d\n", dapicnum, dapalnum, datype);
-	flags = (datype & 1) ? PTH_CLAMPED :0;
-	if (usehightile) flags |= PTH_HIGHTILE;
-	PTMarkPrime(dapicnum, dapalnum, flags);
-
-	if (datype == 0) return;
-
-	mid = md_tilehasmodel(dapicnum);
-	if (mid < 0 || models[mid]->mdnum < 2) return;
-
-	{
-		int i,j=0;
-
-		if (models[mid]->mdnum == 3)
-			j = ((md3model *)models[mid])->head.numsurfs;
-
-		for (i=0;i<=j;i++)
-			mdloadskin((md2model*)models[mid], 0, dapalnum, i);
-	}
-#endif
-}
-
-int polymost_precache_run(int* done, int* total)
-{
-#ifdef USE_OPENGL
-	return PTDoPrime(done, total);
-#else
-	return 0;
-#endif
-}
-
-#else /* POLYMOST */
-
-int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen) { return -1; }
-int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col) { return -1; }
-int polymost_plotpixel(int x, int y, unsigned char col) { return -1; }
-int polymost_printext256(int xpos, int ypos, short col, short backcol, const  char *name, char fontsize) { return -1; }
-
-#endif
+#endif	//USE_POLYMOST
 
 // vim:ts=4:sw=4:

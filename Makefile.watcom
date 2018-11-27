@@ -11,7 +11,7 @@ OBJ=obj.watcom
 !endif
 INC=include
 !ifndef CFLAGS
-CFLAGS=-dSUPERBUILD -dPOLYMOST -dUSE_OPENGL -dKSFORBUILD
+CFLAGS=-dUSE_POLYMOST=1 -dUSE_OPENGL=1 -dKSFORBUILD
 !endif
 
 o=obj

@@ -1,8 +1,7 @@
 #import <Cocoa/Cocoa.h>
 
-#include "compat.h"
-#include "baselayer.h"
 #include "build.h"
+#include "baselayer.h"
 #include "editor.h"
 
 #include <stdlib.h>
@@ -88,7 +87,12 @@
     int idx2d = -1, idx3d = -1;
     int xdim = 0, ydim = 0, bpp = 0, fullscreen = 0;
     int xdim2d = 0, ydim2d = 0;
-    int cd[] = { 32, 24, 16, 15, 8, 0 };
+    int cd[] = {
+#if USE_POLYMOST && USE_OPENGL
+        32, 24, 16, 15,
+#endif
+        8, 0
+    };
     NSMenu *menu3d = nil, *menu2d = nil;
     NSMenuItem *menuitem = nil;
 

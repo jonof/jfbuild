@@ -1,7 +1,8 @@
-#ifdef USE_OPENGL
+#include "build.h"
+
+#if USE_POLYMOST && USE_OPENGL
 //------------------------------------- MD2/MD3 LIBRARY BEGINS -------------------------------------
 
-#include "build.h"
 #include "glbuild.h"
 #include "kplib.h"
 #include "pragmas.h"
@@ -2088,4 +2089,4 @@ void mdfree (mdmodel *vm)
 }
 
 //---------------------------------------- MD LIBRARY ENDS  ----------------------------------------
-#endif
+#endif //USE_POLYMOST && USE_OPENGL

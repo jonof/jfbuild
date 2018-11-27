@@ -41,9 +41,7 @@ struct startwin_settings {
 extern int ExtInit(void);
 extern void ExtUnInit(void);
 extern void ExtPreCheckKeys(void);
-#ifdef SUPERBUILD
 extern void ExtAnalyzeSprites(void);
-#endif
 extern void ExtCheckKeys(void);
 extern void ExtPreLoadMap(void);
 extern void ExtLoadMap(const char *mapname);

@@ -4,7 +4,6 @@
 // This file has been modified from Ken Silverman's original release
 // by Jonathon Fowler (jf@jonof.id.au)
 
-#include "compat.h"
 #include "build.h"
 #include "names.h"
 #include "pragmas.h"
@@ -293,7 +292,7 @@ static unsigned char scantoascwithshift[128] =
 static int *animateptr[MAXANIMATES], animategoal[MAXANIMATES];
 static int animatevel[MAXANIMATES], animateacc[MAXANIMATES], animatecnt = 0;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	//These parameters are in exact order of sprite structure in BUILD.H
 #define spawnsprite(newspriteindex2,x2,y2,z2,cstat2,shade2,pal2,       \
 		clipdist2,xrepeat2,yrepeat2,xoffset2,yoffset2,picnum2,ang2,      \
@@ -483,11 +482,9 @@ int app_main(int argc, char const * const argv[])
 
 	buildsetlogfile("console.txt");
 
-#ifdef USE_OPENGL
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
 	OSD_RegisterFunction("map", "map [filename]: load a map", osdcmd_map);
-#endif
 
 	wm_setapptitle("KenBuild by Ken Silverman");
 
@@ -591,12 +588,10 @@ int app_main(int argc, char const * const argv[])
 	pskyoff[0] = 0; pskyoff[1] = 0; pskybits = 1;
 
 	loadpics("tiles000.art",1048576);                      //Load artwork
-#ifdef SUPERBUILD
 	if (!qloadkvx(nextvoxid,"voxel000.kvx"))
 		tiletovox[PLAYER] = nextvoxid++;
 	if (!qloadkvx(nextvoxid,"voxel001.kvx"))
 		tiletovox[BROWNMONSTER] = nextvoxid++;
-#endif
 	if (!loaddefinitionsfile("kenbuild.def")) buildputs("Definitions file loaded.\n");
 
 		//Here's an example of TRUE ornamented walls
@@ -1971,7 +1966,6 @@ void analyzesprites(int dax, int day)
 
 	for(i=0,tspr=&tsprite[0];i<spritesortcnt;i++,tspr++)
 	{
-#ifdef SUPERBUILD
 		if (usevoxels && tiletovox[tspr->picnum] >= 0)
 		switch(tspr->picnum)
 		{
@@ -2005,7 +1999,6 @@ void analyzesprites(int dax, int day)
 				//tspr->cstat |= 48; tspr->picnum = tiletovox[tspr->picnum];
 				break;
 		}
-#endif
 
 		k = statrate[tspr->statnum];
 		if (k >= 0)  //Interpolate moving sprite
@@ -3867,7 +3860,14 @@ void drawscreen(short snum, int dasmoothratio)
 		else
 		{
 				//Init for screen rotation
-			if (getrendermode() == 0) {   // JBF 20031220
+#if USE_POLYMOST
+			if (getrendermode() > 0) {
+				tiltlock = screentilt;
+					// Ken loves to interpolate
+				setrollangle(oscreentilt + mulscale16(((screentilt-oscreentilt+1024)&2047)-1024,smoothratio));
+			} else
+#endif
+			{
 				tiltlock = screentilt;
 				if ((tiltlock) || (detailmode))
 				{
@@ -3892,10 +3892,6 @@ void drawscreen(short snum, int dasmoothratio)
 					i = sintable[i+512]*8 + sintable[i]*5L;
 					setaspect(i>>1,yxaspect);
 				}
-			} else {
-				tiltlock = screentilt;
-					// Ken loves to interpolate
-				setrollangle(oscreentilt + mulscale16(((screentilt-oscreentilt+1024)&2047)-1024,smoothratio));
 			}
 
 			if ((gotpic[FLOORMIRROR>>3]&(1<<(FLOORMIRROR&7))) > 0)
@@ -3920,7 +3916,10 @@ void drawscreen(short snum, int dasmoothratio)
 				drawmasks();
 
 					//Temp horizon
-				if (getrendermode() == 0) {
+#if USE_POLYMOST
+				if (getrendermode() == 0)
+#endif
+				{
 					l = scale(choriz-100,windowx2-windowx1,320)+((windowy1+windowy2)>>1);
 					begindrawing();   //{{{
 					for(y1=windowy1,y2=windowy2;y1<y2;y1++,y2--)
@@ -4023,7 +4022,10 @@ void drawscreen(short snum, int dasmoothratio)
 			drawmasks();
 
 				//Finish for screen rotation
-			if (getrendermode() == 0) {      // JBF 20031220
+#if USE_POLYMOST
+			if (getrendermode() == 0)
+#endif
+			{
 				if ((tiltlock) || (detailmode))
 				{
 					setviewback();
@@ -4076,7 +4078,9 @@ void drawscreen(short snum, int dasmoothratio)
 		gotpic[SLIME>>3] &= ~(1<<(SLIME&7));
 		if (waloff[SLIME] != 0) {
 			movelava((unsigned char *)waloff[SLIME]);
-			invalidatetile(SLIME,0,1);   // JBF 20031228
+#if USE_POLYMOST && USE_OPENGL
+			invalidatetile(SLIME,0,1);
+#endif
 		}
 	}
 
@@ -5003,7 +5007,7 @@ void initlava(void)
 	lavanumframes = 0;
 }
 
-#if defined(__WATCOMC__) && !defined(NOASM)
+#if defined(__WATCOMC__) && USE_ASM
 #pragma aux addlava =\
 	"mov al, byte ptr [ebx-133]",\
 	"mov dl, byte ptr [ebx-1]",\
@@ -5016,7 +5020,7 @@ void initlava(void)
 	parm [ebx]\
 	modify exact [eax edx]
 int addlava(int);
-#elif defined(_MSC_VER) && !defined(NOASM)
+#elif defined(_MSC_VER) && USE_ASM
 inline int addlava(void *b)
 {
 	_asm {
@@ -5031,7 +5035,7 @@ inline int addlava(void *b)
 	add al, dl
 	}
 }
-#elif defined(__GNUC__) && defined(__i386__) && !defined(NOASM)
+#elif defined(__GNUC__) && defined(__i386__) && USE_ASM
 int addlava(void *b)
 {
 	int r;

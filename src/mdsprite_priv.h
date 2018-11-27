@@ -1,3 +1,10 @@
+#if (USE_POLYMOST == 0)
+#error Polymost not enabled.
+#endif
+#if (USE_OPENGL == 0)
+#error OpenGL not enabled.
+#endif
+
 #ifndef MDSPRITE_PRIV_H
 #define MDSPRITE_PRIV_H
 

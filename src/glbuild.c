@@ -1,7 +1,8 @@
-#ifdef USE_OPENGL
+#include "build.h"
+
+#if USE_OPENGL
 
 #include "glbuild.h"
-#include "build.h"
 #include "baselayer.h"
 #include <stdlib.h>
 #include <string.h>

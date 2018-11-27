@@ -1,3 +1,10 @@
+#if (USE_POLYMOST == 0)
+#error Polymost not enabled.
+#endif
+#if (USE_OPENGL == 0)
+#error OpenGL not enabled.
+#endif
+
 #ifndef POLYMOSTTEX_PRIV_H
 #define POLYMOSTTEX_PRIV_H
 
@@ -23,7 +30,7 @@ enum {
 /** PolymostTex texture manager header */
 struct PTMHead_typ {
 	GLuint glpic;
-	
+
 	int flags;
 	int sizx, sizy;		// padded texture dimensions
 	int tsizx, tsizy;		// true texture dimensions
@@ -57,7 +64,7 @@ struct PTHead_typ {
 	int picnum;
 	int palnum;
 	unsigned short flags;
-	
+
 	hicreplctyp *repldef;
 
 	float scalex, scaley;		// scale factor between texture and ART tile dimensions
@@ -187,6 +194,5 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
  * Shared method for mdsprite.c to call.
  */
 const char * PTM_GetLoadTextureFileErrorString(int err);
-
 
 #endif

@@ -36,7 +36,7 @@ extern intptr_t frameplace;
 
 extern void (*baselayer_onvideomodechange)(int);
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 typedef struct {
 	int loaded;
 
@@ -136,7 +136,7 @@ int wm_ynbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 char * wm_filechooser(const char *initialdir, const char *type, int foropen);
 void wm_setapptitle(const char *name);
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 int loadgldriver(const char *driver);   // or NULL for platform default
 void *getglprocaddress(const char *name, int ext);
 int unloadgldriver(void);
@@ -144,7 +144,7 @@ int unloadgldriver(void);
 
 // baselayer.c
 int baselayer_init(void);
-#ifdef USE_OPENGL
+#if USE_OPENGL
 int baselayer_setupopengl(void);
 #endif
 

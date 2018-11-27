@@ -4,9 +4,10 @@
  * See the included license file "BUILDLIC.TXT" for license info.
  */
 
-#ifdef POLYMOST
-
 #include "build.h"
+
+#if USE_POLYMOST && USE_OPENGL
+
 #include "kplib.h"
 #include "hightile_priv.h"
 
@@ -58,7 +59,7 @@ void hicinit(void)
 {
 	int i,j;
 	hicreplctyp *hr, *next;
-	
+
 	for (i=0;i<MAXPALOOKUPS;i++) {	// all tints should be 100%
 		hictinting[i].r = hictinting[i].g = hictinting[i].b = 0xff;
 		hictinting[i].f = 0;
@@ -85,7 +86,7 @@ void hicinit(void)
 		}
 	}
 	memset(hicreplc,0,sizeof(hicreplc));
-	
+
 	hicfirstinit = 1;
 }
 
@@ -181,7 +182,7 @@ int hicsetskybox(int picnum, int palnum, char *faces[6])
 
 		hrn->palnum = palnum;
 	} else hrn = hr;
-	
+
 	if (!hrn->skybox) {
 		hrn->skybox = (struct hicskybox_t *)calloc(1,sizeof(struct hicskybox_t));
 		if (!hrn->skybox) {
@@ -193,7 +194,7 @@ int hicsetskybox(int picnum, int palnum, char *faces[6])
 			if (hrn->skybox->face[j])
 				free(hrn->skybox->face[j]);
 		}
-	}	
+	}
 
 	// store each face's filename
 	for (j=0;j<6;j++) {
@@ -252,12 +253,4 @@ int hicclearsubst(int picnum, int palnum)
 	return 0;
 }
 
-
-#else /* POLYMOST */
-
-void hicsetpalettetint(int palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect) { }
-int hicsetsubsttex(int picnum, int palnum, char *filen, float alphacut) { return 0; }
-int hicsetskybox(int picnum, int palnum, char *faces[6]) { return 0; }
-int hicclearsubst(int picnum, int palnum) { return 0; }
-
-#endif
+#endif //USE_POLYMOST && USE_OPENGL

@@ -1,4 +1,11 @@
-#ifdef USE_OPENGL
+#ifndef __build_h__
+#error Include build.h first.
+#endif
+
+#ifndef __glbuild_h__
+#define __glbuild_h__
+
+#if USE_OPENGL
 
 #if defined(_MSC_VER)
 #  define WIN32_LEAN_AND_MEAN
@@ -126,3 +133,5 @@ void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx
 void glbuild_draw_8bit_frame(glbuild8bit *state);
 
 #endif //USE_OPENGL
+
+#endif // __glbuild_h__

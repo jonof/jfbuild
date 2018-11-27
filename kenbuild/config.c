@@ -1,7 +1,6 @@
 // Evil and Nasty Configuration File Reader for KenBuild
 // by Jonathon Fowler
 
-#include "compat.h"
 #include "build.h"
 #include "editor.h"
 #include "osd.h"
@@ -40,7 +39,7 @@ static int readconfig(BFILE *fp, const char *key, char *value, unsigned len)
 		while ((*eq == ' ' || *eq == '\t') && eq>=k) *(eq--) = 0;
 
 		if (Bstrcasecmp(k, key)) continue;
-		
+
 		while (*v == ' ' || *k == '\t') v++;
 		eq = v + Bstrlen(v)-1;
 
@@ -119,7 +118,9 @@ int loadsetup(const char *fn)
 	if (readconfig(fp, "mouse", val, VL) > 0) { if (Batoi(val) != 0) option[3] |= 1; else option[3] &= ~1; }
 	if (readconfig(fp, "joystick", val, VL) > 0) { if (Batoi(val) != 0) option[3] |= 2; else option[3] &= ~2; }
 	if (readconfig(fp, "bpp", val, VL) > 0) bppgame = Batoi(val);
+#if USE_POLYMOST
 	if (readconfig(fp, "renderer", val, VL) > 0) { i = Batoi(val); setrendermode(i); }
+#endif
 	if (readconfig(fp, "brightness", val, VL) > 0) brightness = min(max(Batoi(val),0),15);
 
 #ifdef RENDERTYPEWIN
@@ -165,7 +166,7 @@ int writesetup(const char *fn)
 
 	fp = Bfopen(fn,"wt");
 	if (!fp) return -1;
-	
+
 	Bfprintf(fp,
 	"; Always show configuration options on startup\n"
 	";   0 - No\n"
@@ -184,7 +185,7 @@ int writesetup(const char *fn)
 	"; 3D-mode colour depth\n"
 	"bpp = %d\n"
 	"\n"
-#ifdef USE_OPENGL
+#if USE_POLYMOST && USE_OPENGL
 	"; OpenGL mode options\n"
 	"glusetexcache = %d\n"
 	"\n"
@@ -270,9 +271,9 @@ int writesetup(const char *fn)
 	"keychat = %X\n"
 	"keyconsole = %X\n"
 	"\n",
-	
+
 	forcesetup, fullscreen, xdimgame, ydimgame, bppgame,
-#ifdef USE_OPENGL
+#if USE_POLYMOST && USE_OPENGL
 	glusetexcache,
 #endif
 #ifdef RENDERTYPEWIN

@@ -74,21 +74,18 @@ ifeq ($(RENDERTYPE),WIN)
 endif
 
 ifeq ($(findstring x86_64,$(machine)),x86_64)
-	NOASM=1
+	USE_ASM=0
 endif
 
 BUILDCFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
 
-ifneq (0,$(SUPERBUILD))
-  BUILDCFLAGS+= -DSUPERBUILD
-endif
-ifneq (0,$(POLYMOST))
-  BUILDCFLAGS+= -DPOLYMOST
+ifneq (0,$(USE_POLYMOST))
+  BUILDCFLAGS+= -DUSE_POLYMOST=$(USE_POLYMOST)
 endif
 ifneq (0,$(USE_OPENGL))
   BUILDCFLAGS+= -DUSE_OPENGL=$(USE_OPENGL)
 endif
-ifneq (0,$(NOASM))
-  BUILDCFLAGS+= -DNOASM
+ifneq (0,$(USE_ASM))
+  BUILDCFLAGS+= -DUSE_ASM=$(USE_ASM)
 endif
 
