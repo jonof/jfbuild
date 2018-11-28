@@ -199,7 +199,7 @@ static int polymostshowcallcounts = 0;
 struct polymostcallcounts polymostcallcounts;
 #endif
 
-#if defined(USE_MSC_PRAGMAS)
+#if defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
 static inline void ftol (float f, int *a)
 {
 	_asm
@@ -219,7 +219,7 @@ static inline void dtol (double d, int *a)
 		fistp dword ptr [eax]
 	}
 }
-#elif defined(USE_WATCOM_PRAGMAS)
+#elif defined(__WATCOMC__) && USE_ASM
 
 #pragma aux ftol =\
 	"fistp dword ptr [eax]",\
@@ -228,7 +228,7 @@ static inline void dtol (double d, int *a)
 	"fistp dword ptr [eax]",\
 	parm [eax 8087]
 
-#elif defined(USE_GCC_PRAGMAS)
+#elif defined(__GNUC__) && defined(__i386__) && USE_ASM
 
 static inline void ftol (float f, int *a)
 {

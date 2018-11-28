@@ -168,7 +168,7 @@ void copybufreverse(void *S, void *D, int c)
 // Watcom C Inline Assembler version
 //
 
-#elif defined(_MSC_VER) && USE_ASM		// __WATCOMC__
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM		// __WATCOMC__
 
 //
 // Microsoft C Inline Assembler version

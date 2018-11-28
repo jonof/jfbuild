@@ -911,6 +911,7 @@ int setvideomode(int x, int y, int c, int fs)
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
 
+			SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
 			SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 #if USE_POLYMOST
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, glmultisample > 0);
@@ -1128,14 +1129,20 @@ void showframe(int UNUSED(w))
 	for (y = yres - 1; y >= 0; y--) {
 		out = pixels;
 		for (x = xres - 1; x >= 0; x--) {
-#if 0
+#if B_LITTLE_ENDIAN
+			// RGBA -> BGRA, ignoring A
+			/*
 			out[(x<<2)+0] = curpalettefaded[in[x]].b;
 			out[(x<<2)+1] = curpalettefaded[in[x]].g;
 			out[(x<<2)+2] = curpalettefaded[in[x]].r;
 			out[(x<<2)+3] = 0;
-#else
-			// RGBA -> BGRA, ignoring A
+			*/
 			((unsigned int *)out)[x] = B_SWAP32(*(unsigned int *)&curpalettefaded[in[x]]) >> 8;
+#else
+			out[(x<<2)+0] = 0;
+			out[(x<<2)+1] = curpalettefaded[in[x]].r;
+			out[(x<<2)+2] = curpalettefaded[in[x]].g;
+			out[(x<<2)+3] = curpalettefaded[in[x]].b;
 #endif
 		}
 		pixels += pitch;

@@ -34,9 +34,11 @@ LIBSQUISH=libsquish
 flags_cl=
 flags_rc=
 !if "$(PLATFORM)" == "X64"
-USE_ASM=0
-flags_cl=
 flags_rc=/d_M_AMD64
+USE_ASM=0
+!elseif "$(PLATFORM)" == "ARM"
+# Some day, perhaps.
+USE_ASM=0
 !else
 flags_cl=/arch:IA32
 !endif

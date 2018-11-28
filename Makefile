@@ -55,7 +55,7 @@ CXX?=g++
 NASM?=nasm
 WINDRES?=windres
 AR?=ar
-RANLIB=ranlib
+RANLIB?=ranlib
 OURCFLAGS=$(debug) -g -W -Wall -Wimplicit -Wno-unused \
 	-fno-strict-aliasing -DNO_GCC_BUILTINS \
 	-DKSFORBUILD -I$(INC) -I$(SRC)
@@ -65,6 +65,9 @@ LIBS=
 GAMELIBS=
 NASMFLAGS=-s #-g
 EXESUFFIX=
+
+HOSTCC?=$(CC)
+HOSTCXX?=$(CXX)
 
 include Makefile.shared
 
@@ -193,6 +196,7 @@ ENGINEOBJS+= $(SRC)/version.$o
 endif
 
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX) arttool$(EXESUFFIX)
+BUILDUTILS=generatesdlappicon$(EXESUFFIX) bin2c$(EXESUFFIX)
 
 all: game$(EXESUFFIX) build$(EXESUFFIX)
 utils: $(UTILS)
@@ -225,12 +229,15 @@ wad2art$(EXESUFFIX): $(TOOLS)/wad2art.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
 wad2map$(EXESUFFIX): $(TOOLS)/wad2map.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
-generatesdlappicon$(EXESUFFIX): $(TOOLS)/generatesdlappicon.$o $(ENGINELIB)
-	$(CC) -o $@ $^ $(ENGINELIB)
 cacheinfo$(EXESUFFIX): $(TOOLS)/cacheinfo.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
-bin2c$(EXESUFFIX): $(TOOLS)/bin2c.$o
-	$(CXX) -o $@ $^
+
+# These tools are only used at build time and should be compiled
+# using the host toolchain rather than any cross-compiler.
+generatesdlappicon$(EXESUFFIX): $(TOOLS)/generatesdlappicon.c $(SRC)/kplib.c
+	$(HOSTCC) $(CFLAGS) -I$(SRC) -I$(INC) -o $@ $^
+bin2c$(EXESUFFIX): $(TOOLS)/bin2c.cc
+	$(HOSTCXX) $(CXXFLAGS) -o $@ $^
 
 # DEPENDENCIES
 include Makefile.deps
@@ -263,20 +270,14 @@ $(GAME)/rsrc/%.$o: $(GAME)/rsrc/%.c
 $(GAME)/%.$(res): $(GAME)/%.rc
 	$(WINDRES) -O coff -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
 
-$(SRC)/%.$o: $(SRC)/%.glsl_fs_c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
-$(SRC)/%.$o: $(SRC)/%.glsl_vs_c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
-$(SRC)/%.glsl_fs_c: $(SRC)/%.glsl_fs bin2c$(EXESUFFIX)
-	./bin2c$(EXESUFFIX) -text $< default_$(basename $(notdir $<))_glsl_fs > $@
-$(SRC)/%.glsl_vs_c: $(SRC)/%.glsl_vs bin2c$(EXESUFFIX)
-	./bin2c$(EXESUFFIX) -text $< default_$(basename $(notdir $<))_glsl_vs > $@
+$(SRC)/%.glsl_vs_c: $(SRC)/%.glsl_vs | bin2c$(EXESUFFIX)
+	./bin2c$(EXESUFFIX) -text $< default_$*_glsl_vs > $@
+$(SRC)/%.glsl_fs_c: $(SRC)/%.glsl_fs | bin2c$(EXESUFFIX)
+	./bin2c$(EXESUFFIX) -text $< default_$*_glsl_fs > $@
 
-$(GAME)/rsrc/%_gresource.c: $(GAME)/rsrc/%.gresource.xml
+$(GAME)/rsrc/%_gresource.c $(GAME)/rsrc/%_gresource.h: $(GAME)/rsrc/%.gresource.xml
 	glib-compile-resources --generate --manual-register --c-name=startgtk --target=$@ --sourcedir=$(GAME)/rsrc $<
-$(GAME)/rsrc/%_gresource.h: $(GAME)/rsrc/%.gresource.xml
-	glib-compile-resources --generate --manual-register --c-name=startgtk --target=$@ --sourcedir=$(GAME)/rsrc $<
-$(GAME)/rsrc/sdlappicon_%.c: $(GAME)/rsrc/%.png generatesdlappicon$(EXESUFFIX)
+$(GAME)/rsrc/sdlappicon_%.c: $(GAME)/rsrc/%.png | generatesdlappicon$(EXESUFFIX)
 	./generatesdlappicon$(EXESUFFIX) $< > $@
 
 
@@ -298,7 +299,7 @@ endif
 veryclean: clean
 ifeq ($(PLATFORM),DARWIN)
 else
-	-rm -f $(ENGINELIB) $(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS)
+	-rm -f $(ENGINELIB) $(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS) $(BUILDUTILS)
 endif
 
 .PHONY: $(SRC)/version-auto.c

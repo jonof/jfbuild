@@ -93,7 +93,7 @@ extern long setupdrawslab(long,long);
 extern long drawslab(long,long,long,long,long,long);
 #pragma aux drawslab parm [eax][ebx][ecx][edx][esi][edi];
 
-#elif ((defined(__GNUC__) && defined(__i386__)) || defined(_MSC_VER)) && USE_ASM	// __WATCOMC__
+#elif ((defined(__GNUC__) && defined(__i386__)) || (defined(_MSC_VER) && defined(_M_IX86))) && USE_ASM	// __WATCOMC__
 
 #if !defined(_WIN32)
 #define __cdecl

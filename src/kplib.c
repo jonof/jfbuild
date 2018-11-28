@@ -35,8 +35,8 @@ credits.
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(__POWERPC__)
-#define BIGENDIAN 1
+#if defined(__BIG_ENDIAN__)
+# define BIGENDIAN 1
 #endif
 
 #ifdef BIGENDIAN
@@ -240,7 +240,7 @@ static void cpuid (int, int *);
 	modify exact [eax ebx ecx edx]\
 	value
 
-#elif defined(_MSC_VER) && USE_ASM
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
 
 static _inline unsigned int bswap (unsigned int a)
 {
@@ -664,7 +664,7 @@ static void pal8hlineasm (int, int, INT_PTR, int);
 	modify exact [eax ecx edi]\
 	value
 
-#elif defined(_MSC_VER) && USE_ASM
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
 
 static _inline int Paeth686 (int a, int b, int c)
 {
@@ -1295,7 +1295,7 @@ static int mulshr32 (int, int);
 	modify exact [eax edx]\
 	value [edx]
 
-#elif defined(_MSC_VER) && USE_ASM
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
 
 static _inline int mulshr24 (int a, int d)
 {
@@ -2548,11 +2548,11 @@ int kpgetdim (const char *buf, int leng, int *xsiz, int *ysiz)
 	const unsigned char *cptr;
 	unsigned char *ubuf = (unsigned char *)buf;
 
-	(*xsiz) = (*ysiz) = 0; if (leng < 16) return;
+	(*xsiz) = (*ysiz) = 0; if (leng < 16) return(-1);
 	if ((ubuf[0] == 0x89) && (ubuf[1] == 0x50)) //.PNG
 	{
 		lptr = (int *)buf;
-		if ((lptr[0] != LSWAPIB(0x474e5089)) || (lptr[1] != LSWAPIB(0x0a1a0a0d))) return;
+		if ((lptr[0] != LSWAPIB(0x474e5089)) || (lptr[1] != LSWAPIB(0x0a1a0a0d))) return(-1);
 		lptr = &lptr[2];
 		while (((UINT_PTR)lptr-(UINT_PTR)buf) < (UINT_PTR)(leng-16))
 		{
@@ -2590,13 +2590,13 @@ int kpgetdim (const char *buf, int leng, int *xsiz, int *ysiz)
 	{
 		if (*(int *)(&buf[14]) == LSWAPIB(12)) //OS/2 1.x (old format)
 		{
-			if (*(short *)(&buf[22]) != SSWAPIB(1)) return;
+			if (*(short *)(&buf[22]) != SSWAPIB(1)) return(-1);
 			(*xsiz) = (int)SSWAPIB(*(unsigned short *)&buf[18]);
 			(*ysiz) = (int)SSWAPIB(*(unsigned short *)&buf[20]);
 		}
 		else //All newer formats...
 		{
-			if (*(short *)(&buf[26]) != SSWAPIB(1)) return;
+			if (*(short *)(&buf[26]) != SSWAPIB(1)) return(-1);
 			(*xsiz) = LSWAPIB(*(int *)&buf[18]);
 			(*ysiz) = LSWAPIB(*(int *)&buf[22]);
 		}
@@ -2622,6 +2622,7 @@ int kpgetdim (const char *buf, int leng, int *xsiz, int *ysiz)
 						(*ysiz) = (int)SSWAPIB(*(unsigned short *)&buf[14]);
 					}
 	}
+	return(0);
 }
 
 int kprender (const char *buf, int leng, INT_PTR frameptr, int bpl,

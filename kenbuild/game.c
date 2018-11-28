@@ -5020,7 +5020,7 @@ void initlava(void)
 	parm [ebx]\
 	modify exact [eax edx]
 int addlava(int);
-#elif defined(_MSC_VER) && USE_ASM
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
 inline int addlava(void *b)
 {
 	_asm {

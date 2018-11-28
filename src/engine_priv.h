@@ -77,7 +77,7 @@ parm [eax]\
 modify exact [eax ebx ecx edx]
 void setgotpic(int);
 
-#elif defined(_MSC_VER) && USE_ASM	// __WATCOMC__
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM	// __WATCOMC__
 
 static inline void setgotpic(int a)
 {
