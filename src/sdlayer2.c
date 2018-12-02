@@ -131,8 +131,6 @@ int wm_msgbox(const char *name, const char *fmt, ...)
 		}
 
 		puts(buf);
-		puts("   (press Return or Enter to continue)");
-		getchar();
 	} while(0);
 
 	free(buf);
@@ -180,11 +178,8 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 		}
 
 		puts(buf);
-		puts("   (type 'Y' or 'N', and press Return or Enter to continue)");
-		do {
-			ch = getchar();
-			rv = (ch == 'Y' || ch == 'y');
-		} while (ch != 'Y' && ch != 'y' && ch != 'N' && ch != 'n');
+		puts("   (assuming 'No')");
+		rv = 0;
 	} while(0);
 
 	free(buf);
