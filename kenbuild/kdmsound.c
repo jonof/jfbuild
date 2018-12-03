@@ -13,6 +13,10 @@
 #include "pragmas.h"
 #include "cache1d.h"
 
+#ifdef __WATCOMC__
+# define M_PI 3.14159265358979323846
+# define sinf(x) ((float)(sin((double)(x))))
+#endif
 
 #define NUMCHANNELS 16
 #define MAXWAVES 256

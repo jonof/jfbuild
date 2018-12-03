@@ -11,10 +11,6 @@
 // library will need to wrap these functions with suitable emulations.
 #define __compat_h_macrodef__
 
-#if defined(__WATCOMC__) && ((__WATCOMC__ -0) < 1230)
-# define SCREWED_UP_CPP
-#endif
-
 // have stdio.h declare vasprintf
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE 1
@@ -25,23 +21,12 @@
 // have stdint.h declare the C99 INTxx_C macros
 # define __STDC_CONSTANT_MACROS
 
-# ifdef SCREWED_UP_CPP
-// Old OpenWatcoms need some help
-#  include "watcomhax/cstdarg"
-#  ifdef __compat_h_macrodef__
-#   include "watcomhax/cstdio"
-#   include "watcomhax/cstring"
-#   include "watcomhax/cstdlib"
-#   include "watcomhax/ctime"
-#  endif
-# else
-#  include <cstdarg>
-#  ifdef __compat_h_macrodef__
-#   include <cstdio>
-#   include <cstring>
-#   include <cstdlib>
-#   include <ctime>
-#  endif
+# include <cstdarg>
+# ifdef __compat_h_macrodef__
+#  include <cstdio>
+#  include <cstring>
+#  include <cstdlib>
+#  include <ctime>
 # endif
 #else
 # include <stdarg.h>
@@ -62,6 +47,9 @@
 # include <errno.h>
 # if defined(_WIN32)
 #  include <io.h>
+#  if defined(__WATCOMC__)
+#    include <direct.h>
+#  endif
 # else
 #  include <unistd.h>
 # endif
@@ -145,9 +133,7 @@
 
 #ifdef __cplusplus
 
-# ifndef SCREWED_UP_CPP
-   using namespace std;
-# endif
+using namespace std;
 
 extern "C" {
 #endif

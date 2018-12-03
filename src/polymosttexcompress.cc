@@ -9,7 +9,9 @@
 #include "polymosttexcompress.h"
 
 #include "squish.h"
-#include "rg_etc1.h"
+#ifndef __WATCOMC__
+# include "rg_etc1.h"
+#endif
 
 extern "C" {
 #include "glbuild.h"
@@ -39,6 +41,7 @@ static int getsquishflags(int format)
 	return flags;
 }
 
+#ifndef __WATCOMC__
 static void compressetc1(uint8_t *bgra, int width, int height, uint8_t *out)
 {
 	rg_etc1::etc1_pack_params params;
@@ -86,6 +89,7 @@ static void compressetc1(uint8_t *bgra, int width, int height, uint8_t *out)
 		}
 	}
 }
+#endif
 
 extern "C" int ptcompress_getstorage(int width, int height, int format)
 {
@@ -93,8 +97,10 @@ extern "C" int ptcompress_getstorage(int width, int height, int format)
 		case PTCOMPRESS_DXT1:
 		case PTCOMPRESS_DXT5:
 			return squish::GetStorageRequirements(width, height, getsquishflags(format));
+#ifndef __WATCOMC__
 		case PTCOMPRESS_ETC1:
 			return 8 * ((width + 3) / 4) * ((height + 3) / 4);
+#endif
 	}
 	return 0;
 }
@@ -106,9 +112,11 @@ extern "C" int ptcompress_compress(void * bgra, int width, int height, unsigned 
 		case PTCOMPRESS_DXT5:
 			squish::CompressImage( (squish::u8 const *) bgra, width, height, output, getsquishflags(format));
 			return 0;
+#ifndef __WATCOMC__
 		case PTCOMPRESS_ETC1:
 			compressetc1((uint8_t *)bgra, width, height, output);
 			return 0;
+#endif
 	}
 	return -1;
 }

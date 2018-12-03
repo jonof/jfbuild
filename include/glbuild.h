@@ -11,7 +11,7 @@
 #  include <GLES2/gl2.h>
 #  include <GLES2/gl2ext.h>
 #else
-#  if defined(_MSC_VER)
+#  if defined(_MSC_VER) || defined(__WATCOMC__)
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
 #    include <GL/gl.h>

@@ -5342,6 +5342,12 @@ int preinitengine(void)
 
 #if defined(_MSC_VER)
 	sprintf(compiler, "MS Visual C++ %d.%02d", _MSC_VER/100, _MSC_VER%100);
+#elif defined(__WATCOMC__)
+	#if __WATCOMC__ >= 1200
+	sprintf(compiler, "Open Watcom C++ %d.%d", __WATCOMC__/100 - 11, (__WATCOMC__/10)%10);
+	#else
+	sprintf(compiler, "Watcom C++ %d.%d", __WATCOMC__/100, __WATCOMC__%100);
+	#endif
 #elif defined(__clang__)
 	sprintf(compiler, "Clang %d.%d", __clang_major__, __clang_minor__);
 #elif defined(__GNUC__)

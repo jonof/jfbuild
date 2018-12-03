@@ -218,14 +218,16 @@ static inline void dtol (double d, int *a)
 		fistp dword ptr [eax]
 	}
 }
-#elif defined(__WATCOMC__) && USE_ASM
+#elif defined(__WATCOMC__) && defined(_M_I386) && USE_ASM
 
 #pragma aux ftol =\
 	"fistp dword ptr [eax]",\
 	parm [eax 8087]
+void ftol (float f, int *a);
 #pragma aux dtol =\
 	"fistp dword ptr [eax]",\
 	parm [eax 8087]
+void dtol (double d, int *a);
 
 #elif defined(__GNUC__) && defined(__i386__) && USE_ASM
 

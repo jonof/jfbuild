@@ -13,7 +13,9 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <xinput.h>
+#ifndef __WATCOMC__
+# include <xinput.h>
+#endif
 #include <math.h>
 
 #include <stdlib.h>
@@ -628,6 +630,7 @@ int initinput(void)
 
 	fetchkeynames();
 
+#ifndef __WATCOMC__
 	{
 		DWORD usernum, result;
 		XINPUT_CAPABILITIES caps;
@@ -650,6 +653,7 @@ int initinput(void)
 			buildputs("  - No usable controller found\n");
 		}
 	}
+#endif
 
 	return 0;
 }
@@ -835,6 +839,7 @@ void readmousebstatus(int *b)
 
 static void updatejoystick(void)
 {
+#ifndef __WATCOMC__
 	XINPUT_STATE state;
 
 	if (xinputusernum < 0) return;
@@ -864,6 +869,7 @@ static void updatejoystick(void)
 	joyaxis[3] = -state.Gamepad.sThumbRY;
 	joyaxis[4] = (state.Gamepad.bLeftTrigger >> 1) | ((int)state.Gamepad.bLeftTrigger << 7);	// Extend to 0-32767
 	joyaxis[5] = (state.Gamepad.bRightTrigger >> 1) | ((int)state.Gamepad.bRightTrigger << 7);
+#endif
 }
 
 
@@ -1835,12 +1841,13 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 			WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
 			WGL_DOUBLE_BUFFER_ARB,  GL_TRUE,
 			WGL_PIXEL_TYPE_ARB,     WGL_TYPE_RGBA_ARB,
-			WGL_COLOR_BITS_ARB,     bitspp,
+			WGL_COLOR_BITS_ARB,     99,
 			WGL_DEPTH_BITS_ARB,     24,
 			WGL_STENCIL_BITS_ARB,   0,
 			WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
 			0,
 		};
+		pformatattribs[2*4+1] = bitspp;
 		if (!wglfunc.wglChoosePixelFormatARB(hDCGLWindow, pformatattribs, NULL, 1, &pixelformat, &numformats)) {
 			errmsg = "Can't choose pixel format.";
 			goto fail;
@@ -1854,7 +1861,7 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 			1,                             //Version Number
 			PFD_DRAW_TO_WINDOW|PFD_SUPPORT_OPENGL|PFD_DOUBLEBUFFER, //Must Support these
 			PFD_TYPE_RGBA,                 //Request An RGBA Format
-			bitspp,                        //Color Depth
+			99,                            //Color Depth
 			0,0,0,0,0,0,                   //Color Bits Ignored
 			0,                             //No Alpha Buffer
 			0,                             //Shift Bit Ignored
@@ -1867,6 +1874,7 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 			0,                             //Reserved
 			0,0,0                          //Layer Masks Ignored
 		};
+		pfd.cColorBits = bitspp;
 		pixelformat = ChoosePixelFormat(hDCGLWindow, &pfd);
 		if (!pixelformat) {
 			errmsg = "Can't choose pixel format";

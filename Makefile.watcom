@@ -1,18 +1,26 @@
 # Build Makefile for Watcom Make
 
+# Engine options - these may be overridden by game makefiles
+#  USE_POLYMOST   - enables Polymost renderer
+#  USE_OPENGL     - enables OpenGL support in Polymost
+#     Define as 1 or 2 for GL 2.1 profile
+#  USE_ASM        - enables the use of assembly code
+USE_POLYMOST=1
+USE_OPENGL=1
+USE_ASM=1
+
+RELEASE=1
+
+# Create a file (e.g. Makefile.watcomuser) and declare it to WMAKE
+# (wmake OVERRIDES=Makefile.watcomuser) to override feature macros.
 !ifdef OVERRIDES
 !include $(OVERRIDES)
 !endif
 
 SRC=src
-GAME=testgame
-!ifndef OBJ
-OBJ=obj.watcom
-!endif
+GAME=kenbuild
+TOOLS=tools
 INC=include
-!ifndef CFLAGS
-CFLAGS=-dUSE_POLYMOST=1 -dUSE_OPENGL=1 -dKSFORBUILD
-!endif
 
 o=obj
 res=res
@@ -21,75 +29,136 @@ asm=wasm
 ENGINELIB=engine.lib
 EDITORLIB=build.lib
 
-DXROOT=c:\sdks\directx\dx81
+LIBSQUISH=libsquish
+
+flags_cl=
+!if $(RELEASE)
+# release options
+flags_cl=-ox
+!else
+# debugging options
+flags_cl=-dDEBUGGINGAIDS -d9 -orb
+!endif
 
 !ifdef __LOADDLL__
 ! loaddll wcc386 wccd386
 ! loaddll wpp386 wppd386
 !endif
 
-# -d these to enable certain features of the port's compile process
-# NOASM     When defined, uses C code instead assembly code
-TARGETOPTS=#-dNOASM
-
 CC=wcc386
 CXX=wpp386
 AS=wasm
 RC=wrc
-CFLAGS+= -zq -5r -s -orb -fp5 $(TARGETOPTS) -d2 -dRENDERTYPEWIN=1 &
-	-i=$(INC) -i=$(SRC) -i=$(DXROOT)\include -i=..\jfaud\inc
+OURCFLAGS=-zq -6r -fp6 $(flags_cl) -dKSFORBUILD -i=$(INC) -i=$(LIBSQUISH) -i=$(SRC)
 GAMECFLAGS=-i=$(GAME)
-LIBS=dxguid.lib wsock32.lib ..\jfaud\jfaud.lib winmm.lib
 ASFLAGS=# -d1
 EXESUFFIX=.exe
 
-ENGINEOBJS=$(OBJ)\a.$o &
-	$(OBJ)\baselayer.$o &
-	$(OBJ)\cache1d.$o &
-	$(OBJ)\compat.$o &
-	$(OBJ)\crc32.$o &
-	$(OBJ)\defs.$o &
-	$(OBJ)\engine.$o &
-	$(OBJ)\glbuild.$o &
-	$(OBJ)\kplib.$o &
-	$(OBJ)\mmulti.$o &
-	$(OBJ)\osd.$o &
-	$(OBJ)\pragmas.$o &
-	$(OBJ)\scriptfile.$o &
-	$(OBJ)\winlayer.$o
+ENGINEOBJS=$(SRC)\a-c.$o &
+	$(SRC)\asmprot.$o &
+	$(SRC)\baselayer.$o &
+	$(SRC)\cache1d.$o &
+	$(SRC)\compat.$o &
+	$(SRC)\crc32.$o &
+	$(SRC)\defs.$o &
+	$(SRC)\engine.$o &
+	$(SRC)\polymost.$o &
+	$(SRC)\polymost_fs.$o &
+	$(SRC)\polymost_vs.$o &
+	$(SRC)\polymostaux_fs.$o &
+	$(SRC)\polymostaux_vs.$o &
+	$(SRC)\polymosttex.$o &
+	$(SRC)\polymosttexcache.$o &
+	$(SRC)\polymosttexcompress.$o &
+	$(SRC)\hightile.$o &
+	$(SRC)\mdsprite.$o &
+	$(SRC)\glbuild.$o &
+	$(SRC)\kplib.$o &
+	$(SRC)\mmulti_null.$o &
+	$(SRC)\osd.$o &
+	$(SRC)\pragmas.$o &
+	$(SRC)\scriptfile.$o &
+	$(SRC)\textfont.$o &
+	$(SRC)\smalltextfont.$o &
+	$(SRC)\winlayer.$o
 
-EDITOROBJS=$(OBJ)\build.$o &
-	$(OBJ)\config.$o &
-	$(OBJ)\startwin.editor.$o
+LIBSQUISHOBJS=$(LIBSQUISH)\alpha.$o $(LIBSQUISH)\clusterfit.$o &
+	      $(LIBSQUISH)\colourblock.$o $(LIBSQUISH)\colourfit.$o &
+	      $(LIBSQUISH)\colourset.$o $(LIBSQUISH)\maths.$o &
+	      $(LIBSQUISH)\rangefit.$o $(LIBSQUISH)\singlecolourfit.$o &
+	      $(LIBSQUISH)\squish.$o
 
-GAMEEXEOBJS=$(OBJ)\game.$o &
-	$(OBJ)\jfaud_sound.$o &
-	$(OBJ)\config.$o &
-	$(OBJ)\startwin.game.$o
+EDITOROBJS=$(SRC)\build.$o &
+	$(SRC)\startwin_editor.$o &
+	$(SRC)\config.$o
 
-EDITOREXEOBJS=$(OBJ)\bstub.$o
+GAMEEXEOBJS=$(GAME)\config.$o &
+	$(GAME)\game.$o &
+	$(GAME)\startwin_game.$o &
+	$(GAME)\kdmsound.$o &
+	$(GAME)\kdmsound_stub.$o
+
+EDITOREXEOBJS=$(GAME)\bstub.$o
+
+!if $(USE_ASM)
+ENGINEOBJS+= $(SRC)\a.$o
+!endif
+
+RENDERTYPE=WIN
+BUILDCFLAGS=-dRENDERTYPEWIN=1
+BUILDLIBS=user32.lib gdi32.lib shell32.lib ws2_32.lib comctl32.lib comdlg32.lib uxtheme.lib
+
+!if $(USE_POLYMOST)
+BUILDCFLAGS+= -dUSE_POLYMOST=$(USE_POLYMOST)
+!endif
+!if $(USE_OPENGL)
+BUILDCFLAGS+= -dUSE_OPENGL=$(USE_OPENGL)
+!endif
+!if $(USE_ASM)
+BUILDCFLAGS+= -dUSE_ASM=$(USE_ASM)
+!endif
+
+LIBS=$(LIBS) $(BUILDLIBS)
+CFLAGS=$(CFLAGS) $(BUILDCFLAGS)
+
+# Source-control version stamping
+#!if [git --version >nul] == 0
+#ENGINEOBJS+= $(SRC)\version-auto.$o
+#!else
+ENGINEOBJS+= $(SRC)\version.$o
+#!endif
 
 # RULES
-.EXTENSIONS: .wasm .res .rc
+.EXTENSIONS: .wasm .res .rc .glsl
 
 .wasm:	$(SRC)
 .c:	$(SRC)
+.cc:	$(SRC)
 .cpp:	$(SRC)
+.glsl:	$(SRC)
+.cpp:	$(LIBSQUISH)
 .c:	$(GAME)
-.cpp:	$(GAME)
-.c:	$(SRC)\util
-.rc:	$(SRC)\misc
+#.cpp:	$(GAME)
+.c:	$(TOOLS)
+.cc:	$(TOOLS)
+.rc:	$(GAME)
 
 .wasm.$o:
-	$(AS) $(ASFLAGS) -fo=$(OBJ)\.$o $[@
+	$(AS) $(ASFLAGS) -fo=$(SRC)\.$o $[@
 
 .c.$o:
-	$(CC) $(CFLAGS) -fo=$(OBJ)\.$o $[@
+	$(CC) $(CFLAGS) $(OURCFLAGS) -fo=$^*.$o $[@
+.cc.$o:
+	$(CXX) $(CFLAGS) $(OURCFLAGS) -fo=$^*.$o $[@
 .cpp.$o:
-	$(CXX) $(CFLAGS) $(GAMECFLAGS) -fo=$(OBJ)\.$o $[@
+	$(CXX) $(CFLAGS) $(OURCFLAGS) -fo=$^*.$o $[@
 
 .rc.$(res):
 	$(RC) -i=$(SRC) -i=$(INC) -i=$(GAME) -fo=$^*.$(res) -r $[@
+
+.glsl.c:
+	if not exist bin2c$(EXESUFFIX) $(MAKE) /f Makefile.watcom bin2c$(EXESUFFIX)
+	bin2c$(EXESUFFIX) -text $[@ default_$^&_glsl > $^*.c
 
 # TARGETS
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX)
@@ -100,63 +169,65 @@ all: game$(EXESUFFIX) build$(EXESUFFIX) .SYMBOLIC
 utils: $(UTILS) .SYMBOLIC
 	%null
 
-enginelib: $(OBJ)\$(ENGINELIB) .SYMBOLIC
+enginelib: $(SRC)\$(ENGINELIB) .SYMBOLIC
 	%null
 
-$(OBJ)\$(ENGINELIB): $(ENGINEOBJS)
-	%create $(OBJ)\$(ENGINELIB).tmp
-	for %i in ($(ENGINEOBJS)) do %append $(OBJ)\$(ENGINELIB).tmp +%i
-	wlib -b -n $^* @$(OBJ)\$(ENGINELIB).tmp
-	erase $(OBJ)\$(ENGINELIB).tmp
+$(SRC)\$(ENGINELIB): $(ENGINEOBJS) $(LIBSQUISHOBJS)
+	%create $(SRC)\$(ENGINELIB).tmp
+	for %i in ($(ENGINEOBJS)) do %append $(SRC)\$(ENGINELIB).tmp +%i
+	for %i in ($(LIBSQUISHOBJS)) do %append $(SRC)\$(ENGINELIB).tmp +%i
+	wlib -b -n $^* @$(SRC)\$(ENGINELIB).tmp
+	erase $(SRC)\$(ENGINELIB).tmp
 
-editorlib: $(OBJ)\$(EDITORLIB) .SYMBOLIC
+editorlib: $(SRC)\$(EDITORLIB) .SYMBOLIC
 	%null
 
-$(OBJ)\$(EDITORLIB): $(EDITOROBJS)
-	%create $(OBJ)\$(EDITORLIB).tmp
-	for %i in ($(EDITOROBJS)) do %append $(OBJ)\$(EDITORLIB).tmp +%i
-	wlib -b -n $^* @$(OBJ)\$(EDITORLIB).tmp
-	erase $(OBJ)\$(EDITORLIB).tmp
+$(SRC)\$(EDITORLIB): $(EDITOROBJS)
+	%create $(SRC)\$(EDITORLIB).tmp
+	for %i in ($(EDITOROBJS)) do %append $(SRC)\$(EDITORLIB).tmp +%i
+	wlib -b -n $^* @$(SRC)\$(EDITORLIB).tmp
+	erase $(SRC)\$(EDITORLIB).tmp
 
-game$(EXESUFFIX): $(GAMEEXEOBJS) $(OBJ)\gameres.$(res) $(OBJ)\$(ENGINELIB)
+game$(EXESUFFIX): $(GAMEEXEOBJS) $(GAME)\gameres.$(res) $(SRC)\$(ENGINELIB)
 	wlink	NAME     $@ &
 		SYSTEM   WIN95 &
 		DEBUG    ALL &
 		OPTION   MAP &
 		FILE     { $(GAMEEXEOBJS) } &
-		RESOURCE $(OBJ)\gameres.$(res) &
-		LIBPATH  $(DXROOT)\lib &
-		LIBPATH  $(FMODROOT)\lib &
-		LIBPATH  $(OBJ) &
+		RESOURCE $(GAME)\gameres.$(res) &
+		LIBPATH  $(SRC) &
 		LIBRARY  { $(ENGINELIB) $(LIBS) }
 
-build$(EXESUFFIX): $(EDITOREXEOBJS) $(OBJ)\buildres.$(res) $(OBJ)\$(ENGINELIB) $(OBJ)\$(EDITORLIB)
+build$(EXESUFFIX): $(EDITOREXEOBJS) $(GAME)\buildres.$(res) $(SRC)\$(ENGINELIB) $(SRC)\$(EDITORLIB)
 	wlink	NAME     $@ &
 		SYSTEM   WIN95 &
 		DEBUG    ALL &
 		OPTION   MAP &
 		FILE     { $(EDITOREXEOBJS) } &
-		RESOURCE $(OBJ)\buildres.$(res) &
-		LIBPATH  $(DXROOT)\lib &
-		LIBPATH  $(FMODROOT)\lib &
-		LIBPATH  $(OBJ) &
+		RESOURCE $(GAME)\buildres.$(res) &
+		LIBPATH  $(SRC) &
 		LIBRARY  { $(ENGINELIB) $(EDITORLIB) $(LIBS) }
 
-kextract$(EXESUFFIX): $(OBJ)\kextract.$o $(OBJ)\compat.$o
+kextract$(EXESUFFIX): $(TOOLS)\kextract.$o $(SRC)\compat.$o
 	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
-kgroup$(EXESUFFIX): $(OBJ)\kgroup.$o $(OBJ)\compat.$o
+kgroup$(EXESUFFIX): $(TOOLS)\kgroup.$o $(SRC)\compat.$o
 	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
-transpal$(EXESUFFIX): $(OBJ)\transpal.$o $(OBJ)\pragmas.$o $(OBJ)\compat.$o
+transpal$(EXESUFFIX): $(TOOLS)\transpal.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
-wad2art$(EXESUFFIX): $(OBJ)\wad2art.$o $(OBJ)\pragmas.$o $(OBJ)\compat.$o
+wad2art$(EXESUFFIX): $(TOOLS)\wad2art.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
-wad2map$(EXESUFFIX): $(OBJ)\wad2map.$o $(OBJ)\pragmas.$o $(OBJ)\compat.$o
+wad2map$(EXESUFFIX): $(TOOLS)\wad2map.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 	wlink	NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
+
+bin2c$(EXESUFFIX): $(TOOLS)\bin2c.$o
+	wlink   NAME $@  SYSTEM 386  DEBUG ALL  FILE { $< }
 
 # DEPENDENCIES
 !include Makefile.deps
 
 # PHONIES
 clean: .SYMBOLIC
-	-erase /q $(OBJ)\* game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS) *.err
+	-erase /q $(ENGINEOBJS) $(LIBSQUISHOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS) *.err
+veryclean: clean .SYMBOLIC
+	-erase /q $(SRC)\$(ENGINELIB) $(SRC)\$(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS)
 

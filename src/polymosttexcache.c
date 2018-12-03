@@ -52,7 +52,9 @@ static PTCacheIndex * cachehead[PTCACHEHASHSIZ];	// will be initialized 0 by .bs
 
 static const char * CACHEINDEXFILE = "texture.cacheindex";
 static const char * CACHESTORAGEFILE = "texture.cache";
-static const int CACHEVER = 0;
+#define CACHEVER 0
+static const int8_t INDEXSIG[16] = { 'P','o','l','y','m','o','s','t','T','e','x','I','n','d','x',CACHEVER };
+static const int8_t STORAGESIG[16] = { 'P','o','l','y','m','o','s','t','T','e','x','S','t','o','r',CACHEVER };
 
 static int cachedisabled = 0, cachereplace = 0;
 
@@ -131,8 +133,6 @@ void PTCacheLoadIndex(void)
 {
 	FILE * fh = 0;
 	int8_t sig[16];
-	const int8_t indexsig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','I','n','d','x',CACHEVER };
-	const int8_t storagesig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','S','t','o','r',CACHEVER };
 
 	int8_t filename[BMAX_PATH+1];
 	int32_t effects;
@@ -152,7 +152,7 @@ void PTCacheLoadIndex(void)
 	if (fh) {
 		havestore = 1;
 
-		if (fread(sig, 16, 1, fh) != 1 || memcmp(sig, storagesig, 16)) {
+		if (fread(sig, 16, 1, fh) != 1 || memcmp(sig, STORAGESIG, 16)) {
 			cachereplace = 1;
 		}
 		fclose(fh);
@@ -172,7 +172,7 @@ void PTCacheLoadIndex(void)
 	if (fh) {
 		haveindex = 1;
 
-		if (fread(sig, 16, 1, fh) != 1 || memcmp(sig, indexsig, 16)) {
+		if (fread(sig, 16, 1, fh) != 1 || memcmp(sig, INDEXSIG, 16)) {
 			cachereplace = 1;
 		}
 	} else {
@@ -471,8 +471,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 
 	if (offset == 0) {
 		// new file
-		const int8_t storagesig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','S','t','o','r',CACHEVER };
-		if (fwrite(storagesig, 16, 1, fh) != 1) {
+		if (fwrite(STORAGESIG, 16, 1, fh) != 1) {
 			goto fail;
 		}
 
@@ -532,8 +531,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	fseek(fh, 0, SEEK_END);
 	if (ftell(fh) == 0) {
 		// new file
-		const int8_t indexsig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','I','n','d','x',CACHEVER };
-		if (fwrite(indexsig, 16, 1, fh) != 1) {
+		if (fwrite(INDEXSIG, 16, 1, fh) != 1) {
 			goto fail;
 		}
 	}

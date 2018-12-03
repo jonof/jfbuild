@@ -262,25 +262,27 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	float tx = (float)resx / (float)stride, ty = 1.0;
 	int tsizx = stride, tsizy = resy;
 
+	// Buffer contents: indexes and texcoord/vertex elements.
+	GLushort indexes[6] = { 0, 1, 2, 0, 2, 3 };
+	GLfloat elements[4][4] = {
+		// tx, ty,  vx, vy
+		{ 0.0, 99,  -1.0, -1.0 },
+		{ 66,  99,   1.0, -1.0 },
+		{ 66,  0.0,  1.0,  1.0 },
+		{ 0.0, 0.0, -1.0,  1.0 },
+	};
+
+	GLint clamp = glinfo.clamptoedge ? GL_CLAMP_TO_EDGE : GL_CLAMP;
+	GLenum intfmt, extfmt;
+
 	if (!glinfo.texnpot) {
 		for (tsizx = 1; tsizx < stride; tsizx <<= 1) { }
 		for (tsizy = 1; tsizy < resy; tsizy <<= 1) { }
 		tx = (float)resx / (float)tsizx;
 		ty = (float)resy / (float)tsizy;
 	}
-
-	// Buffer contents: indexes and texcoord/vertex elements.
-	GLushort indexes[6] = { 0, 1, 2, 0, 2, 3 };
-	GLfloat elements[4][4] = {
-		// tx, ty,  vx, vy
-		{ 0.0, ty,  -1.0, -1.0 },
-		{ tx,  ty,   1.0, -1.0 },
-		{ tx,  0.0,  1.0,  1.0 },
-		{ 0.0, 0.0, -1.0,  1.0 },
-	};
-
-	GLint clamp = glinfo.clamptoedge ? GL_CLAMP_TO_EDGE : GL_CLAMP;
-	GLenum intfmt, extfmt;
+	elements[0][1] = elements[1][1] = ty;
+	elements[1][0] = elements[2][0] = tx;
 
 	// Initialise texture objects for the palette and framebuffer.
 	// The textures will be uploaded on the first rendered frame.

@@ -528,9 +528,10 @@ int app_main(int argc, char const * const argv[])
             netsuccess = initmultiplayersparms(argc - netparm, &argv[netparm]);
         } else {
             char modeparm[8];
-            const char *parmarr[3] = { modeparm, NULL, NULL };
+            const char *parmarr[3] = { NULL, NULL, NULL };
             int parmc = 0;
 
+            parmarr[0] = modeparm;
             if (settings.joinhost) {
                 strcpy(modeparm, "-nm");
                 parmarr[1] = settings.joinhost;
@@ -4990,7 +4991,7 @@ void initlava(void)
 	lavanumframes = 0;
 }
 
-#if defined(__WATCOMC__) && USE_ASM
+#if defined(__WATCOMC__) && defined(_M_I386) && USE_ASM
 #pragma aux addlava =\
 	"mov al, byte ptr [ebx-133]",\
 	"mov dl, byte ptr [ebx-1]",\
@@ -5002,7 +5003,7 @@ void initlava(void)
 	"add al, dl",\
 	parm [ebx]\
 	modify exact [eax edx]
-int addlava(int);
+int addlava(void *);
 #elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
 inline int addlava(void *b)
 {

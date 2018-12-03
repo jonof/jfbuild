@@ -14,8 +14,9 @@
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
-#define _WIN32_IE 0x0600
-#define _WIN32_WINNT 0x0600
+#define NTDDI_VERSION 0x06000000	// NTDDI_VISTA
+#define _WIN32_IE 0x0700			// _WIN32_IE_IE70
+#define _WIN32_WINNT 0x0600			// _WIN32_WINNT_VISTA
 #include <windows.h>
 #include <shlobj.h>
 #endif

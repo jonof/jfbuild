@@ -5,6 +5,7 @@
 *.exe
 *.res
 *.map
+*.err
 *~
 *.pdb
 /src/version-auto.c
