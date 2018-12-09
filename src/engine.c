@@ -17,15 +17,14 @@
 
 #include "baselayer.h"
 
-#ifdef POLYMOST
-# ifdef USE_OPENGL
-#  include "glbuild.h"
-# endif
+#if USE_POLYMOST
 # include "polymost_priv.h"
-# include "hightile_priv.h"
-# include "polymosttex_priv.h"
-# include "polymosttexcache.h"
-# include "mdsprite_priv.h"
+# if USE_OPENGL
+#  include "hightile_priv.h"
+#  include "polymosttex_priv.h"
+#  include "polymosttexcache.h"
+#  include "mdsprite_priv.h"
+# endif
 # ifdef _WIN32
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
@@ -40,7 +39,6 @@
 void *kmalloc(bsize_t size) { return(Bmalloc(size)); }
 void kfree(void *buffer) { Bfree(buffer); }
 
-#ifdef SUPERBUILD
 void loadvoxel(int voxindex) { voxindex=0; }
 int tiletovox[MAXTILES];
 int usevoxels = 1;
@@ -60,7 +58,6 @@ int voxscale[MAXVOXELS];
 static int ggxinc[MAXXSIZ+1], ggyinc[MAXXSIZ+1];
 static int lowrecip[1024], nytooclose, nytoofar;
 static unsigned int distrecip[65536];
-#endif
 
 static int *lookups = NULL;
 int dommxoverlay = 1, beforedrawrooms = 1;
@@ -79,7 +76,7 @@ static unsigned char tempbuf[MAXWALLS];
 int ebpbak, espbak;
 #define SLOPALOOKUPSIZ (MAXXDIM<<1)
 intptr_t slopalookup[SLOPALOOKUPSIZ];
-#if defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 palette_t palookupfog[MAXPALOOKUPS];
 #endif
 
@@ -118,7 +115,7 @@ static BFILE *logfile=NULL;		// log filehandle
 
 //unsigned int ratelimitlast[32], ratelimitn = 0, ratelimit = 60;
 
-#if defined(__WATCOMC__) && !defined(NOASM)
+#if defined(__WATCOMC__) && USE_ASM
 
 //
 // Watcom Inline Assembly Routines
@@ -195,7 +192,7 @@ int krecipasm(int);
 	modify exact [eax ebx ecx edx]
 int getclipmask(int,int,int,int);
 
-#elif defined(_MSC_VER) && !defined(NOASM)	// __WATCOMC__
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM	// __WATCOMC__
 
 //
 // Microsoft C Inline Assembly Routines
@@ -295,7 +292,7 @@ static inline int getclipmask(int a, int b, int c, int d)
 	}
 }
 
-#elif defined(__GNUC__) && defined(__i386__) && !defined(NOASM)	// _MSC_VER
+#elif defined(__GNUC__) && defined(__i386__) && USE_ASM	// _MSC_VER
 
 //
 // GCC "Inline" Assembly Routines
@@ -508,7 +505,7 @@ static int colscan[27];
 
 static short clipnum, hitwalls[4];
 int hitscangoalx = (1<<29)-1, hitscangoaly = (1<<29)-1;
-#ifdef POLYMOST
+#if USE_POLYMOST
 int hitallsprites = 0;
 #endif
 
@@ -557,7 +554,7 @@ static intptr_t bakframeplace[4];
 static int bakxsiz[4], bakysiz[4];
 static int bakwindowx1[4], bakwindowy1[4];
 static int bakwindowx2[4], bakwindowy2[4];
-#ifdef POLYMOST
+#if USE_POLYMOST
 static int bakrendmode,baktile;
 #endif
 
@@ -2724,7 +2721,6 @@ static void drawalls(int bunch)
 //
 // drawvox
 //
-#ifdef SUPERBUILD
 static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 		  int daxscale, int dayscale, unsigned char daindex,
 		  signed char dashade, unsigned char dapal, int *daumost, int *dadmost)
@@ -2948,7 +2944,6 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 
 	enddrawing();	//}}}
 }
-#endif
 
 
 //
@@ -2969,7 +2964,7 @@ static void drawsprite(int snum)
 	unsigned char swapped, daclip;
 
 	//============================================================================= //POLYMOST BEGINS
-#ifdef POLYMOST
+#if USE_POLYMOST
 	if (rendmode) { polymost_drawsprite(snum); return; }
 #endif
 	//============================================================================= //POLYMOST ENDS
@@ -2982,17 +2977,15 @@ static void drawsprite(int snum)
 	spritenum = tspr->owner;
 	cstat = tspr->cstat;
 
-#ifdef SUPERBUILD
 	if ((cstat&48)==48) vtilenum = tilenum;	// if the game wants voxels, it gets voxels
 	else if ((cstat&48)!=48 && (usevoxels) && (tiletovox[tilenum] != -1)
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 		 && (!(spriteext[tspr->owner].flags&SPREXT_NOTMD))
 #endif
 	   ) {
 		vtilenum = tiletovox[tilenum];
 		cstat |= 48;
 	}
-#endif
 
 	if ((cstat&48) != 48)
 	{
@@ -3739,7 +3732,6 @@ static void drawsprite(int snum)
 			//Draw it!
 		ceilspritescan(lx,rx-1);
 	}
-#ifdef SUPERBUILD
 	else if ((cstat&48) == 48)
 	{
 		int nxrepeat, nyrepeat;
@@ -3865,12 +3857,12 @@ static void drawsprite(int snum)
 		}
 
 		i = (int)tspr->ang+1536;
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 		i += spriteext[tspr->owner].angoff;
 #endif
 		drawvox(tspr->x,tspr->y,tspr->z,i,(int)tspr->xrepeat,(int)tspr->yrepeat,vtilenum,tspr->shade,tspr->pal,lwall,swall);
 	}
-#endif
+
 	if (automapping == 1) show2dsprite[spritenum>>3] |= pow2char[spritenum&7];
 }
 
@@ -3885,7 +3877,7 @@ static void drawmaskwall(short damaskwallcnt)
 	walltype *wal;
 
 	//============================================================================= //POLYMOST BEGINS
-#ifdef POLYMOST
+#if USE_POLYMOST
 	if (rendmode) { polymost_drawmaskwall(damaskwallcnt); return; }
 #endif
 	//============================================================================= //POLYMOST ENDS
@@ -3989,7 +3981,7 @@ static void fillpolygon(int npoints)
 	intptr_t p;
 	short *ptr, *ptr2;
 
-#if defined POLYMOST && defined USE_OPENGL
+#if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3) { polymost_fillpolygon(npoints); return; }
 #endif
 
@@ -4367,7 +4359,7 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 	char bad;
 
 	//============================================================================= //POLYMOST BEGINS
-#ifdef POLYMOST
+#if USE_POLYMOST
 	if (rendmode) { polymost_dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2,uniqid); return; }
 #endif
 	//============================================================================= //POLYMOST ENDS
@@ -4878,11 +4870,9 @@ static void dosetaspect(void)
 			if (j != 0) j = mulscale16((int)radarang[k+1]-(int)radarang[k],j);
 			radarang2[i] = (short)(((int)radarang[k]+j)>>6);
 		}
-#ifdef SUPERBUILD
 		for(i=1;i<65536;i++) distrecip[i] = divscale20(xdimen,i);
 		nytooclose = xdimen*2100;
 		nytoofar = 65536*16384-1048576;
-#endif
 	}
 }
 
@@ -5422,7 +5412,6 @@ int initengine(void)
 	parallaxtype = 2; parallaxyoffs = 0L; parallaxyscale = 65536;
 	showinvisibility = 0;
 
-#ifdef SUPERBUILD
 	for(i=1;i<1024;i++) lowrecip[i] = ((1<<24)-1)/i;
 	for(i=0;i<MAXVOXELS;i++)
 		for(j=0;j<MAXVOXMIPS;j++)
@@ -5433,9 +5422,8 @@ int initengine(void)
 	for(i=0;i<MAXTILES;i++)
 		tiletovox[i] = -1;
 	clearbuf(&voxscale[0],sizeof(voxscale)>>2,65536L);
-#endif
 
-#ifdef POLYMOST
+#if USE_POLYMOST
 	polymost_initosdfuncs();
 #endif
 
@@ -5463,7 +5451,7 @@ int initengine(void)
 	if (loadtables()) return 1;
 	if (loadpalette()) return 1;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	if (!hicfirstinit) hicinit();
 	if (!mdinited) mdinit();
 	PTCacheLoadIndex();
@@ -5482,7 +5470,7 @@ void uninitengine(void)
 
 	//buildprintf("cacheresets = %d, cacheinvalidates = %d\n", cacheresets, cacheinvalidates);
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	polymost_glreset();
 	PTClear();
 	PTCacheUnloadIndex();
@@ -5590,7 +5578,7 @@ void drawrooms(int daposx, int daposy, int daposz,
 	dmost[0] = shortptr2[0]-windowy1;
 
 	//============================================================================= //POLYMOST BEGINS
-#ifdef POLYMOST
+#if USE_POLYMOST
 	polymost_drawrooms(); if (rendmode) { return; }
 #endif
 	//============================================================================= //POLYMOST ENDS
@@ -5790,16 +5778,16 @@ killsprite:
 	}*/
 
 
-#ifdef POLYMOST
+#if USE_POLYMOST
 		//Hack to make it draw all opaque quads first. This should reduce the chances of
 		//bad sorting causing transparent quads knocking out opaque quads behind it.
 		//
 		//Need to store alpha flag with all textures before this works right!
-	if (rendmode == 3)
+	if (rendmode > 0)
 	{
 		for(i=spritesortcnt-1;i>=0;i--)
 			if ((!(tspriteptr[i]->cstat&2))
-#ifdef USE_OPENGL
+#if USE_OPENGL
 			    && (!polymost_texmayhavealpha(tspriteptr[i]->picnum,tspriteptr[i]->pal))
 #endif
 			   )
@@ -5818,7 +5806,7 @@ killsprite:
 		{
 			k = thewall[maskwall[i]];
 			if ((!(wall[k].cstat&128))
-#ifdef USE_OPENGL
+#if USE_OPENGL
 			    && (!polymost_texmayhavealpha(wall[k].overpicnum,wall[k].pal))
 #endif
 			   )
@@ -6275,7 +6263,7 @@ int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *dap
 
 	kclose(fil);
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	memset(spriteext, 0, sizeof(spriteext));
 #endif
 	guniqhudid = 0;
@@ -7208,7 +7196,7 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 
 	kclose(fil);
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	memset(spriteext, 0, sizeof(spriteext));
 #endif
 	guniqhudid = 0;
@@ -7224,10 +7212,10 @@ readerror:
 //
 // loadmaphack
 //
-#if defined(POLYMOST) && defined(USE_OPENGL)
 #include "scriptfile.h"
 int loadmaphack(char *filename)
 {
+#if USE_POLYMOST && USE_OPENGL
 	static struct { char *text; int tokenid; } legaltokens[] = {
 		{ "sprite", 0 },
 		{ "angleoff", 1 },
@@ -7308,11 +7296,10 @@ int loadmaphack(char *filename)
 	}
 
 	scriptfile_close(script);
+#endif //USE_POLYMOST && USE_OPENGL
+
 	return 0;
 }
-#else
-int loadmaphack(char *filename) { return -1; }
-#endif
 
 
 //
@@ -7572,7 +7559,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	// it's possible the previous call protected our code sections again
 	makeasmwriteable();
 
-#ifdef POLYMOST
+#if USE_POLYMOST && USE_OPENGL
 	if (dabpp > 8) rendmode = 3;	// GL renderer
 	else if (dabpp == 8 && oldbpp > 8) rendmode = 0;	// going from GL to software activates softpolymost
 #endif
@@ -7623,7 +7610,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 
 	setview(0L,0L,xdim-1,ydim-1);
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3) {
 		polymost_glreset();
 		polymost_glinit();
@@ -7680,7 +7667,7 @@ void nextpage(void)
 			enddrawing();	//}}}
 
 			OSD_Draw();
-#if defined(POLYMOST)
+#if USE_POLYMOST && USE_OPENGL
 			polymost_nextpage();
 #endif
 
@@ -7733,7 +7720,7 @@ void nextpage(void)
 	if ((totalclock >= lastageclock+8) || (totalclock < lastageclock))
 		{ lastageclock = totalclock; agecache(); }
 
-#ifdef USE_OPENGL
+#if USE_POLYMOST && USE_OPENGL
 	omdtims = mdtims; mdtims = getticks();
 	if (((unsigned int)(mdtims-omdtims)) > 10000) omdtims = mdtims;
 #endif
@@ -7958,7 +7945,6 @@ void copytilepiece(int tilenume1, int sx1, int sy1, int xsiz, int ysiz,
 //
 // qloadkvx
 //
-#ifdef SUPERBUILD
 int qloadkvx(int voxindex, char *filename)
 {
 	int i, fil, dasiz, lengcnt, lengtot;
@@ -7983,7 +7969,7 @@ int qloadkvx(int voxindex, char *filename)
 	}
 	kclose(fil);
 
-#if defined POLYMOST && defined USE_OPENGL
+#if USE_POLYMOST && USE_OPENGL
 	if (voxmodels[voxindex]) {
 		voxfree(voxmodels[voxindex]);
 		voxmodels[voxindex] = NULL;
@@ -7992,7 +7978,6 @@ int qloadkvx(int voxindex, char *filename)
 #endif
 	return 0;
 }
-#endif
 
 
 //
@@ -8472,7 +8457,7 @@ int hitscan(int xs, int ys, int zs, short sectnum, int vx, int vy, int vz,
 		{
 			spr = &sprite[z];
 			cstat = spr->cstat;
-#ifdef POLYMOST
+#if USE_POLYMOST
 			if (!hitallsprites)
 #endif
 			if ((cstat&dasprclipmask) == 0) continue;
@@ -9602,7 +9587,7 @@ void setview(int x1, int y1, int x2, int y2)
 		{ startumost[i] = windowy1, startdmost[i] = windowy2+1; }
 	for(i=windowx2+1;i<xdim;i++) { startumost[i] = 1, startdmost[i] = 0; }
 
-#if defined POLYMOST && defined USE_OPENGL
+#if USE_POLYMOST && USE_OPENGL
 	polymost_setview();
 #endif
 }
@@ -9744,7 +9729,7 @@ int makepalookup(int palnum, unsigned char *remapbuf, signed char r, signed char
 			for(j=0;j<numpalookups;j++)
 				{ *ptr2 = *ptr; ptr += 256; ptr2 += 256; }
 		}
-#if defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 		palookupfog[palnum].r = 0;
 		palookupfog[palnum].g = 0;
 		palookupfog[palnum].b = 0;
@@ -9764,7 +9749,7 @@ int makepalookup(int palnum, unsigned char *remapbuf, signed char r, signed char
 							(int)ptr[2]+mulscale16(b-ptr[2],palscale));
 			}
 		}
-#if defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 		palookupfog[palnum].r = r;
 		palookupfog[palnum].g = g;
 		palookupfog[palnum].b = b;
@@ -9821,7 +9806,7 @@ void setbrightness(int dabrightness, unsigned char *dapal, char noapply)
 
 	if ((noapply&1) == 0) setpalette(0,256,(unsigned char*)tempbuf);
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3) {
 		newpalettesum = crc32once((unsigned char *)curpalettefaded, sizeof(curpalettefaded));
 
@@ -9888,7 +9873,7 @@ void clearview(int dacol)
 
 	if (qsetmode != 200) return;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3) {
 		palette_t p;
 		if (gammabrightness) p = curpalette[dacol];
@@ -9929,7 +9914,7 @@ void clearallviews(int dacol)
 	if (qsetmode != 200) return;
 	//dacol += (dacol<<8); dacol += (dacol<<16);
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3) {
 		palette_t p;
 		if (gammabrightness) p = curpalette[dacol];
@@ -9963,7 +9948,7 @@ void clearallviews(int dacol)
 //
 void plotpixel(int x, int y, unsigned char col)
 {
-#if defined(POLYMOST)
+#if USE_POLYMOST && USE_OPENGL
 	if (!polymost_plotpixel(x,y,col)) return;
 #endif
 
@@ -9980,7 +9965,7 @@ unsigned char getpixel(int x, int y)
 {
 	unsigned char r;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3 && qsetmode == 200) return 0;
 #endif
 
@@ -10006,7 +9991,7 @@ void setviewtotile(short tilenume, int xsiz, int ysiz)
 	bakframeplace[setviewcnt] = frameplace; frameplace = waloff[tilenume];
 	bakwindowx1[setviewcnt] = windowx1; bakwindowy1[setviewcnt] = windowy1;
 	bakwindowx2[setviewcnt] = windowx2; bakwindowy2[setviewcnt] = windowy2;
-#ifdef POLYMOST
+#if USE_POLYMOST
 	if (setviewcnt == 0) {
 		bakrendmode = rendmode;
 		baktile = tilenume;
@@ -10037,10 +10022,12 @@ void setviewback(void)
 	setviewcnt--;
 
 	offscreenrendering = (setviewcnt>0);
-#ifdef POLYMOST
+#if USE_POLYMOST
 	if (setviewcnt == 0) {
 		rendmode = bakrendmode;
+#if USE_OPENGL
 		invalidatetile(baktile,-1,-1);
+#endif
 	}
 #endif
 
@@ -10111,7 +10098,7 @@ void completemirror(void)
 	int i, dy;
 	intptr_t p;
 
-#ifdef POLYMOST
+#if USE_POLYMOST
 	if (rendmode) return;
 #endif
 
@@ -10374,7 +10361,7 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		if (y1 > wy2) x1 += scale(wy2-y1,dx,dy), y1 = wy2;
 	}
 
-#if defined(POLYMOST)
+#if USE_POLYMOST && USE_OPENGL
 	if (!polymost_drawline256(x1,y1,x2,y2,col)) return;
 #endif
 
@@ -11072,7 +11059,7 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 	if (fontsize) { fontptr = smalltextfont; charxsiz = 4; }
 	else { fontptr = textfont; charxsiz = 8; }
 
-#if defined(POLYMOST)
+#if USE_POLYMOST && USE_OPENGL
 	if (!polymost_printext256(xpos,ypos,col,backcol,name,fontsize)) return;
 #endif
 
@@ -11135,7 +11122,7 @@ int screencapture_tga(char *filename, char inverseit)
 		return -1;
 	}
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	if (rendmode >= 3 && qsetmode == 200) {
 		head[1] = 0;	// no colourmap
 		head[2] = 2;	// uncompressed truecolour
@@ -11159,7 +11146,7 @@ int screencapture_tga(char *filename, char inverseit)
 	ptr = (unsigned char *)frameplace;
 
 	// palette first
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	if (rendmode < 3 || (rendmode == 3 && qsetmode != 200)) {
 #endif
 		//getpalette(0,256,palette);
@@ -11168,7 +11155,7 @@ int screencapture_tga(char *filename, char inverseit)
 			Bfputc(curpalettefaded[i].g, fil);	// g
 			Bfputc(curpalettefaded[i].r, fil);	// r
 		}
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	}
 #endif
 
@@ -11184,7 +11171,7 @@ int screencapture_tga(char *filename, char inverseit)
 			kfree(inversebuf);
 		}
 	} else {
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 		if (rendmode >= 3 && qsetmode == 200) {
 			// 24bit
 			inversebuf = kmalloc(xdim*ydim*3);
@@ -11203,7 +11190,7 @@ int screencapture_tga(char *filename, char inverseit)
 #endif
 			for (i=ydim-1; i>=0; i--)
 				Bfwrite(ptr+i*bytesperline, xdim, 1, fil);
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 		}
 #endif
 	}
@@ -11305,7 +11292,7 @@ int screencapture_pcx(char *filename, char inverseit)
 	head[65] = 1;	// 8-bit
 	head[68] = 1;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	if (rendmode >= 3 && qsetmode == 200) {
 		head[65] = 3;	// 24-bit
 	}
@@ -11338,7 +11325,7 @@ int screencapture_pcx(char *filename, char inverseit)
 			kfree(inversebuf);
 		}
 	} else {
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 		if (rendmode >= 3 && qsetmode == 200) {
 			// 24bit
 			inversebuf = kmalloc(xdim*ydim*3);
@@ -11355,7 +11342,7 @@ int screencapture_pcx(char *filename, char inverseit)
 #endif
 			for (i=0; i<ydim; i++)
 				writepcxline(ptr+i*bytesperline, xdim, 1, fil);
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 		}
 #endif
 	}
@@ -11363,7 +11350,7 @@ int screencapture_pcx(char *filename, char inverseit)
 	enddrawing();	//}}}
 
 	// palette last
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	if (rendmode < 3 || (rendmode == 3 && qsetmode != 200)) {
 #endif
 		//getpalette(0,256,palette);
@@ -11373,7 +11360,7 @@ int screencapture_pcx(char *filename, char inverseit)
 			Bfputc(curpalettefaded[i].g, fil);	// g
 			Bfputc(curpalettefaded[i].b, fil);	// r
 		}
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 	}
 #endif
 
@@ -11391,13 +11378,13 @@ int screencapture(char *filename, char inverseit)
 }
 
 
+#if USE_POLYMOST
 
 //
 // setrendermode
 //
 int setrendermode(int renderer)
 {
-#ifdef POLYMOST
 	int method;
 
 	if (bpp == 8) {
@@ -11408,7 +11395,6 @@ int setrendermode(int renderer)
 	}
 
 	rendmode = renderer;
-#endif
 
 	return 0;
 }
@@ -11418,11 +11404,7 @@ int setrendermode(int renderer)
 //
 int getrendermode(void)
 {
-#ifndef POLYMOST
-	return 0;
-#else
 	return rendmode;
-#endif
 }
 
 
@@ -11431,12 +11413,13 @@ int getrendermode(void)
 //
 void setrollangle(int rolla)
 {
-#ifdef POLYMOST
 	if (rolla == 0) gtang = 0.0;
 	else gtang = PI * (double)rolla / 1024.0;
-#endif
 }
 
+#endif //USE_POLYMOST
+
+#if USE_POLYMOST && USE_OPENGL
 
 //
 // invalidatetile
@@ -11454,7 +11437,6 @@ void setrollangle(int rolla)
 //
 void invalidatetile(short tilenume, int pal, int how)
 {
-#if defined(POLYMOST) && defined(USE_OPENGL)
 	int numpal, firstpal, np;
 	int hp;
 
@@ -11475,7 +11457,6 @@ void invalidatetile(short tilenume, int pal, int how)
 			polymost_texinvalidate(tilenume, np, hp);
 		}
 	}
-#endif
 }
 
 
@@ -11485,7 +11466,6 @@ void invalidatetile(short tilenume, int pal, int how)
 //
 void setpolymost2dview(void)
 {
-#if defined(POLYMOST) && defined(USE_OPENGL)
 	if (rendmode < 3) return;
 
 	if (gloy1 != -1) {
@@ -11496,8 +11476,9 @@ void setpolymost2dview(void)
 
 	glfunc.glDisable(GL_DEPTH_TEST);
 	glfunc.glDisable(GL_BLEND);
-#endif
 }
+
+#endif //USE_POLYMOST && USE_OPENGL
 
 
 void buildprintf(const char *fmt, ...)

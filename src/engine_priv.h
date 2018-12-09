@@ -51,7 +51,7 @@ extern int rx1[MAXWALLSB], ry1[MAXWALLSB];
 extern short p2[MAXWALLSB];
 extern short numscans, numhits, numbunches;
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 extern palette_t palookupfog[MAXPALOOKUPS];
 #endif
 
@@ -60,7 +60,7 @@ int wallfront(int l1, int l2);
 int animateoffs(short tilenum, short fakevar);
 
 
-#if defined(__WATCOMC__) && !defined(NOASM)
+#if defined(__WATCOMC__) && USE_ASM
 
 #pragma aux setgotpic =\
 "mov ebx, eax",\
@@ -77,7 +77,7 @@ parm [eax]\
 modify exact [eax ebx ecx edx]
 void setgotpic(int);
 
-#elif defined(_MSC_VER) && !defined(NOASM)	// __WATCOMC__
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM	// __WATCOMC__
 
 static inline void setgotpic(int a)
 {
@@ -99,7 +99,7 @@ skipit:
 	}
 }
 
-#elif defined(__GNUC__) && defined(__i386__) && !defined(NOASM)	// _MSC_VER
+#elif defined(__GNUC__) && defined(__i386__) && USE_ASM	// _MSC_VER
 
 #define setgotpic(a) \
 ({ int __a=(a); \

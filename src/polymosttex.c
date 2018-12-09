@@ -1,6 +1,7 @@
-#ifdef USE_OPENGL
-
 #include "build.h"
+
+#if USE_POLYMOST && USE_OPENGL
+
 #include "baselayer.h"
 #include "glbuild.h"
 #include "kplib.h"

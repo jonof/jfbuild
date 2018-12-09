@@ -161,11 +161,9 @@ int ExtInit(void)
 	defaultspritecstat = 0;
 	pskyoff[0] = 0; pskyoff[1] = 0; pskybits = 1;
 
-#ifdef SUPERBUILD
 	tiletovox[PLAYER] = nextvoxid++;
 	tiletovox[BROWNMONSTER] = nextvoxid++;
-#endif
-	
+
 #ifdef _WIN32
 //	allowtaskswitching(0);
 #endif
@@ -262,7 +260,6 @@ void ExtPreCheckKeys(void)
 #endif
 }
 
-#ifdef SUPERBUILD
 #define MAXVOXMIPS 5
 extern unsigned char *voxoff[][MAXVOXMIPS];
 void ExtAnalyzeSprites(void)
@@ -308,7 +305,6 @@ void ExtAnalyzeSprites(void)
 			tspr->shade += sector[tspr->sectnum].floorshade;
 	}
 }
-#endif
 
 void ExtCheckKeys(void)
 {

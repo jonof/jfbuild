@@ -159,7 +159,7 @@ static tokenlist skyboxtokens[] = {
 	{ "lf"     ,T_LEFT   },{ "left"   ,T_LEFT   },{ "lt"     ,T_LEFT   },
 	{ "up"     ,T_TOP    },{ "top"    ,T_TOP    },{ "ceiling",T_TOP    },{ "ceil"   ,T_TOP    },
 	{ "dn"     ,T_BOTTOM },{ "bottom" ,T_BOTTOM },{ "floor"  ,T_BOTTOM },{ "down"   ,T_BOTTOM }
-}; 
+};
 
 static tokenlist tinttokens[] = {
 	{ "pal",   T_PAL },
@@ -270,7 +270,9 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getnumber(script,&fnoo)) break; //x-size
 					if (scriptfile_getnumber(script,&fnoo)) break; //y-size
 					if (scriptfile_getstring(script,&fn))  break;
+#if USE_POLYMOST && USE_OPENGL
 					hicsetsubsttex(tile,pal,fn,-1.0,0);
+#endif
 				}
 				break;
 			case T_DEFINESKYBOX:
@@ -283,7 +285,9 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getsymbol(script,&i)) break; //future expansion
 					for (i=0;i<6;i++) if (scriptfile_getstring(script,&fn[i])) break; //grab the 6 faces
 					if (i < 6) break;
+#if USE_POLYMOST && USE_OPENGL
 					hicsetskybox(tile,pal,fn);
+#endif
 				}
 				break;
 			case T_DEFINETINT:
@@ -295,7 +299,9 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getnumber(script,&g)) break;
 					if (scriptfile_getnumber(script,&b)) break;
 					if (scriptfile_getnumber(script,&f)) break; //effects
+#if USE_POLYMOST && USE_OPENGL
 					hicsetpalettetint(pal,r,g,b,f);
+#endif
 				}
 				break;
 			case T_DEFINEMODEL:
@@ -308,7 +314,7 @@ static int defsparser(scriptfile *script)
 					if (scriptfile_getdouble(script,&scale)) break;
 					if (scriptfile_getnumber(script,&shadeoffs)) break;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 					lastmodelid = md_loadmodel(modelfn);
 					if (lastmodelid < 0) {
 						buildprintf("Failure loading MD2/MD3 model \"%s\"\n", modelfn);
@@ -339,7 +345,7 @@ static int defsparser(scriptfile *script)
 						buildputs("Warning: Ignoring frame definition.\n");
 						break;
 					}
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 					for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++) {
 						switch (md_defineframe(lastmodelid, framename, tilex, max(0,modelskin))) {
 							case 0: break;
@@ -373,7 +379,7 @@ static int defsparser(scriptfile *script)
 						buildputs("Warning: Ignoring animation definition.\n");
 						break;
 					}
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 					switch (md_defineanimation(lastmodelid, startframe, endframe, (int)(dfps*(65536.0*.001)), flags)) {
 						case 0: break;
 						case -1: break; // invalid model id!?
@@ -394,7 +400,7 @@ static int defsparser(scriptfile *script)
 				{
 					int palnum, palnumer;
 					char *skinfn;
-					
+
 					if (scriptfile_getsymbol(script,&palnum)) break;
 					if (scriptfile_getstring(script,&skinfn)) break; //skin filename
 
@@ -413,7 +419,7 @@ static int defsparser(scriptfile *script)
 					if (seenframe) { modelskin = ++lastmodelskin; }
 					seenframe = 0;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 					switch (md_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin), 0)) {
 						case 0: break;
 						case -1: break; // invalid model id!?
@@ -427,7 +433,7 @@ static int defsparser(scriptfile *script)
 									 script->filename, scriptfile_getlinum(script,cmdtokptr));
 							 break;
 					}
-#endif               
+#endif
 				}
 				break;
 			case T_SELECTMODELSKIN:
@@ -446,14 +452,12 @@ static int defsparser(scriptfile *script)
 						break;
 					}
 
-#ifdef SUPERBUILD
 					if (qloadkvx(nextvoxid, fn)) {
 						buildprintf("Failure loading voxel file \"%s\"\n",fn);
 						break;
 					}
 
 					lastvoxid = nextvoxid++;
-#endif
 				}
 				break;
 			case T_DEFINEVOXELTILES:
@@ -480,11 +484,10 @@ static int defsparser(scriptfile *script)
 						buildputs("Warning: Ignoring voxel tiles definition.\n");
 						break;
 					}
-#ifdef SUPERBUILD
+
 					for (tilex = ftilenume; tilex <= ltilenume; tilex++) {
 						tiletovox[tilex] = lastvoxid;
 					}
-#endif
 				}
 				break;
 
@@ -500,7 +503,7 @@ static int defsparser(scriptfile *script)
 
 					if (scriptfile_getstring(script,&modelfn)) break;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 					lastmodelid = md_loadmodel(modelfn);
 					if (lastmodelid < 0) {
 						buildprintf("Failure loading MD2/MD3 model \"%s\"\n", modelfn);
@@ -551,7 +554,7 @@ static int defsparser(scriptfile *script)
 									buildputs("Warning: Ignoring frame definition.\n");
 									break;
 								}
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 								for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++) {
 									switch (md_defineframe(lastmodelid, framename, tilex, max(0,modelskin))) {
 										case 0: break;
@@ -596,12 +599,12 @@ static int defsparser(scriptfile *script)
 									happy = 0;
 								}
 								if (!happy) break;
-								
+
 								if (lastmodelid < 0) {
 									buildputs("Warning: Ignoring animation definition.\n");
 									break;
 								}
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 								switch (md_defineanimation(lastmodelid, startframe, endframe, (int)(dfps*(65536.0*.001)), flags)) {
 									case 0: break;
 									case -1: break; // invalid model id!?
@@ -640,7 +643,7 @@ static int defsparser(scriptfile *script)
 								if (seenframe) { modelskin = ++lastmodelskin; }
 								seenframe = 0;
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 								switch (md_defineskin(lastmodelid, skinfn, palnum, max(0,modelskin), surfnum)) {
 									case 0: break;
 									case -1: break; // invalid model id!?
@@ -701,7 +704,7 @@ static int defsparser(scriptfile *script)
 									buildputs("Warning: Ignoring frame definition.\n");
 									break;
 								}
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 								for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++) {
 									switch (md_definehud(lastmodelid, tilex, xadd, yadd, zadd, angadd, flags)) {
 										case 0: break;
@@ -721,7 +724,7 @@ static int defsparser(scriptfile *script)
 						}
 					}
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 					md_setmisc(lastmodelid,(float)scale,shadeoffs,(float)mzadd);
 #endif
 
@@ -738,23 +741,19 @@ static int defsparser(scriptfile *script)
 
 					if (scriptfile_getstring(script,&fn)) break; //voxel filename
 					if (nextvoxid == MAXVOXELS) { buildputs("Maximum number of voxels already defined.\n"); break; }
-#ifdef SUPERBUILD
 					if (qloadkvx(nextvoxid, fn)) { buildprintf("Failure loading voxel file \"%s\"\n",fn); break; }
 					lastvoxid = nextvoxid++;
-#endif
 
 					if (scriptfile_getbraces(script,&modelend)) break;
 					while (script->textptr < modelend) {
 						switch (getatoken(script,voxeltokens,sizeof(voxeltokens)/sizeof(tokenlist))) {
 							//case T_ERROR: buildprintf("Error on line %s:%d in voxel tokens\n", script->filename,linenum); break;
-							case T_TILE:  
+							case T_TILE:
 								scriptfile_getsymbol(script,&tilex);
-#ifdef SUPERBUILD
 								if ((unsigned int)tilex < MAXTILES) tiletovox[tilex] = lastvoxid;
 								else buildprintf("Invalid tile number on line %s:%d\n",script->filename, scriptfile_getlinum(script,voxeltokptr));
-#endif
 								break;
-							case T_TILE0: 
+							case T_TILE0:
 								scriptfile_getsymbol(script,&tile0); break; //1st tile #
 							case T_TILE1:
 								scriptfile_getsymbol(script,&tile1);
@@ -765,16 +764,12 @@ static int defsparser(scriptfile *script)
 								}
 								if ((tile1 < 0) || (tile0 >= MAXTILES))
 									{ buildprintf("Invalid tile range on line %s:%d\n",script->filename, scriptfile_getlinum(script,voxeltokptr)); break; }
-#ifdef SUPERBUILD
 								for(tilex=tile0;tilex<=tile1;tilex++) tiletovox[tilex] = lastvoxid;
-#endif
 								break; //last tile number (inclusive)
 							case T_SCALE: {
 								double scale=1.0;
 								scriptfile_getdouble(script,&scale);
-#ifdef SUPERBUILD
 								voxscale[lastvoxid] = 65536*scale;
-#endif
 								break;
 							}
 						}
@@ -815,8 +810,10 @@ static int defsparser(scriptfile *script)
 					}
 
 					if (!happy) break;
-					
+
+#if USE_POLYMOST && USE_OPENGL
 					hicsetskybox(tile,pal,fn);
+#endif
 				}
 				break;
 			case T_TINT:
@@ -841,7 +838,9 @@ static int defsparser(scriptfile *script)
 							break;
 					}
 
+#if USE_POLYMOST && USE_OPENGL
 					hicsetpalettetint(pal,red,green,blue,flags);
+#endif
 				}
 				break;
 			case T_TEXTURE:
@@ -882,7 +881,9 @@ static int defsparser(scriptfile *script)
 												script->filename, scriptfile_getlinum(script,paltokptr));
 									break;
 								}
+#if USE_POLYMOST && USE_OPENGL
 								hicsetsubsttex(tile,pal,fn,alphacut,flags);
+#endif
 							} break;
 
 							// an EDuke32 extension which we quietly parse over
@@ -895,7 +896,7 @@ static int defsparser(scriptfile *script)
 							default: break;
 						}
 					}
-					
+
 					if ((unsigned)tile >= (unsigned)MAXTILES) {
 						buildprintf("Error: missing or invalid 'tile number' for texture definition near line %s:%d\n",
 									script->filename, scriptfile_getlinum(script,texturetokptr));
@@ -930,7 +931,7 @@ static int defsparser(scriptfile *script)
 			case T_UNDEFMODELRANGE:
 				{
 					int r0,r1;
-						
+
 					if (scriptfile_getsymbol(script,&r0)) break;
 					if (tokn == T_UNDEFMODELRANGE) {
 						if (scriptfile_getsymbol(script,&r1)) break;
@@ -951,7 +952,7 @@ static int defsparser(scriptfile *script)
 							break;
 						}
 					}
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 					for (; r0 <= r1; r0++) md_undefinetile(r0);
 #endif
 				}
@@ -967,7 +968,7 @@ static int defsparser(scriptfile *script)
 						break;
 					}
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#if USE_POLYMOST && USE_OPENGL
 					mid = md_tilehasmodel(r0);
 					if (mid < 0) break;
 
@@ -1002,12 +1003,14 @@ static int defsparser(scriptfile *script)
 						}
 					}
 
+#if USE_POLYMOST && USE_OPENGL
 					for (; r0 <= r1; r0++)
 						for (i=MAXPALOOKUPS-1; i>=0; i--)
 							hicclearsubst(r0,i);
+#endif
 				}
 				break;
-			
+
 			default:
 				buildputs("Unknown token.\n"); break;
 		}

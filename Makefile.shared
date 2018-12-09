@@ -3,7 +3,8 @@
 ENGINELIB=src/libengine.a
 EDITORLIB=src/libbuild.a
 
-SDL2CONFIG?=$(shell which sdl2-config)
+SDL2CONFIG?=$(shell which sdl2-config || which false)
+PKGCONFIG?=$(shell which pkg-config || which false)
 
 # Path to the included libsquish
 LIBSQUISH=libsquish
@@ -16,33 +17,58 @@ BUILDLIBS=
 
 # Detect the platform by interrogating the C compiler. This allows
 # cross-compilation by overriding CC etc.
+# For reference:
+#  Archlinux: x86_64-pc-linux-gnu
+#  Debian: x86_64-linux-gnu i386-linux-gnu aarch64-linux-gnu arm-linux-gnueabihf
+#  macOS: x86_64-apple-darwin18.2.0
+#  mingw32: x86_64-w64-mingw32 i686-w64-mingw32
+#  FreeBSD: x86_64-unknown-freebsd10.4
 machine=$(strip $(shell $(CC) -dumpmachine))
 ifndef PLATFORM
 	PLATFORM=UNKNOWN
-	ifeq ($(findstring linux,$(machine)),linux)
+	ifneq (,$(findstring -linux,$(machine)))
 		PLATFORM=LINUX
 	endif
-	ifeq ($(findstring freebsd,$(machine)),freebsd)
+	ifneq (,$(findstring -freebsd,$(machine)))
 		PLATFORM=BSD
 	endif
-	ifeq ($(findstring mingw32,$(machine)),mingw32)
+	ifneq (,$(findstring -mingw32,$(machine)))
 		PLATFORM=WINDOWS
 	endif
-	ifeq ($(findstring darwin,$(machine)),darwin)
+	ifneq (,$(findstring -darwin,$(machine)))
 		PLATFORM=DARWIN
 	endif
 endif
-
-ifeq ($(PLATFORM),LINUX)
-	RENDERTYPE=SDL
-	EXESUFFIX=
+ifndef ARCHITECTURE
+	ARCHITECTURE=UNKNOWN
+	ifneq (,$(findstring aarch64-,$(machine)))
+		ARCHITECTURE=ARM_64
+	endif
+	ifneq (,$(findstring arm-,$(machine)))
+		ARCHITECTURE=ARM
+	endif
+	ifneq (,$(findstring x86_64-,$(machine)))
+		ARCHITECTURE=X86_64
+	endif
+	ifneq (,$(findstring i386-,$(machine)))
+		ARCHITECTURE=X86
+	endif
+	ifneq (,$(findstring i486-,$(machine)))
+		ARCHITECTURE=X86
+	endif
+	ifneq (,$(findstring i586-,$(machine)))
+		ARCHITECTURE=X86
+	endif
+	ifneq (,$(findstring i686-,$(machine)))
+		ARCHITECTURE=X86
+	endif
 endif
+
 ifeq ($(PLATFORM),WINDOWS)
 	RENDERTYPE ?= WIN
 	EXESUFFIX=.exe
 	BUILDLIBS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -lcomdlg32 -luxtheme -lxinput9_1_0
-endif
-ifeq ($(PLATFORM),BSD)
+else
 	RENDERTYPE=SDL
 	EXESUFFIX=
 endif
@@ -58,10 +84,10 @@ ifeq ($(RENDERTYPE),SDL)
 	ifeq (1,$(WITHOUT_GTK))
 		HAVE_GTK=0
 	else
-		ifneq (No,$(shell pkg-config --atleast-version=3.4 gtk+-3.0 || echo No))
+		ifneq (No,$(shell $(PKGCONFIG) --atleast-version=3.4 gtk+-3.0 || echo -n No))
 			HAVE_GTK=1
-			GTKCONFIG_CFLAGS=-DHAVE_GTK $(shell pkg-config --cflags gtk+-3.0)
-			GTKCONFIG_LIBS=$(shell pkg-config --libs gtk+-3.0) -ldl
+			GTKCONFIG_CFLAGS=-DHAVE_GTK $(shell $(PKGCONFIG) --cflags gtk+-3.0)
+			GTKCONFIG_LIBS=$(shell $(PKGCONFIG) --libs gtk+-3.0) -ldl
 		else
 			HAVE_GTK=0
 		endif
@@ -73,22 +99,21 @@ ifeq ($(RENDERTYPE),WIN)
 	#BUILDLIBS+= -static-libgcc -static-libstdc++
 endif
 
-ifeq ($(findstring x86_64,$(machine)),x86_64)
-	NOASM=1
-endif
+# Until I work out how to deal with PIE and PIC, the x86 inline
+# assembly is hopelessly broken, so it's forced off for all.
+#ifneq ($(ARCHITECTURE),X86)
+	USE_ASM=0
+#endif
 
 BUILDCFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
 
-ifneq (0,$(SUPERBUILD))
-  BUILDCFLAGS+= -DSUPERBUILD
-endif
-ifneq (0,$(POLYMOST))
-  BUILDCFLAGS+= -DPOLYMOST
+ifneq (0,$(USE_POLYMOST))
+  BUILDCFLAGS+= -DUSE_POLYMOST=$(USE_POLYMOST)
 endif
 ifneq (0,$(USE_OPENGL))
   BUILDCFLAGS+= -DUSE_OPENGL=$(USE_OPENGL)
 endif
-ifneq (0,$(NOASM))
-  BUILDCFLAGS+= -DNOASM
+ifneq (0,$(USE_ASM))
+  BUILDCFLAGS+= -DUSE_ASM=$(USE_ASM)
 endif
 

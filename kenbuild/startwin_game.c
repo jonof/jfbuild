@@ -6,9 +6,8 @@
 #define _WIN32_WINNT 0x0501
 #define _WIN32_IE 0x0600
 
-#include "compat.h"
-#include "winlayer.h"
 #include "build.h"
+#include "winlayer.h"
 #include "game.h"
 
 #include <windows.h>
@@ -194,12 +193,12 @@ static void startbutton_clicked(void)
         WCHAR *wcharstr;
 
         settings->numplayers = 2;
-        
+
         hwnd = GetDlgItem(pages[TAB_CONFIG], IDC_HOSTFIELD);
         wcharlen = GetWindowTextLengthW(hwnd) + 1;
         wcharstr = (WCHAR *)malloc(wcharlen * sizeof(WCHAR));
         GetWindowTextW(hwnd, wcharstr, wcharlen);
-        
+
         joinhostlen = WideCharToMultiByte(CP_UTF8, 0, wcharstr, -1, NULL, 0, NULL, NULL);
         settings->joinhost = (char *)malloc(joinhostlen + 1);
         WideCharToMultiByte(CP_UTF8, 0, wcharstr, -1, settings->joinhost, joinhostlen, NULL, NULL);
@@ -210,7 +209,7 @@ static void startbutton_clicked(void)
     }
 
     settings->forcesetup = IsDlgButtonChecked(startupdlg, IDC_ALWAYSSHOW) == BST_CHECKED;
- 
+
     retval = STARTWIN_RUN;
 }
 
@@ -263,7 +262,7 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
 
             {
                 TCITEM tab;
-                
+
                 hwnd = GetDlgItem(hwndDlg, IDC_STARTWIN_TABCTL);
 
                 // Add tabs to the tab control
@@ -363,7 +362,7 @@ int startwin_open(void)
     if (!startupdlg) {
         return -1;
     }
- 
+
     quiteventonclose = TRUE;
     setup_messages_mode(TRUE);
     return 0;
@@ -390,12 +389,12 @@ int startwin_puts(const char *buf)
     int vis;
 
     if (!startupdlg) return 1;
-    
+
     edctl = GetDlgItem(pages[TAB_MESSAGES], IDC_MESSAGES);
     if (!edctl) return -1;
 
     vis = ((int)SendMessage(GetDlgItem(startupdlg, IDC_STARTWIN_TABCTL), TCM_GETCURSEL,0,0) == TAB_MESSAGES);
-    
+
     if (vis) SendMessage(edctl, WM_SETREDRAW, FALSE,0);
     curlen = SendMessage(edctl, WM_GETTEXTLENGTH, 0,0);
     SendMessage(edctl, EM_SETSEL, (WPARAM)curlen, (LPARAM)curlen);

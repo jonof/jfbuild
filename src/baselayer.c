@@ -1,3 +1,10 @@
+// "Build Engine & Tools" Copyright (c) 1993-1997 Ken Silverman
+// Ken Silverman's official web site: "http://www.advsys.net/ken"
+// See the included license file "BUILDLIC.TXT" for license info.
+//
+// This file has been modified from Ken Silverman's original release
+// by Jonathon Fowler (jf@jonof.id.au)
+
 #include "build.h"
 #include "osd.h"
 #include "baselayer.h"
@@ -6,7 +13,7 @@
 #include "winlayer.h"
 #endif
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 #include "glbuild.h"
 
 baselayer_glinfo glinfo = {
@@ -26,11 +33,12 @@ baselayer_glinfo glinfo = {
 	0,		// multisampling
 	0,		// nvidia multisampling hint
 };
-#endif
+#endif //USE_OPENGL
 
 static void onvideomodechange(int UNUSED(newmode)) { }
 void (*baselayer_onvideomodechange)(int) = onvideomodechange;
 
+#if USE_POLYMOST
 static int osdfunc_setrendermode(const osdfuncparm_t *parm)
 {
 	int m;
@@ -51,10 +59,9 @@ static int osdfunc_setrendermode(const osdfuncparm_t *parm)
 
 	return OSDCMD_OK;
 }
+#endif //USE_POLYMOST
 
-#if defined(USE_OPENGL)
-
-#if defined(DEBUGGINGAIDS) && defined(POLYMOST)
+#if defined(DEBUGGINGAIDS) && USE_POLYMOST && USE_OPENGL
 static int osdcmd_hicsetpalettetint(const osdfuncparm_t *parm)
 {
 	int pal, cols[3], eff;
@@ -72,22 +79,22 @@ static int osdcmd_hicsetpalettetint(const osdfuncparm_t *parm)
 
 	return OSDCMD_OK;
 }
-#endif
+#endif //DEBUGGINGAIDS && USE_POLYMOST && USE_OPENGL
 
-static void baselayer_dumpglinfo(void);
-static void baselayer_dumpglexts(void);
-
+#if USE_OPENGL
+static void dumpglinfo(void);
+static void dumpglexts(void);
 static int osdcmd_glinfo(const osdfuncparm_t *parm)
 {
 	if (parm->numparms == 0) {
-		baselayer_dumpglinfo();
+		dumpglinfo();
 		buildputs("Use \"glinfo exts\" to list extensions.\n");
 	} else if (strcmp(parm->parms[0], "exts") == 0) {
-		baselayer_dumpglexts();
+		dumpglexts();
 	}
 	return OSDCMD_OK;
 }
-#endif
+#endif //USE_OPENGL
 
 static int osdcmd_vars(const osdfuncparm_t *parm)
 {
@@ -106,7 +113,6 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 		}
 		return OSDCMD_OK;
 	}
-#ifdef SUPERBUILD
 	else if (!Bstrcasecmp(parm->name, "novoxmips")) {
 		if (showval) { buildprintf("novoxmips is %d\n", novoxmips); }
 		else { novoxmips = (atoi(parm->parms[0]) != 0); }
@@ -115,7 +121,6 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 		if (showval) { buildprintf("usevoxels is %d\n", usevoxels); }
 		else { usevoxels = (atoi(parm->parms[0]) != 0); }
 	}
-#endif
 	return OSDCMD_SHOWHELP;
 }
 
@@ -123,34 +128,36 @@ int baselayer_init(void)
 {
     OSD_Init();
 
-#ifdef POLYMOST
+	OSD_RegisterFunction("screencaptureformat","screencaptureformat: sets the output format for screenshots (TGA or PCX)",osdcmd_vars);
+
+	OSD_RegisterFunction("novoxmips","novoxmips: turn off/on the use of mipmaps when rendering 8-bit voxels",osdcmd_vars);
+	OSD_RegisterFunction("usevoxels","usevoxels: enable/disable automatic sprite->voxel rendering",osdcmd_vars);
+
+#if USE_POLYMOST
 	OSD_RegisterFunction("setrendermode","setrendermode <number>: sets the engine's rendering mode.\n"
 			"Mode numbers are:\n"
 			"   0 - Classic Build software\n"
 			"   1 - Polygonal flat-shaded software\n"
 			"   2 - Polygonal textured software\n"
-#ifdef USE_OPENGL
+#if USE_OPENGL
 			"   3 - Polygonal OpenGL\n"
 #endif
 			,
 			osdfunc_setrendermode);
-#endif
-	OSD_RegisterFunction("screencaptureformat","screencaptureformat: sets the output format for screenshots (TGA or PCX)",osdcmd_vars);
-#ifdef SUPERBUILD
-	OSD_RegisterFunction("novoxmips","novoxmips: turn off/on the use of mipmaps when rendering 8-bit voxels",osdcmd_vars);
-	OSD_RegisterFunction("usevoxels","usevoxels: enable/disable automatic sprite->voxel rendering",osdcmd_vars);
-#endif
-#if defined(POLYMOST) && defined(USE_OPENGL)
-#ifdef DEBUGGINGAIDS
+#endif //USE_POLYMOST
+
+#if defined(DEBUGGINGAIDS) && USE_POLYMOST && USE_OPENGL
 	OSD_RegisterFunction("hicsetpalettetint","hicsetpalettetint: sets palette tinting values",osdcmd_hicsetpalettetint);
 #endif
+
+#if USE_OPENGL
 	OSD_RegisterFunction("glinfo","glinfo [exts]: shows OpenGL information about the current OpenGL mode",osdcmd_glinfo);
-#endif
+#endif //USE_OPENGL
 
 	return 0;
 }
 
-#ifdef USE_OPENGL
+#if USE_OPENGL
 
 static void glext_enumerate_dump(const char *ext) {
 	buildputs(" ");
@@ -251,7 +258,7 @@ int baselayer_setupopengl(void)
 	return 0;
 }
 
-void baselayer_dumpglinfo(void)
+static void dumpglinfo(void)
 {
 	const char *supported = "supported", *unsupported = "not supported";
 	const char *glslverstr = "not supported";
@@ -296,7 +303,7 @@ void baselayer_dumpglinfo(void)
 	);
 }
 
-void baselayer_dumpglexts(void)
+static void dumpglexts(void)
 {
 	char *workstr, *workptr, *nextptr = NULL, *ext = NULL;
 
@@ -310,4 +317,4 @@ void baselayer_dumpglexts(void)
 	buildputs("\n");
 }
 
-#endif
+#endif //USE_OPENGL

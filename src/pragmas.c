@@ -11,7 +11,7 @@
 
 int dmval;
 
-#if defined(__GNUC__) && defined(__i386__) && !defined(NOASM)	// NOASM
+#if defined(__GNUC__) && defined(__i386__) && USE_ASM
 
 //
 // GCC Inline Assembler version
@@ -162,13 +162,13 @@ void copybufreverse(void *S, void *D, int c)
 	);
 }
 
-#elif defined(__WATCOMC__) && !defined(NOASM)	// __GNUC__ && __i386__
+#elif defined(__WATCOMC__) && USE_ASM	// __GNUC__ && __i386__
 
 //
 // Watcom C Inline Assembler version
 //
 
-#elif defined(_MSC_VER) && !defined(NOASM)		// __WATCOMC__
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM		// __WATCOMC__
 
 //
 // Microsoft C Inline Assembler version

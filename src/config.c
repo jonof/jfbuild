@@ -94,18 +94,20 @@ static struct {
 	{ "bpp",    type_int, &bppgame,
 		"; 3D-mode colour depth\n"
 	},
+#if USE_POLYMOST
 	{ "renderer", type_int, &tmprenderer,
 		"; 3D-mode renderer type\n"
 		";   0  - classic\n"
 		";   2  - software Polymost\n"
 		";   3  - OpenGL Polymost\n"
 	},
+#endif
 	{ "brightness", type_int, &tmpbrightness,
 		"; 3D mode brightness setting\n"
 		";   0  - lowest\n"
 		";   15 - highest\n"
 	},
-#if defined(USE_OPENGL) && defined(POLYMOST)
+#if USE_POLYMOST && USE_OPENGL
 	{ "glusetexcache", type_bool, &glusetexcache,
 		"; OpenGL mode options\n"
 	},
@@ -232,9 +234,11 @@ int loadsetup(const char *fn)
 		}
 	}
 
+#if USE_POLYMOST
 	if (tmprenderer >= 0) {
 		setrendermode(tmprenderer);
 	}
+#endif
 	if (tmpbrightness >= 0) {
 		brightness = min(max(tmpbrightness,0),15);
 	}
@@ -242,7 +246,7 @@ int loadsetup(const char *fn)
 
 	scriptfile_close(cfg);
 	scriptfile_clearsymbols();
-	
+
 	return 0;
 }
 
@@ -255,8 +259,10 @@ int writesetup(const char *fn)
 	if (!fp) return -1;
 
 	tmpbrightness = brightness;
+#if USE_POLYMOST
 	tmprenderer = getrendermode();
-	
+#endif
+
 	for (item = 0; configspec[item].name; item++) {
 		if (configspec[item].doc) {
 			if (item > 0) fputs("\n", fp);

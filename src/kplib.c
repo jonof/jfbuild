@@ -35,8 +35,8 @@ credits.
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(__POWERPC__)
-#define BIGENDIAN 1
+#if defined(__BIG_ENDIAN__)
+# define BIGENDIAN 1
 #endif
 
 #ifdef BIGENDIAN
@@ -188,7 +188,7 @@ static int gotcmov = -2, abstab10[1024];
 static int qhufval0[1<<LOGQHUFSIZ0], qhufval1[1<<LOGQHUFSIZ1];
 static unsigned char qhufbit0[1<<LOGQHUFSIZ0], qhufbit1[1<<LOGQHUFSIZ1];
 
-#if defined(__WATCOMC__) && !defined(NOASM)
+#if defined(__WATCOMC__) && USE_ASM
 
 static int bswap (int);
 #pragma aux bswap =\
@@ -240,7 +240,7 @@ static void cpuid (int, int *);
 	modify exact [eax ebx ecx edx]\
 	value
 
-#elif defined(_MSC_VER) && !defined(NOASM)
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
 
 static _inline unsigned int bswap (unsigned int a)
 {
@@ -304,7 +304,7 @@ static _inline void cpuid (int a, int *s)
 	}
 }
 
-#elif defined(__GNUC__) && defined(__i386__) && !defined(NOASM)
+#elif defined(__GNUC__) && defined(__i386__) && USE_ASM
 
 static inline unsigned int bswap (unsigned int a)
 {
@@ -598,7 +598,7 @@ static int Paeth (int a, int b, int c)
 	if (pb <= pc) return(b); else return(c);
 }
 
-#if defined(__WATCOMC__) && !defined(NOASM)
+#if defined(__WATCOMC__) && USE_ASM
 
 	//NOTE: cmov now has correctly ordered registers (thx to bug fix in 11.0c!)
 static int Paeth686 (int, int, int);
@@ -664,7 +664,7 @@ static void pal8hlineasm (int, int, INT_PTR, int);
 	modify exact [eax ecx edi]\
 	value
 
-#elif defined(_MSC_VER) && !defined(NOASM)
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
 
 static _inline int Paeth686 (int a, int b, int c)
 {
@@ -741,7 +741,7 @@ static _inline void pal8hlineasm (int c, int d, INT_PTR t, int b)
 	}
 }
 
-#elif defined(__GNUC__) && defined(__i386__) && !defined(NOASM)
+#elif defined(__GNUC__) && defined(__i386__) && USE_ASM
 
 static inline int Paeth686 (int a, int b, int c)
 {
@@ -1279,7 +1279,7 @@ static int lcomphvsamp0, lcomphsampshift0, lcompvsampshift0;
 static int colclip[1024], colclipup8[1024], colclipup16[1024];
 static unsigned char pow2char[8] = {1,2,4,8,16,32,64,128};
 
-#if defined(__WATCOMC__) && !defined(NOASM)
+#if defined(__WATCOMC__) && USE_ASM
 
 static int mulshr24 (int, int);
 #pragma aux mulshr24 =\
@@ -1295,7 +1295,7 @@ static int mulshr32 (int, int);
 	modify exact [eax edx]\
 	value [edx]
 
-#elif defined(_MSC_VER) && !defined(NOASM)
+#elif defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
 
 static _inline int mulshr24 (int a, int d)
 {
@@ -1317,7 +1317,7 @@ static _inline int mulshr32 (int a, int d)
 	}
 }
 
-#elif defined(__GNUC__) && defined(__i386__) && !defined(NOASM)
+#elif defined(__GNUC__) && defined(__i386__) && USE_ASM
 
 #define mulshr24(a,d) \
 	({ int __a=(a), __d=(d); \
@@ -2548,11 +2548,11 @@ int kpgetdim (const char *buf, int leng, int *xsiz, int *ysiz)
 	const unsigned char *cptr;
 	unsigned char *ubuf = (unsigned char *)buf;
 
-	(*xsiz) = (*ysiz) = 0; if (leng < 16) return;
+	(*xsiz) = (*ysiz) = 0; if (leng < 16) return(-1);
 	if ((ubuf[0] == 0x89) && (ubuf[1] == 0x50)) //.PNG
 	{
 		lptr = (int *)buf;
-		if ((lptr[0] != LSWAPIB(0x474e5089)) || (lptr[1] != LSWAPIB(0x0a1a0a0d))) return;
+		if ((lptr[0] != LSWAPIB(0x474e5089)) || (lptr[1] != LSWAPIB(0x0a1a0a0d))) return(-1);
 		lptr = &lptr[2];
 		while (((UINT_PTR)lptr-(UINT_PTR)buf) < (UINT_PTR)(leng-16))
 		{
@@ -2590,13 +2590,13 @@ int kpgetdim (const char *buf, int leng, int *xsiz, int *ysiz)
 	{
 		if (*(int *)(&buf[14]) == LSWAPIB(12)) //OS/2 1.x (old format)
 		{
-			if (*(short *)(&buf[22]) != SSWAPIB(1)) return;
+			if (*(short *)(&buf[22]) != SSWAPIB(1)) return(-1);
 			(*xsiz) = (int)SSWAPIB(*(unsigned short *)&buf[18]);
 			(*ysiz) = (int)SSWAPIB(*(unsigned short *)&buf[20]);
 		}
 		else //All newer formats...
 		{
-			if (*(short *)(&buf[26]) != SSWAPIB(1)) return;
+			if (*(short *)(&buf[26]) != SSWAPIB(1)) return(-1);
 			(*xsiz) = LSWAPIB(*(int *)&buf[18]);
 			(*ysiz) = LSWAPIB(*(int *)&buf[22]);
 		}
@@ -2622,6 +2622,7 @@ int kpgetdim (const char *buf, int leng, int *xsiz, int *ysiz)
 						(*ysiz) = (int)SSWAPIB(*(unsigned short *)&buf[14]);
 					}
 	}
+	return(0);
 }
 
 int kprender (const char *buf, int leng, INT_PTR frameptr, int bpl,

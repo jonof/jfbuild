@@ -5,7 +5,9 @@
 // This file has been added to Ken Silverman's original release
 // by Jonathon Fowler (jf@jonof.id.au)
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
+#include "build.h"
+
+#if USE_POLYMOST && USE_OPENGL
 
 // The following files are automatically generated from *.glsl_[fv]s
 // sources by way of the included bin2c tool. Consult the Makefile

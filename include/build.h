@@ -9,6 +9,13 @@
 #ifndef __build_h__
 #define __build_h__
 
+#ifndef USE_POLYMOST
+#  define USE_POLYMOST 0
+#endif
+#ifndef USE_OPENGL
+#  define USE_OPENGL 0
+#endif
+
 #include "compat.h"
 
 #ifdef __cplusplus
@@ -258,11 +265,9 @@ extern unsigned char palfadedelta;
 
 extern int dommxoverlay, novoxmips;
 
-#ifdef SUPERBUILD
 extern int tiletovox[MAXTILES];
 extern int usevoxels, voxscale[MAXVOXELS];
-#endif
-#ifdef POLYMOST
+#if USE_POLYMOST && USE_OPENGL
 extern int usemodels, usehightile;
 #endif
 
@@ -461,11 +466,14 @@ void   draw2dscreen(int posxe, int posye, short ange, int zoome, short gride);
 void   drawline16(int x1, int y1, int x2, int y2, unsigned char col);
 void   drawcircle16(int x1, int y1, int r, unsigned char col);
 
+#if USE_POLYMOST
 int   setrendermode(int renderer);
 int   getrendermode(void);
 
 void    setrollangle(int rolla);
+#endif
 
+#if USE_POLYMOST && USE_OPENGL
 //  pal: pass -1 to invalidate all palettes for the tile, or >=0 for a particular palette
 //  how: pass -1 to invalidate all instances of the tile in texture memory, or a bitfield
 //         bit 0: opaque or masked (non-translucent) texture, using repeating
@@ -487,7 +495,6 @@ void polymost_precache_begin(void);
 void polymost_precache(int dapicnum, int dapalnum, int datype);
 int  polymost_precache_run(int* done, int* total);
 
-#if defined(POLYMOST) && defined(USE_OPENGL)
 extern int glanisotropy;
 extern int glusetexcompr;
 extern int gltexfiltermode;
@@ -497,7 +504,6 @@ extern int glmultisample, glnvmultisamplehint;
 void gltexapplyprops (void);
 
 extern int polymosttexfullbright;	// set to the first index of the fullbright palette
-#endif
 
 // effect bitset: 1 = greyscale, 2 = invert
 void hicsetpalettetint(int palnum, unsigned char r, unsigned char g, unsigned char b, unsigned char effect);
@@ -515,6 +521,8 @@ int md_defineskin(int modelid, const char *skinfn, int palnum, int skinnum, int 
 int md_definehud (int modelid, int tilex, double xadd, double yadd, double zadd, double angadd, int flags);
 int md_undefinetile(int tile);
 int md_undefinemodel(int modelid);
+
+#endif //USE_POLYMOST && USE_OPENGL
 
 int loaddefinitionsfile(const char *fn);
 

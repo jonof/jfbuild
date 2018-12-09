@@ -96,6 +96,13 @@
 			remoteGlobalIDString = ABAE9C390F0CC81900A528DC;
 			remoteInfo = kgroup;
 		};
+		ABD2DF9321AC1C3D00BDB555 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = ABE362492144CA6500BA44B3;
+			remoteInfo = bin2c;
+		};
 		ABF1DD211BB82822007DE427 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
@@ -224,6 +231,7 @@
 				AB73601D0A29AA70003261DC /* libeditor.a */,
 				AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */,
 				ABAE9AD60F0B308900A528DC /* arttool */,
+				ABD2DF9421AC1C3D00BDB555 /* bin2c */,
 				ABAE9C3E0F0CC83700A528DC /* kextract */,
 				ABAE9C400F0CC83700A528DC /* kgroup */,
 				ABF1DD221BB82822007DE427 /* transpal */,
@@ -395,6 +403,13 @@
 			remoteRef = ABAE9C3F0F0CC83700A528DC /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		ABD2DF9421AC1C3D00BDB555 /* bin2c */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = bin2c;
+			remoteRef = ABD2DF9321AC1C3D00BDB555 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		ABF1DD221BB82822007DE427 /* transpal */ = {
 			isa = PBXReferenceProxy;
 			fileType = "compiled.mach-o.executable";
@@ -480,11 +495,8 @@
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					SUPERBUILD,
-					POLYMOST,
+					"USE_POLYMOST=1",
 					"USE_OPENGL=1",
-					USE_A_C,
-					NOASM,
 					RENDERTYPESDL,
 				);
 				HEADER_SEARCH_PATHS = ../include;
@@ -506,11 +518,8 @@
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					SUPERBUILD,
-					POLYMOST,
+					"USE_POLYMOST=1",
 					"USE_OPENGL=1",
-					USE_A_C,
-					NOASM,
 					RENDERTYPESDL,
 				);
 				HEADER_SEARCH_PATHS = ../include;

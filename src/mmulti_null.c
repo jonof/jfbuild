@@ -11,14 +11,14 @@
 
 int myconnectindex, numplayers, networkmode;
 int connecthead, connectpoint2[MAXMULTIPLAYERS];
-char syncstate = 0;
+unsigned char syncstate = 0;
 
 int isvalidipaddress (char *st)
 {
 	return 0;
 }
 
-int initmultiplayersparms(int argc, char **argv)
+int initmultiplayersparms(int argc, char const * const argv[])
 {
 	return 0;
 }
@@ -28,7 +28,7 @@ int initmultiplayerscycle(void)
 	return 0;
 }
 
-void initmultiplayers(int argc, char **argv)
+void initmultiplayers (int argc, char const * const argv[])
 {
 	numplayers = 1; myconnectindex = 0;
 	connecthead = 0; connectpoint2[0] = -1;
@@ -40,6 +40,12 @@ void setpackettimeout(int datimeoutcount, int daresendagaincount)
 
 void uninitmultiplayers(void)
 {
+}
+
+void initsingleplayers(void)
+{
+	numplayers = 1; myconnectindex = 0;
+	connecthead = 0; connectpoint2[0] = -1;
 }
 
 void sendlogon(void)
@@ -55,15 +61,15 @@ int getoutputcirclesize(void)
 	return 0;
 }
 
-void setsocket(short newsocket)
+void setsocket(int newsocket)
 {
 }
 
-void sendpacket(int other, char *bufptr, int messleng)
+void sendpacket(int other, unsigned char *bufptr, int messleng)
 {
 }
 
-int getpacket (int *other, char *bufptr)
+int getpacket (int *other, unsigned char *bufptr)
 {
 	return 0;
 }
@@ -72,7 +78,7 @@ void flushpackets(void)
 {
 }
 
-void genericmultifunction(int other, char *bufptr, int messleng, int command)
+void genericmultifunction(int other, unsigned char *bufptr, int messleng, int command)
 {
 }
 

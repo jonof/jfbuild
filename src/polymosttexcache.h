@@ -1,3 +1,10 @@
+#if (USE_POLYMOST == 0)
+#error Polymost not enabled.
+#endif
+#if (USE_OPENGL == 0)
+#error OpenGL not enabled.
+#endif
+
 #ifndef POLYMOSTTEXCACHE_H
 #define POLYMOSTTEXCACHE_H
 
@@ -80,5 +87,5 @@ void PTCacheForceRebuild(void);
 #ifdef __cplusplus
 }
 #endif
-	
+
 #endif
