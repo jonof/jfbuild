@@ -4,6 +4,19 @@
 //
 // Use SDL2 from http://www.libsdl.org
 
+/*
+ * Re: SDL surface blit vs renderer.
+ *
+ * Experiments on a Raspberry Pi 3 Model B+ have demonstrated that
+ * there's merit in both 8-bit mode blitting techniques depending on
+ * the Pi's configuration. With the GL driver disabled, the surface blit
+ * path is significantly faster. With the GL driver enabled, the SDL
+ * renderer interface is slightly quicker. However, faster than both is
+ * the forthcoming GLSL 2 blitter. Also, on a Mac Mini G4 with hampered
+ * AGP under Debian 8, surface blit is fast and the renderer slower.
+ */
+//#define SDLAYER_USE_RENDERER
+
 // have stdio.h declare vasprintf
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE 1
@@ -52,7 +65,12 @@ char quitevent=0, appactive=1;
 
 // video
 static SDL_Window *sdl_window;
+#ifdef SDLAYER_USE_RENDERER
+static SDL_Renderer *sdl_renderer;	// For non-GL 8-bit mode output.
+static SDL_Texture *sdl_texture;	// For non-GL 8-bit mode output.
+#else
 static SDL_Surface *sdl_surface;	// For non-GL 8-bit mode output.
+#endif
 static unsigned char *frame;
 int xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
 intptr_t frameplace=0;
@@ -867,10 +885,21 @@ static void shutdownvideo(void)
 		sdl_glcontext = NULL;
 	}
 #endif
+#ifdef SDLAYER_USE_RENDERER
+	if (sdl_texture) {
+		SDL_DestroyTexture(sdl_texture);
+		sdl_texture = NULL;
+	}
+	if (sdl_renderer) {
+		SDL_DestroyRenderer(sdl_renderer);
+		sdl_renderer = NULL;
+	}
+#else
 	if (sdl_surface) {
 		SDL_FreeSurface(sdl_surface);
 		sdl_surface = NULL;
 	}
+#endif
 	if (sdl_window) {
 		SDL_DestroyWindow(sdl_window);
 		sdl_window = NULL;
@@ -962,12 +991,32 @@ int setvideomode(int x, int y, int c, int fs)
 #if USE_OPENGL
 		if (nogl) {
 #endif
+#ifdef SDLAYER_USE_RENDERER
+			// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
+			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
+
+			sdl_renderer = SDL_CreateRenderer(sdl_window, -1, SDL_RENDERER_PRESENTVSYNC);
+			if (!sdl_renderer) {
+				buildprintf("Error creating renderer: %s\n", SDL_GetError());
+				return -1;
+			}
+			SDL_RenderSetLogicalSize(sdl_renderer, x, y);
+			SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, 255);
+			SDL_RenderClear(sdl_renderer);
+
+			sdl_texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, x, y);
+			if (!sdl_texture) {
+				buildprintf("Error creating texture: %s\n", SDL_GetError());
+				return -1;
+			}
+#else
 			// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
 			sdl_surface = SDL_CreateRGBSurface(0, x, y, 8, 0, 0, 0, 0);
 			if (!sdl_surface) {
 				buildprintf("Error creating surface: %s\n", SDL_GetError());
 				return -1;
 			}
+#endif
 #if USE_OPENGL
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
@@ -1110,15 +1159,52 @@ void showframe(int UNUSED(w))
 
 	unsigned char *pixels, *in;
 	int pitch, y, x;
+
+#ifdef SDLAYER_USE_RENDERER
+	if (SDL_LockTexture(sdl_texture, NULL, (void**)&pixels, &pitch)) {
+		debugprintf("Could not lock texture: %s\n", SDL_GetError());
+		return;
+	}
+
+	in = frame;
+	for (y = yres - 1; y >= 0; y--) {
+		for (x = xres - 1; x >= 0; x--) {
+#if B_LITTLE_ENDIAN
+			// RGBA -> BGRA, ignoring A
+			/*
+			pixels[(x<<2)+0] = curpalettefaded[in[x]].b;
+			pixels[(x<<2)+1] = curpalettefaded[in[x]].g;
+			pixels[(x<<2)+2] = curpalettefaded[in[x]].r;
+			pixels[(x<<2)+3] = 0;
+			*/
+			((unsigned int *)pixels)[x] = B_SWAP32(*(unsigned int *)&curpalettefaded[in[x]]) >> 8;
+#else
+			pixels[(x<<2)+0] = 0;
+			pixels[(x<<2)+1] = curpalettefaded[in[x]].r;
+			pixels[(x<<2)+2] = curpalettefaded[in[x]].g;
+			pixels[(x<<2)+3] = curpalettefaded[in[x]].b;
+#endif
+		}
+		pixels += pitch;
+		in += bytesperline;
+	}
+
+	SDL_UnlockTexture(sdl_texture);
+	if (SDL_RenderCopy(sdl_renderer, sdl_texture, NULL, NULL)) {
+		debugprintf("Could not copy render texture: %s\n", SDL_GetError());
+	}
+	SDL_RenderPresent(sdl_renderer);
+
+#else //SDLAYER_USE_RENDERER
 	SDL_Surface *winsurface;
 
 	if (SDL_LockSurface(sdl_surface)) {
 		debugprintf("Could not lock surface: %s\n", SDL_GetError());
 		return;
 	}
-
 	pixels = (unsigned char *)sdl_surface->pixels;
 	pitch = sdl_surface->pitch;
+
 	in = frame;
 	for (y = yres - 1; y >= 0; y--) {
 		memcpy(pixels, in, xres);
@@ -1135,6 +1221,7 @@ void showframe(int UNUSED(w))
 	}
 	SDL_BlitSurface(sdl_surface, NULL, winsurface, NULL);
 	SDL_UpdateWindowSurface(sdl_window);
+#endif //SDLAYER_USE_RENDERER
 }
 
 
@@ -1148,11 +1235,13 @@ int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal)
 		glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
 	}
 #endif
+#ifndef SDLAYER_USE_RENDERER
 	if (sdl_surface) {
 		if (SDL_SetPaletteColors(sdl_surface->format->palette, (const SDL_Color *)curpalettefaded, 0, 256)) {
 			debugprintf("Could not set palette: %s\n", SDL_GetError());
 		}
 	}
+#endif
 	return 0;
 }
 
