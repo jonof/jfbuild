@@ -873,34 +873,13 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 	glfunc.glDisableVertexAttribArray(polymostauxglsl.attrib_texcoord);
 }
 
-void polymost_nextpage(void)
-{
-	polymost_palfade();
-
-#ifdef DEBUGGINGAIDS
-	if (polymostshowcallcounts) {
-		char buf[1024];
-		sprintf(buf,
-			"drawpoly_glcall(%d) drawaux_glcall(%d) "
-			"drawpoly(%d) domost(%d)",
-	    		polymostcallcounts.drawpoly_glcall,
-	    		polymostcallcounts.drawaux_glcall,
-	    		polymostcallcounts.drawpoly,
-	    		polymostcallcounts.domost
-		);
-		polymost_printext256(0, 8, 31, -1, buf, 1);
-	}
-	memset(&polymostcallcounts, 0, sizeof(polymostcallcounts));
-#endif
-}
-
-int polymost_palfade(void)
+static void polymost_palfade(void)
 {
 	struct polymostdrawauxcall draw;
 	struct polymostvboitem vboitem[4];
 
-	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
-	if (palfadedelta == 0) return 0;
+	if ((rendmode != 3) || (qsetmode != 200)) return;
+	if (palfadedelta == 0) return;
 
 	draw.mode = 2;	// Solid colour.
 
@@ -934,11 +913,37 @@ int polymost_palfade(void)
 	glfunc.glEnable(GL_BLEND);
 
 	polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
-
-	return 0;
 }
 
 #endif //USE_OPENGL
+
+void polymost_nextpage(void)
+{
+	polymost_palfade();
+
+#ifdef DEBUGGINGAIDS
+	if (polymostshowcallcounts) {
+		char buf[1024];
+		sprintf(buf,
+			"drawpoly_gl(%d) drawaux_gl(%d) drawpoly(%d) "
+			"domost(%d) drawalls(%d) drawmaskwall(%d) drawsprite(%d)",
+	    		polymostcallcounts.drawpoly_glcall,
+	    		polymostcallcounts.drawaux_glcall,
+	    		polymostcallcounts.drawpoly,
+	    		polymostcallcounts.domost,
+	    		polymostcallcounts.drawalls,
+	    		polymostcallcounts.drawmaskwall,
+	    		polymostcallcounts.drawsprite
+		);
+		if (rendmode == 3) {
+			polymost_printext256(0, 8, 31, -1, buf, 0);
+		} else {
+			printext256(0, 8, 31, -1, buf, 0);
+		}
+	}
+	memset(&polymostcallcounts, 0, sizeof(polymostcallcounts));
+#endif
+}
 
 	//(dpx,dpy) specifies an n-sided polygon. The polygon must be a convex clockwise loop.
 	//    n must be <= 8 (assume clipping can double number of vertices)
@@ -1937,6 +1942,10 @@ static void polymost_drawalls (int bunch)
 	double t, r, t0, t1, ocy0, ocy1, ofy0, ofy1, oxp0, oyp0, ft[4];
 	double oguo, ogux, oguy;
 	int i, x, y, z, cz, fz, wallnum, sectnum, nextsectnum, domostmethod;
+
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawalls++;
+#endif
 
 	sectnum = thesector[bunchfirst[bunch]]; sec = &sector[sectnum];
 
@@ -3172,6 +3181,10 @@ void polymost_drawmaskwall (int damaskwallcnt)
 	sectortype *sec, *nsec;
 	walltype *wal, *wal2;
 
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawmaskwall++;
+#endif
+
 	z = maskwall[damaskwallcnt];
 	wal = &wall[thewall[z]]; wal2 = &wall[wal->point2];
 	sectnum = thesector[z]; sec = &sector[sectnum];
@@ -3329,6 +3342,10 @@ void polymost_drawsprite (int snum)
 	float x0, y0, x1, y1, sc0, sf0, sc1, sf1, px2[6], py2[6], xv, yv, t0, t1;
 	int i, j, spritenum, xoff=0, yoff=0, method, npoints;
 	spritetype *tspr;
+
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawsprite++;
+#endif
 
 	tspr = tspriteptr[snum];
 	if (tspr->owner < 0 || tspr->picnum < 0) return;
@@ -4750,14 +4767,14 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 		}
 		return OSDCMD_OK;
 	}
+#endif //USE_OPENGL
 #ifdef DEBUGGINGAIDS
-	else if (!Bstrcasecmp(parm->name, "debugshowcallcounts")) {
+	if (!Bstrcasecmp(parm->name, "debugshowcallcounts")) {
 		if (showval) { buildprintf("debugshowcallcounts is %d\n", polymostshowcallcounts); }
 		else polymostshowcallcounts = (val != 0);
 		return OSDCMD_OK;
 	}
 #endif
-#endif //USE_OPENGL
 	return OSDCMD_SHOWHELP;
 }
 

@@ -7673,7 +7673,7 @@ void nextpage(void)
 			enddrawing();	//}}}
 
 			OSD_Draw();
-#if USE_POLYMOST && USE_OPENGL
+#if USE_POLYMOST
 			polymost_nextpage();
 #endif
 

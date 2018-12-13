@@ -14,6 +14,9 @@ struct polymostcallcounts {
     int drawaux_glcall;
     int drawpoly;
     int domost;
+    int drawalls;
+    int drawmaskwall;
+    int drawsprite;
 };
 extern struct polymostcallcounts polymostcallcounts;
 #endif
@@ -110,7 +113,6 @@ int polymost_texmayhavealpha (int dapicnum, int dapalnum);
 void polymost_texinvalidate (int dapicnum, int dapalnum, int dameth);
 void polymost_texinvalidateall (void);
 void polymost_glinit(void);
-int polymost_palfade(void);
 int polymost_printext256(int xpos, int ypos, short col, short backcol, const char *name, char fontsize);
 int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col);
 int polymost_plotpixel(int x, int y, unsigned char col);
