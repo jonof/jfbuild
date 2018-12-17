@@ -97,8 +97,8 @@ ENGINEOBJS+= \
 	$(SRC)/polymostaux_es2_fs.$o \
 	$(SRC)/polymostaux_es2_vs.$o \
 	$(SRC)/polymosttex.$o \
-	$(SRC)/polymosttex-squish.$o \
 	$(SRC)/polymosttexcache.$o \
+	$(SRC)/polymosttexcompress.$o \
 	$(SRC)/hightile.$o \
 	$(SRC)/mdsprite.$o \
 	$(SRC)/glbuild.$o \
@@ -123,6 +123,7 @@ EDITOREXEOBJS=$(GAME)/bstub.$o \
 	$(ENGINELIB)
 
 ENGINEOBJS+= \
+	$(SRC)/rg_etc1.$o \
 	$(LIBSQUISH)/alpha.$o \
 	$(LIBSQUISH)/clusterfit.$o \
 	$(LIBSQUISH)/colourblock.$o \

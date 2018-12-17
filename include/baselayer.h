@@ -48,9 +48,9 @@ typedef struct {
 	float maxanisotropy;
 	char bgra;
 	char clamptoedge;
-	char texcompr;
 	char texcomprdxt1;
 	char texcomprdxt5;
+	char texcompretc1;
 	char texnpot;
 	char multisample;
 	char nvmultisamplehint;

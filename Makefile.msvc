@@ -80,8 +80,8 @@ ENGINEOBJS=$(SRC)\a-c.$o \
 	$(SRC)\polymostaux_fs.$o \
 	$(SRC)\polymostaux_vs.$o \
 	$(SRC)\polymosttex.$o \
-	$(SRC)\polymosttex-squish.$o \
 	$(SRC)\polymosttexcache.$o \
+	$(SRC)\polymosttexcompress.$o \
 	$(SRC)\hightile.$o \
 	$(SRC)\mdsprite.$o \
 	$(SRC)\glbuild.$o \
@@ -98,7 +98,7 @@ LIBSQUISHOBJS=$(LIBSQUISH)\alpha.$o $(LIBSQUISH)\clusterfit.$o \
 	      $(LIBSQUISH)\colourblock.$o $(LIBSQUISH)\colourfit.$o \
 	      $(LIBSQUISH)\colourset.$o $(LIBSQUISH)\maths.$o \
 	      $(LIBSQUISH)\rangefit.$o $(LIBSQUISH)\singlecolourfit.$o \
-	      $(LIBSQUISH)\squish.$o
+	      $(LIBSQUISH)\squish.$o $(SRC)\rg_etc1.$o
 
 EDITOROBJS=$(SRC)\build.$o \
 	$(SRC)\startwin_editor.$o \

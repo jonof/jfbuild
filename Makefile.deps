@@ -12,8 +12,8 @@ $(SRC)/crc32.$o: $(SRC)/crc32.c $(INC)/crc32.h
 $(SRC)/defs.$o: $(SRC)/defs.c $(INC)/build.h $(INC)/baselayer.h $(INC)/scriptfile.h $(INC)/compat.h
 $(SRC)/engine.$o: $(SRC)/engine.c $(INC)/compat.h $(INC)/build.h $(INC)/pragmas.h $(INC)/cache1d.h $(SRC)/a.h $(INC)/osd.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
 $(SRC)/polymost.$o: $(SRC)/polymost.c $(INC)/compat.h $(INC)/build.h $(INC)/glbuild.h $(INC)/pragmas.h $(INC)/baselayer.h $(INC)/osd.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h $(SRC)/mdsprite_priv.h
-$(SRC)/polymosttex.$o: $(SRC)/polymosttex.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/glbuild.h $(SRC)/kplib.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h
-$(SRC)/polymosttex-squish.$o: $(SRC)/polymosttex-squish.cc $(LIBSQUISH)/squish.h $(INC)/glbuild.h $(SRC)/polymost_priv.h
+$(SRC)/polymosttex.$o: $(SRC)/polymosttex.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/glbuild.h $(SRC)/kplib.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h $(SRC)/polymosttexcompress.h
+$(SRC)/polymosttexcompress.$o: $(SRC)/polymosttexcompress.cc $(LIBSQUISH)/squish.h $(SRC)/rg_etc1.h $(INC)/glbuild.h $(SRC)/polymost_priv.h
 $(SRC)/polymosttexcache.$o: $(SRC)/polymosttexcache.c $(SRC)/polymosttexcache.h $(INC)/compat.h $(INC)/baselayer.h $(INC)/glbuild.h $(INC)/build.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h
 $(SRC)/hightile.$o: $(SRC)/hightile.c $(SRC)/kplib.h $(SRC)/hightile_priv.h
 $(SRC)/mdsprite.$o: $(SRC)/mdsprite.c $(INC)/compat.h $(INC)/build.h $(INC)/glbuild.h $(SRC)/kplib.h $(INC)/pragmas.h $(INC)/cache1d.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h

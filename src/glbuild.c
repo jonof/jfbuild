@@ -67,8 +67,7 @@ int glbuild_loadfunctions(void)
 	INIT_PROC(glTexSubImage2D);
 	INIT_PROC(glTexParameterf);
 	INIT_PROC(glTexParameteri);
-	INIT_PROC_SOFT(glCompressedTexImage2DARB);
-	INIT_PROC_SOFT(glGetCompressedTexImageARB);
+	INIT_PROC_SOFT(glCompressedTexImage2D);
 
 	// Buffer objects
 	INIT_PROC(glBindBuffer);
@@ -105,9 +104,6 @@ int glbuild_loadfunctions(void)
 	INIT_PROC(glUniform3f);
 	INIT_PROC(glUniform4f);
 	INIT_PROC(glUniformMatrix4fv);
-
-	INIT_PROC_SOFT(glCompressedTexImage2DARB);
-	INIT_PROC_SOFT(glGetCompressedTexImageARB);
 
 #if (USE_OPENGL == USE_GLES2)
     INIT_PROC_SOFT(glDebugMessageCallbackKHR);

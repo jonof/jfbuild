@@ -180,9 +180,6 @@ static void glext_enumerate_configure(const char *ext) {
 			!Bstrcmp(ext, "GL_EXT_texture_format_BGRA8888")) {
 			// support bgra textures
 		glinfo.bgra = 1;
-	} else if (!Bstrcmp(ext, "GL_ARB_texture_compression")) {
-			// support texture compression
-		glinfo.texcompr = 1;
 	} else if (!Bstrcmp(ext, "GL_EXT_texture_compression_s3tc")) {
 			// support DXT1 and DXT5 texture compression
 		glinfo.texcomprdxt1 = 1;
@@ -190,6 +187,9 @@ static void glext_enumerate_configure(const char *ext) {
 	} else if (!Bstrcmp(ext, "GL_EXT_texture_compression_dxt1")) {
 			// support DXT1 texture compression
 		glinfo.texcomprdxt1 = 1;
+	} else if (!Bstrcmp(ext, "GL_OES_compressed_ETC1_RGB8_texture")) {
+			// support ETC1 texture compression
+		glinfo.texcompretc1 = 1;
 	} else if (!Bstrcmp(ext, "GL_ARB_texture_non_power_of_two") ||
 			!Bstrcmp(ext, "GL_OES_texture_npot")) {
 			// support non-power-of-two texture sizes
@@ -421,6 +421,7 @@ static void dumpglinfo(void)
 		" Non-2^x textures:      %s\n"
 		" DXT1 texture compr:    %s\n"
 		" DXT5 texture compr:    %s\n"
+		" ETC1 texture compr:    %s\n"
 		" Clamp-to-edge:         %s\n"
 		" Multisampling:         %s\n"
 		"   Nvidia hint:         %s\n",
@@ -433,6 +434,7 @@ static void dumpglinfo(void)
 		glinfo.texnpot ? supported : unsupported,
 		glinfo.texcomprdxt1 ? supported : unsupported,
 		glinfo.texcomprdxt5 ? supported : unsupported,
+		glinfo.texcompretc1 ? supported : unsupported,
 		glinfo.clamptoedge ? supported : unsupported,
 		glinfo.multisample ? supported : unsupported,
 		glinfo.nvmultisamplehint ? supported : unsupported

@@ -84,8 +84,7 @@ struct glbuild_funcs {
     void (APIENTRY * glTexSubImage2D)( GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid *pixels );	// 1.1
     void (APIENTRY * glTexParameterf)( GLenum target, GLenum pname, GLfloat param );
     void (APIENTRY * glTexParameteri)( GLenum target, GLenum pname, GLint param );
-    void (APIENTRY * glCompressedTexImage2DARB)(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid *);
-    void (APIENTRY * glGetCompressedTexImageARB)(GLenum, GLint, GLvoid *);
+    void (APIENTRY * glCompressedTexImage2D)(GLenum, GLint, GLenum, GLsizei, GLsizei, GLint, GLsizei, const GLvoid *);
 
     // Buffer objects
     void (APIENTRY * glBindBuffer)(GLenum target, GLuint buffer);

@@ -40,7 +40,7 @@ static int FixFlags( int flags )
     // grab the flag bits
     int method = flags & ( kDxt1 | kDxt3 | kDxt5 | kBc4 | kBc5 );
     int fit = flags & ( kColourIterativeClusterFit | kColourClusterFit | kColourRangeFit );
-    int extra = flags & kWeightColourByAlpha;
+    int extra = flags & (kWeightColourByAlpha | kSourceBGRA);   //JonoF
 
     // set defaults
     if ( method != kDxt3
