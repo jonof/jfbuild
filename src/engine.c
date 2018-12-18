@@ -17,6 +17,7 @@
 
 #include "baselayer.h"
 
+#include "engine_priv.h"
 #if USE_POLYMOST
 # include "polymost_priv.h"
 # if USE_OPENGL
@@ -33,8 +34,6 @@
 
 #include <math.h>
 #include <assert.h>
-
-#include "engine_priv.h"
 
 void *kmalloc(bsize_t size) { return(Bmalloc(size)); }
 void kfree(void *buffer) { Bfree(buffer); }
@@ -5832,14 +5831,21 @@ killsprite:
 			k = -1;
 			gap = 0;
 			for(i=spritesortcnt-2;i>=0;i--)
-				if ((xb1[j] <= (spritesx[i]>>8)) && ((spritesx[i]>>8) <= xb2[j]))
-					if (spritewallfront(tspriteptr[i],(int)thewall[j]) == 0)
-					{
-						drawsprite(i);
-						tspriteptr[i]->owner = -1;
-						k = i;
-						gap++;
-					}
+			{
+#if USE_POLYMOST
+				if (rendmode > 0)
+					l = dxb1[j] <= (double)spritesx[i]/256.0 && (double)spritesx[i]/256.0 <= dxb2[j];
+				else
+#endif
+					l = xb1[j] <= (spritesx[i]>>8) && (spritesx[i]>>8) <= xb2[j];
+				if (l && spritewallfront(tspriteptr[i],(int)thewall[j]) == 0)
+				{
+					drawsprite(i);
+					tspriteptr[i]->owner = -1;
+					k = i;
+					gap++;
+				}
+			}
 			if (k >= 0)       //remove holes in sprite list
 			{
 				for(i=k;i<spritesortcnt;i++)

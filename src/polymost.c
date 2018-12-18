@@ -92,7 +92,7 @@ typedef struct { float x, cy[2], fy[2]; int n, p, tag, ctag, ftag; } vsptyp;
 static vsptyp vsp[VSPMAX];
 static int vcnt, gtag;
 
-static double dxb1[MAXWALLSB], dxb2[MAXWALLSB];
+double dxb1[MAXWALLSB], dxb2[MAXWALLSB];
 
 #define SCISDIST 1.0 //1.0: Close plane clipping distance
 #define USEZBUFFER 1 //1:use zbuffer (slow, nice sprite rendering), 0:no zbuffer (fast, bad sprite rendering)

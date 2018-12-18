@@ -10,7 +10,7 @@
 
 extern "C" {
 #include "glbuild.h"
-#include "polymost_priv.h"
+extern int gltexcomprquality;
 }
 
 static int getflags(int format)
@@ -40,7 +40,7 @@ extern "C" int squish_GetStorageRequirements(int width, int height, int format)
 	return squish::GetStorageRequirements(width, height, getflags(format));
 }
 
-extern "C" int squish_CompressImage(coltype * rgba, int width, int height, unsigned char * output, int format)
+extern "C" int squish_CompressImage(void * rgba, int width, int height, unsigned char * output, int format)
 {
 	squish::CompressImage( (squish::u8 const *) rgba, width, height, output, getflags(format));
 	return 0;

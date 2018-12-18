@@ -6,6 +6,7 @@
 
 extern int rendmode;
 extern float gtang;
+extern double dxb1[MAXWALLSB], dxb2[MAXWALLSB];
 
 #ifdef DEBUGGINGAIDS
 struct polymostcallcounts {

@@ -78,7 +78,7 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 
 // from polymosttex-squish.cc
 int squish_GetStorageRequirements(int width, int height, int format);
-int squish_CompressImage(coltype * rgba, int width, int height, unsigned char * output, int format);
+int squish_CompressImage(void * rgba, int width, int height, unsigned char * output, int format);
 
 
 
