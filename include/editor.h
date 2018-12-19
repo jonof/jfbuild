@@ -29,7 +29,7 @@ extern char names[MAXTILES][25];
 
 extern int buildkeys[NUMBUILDKEYS];
 
-extern int ydim16, xdimgame, ydimgame, bppgame, xdim2d, ydim2d, forcesetup;
+extern int ydim16, halfxdim16, midydim16, xdimgame, ydimgame, bppgame, xdim2d, ydim2d, forcesetup;
 
 struct startwin_settings {
     int fullscreen;
