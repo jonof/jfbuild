@@ -15,10 +15,10 @@
 #include "polymosttex_priv.h"
 #include "mdsprite_priv.h"
 
-#ifdef __POWERPC__
-#define SHIFTMOD32(a) ((a)&31)
-#else
+#if defined(_M_IX86) || defined(_M_AMD64) || defined(__i386) || defined(__x86_64)
 #define SHIFTMOD32(a) (a)
+#else
+#define SHIFTMOD32(a) ((a)&31)
 #endif
 
 #define VOXBORDWIDTH 1 //use 0 to save memory, but has texture artifacts; 1 looks better...
