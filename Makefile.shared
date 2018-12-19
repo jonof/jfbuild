@@ -5,6 +5,7 @@ EDITORLIB=src/libbuild.a
 
 SDL2CONFIG?=$(shell which sdl2-config || which false)
 PKGCONFIG?=$(shell which pkg-config || which false)
+export SDL2CONFIG PKGCONFIG
 
 # Path to the included libsquish
 LIBSQUISH=libsquish
