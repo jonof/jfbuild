@@ -5025,9 +5025,9 @@ badpalette:
 
 
 //
-// getclosestcol (internal)
+// getclosestcol
 //
-static int getclosestcol(int r, int g, int b)
+int getclosestcol(int r, int g, int b)
 {
 	int i, j, k, dist, mindist, retcol;
 	unsigned char *pal1;

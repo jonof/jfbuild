@@ -6,6 +6,7 @@
 #include "osd.h"
 #include "baselayer.h"
 
+extern int getclosestcol(int r, int g, int b);	// engine.c
 
 typedef struct _symbol {
 	const char *name;
@@ -20,10 +21,10 @@ static symbol_t *addnewsymbol(const char *name);
 static symbol_t *findsymbol(const char *name, symbol_t *startingat);
 static symbol_t *findexactsymbol(const char *name);
 
-static int _internal_osdfunc_listsymbols(const osdfuncparm_t *);
-static int _internal_osdfunc_help(const osdfuncparm_t *);
-
 static int white=-1;			// colour of white (used by default display routines)
+static int lightgrey=-1;		// colour of light grey (used by default display routines)
+static int darkgrey=-1;			// colour of dark grey (used by default display routines)
+
 static void _internal_drawosdchar(int, int, char, int, int);
 static void _internal_drawosdstr(int, int, char*, int, int, int);
 static void _internal_drawosdcursor(int,int,int,int);
@@ -76,13 +77,13 @@ static symbol_t *lastmatch = NULL;
 static int  osdexeccount=0;		// number of lines from the head of the history buffer to execute
 
 // presentation parameters
-static int  osdpromptshade=0;
+static int  osdpromptshade=2; // dark grey
 static int  osdpromptpal=0;
-static int  osdeditshade=0;
+static int  osdeditshade=0; // white
 static int  osdeditpal=0;
-static int  osdtextshade=0;
+static int  osdtextshade=1;	// light grey
 static int  osdtextpal=0;
-static int  osdcursorshade=0;
+static int  osdcursorshade=0; // white
 static int  osdcursorpal=0;
 
 // application callbacks
@@ -95,67 +96,53 @@ static void (*clearbackground)(int,int) = _internal_clearbackground;
 static int (*gettime)(void) = _internal_gettime;
 static void (*onshowosd)(int) = _internal_onshowosd;
 
+static void findwhite(void)
+{
+	white = getclosestcol(63,63,63);
+	lightgrey = getclosestcol(55,55,55);
+	darkgrey = getclosestcol(38,38,38);
+}
 
 static void _internal_drawosdchar(int x, int y, char ch, int shade, int pal)
 {
-	int i,j,k;
 	char st[2] = { 0,0 };
+	int colour;
 
 	st[0] = ch;
 
-	if (white<0) {
-		// find the palette index closest to white
-		k=0;
-		for(i=0;i<256;i++)
-		{
-			j = ((int)curpalette[i].r)+((int)curpalette[i].g)+((int)curpalette[i].b);
-			if (j > k) { k = j; white = i; }
-		}
+	switch (shade) {
+		case 2: colour = darkgrey; break;
+		case 1: colour = lightgrey; break;
+		default: colour = white; break;
 	}
-
-	printext256(4+(x<<3),4+(y<<3), white, -1, st, 0);
+	printext256(4+(x<<3),4+(y<<3), colour, -1, st, 0);
 }
 
 static void _internal_drawosdstr(int x, int y, char *ch, int len, int shade, int pal)
 {
-	int i,j,k;
 	char st[1024];
+	int colour;
 
 	if (len>1023) len=1023;
 	memcpy(st,ch,len);
 	st[len]=0;
 
-	if (white<0) {
-		// find the palette index closest to white
-		k=0;
-		for(i=0;i<256;i++)
-		{
-			j = ((int)curpalette[i].r)+((int)curpalette[i].g)+((int)curpalette[i].b);
-			if (j > k) { k = j; white = i; }
-		}
+	switch (shade) {
+		case 2: colour = darkgrey; break;
+		case 1: colour = lightgrey; break;
+		default: colour = white; break;
 	}
-
-	printext256(4+(x<<3),4+(y<<3), white, -1, st, 0);
+	printext256(4+(x<<3),4+(y<<3), colour, -1, st, 0);
 }
 
 static void _internal_drawosdcursor(int x, int y, int type, int lastkeypress)
 {
-	int i,j,k;
 	char st[2] = { '_',0 };
+	int colour;
 
-	if (type) st[0] = '#';
+	if (type) st[0] = '|';
 
-	if (white<0) {
-		// find the palette index closest to white
-		k=0;
-		for(i=0;i<256;i++)
-		{
-			j = ((int)palette[i*3])+((int)palette[i*3+1])+((int)palette[i*3+2]);
-			if (j > k) { k = j; white = i; }
-		}
-	}
-
-	printext256(4+(x<<3),4+(y<<3)+2, white, -1, st, 0);
+	printext256(4+(x<<3),4+(y<<3)+2, lightgrey, -1, st, 0);
 }
 
 static int _internal_getcolumnwidth(int w)
@@ -177,13 +164,16 @@ static int _internal_gettime(void)
 	return 0;
 }
 
-static void _internal_onshowosd(int a)
+static void _internal_onshowosd(int shown)
 {
+	if (shown) {
+		findwhite();
+	}
 }
 
 ////////////////////////////
 
-static int _internal_osdfunc_vars(const osdfuncparm_t *parm)
+static int osdcmd_osdvars(const osdfuncparm_t *parm)
 {
 	int showval = (parm->numparms < 1);
 
@@ -199,7 +189,7 @@ static int _internal_osdfunc_vars(const osdfuncparm_t *parm)
 	return OSDCMD_SHOWHELP;
 }
 
-static int _internal_osdfunc_listsymbols(const osdfuncparm_t *parm)
+static int osdcmd_listsymbols(const osdfuncparm_t *parm)
 {
 	symbol_t *i;
 
@@ -210,7 +200,7 @@ static int _internal_osdfunc_listsymbols(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
-static int _internal_osdfunc_help(const osdfuncparm_t *parm)
+static int osdcmd_help(const osdfuncparm_t *parm)
 {
 	symbol_t *symb;
 
@@ -225,6 +215,33 @@ static int _internal_osdfunc_help(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
+static int osdcmd_clear(const osdfuncparm_t *parm)
+{
+	symbol_t *symb;
+
+	if (parm->numparms != 0) return OSDCMD_SHOWHELP;
+	Bmemset(osdtext, 0, TEXTSIZE);
+	osdlines=1;
+	osdhead=0;
+	osdpos=0;
+
+	return OSDCMD_OK;
+}
+
+static int osdcmd_echo(const osdfuncparm_t *parm)
+{
+	symbol_t *symb;
+	int i;
+
+	if (parm->numparms == 0) return OSDCMD_SHOWHELP;
+	for (i = 0; i < parm->numparms; i++) {
+		if (i) OSD_Puts(" ");
+		OSD_Puts(parm->parms[i]);
+	}
+	OSD_Puts("\n");
+
+	return OSDCMD_OK;
+}
 
 
 ////////////////////////////
@@ -254,14 +271,16 @@ void OSD_Init(void)
     if (osdinited) return;
 	osdinited=1;
 
-	Bmemset(osdtext, 32, TEXTSIZE);
+	Bmemset(osdtext, 0, TEXTSIZE);
 	osdlines=1;
 
 	atexit(OSD_Cleanup);
 
-	OSD_RegisterFunction("listsymbols","listsymbols: lists all the recognized symbols",_internal_osdfunc_listsymbols);
-	OSD_RegisterFunction("help","help: displays help on the named symbol",_internal_osdfunc_help);
-	OSD_RegisterFunction("osdrows","osdrows: sets the number of visible lines of the OSD",_internal_osdfunc_vars);
+	OSD_RegisterFunction("listsymbols","listsymbols: lists all the recognized symbols",osdcmd_listsymbols);
+	OSD_RegisterFunction("help","help: displays help on the named symbol",osdcmd_help);
+	OSD_RegisterFunction("osdrows","osdrows: sets the number of visible lines of the OSD",osdcmd_osdvars);
+	OSD_RegisterFunction("clear","clear: clear the OSD",osdcmd_clear);
+	OSD_RegisterFunction("echo","echo: write text to the OSD",osdcmd_echo);
 }
 
 
@@ -778,7 +797,7 @@ void OSD_ResizeDisplay(int w, int h)
 	j = min(newmaxlines, osdmaxlines);
 	k = min(newcols, osdcols);
 
-	memset(newtext, 32, TEXTSIZE);
+	memset(newtext, 0, TEXTSIZE);
 	for (i=0;i<j;i++) {
 		memcpy(newtext+newcols*i, osdtext+osdcols*i, k);
 	}
@@ -794,7 +813,12 @@ void OSD_ResizeDisplay(int w, int h)
 	osdhead = 0;
 	osdeditwinstart = 0;
 	osdeditwinend = editlinewidth;
-	white = -1;
+
+	if (osdvisible) {
+		findwhite();
+	} else {
+		white = -1;
+	}
 }
 
 
@@ -856,7 +880,7 @@ void OSD_Draw(void)
 static inline void linefeed(void)
 {
 	Bmemmove(osdtext+osdcols, osdtext, TEXTSIZE-osdcols);
-	Bmemset(osdtext, 32, osdcols);
+	Bmemset(osdtext, 0, osdcols);
 
 	if (osdlines < osdmaxlines) osdlines++;
 }
