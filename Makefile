@@ -189,7 +189,7 @@ alldarwin:
 endif
 
 # Source-control version stamping
-ifneq (no,$(shell git --version || echo no))
+ifneq (,$(findstring git version,$(shell git --version)))
 ENGINEOBJS+= $(SRC)/version-auto.$o
 else
 ENGINEOBJS+= $(SRC)/version.$o
@@ -304,7 +304,7 @@ endif
 
 .PHONY: $(SRC)/version-auto.c
 $(SRC)/version-auto.c:
-	printf "const char *build_version = \"%s\";\n" $(shell git describe --always || echo git error) > $@
+	printf "const char *build_version = \"%s\";\n" "$(shell git describe --always || echo git error)" > $@
 	echo "const char *build_date = __DATE__;" >> $@
 	echo "const char *build_time = __TIME__;" >> $@
 
