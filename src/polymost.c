@@ -560,7 +560,7 @@ static GLuint polymost_load_shader(GLuint shadertype, const char *defaultsrc, co
 	return shader;
 }
 
-static void checkindexbuffer(int size)
+static void checkindexbuffer(unsigned int size)
 {
 	GLushort *indexes, i;
 
@@ -3664,7 +3664,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	static int onumframes = 0;
 	int i, n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
 	int ogpicnum, ogshade, ogpal, ofoffset, oxdimen, oydimen, oldviewingrange;
-	double ogxyaspect;
+	double ogxyaspect, ogfogdensity;
 	double ogchang, ogshang, ogctang, ogstang, oghalfx, oghoriz, fx, fy, x1, y1, z1, x2, y2;
 	double ogrhalfxdown10, ogrhalfxdown10x;
 	double d, cosang, sinang, cosang2, sinang2, px[8], py[8], px2[8], py2[8];
@@ -3687,6 +3687,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 			ogshade  = globalshade;  globalshade  = dashade;
 			ogpal    = globalpal;    globalpal    = (int)((unsigned char)dapalnum);
 			ogxyaspect = gxyaspect; gxyaspect = 1.0;
+			ogfogdensity = gfogdensity; gfogdensity = 0.0;
 			oldviewingrange = viewingrange; viewingrange = 65536;
 
 			x1 = hudmem[(dastat&4)>>2][picnum].xadd;
@@ -3754,6 +3755,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 			mddraw(&tspr, !!((dastat&10) != 2));
 
 			viewingrange = oldviewingrange;
+			gfogdensity = ogfogdensity;
 			gxyaspect = ogxyaspect;
 			globalshade  = ogshade;
 			globalpal    = ogpal;
