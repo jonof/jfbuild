@@ -38,9 +38,9 @@ int nextmodelid = 0;
 mdmodel **models = NULL;
 
 static int maxmodelverts = 0, allocmodelverts = 0;
-static int maxelementvbo = 0, allocelementvbo = 0;
+static int maxgvertexes = 0, allocgvertexes = 0;
 static point3d *vertlist = NULL; //temp array to store interpolated vertices for drawing
-static struct polymostvboitem *elementvbo = NULL;	 // 3 per triangle.
+static polymostvertexitem *gvertexes = NULL;	 // 3 per triangle.
 
 mdmodel *mdload (const char *);
 void mdfree (mdmodel *);
@@ -65,10 +65,10 @@ void freeallmodels ()
 		vertlist = NULL;
 		allocmodelverts = maxmodelverts = 0;
 	}
-	if (elementvbo) {
-		free(elementvbo);
-		elementvbo = NULL;
-		allocelementvbo = maxelementvbo = 0;
+	if (gvertexes) {
+		free(gvertexes);
+		gvertexes = NULL;
+		allocgvertexes = maxgvertexes = 0;
 	}
 
 }
@@ -636,7 +636,7 @@ static md2model *md2load (int fil, const char *filnam)
 	if (!m->tex) { md2free(m); return(0); }
 
 	maxmodelverts = max(maxmodelverts, m->numverts);
-	maxelementvbo = max(maxelementvbo, m->numtris * 3);
+	maxgvertexes = max(maxgvertexes, m->numtris * 3);
 
 	return(m);
 }
@@ -649,7 +649,12 @@ static int md2draw (md2model *m, spritetype *tspr, int method)
 	int i, j, vbi, *lptr;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
 	PTMHead *ptmh = 0;
-	struct polymostdrawpolycall draw;
+	polymostdrawpolycall draw;
+
+	polymost_drawpoly_flush();
+	if (method & MDDRAW_CLEAR_DEPTH) {
+		glfunc.glClear(GL_DEPTH_BUFFER_BIT);
+	}
 
 	updateanimation(m,tspr);
 
@@ -765,45 +770,52 @@ static int md2draw (md2model *m, spritetype *tspr, int method)
 	pc[1] *= (float)hictinting[globalpal].g / 255.0;
 	pc[2] *= (float)hictinting[globalpal].b / 255.0;
 	if (tspr->cstat&2) { if (!(tspr->cstat&512)) pc[3] = 0.66; else pc[3] = 0.33; } else pc[3] = 1.0;
-	if (m->usesalpha || (tspr->cstat&2)) glfunc.glEnable(GL_BLEND); else glfunc.glDisable(GL_BLEND); //Sprites with alpha in texture
+	if (m->usesalpha || (tspr->cstat&2)) draw.spec.blend = GL_TRUE; else draw.spec.blend = GL_FALSE; //Sprites with alpha in texture
+	draw.spec.depthtest = !(method & MDDRAW_NO_DEPTH_TEST);
 
 	for (i=0, vbi=0; i<m->numtris; i++, vbi+=3) {
 		md2tri_t *tri = &m->tris[i];
 		for (j=2; j>=0; j--) {
-			elementvbo[vbi+j].v.x = vertlist[ tri->ivert[j] ].x;
-			elementvbo[vbi+j].v.y = vertlist[ tri->ivert[j] ].y;
-			elementvbo[vbi+j].v.z = vertlist[ tri->ivert[j] ].z;
-			elementvbo[vbi+j].t.s = (GLfloat)m->uvs[ tri->iuv[j] ].u / m->skinxsiz;
-			elementvbo[vbi+j].t.t = (GLfloat)m->uvs[ tri->iuv[j] ].v / m->skinysiz;
+			gvertexes[vbi+j].v.x = vertlist[ tri->ivert[j] ].x;
+			gvertexes[vbi+j].v.y = vertlist[ tri->ivert[j] ].y;
+			gvertexes[vbi+j].v.z = vertlist[ tri->ivert[j] ].z;
+			gvertexes[vbi+j].t.s = (GLfloat)m->uvs[ tri->iuv[j] ].u / m->skinxsiz;
+			gvertexes[vbi+j].t.t = (GLfloat)m->uvs[ tri->iuv[j] ].v / m->skinysiz;
+			gvertexes[vbi+j].c.r =
+			gvertexes[vbi+j].c.g =
+			gvertexes[vbi+j].c.b =
+			gvertexes[vbi+j].c.a = 1.f;
 		}
 	}
 
-	draw.texture0 = ptmh->glpic;
-	draw.texture1 = 0;
-	draw.alphacut = 0.32;
-	draw.colour.r = pc[0];
-	draw.colour.g = pc[1];
-	draw.colour.b = pc[2];
-	draw.colour.a = pc[3];
-	draw.fogcolour.r = (float)palookupfog[gfogpalnum].r / 63.f;
-	draw.fogcolour.g = (float)palookupfog[gfogpalnum].g / 63.f;
-	draw.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
-	draw.fogcolour.a = 1.f;
-	draw.fogdensity = gfogdensity;
+	draw.mode = POLYMOST_DRAWPOLY_TRIANGLES;
 
-	if (method & 1) {
-		draw.projection = &grotatespriteprojmat[0][0];
+	draw.spec.texture0 = ptmh->glpic;
+	draw.spec.texture1 = 0;
+	draw.spec.alphacut = 0.32;
+	draw.spec.colour.r = pc[0];
+	draw.spec.colour.g = pc[1];
+	draw.spec.colour.b = pc[2];
+	draw.spec.colour.a = pc[3];
+	draw.spec.fogcolour.r = (float)palookupfog[gfogpalnum].r / 63.f;
+	draw.spec.fogcolour.g = (float)palookupfog[gfogpalnum].g / 63.f;
+	draw.spec.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
+	draw.spec.fogcolour.a = 1.f;
+	draw.spec.fogdensity = gfogdensity;
+
+	if (method & MDDRAW_ROTATESPRITE) {
+		draw.spec.projection = &grotatespriteprojmat[0][0];
 	} else {
-		draw.projection = &gdrawroomsprojmat[0][0];
+		draw.spec.projection = &gdrawroomsprojmat[0][0];
 	}
-	draw.modelview = mat;
+	draw.spec.modelview = mat;
 
 	draw.indexcount = 3 * m->numtris;
 	draw.indexbuffer = 0;
-	draw.elementbuffer = 0;
-	draw.elementcount = 3 * m->numtris;
-	draw.elementvbo = elementvbo;
-	polymost_drawpoly_glcall(GL_TRIANGLES, &draw);
+	draw.vertexbuffer = 0;
+	draw.vertexcount = 3 * m->numtris;
+	draw.vertexes = gvertexes;
+	polymost_drawpoly_immed(&draw);
 
 	glfunc.glDisable(GL_CULL_FACE);
 	glfunc.glFrontFace(GL_CCW);
@@ -954,7 +966,7 @@ static md3model *md3load (int fil)
 #endif
 
 		maxmodelverts = max(maxmodelverts, s->numverts);
-		maxelementvbo = max(maxelementvbo, s->numtris * 3);
+		maxgvertexes = max(maxgvertexes, s->numtris * 3);
 		ofsurf += s->ofsend;
 	}
 
@@ -969,7 +981,12 @@ static int md3draw (md3model *m, spritetype *tspr, int method)
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
 	md3surf_t *s;
 	PTMHead * ptmh = 0;
-	struct polymostdrawpolycall draw;
+	polymostdrawpolycall draw;
+
+	polymost_drawpoly_flush();
+	if (method & MDDRAW_CLEAR_DEPTH) {
+		glfunc.glClear(GL_DEPTH_BUFFER_BIT);
+	}
 
 	updateanimation((md2model *)m,tspr);
 
@@ -1068,30 +1085,32 @@ static int md3draw (md3model *m, spritetype *tspr, int method)
 	pc[1] *= (float)hictinting[globalpal].g / 255.0;
 	pc[2] *= (float)hictinting[globalpal].b / 255.0;
 	if (tspr->cstat&2) { if (!(tspr->cstat&512)) pc[3] = 0.66; else pc[3] = 0.33; } else pc[3] = 1.0;
-	if (m->usesalpha || (tspr->cstat&2)) glfunc.glEnable(GL_BLEND); else glfunc.glDisable(GL_BLEND); //Sprites with alpha in texture
+	if (m->usesalpha || (tspr->cstat&2)) draw.spec.blend = GL_TRUE; else draw.spec.blend = GL_FALSE; //Sprites with alpha in texture
+	draw.spec.depthtest = !(method & MDDRAW_NO_DEPTH_TEST);
 //------------
 
-	draw.texture1 = 0;
-	draw.alphacut = 0.32;
-	draw.colour.r = pc[0];
-	draw.colour.g = pc[1];
-	draw.colour.b = pc[2];
-	draw.colour.a = pc[3];
-	draw.fogcolour.r = (float)palookupfog[gfogpalnum].r / 63.f;
-	draw.fogcolour.g = (float)palookupfog[gfogpalnum].g / 63.f;
-	draw.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
-	draw.fogcolour.a = 1.f;
-	draw.fogdensity = gfogdensity;
-	draw.indexbuffer = 0;
-	draw.elementbuffer = 0;
-	draw.elementvbo = elementvbo;
+	draw.spec.texture1 = 0;
+	draw.spec.alphacut = 0.32;
+	draw.spec.colour.r = pc[0];
+	draw.spec.colour.g = pc[1];
+	draw.spec.colour.b = pc[2];
+	draw.spec.colour.a = pc[3];
+	draw.spec.fogcolour.r = (float)palookupfog[gfogpalnum].r / 63.f;
+	draw.spec.fogcolour.g = (float)palookupfog[gfogpalnum].g / 63.f;
+	draw.spec.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
+	draw.spec.fogcolour.a = 1.f;
+	draw.spec.fogdensity = gfogdensity;
 
-	if (method & 1) {
-		draw.projection = &grotatespriteprojmat[0][0];
+	if (method & MDDRAW_ROTATESPRITE) {
+		draw.spec.projection = &grotatespriteprojmat[0][0];
 	} else {
-		draw.projection = &gdrawroomsprojmat[0][0];
+		draw.spec.projection = &gdrawroomsprojmat[0][0];
 	}
-	draw.modelview = mat;
+	draw.spec.modelview = mat;
+
+	draw.indexbuffer = 0;
+	draw.vertexbuffer = 0;
+	draw.vertexes = gvertexes;
 
 	for(surfi=0;surfi<m->head.numsurfs;surfi++)
 	{
@@ -1122,23 +1141,29 @@ static int md3draw (md3model *m, spritetype *tspr, int method)
 		ptmh = mdloadskin((md2model *)m,tile2model[tspr->picnum].skinnum,globalpal,surfi);
 		if (!ptmh || !ptmh->glpic) continue;
 
-		draw.texture0 = ptmh->glpic;
+		draw.mode = POLYMOST_DRAWPOLY_TRIANGLES;
+
+		draw.spec.texture0 = ptmh->glpic;
 
 		for(i=0, vbi=0; i<s->numtris; i++, vbi+=3)
 			for(j=2;j>=0;j--)
 			{
 				k = s->tris[i].i[j];
 
-				elementvbo[vbi+j].v.x = vertlist[k].x;
-				elementvbo[vbi+j].v.y = vertlist[k].y;
-				elementvbo[vbi+j].v.z = vertlist[k].z;
-				elementvbo[vbi+j].t.s = s->uv[k].u;
-				elementvbo[vbi+j].t.t = s->uv[k].v;
+				gvertexes[vbi+j].v.x = vertlist[k].x;
+				gvertexes[vbi+j].v.y = vertlist[k].y;
+				gvertexes[vbi+j].v.z = vertlist[k].z;
+				gvertexes[vbi+j].t.s = s->uv[k].u;
+				gvertexes[vbi+j].t.t = s->uv[k].v;
+				gvertexes[vbi+j].c.r =
+				gvertexes[vbi+j].c.g =
+				gvertexes[vbi+j].c.b =
+				gvertexes[vbi+j].c.a = 1.f;
 			}
 
 		draw.indexcount = 3 * s->numtris;
-		draw.elementcount = 3 * s->numtris;
-		polymost_drawpoly_glcall(GL_TRIANGLES, &draw);
+		draw.vertexcount = 3 * s->numtris;
+		polymost_drawpoly_immed(&draw);
 	}
 
 //------------
@@ -1845,10 +1870,15 @@ int voxdraw (voxmodel *m, spritetype *tspr, int method)
 	point3d fp, m0, a0;
 	int i, j, k, *lptr;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], omat[16], pc[4];
-	struct polymostdrawpolycall draw;
+	polymostdrawpolycall draw;
 
 	//updateanimation((md2model *)m,tspr);
 	if ((tspr->cstat&48)==32) return 0;
+
+	polymost_drawpoly_flush();
+	if (method & MDDRAW_CLEAR_DEPTH) {
+		glfunc.glClear(GL_DEPTH_BUFFER_BIT);
+	}
 
 	m0.x = m->scale;
 	m0.y = m->scale;
@@ -1921,7 +1951,8 @@ int voxdraw (voxmodel *m, spritetype *tspr, int method)
 	pc[1] *= (float)hictinting[globalpal].g / 255.0;
 	pc[2] *= (float)hictinting[globalpal].b / 255.0;
 	if (tspr->cstat&2) { if (!(tspr->cstat&512)) pc[3] = 0.66; else pc[3] = 0.33; } else pc[3] = 1.0;
-	if (tspr->cstat&2) glfunc.glEnable(GL_BLEND); else glfunc.glDisable(GL_BLEND);
+	if (tspr->cstat&2) draw.spec.blend = GL_TRUE; else draw.spec.blend = GL_FALSE;
+	draw.spec.depthtest = !(method & MDDRAW_NO_DEPTH_TEST);
 //------------
 
 		//transform to Build coords
@@ -1939,35 +1970,37 @@ int voxdraw (voxmodel *m, spritetype *tspr, int method)
 		m->texid[globalpal] = gloadtex(m->mytex,m->mytexx,m->mytexy,m->is8bit,globalpal);
 	}
 
-	draw.texture0 = m->texid[globalpal];
-	draw.texture1 = 0;
-	draw.alphacut = 0.32;
-	draw.colour.r = pc[0];
-	draw.colour.g = pc[1];
-	draw.colour.b = pc[2];
-	draw.colour.a = pc[3];
-	draw.fogcolour.r = (float)palookupfog[gfogpalnum].r / 63.f;
-	draw.fogcolour.g = (float)palookupfog[gfogpalnum].g / 63.f;
-	draw.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
-	draw.fogcolour.a = 1.f;
-	draw.fogdensity = gfogdensity;
+	draw.mode = POLYMOST_DRAWPOLY_TRIANGLES;
 
-	if (method & 1) {
-		draw.projection = &grotatespriteprojmat[0][0];
+	draw.spec.texture0 = m->texid[globalpal];
+	draw.spec.texture1 = 0;
+	draw.spec.alphacut = 0.32;
+	draw.spec.colour.r = pc[0];
+	draw.spec.colour.g = pc[1];
+	draw.spec.colour.b = pc[2];
+	draw.spec.colour.a = pc[3];
+	draw.spec.fogcolour.r = (float)palookupfog[gfogpalnum].r / 63.f;
+	draw.spec.fogcolour.g = (float)palookupfog[gfogpalnum].g / 63.f;
+	draw.spec.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
+	draw.spec.fogcolour.a = 1.f;
+	draw.spec.fogdensity = gfogdensity;
+
+	if (method & MDDRAW_ROTATESPRITE) {
+		draw.spec.projection = &grotatespriteprojmat[0][0];
 	} else {
-		draw.projection = &gdrawroomsprojmat[0][0];
+		draw.spec.projection = &gdrawroomsprojmat[0][0];
 	}
-	draw.modelview = mat;
+	draw.spec.modelview = mat;
 
 	if (!m->vertexbuf || !m->indexbuf) {
 		voxloadbufs(m);
 	}
 	draw.indexcount = m->indexcount;
 	draw.indexbuffer = m->indexbuf;
-	draw.elementbuffer = m->vertexbuf;
-	draw.elementcount = 0;
-	draw.elementvbo = NULL;
-	polymost_drawpoly_glcall(GL_TRIANGLES, &draw);
+	draw.vertexbuffer = m->vertexbuf;
+	draw.vertexcount = 0;
+	draw.vertexes = NULL;
+	polymost_drawpoly_immed(&draw);
 
 //------------
 	glfunc.glDisable(GL_CULL_FACE);
@@ -1986,15 +2019,17 @@ int voxdraw (voxmodel *m, spritetype *tspr, int method)
 
 static int voxloadbufs(voxmodel *m)
 {
-	int i, j, vxi, ixi, xx, yy, zz;
+	int i, j, fi, vxi, ixi, xx, yy, zz;
 	vert_t *vptr;
-	GLfloat ru, rv, phack[2];
+	GLfloat ru, rv, phack[2], sh = 1;
+	GLfloat clut[6] = {1,1,1,1,1,1};
+	// GLfloat clut[6] = {1.02,1.02,0.94,1.06,0.98,0.98};
 #if (VOXBORDWIDTH == 0)
 	GLfloat uhack[2], vhack[2];
 #endif
 	int numindexes, numvertexes;
 	GLushort *indexes;
-	struct polymostvboitem *vertexes;
+	polymostvertexitem *vertexes;
 
 	ru = 1.f/((GLfloat)m->mytexx);
 	rv = 1.f/((GLfloat)m->mytexy);
@@ -2007,10 +2042,11 @@ static int voxloadbufs(voxmodel *m)
 	numindexes = 6 * m->qcnt;
 	numvertexes = 4 * m->qcnt;
 	indexes = (GLushort *)malloc(numindexes * sizeof(GLushort));
-	vertexes = (struct polymostvboitem *)malloc(numvertexes * sizeof(struct polymostvboitem));
+	vertexes = (polymostvertexitem *)malloc(numvertexes * sizeof(polymostvertexitem));
 
-	for(i=0,vxi=0,ixi=0;i<m->qcnt;i++)
+	for(i=0,vxi=0,ixi=0,fi=0;i<m->qcnt;i++)
 	{
+		if (i == m->qfacind[fi]) sh = clut[fi++];
 		vptr = &m->quad[i].v[0];
 
 		xx = vptr[0].x+vptr[2].x;
@@ -2037,6 +2073,10 @@ static int voxloadbufs(voxmodel *m)
 			vertexes[vxi+j].v.x = ((GLfloat)vptr[j].x) - phack[xx>vptr[j].x*2] + phack[xx<vptr[j].x*2];
 			vertexes[vxi+j].v.y = ((GLfloat)vptr[j].y) - phack[yy>vptr[j].y*2] + phack[yy<vptr[j].y*2];
 			vertexes[vxi+j].v.z = ((GLfloat)vptr[j].z) - phack[zz>vptr[j].z*2] + phack[zz<vptr[j].z*2];
+			vertexes[vxi+j].c.r = sh;
+			vertexes[vxi+j].c.g = sh;
+			vertexes[vxi+j].c.b = sh;
+			vertexes[vxi+j].c.a = 1.f;
 		}
 		vxi += 4;
 	}
@@ -2048,7 +2088,7 @@ static int voxloadbufs(voxmodel *m)
 
 	glfunc.glGenBuffers(1, &m->vertexbuf);
 	glfunc.glBindBuffer(GL_ARRAY_BUFFER, m->vertexbuf);
-	glfunc.glBufferData(GL_ARRAY_BUFFER, numvertexes * sizeof(struct polymostvboitem), vertexes, GL_STATIC_DRAW);
+	glfunc.glBufferData(GL_ARRAY_BUFFER, numvertexes * sizeof(polymostvertexitem), vertexes, GL_STATIC_DRAW);
 
 	free(indexes);
 	free(vertexes);
@@ -2079,7 +2119,6 @@ mdmodel *mdload (const char *filnam)
 	return(vm);
 }
 
-// method: 0 = drawrooms projection, 1 = rotatesprite projection
 int mddraw (spritetype *tspr, int method)
 {
 	mdanim_t *anim;
@@ -2091,11 +2130,11 @@ int mddraw (spritetype *tspr, int method)
 		if (!vl) { buildprintf("ERROR: Not enough memory to allocate %d vertices!\n",maxmodelverts); return 0; }
 		vertlist = vl; allocmodelverts = maxmodelverts;
 	}
-	if (maxelementvbo > allocelementvbo)
+	if (maxgvertexes > allocgvertexes)
 	{
-		struct polymostvboitem *vbo = (struct polymostvboitem *)realloc(elementvbo, maxelementvbo * sizeof(struct polymostvboitem));
-		if (!vbo) { buildprintf("ERROR: Not enough memory to allocate %d vertex buffer items!\n",maxelementvbo); return 0; }
-		elementvbo = vbo; allocelementvbo = maxelementvbo;
+		polymostvertexitem *vx = (polymostvertexitem *)realloc(gvertexes, maxgvertexes * sizeof(polymostvertexitem));
+		if (!vx) { buildprintf("ERROR: Not enough memory to allocate %d vertex buffer items!\n",maxgvertexes); return 0; }
+		gvertexes = vx; allocgvertexes = maxgvertexes;
 	}
 
 	vm = models[tile2model[tspr->picnum].modelid];

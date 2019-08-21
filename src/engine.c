@@ -11465,25 +11465,6 @@ void invalidatetile(short tilenume, int pal, int how)
 	}
 }
 
-
-//
-// setpolymost2dview
-//  Sets OpenGL for 2D drawing
-//
-void setpolymost2dview(void)
-{
-	if (rendmode < 3) return;
-
-	if (gloy1 != -1) {
-		glfunc.glViewport(0,0,xres,yres);
-	}
-
-	gloy1 = -1;
-
-	glfunc.glDisable(GL_DEPTH_TEST);
-	glfunc.glDisable(GL_BLEND);
-}
-
 #endif //USE_POLYMOST && USE_OPENGL
 
 

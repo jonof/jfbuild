@@ -4,11 +4,12 @@ precision lowp float;
 
 uniform sampler2D u_texture;
 uniform sampler2D u_glowtexture;
-uniform vec4 u_colour;
 uniform float u_alphacut;
+uniform vec4 u_colour;
 uniform vec4 u_fogcolour;
 uniform float u_fogdensity;
 
+varying vec4 v_colour;
 varying mediump vec2 v_texcoord;
 
 vec4 applyfog(vec4 inputcolour) {
@@ -33,5 +34,5 @@ void main(void)
     }
 
     texcolour = applyfog(texcolour);
-    gl_FragColor = mix(texcolour * u_colour, glowcolour, glowcolour.a);
+    gl_FragColor = mix(texcolour * v_colour * u_colour, glowcolour, glowcolour.a);
 }

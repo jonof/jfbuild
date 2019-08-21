@@ -81,7 +81,9 @@ Low priority:
 # include "polymosttexcache.h"
 # include "mdsprite_priv.h"
 #endif
+
 extern char textfont[2048], smalltextfont[2048];
+static int whitecol = -1;
 
 int rendmode = 0;
 int usemodels=1, usehightile=1, usegoodalpha=0;
@@ -148,22 +150,23 @@ static GLuint nulltexture = 0;
 #define SHADERDEV 1
 static struct {
 	GLuint program;             // GLSL program object.
-	GLuint elementbuffer;
+	GLuint vertexbuffer;
 	GLint attrib_vertex;		// Vertex (vec3)
 	GLint attrib_texcoord;		// Texture coordinate (vec2)
+	GLint attrib_colour;		// Colour (vec4)
 	GLint uniform_modelview;	// Modelview matrix (mat4)
 	GLint uniform_projection;	// Projection matrix (mat4)
 	GLint uniform_texture;      // Base texture (sampler2D)
 	GLint uniform_glowtexture;  // Glow texture (sampler2D)
 	GLint uniform_alphacut;     // Alpha test cutoff (float)
-	GLint uniform_colour;		// Colour (vec4)
+	GLint uniform_colour;		// Static colour (vec4)
 	GLint uniform_fogcolour;    // Fog colour   (vec4)
 	GLint uniform_fogdensity;   // Fog density  (float)
 } polymostglsl;
 
 static struct {
 	GLuint program;
-	GLuint elementbuffer;
+	GLuint vertexbuffer;
 	GLuint indexbuffer;
 	GLint attrib_vertex;		// Vertex (vec3)
 	GLint attrib_texcoord;		// Texture coordinate (vec2)
@@ -177,8 +180,45 @@ static struct {
 		// 2 = draw solid colour.
 } polymostauxglsl;
 
-static GLuint elementindexbuffer = 0;
-static GLuint elementindexbuffersize = 0;
+
+/* Polymost polygon draw-call batching.
+
+Operates in two modes:
+ a. Aggregation, collecting polygons with matching texture and other parameters.
+    For situations where draw order is unimportant, particularly drawrooms().
+ b. Queue end consolidation, collecting successive polygons that match in their
+    texture etc, but preserving the draw order.
+*/
+#define MAX_DRAWPOLY_BATCHES 32
+#define MAX_DRAWPOLY_BATCH_TRIS 64
+#define MAX_DRAWPOLY_BUFFER_ITEMS (MAX_DRAWPOLY_BATCHES * MAX_DRAWPOLY_BATCH_TRIS * 3)
+static struct polymostdrawpolybatch {
+	polymostdrawpolyspec spec;
+
+	int maxindex;	// The maximum number of indexes that can be allocated to this batch.
+					// -1 (and ignored) in endqueue mode.
+	int indexofs;	// Offset into drawpolyindexes where this batch begins.
+	int nindex;		// The number of indexes used in this batch.
+} drawpolybatches[MAX_DRAWPOLY_BATCHES];
+static int ndrawpolybatches;
+
+static GLushort drawpolyindexes[MAX_DRAWPOLY_BUFFER_ITEMS];
+static polymostvertexitem drawpolyvertexes[MAX_DRAWPOLY_BUFFER_ITEMS];
+static int ndrawpolyvertexes;	// The number of vertexes consumed.
+
+#define POLYMOST_BATCH_ENDQUEUE 0   // For sprites/masks where back->front draw order matters.
+#define POLYMOST_BATCH_AGGREGATE 1  // For drawrooms where there is no overdraw.
+static int drawpolybatchmode = POLYMOST_BATCH_ENDQUEUE;
+
+static GLuint drawpolyindexbuffer = 0;
+static GLuint drawpolyvertexbuffer = 0;
+
+// A buffer of indexes preconfigured for rendering a triangle fan.
+#define MAX_TRIANGLEFAN_POINTS 16
+static GLuint trianglefanindexbuffer = 0;
+
+static GLuint indexbuffer = 0;
+static GLuint indexbuffersize = 0;
 
 const GLfloat gidentitymat[4][4] = {
 	{1.f, 0.f, 0.f, 0.f},
@@ -195,7 +235,26 @@ static int polymost_preparetext(void);
 
 #ifdef DEBUGGINGAIDS
 static int polymostshowcallcounts = 0;
-struct polymostcallcounts polymostcallcounts;
+static struct {
+    int drawaux_glcall;
+    int drawpoly_immed;
+    int drawpoly_batch;
+    int drawpoly_flush;
+    int drawpoly_glcall;
+    int domost;
+    int drawalls;
+    int drawmaskwall;
+    int drawsprite;
+    int rotatesprite;
+
+    // Batch utilisation stats.
+    int numbatches;
+    int maxbatchindexes;
+    int maxbatchverts;
+    int avgbatchindexes;
+    int avgbatchverts;
+} polymostcallcounts;
+static unsigned int polymostcallticks = 0;
 #endif
 
 #if defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
@@ -469,26 +528,41 @@ void polymost_glreset ()
 		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 	}
 
-	if (elementindexbuffer) {
-		glfunc.glDeleteBuffers(1, &elementindexbuffer);
-		elementindexbuffersize = 0;
-		elementindexbuffer = 0;
+	if (trianglefanindexbuffer) {
+		glfunc.glDeleteBuffers(1, &trianglefanindexbuffer);
+		trianglefanindexbuffer = 0;
 	}
-	if (polymostglsl.elementbuffer) {
-		glfunc.glDeleteBuffers(1, &polymostglsl.elementbuffer);
-		polymostglsl.elementbuffer = 0;
+	if (indexbuffer) {
+		glfunc.glDeleteBuffers(1, &indexbuffer);
+		indexbuffersize = 0;
+		indexbuffer = 0;
+	}
+	if (polymostglsl.vertexbuffer) {
+		glfunc.glDeleteBuffers(1, &polymostglsl.vertexbuffer);
+		polymostglsl.vertexbuffer = 0;
 	}
 	if (polymostglsl.program) {
 		glfunc.glDeleteProgram(polymostglsl.program);
 		polymostglsl.program = 0;
 	}
+
+	ndrawpolybatches = 0;
+	if (drawpolyvertexbuffer) {
+		glfunc.glDeleteBuffers(1, &drawpolyvertexbuffer);
+		drawpolyvertexbuffer = 0;
+	}
+	if (drawpolyindexbuffer) {
+		glfunc.glDeleteBuffers(1, &drawpolyindexbuffer);
+		drawpolyindexbuffer = 0;
+	}
+
 	if (polymostauxglsl.indexbuffer) {
 		glfunc.glDeleteBuffers(1, &polymostauxglsl.indexbuffer);
 		polymostauxglsl.indexbuffer = 0;
 	}
-	if (polymostauxglsl.elementbuffer) {
-		glfunc.glDeleteBuffers(1, &polymostauxglsl.elementbuffer);
-		polymostauxglsl.elementbuffer = 0;
+	if (polymostauxglsl.vertexbuffer) {
+		glfunc.glDeleteBuffers(1, &polymostauxglsl.vertexbuffer);
+		polymostauxglsl.vertexbuffer = 0;
 	}
 	if (polymostauxglsl.program) {
 		glfunc.glDeleteProgram(polymostauxglsl.program);
@@ -565,17 +639,18 @@ static GLuint polymost_load_shader(GLuint shadertype, const char *defaultsrc, co
 
 static void checkindexbuffer(unsigned int size)
 {
-	GLushort *indexes, i;
+	GLushort *indexes;
+	GLuint i;
 
-	if (size <= elementindexbuffersize) return;
+	if (size <= indexbuffersize) return;
 
 	indexes = (GLushort *) malloc(sizeof(GLushort)*size);
 	for (i = 0; i < size; i++) indexes[i] = i;
-	glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
+	glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexbuffer);
 	glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort)*size, indexes, GL_STATIC_DRAW);
 	free(indexes);
 
-	elementindexbuffersize = size;
+	indexbuffersize = size;
 }
 
 static void polymost_loadshaders(void)
@@ -635,6 +710,7 @@ static void polymost_loadshaders(void)
 	if (polymostglsl.program) {
 		polymostglsl.attrib_vertex       = polymost_get_attrib(polymostglsl.program, "a_vertex");
 		polymostglsl.attrib_texcoord     = polymost_get_attrib(polymostglsl.program, "a_texcoord");
+		polymostglsl.attrib_colour       = polymost_get_attrib(polymostglsl.program, "a_colour");
 		polymostglsl.uniform_modelview   = polymost_get_uniform(polymostglsl.program, "u_modelview");
 		polymostglsl.uniform_projection  = polymost_get_uniform(polymostglsl.program, "u_projection");
 		polymostglsl.uniform_texture     = polymost_get_uniform(polymostglsl.program, "u_texture");
@@ -649,7 +725,7 @@ static void polymost_loadshaders(void)
 		glfunc.glUniform1i(polymostglsl.uniform_glowtexture, 1);	//GL_TEXTURE1
 
 		// Generate a buffer object for vertex/colour elements.
-		glfunc.glGenBuffers(1, &polymostglsl.elementbuffer);
+		glfunc.glGenBuffers(1, &polymostglsl.vertexbuffer);
 	}
 
 	// A fully transparent texture for the case when a glow texture is not needed.
@@ -691,7 +767,7 @@ static void polymost_loadshaders(void)
 		glfunc.glUniform1i(polymostauxglsl.uniform_texture, 0);	//GL_TEXTURE0
 
 		// Generate a buffer object for vertex/colour elements and pre-allocate its memory.
-		glfunc.glGenBuffers(1, &polymostauxglsl.elementbuffer);
+		glfunc.glGenBuffers(1, &polymostauxglsl.vertexbuffer);
 
 		// Generate a buffer object for ad-hoc indexes.
 		glfunc.glGenBuffers(1, &polymostauxglsl.indexbuffer);
@@ -699,8 +775,25 @@ static void polymost_loadshaders(void)
 
 	// Generate a buffer object for element indexes and populate it with an
 	// initial set of ascending indices, the way drawpoly() will generate points.
-	glfunc.glGenBuffers(1, &elementindexbuffer);
+	glfunc.glGenBuffers(1, &indexbuffer);
 	checkindexbuffer(MINVBOINDEXES);
+
+	// Generate a buffer object for drawing triangle fans.
+	glfunc.glGenBuffers(1, &trianglefanindexbuffer);
+	{
+		GLushort indexes[TRIANGLEFAN_POINTS_TO_INDEXES(MAX_TRIANGLEFAN_POINTS)], i;
+		for (i = 0; i < MAX_TRIANGLEFAN_POINTS - 2; i++) {
+			indexes[i*3]   = 0;
+			indexes[i*3+1] = i + 1;
+			indexes[i*3+2] = i + 2;
+		}
+		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, trianglefanindexbuffer);
+		glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexes), indexes, GL_STATIC_DRAW);
+	}
+
+	// Generate and pre-allocate buffers for batch drawing.
+	glfunc.glGenBuffers(1, &drawpolyindexbuffer);
+	glfunc.glGenBuffers(1, &drawpolyvertexbuffer);
 }
 
 // one-time initialisation of OpenGL for polymost
@@ -710,6 +803,7 @@ void polymost_glinit()
 
 	glfunc.glClearColor(0,0,0,0.5); //Black Background
 	glfunc.glDisable(GL_DITHER);
+	glfunc.glDisable(GL_STENCIL_TEST);
 
 	glfunc.glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
@@ -726,7 +820,29 @@ void polymost_glinit()
 	polymost_loadshaders();
 }
 
-void resizeglcheck ()
+static void setpolymost2dview(void)
+{
+	if (glox1 != -1) {
+		glox1 = -1;
+
+		polymost_drawpoly_flush();
+		glfunc.glViewport(0,0,xres,yres);
+	}
+}
+
+static void setpolymost3dview(void)
+{
+	if ((glox1 != windowx1) || (gloy1 != windowy1) || (glox2 != windowx2) || (gloy2 != windowy2))
+	{
+		glox1 = windowx1; gloy1 = windowy1;
+		glox2 = windowx2; gloy2 = windowy2;
+
+		polymost_drawpoly_flush();
+		glfunc.glViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
+	}
+}
+
+static void resizeglcheck ()
 {
 	float m[4][4];
 
@@ -758,13 +874,7 @@ void resizeglcheck ()
 	}
 #endif
 
-	if ((glox1 != windowx1) || (gloy1 != windowy1) || (glox2 != windowx2) || (gloy2 != windowy2))
-	{
-		glox1 = windowx1; gloy1 = windowy1;
-		glox2 = windowx2; gloy2 = windowy2;
-
-		glfunc.glViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
-	}
+	setpolymost3dview();
 }
 
 void polymost_setview(void)
@@ -790,68 +900,282 @@ void polymost_setview(void)
 	gorthoprojmat[3][1] = 1.0;
 }
 
-void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
+polymostbatchref polymost_drawpoly_begin(polymostdrawpolyspec *spec, int maxtris)
 {
+	int i;
+
+	if (maxtris > MAX_DRAWPOLY_BATCH_TRIS) {
+		debugprintf("polymost_drawpoly_begin: too many tris %d > %d\n", maxtris, MAX_DRAWPOLY_BATCH_TRIS);
+		return NULL;
+	}
+
+	do {
+		if (drawpolybatchmode == POLYMOST_BATCH_ENDQUEUE) {
+			// If the spec matches the last batch then append the draw call.
+			if (ndrawpolybatches > 0) {
+				i = ndrawpolybatches - 1;
+				if (memcmp(spec, &drawpolybatches[i].spec, sizeof(polymostdrawpolyspec))) {
+					// Spec doesn't match the batch at the end of the queue, so start a fresh one.
+					i++;
+				} else if (drawpolybatches[i].indexofs + drawpolybatches[i].nindex + 3 * maxtris >= MAX_DRAWPOLY_BUFFER_ITEMS ||
+					ndrawpolyvertexes + 3 * maxtris >= MAX_DRAWPOLY_BUFFER_ITEMS) {
+					// Requested triangle quantity will overflow the index or vertex buffer, so flush.
+					i = MAX_DRAWPOLY_BATCHES;
+				} else {
+					// Spec matches and there's room.
+					return (polymostbatchref) &drawpolybatches[i];
+				}
+			} else {
+				// No batches in progress, so start a fresh one.
+				i = 0;
+				break;
+			}
+		} else {
+			// Seek a matching under-full batch.
+			for (i = 0; i < ndrawpolybatches; i++) {
+				if (memcmp(spec, &drawpolybatches[i].spec, sizeof(polymostdrawpolyspec))) {
+					// No match, try next.
+					continue;
+				} else if (drawpolybatches[i].nindex + maxtris * 3 >= drawpolybatches[i].maxindex) {
+					// Requested triangle quantity won't fit in this batch, try next.
+					continue;
+				} else if (ndrawpolyvertexes + maxtris * 3 >= MAX_DRAWPOLY_BUFFER_ITEMS) {
+					// Requested triangle quantity will overflow the index buffer, so flush.
+					i = MAX_DRAWPOLY_BATCHES;
+				} else {
+					// Spec matches and there's room.
+					return (polymostbatchref) &drawpolybatches[i];
+				}
+			}
+		}
+
+		// All batches full, so flush and try again.
+		if (i == MAX_DRAWPOLY_BATCHES) {
+			// debugprintf("polymost_drawpoly_begin: implicit flush @ totalclock %d\n", totalclock);
+			polymost_drawpoly_flush();
+			continue;
+		}
+		break;
+	} while (1);
+
+	// Open a new batch.
+	memcpy(&drawpolybatches[i].spec, spec, sizeof(polymostdrawpolyspec));
+	if (drawpolybatchmode == POLYMOST_BATCH_ENDQUEUE) {
+		drawpolybatches[i].maxindex = -1;
+		if (i == 0) {
+			drawpolybatches[i].indexofs = 0;
+		} else {
+			drawpolybatches[i].indexofs = drawpolybatches[i-1].indexofs + drawpolybatches[i-1].nindex;
+		}
+	} else {
+		drawpolybatches[i].maxindex = MAX_DRAWPOLY_BATCH_TRIS * 3;
+		drawpolybatches[i].indexofs = i * MAX_DRAWPOLY_BATCH_TRIS * 3;
+	}
+	drawpolybatches[i].nindex = 0;
+	ndrawpolybatches++;
+	return (polymostbatchref) &drawpolybatches[i];
+}
+
+static void polymost_drawpoly_setup(polymostdrawpolyspec *spec)
+{
+	if (spec->blend) glfunc.glEnable(GL_BLEND);
+	else glfunc.glDisable(GL_BLEND);
+
+	if (spec->depthtest) glfunc.glEnable(GL_DEPTH_TEST);
+	else glfunc.glDisable(GL_DEPTH_TEST);
+
+	glfunc.glActiveTexture(GL_TEXTURE0);
+	glfunc.glBindTexture(GL_TEXTURE_2D, spec->texture0);
+
+	glfunc.glActiveTexture(GL_TEXTURE1);
+	glfunc.glBindTexture(GL_TEXTURE_2D, spec->texture1 ?
+		spec->texture1 : nulltexture);
+
+	glfunc.glUniform1f(polymostglsl.uniform_alphacut, spec->alphacut);
+
+	glfunc.glUniform4f(
+		polymostglsl.uniform_colour,
+		spec->colour.r,
+		spec->colour.g,
+		spec->colour.b,
+		spec->colour.a
+	);
+	glfunc.glUniform4f(
+		polymostglsl.uniform_fogcolour,
+		spec->fogcolour.r,
+		spec->fogcolour.g,
+		spec->fogcolour.b,
+		spec->fogcolour.a
+	);
+	glfunc.glUniform1f(
+		polymostglsl.uniform_fogdensity,
+		spec->fogdensity
+	);
+
+	glfunc.glUniformMatrix4fv(polymostglsl.uniform_modelview, 1, GL_FALSE, spec->modelview);
+	glfunc.glUniformMatrix4fv(polymostglsl.uniform_projection, 1, GL_FALSE, spec->projection);
+}
+
+void polymost_drawpoly_flush(void)
+{
+	int i;
+
+	if (rendmode != 3 || ndrawpolybatches == 0) return;
+
 #ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawpoly_flush++;
+
+	if (drawpolybatchmode == POLYMOST_BATCH_AGGREGATE) {
+		polymostcallcounts.numbatches += ndrawpolybatches;
+		polymostcallcounts.maxbatchverts = max(polymostcallcounts.maxbatchverts, ndrawpolyvertexes);
+		for (i = 0; i < ndrawpolybatches; i++) {
+			polymostcallcounts.maxbatchindexes = max(polymostcallcounts.maxbatchindexes, drawpolybatches[i].nindex);
+			polymostcallcounts.avgbatchindexes += drawpolybatches[i].nindex;
+		}
+		polymostcallcounts.avgbatchverts += ndrawpolyvertexes;
+		if (polymostcallcounts.drawpoly_flush > 1) {
+			polymostcallcounts.avgbatchverts /= 2;
+			polymostcallcounts.avgbatchindexes /= 1 + ndrawpolybatches;
+		} else {
+			polymostcallcounts.avgbatchindexes /= ndrawpolybatches;
+		}
+	}
+#endif
+
+	glfunc.glUseProgram(polymostglsl.program);
+	glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, drawpolyindexbuffer);
+	glfunc.glBindBuffer(GL_ARRAY_BUFFER, drawpolyvertexbuffer);
+
+	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_vertex);
+	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_texcoord);
+	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_colour);
+
+	glfunc.glVertexAttribPointer(polymostglsl.attrib_vertex, 3, GL_FLOAT, GL_FALSE,
+		sizeof(polymostvertexitem), (const GLvoid *)offsetof(polymostvertexitem, v));
+	glfunc.glVertexAttribPointer(polymostglsl.attrib_texcoord, 2, GL_FLOAT, GL_FALSE,
+		sizeof(polymostvertexitem), (const GLvoid *)offsetof(polymostvertexitem, t));
+	glfunc.glVertexAttribPointer(polymostglsl.attrib_colour, 4, GL_FLOAT, GL_FALSE,
+		sizeof(polymostvertexitem), (const GLvoid *)offsetof(polymostvertexitem, c));
+
+	i = ndrawpolybatches-1;
+	glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+		sizeof(GLushort) * (drawpolybatches[i].indexofs + drawpolybatches[i].nindex),
+		drawpolyindexes, GL_STREAM_DRAW);
+	glfunc.glBufferData(GL_ARRAY_BUFFER,
+		sizeof(polymostvertexitem) * ndrawpolyvertexes,
+		drawpolyvertexes, GL_STREAM_DRAW);
+
+	for (i = 0; i < ndrawpolybatches; i++) {
+#ifdef DEBUGGINGAIDS
+		polymostcallcounts.drawpoly_glcall++;
+#endif
+		polymost_drawpoly_setup(&drawpolybatches[i].spec);
+
+		glfunc.glDrawElements(GL_TRIANGLES, drawpolybatches[i].nindex, GL_UNSIGNED_SHORT,
+			(const GLvoid *)(sizeof(GLushort) * drawpolybatches[i].indexofs));
+	}
+
+	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_vertex);
+	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_texcoord);
+	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_colour);
+
+	ndrawpolybatches = 0;
+	ndrawpolyvertexes = 0;
+}
+
+void polymost_drawpoly_draw(polymostbatchref ref, int mode, polymostvertexitem *vertexes, int numvertexes)
+{
+	struct polymostdrawpolybatch *batch = (struct polymostdrawpolybatch *)ref;
+	int i;
+
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawpoly_batch++;
+#endif
+
+	switch (mode) {
+		case POLYMOST_DRAWPOLY_TRIANGLES: {
+			// Copy the triangles into the batch.
+			for (i = 0; i < numvertexes; i++) {
+				drawpolyindexes[batch->indexofs + batch->nindex + i] = ndrawpolyvertexes + i;
+			}
+			memcpy(&drawpolyvertexes[ndrawpolyvertexes], vertexes, numvertexes*sizeof(polymostvertexitem));
+			batch->nindex += numvertexes;
+			ndrawpolyvertexes += numvertexes;
+			break;
+		}
+		case POLYMOST_DRAWPOLY_TRIANGLEFAN: {
+			int zero = ndrawpolyvertexes;
+
+			// Copy the triangle fan into the batch.
+			for (i = 0; i < numvertexes - 2; i++) {
+				drawpolyindexes[batch->indexofs + batch->nindex + i*3]     = zero;
+				drawpolyindexes[batch->indexofs + batch->nindex + i*3 + 1] = zero + i + 1;
+				drawpolyindexes[batch->indexofs + batch->nindex + i*3 + 2] = zero + i + 2;
+			}
+			memcpy(&drawpolyvertexes[ndrawpolyvertexes], vertexes, numvertexes*sizeof(polymostvertexitem));
+			batch->nindex += TRIANGLEFAN_POINTS_TO_INDEXES(numvertexes);
+			ndrawpolyvertexes += numvertexes;
+			break;
+		}
+		default:
+			debugprintf("polymost_drawpoly_draw: invalid mode\n");
+			break;
+	}
+}
+
+void polymost_drawpoly_immed(polymostdrawpolycall *draw)
+{
+	polymost_drawpoly_flush();
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.drawpoly_immed++;
 	polymostcallcounts.drawpoly_glcall++;
 #endif
 
 	glfunc.glUseProgram(polymostglsl.program);
 
-	if (draw->elementbuffer > 0) {
-		glfunc.glBindBuffer(GL_ARRAY_BUFFER, draw->elementbuffer);
+	if (draw->vertexbuffer > 0) {
+		glfunc.glBindBuffer(GL_ARRAY_BUFFER, draw->vertexbuffer);
 	} else {
-		// Drawing from the passed elementvbo items.
-		glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostglsl.elementbuffer);
-		glfunc.glBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
+		// Drawing from the passed vertex items.
+		glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostglsl.vertexbuffer);
+		glfunc.glBufferData(GL_ARRAY_BUFFER, draw->vertexcount * sizeof(polymostvertexitem), draw->vertexes, GL_STREAM_DRAW);
 	}
 
 	if (draw->indexbuffer > 0) {
 		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, draw->indexbuffer);
+	} else if (draw->mode == POLYMOST_DRAWPOLY_TRIANGLEFAN) {
+		if (draw->indexcount > TRIANGLEFAN_POINTS_TO_INDEXES(MAX_TRIANGLEFAN_POINTS)) {
+			debugprintf("polymost_drawpoly_draw: triangle fan indexcount %d > %d\n",
+				draw->indexcount, TRIANGLEFAN_POINTS_TO_INDEXES(MAX_TRIANGLEFAN_POINTS));
+			return;
+		}
+		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, trianglefanindexbuffer);
 	} else {
-		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
+		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexbuffer);
 		checkindexbuffer(draw->indexcount);
 	}
 
 	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_vertex);
 	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_texcoord);
+	glfunc.glEnableVertexAttribArray(polymostglsl.attrib_colour);
 
 	glfunc.glVertexAttribPointer(polymostglsl.attrib_vertex, 3, GL_FLOAT, GL_FALSE,
-		sizeof(struct polymostvboitem), (const GLvoid *)offsetof(struct polymostvboitem, v));
+		sizeof(polymostvertexitem), (const GLvoid *)offsetof(polymostvertexitem, v));
 	glfunc.glVertexAttribPointer(polymostglsl.attrib_texcoord, 2, GL_FLOAT, GL_FALSE,
-		sizeof(struct polymostvboitem), (const GLvoid *)offsetof(struct polymostvboitem, t));
+		sizeof(polymostvertexitem), (const GLvoid *)offsetof(polymostvertexitem, t));
+	glfunc.glVertexAttribPointer(polymostglsl.attrib_colour, 4, GL_FLOAT, GL_FALSE,
+		sizeof(polymostvertexitem), (const GLvoid *)offsetof(polymostvertexitem, c));
 
-	glfunc.glActiveTexture(GL_TEXTURE0);
-	glfunc.glBindTexture(GL_TEXTURE_2D, draw->texture0);
+	polymost_drawpoly_setup(&draw->spec);
 
-	glfunc.glActiveTexture(GL_TEXTURE1);
-	glfunc.glBindTexture(GL_TEXTURE_2D, draw->texture1 ? draw->texture1 : nulltexture);
-
-	glfunc.glUniform1f(polymostglsl.uniform_alphacut, draw->alphacut);
-
-	glfunc.glUniform4f(
-		polymostglsl.uniform_colour,
-		draw->colour.r, draw->colour.g, draw->colour.b, draw->colour.a
-	);
-	glfunc.glUniform4f(
-		polymostglsl.uniform_fogcolour,
-		draw->fogcolour.r, draw->fogcolour.g, draw->fogcolour.b, draw->fogcolour.a
-	);
-	glfunc.glUniform1f(
-		polymostglsl.uniform_fogdensity,
-		draw->fogdensity
-	);
-
-	glfunc.glUniformMatrix4fv(polymostglsl.uniform_modelview, 1, GL_FALSE, draw->modelview);
-	glfunc.glUniformMatrix4fv(polymostglsl.uniform_projection, 1, GL_FALSE, draw->projection);
-
-	glfunc.glDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
+	glfunc.glDrawElements(GL_TRIANGLES, draw->indexcount, GL_UNSIGNED_SHORT, 0);
 
 	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_vertex);
 	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_texcoord);
+	glfunc.glDisableVertexAttribArray(polymostglsl.attrib_colour);
 }
 
-static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *draw)
+static void polymost_drawaux_glcall(GLenum mode, polymostdrawauxcall *draw)
 {
 #ifdef DEBUGGINGAIDS
 	polymostcallcounts.drawaux_glcall++;
@@ -859,14 +1183,14 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 
 	glfunc.glUseProgram(polymostauxglsl.program);
 
-	glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostauxglsl.elementbuffer);
-	glfunc.glBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
+	glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostauxglsl.vertexbuffer);
+	glfunc.glBufferData(GL_ARRAY_BUFFER, draw->vertexcount * sizeof(polymostvertexitem), draw->vertexes, GL_STREAM_DRAW);
 
 	if (draw->indexes) {
 		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, polymostauxglsl.indexbuffer);
 		glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, draw->indexcount * sizeof(GLushort), draw->indexes, GL_STREAM_DRAW);
 	} else {
-		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementindexbuffer);
+		glfunc.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexbuffer);
 		checkindexbuffer(draw->indexcount);
 	}
 
@@ -874,9 +1198,9 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 	glfunc.glEnableVertexAttribArray(polymostauxglsl.attrib_texcoord);
 
 	glfunc.glVertexAttribPointer(polymostauxglsl.attrib_vertex, 3, GL_FLOAT, GL_FALSE,
-		sizeof(struct polymostvboitem), (const GLvoid *)offsetof(struct polymostvboitem, v));
+		sizeof(polymostvertexitem), (const GLvoid *)offsetof(polymostvertexitem, v));
 	glfunc.glVertexAttribPointer(polymostauxglsl.attrib_texcoord, 2, GL_FLOAT, GL_FALSE,
-		sizeof(struct polymostvboitem), (const GLvoid *)offsetof(struct polymostvboitem, t));
+		sizeof(polymostvertexitem), (const GLvoid *)offsetof(polymostvertexitem, t));
 
 	glfunc.glActiveTexture(GL_TEXTURE0);
 	glfunc.glBindTexture(GL_TEXTURE_2D, draw->texture0);
@@ -901,8 +1225,8 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 
 static void polymost_palfade(void)
 {
-	struct polymostdrawauxcall draw;
-	struct polymostvboitem vboitem[4];
+	polymostdrawauxcall draw;
+	polymostvertexitem vboitem[4];
 
 	if ((rendmode != 3) || (qsetmode != 200)) return;
 	if (palfadedelta == 0) return;
@@ -922,50 +1246,70 @@ static void polymost_palfade(void)
 	vboitem[1].v.y = 0.f;
 	vboitem[1].v.z = 0.f;
 
-	vboitem[2].v.x = (float)xdim;
+	vboitem[2].v.x = 0.f;
 	vboitem[2].v.y = (float)ydim;
 	vboitem[2].v.z = 0.f;
 
-	vboitem[3].v.x = 0.f;
+	vboitem[3].v.x = (float)xdim;
 	vboitem[3].v.y = (float)ydim;
 	vboitem[3].v.z = 0.f;
 
 	draw.indexcount = 4;
 	draw.indexes = NULL;
-	draw.elementcount = 4;
-	draw.elementvbo = vboitem;
+	draw.vertexcount = 4;
+	draw.vertexes = vboitem;
 
 	glfunc.glDisable(GL_DEPTH_TEST);
 	glfunc.glEnable(GL_BLEND);
 
-	polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
+	polymost_drawaux_glcall(GL_TRIANGLE_STRIP, &draw);
 }
 
 #endif //USE_OPENGL
 
 void polymost_nextpage(void)
 {
+#if USE_OPENGL
+	polymost_drawpoly_flush();
+#endif
 	polymost_palfade();
 
 #ifdef DEBUGGINGAIDS
 	if (polymostshowcallcounts) {
-		char buf[1024];
+		char buf[1024], buf2[1024], buf3[1024];
+		unsigned int nowticks = getticks();
+
+		if (whitecol < 0) whitecol = getclosestcol(63,63,63);
+
 		sprintf(buf,
-			"drawpoly_gl(%d) drawaux_gl(%d) drawpoly(%d) "
-			"domost(%d) drawalls(%d) drawmaskwall(%d) drawsprite(%d)",
-	    		polymostcallcounts.drawpoly_glcall,
+			"drawaux_gl(%d) drawpoly_immed(%d) drawpoly_batch(%d) drawpoly_flush(%d) drawpoly_gl(%d)",
 	    		polymostcallcounts.drawaux_glcall,
-	    		polymostcallcounts.drawpoly,
+	    		polymostcallcounts.drawpoly_immed,
+	    		polymostcallcounts.drawpoly_batch,
+	    		polymostcallcounts.drawpoly_flush,
+	    		polymostcallcounts.drawpoly_glcall
+	   	);
+		sprintf(buf2,
+			"agg. numbatches(%d) maxindexes(%d) avgindexes(%d) maxverts(%d) avgverts(%d)",
+	    		polymostcallcounts.numbatches,
+	    		polymostcallcounts.maxbatchindexes,
+	    		polymostcallcounts.avgbatchindexes,
+	    		polymostcallcounts.maxbatchverts,
+	    		polymostcallcounts.avgbatchverts
+	    );
+		sprintf(buf3,
+			"domost(%d) drawalls(%d) drawmaskwall(%d) drawsprite(%d) rotatesprite(%d) frametime(%dms)",
 	    		polymostcallcounts.domost,
 	    		polymostcallcounts.drawalls,
 	    		polymostcallcounts.drawmaskwall,
-	    		polymostcallcounts.drawsprite
+	    		polymostcallcounts.drawsprite,
+	    		polymostcallcounts.rotatesprite,
+	    		nowticks - polymostcallticks
 		);
-		if (rendmode == 3) {
-			polymost_printext256(0, 8, 31, -1, buf, 0);
-		} else {
-			printext256(0, 8, 31, -1, buf, 0);
-		}
+		printext256(0, 8, whitecol, -1, buf, 0);
+		printext256(0, 8+8, whitecol, -1, buf2, 0);
+		printext256(0, 8+8+8, whitecol, -1, buf3, 0);
+		polymostcallticks = nowticks;
 	}
 	memset(&polymostcallcounts, 0, sizeof(polymostcallcounts));
 #endif
@@ -985,10 +1329,6 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 	int i, j, k, x, y, z, nn, ix0, ix1, mini, maxi, tsizx, tsizy, tsizxm1 = 0, tsizym1 = 0, ltsizy = 0;
 	int xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0, ymulnice = 0, dorot;
 	unsigned char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
-
-#ifdef DEBUGGINGAIDS
-	polymostcallcounts.drawpoly++;
-#endif
 
 	if (method == -1) return;
 
@@ -1015,7 +1355,7 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 		if (!waloff[globalpicnum])
 		{
 			if (rendmode != 3) return;
-			tsizx = tsizy = 1; method = METH_MASKED; //Hack to update Z-buffer for invalid mirror textures
+			tsizx = tsizy = 1; method |= METH_MASKED; //Hack to update Z-buffer for invalid mirror textures
 		}
 	}
 	walptr = (unsigned char *)waloff[globalpicnum];
@@ -1072,8 +1412,10 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 		unsigned short ptflags = 0;
 		int picidx = PTHPIC_BASE;
 		PTHead * pth = 0;
-		struct polymostdrawpolycall draw;
-		struct polymostvboitem vboitem[MINVBOINDEXES];
+		polymostbatchref batchref;
+		polymostdrawpolyspec draw;
+		polymostvertexitem vertexes[16];
+		coltypef colour;
 
 		if (usehightile) ptflags |= PTH_HIGHTILE;
 		if (method & METH_CLAMPED) ptflags |= PTH_CLAMPED;
@@ -1101,7 +1443,7 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 		}
 
 		if (!(method & (METH_MASKED | METH_TRANS))) {
-			glfunc.glDisable(GL_BLEND);
+			draw.blend = GL_FALSE;
 			draw.alphacut = 0.f;
 		} else {
 			float alphac = 0.32;
@@ -1111,24 +1453,34 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 			if (usegoodalpha) alphac = 0.0;
 			if (!waloff[globalpicnum]) alphac = 0.0;	// invalid textures ignore the alpha cutoff settings
 
-			glfunc.glEnable(GL_BLEND);
+			draw.blend = GL_TRUE;
 			draw.alphacut = alphac;
 		}
 
+		draw.colour.r =
+		draw.colour.g =
+		draw.colour.b =
+		draw.colour.a = 1.f;	// Use vertex colour.
 		draw.fogcolour.r = (float)palookupfog[gfogpalnum].r / 63.f;
 		draw.fogcolour.g = (float)palookupfog[gfogpalnum].g / 63.f;
 		draw.fogcolour.b = (float)palookupfog[gfogpalnum].b / 63.f;
 		draw.fogcolour.a = 1.f;
 		draw.fogdensity = gfogdensity;
 
-		hackscx = pth->scalex;
-		hackscy = pth->scaley;
-		tsizx   = pth->pic[picidx]->tsizx;
-		tsizy   = pth->pic[picidx]->tsizy;
-		xx      = pth->pic[picidx]->sizx;
-		yy      = pth->pic[picidx]->sizy;
-		ox2     = (double)1.0/(double)xx;
-		oy2     = (double)1.0/(double)yy;
+		if (pth) {
+			hackscx = pth->scalex;
+			hackscy = pth->scaley;
+			tsizx   = pth->pic[picidx]->tsizx;
+			tsizy   = pth->pic[picidx]->tsizy;
+			xx      = pth->pic[picidx]->sizx;
+			yy      = pth->pic[picidx]->sizy;
+			ox2     = (double)1.0/(double)xx;
+			oy2     = (double)1.0/(double)yy;
+		} else {
+			hackscx = hackscy = 1.f;
+			tsizx = tsizy = xx = yy = 1;
+			ox2 = oy2 = 1.0;
+		}
 
 		if (!dorot)
 		{
@@ -1140,34 +1492,35 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 			}
 		}
 
-		draw.colour.r = draw.colour.g = draw.colour.b =
+		colour.r = colour.g = colour.b =
 			((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 		switch(method & (METH_MASKED | METH_TRANS))
 		{
-			case METH_SOLID:   draw.colour.a = 1.0; break;
-			case METH_MASKED:  draw.colour.a = 1.0; break;
-			case METH_TRANS:   draw.colour.a = 0.66; break;
-			case METH_INTRANS: draw.colour.a = 0.33; break;
+			case METH_SOLID:   colour.a = 1.0; break;
+			case METH_MASKED:  colour.a = 1.0; break;
+			case METH_TRANS:   colour.a = 0.66; break;
+			case METH_INTRANS: colour.a = 0.33; break;
 		}
 		// tinting happens only to hightile textures, and only if the texture we're
 		// rendering isn't for the same palette as what we asked for
 		if (pth && (pth->flags & PTH_HIGHTILE) && (globalpal != pth->repldef->palnum)) {
 			// apply tinting for replaced textures
-			draw.colour.r *= (float)hictinting[globalpal].r / 255.0;
-			draw.colour.g *= (float)hictinting[globalpal].g / 255.0;
-			draw.colour.b *= (float)hictinting[globalpal].b / 255.0;
+			colour.r *= (float)hictinting[globalpal].r / 255.0;
+			colour.g *= (float)hictinting[globalpal].g / 255.0;
+			colour.b *= (float)hictinting[globalpal].b / 255.0;
 		}
 
 		draw.modelview = &gidentitymat[0][0];
 		if (method & METH_ROTATESPRITE) {
+			draw.depthtest = GL_FALSE;
 			draw.projection = &grotatespriteprojmat[0][0];
 		} else {
+			draw.depthtest = GL_TRUE;
 			draw.projection = &gdrawroomsprojmat[0][0];
 		}
 
-		draw.indexbuffer = 0;
-		draw.elementbuffer = 0;
-		draw.elementvbo = vboitem;
+		batchref = polymost_drawpoly_begin(&draw, 16);
+		if (!batchref) return;
 
 			//Hack for walls&masked walls which use textures that are not a power of 2
 		if ((method & METH_POW2XSPLIT) && (tsizx != xx))
@@ -1283,17 +1636,18 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 					vp = ox*ngvx + oy*ngvy + ngvo;
 					r = 1.0/dp;
 
-					vboitem[i].v.x = (ox-ghalfx)*r*grhalfxdown10x;
-					vboitem[i].v.y = (ghoriz-oy)*r*grhalfxdown10;
-					vboitem[i].v.z = r*(1.0/1024.0);
-					vboitem[i].t.s = (up*r-du0+uoffs)*ox2;
-					vboitem[i].t.t = vp*r*oy2;
+					vertexes[i].v.x = (ox-ghalfx)*r*grhalfxdown10x;
+					vertexes[i].v.y = (ghoriz-oy)*r*grhalfxdown10;
+					vertexes[i].v.z = r*(1.0/1024.0);
+					vertexes[i].t.s = (up*r-du0+uoffs)*ox2;
+					vertexes[i].t.t = vp*r*oy2;
+					vertexes[i].c.r = colour.r;
+					vertexes[i].c.g = colour.g;
+					vertexes[i].c.b = colour.b;
+					vertexes[i].c.a = colour.a;
 				}
-				draw.indexcount = nn;
-				draw.elementcount = nn;
 
-				glfunc.glDepthMask(GL_TRUE);
-				polymost_drawpoly_glcall(GL_TRIANGLE_FAN, &draw);
+				polymost_drawpoly_draw(batchref, POLYMOST_DRAWPOLY_TRIANGLEFAN, vertexes, nn);
 			}
 		}
 		else if (n > 0)
@@ -1304,17 +1658,18 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 			{
 				r = 1.0/dd[i];
 
-				vboitem[i].v.x = (px[i]-ghalfx)*r*grhalfxdown10x;
-				vboitem[i].v.y = (ghoriz-py[i])*r*grhalfxdown10;
-				vboitem[i].v.z = r*(1.0/1024.0);
-				vboitem[i].t.s = uu[i]*r*ox2;
-				vboitem[i].t.t = vv[i]*r*oy2;
+				vertexes[i].v.x = (px[i]-ghalfx)*r*grhalfxdown10x;
+				vertexes[i].v.y = (ghoriz-py[i])*r*grhalfxdown10;
+				vertexes[i].v.z = r*(1.0/1024.0);
+				vertexes[i].t.s = uu[i]*r*ox2;
+				vertexes[i].t.t = vv[i]*r*oy2;
+				vertexes[i].c.r = colour.r;
+				vertexes[i].c.g = colour.g;
+				vertexes[i].c.b = colour.b;
+				vertexes[i].c.a = colour.a;
 			}
-			draw.indexcount = n;
-			draw.elementcount = n;
 
-			glfunc.glDepthMask(GL_TRUE);
-			polymost_drawpoly_glcall(GL_TRIANGLE_FAN, &draw);
+			polymost_drawpoly_draw(batchref, POLYMOST_DRAWPOLY_TRIANGLEFAN, vertexes, n);
 		}
 
 		return;
@@ -2970,18 +3325,18 @@ void polymost_drawrooms ()
 
 	if (!rendmode) return;
 
-	begindrawing();
-	frameoffset = frameplace + windowy1*bytesperline + windowx1;
-
 #if USE_OPENGL
 	if (rendmode == 3)
 	{
+		polymost_drawpoly_flush();
+
 		resizeglcheck();
 
 		//glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-		//glfunc.glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE); //default anyway
+		glfunc.glClear(GL_DEPTH_BUFFER_BIT);
 		glfunc.glEnable(GL_DEPTH_TEST);
 		glfunc.glDepthFunc(GL_ALWAYS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
+		glfunc.glDepthMask(GL_TRUE);
 
 		//glfunc.glPolygonOffset(1,1); //Supposed to make sprites pasted on walls or floors not disappear
 #if (USE_OPENGL == USE_GLES2)
@@ -3075,7 +3430,7 @@ void polymost_drawrooms ()
 			pz2[n2] = SCISDIST; n2++;
 		}
 	}
-	if (n2 < 3) { enddrawing(); return; }
+	if (n2 < 3) return;
 	for(i=0;i<n2;i++)
 	{
 		r = ghalfx / pz2[i];
@@ -3152,6 +3507,10 @@ void polymost_drawrooms ()
 
 	polymost_scansector(globalcursectnum);
 
+	begindrawing();
+	frameoffset = frameplace + windowy1*bytesperline + windowx1;
+	drawpolybatchmode = POLYMOST_BATCH_AGGREGATE;
+
 	if (inpreparemirror)
 	{
 		grhalfxdown10x = -grhalfxdown10;
@@ -3189,6 +3548,11 @@ void polymost_drawrooms ()
 		bunchfirst[closest] = bunchfirst[numbunches];
 		bunchlast[closest] = bunchlast[numbunches];
 	}
+
+	polymost_drawpoly_flush();
+	drawpolybatchmode = POLYMOST_BATCH_ENDQUEUE;
+	enddrawing();
+
 #if USE_OPENGL
 	if (rendmode == 3)
 	{
@@ -3202,8 +3566,6 @@ void polymost_drawrooms ()
 #endif
 	}
 #endif
-
-	enddrawing();
 }
 
 void polymost_drawmaskwall (int damaskwallcnt)
@@ -3771,22 +4133,24 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 			tspr.owner = uniqid+MAXSPRITES;
 			globalorientation = (dastat&1)+((dastat&32)<<4)+((dastat&4)<<1);
 
-			if ((dastat&10) == 2) glfunc.glViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
-			else { glfunc.glViewport(0,0,xdim,ydim); glox1 = -1; } //Force fullscreen (glox1=-1 forces it to restore)
+			if ((dastat&10) == 2) { setpolymost3dview(); }
+			else { setpolymost2dview(); }
 
-			if (hudmem[(dastat&4)>>2][picnum].flags&8) //NODEPTH flag
-				glfunc.glDisable(GL_DEPTH_TEST);
-			else
-			{
-				glfunc.glEnable(GL_DEPTH_TEST);
+			method = 0;
+			if ((dastat&10) != 2) {
+				method |= MDDRAW_ROTATESPRITE;
+			}
+			if (hudmem[(dastat&4)>>2][picnum].flags&8) { //NODEPTH flag
+				method |= MDDRAW_NO_DEPTH_TEST;
+			} else {
 				if (onumframes != numframes)
 				{
 					onumframes = numframes;
-					glfunc.glClear(GL_DEPTH_BUFFER_BIT);
+					method |= MDDRAW_CLEAR_DEPTH;
 				}
 			}
 
-			mddraw(&tspr, !!((dastat&10) != 2));
+			mddraw(&tspr, method);
 
 			viewingrange = oldviewingrange;
 			gfogdensity = ogfogdensity;
@@ -3800,6 +4164,10 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 			return;
 		}
 	}
+#endif
+
+#ifdef DEBUGGINGAIDS
+	polymostcallcounts.rotatesprite++;
 #endif
 
 	ogpicnum = globalpicnum; globalpicnum = picnum;
@@ -3818,11 +4186,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	ogstang = gstang; gstang = 0.0;
 
 #if USE_OPENGL
-	if (rendmode == 3)
-	{
-		glfunc.glViewport(0,0,xdim,ydim); glox1 = -1; //Force fullscreen (glox1=-1 forces it to restore)
-		glfunc.glDisable(GL_DEPTH_TEST);
-	}
+	if (rendmode == 3) setpolymost2dview();
 #endif
 
 	method = METH_SOLID;
@@ -3963,11 +4327,11 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 
 static float trapextx[2];
 static void drawtrap (float x0, float x1, float y0, float x2, float x3, float y1,
-	struct polymostdrawpolycall *draw)
+	polymostdrawpolycall *draw, coltypef *colour)
 {
 	float px[4], py[4];
 	int i, n;
-	struct polymostvboitem vboitem[4];
+	polymostvertexitem vboitem[4];
 
 	if (y0 == y1) return;
 	px[0] = x0; py[0] = y0;  py[2] = y1;
@@ -3975,6 +4339,7 @@ static void drawtrap (float x0, float x1, float y0, float x2, float x3, float y1
 	else if (x2 == x3) { px[1] = x1; py[1] = y0; px[2] = x3; n = 3; }
 	else               { px[1] = x1; py[1] = y0; px[2] = x3; px[3] = x2; py[3] = y1; n = 4; }
 
+	draw->mode = POLYMOST_DRAWPOLY_TRIANGLEFAN;
 	for(i=0;i<n;i++)
 	{
 		px[i] = min(max(px[i],trapextx[0]),trapextx[1]);
@@ -3983,16 +4348,20 @@ static void drawtrap (float x0, float x1, float y0, float x2, float x3, float y1
 		vboitem[i].v.x = px[i];
 		vboitem[i].v.y = py[i];
 		vboitem[i].v.z = 0.f;
+		vboitem[i].c.r = colour->r;
+		vboitem[i].c.g = colour->g;
+		vboitem[i].c.b = colour->b;
+		vboitem[i].c.a = colour->a;
 	}
-	draw->indexcount = n;
-	draw->elementcount = n;
-	draw->elementvbo = vboitem;
-	polymost_drawpoly_glcall(GL_TRIANGLE_FAN, draw);
-	draw->elementvbo = NULL;
+	draw->indexcount = TRIANGLEFAN_POINTS_TO_INDEXES(n);
+	draw->vertexcount = n;
+	draw->vertexes = vboitem;
+	polymost_drawpoly_immed(draw);
+	draw->vertexes = NULL;
 }
 
 static void tessectrap (float *px, float *py, int *point2, int numpoints,
-	struct polymostdrawpolycall *draw)
+	polymostdrawpolycall *draw, coltypef *colour)
 {
 	float x0, x1, m0, m1;
 	int i, j, k, z, i0, i1, i2, i3, npoints, gap, numrst;
@@ -4000,14 +4369,13 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints,
 	static int allocpoints = 0, *slist = 0, *npoint2 = 0;
 	typedef struct { float x, y, xi; int i; } raster;
 	static raster *rst = 0;
-	static struct polymostvboitem *vboitem = NULL;
+	static polymostvertexitem vboitem[MAX_TRIANGLEFAN_POINTS];
 	if (numpoints+16 > allocpoints) //16 for safety
 	{
 		allocpoints = numpoints+16;
 		rst = (raster*)realloc(rst,allocpoints*sizeof(raster));
 		slist = (int*)realloc(slist,allocpoints*sizeof(int));
 		npoint2 = (int*)realloc(npoint2,allocpoints*sizeof(int));
-		vboitem = (struct polymostvboitem *)realloc(vboitem, allocpoints*sizeof(struct polymostvboitem));
 	}
 
 		//Remove unnecessary collinear points:
@@ -4035,19 +4403,50 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints,
 	}
 	if (z != 3) //Simple polygon... early out
 	{
-		for(i=0;i<npoints;i++)
-		{
-			j = slist[i];
-			vboitem[i].t.s = px[j]*gux + py[j]*guy + guo;
-			vboitem[i].t.t = px[j]*gvx + py[j]*gvy + gvo;
-			vboitem[i].v.x = px[j];
-			vboitem[i].v.y = py[j];
-			vboitem[i].v.z = 0.f;
-		}
-		draw->indexcount = npoints;
-		draw->elementcount = npoints;
-		draw->elementvbo = vboitem;
-		polymost_drawpoly_glcall(GL_TRIANGLE_FAN, draw);
+		int point = 2;
+		draw->mode = POLYMOST_DRAWPOLY_TRIANGLEFAN;
+		draw->vertexes = vboitem;
+		do {
+			j = slist[0];
+			vboitem[0].t.s = px[j]*gux + py[j]*guy + guo;
+			vboitem[0].t.t = px[j]*gvx + py[j]*gvy + gvo;
+			vboitem[0].v.x = px[j];
+			vboitem[0].v.y = py[j];
+			vboitem[0].v.z = 0.f;
+			vboitem[0].c.r = colour->r;
+			vboitem[0].c.g = colour->g;
+			vboitem[0].c.b = colour->b;
+			vboitem[0].c.a = colour->a;
+
+			j = slist[point-1];
+			vboitem[1].t.s = px[j]*gux + py[j]*guy + guo;
+			vboitem[1].t.t = px[j]*gvx + py[j]*gvy + gvo;
+			vboitem[1].v.x = px[j];
+			vboitem[1].v.y = py[j];
+			vboitem[1].v.z = 0.f;
+			vboitem[1].c.r = colour->r;
+			vboitem[1].c.g = colour->g;
+			vboitem[1].c.b = colour->b;
+			vboitem[1].c.a = colour->a;
+
+			for(i = 2; i < MAX_TRIANGLEFAN_POINTS && point < npoints; i++, point++) {
+				j = slist[point];
+				vboitem[i].t.s = px[j]*gux + py[j]*guy + guo;
+				vboitem[i].t.t = px[j]*gvx + py[j]*gvy + gvo;
+				vboitem[i].v.x = px[j];
+				vboitem[i].v.y = py[j];
+				vboitem[i].v.z = 0.f;
+				vboitem[i].c.r = colour->r;
+				vboitem[i].c.g = colour->g;
+				vboitem[i].c.b = colour->b;
+				vboitem[i].c.a = colour->a;
+			}
+
+			draw->indexcount = TRIANGLEFAN_POINTS_TO_INDEXES(i);
+			draw->vertexcount = i;
+
+			polymost_drawpoly_immed(draw);
+		} while (point < npoints);
 		return;
 	}
 
@@ -4088,7 +4487,7 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints,
 
 				x0 = (py[i1] - rst[j  ].y)*rst[j  ].xi + rst[j  ].x;
 				x1 = (py[i1] - rst[j+1].y)*rst[j+1].xi + rst[j+1].x;
-				drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1],draw);
+				drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1],draw,colour);
 				rst[j  ].x = x0; rst[j  ].y = py[i1];
 				rst[j+3].x = x1; rst[j+3].y = py[i1];
 			}
@@ -4112,7 +4511,7 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints,
 				{
 					x0 = (py[i1] - rst[j  ].y)*rst[j  ].xi + rst[j  ].x;
 					if ((i == j) && (i1 == i2)) x1 = x0; else x1 = (py[i1] - rst[j+1].y)*rst[j+1].xi + rst[j+1].x;
-					drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1],draw);
+					drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1],draw,colour);
 					rst[j  ].x = x0; rst[j  ].y = py[i1];
 					rst[j+1].x = x1; rst[j+1].y = py[i1];
 				}
@@ -4122,7 +4521,7 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints,
 			{
 				x0 = (py[i1] - rst[j  ].y)*rst[j  ].xi + rst[j  ].x;
 				x1 = (py[i1] - rst[j+1].y)*rst[j+1].xi + rst[j+1].x;
-				drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1],draw);
+				drawtrap(rst[j].x,rst[j+1].x,rst[j].y,x0,x1,py[i1],draw,colour);
 				rst[j  ].x = x0; rst[j  ].y = py[i1];
 				rst[j+1].x = x1; rst[j+1].y = py[i1];
 
@@ -4140,7 +4539,8 @@ void polymost_fillpolygon (int npoints)
 	float alphac=0.0;
 	int i, j, k;
 	unsigned short ptflags = 0;
-	struct polymostdrawpolycall draw;
+	polymostdrawpolycall draw;
+	coltypef colour;
 
 	globalx1 = mulscale16(globalx1,xyaspect);
 	globaly2 = mulscale16(globaly2,xyaspect);
@@ -4163,36 +4563,37 @@ void polymost_fillpolygon (int npoints)
 
 	if (usehightile) ptflags |= PTH_HIGHTILE;
 
-	draw.texture0 = 0;
+	draw.spec.texture0 = 0;
 	pth = PT_GetHead(globalpicnum, globalpal, ptflags, 0);
 	if (pth && pth->pic[PTHPIC_BASE]) {
-		draw.texture0 = pth->pic[ PTHPIC_BASE ]->glpic;
+		draw.spec.texture0 = pth->pic[ PTHPIC_BASE ]->glpic;
 	}
-	draw.texture1 = nulltexture;
-	draw.alphacut = 0.f;
-	draw.fogdensity = 0.f;
+	draw.spec.texture1 = nulltexture;
+	draw.spec.alphacut = 0.f;
+	draw.spec.fogdensity = 0.f;
 
-	draw.colour.r = draw.colour.g = draw.colour.b =
+	colour.r = colour.g = colour.b =
 		((float)(numpalookups-min(max(globalshade,0),numpalookups)))/((float)numpalookups);
 	switch ((globalorientation>>7)&3) {
 		case 0:
-		case 1: draw.colour.a = 1.0; glfunc.glDisable(GL_BLEND); break;
-		case 2: draw.colour.a = 0.66; glfunc.glEnable(GL_BLEND); break;
-		case 3: draw.colour.a = 0.33; glfunc.glEnable(GL_BLEND); break;
+		case 1: colour.a = 1.0; draw.spec.blend = GL_FALSE; break;
+		case 2: colour.a = 0.66; draw.spec.blend = GL_TRUE; break;
+		case 3: colour.a = 0.33; draw.spec.blend = GL_TRUE; break;
 	}
 	if (pth && (pth->flags & PTH_HIGHTILE) && (globalpal != pth->repldef->palnum)) {
 		// apply tinting for replaced textures
-		draw.colour.r *= (float)hictinting[globalpal].r / 255.0;
-		draw.colour.g *= (float)hictinting[globalpal].g / 255.0;
-		draw.colour.b *= (float)hictinting[globalpal].b / 255.0;
+		colour.r *= (float)hictinting[globalpal].r / 255.0;
+		colour.g *= (float)hictinting[globalpal].g / 255.0;
+		colour.b *= (float)hictinting[globalpal].b / 255.0;
 	}
+	draw.spec.depthtest = GL_FALSE;
 
-	draw.modelview = &gidentitymat[0][0];
-	draw.projection = &gorthoprojmat[0][0];
+	draw.spec.modelview = &gidentitymat[0][0];
+	draw.spec.projection = &gorthoprojmat[0][0];
 
 	draw.indexbuffer = 0;
-	draw.elementbuffer = 0;
-	tessectrap((float *)rx1,(float *)ry1,xb1,npoints,&draw);
+	draw.vertexbuffer = 0;
+	tessectrap((float *)rx1,(float *)ry1,xb1,npoints,&draw,&colour);
 }
 
 int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
@@ -4201,10 +4602,14 @@ int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 	int i;
 	PTHead *pth;
 	palette_t bgcolour;
-	struct polymostdrawauxcall draw;
-	struct polymostvboitem vboitem[4];
+	polymostdrawauxcall draw;
+	polymostvertexitem vboitem[4];
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
+
+	setpolymost2dview();
+	glfunc.glDisable(GL_DEPTH_TEST);
+	glfunc.glDisable(GL_BLEND);
 
 	xdime = (float)tilesizx[wallnum];
 	ydime = (float)tilesizy[wallnum];
@@ -4265,24 +4670,24 @@ int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 	vboitem[1].t.s = xdimepad;
 	vboitem[1].t.t = 0.f;
 
-	vboitem[2].v.x = (GLfloat)tilex+scx;
+	vboitem[2].v.x = (GLfloat)tilex;
 	vboitem[2].v.y = (GLfloat)tiley+scy;
 	vboitem[2].v.z = 0.f;
-	vboitem[2].t.s = xdimepad;
+	vboitem[2].t.s = 0.f;
 	vboitem[2].t.t = ydimepad;
 
-	vboitem[3].v.x = (GLfloat)tilex;
+	vboitem[3].v.x = (GLfloat)tilex+scx;
 	vboitem[3].v.y = (GLfloat)tiley+scy;
 	vboitem[3].v.z = 0.f;
-	vboitem[3].t.s = 0.f;
+	vboitem[3].t.s = xdimepad;
 	vboitem[3].t.t = ydimepad;
 
 	draw.indexcount = 4;
 	draw.indexes = NULL;
-	draw.elementcount = 4;
-	draw.elementvbo = vboitem;
+	draw.vertexcount = 4;
+	draw.vertexes = vboitem;
 
-	polymost_drawaux_glcall(GL_TRIANGLE_FAN, &draw);
+	polymost_drawaux_glcall(GL_TRIANGLE_STRIP, &draw);
 
 	return(0);
 }
@@ -4292,15 +4697,15 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	GLfloat tx, ty, txc, tyc, tyoff, cx, cy;
 	int c, indexcnt, vbocnt;
 	palette_t colour;
-	struct polymostdrawauxcall draw;
-	struct polymostvboitem vboitem[80*4];
+	polymostdrawauxcall draw;
+	polymostvertexitem vboitem[80*4];
 	GLushort vboindexes[80*6];
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
 	polymost_preparetext();
 	setpolymost2dview();	// disables blending, texturing, and depth testing
-	glfunc.glDepthMask(GL_FALSE);	// disable writing to the z-buffer
+	glfunc.glDisable(GL_DEPTH_TEST);	// disable writing to the z-buffer
 	glfunc.glEnable(GL_BLEND);
 
 	draw.mode = 0;	// Text.
@@ -4346,7 +4751,7 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	tyc = cy/128.f;
 
 	draw.indexes = vboindexes;
-	draw.elementvbo = vboitem;
+	draw.vertexes = vboitem;
 
 	c = 0;
 	indexcnt = vbocnt = 0;
@@ -4392,7 +4797,7 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 		}
 
 		draw.indexcount = indexcnt;
-		draw.elementcount = vbocnt;
+		draw.vertexcount = vbocnt;
 
 		polymost_drawaux_glcall(GL_TRIANGLES, &draw);
 
@@ -4407,14 +4812,14 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 {
 	palette_t colour;
-	struct polymostdrawauxcall draw;
-	struct polymostvboitem vboitem[2];
+	polymostdrawauxcall draw;
+	polymostvertexitem vboitem[2];
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
 	polymost_preparetext();
 	setpolymost2dview();	// disables blending, texturing, and depth testing
-	glfunc.glDepthMask(GL_FALSE);	// disable writing to the z-buffer
+	glfunc.glDisable(GL_DEPTH_TEST);	// disable writing to the z-buffer
 	glfunc.glEnable(GL_BLEND);
 
 	draw.mode = 2;	// Solid colour.
@@ -4440,8 +4845,8 @@ int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 
 	draw.indexcount = 2;
 	draw.indexes = NULL;
-	draw.elementcount = 2;
-	draw.elementvbo = vboitem;
+	draw.vertexcount = 2;
+	draw.vertexes = vboitem;
 
 	polymost_drawaux_glcall(GL_LINES, &draw);
 
@@ -4453,13 +4858,13 @@ int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 int polymost_plotpixel(int x, int y, unsigned char col)
 {
 	palette_t colour;
-	struct polymostdrawauxcall draw;
-	struct polymostvboitem vboitem[1];
+	polymostdrawauxcall draw;
+	polymostvertexitem vboitem[1];
 
 	if ((rendmode != 3) || (qsetmode != 200)) return(-1);
 
 	setpolymost2dview();	// disables blending, texturing, and depth testing
-	glfunc.glDepthMask(GL_FALSE);	// disable writing to the z-buffer
+	glfunc.glDisable(GL_DEPTH_TEST);	// disable writing to the z-buffer
 	glfunc.glEnable(GL_BLEND);
 
 	draw.mode = 2;	// Solid colour.
@@ -4481,8 +4886,8 @@ int polymost_plotpixel(int x, int y, unsigned char col)
 
 	draw.indexcount = 1;
 	draw.indexes = NULL;
-	draw.elementcount = 1;
-	draw.elementvbo = vboitem;
+	draw.vertexcount = 1;
+	draw.vertexes = vboitem;
 
 	polymost_drawaux_glcall(GL_POINTS, &draw);
 

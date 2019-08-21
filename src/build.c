@@ -2551,10 +2551,6 @@ int drawtilescreen(int pictopleft, int picbox)
 
 	begindrawing(); //{{{
 
-#if USE_POLYMOST && USE_OPENGL
-	setpolymost2dview();	// JBF 20040205: set to 2d rendering
-#endif
-
 	pinc = ylookup[1];
 	clearview(blackcol);
 	for(cnt=0;cnt<(tottiles<<(gettilezoom<<1));cnt++)         //draw the 5*3 grid of tiles

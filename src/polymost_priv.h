@@ -8,19 +8,6 @@ extern int rendmode;
 extern float gtang;
 extern double dxb1[MAXWALLSB], dxb2[MAXWALLSB];
 
-#ifdef DEBUGGINGAIDS
-struct polymostcallcounts {
-    int drawpoly_glcall;
-    int drawaux_glcall;
-    int drawpoly;
-    int domost;
-    int drawalls;
-    int drawmaskwall;
-    int drawsprite;
-};
-extern struct polymostcallcounts polymostcallcounts;
-#endif
-
 enum {
     METH_SOLID   = 0,
     METH_MASKED  = 1,
@@ -63,38 +50,66 @@ extern GLfloat gdrawroomsprojmat[4][4];      // Proj. matrix for drawrooms() cal
 extern GLfloat grotatespriteprojmat[4][4];   // Proj. matrix for rotatesprite() calls.
 extern GLfloat gorthoprojmat[4][4];          // Proj. matrix for 2D (aux) calls.
 
-struct polymostvboitem {
+enum {
+    POLYMOST_DRAWPOLY_TRIANGLES = 0,
+    POLYMOST_DRAWPOLY_TRIANGLEFAN = 1,
+};
+#define TRIANGLEFAN_POINTS_TO_INDEXES(p) (((p) - 2) * 3)
+
+typedef struct polymostvertexitem {
     struct {    // Vertex
         GLfloat x, y, z;
     } v;
     struct {    // Texture
         GLfloat s, t;
     } t;
-};
+    coltypef c; // Colour
+} polymostvertexitem;
 
-struct polymostdrawpolycall {
-    GLuint texture0;
-    GLuint texture1;
-    GLfloat alphacut;
-    coltypef colour;
-    coltypef fogcolour;
-    GLfloat fogdensity;
+/* A draw batch specification to request drawing some triangles. */
+typedef struct polymostdrawpolyspec {
+    GLuint texture0;        // Base texture.
+    GLuint texture1;        // Glow texture.
+    GLfloat alphacut;       // Alpha discard cutoff.
+    coltypef colour;        // Static colour.
+    coltypef fogcolour;     // Distance fog colour.
+    GLfloat fogdensity;     // Distance fog density.
+
+    GLboolean blend;        // Enable GL_BLEND?
+    GLboolean depthtest;    // Enable GL_DEPTH_TEST?
 
     const GLfloat *modelview;     // 4x4 matrices.
     const GLfloat *projection;
+} polymostdrawpolyspec;
 
-    GLuint indexbuffer;     // Buffer object identifier, or 0 for the global index buffer.
+/* An opaque handle to a draw batch. */
+typedef void * polymostbatchref;
+
+/* A single immediate-mode draw call. */
+typedef struct polymostdrawpolycall {
+    polymostdrawpolyspec spec;
+
+    GLuint mode;    // POLYMOST_DRAWPOLY_xxx
+
+    GLuint indexbuffer;     // Buffer object identifier.
+        // When set to 0:
+        //   If mode == POLYMOST_DRAWPOLY_TRIANGLEFAN,
+        //     uses the global triangle-fan index buffer.
+        //     0 - 1 - 2, 0 - 2 - 3, 0 - 3 - 4, ...
+        //   If mode == POLYMOST_DRAWPOLY_TRIANGLES,
+        //     uses the global triangle index buffer.
+        //     0, 1, 2, 3, 4, ...
     GLuint indexcount;      // Number of index items.
 
-    GLuint elementbuffer;   // Buffer object identifier. >0 ignores elementvbo.
-    GLuint elementcount;    // Number of elements in the element buffer. Ignored if elementbuffer >0.
-    const struct polymostvboitem *elementvbo; // Elements. elementbuffer must be 0 to recognise this.
-};
+    GLuint vertexbuffer;   // Buffer object identifier. >0 ignores vertexes.
+    GLuint vertexcount;    // Number of vertexes in the buffer. Ignored if vertexbuffer >0.
+    const polymostvertexitem *vertexes; // Elements. vertexbuffer must be 0 to recognise this.
+} polymostdrawpolycall;
 
 // Smallest initial size for the global index buffer.
 #define MINVBOINDEXES 16
 
-struct polymostdrawauxcall {
+typedef struct polymostdrawauxcall {
     GLuint texture0;
     coltypef colour;
     coltypef bgcolour;
@@ -103,11 +118,32 @@ struct polymostdrawauxcall {
     GLuint indexcount;      // Number of index items.
     GLushort *indexes;      // Array of indexes, or NULL to use the global index buffer.
 
-    int elementcount;
-    struct polymostvboitem *elementvbo;
-};
+    int vertexcount;
+    polymostvertexitem *vertexes;
+} polymostdrawauxcall;
 
-void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw);
+/* Begin a draw call batch.
+    spec        A specification for the polygons to be drawn.
+    maxtris     The expected maximum number of triangles to be drawn. If the batch
+                will overflow an implicit flush of the batch so far will be done.
+
+    Returns an opaque batch reference to pass into polymost_drawpoly_draw.
+*/
+polymostbatchref polymost_drawpoly_begin(polymostdrawpolyspec *spec, int maxtris);
+
+/* Force a flush of all batched polygons. */
+void polymost_drawpoly_flush(void);
+
+/* Queue some polygons into a batch.
+    ref         A batch reference fetched from polymost_drawpoly_begin.
+    mode        A POLYMOST_DRAWPOLY_xxx value describing how vertexes will be interpreted.
+    vertexes    A collection of vertexes.
+    numvertexes A number of vertexes.
+*/
+void polymost_drawpoly_draw(polymostbatchref ref, int mode, polymostvertexitem *vertexes, int numvertexes);
+
+/* An immediate draw call. */
+void polymost_drawpoly_immed(polymostdrawpolycall *draw);
 
 int polymost_texmayhavealpha (int dapicnum, int dapalnum);
 void polymost_texinvalidate (int dapicnum, int dapalnum, int dameth);

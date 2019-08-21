@@ -33,6 +33,9 @@ typedef struct _mdanim_t
 #define MDANIM_LOOP 0
 #define MDANIM_ONESHOT 1
 
+#define MDDRAW_ROTATESPRITE 1
+#define MDDRAW_NO_DEPTH_TEST 2
+#define MDDRAW_CLEAR_DEPTH 4
 
 	//This MD2 code is based on the source code from David Henry (tfc_duke(at)hotmail.com)
 	//   Was at http://tfc.duke.free.fr/us/tutorials/models/md2.htm

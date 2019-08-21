@@ -489,8 +489,6 @@ void    setrollangle(int rolla);
 //       clamping is for sprites, repeating is for walls
 void invalidatetile(short tilenume, int pal, int how);
 
-void setpolymost2dview(void);   // sets up GL for 2D drawing
-
 int polymost_drawtilescreen(int tilex, int tiley, int wallnum, int dimen);
 void polymost_glreset(void);
 void polymost_precache_begin(void);
