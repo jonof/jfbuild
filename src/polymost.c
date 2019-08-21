@@ -487,6 +487,10 @@ void polymost_glreset ()
 		glfunc.glDeleteBuffers(1, &polymostauxglsl.indexbuffer);
 		polymostauxglsl.indexbuffer = 0;
 	}
+	if (polymostauxglsl.elementbuffer) {
+		glfunc.glDeleteBuffers(1, &polymostauxglsl.elementbuffer);
+		polymostauxglsl.elementbuffer = 0;
+	}
 	if (polymostauxglsl.program) {
 		glfunc.glDeleteProgram(polymostauxglsl.program);
 		polymostauxglsl.program = 0;
