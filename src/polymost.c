@@ -149,7 +149,6 @@ static GLuint nulltexture = 0;
 static struct {
 	GLuint program;             // GLSL program object.
 	GLuint elementbuffer;
-	GLuint elementbuffersize;
 	GLint attrib_vertex;		// Vertex (vec3)
 	GLint attrib_texcoord;		// Texture coordinate (vec2)
 	GLint uniform_modelview;	// Modelview matrix (mat4)
@@ -621,11 +620,8 @@ static void polymost_loadshaders(void)
 		glfunc.glUniform1i(polymostglsl.uniform_texture, 0);		//GL_TEXTURE0
 		glfunc.glUniform1i(polymostglsl.uniform_glowtexture, 1);	//GL_TEXTURE1
 
-		// Generate a buffer object for vertex/colour elements and pre-allocate its memory.
+		// Generate a buffer object for vertex/colour elements.
 		glfunc.glGenBuffers(1, &polymostglsl.elementbuffer);
-		polymostglsl.elementbuffersize = MINVBOINDEXES;
-		glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostglsl.elementbuffer);
-		glfunc.glBufferData(GL_ARRAY_BUFFER, sizeof(struct polymostvboitem)*MINVBOINDEXES, NULL, GL_STREAM_DRAW);
 	}
 
 	// A fully transparent texture for the case when a glow texture is not needed.
@@ -775,13 +771,7 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 	} else {
 		// Drawing from the passed elementvbo items.
 		glfunc.glBindBuffer(GL_ARRAY_BUFFER, polymostglsl.elementbuffer);
-		if (draw->elementcount > polymostglsl.elementbuffersize) {
-			// Element buffer needs to grow.
-			glfunc.glBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
-			polymostglsl.elementbuffersize = draw->elementcount;
-		} else {
-			glfunc.glBufferSubData(GL_ARRAY_BUFFER, 0, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo);
-		}
+		glfunc.glBufferData(GL_ARRAY_BUFFER, draw->elementcount * sizeof(struct polymostvboitem), draw->elementvbo, GL_STREAM_DRAW);
 	}
 
 	if (draw->indexbuffer > 0) {
