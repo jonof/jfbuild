@@ -580,11 +580,11 @@ static void checkindexbuffer(unsigned int size)
 
 static void polymost_loadshaders(void)
 {
-	extern const char default_polymost_glsl_fs[];
-	extern const char default_polymost_glsl_vs[];
+	extern const char default_polymost_fs_glsl[];
+	extern const char default_polymost_vs_glsl[];
 
-	extern const char default_polymostaux_glsl_fs[];
-	extern const char default_polymostaux_glsl_vs[];
+	extern const char default_polymostaux_fs_glsl[];
+	extern const char default_polymostaux_vs_glsl[];
 
 	GLuint shader[2] = {0,0};
 
@@ -595,9 +595,9 @@ static void polymost_loadshaders(void)
 	}
 
 	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
-		default_polymost_glsl_vs, "polymost.glsl_vs");
+		default_polymost_vs_glsl, "polymost_vs.glsl");
 	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
-		default_polymost_glsl_fs, "polymost.glsl_fs");
+		default_polymost_fs_glsl, "polymost_fs.glsl");
 	if (shader[0] && shader[1]) {
 		polymostglsl.program = glbuild_link_program(2, shader);
 	}
@@ -641,9 +641,9 @@ static void polymost_loadshaders(void)
 	}
 
 	shader[0] = polymost_load_shader(GL_VERTEX_SHADER,
-		default_polymostaux_glsl_vs, "polymostaux.glsl_vs");
+		default_polymostaux_vs_glsl, "polymostaux_vs.glsl");
 	shader[1] = polymost_load_shader(GL_FRAGMENT_SHADER,
-		default_polymostaux_glsl_fs, "polymostaux.glsl_fs");
+		default_polymostaux_fs_glsl, "polymostaux_fs.glsl");
 	if (shader[0] && shader[1]) {
 		polymostauxglsl.program = glbuild_link_program(2, shader);
 	}

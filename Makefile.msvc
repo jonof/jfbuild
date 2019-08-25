@@ -73,7 +73,10 @@ ENGINEOBJS=$(SRC)\a-c.$o \
 	$(SRC)\defs.$o \
 	$(SRC)\engine.$o \
 	$(SRC)\polymost.$o \
-	$(SRC)\polymost_shaders.$o \
+	$(SRC)\polymost_fs.$o \
+	$(SRC)\polymost_vs.$o \
+	$(SRC)\polymostaux_fs.$o \
+	$(SRC)\polymostaux_vs.$o \
 	$(SRC)\polymosttex.$o \
 	$(SRC)\polymosttex-squish.$o \
 	$(SRC)\polymosttexcache.$o \
@@ -140,7 +143,7 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 !endif
 
 # RULES
-.SUFFIXES: .masm .cc .glsl_fs .glsl_vs
+.SUFFIXES: .masm .cc .glsl
 
 {$(SRC)}.masm{$(SRC)}.$o:
 	$(AS) /c $(ASFLAGS) /Fo$@ $<
@@ -172,12 +175,9 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 {$(GAME)}.rc{$(GAME)}.$(res):
 	$(RC) $(RFLAGS) /fo$@ /r $<
 
-{$(SRC)}.glsl_fs{$(SRC)}.glsl_fs_c:
+{$(SRC)}.glsl{$(SRC)}.c:
 	if not exist bin2c$(EXESUFFIX) $(MAKE) /f Makefile.msvc /$(MAKEFLAGS) /nologo bin2c$(EXESUFFIX)
-	bin2c$(EXESUFFIX) -text $< default_$(@B)_glsl_fs > $@
-{$(SRC)}.glsl_vs{$(SRC)}.glsl_vs_c:
-	if not exist bin2c$(EXESUFFIX) $(MAKE) /f Makefile.msvc /$(MAKEFLAGS) /nologo bin2c$(EXESUFFIX)
-	bin2c$(EXESUFFIX) -text $< default_$(@B)_glsl_vs > $@
+	bin2c$(EXESUFFIX) -text $< default_$(@B)_glsl > $@
 
 # TARGETS
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2map$(EXESUFFIX) wad2map$(EXESUFFIX)

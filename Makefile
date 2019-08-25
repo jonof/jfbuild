@@ -68,6 +68,7 @@ EXESUFFIX=
 
 HOSTCC?=$(CC)
 HOSTCXX?=$(CXX)
+PERL?=perl
 
 include Makefile.shared
 
@@ -86,7 +87,10 @@ ENGINEOBJS+= \
 	$(SRC)/defs.$o \
 	$(SRC)/engine.$o \
 	$(SRC)/polymost.$o \
-	$(SRC)/polymost_shaders.$o \
+	$(SRC)/polymost_fs.$o \
+	$(SRC)/polymost_vs.$o \
+	$(SRC)/polymostaux_fs.$o \
+	$(SRC)/polymostaux_vs.$o \
 	$(SRC)/polymosttex.$o \
 	$(SRC)/polymosttex-squish.$o \
 	$(SRC)/polymosttexcache.$o \
@@ -270,10 +274,8 @@ $(GAME)/rsrc/%.$o: $(GAME)/rsrc/%.c
 $(GAME)/%.$(res): $(GAME)/%.rc
 	$(WINDRES) -O coff -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
 
-$(SRC)/%.glsl_vs_c: $(SRC)/%.glsl_vs | bin2c$(EXESUFFIX)
-	./bin2c$(EXESUFFIX) -text $< default_$*_glsl_vs > $@
-$(SRC)/%.glsl_fs_c: $(SRC)/%.glsl_fs | bin2c$(EXESUFFIX)
-	./bin2c$(EXESUFFIX) -text $< default_$*_glsl_fs > $@
+$(SRC)/%.c: $(SRC)/%.glsl
+	$(PERL) $(TOOLS)/text2c.pl $< default_$*_glsl > $@
 
 $(GAME)/rsrc/%_gresource.c $(GAME)/rsrc/%_gresource.h: $(GAME)/rsrc/%.gresource.xml
 	glib-compile-resources --generate --manual-register --c-name=startgtk --target=$@ --sourcedir=$(GAME)/rsrc $<

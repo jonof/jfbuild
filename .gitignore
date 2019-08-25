@@ -8,7 +8,7 @@
 *~
 *.pdb
 /src/version-auto.c
-/src/*.glsl_[fv]s_c
+/src/*_[fv]s.c
 
 /xcode/*.xcodeproj/*.mode1v3
 /xcode/*.xcodeproj/*.pbxuser
