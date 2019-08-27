@@ -106,7 +106,8 @@ GAMEEXEOBJS=$(GAME)\config.$o \
 	$(GAME)\game.$o \
 	$(GAME)\gameres.$(res) \
 	$(GAME)\startwin_game.$o \
-	$(GAME)\sound_stub.$o \
+	$(GAME)\kdmsound.$o \
+	$(GAME)\kdmsound_stub.$o \
 	$(SRC)\$(ENGINELIB)
 
 EDITOREXEOBJS=$(GAME)\bstub.$o \

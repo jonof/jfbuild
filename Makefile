@@ -109,8 +109,8 @@ EDITOROBJS=$(SRC)/build.$o \
 	$(SRC)/config.$o
 
 GAMEEXEOBJS=$(GAME)/game.$o \
-	$(GAME)/sound_stub.$o \
 	$(GAME)/config.$o \
+	$(GAME)/kdmsound.$o \
 	$(ENGINELIB)
 
 EDITOREXEOBJS=$(GAME)/bstub.$o \
@@ -157,13 +157,13 @@ ifeq ($(RENDERTYPE),SDL)
 		EDITOREXEOBJS+= $(GAME)/rsrc/startgtk_build_gresource.$o
 	endif
 
-	GAMEEXEOBJS+= $(GAME)/rsrc/sdlappicon_game.$o
+	GAMEEXEOBJS+= $(GAME)/kdmsound_sdl2.$o $(GAME)/rsrc/sdlappicon_game.$o
 	EDITOREXEOBJS+= $(GAME)/rsrc/sdlappicon_build.$o
 endif
 ifeq ($(RENDERTYPE),WIN)
 	ENGINEOBJS+= $(SRC)/winlayer.$o
 	EDITOROBJS+= $(SRC)/startwin_editor.$o
-	GAMEEXEOBJS+= $(GAME)/gameres.$(res) $(GAME)/startwin_game.$o
+	GAMEEXEOBJS+= $(GAME)/kdmsound_stub.$o $(GAME)/gameres.$(res) $(GAME)/startwin_game.$o
 	EDITOREXEOBJS+= $(GAME)/buildres.$(res)
 endif
 

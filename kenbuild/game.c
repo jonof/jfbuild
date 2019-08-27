@@ -11,6 +11,7 @@
 #include "game.h"
 #include "osd.h"
 #include "mmulti.h"
+#include "kdmsound.h"
 
 #include "baselayer.h"
 
@@ -19,18 +20,6 @@
 #define TICSPERFRAME 3
 #define MOVEFIFOSIZ 256
 #define EYEHEIGHT (32<<8)   //Normally (32<<8), (51<<8) to make mirrors happy
-
-// declared in sound.c
-void initsb(char,char,int,char,char,char,char);
-void uninitsb(void);
-void setears(int,int,int,int);
-void wsayfollow(char *,int,int,int *,int *,char);
-void wsay(char *,int,int,int);
-void loadwaves(void);
-void loadsong(char *);
-void musicon(void);
-void musicoff(void);
-void refreshaudio(void);
 
 // declared in config.c
 int loadsetup(const char *);
@@ -624,10 +613,10 @@ int app_main(int argc, char const * const argv[])
 	prepareboard(boardfilename);                   //Load board
 
 	initsb(option[1],option[2],digihz[option[7]>>4],((option[7]&4)>0)+1,((option[7]&2)>0)+1,60,option[7]&1);
-	//if (Bstrcmp(boardfilename,"klab.map") == 0)
-	//   loadsong("klabsong.kdm");
-	//else
-		loadsong("neatsong.ogg");
+	if (Bstrcmp(boardfilename,"klab.map") == 0)
+	    loadsong("klabsong.kdm");
+	else
+		loadsong("neatsong.kdm");
 	musicon();
 
 	if (option[4] > 0)

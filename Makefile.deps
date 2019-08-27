@@ -42,10 +42,12 @@ $(SRC)/polymostaux_fs.c: $(SRC)/polymostaux_fs.glsl
 $(SRC)/polymostaux_vs.c: $(SRC)/polymostaux_vs.glsl
 
 # KenBuild test game
-$(GAME)/game.$o: $(GAME)/game.c $(INC)/compat.h $(INC)/build.h $(GAME)/names.h $(INC)/pragmas.h $(INC)/cache1d.h $(GAME)/game.h $(INC)/osd.h $(INC)/baselayer.h
+$(GAME)/game.$o: $(GAME)/game.c $(INC)/compat.h $(INC)/build.h $(GAME)/names.h $(INC)/pragmas.h $(INC)/cache1d.h $(GAME)/game.h $(GAME)/kdmsound.h $(INC)/osd.h $(INC)/baselayer.h
 $(GAME)/bstub.$o: $(GAME)/bstub.c $(INC)/compat.h $(INC)/build.h $(INC)/pragmas.h $(INC)/baselayer.h $(GAME)/names.h $(INC)/osd.h $(INC)/cache1d.h $(INC)/editor.h
 $(GAME)/config.$o: $(GAME)/config.c $(INC)/compat.h $(INC)/osd.h $(INC)/editor.h
-$(GAME)/sound.$o: $(GAME)/sound.c $(INC)/osd.h $(INC)/compat.h $(INC)/cache1d.h
+$(GAME)/kdmsound.$o: $(GAME)/kdmsound.c $(GAME)/kdmsound.h $(INC)/compat.h $(INC)/pragmas.h $(INC)/cache1d.h
+$(GAME)/kdmsound_stub.$o: $(GAME)/kdmsound_stub.c
+$(GAME)/kdmsound_sdl2.$o: $(GAME)/kdmsound_sdl2.c $(GAME)/kdmsound.h
 $(GAME)/startwin_game.$o: $(GAME)/startwin_game.c $(INC)/build.h $(INC)/winlayer.h $(INC)/compat.h $(GAME)/game.h $(GAME)/gameres.h
 $(GAME)/startgtk_game.$o: $(GAME)/startgtk_game.c $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h $(GAME)/game.h
 
