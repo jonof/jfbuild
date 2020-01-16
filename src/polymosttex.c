@@ -13,6 +13,7 @@
 #include "hightile_priv.h"
 #include "polymosttex_priv.h"
 #include "polymosttexcache.h"
+#include "polymosttexcompress.h"
 
 /** a texture hash entry */
 struct PTHash_typ {
@@ -70,16 +71,17 @@ static PTHash * pthashhead[PTHASHHEADSIZ];	// will be initialised 0 by .bss segm
 #define PTMHASHHEADSIZ 4096
 static PTMHash * ptmhashhead[PTMHASHHEADSIZ];	// will be initialised 0 by .bss segment
 
+static const char *compressfourcc[] = {
+	"NONE",
+	"DXT1",
+	"DXT5",
+	"ETC1",
+};
 
 static void ptm_fixtransparency(PTTexture * tex, int clamped);
 static void ptm_applyeffects(PTTexture * tex, int effects);
 static void ptm_mipscale(PTTexture * tex);
 static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * tex, PTCacheTile * tdef);
-
-// from polymosttex-squish.cc
-int squish_GetStorageRequirements(int width, int height, int format);
-int squish_CompressImage(void * rgba, int width, int height, unsigned char * output, int format);
-
 
 
 static inline int pt_gethashhead(const int picnum)
@@ -95,8 +97,7 @@ static inline int ptm_gethashhead(const unsigned int idcrc)
 static void detect_texture_size()
 {
 	if (gltexmaxsize <= 0) {
-		GLint siz = 0;
-		glfunc.glGetIntegerv(GL_MAX_TEXTURE_SIZE, &siz);
+		GLint siz = glinfo.maxtexsize;
 		if (siz == 0) {
 			gltexmaxsize = 6;   // 2^6 = 64 == default GL max texture size
 		} else {
@@ -201,15 +202,47 @@ static int ptm_loadcachedtexturefile(const char* filename, PTMHead* ptmh, int fl
 {
 	int mipmap = 0, i = 0;
 	PTCacheTile * tdef = 0;
+	int compress = PTCOMPRESS_NONE;
 
 	tdef = PTCacheLoadTile(filename, effects, flags & (PTH_CLAMPED));
 	if (!tdef) {
 		return -1;
 	}
 
+	switch (tdef->format) {
+#if GL_EXT_texture_compression_dxt1 || GL_EXT_texture_compression_s3tc
+		case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+			compress = PTCOMPRESS_DXT1;
+			if (!glinfo.texcomprdxt1) goto incompatible;
+			break;
+#endif
+#if GL_EXT_texture_compression_s3tc
+		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+			compress = PTCOMPRESS_DXT5;
+			if (!glinfo.texcomprdxt5) goto incompatible;
+			break;
+#endif
+#if GL_OES_compressed_ETC1_RGB8_texture
+		case GL_ETC1_RGB8_OES:
+			compress = PTCOMPRESS_ETC1;
+			if (!glinfo.texcompretc1) goto incompatible;
+			break;
+#endif
+		default:
+incompatible:
+			if (polymosttexverbosity >= 2) {
+				buildprintf("PolymostTex: cached %s (effects %d, flags %d) has incompatible format %s (0x%x)\n",
+						   tdef->filename, tdef->effects, tdef->flags,
+						   compress ? compressfourcc[compress] : "?",
+						   tdef->format);
+			}
+			PTCacheFreeTile(tdef);
+			return -1;
+	}
+
 	if (polymosttexverbosity >= 2) {
-		buildprintf("PolymostTex: loaded %s (effects %d, flags %d) from cache\n",
-				   tdef->filename, tdef->effects, tdef->flags);
+		buildprintf("PolymostTex: loaded %s (effects %d, flags %d, %s) from cache\n",
+				   tdef->filename, tdef->effects, tdef->flags, compressfourcc[compress]);
 	}
 
 	if (ptmh->glpic == 0) {
@@ -236,7 +269,7 @@ static int ptm_loadcachedtexturefile(const char* filename, PTMHead* ptmh, int fl
 	}
 
 	for (i = 0; i + mipmap < tdef->nummipmaps; i++) {
-		glfunc.glCompressedTexImage2DARB(GL_TEXTURE_2D, i,
+		glfunc.glCompressedTexImage2D(GL_TEXTURE_2D, i,
 								   tdef->format,
 								   tdef->mipmap[i + mipmap].sizx,
 								   tdef->mipmap[i + mipmap].sizy,
@@ -267,7 +300,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	PTCacheTile * tdef = 0;
 	int writetocache = 0, iscached = 0;
 
-	if (!(flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcache && glusetexcompr) {
+	if (!(flags & PTH_NOCOMPRESS) && glusetexcache && glusetexcompr) {
 		iscached = PTCacheHasTile(filename, effects, (flags & PTH_CLAMPED));
 
 		// if the texture exists in the cache but the original file is newer,
@@ -355,8 +388,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 	}
 
 	tex.rawfmt = GL_BGRA;
-	if (!glinfo.bgra || glusetexcompr) {
-		// texture compression requires rgba ordering for libsquish
+	if (!glinfo.bgra) {
 		int j;
 		for (j = tex.sizx * tex.sizy - 1; j >= 0; j--) {
 			swapchar(&tex.pic[j].r, &tex.pic[j].b);
@@ -1084,22 +1116,38 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 	int i;
 	GLint mipmap;
 	GLint intexfmt;
-	int compress = 0;
+	int compress = PTCOMPRESS_NONE;
 	unsigned char * comprdata = 0;
 	int tdefmip = 0, comprsize = 0;
 	int starttime;
 
 	detect_texture_size();
 
-	if (!(flags & PTH_NOCOMPRESS) && glinfo.texcompr && glusetexcompr) {
-		intexfmt = tex->hasalpha
-		         ? GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
-		         : GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-		compress = 1;
-	} else {
-		intexfmt = tex->hasalpha
-		         ? GL_RGBA
-		         : GL_RGB;
+#if USE_OPENGL == USE_GLES2
+	// GLES permits BGRA as an internal format.
+    intexfmt = tex->rawfmt;
+#else
+    intexfmt = GL_RGBA;
+#endif
+	if (!(flags & PTH_NOCOMPRESS) && glusetexcompr) {
+#if GL_EXT_texture_compression_dxt1 || GL_EXT_texture_compression_s3tc
+		if (!compress && !tex->hasalpha && glinfo.texcomprdxt1) {
+			intexfmt = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+			compress = PTCOMPRESS_DXT1;
+		}
+#endif
+#if GL_OES_compressed_ETC1_RGB8_texture
+		if (!compress && !tex->hasalpha && glinfo.texcompretc1) {
+			intexfmt = GL_ETC1_RGB8_OES;
+			compress = PTCOMPRESS_ETC1;
+		}
+#endif
+#if GL_EXT_texture_compression_s3tc
+		if (!compress && tex->hasalpha && glinfo.texcomprdxt5) {
+			intexfmt = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			compress = PTCOMPRESS_DXT5;
+		}
+#endif
 	}
 
 	if (compress && tdef) {
@@ -1132,15 +1180,14 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 	     mipmap > 0 && (tex->sizx > 1 || tex->sizy > 1);
 	     mipmap--) {
 		if (compress && tdef) {
-			comprsize = squish_GetStorageRequirements(tex->sizx, tex->sizy, intexfmt);
+			comprsize = ptcompress_getstorage(tex->sizx, tex->sizy, compress);
 			comprdata = (unsigned char *) malloc(comprsize);
 
 			starttime = getticks();
-			squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
+			ptcompress_compress(tex->pic, tex->sizx, tex->sizy, comprdata, compress);
 			if (polymosttexverbosity >= 2) {
-				buildprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
-					   tex->sizx, tex->sizy,
-					   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
+				buildprintf("PolymostTex: ptcompress_compress (%dx%d, %s) took %f sec\n",
+					   tex->sizx, tex->sizy, compressfourcc[compress],
 					   (float)(getticks() - starttime) / 1000.f);
 			}
 
@@ -1158,15 +1205,14 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 	}
 
 	if (compress) {
-		comprsize = squish_GetStorageRequirements(tex->sizx, tex->sizy, intexfmt);
+		comprsize = ptcompress_getstorage(tex->sizx, tex->sizy, compress);
 		comprdata = (unsigned char *) malloc(comprsize);
 
 		starttime = getticks();
-		squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
+		ptcompress_compress(tex->pic, tex->sizx, tex->sizy, comprdata, compress);
 		if (polymosttexverbosity >= 2) {
-			buildprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
-				   tex->sizx, tex->sizy,
-				   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
+			buildprintf("PolymostTex: ptcompress_compress (%dx%d, %s) took %f sec\n",
+				   tex->sizx, tex->sizy, compressfourcc[compress],
 				   (float)(getticks() - starttime) / 1000.f);
 		}
 
@@ -1178,7 +1224,7 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 			tdefmip++;
 		}
 
-		glfunc.glCompressedTexImage2DARB(GL_TEXTURE_2D, 0,
+		glfunc.glCompressedTexImage2D(GL_TEXTURE_2D, 0,
 			intexfmt, tex->sizx, tex->sizy, 0,
 			comprsize, (const GLvoid *) comprdata);
 
@@ -1198,17 +1244,16 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 		ptm_fixtransparency(tex, (flags & PTH_CLAMPED));
 
 		if (compress) {
-			comprsize = squish_GetStorageRequirements(tex->sizx, tex->sizy, intexfmt);
+			comprsize = ptcompress_getstorage(tex->sizx, tex->sizy, compress);
 			if (tdef) {
 				comprdata = (unsigned char *) malloc(comprsize);
 			}
 
 			starttime = getticks();
-			squish_CompressImage(tex->pic, tex->sizx, tex->sizy, comprdata, intexfmt);
+			ptcompress_compress(tex->pic, tex->sizx, tex->sizy, comprdata, compress);
 			if (polymosttexverbosity >= 2) {
-				buildprintf("PolymostTex: squish_CompressImage (%dx%d, DXT%d) took %f sec\n",
-					   tex->sizx, tex->sizy,
-					   (intexfmt == GL_COMPRESSED_RGBA_S3TC_DXT5_EXT ? 5 : 1),
+				buildprintf("PolymostTex: ptcompress_compress (%dx%d, %s) took %f sec\n",
+					   tex->sizx, tex->sizy, compressfourcc[compress],
 					   (float)(getticks() - starttime) / 1000.f);
 			}
 
@@ -1220,7 +1265,7 @@ static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * t
 				tdefmip++;
 			}
 
-			glfunc.glCompressedTexImage2DARB(GL_TEXTURE_2D, mipmap,
+			glfunc.glCompressedTexImage2D(GL_TEXTURE_2D, mipmap,
 						intexfmt, tex->sizx, tex->sizy, 0,
 						comprsize, (const GLvoid *) comprdata);
 

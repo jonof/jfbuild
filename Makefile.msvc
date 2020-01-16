@@ -3,7 +3,9 @@
 # Engine options - these may be overridden by game makefiles
 #  USE_POLYMOST   - enables Polymost renderer
 #  USE_OPENGL     - enables OpenGL support in Polymost
-#     Define as 1 or 2 for GL 2.1 profile
+#     Define as 0 to disable OpenGL
+#     Define as USE_GL2 (or 1 or 2) for GL 2.0/2.1 profile
+#     Define as USE_GLES2 (or 12) for GLES 2.0 profile
 #  USE_ASM        - enables the use of assembly code
 USE_POLYMOST=1
 USE_OPENGL=1
@@ -78,8 +80,8 @@ ENGINEOBJS=$(SRC)\a-c.$o \
 	$(SRC)\polymostaux_fs.$o \
 	$(SRC)\polymostaux_vs.$o \
 	$(SRC)\polymosttex.$o \
-	$(SRC)\polymosttex-squish.$o \
 	$(SRC)\polymosttexcache.$o \
+	$(SRC)\polymosttexcompress.$o \
 	$(SRC)\hightile.$o \
 	$(SRC)\mdsprite.$o \
 	$(SRC)\glbuild.$o \
@@ -96,7 +98,7 @@ LIBSQUISHOBJS=$(LIBSQUISH)\alpha.$o $(LIBSQUISH)\clusterfit.$o \
 	      $(LIBSQUISH)\colourblock.$o $(LIBSQUISH)\colourfit.$o \
 	      $(LIBSQUISH)\colourset.$o $(LIBSQUISH)\maths.$o \
 	      $(LIBSQUISH)\rangefit.$o $(LIBSQUISH)\singlecolourfit.$o \
-	      $(LIBSQUISH)\squish.$o
+	      $(LIBSQUISH)\squish.$o $(SRC)\rg_etc1.$o
 
 EDITOROBJS=$(SRC)\build.$o \
 	$(SRC)\startwin_editor.$o \

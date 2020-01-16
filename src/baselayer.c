@@ -15,24 +15,7 @@
 
 #if USE_OPENGL
 #include "glbuild.h"
-
-baselayer_glinfo glinfo = {
-	0,	// loaded
-
-	0,	// majver
-	0,	// minver
-	0,	// glslmajver
-	0,	// glslminver
-
-	1.0,		// max anisotropy
-	0,		// brga texture format
-	0,		// clamp-to-edge support
-	0,		// texture compression
-	0,		// non-power-of-two textures
-	0,		// multitexturing
-	0,		// multisampling
-	0,		// nvidia multisampling hint
-};
+baselayer_glinfo glinfo;
 #endif //USE_OPENGL
 
 static void onvideomodechange(int UNUSED(newmode)) { }
@@ -60,6 +43,10 @@ static int osdfunc_setrendermode(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 #endif //USE_POLYMOST
+
+#if defined(DEBUGGINGAIDS) && USE_OPENGL
+static int debuggllogseverity = 2;	// default to 'low'
+#endif
 
 #if defined(DEBUGGINGAIDS) && USE_POLYMOST && USE_OPENGL
 static int osdcmd_hicsetpalettetint(const osdfuncparm_t *parm)
@@ -116,11 +103,25 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 	else if (!Bstrcasecmp(parm->name, "novoxmips")) {
 		if (showval) { buildprintf("novoxmips is %d\n", novoxmips); }
 		else { novoxmips = (atoi(parm->parms[0]) != 0); }
+		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "usevoxels")) {
 		if (showval) { buildprintf("usevoxels is %d\n", usevoxels); }
 		else { usevoxels = (atoi(parm->parms[0]) != 0); }
+		return OSDCMD_OK;
 	}
+#if defined(DEBUGGINGAIDS) && USE_OPENGL
+	else if (!Bstrcasecmp(parm->name, "debuggllogseverity")) {
+		const char *levels[] = {"none", "notification", "low", "medium", "high"};
+		if (showval) { buildprintf("debuggllogseverity is %s (%d)\n", levels[debuggllogseverity], debuggllogseverity); }
+		else {
+			debuggllogseverity = atoi(parm->parms[0]);
+			debuggllogseverity = max(0, min(4, debuggllogseverity));
+			buildprintf("debuggllogseverity is now %s (%d)\n", levels[debuggllogseverity], debuggllogseverity);
+		}
+		return OSDCMD_OK;
+	}
+#endif
 	return OSDCMD_SHOWHELP;
 }
 
@@ -149,6 +150,9 @@ int baselayer_init(void)
 #if defined(DEBUGGINGAIDS) && USE_POLYMOST && USE_OPENGL
 	OSD_RegisterFunction("hicsetpalettetint","hicsetpalettetint: sets palette tinting values",osdcmd_hicsetpalettetint);
 #endif
+#if defined(DEBUGGINGAIDS) && USE_OPENGL
+	OSD_RegisterFunction("debuggllogseverity","debuggllogseverity: set OpenGL debug log verbosity (0-4 = none/notification/low/med/high)",osdcmd_vars);
+#endif
 
 #if USE_OPENGL
 	OSD_RegisterFunction("glinfo","glinfo [exts]: shows OpenGL information about the current OpenGL mode",osdcmd_glinfo);
@@ -172,13 +176,22 @@ static void glext_enumerate_configure(const char *ext) {
 			!Bstrcmp(ext, "GL_SGIS_texture_edge_clamp")) {
 			// supports GL_CLAMP_TO_EDGE
 		glinfo.clamptoedge = 1;
-	} else if (!Bstrcmp(ext, "GL_EXT_bgra")) {
+	} else if (!Bstrcmp(ext, "GL_EXT_bgra") ||
+			!Bstrcmp(ext, "GL_EXT_texture_format_BGRA8888")) {
 			// support bgra textures
 		glinfo.bgra = 1;
-	} else if (!Bstrcmp(ext, "GL_ARB_texture_compression")) {
-			// support texture compression
-		glinfo.texcompr = 1;
-	} else if (!Bstrcmp(ext, "GL_ARB_texture_non_power_of_two")) {
+	} else if (!Bstrcmp(ext, "GL_EXT_texture_compression_s3tc")) {
+			// support DXT1 and DXT5 texture compression
+		glinfo.texcomprdxt1 = 1;
+		glinfo.texcomprdxt5 = 1;
+	} else if (!Bstrcmp(ext, "GL_EXT_texture_compression_dxt1")) {
+			// support DXT1 texture compression
+		glinfo.texcomprdxt1 = 1;
+	} else if (!Bstrcmp(ext, "GL_OES_compressed_ETC1_RGB8_texture")) {
+			// support ETC1 texture compression
+		glinfo.texcompretc1 = 1;
+	} else if (!Bstrcmp(ext, "GL_ARB_texture_non_power_of_two") ||
+			!Bstrcmp(ext, "GL_OES_texture_npot")) {
 			// support non-power-of-two texture sizes
 		glinfo.texnpot = 1;
 	} else if (!Bstrcmp(ext, "GL_ARB_multisample")) {
@@ -187,9 +200,6 @@ static void glext_enumerate_configure(const char *ext) {
 	} else if (!Bstrcmp(ext, "GL_NV_multisample_filter_hint")) {
 			// supports nvidia's multisample hint extension
 		glinfo.nvmultisamplehint = 1;
-	} else if (!strcmp(ext, "GL_ARB_multitexture")) {
-		glinfo.multitex = 1;
-		glfunc.glGetIntegerv(GL_MAX_TEXTURE_UNITS, &glinfo.multitex);
 	} else if (!strcmp(ext, "GL_ARB_shading_language_100")) {
 		const char *ver;
 
@@ -205,6 +215,8 @@ static void glext_enumerate_configure(const char *ext) {
 			// GLSL 1.10 or newer.
 			sscanf(ver, "%d.%d", &glinfo.glslmajver, &glinfo.glslminver);
 		}
+	} else if (!strcmp(ext, "GL_KHR_debug")) {
+		glinfo.debugext = 1;
 	}
 }
 
@@ -228,20 +240,131 @@ static void glext_enumerate(void (*callback)(const char *)) {
 	if (workstr) free(workstr);
 }
 
+#if defined(DEBUGGINGAIDS) && defined(GL_KHR_debug)
+static void APIENTRY gl_debug_proc(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+	const GLchar* message, const GLvoid* userParam)
+{
+	const char *sourcestr = "(unknown)";
+	const char *typestr = "(unknown)";
+	const char *severitystr = "(unknown)";
+
+	if (debuggllogseverity < 1) return;
+
+	switch (source) {
+#if (USE_OPENGL == USE_GLES2)
+		case GL_DEBUG_SOURCE_API_KHR: sourcestr = "API"; break;
+		case GL_DEBUG_SOURCE_SHADER_COMPILER_KHR: sourcestr = "SHADER_COMPILER"; break;
+		case GL_DEBUG_SOURCE_WINDOW_SYSTEM_KHR: sourcestr = "WINDOW_SYSTEM"; break;
+		case GL_DEBUG_SOURCE_THIRD_PARTY_KHR: sourcestr = "THIRD_PARTY"; break;
+		case GL_DEBUG_SOURCE_APPLICATION_KHR: sourcestr = "APPLICATION"; break;
+		case GL_DEBUG_SOURCE_OTHER_KHR: sourcestr = "OTHER"; break;
+#else
+		case GL_DEBUG_SOURCE_API: sourcestr = "API"; break;
+		case GL_DEBUG_SOURCE_SHADER_COMPILER: sourcestr = "SHADER_COMPILER"; break;
+		case GL_DEBUG_SOURCE_WINDOW_SYSTEM: sourcestr = "WINDOW_SYSTEM"; break;
+		case GL_DEBUG_SOURCE_THIRD_PARTY: sourcestr = "THIRD_PARTY"; break;
+		case GL_DEBUG_SOURCE_APPLICATION: sourcestr = "APPLICATION"; break;
+		case GL_DEBUG_SOURCE_OTHER: sourcestr = "OTHER"; break;
+#endif
+	}
+	switch (type) {
+#if (USE_OPENGL == USE_GLES2)
+		case GL_DEBUG_TYPE_ERROR_KHR: typestr = "ERROR"; break;
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_KHR: typestr = "DEPRECATED_BEHAVIOR"; break;
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_KHR: typestr = "UNDEFINED_BEHAVIOR"; break;
+		case GL_DEBUG_TYPE_PERFORMANCE_KHR: typestr = "PERFORMANCE"; break;
+		case GL_DEBUG_TYPE_PORTABILITY_KHR: typestr = "PORTABILITY"; break;
+		case GL_DEBUG_TYPE_OTHER_KHR: typestr = "OTHER"; break;
+		case GL_DEBUG_TYPE_MARKER_KHR: typestr = "MARKER"; break;
+		case GL_DEBUG_TYPE_PUSH_GROUP_KHR: typestr = "PUSH_GROUP"; break;
+		case GL_DEBUG_TYPE_POP_GROUP_KHR: typestr = "POP_GROUP"; break;
+#else
+		case GL_DEBUG_TYPE_ERROR: typestr = "ERROR"; break;
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typestr = "DEPRECATED_BEHAVIOR"; break;
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: typestr = "UNDEFINED_BEHAVIOR"; break;
+		case GL_DEBUG_TYPE_PERFORMANCE: typestr = "PERFORMANCE"; break;
+		case GL_DEBUG_TYPE_PORTABILITY: typestr = "PORTABILITY"; break;
+		case GL_DEBUG_TYPE_OTHER: typestr = "OTHER"; break;
+		case GL_DEBUG_TYPE_MARKER: typestr = "MARKER"; break;
+		case GL_DEBUG_TYPE_PUSH_GROUP: typestr = "PUSH_GROUP"; break;
+		case GL_DEBUG_TYPE_POP_GROUP: typestr = "POP_GROUP"; break;
+#endif
+	}
+	switch (severity) {
+#if (USE_OPENGL == USE_GLES2)
+		case GL_DEBUG_SEVERITY_HIGH_KHR:
+			severitystr = "HIGH";
+			break;
+		case GL_DEBUG_SEVERITY_MEDIUM_KHR:
+			if (debuggllogseverity > 3) return;
+			severitystr = "MEDIUM";
+			break;
+		case GL_DEBUG_SEVERITY_LOW_KHR:
+			if (debuggllogseverity > 2) return;
+			severitystr = "LOW";
+			break;
+		case GL_DEBUG_SEVERITY_NOTIFICATION_KHR:
+			if (debuggllogseverity > 1) return;
+			severitystr = "NOTIFICATION";
+			break;
+#else
+		case GL_DEBUG_SEVERITY_HIGH:
+			severitystr = "HIGH";
+			break;
+		case GL_DEBUG_SEVERITY_MEDIUM:
+			if (debuggllogseverity > 3) return;
+			severitystr = "MEDIUM";
+			break;
+		case GL_DEBUG_SEVERITY_LOW:
+			if (debuggllogseverity > 2) return;
+			severitystr = "LOW";
+			break;
+		case GL_DEBUG_SEVERITY_NOTIFICATION:
+			if (debuggllogseverity > 1) return;
+			severitystr = "NOTIFICATION";
+			break;
+#endif
+	}
+	debugprintf("gl_debug_proc: %s %s %s %s\n", sourcestr, typestr, severitystr, message);
+}
+#endif
+
 int baselayer_setupopengl(void)
 {
+	const char *glver;
+
 	if (glbuild_loadfunctions()) {
 		return -1;
 	}
 
 	memset(&glinfo, 0, sizeof(glinfo));
+	glver = (const char *) glfunc.glGetString(GL_VERSION);
 
-	sscanf((const char *) glfunc.glGetString(GL_VERSION), "%d.%d",
-		&glinfo.majver, &glinfo.minver);
+#if (USE_OPENGL == USE_GLES2)
+	sscanf(glver, "OpenGL ES %d.%d", &glinfo.majver, &glinfo.minver);
+#else
+	sscanf(glver, "%d.%d", &glinfo.majver, &glinfo.minver);
+#endif
+
 	glinfo.maxanisotropy = 1.0;
+	glfunc.glGetIntegerv(GL_MAX_TEXTURE_SIZE, &glinfo.maxtexsize);
+	glfunc.glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &glinfo.multitex);
+	glfunc.glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &glinfo.maxvertexattribs);
+#if (USE_OPENGL == USE_GLES2)
+	glinfo.clamptoedge = 1;
+	glinfo.glslmajver = 1;
+	glinfo.glslminver = 0;
+#endif
+
 	glext_enumerate(glext_enumerate_configure);
 	glinfo.loaded = 1;
 
+#if (USE_OPENGL == USE_GLES2)
+	if (glinfo.majver < 2) {
+		buildputs("OpenGL device does not support ES 2.0 features.\n");
+		return -2;
+	}
+#else
 	if (glinfo.majver < 2) {
 		buildputs("OpenGL device does not support 2.0 features.\n");
 		return -2;
@@ -254,6 +377,19 @@ int baselayer_setupopengl(void)
 		buildputs("OpenGL device does not support GLSL 1.10 shaders.\n");
 		return -2;
 	}
+#endif
+
+#if defined(DEBUGGINGAIDS) && defined(GL_KHR_debug)
+	if (glinfo.debugext) {
+#if (USE_OPENGL == USE_GLES2)
+		glfunc.glDebugMessageCallbackKHR(gl_debug_proc, NULL);
+		glfunc.glEnable(GL_DEBUG_OUTPUT_KHR);
+#else
+		glfunc.glDebugMessageCallback(gl_debug_proc, NULL);
+		glfunc.glEnable(GL_DEBUG_OUTPUT);
+#endif
+	}
+#endif
 
 	return 0;
 }
@@ -280,11 +416,12 @@ static void dumpglinfo(void)
 		" Vendor:       %s\n"
 		" Renderer:     %s\n"
 		" GLSL version: %s\n"
-		" Multitexturing:        %s (%d units)\n"
 		" Anisotropic filtering: %s (%.1f)\n"
 		" BGRA textures:         %s\n"
 		" Non-2^x textures:      %s\n"
-		" Texture compression:   %s\n"
+		" DXT1 texture compr:    %s\n"
+		" DXT5 texture compr:    %s\n"
+		" ETC1 texture compr:    %s\n"
 		" Clamp-to-edge:         %s\n"
 		" Multisampling:         %s\n"
 		"   Nvidia hint:         %s\n",
@@ -292,15 +429,27 @@ static void dumpglinfo(void)
 		glfunc.glGetString(GL_VENDOR),
 		glfunc.glGetString(GL_RENDERER),
 		glslverstr,
-		glinfo.multitex ? supported : unsupported, glinfo.multitex,
 		glinfo.maxanisotropy > 1.0 ? supported : unsupported, glinfo.maxanisotropy,
 		glinfo.bgra ? supported : unsupported,
 		glinfo.texnpot ? supported : unsupported,
-		glinfo.texcompr ? supported : unsupported,
+		glinfo.texcomprdxt1 ? supported : unsupported,
+		glinfo.texcomprdxt5 ? supported : unsupported,
+		glinfo.texcompretc1 ? supported : unsupported,
 		glinfo.clamptoedge ? supported : unsupported,
 		glinfo.multisample ? supported : unsupported,
 		glinfo.nvmultisamplehint ? supported : unsupported
 	);
+
+#ifdef DEBUGGINGAIDS
+	buildprintf(
+		" Multitexturing:        %d units\n"
+		" Max 1/2D texture size: %d\n"
+		" Max vertex attribs:    %d\n",
+		glinfo.multitex,
+		glinfo.maxtexsize,
+		glinfo.maxvertexattribs
+	);
+#endif
 }
 
 static void dumpglexts(void)

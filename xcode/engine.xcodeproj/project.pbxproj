@@ -41,7 +41,7 @@
 		AB4F6B7223118E7B00713ACC /* polymostaux_vs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABE362572146955700BA44B3 /* polymostaux_vs.glsl */; };
 		AB4F6B7323118E7F00713ACC /* polymostaux_fs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABE3624E2144CC9000BA44B3 /* polymostaux_fs.glsl */; };
 		AB6725F90F0F8114000C7D92 /* polymosttexcache.c in Sources */ = {isa = PBXBuildFile; fileRef = AB6725F80F0F8114000C7D92 /* polymosttexcache.c */; };
-		AB6727E40F1093DC000C7D92 /* polymosttex-squish.cc in Sources */ = {isa = PBXBuildFile; fileRef = AB6727E30F1093DC000C7D92 /* polymosttex-squish.cc */; };
+		AB6727E40F1093DC000C7D92 /* polymosttexcompress.cc in Sources */ = {isa = PBXBuildFile; fileRef = AB6727E30F1093DC000C7D92 /* polymosttexcompress.cc */; };
 		AB6728580F1096AF000C7D92 /* alpha.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB6728400F1096AF000C7D92 /* alpha.cpp */; };
 		AB67285A0F1096AF000C7D92 /* clusterfit.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB6728420F1096AF000C7D92 /* clusterfit.cpp */; };
 		AB67285C0F1096AF000C7D92 /* colourblock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB6728440F1096AF000C7D92 /* colourblock.cpp */; };
@@ -96,6 +96,7 @@
 		ABAE9C460F0CC86E00A528DC /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
 		ABAE9C4B0F0CCCC700A528DC /* compat.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F510A29A39C003261DC /* compat.c */; };
 		ABAE9C4D0F0CCCCF00A528DC /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
+		ABBB1E8D21C7926D00DD438B /* rg_etc1.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ABBB1E8C21C7926D00DD438B /* rg_etc1.cpp */; };
 		ABD03E2A1A518A4A0012B9D1 /* transpal.c in Sources */ = {isa = PBXBuildFile; fileRef = ABAE9ADD0F0B310900A528DC /* transpal.c */; };
 		ABE3624B2144CA9000BA44B3 /* bin2c.cc in Sources */ = {isa = PBXBuildFile; fileRef = ABE3624A2144CA9000BA44B3 /* bin2c.cc */; };
 		ABF1DD191BB7D0F5007DE427 /* asmprot.c in Sources */ = {isa = PBXBuildFile; fileRef = ABF1DD181BB7D0F5007DE427 /* asmprot.c */; };
@@ -180,7 +181,7 @@
 		AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditorsupp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB48BD6C208C0AEA00E38090 /* version-auto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "version-auto.c"; sourceTree = "<group>"; };
 		AB6725F80F0F8114000C7D92 /* polymosttexcache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymosttexcache.c; sourceTree = "<group>"; };
-		AB6727E30F1093DC000C7D92 /* polymosttex-squish.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "polymosttex-squish.cc"; sourceTree = "<group>"; };
+		AB6727E30F1093DC000C7D92 /* polymosttexcompress.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = polymosttexcompress.cc; sourceTree = "<group>"; };
 		AB6728400F1096AF000C7D92 /* alpha.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = alpha.cpp; sourceTree = "<group>"; };
 		AB6728410F1096AF000C7D92 /* alpha.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = alpha.h; sourceTree = "<group>"; };
 		AB6728420F1096AF000C7D92 /* clusterfit.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = clusterfit.cpp; sourceTree = "<group>"; };
@@ -250,6 +251,7 @@
 		ABAE9ADE0F0B311E00A528DC /* arttool.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = arttool.cc; sourceTree = "<group>"; };
 		ABAE9C2E0F0CC80200A528DC /* kextract */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = kextract; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABAE9C390F0CC81900A528DC /* kgroup */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = kgroup; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABBB1E8C21C7926D00DD438B /* rg_etc1.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = rg_etc1.cpp; sourceTree = "<group>"; };
 		ABD03E211A5189E00012B9D1 /* transpal */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = transpal; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABE362492144CA6500BA44B3 /* bin2c */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = bin2c; sourceTree = BUILT_PRODUCTS_DIR; };
 		ABE3624A2144CA9000BA44B3 /* bin2c.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = bin2c.cc; sourceTree = "<group>"; };
@@ -435,9 +437,10 @@
 				AB3B2AC10EE4033300944CD1 /* polymost_priv.h */,
 				AB726D4A0F046C3B00730EAA /* polymosttex.c */,
 				AB726D4B0F046C3B00730EAA /* polymosttex_priv.h */,
-				AB6727E30F1093DC000C7D92 /* polymosttex-squish.cc */,
 				AB6725F80F0F8114000C7D92 /* polymosttexcache.c */,
+				AB6727E30F1093DC000C7D92 /* polymosttexcompress.cc */,
 				AB735F5D0A29A39C003261DC /* pragmas.c */,
+				ABBB1E8C21C7926D00DD438B /* rg_etc1.cpp */,
 				AB735F5E0A29A39C003261DC /* scriptfile.c */,
 				AB735F5F0A29A39C003261DC /* sdlayer2.c */,
 				AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */,
@@ -817,6 +820,7 @@
 				AB735F700A29A39D003261DC /* scriptfile.c in Sources */,
 				AB735F710A29A39D003261DC /* sdlayer2.c in Sources */,
 				AB3B2A0E0EE3FC0400944CD1 /* hightile.c in Sources */,
+				ABBB1E8D21C7926D00DD438B /* rg_etc1.cpp in Sources */,
 				AB3B2A1D0EE3FCF900944CD1 /* polymost.c in Sources */,
 				AB3B2AE10EE403E000944CD1 /* mdsprite.c in Sources */,
 				AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */,
@@ -825,7 +829,7 @@
 				AB726D4C0F046C3B00730EAA /* polymosttex.c in Sources */,
 				ABF1DD191BB7D0F5007DE427 /* asmprot.c in Sources */,
 				AB6725F90F0F8114000C7D92 /* polymosttexcache.c in Sources */,
-				AB6727E40F1093DC000C7D92 /* polymosttex-squish.cc in Sources */,
+				AB6727E40F1093DC000C7D92 /* polymosttexcompress.cc in Sources */,
 				AB6728580F1096AF000C7D92 /* alpha.cpp in Sources */,
 				AB67285A0F1096AF000C7D92 /* clusterfit.cpp in Sources */,
 				AB67285C0F1096AF000C7D92 /* colourblock.cpp in Sources */,
