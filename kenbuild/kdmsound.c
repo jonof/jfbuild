@@ -7,6 +7,7 @@
 #define KDMSOUND_INTERNAL
 #include "kdmsound.h"
 
+#define _USE_MATH_DEFINES
 #include <math.h>
 #include "compat.h"
 #include "pragmas.h"
