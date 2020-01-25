@@ -6299,8 +6299,44 @@ int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *dap
 
 
 //
-// loadboardv5/6
+// loadboardv4/5/6
 //
+struct sectortypev4
+{
+	unsigned short wallptr, wallnum;
+	unsigned char ceilingstat, ceilingxpanning, ceilingypanning;
+	signed char ceilingshade;
+	int ceilingz;
+	short ceilingpicnum, ceilingheinum;
+	unsigned char floorstat, floorxpanning, floorypanning;
+	signed char floorshade;
+	int floorz;
+	short floorpicnum, floorheinum;
+	int tag;
+};
+struct walltypev4
+{
+	int x, y;
+	short point2;
+	unsigned char cstat;
+	signed char shade;
+	unsigned char xrepeat, yrepeat, xpanning, ypanning;
+	short picnum, overpicnum;
+	short nextsector1, nextwall1;
+	short nextsector2, nextwall2;
+	int tag;
+};
+struct spritetypev4
+{
+	int x, y, z;
+	unsigned char cstat;
+	signed char shade;
+	unsigned char xrepeat, yrepeat;
+	short picnum, ang, xvel, yvel, zvel, owner;
+	short sectnum, statnum;
+	int tag;
+	int extra;  // was char*
+};
 struct sectortypev5
 {
 	unsigned short wallptr, wallnum;
@@ -6377,6 +6413,179 @@ struct spritetypev6
 	short sectnum, statnum;
 	short lotag, hitag, extra;
 };
+
+static int readv4sect(int fil, struct sectortypev4 *sect)
+{
+	if (kread(fil, &sect->wallptr, 2) != 2) return -1;
+	if (kread(fil, &sect->wallnum, 2) != 2) return -1;
+	if (kread(fil, &sect->ceilingstat, 1) != 1) return -1;
+	if (kread(fil, &sect->ceilingxpanning, 1) != 1) return -1;
+	if (kread(fil, &sect->ceilingypanning, 1) != 1) return -1;
+	if (kread(fil, &sect->ceilingshade, 1) != 1) return -1;
+	if (kread(fil, &sect->ceilingz, 4) != 4) return -1;
+	if (kread(fil, &sect->ceilingpicnum, 2) != 2) return -1;
+	if (kread(fil, &sect->ceilingheinum, 2) != 2) return -1;
+	if (kread(fil, &sect->floorstat, 1) != 1) return -1;
+	if (kread(fil, &sect->floorxpanning, 1) != 1) return -1;
+	if (kread(fil, &sect->floorypanning, 1) != 1) return -1;
+	if (kread(fil, &sect->floorshade, 1) != 1) return -1;
+	if (kread(fil, &sect->floorz, 4) != 4) return -1;
+	if (kread(fil, &sect->floorpicnum, 2) != 2) return -1;
+	if (kread(fil, &sect->floorheinum, 2) != 2) return -1;
+	if (kread(fil, &sect->tag, 4) != 4) return -1;
+
+	sect->wallptr = B_LITTLE16(sect->wallptr);
+	sect->wallnum = B_LITTLE16(sect->wallnum);
+	sect->ceilingz = B_LITTLE32(sect->ceilingz);
+	sect->ceilingpicnum = B_LITTLE16(sect->ceilingpicnum);
+	sect->ceilingheinum = B_LITTLE16(sect->ceilingheinum);
+	sect->floorz = B_LITTLE32(sect->floorz);
+	sect->floorpicnum = B_LITTLE16(sect->floorpicnum);
+	sect->floorheinum = B_LITTLE16(sect->floorheinum);
+	sect->tag = B_LITTLE32(sect->tag);
+
+	return 0;
+}
+
+static void convertv4sectv5(struct sectortypev4 *from, struct sectortypev5 *to)
+{
+	to->wallptr = from->wallptr;
+	to->wallnum = from->wallnum;
+	to->ceilingpicnum = from->ceilingpicnum;
+	to->floorpicnum = from->floorpicnum;
+	to->ceilingheinum = from->ceilingheinum;
+	to->floorheinum = from->floorheinum;
+	to->ceilingz = from->ceilingz;
+	to->floorz = from->floorz;
+	to->ceilingshade = from->ceilingshade;
+	to->floorshade = from->floorshade;
+	to->ceilingxpanning = from->ceilingxpanning;
+	to->floorxpanning = from->floorxpanning;
+	to->ceilingypanning = from->ceilingypanning;
+	to->floorypanning = from->floorypanning;
+	to->ceilingstat = from->ceilingstat;
+	to->floorstat = from->floorstat;
+	to->ceilingpal = 0;
+	to->floorpal = 0;
+	to->visibility = 0;
+	to->lotag = (from->tag&65535);
+	to->hitag = (from->tag>>16);
+	to->extra = -1;
+}
+
+static int readv4wall(int fil, struct walltypev4 *wall)
+{
+	if (kread(fil, &wall->x, 4) != 4) return -1;
+	if (kread(fil, &wall->y, 4) != 4) return -1;
+	if (kread(fil, &wall->point2, 2) != 2) return -1;
+	if (kread(fil, &wall->cstat, 1) != 1) return -1;
+	if (kread(fil, &wall->shade, 1) != 1) return -1;
+	if (kread(fil, &wall->xrepeat, 1) != 1) return -1;
+	if (kread(fil, &wall->yrepeat, 1) != 1) return -1;
+	if (kread(fil, &wall->xpanning, 1) != 1) return -1;
+	if (kread(fil, &wall->ypanning, 1) != 1) return -1;
+	if (kread(fil, &wall->picnum, 2) != 2) return -1;
+	if (kread(fil, &wall->overpicnum, 2) != 2) return -1;
+	if (kread(fil, &wall->nextsector1, 2) != 2) return -1;
+	if (kread(fil, &wall->nextwall1, 2) != 2) return -1;
+	if (kread(fil, &wall->nextsector2, 2) != 2) return -1;
+	if (kread(fil, &wall->nextwall2, 2) != 2) return -1;
+	if (kread(fil, &wall->tag, 4) != 4) return -1;
+
+	wall->x = B_LITTLE32(wall->x);
+	wall->y = B_LITTLE32(wall->y);
+	wall->point2 = B_LITTLE16(wall->point2);
+	wall->picnum = B_LITTLE16(wall->picnum);
+	wall->overpicnum = B_LITTLE16(wall->overpicnum);
+	wall->nextsector1 = B_LITTLE16(wall->nextsector1);
+	wall->nextwall1 = B_LITTLE16(wall->nextwall1);
+	wall->nextsector2 = B_LITTLE16(wall->nextsector2);
+	wall->nextwall2 = B_LITTLE16(wall->nextwall2);
+	wall->tag = B_LITTLE32(wall->tag);
+
+	return 0;
+}
+
+static void convertv4wallv5(struct walltypev4 *from, struct walltypev5 *to)
+{
+	to->x = from->x;
+	to->y = from->y;
+	to->point2 = from->point2;
+	to->picnum = from->picnum;
+	to->overpicnum = from->overpicnum;
+	to->shade = from->shade;
+	to->cstat = from->cstat;
+	to->xrepeat = from->xrepeat;
+	to->yrepeat = from->yrepeat;
+	to->xpanning = from->xpanning;
+	to->ypanning = from->ypanning;
+	to->nextsector1 = from->nextsector1;
+	to->nextwall1 = from->nextwall1;
+	to->nextsector2 = from->nextsector2;
+	to->nextwall2 = from->nextwall2;
+	to->lotag = (from->tag&65535);
+	to->hitag = (from->tag>>16);
+	to->extra = -1;
+}
+
+static int readv4sprite(int fil, struct spritetypev4 *spr)
+{
+	if (kread(fil, &spr->x, 4) != 4) return -1;
+	if (kread(fil, &spr->y, 4) != 4) return -1;
+	if (kread(fil, &spr->z, 4) != 4) return -1;
+	if (kread(fil, &spr->cstat, 1) != 1) return -1;
+	if (kread(fil, &spr->shade, 1) != 1) return -1;
+	if (kread(fil, &spr->xrepeat, 1) != 1) return -1;
+	if (kread(fil, &spr->yrepeat, 1) != 1) return -1;
+	if (kread(fil, &spr->picnum, 2) != 2) return -1;
+	if (kread(fil, &spr->ang, 2) != 2) return -1;
+	if (kread(fil, &spr->xvel, 2) != 2) return -1;
+	if (kread(fil, &spr->yvel, 2) != 2) return -1;
+	if (kread(fil, &spr->zvel, 2) != 2) return -1;
+	if (kread(fil, &spr->owner, 2) != 2) return -1;
+	if (kread(fil, &spr->sectnum, 2) != 2) return -1;
+	if (kread(fil, &spr->statnum, 2) != 2) return -1;
+	if (kread(fil, &spr->tag, 4) != 4) return -1;
+	if (kread(fil, &spr->extra, 4) != 4) return -1;
+
+	spr->x = B_LITTLE32(spr->x);
+	spr->y = B_LITTLE32(spr->y);
+	spr->z = B_LITTLE32(spr->z);
+	spr->picnum = B_LITTLE16(spr->picnum);
+	spr->ang = B_LITTLE16(spr->ang);
+	spr->xvel = B_LITTLE16(spr->xvel);
+	spr->yvel = B_LITTLE16(spr->yvel);
+	spr->zvel = B_LITTLE16(spr->zvel);
+	spr->owner = B_LITTLE16(spr->owner);
+	spr->sectnum = B_LITTLE16(spr->sectnum);
+	spr->statnum = B_LITTLE16(spr->statnum);
+	spr->tag = B_LITTLE32(spr->tag);
+	spr->extra = B_LITTLE32(spr->extra);
+
+	return 0;
+}
+
+static void convertv4sprv5(struct spritetypev4 *from, struct spritetypev5 *to)
+{
+	to->x = from->x;
+	to->y = from->y;
+	to->z = from->z;
+	to->cstat = from->cstat;
+	to->shade = from->shade;
+	to->xrepeat = from->xrepeat;
+	to->yrepeat = from->yrepeat;
+	to->picnum = from->picnum;
+	to->ang = from->ang;
+	to->xvel = from->xvel;
+	to->yvel = from->yvel;
+	to->zvel = from->zvel;
+	to->owner = from->owner;
+	to->sectnum = from->sectnum;
+	to->statnum = from->statnum;
+	to->lotag = (from->tag&65535);
+	to->hitag = (from->tag>>16);
+	to->extra = -1;
+}
 
 static short sectorofwallv5(short theline)
 {
@@ -7107,12 +7316,15 @@ static void convertv7sprv6(spritetype *from, struct spritetypev6 *to)
 	to->extra = from->extra;
 }
 
-// Powerslave uses v6
-// Witchaven 1 and TekWar use v5
+// Powerslave, Witchaven 1, and TekWar use v6
+// Legend of the Seven Paladins uses v4
 int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *daposz,
 			 short *daang, short *dacursectnum)
 {
 	short fil, i, numsprites;
+	struct sectortypev4 v4sect;
+	struct walltypev4   v4wall;
+	struct spritetypev4 v4spr;
 	struct sectortypev5 v5sect;
 	struct walltypev5   v5wall;
 	struct spritetypev5 v5spr;
@@ -7127,7 +7339,7 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 
 	if (kread(fil,&mapversion,4) != 4) goto readerror;
 	mapversion = B_LITTLE32(mapversion);
-	if (mapversion != 5L && mapversion != 6L) {
+	if (mapversion != 4L && mapversion != 5L && mapversion != 6L) {
 		kclose(fil);
 		return(-2);
 	}
@@ -7149,7 +7361,13 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 	*daang  = B_LITTLE16(*daang);
 	*dacursectnum = B_LITTLE16(*dacursectnum);
 
-	if (kread(fil,&numsectors,2) != 2) goto readerror;
+	if (mapversion == 4) {
+		if (kread(fil,&numsectors,2) != 2) goto readerror;
+		if (kread(fil,&numwalls,2) != 2) goto readerror;
+		if (kread(fil,&numsprites,2) != 2) goto readerror;
+	}
+
+	if (mapversion > 4 && kread(fil,&numsectors,2) != 2) goto readerror;
 	numsectors = B_LITTLE16(numsectors);
 	if (numsectors > MAXSECTORS) {
 		kclose(fil);
@@ -7158,6 +7376,12 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 
 	for (i=0; i<numsectors; i++) {
 		switch (mapversion) {
+			case 4:
+				if (readv4sect(fil,&v4sect)) goto readerror;
+				convertv4sectv5(&v4sect,&v5sect);
+				convertv5sectv6(&v5sect,&v6sect);
+				convertv6sectv7(&v6sect,&sector[i]);
+				break;
 			case 5:
 				if (readv5sect(fil,&v5sect)) goto readerror;
 				convertv5sectv6(&v5sect,&v6sect);
@@ -7170,7 +7394,7 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 		}
 	}
 
-	if (kread(fil,&numwalls,2) != 2) goto readerror;
+	if (mapversion > 4 && kread(fil,&numwalls,2) != 2) goto readerror;
 	numwalls = B_LITTLE16(numwalls);
 	if (numwalls > MAXWALLS) {
 		kclose(fil);
@@ -7179,6 +7403,12 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 
 	for (i=0; i<numwalls; i++) {
 		switch (mapversion) {
+			case 4:
+				if (readv4wall(fil,&v4wall)) goto readerror;
+				convertv4wallv5(&v4wall,&v5wall);
+				convertv5wallv6(&v5wall,&v6wall,i);
+				convertv6wallv7(&v6wall,&wall[i]);
+				break;
 			case 5:
 				if (readv5wall(fil,&v5wall)) goto readerror;
 				convertv5wallv6(&v5wall,&v6wall,i);
@@ -7191,7 +7421,7 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 		}
 	}
 
-	if (kread(fil,&numsprites,2) != 2) goto readerror;
+	if (mapversion > 4 && kread(fil,&numsprites,2) != 2) goto readerror;
 	numsprites = B_LITTLE16(numsprites);
 	if (numsprites > MAXSPRITES) {
 		kclose(fil);
@@ -7200,6 +7430,12 @@ int loadoldboard(char *filename, char fromwhere, int *daposx, int *daposy, int *
 
 	for (i=0; i<numsprites; i++) {
 		switch (mapversion) {
+			case 4:
+				if (readv4sprite(fil,&v4spr)) goto readerror;
+				convertv4sprv5(&v4spr,&v5spr);
+				convertv5sprv6(&v5spr,&v6spr);
+				convertv6sprv7(&v6spr,&sprite[i]);
+				break;
 			case 5:
 				if (readv5sprite(fil,&v5spr)) goto readerror;
 				convertv5sprv6(&v5spr,&v6spr);
@@ -7453,7 +7689,10 @@ int saveoldboard(char *filename, int *daposx, int *daposy, int *daposz,
 	struct walltypev6   v6wall;
 	struct spritetypev6 v6spr;
 
-	if (mapversion != 5 && mapversion != 6) {
+	if (mapversion == 4) {
+		buildputs("saveoldboard: map version 4 not supported\n");
+		return -2;
+	} else if (mapversion != 5 && mapversion != 6) {
 		buildputs("saveoldboard: map version not 5 or 6\n");
 		return -2;
 	}
