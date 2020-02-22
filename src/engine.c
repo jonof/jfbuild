@@ -4893,27 +4893,27 @@ static void calcbritable(void)
 
 static int loadtables(void)
 {
-	int i, fil;
+	int i;
 
 	initksqrt();
+    for(i=0;i<2048;i++) {
+        sintable[i] = (short)(16384*sin((double)i*3.14159265358979/1024));
+        reciptable[i] = divscale30(2048L,i+2048);
+    }
+    for(i=0;i<640;i++) {
+        radarang[i] = (short)(atan(((double)i-639.5)/160)*64*1024/3.14159265358979);
+        radarang[1279-i] = -radarang[i];
+    }
+	calcbritable();
 
-	for(i=0;i<2048;i++) reciptable[i] = divscale30(2048L,i+2048);
-
-	if ((fil = kopen4load("tables.dat",0)) != -1)
-	{
-		kread(fil,sintable,2048*2); for (i=2048-1; i>=0; i--) sintable[i] = B_LITTLE16(sintable[i]);
-		kread(fil,radarang,640*2);  for (i=640-1;  i>=0; i--) radarang[i] = B_LITTLE16(radarang[i]);
-		for(i=0;i<640;i++) radarang[1279-i] = -radarang[i];
-		//kread(fil,textfont,1024);
-		//kread(fil,smalltextfont,1024);
-		//kread(fil,britable,1024);
-		calcbritable();
-
-		kclose(fil);
-	} else {
-		engineerrstr = "Failed to load TABLES.DAT!";
-		return 1;
-	}
+    if (crc32once((unsigned char *)sintable, sizeof(sintable)) != 0xee1e7aba) {
+        engineerrstr = "Calculation of sintable yielded unexpected results.";
+        return 1;
+    }
+    if (crc32once((unsigned char *)radarang, sizeof(radarang)/2) != 0xee893d92) {
+        engineerrstr = "Calculation of radarang yielded unexpected results.";
+        return 1;
+    }
 
 	return 0;
 }
