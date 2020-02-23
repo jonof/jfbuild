@@ -5434,6 +5434,7 @@ void overheadeditor(void)
 							printmessage16("Board saved.");
 							Bstrcpy(boardfilename, selectedboardfilename);
 							pathsearchmode = PATHSEARCH_SYSTEM;
+							asksave = 0;
 						} else {
 							printmessage16("Board NOT saved!");
 						}
@@ -5463,6 +5464,7 @@ void overheadeditor(void)
 					if (!bad) {
 						ExtSaveMap(filename);
 						printmessage16("Board saved.");
+						asksave = 0;
 					} else {
 						printmessage16("Board NOT saved!");
 					}
@@ -5485,39 +5487,40 @@ void overheadeditor(void)
 						if (ch == 'y' || ch == 'Y')
 						{
 							//QUIT!
-
-							printmessage16("Save changes?");
-							showframe(1);
-							while (keystatus[1] == 0)
-							{
-								if (handleevents()) {
-									if (quitevent) break;	// like saying no
-								}
-
-								ch = bgetchar();
-
-								if (ch == 'y' || ch == 'Y')
+							if (asksave) {
+								printmessage16("Save changes?");
+								showframe(1);
+								while (keystatus[1] == 0)
 								{
-									char *filename;
+									if (handleevents()) {
+										if (quitevent) break;	// like saying no
+									}
 
-									filename = boardfilename;
-									if (pathsearchmode == PATHSEARCH_GAME) {
-										filename = findfilename(filename);
+									ch = bgetchar();
+
+									if (ch == 'y' || ch == 'Y')
+									{
+										char *filename;
+
+										filename = boardfilename;
+										if (pathsearchmode == PATHSEARCH_GAME) {
+											filename = findfilename(filename);
+										}
+										fixspritesectors();   //Do this before saving!
+										updatesector(startposx,startposy,&startsectnum);
+										ExtPreSaveMap();
+										if (mapversion < 7) {
+											bad = saveoldboard(filename,&startposx,&startposy,&startposz,&startang,&startsectnum);
+										} else {
+											bad = saveboard(filename,&startposx,&startposy,&startposz,&startang,&startsectnum);
+										}
+										if (!bad) {
+											ExtSaveMap(filename);
+										}
+										break;
+									} else if (ch == 'n' || ch == 'N' || ch == 13 || ch == ' ') {
+										break;
 									}
-									fixspritesectors();   //Do this before saving!
-									updatesector(startposx,startposy,&startsectnum);
-									ExtPreSaveMap();
-									if (mapversion < 7) {
-										bad = saveoldboard(filename,&startposx,&startposy,&startposz,&startang,&startsectnum);
-									} else {
-										bad = saveboard(filename,&startposx,&startposy,&startposz,&startang,&startsectnum);
-									}
-									if (!bad) {
-										ExtSaveMap(filename);
-									}
-									break;
-								} else if (ch == 'n' || ch == 'N' || ch == 13 || ch == ' ') {
-									break;
 								}
 							}
 							clearfilenames();
