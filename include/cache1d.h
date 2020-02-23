@@ -12,7 +12,16 @@ void	allocache(void **newhandle, int newbytes, unsigned char *newlockptr);
 void	suckcache(void *suckptr);
 void	agecache(void);
 
-extern int pathsearchmode;	// 0 = gamefs mode (default), 1 = localfs mode (editor's mode)
+enum {
+	PATHSEARCH_GAME  = 0, 	// default
+	PATHSEARCH_SYSTEM = 1,
+
+	KOPEN4LOAD_ANY = 0,
+	KOPEN4LOAD_FIRSTGRP = 1,
+	KOPEN4LOAD_ANYGRP = 2,
+};
+extern int pathsearchmode;
+
 int     addsearchpath(const char *p);
 int		findfrompath(const char *fn, char **where);
 int     openfrompath(const char *fn, int flags, int mode);
