@@ -543,7 +543,7 @@ int Bcanonicalisefilename(char *filename, int removefn)
 	fnp += 2;	// skip the drive
 #endif
 	
-	return Bcorrectfilename(fnp,1);	
+	return Bcorrectfilename(fnp,removefn);
 }
 
 char *Bgetsystemdrives(void)
