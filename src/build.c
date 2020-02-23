@@ -5434,6 +5434,7 @@ void overheadeditor(void)
 							printmessage16("Board saved.");
 							Bstrcpy(boardfilename, selectedboardfilename);
 							pathsearchmode = PATHSEARCH_SYSTEM;
+							asksave = 0;
 						} else {
 							printmessage16("Board NOT saved!");
 						}
@@ -5463,6 +5464,7 @@ void overheadeditor(void)
 					if (!bad) {
 						ExtSaveMap(filename);
 						printmessage16("Board saved.");
+						asksave = 0;
 					} else {
 						printmessage16("Board NOT saved!");
 					}
@@ -5488,7 +5490,7 @@ void overheadeditor(void)
 
 							printmessage16("Save changes?");
 							showframe(1);
-							while (keystatus[1] == 0)
+							while (keystatus[1] == 0 && asksave)
 							{
 								if (handleevents()) {
 									if (quitevent) break;	// like saying no
