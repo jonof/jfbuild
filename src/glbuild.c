@@ -111,7 +111,7 @@ int glbuild_loadfunctions(void)
     INIT_PROC_SOFT(glDebugMessageCallback);
 #endif
 
-	if (err) unloadgldriver();
+	if (err) glbuild_unloadfunctions();
 	return err;
 }
 
