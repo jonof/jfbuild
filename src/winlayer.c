@@ -8,8 +8,8 @@
 #error winlayer.c is for Windows only.
 #endif
 
-#define WINVER 0x0600
-#define _WIN32_WINNT 0x0600
+#define WINVER 0x0501
+#define _WIN32_WINNT 0x0501
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -2212,7 +2212,8 @@ static BOOL CheckWinVersion(void)
 
 	// At least Windows Vista
 	if (osv.dwPlatformId != VER_PLATFORM_WIN32_NT) return TRUE;
-	if (osv.dwMajorVersion < 6) return TRUE;
+	if (osv.dwMajorVersion < 5) return TRUE;
+	if (osv.dwMajorVersion == 5 && osv.dwMinorVersion < 1) return TRUE;
 
 	return FALSE;
 }

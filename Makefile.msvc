@@ -198,10 +198,10 @@ $(SRC)\$(EDITORLIB): $(EDITOROBJS)
 
 
 game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS "/LIBPATH:$(DXROOT)\lib" $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS,5.01 "/LIBPATH:$(DXROOT)\lib" $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 build$(EXESUFFIX): $(EDITOREXEOBJS)
-	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS "/LIBPATH:$(DXROOT)\lib" $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS,5.01 "/LIBPATH:$(DXROOT)\lib" $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 # the tools
 kextract$(EXESUFFIX): $(TOOLS)\kextract.$o $(SRC)\compat.$o
