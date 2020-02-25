@@ -945,7 +945,9 @@ static void polymost_palfade(void)
 
 void polymost_nextpage(void)
 {
+#if USE_OPENGL
 	polymost_palfade();
+#endif
 
 #ifdef DEBUGGINGAIDS
 	if (polymostshowcallcounts) {
