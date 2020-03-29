@@ -40,6 +40,7 @@
 		AB4F6B7123118E7000713ACC /* polymost_fs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABE3624D2144CC9000BA44B3 /* polymost_fs.glsl */; };
 		AB4F6B7223118E7B00713ACC /* polymostaux_vs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABE362572146955700BA44B3 /* polymostaux_vs.glsl */; };
 		AB4F6B7323118E7F00713ACC /* polymostaux_fs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABE3624E2144CC9000BA44B3 /* polymostaux_fs.glsl */; };
+		AB63426D2430617A002CDE1A /* osxbits.m in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5C0A29A39C003261DC /* osxbits.m */; };
 		AB6725F90F0F8114000C7D92 /* polymosttexcache.c in Sources */ = {isa = PBXBuildFile; fileRef = AB6725F80F0F8114000C7D92 /* polymosttexcache.c */; };
 		AB6727E40F1093DC000C7D92 /* polymosttexcompress.cc in Sources */ = {isa = PBXBuildFile; fileRef = AB6727E30F1093DC000C7D92 /* polymosttexcompress.cc */; };
 		AB6728580F1096AF000C7D92 /* alpha.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB6728400F1096AF000C7D92 /* alpha.cpp */; };
@@ -108,6 +109,8 @@
 			compilerSpec = com.apple.compilers.proxy.script;
 			filePatterns = "*.glsl";
 			fileType = pattern.proxy;
+			inputFiles = (
+			);
 			isEditable = 1;
 			outputFiles = (
 				"$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).c",
@@ -868,8 +871,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				ABAE9C410F0CC83D00A528DC /* kextract.c in Sources */,
-				AB73C4EA207A50B200121BF7 /* osxbits.m in Sources */,
 				ABAE9C440F0CC85E00A528DC /* compat.c in Sources */,
+				AB73C4EA207A50B200121BF7 /* osxbits.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -879,6 +882,7 @@
 			files = (
 				ABAE9C420F0CC84100A528DC /* kgroup.c in Sources */,
 				ABAE9C4B0F0CCCC700A528DC /* compat.c in Sources */,
+				AB63426D2430617A002CDE1A /* osxbits.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

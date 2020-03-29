@@ -16,6 +16,19 @@
 		AB43D735219DAA2200718BCE /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		AB43D737219DAA3300718BCE /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
 		AB43D738219DAA3300718BCE /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		AB63425724305DAA002CDE1A /* names.h in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D650F046E6E00730EAA /* names.h */; };
+		AB63425824305DB9002CDE1A /* ascboard.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D610F046E6E00730EAA /* ascboard.map */; };
+		AB63425924305DBA002CDE1A /* boards.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D620F046E6E00730EAA /* boards.map */; };
+		AB63425A24305DBC002CDE1A /* evilal.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D630F046E6E00730EAA /* evilal.map */; };
+		AB63425B24305DC0002CDE1A /* kensig.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D640F046E6E00730EAA /* kensig.map */; };
+		AB63425C24305DC3002CDE1A /* nsnoal.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D660F046E6E00730EAA /* nsnoal.map */; };
+		AB63425D24305DC5002CDE1A /* nukeland.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D670F046E6E00730EAA /* nukeland.map */; };
+		AB63425E24305DC8002CDE1A /* names.h in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D650F046E6E00730EAA /* names.h */; };
+		AB63425F24305DCD002CDE1A /* stuff.dat in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D680F046E6E00730EAA /* stuff.dat */; };
+		AB63426924305F35002CDE1A /* arttool in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9AD60F0B308900A528DC /* arttool */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		AB63426A24305F35002CDE1A /* kextract in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9C3E0F0CC83700A528DC /* kextract */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		AB63426B24305F35002CDE1A /* kgroup in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9C400F0CC83700A528DC /* kgroup */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		AB63426C24305F35002CDE1A /* transpal in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABF1DD221BB82822007DE427 /* transpal */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		AB726D410F046BDE00730EAA /* kdmsound_sdl2.c in Sources */ = {isa = PBXBuildFile; fileRef = AB726D400F046BDE00730EAA /* kdmsound_sdl2.c */; };
 		AB73604B0A29AD5F003261DC /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601B0A29AA70003261DC /* libengine.a */; };
 		AB73605A0A29ADB5003261DC /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601B0A29AA70003261DC /* libengine.a */; };
@@ -40,6 +53,34 @@
 			proxyType = 2;
 			remoteGlobalIDString = AB3FE4550C04336F00D5DBDC;
 			remoteInfo = editorsupp;
+		};
+		AB63426024305EE4002CDE1A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = ABAE9AD10F0B307500A528DC;
+			remoteInfo = arttool;
+		};
+		AB63426224305EE4002CDE1A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = ABAE9C270F0CC80200A528DC;
+			remoteInfo = kextract;
+		};
+		AB63426424305EE4002CDE1A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = ABAE9C320F0CC81900A528DC;
+			remoteInfo = kgroup;
+		};
+		AB63426624305EE4002CDE1A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = ABD03E201A5189E00012B9D1;
+			remoteInfo = transpal;
 		};
 		AB73601A0A29AA70003261DC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -134,6 +175,49 @@
 				AB43D738219DAA3300718BCE /* SDL2.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB63424A24305C88002CDE1A /* Copy KenBuild game data */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				AB63425F24305DCD002CDE1A /* stuff.dat in Copy KenBuild game data */,
+				AB63425824305DB9002CDE1A /* ascboard.map in Copy KenBuild game data */,
+				AB63425924305DBA002CDE1A /* boards.map in Copy KenBuild game data */,
+				AB63425A24305DBC002CDE1A /* evilal.map in Copy KenBuild game data */,
+				AB63425B24305DC0002CDE1A /* kensig.map in Copy KenBuild game data */,
+				AB63425C24305DC3002CDE1A /* nsnoal.map in Copy KenBuild game data */,
+				AB63425D24305DC5002CDE1A /* nukeland.map in Copy KenBuild game data */,
+				AB63425E24305DC8002CDE1A /* names.h in Copy KenBuild game data */,
+			);
+			name = "Copy KenBuild game data";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB63425624305D9E002CDE1A /* Copy KenBuild game data */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				AB63425724305DAA002CDE1A /* names.h in Copy KenBuild game data */,
+			);
+			name = "Copy KenBuild game data";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AB63426824305EF0002CDE1A /* Copy additional editor tools */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 12;
+			files = (
+				AB63426924305F35002CDE1A /* arttool in Copy additional editor tools */,
+				AB63426A24305F35002CDE1A /* kextract in Copy additional editor tools */,
+				AB63426B24305F35002CDE1A /* kgroup in Copy additional editor tools */,
+				AB63426C24305F35002CDE1A /* transpal in Copy additional editor tools */,
+			);
+			name = "Copy additional editor tools";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -300,6 +384,7 @@
 				AB7360270A29AB08003261DC /* Sources */,
 				AB7360280A29AB08003261DC /* Frameworks */,
 				AB43D739219DAA3300718BCE /* Embed Frameworks */,
+				AB63424A24305C88002CDE1A /* Copy KenBuild game data */,
 			);
 			buildRules = (
 			);
@@ -319,12 +404,18 @@
 				AB73604D0A29AD92003261DC /* Sources */,
 				AB73604E0A29AD92003261DC /* Frameworks */,
 				AB43D736219DAA2200718BCE /* Embed Frameworks */,
+				AB63425624305D9E002CDE1A /* Copy KenBuild game data */,
+				AB63426824305EF0002CDE1A /* Copy additional editor tools */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				AB7360570A29AD99003261DC /* PBXTargetDependency */,
 				AB7360590A29AD99003261DC /* PBXTargetDependency */,
+				AB63426124305EE4002CDE1A /* PBXTargetDependency */,
+				AB63426324305EE4002CDE1A /* PBXTargetDependency */,
+				AB63426524305EE4002CDE1A /* PBXTargetDependency */,
+				AB63426724305EE4002CDE1A /* PBXTargetDependency */,
 			);
 			name = build;
 			productName = build;
@@ -469,6 +560,26 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		AB63426124305EE4002CDE1A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = arttool;
+			targetProxy = AB63426024305EE4002CDE1A /* PBXContainerItemProxy */;
+		};
+		AB63426324305EE4002CDE1A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = kextract;
+			targetProxy = AB63426224305EE4002CDE1A /* PBXContainerItemProxy */;
+		};
+		AB63426524305EE4002CDE1A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = kgroup;
+			targetProxy = AB63426424305EE4002CDE1A /* PBXContainerItemProxy */;
+		};
+		AB63426724305EE4002CDE1A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = transpal;
+			targetProxy = AB63426624305EE4002CDE1A /* PBXContainerItemProxy */;
+		};
 		AB73604A0A29AD51003261DC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = engine;

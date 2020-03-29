@@ -445,7 +445,7 @@ public:
 		outfile.close();
 
 		// replace it with the new one
-		unlink(filename_.c_str());
+		remove(filename_.c_str());
 		rename(tmpfilename.c_str(), filename_.c_str());
 
 		return 0;
