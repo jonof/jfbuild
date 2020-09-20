@@ -235,10 +235,10 @@ transpal$(EXESUFFIX): $(TOOLS)/transpal.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
 arttool$(EXESUFFIX): $(TOOLS)/arttool.$o
 	$(CXX) -o $@ $^
-wad2art$(EXESUFFIX): $(TOOLS)/wad2art.$o $(ENGINELIB)
-	$(CC) -o $@ $^ $(ENGINELIB)
-wad2map$(EXESUFFIX): $(TOOLS)/wad2map.$o $(ENGINELIB)
-	$(CC) -o $@ $^ $(ENGINELIB)
+wad2art$(EXESUFFIX): $(TOOLS)/wad2art.$o $(SRC)/pragmas.$o $(SRC)/compat.$o
+	$(CC) -o $@ $^
+wad2map$(EXESUFFIX): $(TOOLS)/wad2map.$o $(SRC)/pragmas.$o $(SRC)/compat.$o
+	$(CC) -o $@ $^
 cacheinfo$(EXESUFFIX): $(TOOLS)/cacheinfo.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
 

@@ -35,7 +35,7 @@ LIBSQUISH=libsquish
 
 flags_cl=
 flags_rc=
-!if "$(PLATFORM)" == "X64"
+!if "$(PLATFORM)" == "X64" || "$(PLATFORM)" == "x64"
 flags_rc=/d_M_AMD64
 USE_ASM=0
 !elseif "$(PLATFORM)" == "ARM"
@@ -164,7 +164,7 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
 
 {$(TOOLS)}.c{$(TOOLS)}.$o:
-	$(CC) /c $(CFLAGS) /Fo$@ $<
+	$(CC) /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
 
 {$(TOOLS)}.cc{$(TOOLS)}.$o:
 	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
@@ -205,25 +205,25 @@ build$(EXESUFFIX): $(EDITOREXEOBJS)
 
 # the tools
 kextract$(EXESUFFIX): $(TOOLS)\kextract.$o $(SRC)\compat.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 kgroup$(EXESUFFIX): $(TOOLS)\kgroup.$o $(SRC)\compat.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 transpal$(EXESUFFIX): $(TOOLS)\transpal.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 wad2map$(EXESUFFIX): $(TOOLS)\wad2map.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 wad2art$(EXESUFFIX): $(TOOLS)\wad2art.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 bin2c$(EXESUFFIX): $(TOOLS)\bin2c.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
 
 $(SRC)\version-auto.c: AlwaysBuild
-	powershell $(TOOLS)\generateversion.ps1 > $@
+	cmd /c $(TOOLS)\generateversion.cmd > $@
 
 AlwaysBuild: ;
 
