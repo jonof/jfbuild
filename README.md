@@ -39,7 +39,7 @@ Now, based on your chosen OS and compiler:
    * FreeBSD 11: `sudo pkg install gmake sdl2`
 2. Open a terminal, change into the source code directory, and compile the engine and
    test game with: `make` or `gmake` (BSD)
-3. Assuming that was successful, run the test game with: `(cd kenbuild-data; ../game)`
+3. Assuming that was successful, copy the `game` file into the `kenbuild-data` directory and then run `game` (`cp game ./kenbuild-data; cd ./kenbuild-data; ./game`)
 
 ### macOS
 
