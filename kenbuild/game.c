@@ -3850,7 +3850,7 @@ void drawscreen(short snum, int dasmoothratio)
 		{
 				//Init for screen rotation
 #if USE_POLYMOST
-			if (getrendermode() > 0) {
+			if (POLYMOST_RENDERMODE_POLYMOST()) {
 				tiltlock = screentilt;
 					// Ken loves to interpolate
 				setrollangle(oscreentilt + mulscale16(((screentilt-oscreentilt+1024)&2047)-1024,smoothratio));
@@ -3905,9 +3905,7 @@ void drawscreen(short snum, int dasmoothratio)
 				drawmasks();
 
 					//Temp horizon
-#if USE_POLYMOST
-				if (getrendermode() == 0)
-#endif
+				if (POLYMOST_RENDERMODE_CLASSIC())
 				{
 					l = scale(choriz-100,windowx2-windowx1,320)+((windowy1+windowy2)>>1);
 					begindrawing();   //{{{
@@ -4011,9 +4009,7 @@ void drawscreen(short snum, int dasmoothratio)
 			drawmasks();
 
 				//Finish for screen rotation
-#if USE_POLYMOST
-			if (getrendermode() == 0)
-#endif
+			if (POLYMOST_RENDERMODE_CLASSIC())
 			{
 				if ((tiltlock) || (detailmode))
 				{

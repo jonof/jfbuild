@@ -471,8 +471,15 @@ void   drawcircle16(int x1, int y1, int r, unsigned char col);
 #if USE_POLYMOST
 int   setrendermode(int renderer);
 int   getrendermode(void);
+# define POLYMOST_RENDERMODE_CLASSIC() (getrendermode() == 0)
+# define POLYMOST_RENDERMODE_POLYMOST() (getrendermode() > 0)
+# define POLYMOST_RENDERMODE_POLYGL() (getrendermode() == 3)
 
 void    setrollangle(int rolla);
+#else
+# define POLYMOST_RENDERMODE_CLASSIC() (1)
+# define POLYMOST_RENDERMODE_POLYMOST() (0)
+# define POLYMOST_RENDERMODE_POLYGL() (0)
 #endif
 
 #if USE_POLYMOST && USE_OPENGL
