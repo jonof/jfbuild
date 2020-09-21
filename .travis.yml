@@ -5,9 +5,14 @@ env:
     - USE_ASM=0
   jobs:
     - USE_POLYMOST=0 USE_OPENGL=0
-    - USE_POLYMOST=0 USE_OPENGL=1
     - USE_POLYMOST=1 USE_OPENGL=0
     - USE_POLYMOST=1 USE_OPENGL=1
+    - USE_POLYMOST=1 USE_OPENGL=USE_GLES2
+
+jobs:
+  exclude:
+    - if: os = windows
+      env: USE_POLYMOST=1 USE_OPENGL=USE_GLES2
 
 os:
   - linux
