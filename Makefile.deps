@@ -7,7 +7,7 @@ $(SRC)/baselayer.$o: $(SRC)/baselayer.c $(INC)/compat.h $(INC)/baselayer.h $(INC
 $(SRC)/build.$o: $(SRC)/build.c $(INC)/build.h $(INC)/pragmas.h $(INC)/compat.h $(INC)/baselayer.h $(INC)/editor.h
 $(SRC)/cache1d.$o: $(SRC)/cache1d.c $(INC)/compat.h $(INC)/cache1d.h $(INC)/pragmas.h $(INC)/baselayer.h
 $(SRC)/compat.$o: $(SRC)/compat.c $(INC)/compat.h
-$(SRC)/config.$o: $(SRC)/config.c $(INC)/compat.h $(INC)/osd.h $(INC)/editor.h
+$(SRC)/config.$o: $(SRC)/config.c $(INC)/compat.h $(INC)/editor.h $(INC)/osd.h $(INC)/scriptfile.h $(INC)/baselayer.h $(INC)/winlayer.h
 $(SRC)/crc32.$o: $(SRC)/crc32.c $(INC)/crc32.h
 $(SRC)/defs.$o: $(SRC)/defs.c $(INC)/build.h $(INC)/baselayer.h $(INC)/scriptfile.h $(INC)/compat.h
 $(SRC)/engine.$o: $(SRC)/engine.c $(INC)/compat.h $(INC)/build.h $(INC)/pragmas.h $(INC)/cache1d.h $(SRC)/a.h $(INC)/osd.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/hightile_priv.h $(SRC)/mdsprite_priv.h
@@ -48,7 +48,7 @@ $(SRC)/polymostaux_es2_vs.c: $(SRC)/polymostaux_es2_vs.glsl
 # KenBuild test game
 $(GAME)/game.$o: $(GAME)/game.c $(INC)/compat.h $(INC)/build.h $(GAME)/names.h $(INC)/pragmas.h $(INC)/cache1d.h $(GAME)/game.h $(GAME)/kdmsound.h $(INC)/osd.h $(INC)/baselayer.h
 $(GAME)/bstub.$o: $(GAME)/bstub.c $(INC)/compat.h $(INC)/build.h $(INC)/pragmas.h $(INC)/baselayer.h $(GAME)/names.h $(INC)/osd.h $(INC)/cache1d.h $(INC)/editor.h
-$(GAME)/config.$o: $(GAME)/config.c $(INC)/compat.h $(INC)/osd.h $(INC)/editor.h
+$(GAME)/config.$o: $(GAME)/config.c $(INC)/compat.h $(GAME)/game.h $(INC)/osd.h $(INC)/scriptfile.h $(INC)/baselayer.h $(INC)/winlayer.h
 $(GAME)/kdmsound.$o: $(GAME)/kdmsound.c $(GAME)/kdmsound.h $(INC)/compat.h $(INC)/pragmas.h $(INC)/cache1d.h
 $(GAME)/kdmsound_stub.$o: $(GAME)/kdmsound_stub.c
 $(GAME)/kdmsound_sdl2.$o: $(GAME)/kdmsound_sdl2.c $(GAME)/kdmsound.h

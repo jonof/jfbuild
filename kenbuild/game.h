@@ -1,5 +1,13 @@
 // game.h
 
+#define NUMOPTIONS 8
+#define NUMKEYS 20
+
+extern char option[NUMOPTIONS];
+extern int keys[NUMKEYS];
+extern int xdimgame, ydimgame, bppgame;
+extern int forcesetup;
+
 void	operatesector(short dasector);
 void	operatesprite(short dasprite);
 int	changehealth(short snum, short deltahealth);

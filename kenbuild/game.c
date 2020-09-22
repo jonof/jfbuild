@@ -109,16 +109,14 @@ static int screentilt = 0, oscreentilt = 0;
 static int fvel, svel, avel;
 static int fvel2, svel2, avel2;
 
-#define NUMOPTIONS 8
-#define NUMKEYS 20
-unsigned char option[NUMOPTIONS] = {0,0,1,0,0,0,1,(4<<4)|1|2|4};
-unsigned char keys[NUMKEYS] =
+char option[NUMOPTIONS] = {1,1,1,0,0,0,1,(4<<4)|1|2|4};
+int keys[NUMKEYS] =
 {
 	0xc8,0xd0,0xcb,0xcd,0x2a,0x9d,0x1d,0x39,
 	0x1e,0x2c,0xd1,0xc9,0x33,0x34,
 	0x9c,0x1c,0xd,0xc,0xf,0x2b
 };
-int xdimgame = 640, ydimgame = 480, bppgame = 8, xdim2d = 640, ydim2d = 480;
+int xdimgame = 640, ydimgame = 480, bppgame = 8;
 int forcesetup = 1;
 
 static int digihz[8] = {6000,8000,11025,16000,22050,32000,44100,48000};
