@@ -1,11 +1,5 @@
 # Build Makefile for GNU Make
 
-# Notes:
-#  As of 6 July 2005, the engine should handle optimisations being enabled.
-#  If things seem to be going wrong, lower or disable optimisations, then
-#  try again. If things are still going wrong, call me.
-#
-
 # Create Makefile.user yourself to provide your own overrides
 # for configurable values
 -include Makefile.user
@@ -28,8 +22,7 @@ USE_ASM ?= 1
 RELEASE?=1
 EFENCE?=0
 
-# build locations - OBJ gets overridden to the game-specific objects dir
-OBJ?=obj.gnu
+# source locations
 SRC=src
 GAME=kenbuild
 TOOLS=tools
@@ -315,9 +308,3 @@ $(SRC)/version-auto.c:
 	printf "const char *build_version = \"%s\";\n" "$(shell git describe --always || echo git error)" > $@
 	echo "const char *build_date = __DATE__;" >> $@
 	echo "const char *build_time = __TIME__;" >> $@
-
-.PHONY: fixlineends
-fixlineends:
-	for a in `find . -type f \( -name '*.c' -o -name '*.h' -o -name 'Makefile*' \) \! -path '*/.svn/*'`; do \
-		echo Fixing $$a && tr -d "\015" < $$a > $$a.fix && mv $$a.fix $$a; \
-	done
