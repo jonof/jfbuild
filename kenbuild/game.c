@@ -403,9 +403,9 @@ int app_main(int argc, char const * const argv[])
     int startretval = STARTWIN_RUN;
     struct startwin_settings settings;
 
-#if defined(PREFIX)
+#if defined(DATADIR)
     {
-        const char *prefixdir = PREFIX;
+        const char *prefixdir = DATADIR;
         if (prefixdir && prefixdir[0]) {
             addsearchpath(prefixdir);
         }
