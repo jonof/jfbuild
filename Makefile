@@ -25,6 +25,7 @@ EFENCE?=0
 # source locations
 SRC=src
 GAME=kenbuild
+GAMEDATA=kenbuild-data
 TOOLS=tools
 INC=include
 
@@ -201,7 +202,7 @@ endif
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX) arttool$(EXESUFFIX)
 BUILDUTILS=generatesdlappicon$(EXESUFFIX) bin2c$(EXESUFFIX)
 
-all: game$(EXESUFFIX) build$(EXESUFFIX)
+all: enginelib editorlib $(GAMEDATA)/game$(EXESUFFIX) $(GAMEDATA)/build$(EXESUFFIX)
 utils: $(UTILS)
 enginelib: $(ENGINELIB)
 editorlib: $(EDITORLIB)
@@ -214,10 +215,10 @@ $(EDITORLIB): $(EDITOROBJS)
 	$(AR) rc $@ $^
 	$(RANLIB) $@
 
-game$(EXESUFFIX): $(GAMEEXEOBJS)
+$(GAMEDATA)/game$(EXESUFFIX): $(GAMEEXEOBJS)
 	$(CXX) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(GAMELIBS) $(LIBS)
 
-build$(EXESUFFIX): $(EDITOREXEOBJS)
+$(GAMEDATA)/build$(EXESUFFIX): $(EDITOREXEOBJS)
 	$(CXX) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(LIBS)
 
 kextract$(EXESUFFIX): $(TOOLS)/kextract.$o $(ENGINELIB)
@@ -300,7 +301,7 @@ endif
 veryclean: clean
 ifeq ($(PLATFORM),DARWIN)
 else
-	-rm -f $(ENGINELIB) $(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS) $(BUILDUTILS)
+	-rm -f $(ENGINELIB) $(EDITORLIB) $(GAMEDATA)/game$(EXESUFFIX) $(GAMEDATA)/build$(EXESUFFIX) $(UTILS) $(BUILDUTILS)
 endif
 
 .PHONY: $(SRC)/version-auto.c

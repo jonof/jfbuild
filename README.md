@@ -42,7 +42,7 @@ Now, based on your chosen OS and compiler:
    * FreeBSD 11: `sudo pkg install gtk3`
 3. Open a terminal, change into the source code directory, and compile the engine and
    test game with: `make` or `gmake` (BSD)
-4. Assuming that was successful, run the test game with: `(cd kenbuild-data; ../game)`
+4. Assuming that was successful, run the test game with: `./kenbuild-data/game`
 
 ### macOS
 
@@ -66,7 +66,7 @@ Now, based on your chosen OS and compiler:
    or _VS2015 x86 Native Tools Command Prompt_.
 3. Change into the JFBuild source code folder, then compile the engine and test game
    with: `nmake /f Makefile.msvc`
-5. Assuming success, run the test game with: `cd kenbuild-data & ..\game`
+5. Assuming success, run the test game with: `kenbuild-data\game`
 
 Compilation options
 -------------------
