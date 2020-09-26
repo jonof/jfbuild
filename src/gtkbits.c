@@ -22,6 +22,12 @@ extern void startgtk_unregister_resource (void);
 
 int gtkenabled = 0;
 
+void wmgtk_setapptitle(const char *name)
+{
+	if (!gtkenabled) return;
+	g_set_application_name(name);
+}
+
 int wmgtk_msgbox(char *name, char *msg)
 {
 	GtkWidget *dialog;

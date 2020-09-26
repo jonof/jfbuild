@@ -63,6 +63,9 @@ const char **_buildargv = NULL;
 
 char quitevent=0, appactive=1;
 
+static char apptitle[256] = "Build Engine";
+static char wintitle[256] = "";
+
 // video
 static SDL_Window *sdl_window;
 #ifdef SDLAYER_USE_RENDERER
@@ -127,6 +130,10 @@ int wm_msgbox(const char *name, const char *fmt, ...)
 	int rv;
 	va_list va;
 
+	if (!name) {
+		name = apptitle;
+	}
+
 	va_start(va,fmt);
 	rv = vasprintf(&buf,fmt,va);
 	va_end(va);
@@ -160,6 +167,10 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 	char *buf = NULL, ch;
 	int rv;
 	va_list va;
+
+	if (!name) {
+		name = apptitle;
+	}
 
 	va_start(va,fmt);
 	rv = vasprintf(&buf,fmt,va);
@@ -238,12 +249,21 @@ void wm_setapptitle(const char *name)
 		Bstrncpy(apptitle, name, sizeof(apptitle)-1);
 		apptitle[ sizeof(apptitle)-1 ] = 0;
 	}
+#if defined HAVE_GTK
+	wmgtk_setapptitle(apptitle);
+#endif
+}
 
-	if (sdl_window) {
-		SDL_SetWindowTitle(sdl_window, apptitle);
+void wm_setwindowtitle(const char *name)
+{
+	if (name) {
+		Bstrncpy(wintitle, name, sizeof(wintitle)-1);
+		wintitle[ sizeof(wintitle)-1 ] = 0;
 	}
 
-	startwin_settitle(apptitle);
+	if (sdl_window) {
+		SDL_SetWindowTitle(sdl_window, wintitle);
+	}
 }
 
 
@@ -975,7 +995,7 @@ int setvideomode(int x, int y, int c, int fs)
 			else flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 		}
 
-		sdl_window = SDL_CreateWindow(apptitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
+		sdl_window = SDL_CreateWindow(wintitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
 		if (!sdl_window) {
 			buildprintf("Error creating window: %s\n", SDL_GetError());
 

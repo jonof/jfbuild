@@ -373,7 +373,6 @@ int startwin_settitle(const char *title)
     if (startwin) {
         gtk_window_set_title(startwin, title);
     }
-    g_set_application_name(title);
 
     return 0;
 }

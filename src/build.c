@@ -365,6 +365,8 @@ int app_main(int argc, char const * const argv[])
 	for(i=0;i<MAXWALLS;i++) wall[i].extra = -1;
 	for(i=0;i<MAXSPRITES;i++) sprite[i].extra = -1;
 
+	wm_setwindowtitle("(new board)");
+
 	ExtPreLoadMap();
 	j = pathsearchmode == PATHSEARCH_GAME && grponlymode ? KOPEN4LOAD_ANYGRP : KOPEN4LOAD_ANY;
 	i = loadboard(boardfilename,j,&posx,&posy,&posz,&ang,&cursectnum);
@@ -5115,6 +5117,8 @@ void overheadeditor(void)
 							initspritelists();
 							Bstrcpy(boardfilename,"newboard.map");
 							mapversion = 7;
+
+							wm_setwindowtitle("(new board)");
 							break;
 						} else if (ch == 'N' || ch == 'n' || ch == 13 || ch == ' ') {
 							break;

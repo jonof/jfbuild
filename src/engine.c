@@ -559,7 +559,6 @@ static int bakrendmode,baktile;
 
 int totalclocklock;
 
-char apptitle[256] = "Build Engine";
 palette_t curpalette[256];			// the current palette, unadjusted for brightness or tint
 palette_t curpalettefaded[256];		// the current palette, adjusted for brightness and tint (ie. what gets sent to the card)
 palette_t palfadergb = { 0,0,0,0 };

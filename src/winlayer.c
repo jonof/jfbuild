@@ -51,6 +51,8 @@ static BOOL window_class_registered = FALSE;
 static HANDLE instanceflag = NULL;
 
 int    backgroundidle = 1;
+static char apptitle[256] = "Build Engine";
+static char wintitle[256] = "";
 
 static WORD sysgamma[3][256];
 extern int gammabrightness;
@@ -100,6 +102,7 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover);
 static BOOL RegisterWindowClass(void);
 static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refresh);
 static void DestroyAppWindow(void);
+static void UpdateAppWindowTitle(void);
 
 static void shutdownvideo(void);
 
@@ -265,7 +268,7 @@ int wm_filechooser(const char *initialdir, const char *initialfile, const char *
 }
 
 //
-// wm_setapptitle() -- changes the window title
+// wm_setapptitle() -- changes the application title
 //
 void wm_setapptitle(const char *name)
 {
@@ -274,8 +277,21 @@ void wm_setapptitle(const char *name)
 		apptitle[ sizeof(apptitle)-1 ] = 0;
 	}
 
-	if (hWindow) SetWindowText(hWindow, apptitle);
+	UpdateAppWindowTitle();
 	startwin_settitle(apptitle);
+}
+
+//
+// wm_setwindowtitle() -- changes the rendering window title
+//
+void wm_setwindowtitle(const char *name)
+{
+	if (name) {
+		Bstrncpy(wintitle, name, sizeof(wintitle)-1);
+		wintitle[ sizeof(wintitle)-1 ] = 0;
+	}
+
+	UpdateAppWindowTitle();
 }
 
 //
@@ -2053,7 +2069,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 	}
 	SetWindowPos(hWindow, HWND_TOP, x, y, w, h, 0);
 
-	SetWindowText(hWindow, apptitle);
+	UpdateAppWindowTitle();
 	ShowWindow(hWindow, SW_SHOWNORMAL);
 	SetForegroundWindow(hWindow);
 	SetFocus(hWindow);
@@ -2179,6 +2195,24 @@ static void DestroyAppWindow(void)
 	if (hWindow) {
 		DestroyWindow(hWindow);
 		hWindow = NULL;
+	}
+}
+
+//
+// UpdateAppWindowTitle() -- sets the title of the application window
+//
+static void UpdateAppWindowTitle(void)
+{
+	char tmp[256+3+256+1];		//sizeof(wintitle) + " - " + sizeof(apptitle) + '\0'
+
+	if (!hWindow) return;
+
+	if (wintitle[0]) {
+		snprintf(tmp, sizeof(tmp), "%s - %s", wintitle, apptitle);
+		tmp[sizeof(tmp)-1] = 0;
+		SetWindowText(hWindow, tmp);
+	} else {
+		SetWindowText(hWindow, apptitle);
 	}
 }
 

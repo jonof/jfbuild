@@ -487,7 +487,7 @@ int app_main(int argc, char const * const argv[])
 
 	initgroupfile("stuff.dat");
 	if (initengine()) {
-		wm_msgbox(apptitle, "There was a problem initialising the engine: %s.\n", engineerrstr);
+		wm_msgbox(NULL, "There was a problem initialising the engine: %s.\n", engineerrstr);
 		return -1;
 	}
 
@@ -1179,6 +1179,8 @@ void prepareboard(char *daboardfilename)
 		exit(0);
 	} else {
 		char tempfn[BMAX_PATH + 1], *fp;
+
+		wm_setwindowtitle(daboardfilename);
 
 		strncpy(tempfn, daboardfilename, BMAX_PATH);
 		tempfn[BMAX_PATH] = 0;

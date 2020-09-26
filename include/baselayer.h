@@ -145,6 +145,7 @@ int wm_filechooser(const char *initialdir, const char *initialfile, const char *
 
 int wm_idle(void *);
 void wm_setapptitle(const char *name);
+void wm_setwindowtitle(const char *name);
 
 #if USE_OPENGL
 int loadgldriver(const char *driver);   // or NULL for platform default

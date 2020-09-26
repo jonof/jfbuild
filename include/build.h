@@ -258,7 +258,6 @@ extern unsigned int drawlinepat;
 
 extern void faketimerhandler(void);
 
-extern char apptitle[256];
 typedef struct {
 	unsigned char r,g,b,f;
 } palette_t;
