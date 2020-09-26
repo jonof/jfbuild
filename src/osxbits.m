@@ -37,36 +37,37 @@ char *osx_getsupportdir(int global)
     return NULL;
 }
 
-char * wmosx_filechooser(const char *initialdir, const char *type, int foropen)
+char * wmosx_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice)
 {
     NSSavePanel *panel = nil;
     NSModalResponse resp;
     NSArray *filetypes = [[NSArray alloc] initWithObjects:[NSString stringWithUTF8String:type], nil];
-    NSURL *initialurl = [NSURL fileURLWithPath:[NSString stringWithUTF8String:initialdir]];
-    char * ret;
+    NSURL *initialdirurl = [NSURL fileURLWithPath:[NSString stringWithUTF8String:initialdir]];
+
+    *choice = NULL;
 
     if (foropen) {
         panel = [NSOpenPanel openPanel];    // Inherits from NSSavePanel.
     } else {
         panel = [NSSavePanel savePanel];
+        if (initialfile) {
+            [panel setNameFieldStringValue:[NSString stringWithUTF8String:initialfile]];
+        }
     }
     [panel setAllowedFileTypes:filetypes];
-    [panel setDirectoryURL:[initialurl baseURL]];
-    [panel setNameFieldStringValue:[initialurl lastPathComponent]];
+    [panel setDirectoryURL:initialdirurl];
 
     resp = [panel runModal];
     if (resp == NSFileHandlingPanelOKButton) {
         NSURL *file = [panel URL];
         if ([file isFileURL]) {
-            ret = strdup([[file path] UTF8String]);
+            *choice = strdup([[file path] UTF8String]);
         }
-    } else {
-        ret = strdup("");
     }
 
     [panel release];
     [filetypes release];
-    [initialurl release];
+    [initialdirurl release];
 
-    return ret;
+    return resp == NSFileHandlingPanelOKButton ? 1 : 0;
 }

@@ -227,21 +227,23 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 //
 // wm_filechooser() -- display a file selector dialogue box
 //
-char * wm_filechooser(const char *initialdir, const char *type, int foropen)
+int wm_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice)
 {
 	OPENFILENAME ofn;
 	char filter[100], *filterp = filter;
-	char filename[BMAX_PATH+1];
+	char filename[BMAX_PATH+1] = "";
 
-	if (strlen(initialdir) >= sizeof(filename)) initialdir = "";
+	*choice = NULL;
+
+	if (!foropen && initialfile) {
+		strcpy(filename, initialfile);
+	}
 
 	// ext Files\0*.ext\0\0
 	memset(filter, 0, sizeof(filter));
 	sprintf(filterp, "%s Files", type);
 	filterp += strlen(filterp) + 1;
 	sprintf(filterp, "*.%s", type);
-
-	strcpy(filename, initialdir);
 
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(OPENFILENAME);
@@ -250,13 +252,15 @@ char * wm_filechooser(const char *initialdir, const char *type, int foropen)
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFile = filename;
 	ofn.nMaxFile = sizeof(filename);
+	ofn.lpstrInitialDir = initialdir;
 	ofn.Flags = OFN_DONTADDTORECENT | OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
 	ofn.lpstrDefExt = type;
 
 	if (foropen ? GetOpenFileName(&ofn) : GetSaveFileName(&ofn)) {
-		return strdup(filename);
+		*choice = strdup(filename);
+		return 1;
 	} else {
-		return strdup("");
+		return 0;
 	}
 }
 

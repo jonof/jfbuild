@@ -5125,38 +5125,42 @@ void overheadeditor(void)
 				}
 				else if (ch == 'l' || ch == 'L' || ch == 'g' || ch == 'G')  //L and G
 				{
-					char * filename = NULL, *initialfile = NULL;
-
 					bad = 0;
 					printmessage16("Load board...");
 					showframe(1);
 
+					strcpy(selectedboardfilename, boardfilename);
 					if (ch == 'g' || ch == 'G') {
-						strcpy(selectedboardfilename, boardfilename);
 						i = menuselect(PATHSEARCH_GAME);
 					} else {
+						char * filename = NULL, *initialdir = NULL, *initialfile = NULL;
+						int filer;
+
+						initialfile = findfilename(selectedboardfilename);
+						if (pathsearchmode == PATHSEARCH_GAME || initialfile == selectedboardfilename) {
+							initialdir = "";
+						} else {
+							initialdir = selectedboardfilename;
+							*(initialfile-1) = 0;
+						}
 						while (1) {
-							initialfile = boardfilename;
-							if (pathsearchmode == PATHSEARCH_GAME) {
-								initialfile = findfilename(initialfile);
-							}
-							filename = wm_filechooser(initialfile, "map", 1);
-							if (filename) {
-								if (strlen(filename)+1 > sizeof(selectedboardfilename)) {
+							filer = wm_filechooser(initialdir, initialfile, "map", 1, &filename);
+							if (filer >= 0) {
+								if (filename && strlen(filename)+1 > sizeof(selectedboardfilename)) {
 									printmessage16("File path is too long.");
 									showframe(1);
 									free(filename);
 									continue;
 								}
 
-								if (!filename[0]) {
+								if (filer == 0 || !filename) {
 									i = -1;
 								} else {
 									strcpy(selectedboardfilename, filename);
+									free(filename);
 									i = 0;
 									pathsearchmode = PATHSEARCH_SYSTEM;
 								}
-								free(filename);
 							} else {
 								// Fallback behaviour.
 								strcpy(selectedboardfilename, boardfilename);
@@ -5329,33 +5333,38 @@ void overheadeditor(void)
 				}
 				else if (ch == 'a' || ch == 'A')  //A
 				{
-					char * filename = NULL, *initialfile = NULL;
+					char * filename = NULL, *initialdir = NULL, *initialfile = NULL;
+					int filer;
 
 					bad = 0;
 					printmessage16("Save board as...");
 					showframe(1);
 
+					strcpy(selectedboardfilename, boardfilename);
+					initialfile = findfilename(selectedboardfilename);
+					if (pathsearchmode == PATHSEARCH_GAME || initialfile == selectedboardfilename) {
+						initialdir = "";
+					} else {
+						initialdir = selectedboardfilename;
+						*(initialfile-1) = 0;
+					}
 					while (1) {
-						initialfile = boardfilename;
-						if (pathsearchmode == PATHSEARCH_GAME) {
-							initialfile = findfilename(initialfile);
-						}
-						filename = wm_filechooser(initialfile, "map", 0);
-						if (filename) {
-							if (strlen(filename)+1 > sizeof(selectedboardfilename)) {
+						filer = wm_filechooser(initialdir, initialfile, "map", 0, &filename);
+						if (filer >= 0) {
+							if (filename && strlen(filename)+1 > sizeof(selectedboardfilename)) {
 								printmessage16("File path is too long.");
 								showframe(1);
 								free(filename);
 								continue;
 							}
 
-							if (!filename[0]) {
+							if (filer == 0 || !filename) {
 								bad = 1;	// Cancel.
 							} else {
 								strcpy(selectedboardfilename, filename);
+								free(filename);
 								bad = 2;	// OK.
 							}
-							free(filename);
 							filename = NULL;
 						} else {
 							// Fallback behaviour.

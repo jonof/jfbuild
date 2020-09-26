@@ -61,6 +61,54 @@ int wmgtk_ynbox(char *name, char *msg)
 	return 0;
 }
 
+int wmgtk_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice)
+{
+	GtkWidget *dialog;
+	GtkFileChooserAction action;
+	const char *title;
+	gint r;
+
+	GtkFileFilter *filter;
+	char typepat[20];
+
+	*choice = NULL;
+	if (!gtkenabled) return -1;
+
+	if (foropen) {
+		action = GTK_FILE_CHOOSER_ACTION_OPEN;
+		title = "_Open";
+	} else {
+		action = GTK_FILE_CHOOSER_ACTION_SAVE;
+		title = "_Save";
+	}
+	dialog = gtk_file_chooser_dialog_new(title + 1, NULL, action,
+		"_Cancel", GTK_RESPONSE_CANCEL,
+		title, GTK_RESPONSE_ACCEPT,
+		NULL);
+
+	if (!foropen && initialfile) {
+		gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), initialfile);
+	}
+
+	filter = gtk_file_filter_new();
+	sprintf(typepat, "*.%s", type);
+	gtk_file_filter_add_pattern(filter, typepat);
+	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+	r = gtk_dialog_run(GTK_DIALOG(dialog));
+	if (r == GTK_RESPONSE_ACCEPT) {
+		GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
+		char *fn = gtk_file_chooser_get_filename(chooser);
+		if (fn) {
+			*choice = strdup(fn);
+			g_free(fn);
+		}
+	}
+	gtk_widget_destroy(dialog);
+
+	return r == GTK_RESPONSE_ACCEPT ? 1 : 0;
+}
+
 void wmgtk_init(int *argc, char ***argv)
 {
 	GdkPixbuf *appicon = NULL;

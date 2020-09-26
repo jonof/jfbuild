@@ -204,21 +204,25 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 	return rv;
 }
 
-char * wm_filechooser(const char *initialdir, const char *type, int foropen)
+int wm_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice)
 {
-#if defined __APPLE__
-    char *rv;
+#if defined __APPLE__ || defined HAVE_GTK
+    int rv;
     if (mouseacquired && moustat) {
         SDL_SetRelativeMouseMode(SDL_FALSE);
     }
-    rv = wmosx_filechooser(initialdir, type, foropen);
+#if defined __APPLE__
+    rv = wmosx_filechooser(initialdir, initialfile, type, foropen, choice);
+#elif defined HAVE_GTK
+    rv = wmgtk_filechooser(initialdir, initialfile, type, foropen, choice);
+#endif
     SDL_RaiseWindow(sdl_window);
     if (mouseacquired && moustat) {
         SDL_SetRelativeMouseMode(SDL_TRUE);
     }
     return rv;
 #endif
-	return NULL;
+	return -1;
 }
 
 int wm_idle(void *ptr)

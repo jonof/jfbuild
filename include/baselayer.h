@@ -135,11 +135,13 @@ int setgamma(float gamma);
 int wm_msgbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 int wm_ynbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 
-// initialdir - the initial directory and filename
+// initialdir - the initial directory
+// initialfile - the initial filename
 // type - the file extension to choose (e.g. "map")
 // foropen - boolean true, or false if for saving
-// Returns a string to be free()'d when done. "" means cancel. NULL if not supported.
-char * wm_filechooser(const char *initialdir, const char *type, int foropen);
+// choice - the file chosen by the user to be free()'d when done
+// Returns -1 if not supported, 0 if cancelled, 1 if accepted
+int wm_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice);
 
 int wm_idle(void *);
 void wm_setapptitle(const char *name);
