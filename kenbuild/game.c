@@ -403,11 +403,11 @@ int app_main(int argc, char const * const argv[])
     int startretval = STARTWIN_RUN;
     struct startwin_settings settings;
 
-#if defined(PREFIX)
+#if defined(DATADIR)
     {
-        const char *prefixdir = PREFIX;
-        if (prefixdir && prefixdir[0]) {
-            addsearchpath(prefixdir);
+        const char *datadir = DATADIR;
+        if (datadir && datadir[0]) {
+            addsearchpath(datadir);
         }
     }
 #endif
