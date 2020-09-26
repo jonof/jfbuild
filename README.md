@@ -36,10 +36,13 @@ Now, based on your chosen OS and compiler:
 
 1. Install the compiler toolchain and SDL2 development packages, e.g.
    * Debian 9: `sudo apt-get install build-essential libsdl2-dev`
-   * FreeBSD 11: `sudo pkg install gmake sdl2`
-2. Open a terminal, change into the source code directory, and compile the engine and
+   * FreeBSD 11: `sudo pkg install gmake sdl2 pkgconf`
+2. Install GTK+ 3 development packages if you want launch windows and editor file choosers, e.g.
+   * Debian 9: `sudo apt-get install libgtk-3-dev`
+   * FreeBSD 11: `sudo pkg install gtk3`
+3. Open a terminal, change into the source code directory, and compile the engine and
    test game with: `make` or `gmake` (BSD)
-3. Assuming that was successful, run the test game with: `(cd kenbuild-data; ../game)`
+4. Assuming that was successful, run the test game with: `(cd kenbuild-data; ../game)`
 
 ### macOS
 
@@ -79,9 +82,10 @@ These options are available:
  * `USE_POLYMOST=1` – enable the true 3D renderer.
  * `USE_POLYMOST=0` – disable the true 3D renderer.
  * `USE_OPENGL=1` – enable use of OpenGL 2.0 acceleration.
- * `USE_OPENGL=USE_GL2` – enable use of OpenGL 2.0 acceleration.
- * `USE_OPENGL=USE_GLES2` – enable use of OpenGL ES 2.0 acceleration.
+ * `USE_OPENGL=USE_GL2` – enable use of OpenGL 2.0 acceleration. (GCC/clang syntax.)
+ * `USE_OPENGL=USE_GLES2` – enable use of OpenGL ES 2.0 acceleration. (GCC/clang syntax.)
  * `USE_OPENGL=0` – disable use of OpenGL acceleration.
+ * `WITHOUT_GTK=1` – disable use of GTK+ to provide launch windows and load/save file choosers.
 
 Test game configuration
 -----------------------

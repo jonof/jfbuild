@@ -26,6 +26,7 @@ addons:
   apt:
     packages:
       - libsdl2-dev
+      - libgtk-3-dev
 
 before_script:
   - |
