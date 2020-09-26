@@ -20,6 +20,7 @@ RELEASE=1
 
 SRC=src
 GAME=kenbuild
+GAMEDATA=kenbuild-data
 TOOLS=tools
 INC=include
 
@@ -184,7 +185,7 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 # TARGETS
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2map$(EXESUFFIX) wad2map$(EXESUFFIX)
 
-all: game$(EXESUFFIX) build$(EXESUFFIX) ;
+all: enginelib editorlib $(GAMEDATA)\game$(EXESUFFIX) $(GAMEDATA)\build$(EXESUFFIX) ;
 utils: $(UTILS) ;
 
 enginelib: $(SRC)\$(ENGINELIB) ;
@@ -196,10 +197,10 @@ $(SRC)\$(EDITORLIB): $(EDITOROBJS)
 	lib /out:$@ /nologo $**
 
 
-game$(EXESUFFIX): $(GAMEEXEOBJS)
+$(GAMEDATA)\game$(EXESUFFIX): $(GAMEEXEOBJS)
 	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS "/LIBPATH:$(DXROOT)\lib" $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
-build$(EXESUFFIX): $(EDITOREXEOBJS)
+$(GAMEDATA)\build$(EXESUFFIX): $(EDITOREXEOBJS)
 	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS "/LIBPATH:$(DXROOT)\lib" $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 # the tools
@@ -233,5 +234,5 @@ AlwaysBuild: ;
 clean:
 	-del /q $(ENGINEOBJS) $(LIBSQUISHOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS)
 veryclean: clean
-	-del /q $(SRC)\$(ENGINELIB) $(SRC)\$(EDITORLIB) game$(EXESUFFIX) build$(EXESUFFIX) $(UTILS)
+	-del /q $(SRC)\$(ENGINELIB) $(SRC)\$(EDITORLIB) $(GAMEDATA)\game$(EXESUFFIX) $(GAMEDATA)\build$(EXESUFFIX) $(UTILS)
 
