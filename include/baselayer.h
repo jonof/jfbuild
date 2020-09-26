@@ -140,6 +140,8 @@ int wm_ynbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 // foropen - boolean true, or false if for saving
 // Returns a string to be free()'d when done. "" means cancel. NULL if not supported.
 char * wm_filechooser(const char *initialdir, const char *type, int foropen);
+
+int wm_idle(void *);
 void wm_setapptitle(const char *name);
 
 #if USE_OPENGL

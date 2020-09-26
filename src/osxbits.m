@@ -37,7 +37,7 @@ char *osx_getsupportdir(int global)
     return NULL;
 }
 
-char * osx_filechooser(const char *initialdir, const char *type, int foropen)
+char * wmosx_filechooser(const char *initialdir, const char *type, int foropen)
 {
     NSSavePanel *panel = nil;
     NSModalResponse resp;

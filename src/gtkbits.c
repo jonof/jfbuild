@@ -22,7 +22,7 @@ extern void startgtk_unregister_resource (void);
 
 int gtkenabled = 0;
 
-int gtkbuild_msgbox(char *name, char *msg)
+int wmgtk_msgbox(char *name, char *msg)
 {
 	GtkWidget *dialog;
 
@@ -40,7 +40,7 @@ int gtkbuild_msgbox(char *name, char *msg)
 	return 1;
 }
 
-int gtkbuild_ynbox(char *name, char *msg)
+int wmgtk_ynbox(char *name, char *msg)
 {
 	int r;
 	GtkWidget *dialog;
@@ -61,7 +61,7 @@ int gtkbuild_ynbox(char *name, char *msg)
 	return 0;
 }
 
-void gtkbuild_init(int *argc, char ***argv)
+void wmgtk_init(int *argc, char ***argv)
 {
 	GdkPixbuf *appicon = NULL;
 	GError *error = NULL;
@@ -82,11 +82,18 @@ void gtkbuild_init(int *argc, char ***argv)
 	}
 }
 
-void gtkbuild_exit(void)
+void wmgtk_exit(void)
 {
 	if (!gtkenabled) {
 		return;
 	}
 
     startgtk_unregister_resource();
+}
+
+int wmgtk_idle(void *ptr)
+{
+	if (!gtkenabled) return 0;
+	gtk_main_iteration_do(FALSE);
+	return 0;
 }

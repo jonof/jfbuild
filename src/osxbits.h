@@ -5,6 +5,6 @@ char *osx_gethomedir(void);
 char *osx_getappdir(void);
 char *osx_getsupportdir(int global);
 
-char * osx_filechooser(const char *initialdir, const char *type, int foropen);
+char * wmosx_filechooser(const char *initialdir, const char *type, int foropen);
 
 #endif

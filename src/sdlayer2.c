@@ -137,7 +137,7 @@ int wm_msgbox(const char *name, const char *fmt, ...)
 		rv = 0;
 
 #if defined HAVE_GTK
-		if (gtkbuild_msgbox(name, buf) >= 0) {
+		if (wmgtk_msgbox(name, buf) >= 0) {
 			rv = 1;
 			break;
 		}
@@ -185,7 +185,7 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 		rv = 0;
 
 #if defined HAVE_GTK
-		if ((rv = gtkbuild_ynbox(name, buf)) >= 0) {
+		if ((rv = wmgtk_ynbox(name, buf)) >= 0) {
 			break;
 		}
 #endif
@@ -211,7 +211,7 @@ char * wm_filechooser(const char *initialdir, const char *type, int foropen)
     if (mouseacquired && moustat) {
         SDL_SetRelativeMouseMode(SDL_FALSE);
     }
-    rv = osx_filechooser(initialdir, type, foropen);
+    rv = wmosx_filechooser(initialdir, type, foropen);
     SDL_RaiseWindow(sdl_window);
     if (mouseacquired && moustat) {
         SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -219,6 +219,13 @@ char * wm_filechooser(const char *initialdir, const char *type, int foropen)
     return rv;
 #endif
 	return NULL;
+}
+
+int wm_idle(void *ptr)
+{
+#if defined HAVE_GTK
+    return wmgtk_idle(ptr);
+#endif
 }
 
 void wm_setapptitle(const char *name)
@@ -259,7 +266,7 @@ int main(int argc, char *argv[])
 	}
 
 #ifdef HAVE_GTK
-	gtkbuild_init(&argc, &argv);
+	wmgtk_init(&argc, &argv);
 #endif
 
 #ifdef __APPLE__
@@ -292,7 +299,7 @@ int main(int argc, char *argv[])
 
 	startwin_close();
 #ifdef HAVE_GTK
-	gtkbuild_exit();
+	wmgtk_exit();
 #endif
 
 	SDL_Quit();
@@ -361,6 +368,7 @@ void initputs(const char *str)
 {
 	startwin_puts(str);
 	startwin_idle(NULL);
+	wm_idle(NULL);
 }
 
 
@@ -1500,6 +1508,7 @@ int handleevents(void)
 
 	sampletimer();
 	startwin_idle(NULL);
+	wm_idle(NULL);
 #undef SetKey
 
 	firstcall = 0;
