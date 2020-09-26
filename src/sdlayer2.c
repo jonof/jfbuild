@@ -63,6 +63,9 @@ const char **_buildargv = NULL;
 
 char quitevent=0, appactive=1;
 
+static char apptitle[256] = "Build Engine";
+static char wintitle[256] = "";
+
 // video
 static SDL_Window *sdl_window;
 #ifdef SDLAYER_USE_RENDERER
@@ -127,6 +130,10 @@ int wm_msgbox(const char *name, const char *fmt, ...)
 	int rv;
 	va_list va;
 
+	if (!name) {
+		name = apptitle;
+	}
+
 	va_start(va,fmt);
 	rv = vasprintf(&buf,fmt,va);
 	va_end(va);
@@ -137,7 +144,7 @@ int wm_msgbox(const char *name, const char *fmt, ...)
 		rv = 0;
 
 #if defined HAVE_GTK
-		if (gtkbuild_msgbox(name, buf) >= 0) {
+		if (wmgtk_msgbox(name, buf) >= 0) {
 			rv = 1;
 			break;
 		}
@@ -160,6 +167,10 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 	char *buf = NULL, ch;
 	int rv;
 	va_list va;
+
+	if (!name) {
+		name = apptitle;
+	}
 
 	va_start(va,fmt);
 	rv = vasprintf(&buf,fmt,va);
@@ -185,7 +196,7 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 		rv = 0;
 
 #if defined HAVE_GTK
-		if ((rv = gtkbuild_ynbox(name, buf)) >= 0) {
+		if ((rv = wmgtk_ynbox(name, buf)) >= 0) {
 			break;
 		}
 #endif
@@ -204,21 +215,32 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 	return rv;
 }
 
-char * wm_filechooser(const char *initialdir, const char *type, int foropen)
+int wm_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice)
 {
-#if defined __APPLE__
-    char *rv;
+#if defined __APPLE__ || defined HAVE_GTK
+    int rv;
     if (mouseacquired && moustat) {
         SDL_SetRelativeMouseMode(SDL_FALSE);
     }
-    rv = osx_filechooser(initialdir, type, foropen);
+#if defined __APPLE__
+    rv = wmosx_filechooser(initialdir, initialfile, type, foropen, choice);
+#elif defined HAVE_GTK
+    rv = wmgtk_filechooser(initialdir, initialfile, type, foropen, choice);
+#endif
     SDL_RaiseWindow(sdl_window);
     if (mouseacquired && moustat) {
         SDL_SetRelativeMouseMode(SDL_TRUE);
     }
     return rv;
 #endif
-	return NULL;
+	return -1;
+}
+
+int wm_idle(void *ptr)
+{
+#if defined HAVE_GTK
+    return wmgtk_idle(ptr);
+#endif
 }
 
 void wm_setapptitle(const char *name)
@@ -227,12 +249,21 @@ void wm_setapptitle(const char *name)
 		Bstrncpy(apptitle, name, sizeof(apptitle)-1);
 		apptitle[ sizeof(apptitle)-1 ] = 0;
 	}
+#if defined HAVE_GTK
+	wmgtk_setapptitle(apptitle);
+#endif
+}
 
-	if (sdl_window) {
-		SDL_SetWindowTitle(sdl_window, apptitle);
+void wm_setwindowtitle(const char *name)
+{
+	if (name) {
+		Bstrncpy(wintitle, name, sizeof(wintitle)-1);
+		wintitle[ sizeof(wintitle)-1 ] = 0;
 	}
 
-	startwin_settitle(apptitle);
+	if (sdl_window) {
+		SDL_SetWindowTitle(sdl_window, wintitle);
+	}
 }
 
 
@@ -259,7 +290,7 @@ int main(int argc, char *argv[])
 	}
 
 #ifdef HAVE_GTK
-	gtkbuild_init(&argc, &argv);
+	wmgtk_init(&argc, &argv);
 #endif
 
 #ifdef __APPLE__
@@ -292,7 +323,7 @@ int main(int argc, char *argv[])
 
 	startwin_close();
 #ifdef HAVE_GTK
-	gtkbuild_exit();
+	wmgtk_exit();
 #endif
 
 	SDL_Quit();
@@ -361,6 +392,7 @@ void initputs(const char *str)
 {
 	startwin_puts(str);
 	startwin_idle(NULL);
+	wm_idle(NULL);
 }
 
 
@@ -963,7 +995,7 @@ int setvideomode(int x, int y, int c, int fs)
 			else flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 		}
 
-		sdl_window = SDL_CreateWindow(apptitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
+		sdl_window = SDL_CreateWindow(wintitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
 		if (!sdl_window) {
 			buildprintf("Error creating window: %s\n", SDL_GetError());
 
@@ -1500,6 +1532,7 @@ int handleevents(void)
 
 	sampletimer();
 	startwin_idle(NULL);
+	wm_idle(NULL);
 #undef SetKey
 
 	firstcall = 0;

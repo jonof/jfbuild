@@ -51,6 +51,8 @@ static BOOL window_class_registered = FALSE;
 static HANDLE instanceflag = NULL;
 
 int    backgroundidle = 1;
+static char apptitle[256] = "Build Engine";
+static char wintitle[256] = "";
 
 static WORD sysgamma[3][256];
 extern int gammabrightness;
@@ -100,6 +102,7 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover);
 static BOOL RegisterWindowClass(void);
 static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refresh);
 static void DestroyAppWindow(void);
+static void UpdateAppWindowTitle(void);
 
 static void shutdownvideo(void);
 
@@ -227,21 +230,23 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 //
 // wm_filechooser() -- display a file selector dialogue box
 //
-char * wm_filechooser(const char *initialdir, const char *type, int foropen)
+int wm_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice)
 {
 	OPENFILENAME ofn;
 	char filter[100], *filterp = filter;
-	char filename[BMAX_PATH+1];
+	char filename[BMAX_PATH+1] = "";
 
-	if (strlen(initialdir) >= sizeof(filename)) initialdir = "";
+	*choice = NULL;
+
+	if (!foropen && initialfile) {
+		strcpy(filename, initialfile);
+	}
 
 	// ext Files\0*.ext\0\0
 	memset(filter, 0, sizeof(filter));
 	sprintf(filterp, "%s Files", type);
 	filterp += strlen(filterp) + 1;
 	sprintf(filterp, "*.%s", type);
-
-	strcpy(filename, initialdir);
 
 	ZeroMemory(&ofn, sizeof(ofn));
 	ofn.lStructSize = sizeof(OPENFILENAME);
@@ -250,18 +255,20 @@ char * wm_filechooser(const char *initialdir, const char *type, int foropen)
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFile = filename;
 	ofn.nMaxFile = sizeof(filename);
+	ofn.lpstrInitialDir = initialdir;
 	ofn.Flags = OFN_DONTADDTORECENT | OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
 	ofn.lpstrDefExt = type;
 
 	if (foropen ? GetOpenFileName(&ofn) : GetSaveFileName(&ofn)) {
-		return strdup(filename);
+		*choice = strdup(filename);
+		return 1;
 	} else {
-		return strdup("");
+		return 0;
 	}
 }
 
 //
-// wm_setapptitle() -- changes the window title
+// wm_setapptitle() -- changes the application title
 //
 void wm_setapptitle(const char *name)
 {
@@ -270,8 +277,21 @@ void wm_setapptitle(const char *name)
 		apptitle[ sizeof(apptitle)-1 ] = 0;
 	}
 
-	if (hWindow) SetWindowText(hWindow, apptitle);
+	UpdateAppWindowTitle();
 	startwin_settitle(apptitle);
+}
+
+//
+// wm_setwindowtitle() -- changes the rendering window title
+//
+void wm_setwindowtitle(const char *name)
+{
+	if (name) {
+		Bstrncpy(wintitle, name, sizeof(wintitle)-1);
+		wintitle[ sizeof(wintitle)-1 ] = 0;
+	}
+
+	UpdateAppWindowTitle();
 }
 
 //
@@ -2049,7 +2069,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 	}
 	SetWindowPos(hWindow, HWND_TOP, x, y, w, h, 0);
 
-	SetWindowText(hWindow, apptitle);
+	UpdateAppWindowTitle();
 	ShowWindow(hWindow, SW_SHOWNORMAL);
 	SetForegroundWindow(hWindow);
 	SetFocus(hWindow);
@@ -2175,6 +2195,24 @@ static void DestroyAppWindow(void)
 	if (hWindow) {
 		DestroyWindow(hWindow);
 		hWindow = NULL;
+	}
+}
+
+//
+// UpdateAppWindowTitle() -- sets the title of the application window
+//
+static void UpdateAppWindowTitle(void)
+{
+	char tmp[256+3+256+1];		//sizeof(wintitle) + " - " + sizeof(apptitle) + '\0'
+
+	if (!hWindow) return;
+
+	if (wintitle[0]) {
+		snprintf(tmp, sizeof(tmp), "%s - %s", wintitle, apptitle);
+		tmp[sizeof(tmp)-1] = 0;
+		SetWindowText(hWindow, tmp);
+	} else {
+		SetWindowText(hWindow, apptitle);
 	}
 }
 

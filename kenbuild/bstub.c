@@ -56,7 +56,6 @@ static unsigned int frameval[AVERAGEFRAMES];
 static int framecnt = 0;
 
 char *defsfilename = "kenbuild.def";
-char *startwin_labeltext = "Starting Build Editor...";
 int nextvoxid = 0;
 
 int ExtInit(void)
@@ -378,9 +377,7 @@ void ExtPreLoadMap(void)
 
 void ExtLoadMap(const char *mapname)
 {
-	char title[256];
-	Bsprintf(title, "BUILD by Ken Silverman - %s", mapname);
-	wm_setapptitle(title);
+	wm_setwindowtitle(mapname);
 }
 
 void ExtPreSaveMap(void)
@@ -389,9 +386,7 @@ void ExtPreSaveMap(void)
 
 void ExtSaveMap(const char *mapname)
 {
-	char title[256];
-	Bsprintf(title, "BUILD by Ken Silverman - %s", mapname);
-	wm_setapptitle(title);
+	wm_setwindowtitle(mapname);
 }
 
 const char *ExtGetSectorCaption(short sectnum)

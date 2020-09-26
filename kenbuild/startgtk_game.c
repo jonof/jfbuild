@@ -390,11 +390,6 @@ int startwin_settitle(const char *title)
 
 int startwin_idle(void *s)
 {
-    if (!gtkenabled) return 0;
-    if (!startwin) return 1;
-
-    gtk_main_iteration_do(FALSE);
-
     return 0;
 }
 
