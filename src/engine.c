@@ -9891,7 +9891,10 @@ void clearview(int dacol)
 					  ((float)p.g)/255.0,
 					  ((float)p.b)/255.0,
 					  0);
+		glfunc.glScissor(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
+		glfunc.glEnable(GL_SCISSOR_TEST);
 		glfunc.glClear(GL_COLOR_BUFFER_BIT);
+		glfunc.glDisable(GL_SCISSOR_TEST);
 		return;
 	}
 #endif

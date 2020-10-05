@@ -45,6 +45,7 @@ int glbuild_loadfunctions(void)
 	INIT_PROC(glHint);
 	INIT_PROC(glPixelStorei);
 	INIT_PROC(glViewport);
+	INIT_PROC(glScissor);
 
 	// Depth
 	INIT_PROC(glDepthFunc);
