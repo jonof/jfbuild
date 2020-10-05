@@ -7676,7 +7676,7 @@ void nextpage(void)
 			polymost_nextpage();
 #endif
 
-			showframe(0);
+			showframe();
 
 			/*
 			if (ratelimit > 0) {

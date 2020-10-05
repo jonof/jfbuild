@@ -1179,7 +1179,7 @@ void enddrawing(void)
 //
 // showframe() -- update the display
 //
-void showframe(int UNUSED(w))
+void showframe(void)
 {
 	int i,j;
 

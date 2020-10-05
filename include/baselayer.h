@@ -127,7 +127,7 @@ void resetvideomode(void);
 
 void begindrawing(void);
 void enddrawing(void);
-void showframe(int);
+void showframe(void);
 
 int setpalette(int start, int num, unsigned char *dapal);
 int setgamma(float gamma);

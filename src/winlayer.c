@@ -1417,7 +1417,7 @@ void enddrawing(void)
 //
 // showframe() -- update the display
 //
-void showframe(int w)
+void showframe(void)
 {
 	HRESULT result;
 	char *p,*q;

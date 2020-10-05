@@ -430,7 +430,7 @@ int app_main(int argc, char const * const argv[])
 			printext256(0,0,whitecol,blackcol,"Really want to quit?",0);
 			enddrawing();	//}}}
 
-			showframe(1);
+			showframe();
 			synctics = totalclock-lockclock;
 			lockclock += synctics;
 
@@ -455,7 +455,7 @@ int app_main(int argc, char const * const argv[])
 	{
 		begindrawing();	//{{{
 		printext256(0,8,whitecol,blackcol,"Save changes?",0);
-		showframe(1);	//}}}
+		showframe();	//}}}
 
 		while ((keystatus[1]|keystatus[0x1c]|keystatus[0x39]|keystatus[0x31]) == 0)
 		{
@@ -2433,7 +2433,7 @@ int gettile(int tilenum)
 	{
 		drawtilescreen(topleft,tilenum);
 		OSD_Draw();
-		showframe(1);
+		showframe();
 
 		if (handleevents()) {
 			if (quitevent) quitevent = 0;
@@ -2514,7 +2514,7 @@ int gettile(int tilenum)
 				//drawtilescreen(topleft,tilenum);
 				Bsprintf(snotbuf,"Goto tile: %d_ ",j);
 				printext256(0,0,whitecol,blackcol,snotbuf,0);
-				showframe(1);
+				showframe();
 
 				if (ch >= '0' && ch <= '9') {
 					i = (j*10)+(ch-'0');
@@ -2984,7 +2984,7 @@ void overheadeditor(void)
 			draw2dgrid(posx,posy,ang,zoom,grid);
 			draw2dscreen(posx,posy,ang,zoom,grid);
 			*/
-			showframe(1);
+			showframe();
 		}
 		if (keystatus[0x30] > 0)  // B (clip Blocking xor) (2D)
 		{
@@ -5036,7 +5036,7 @@ void overheadeditor(void)
 		//printext16(9L,336+9L,4,-1,kensig,0);
 		//printext16(8L,336+8L,12,-1,kensig,0);
 
-		showframe(1);
+		showframe();
 		synctics = totalclock-lockclock;
 		lockclock += synctics;
 
@@ -5052,7 +5052,7 @@ void overheadeditor(void)
 		{
 			keystatus[1] = 0;
 			printmessage16("(N)ew, (L)oad/from (G)RP, (S)ave, save (A)s, (Q)uit");
-			showframe(1);
+			showframe();
 			bflushchars();
 			bad = 1;
 			while (bad == 1)
@@ -5075,7 +5075,7 @@ void overheadeditor(void)
 				{
 					bad = 0;
 					printmessage16("Are you sure you want to start a new board? (Y/N)");
-					showframe(1);
+					showframe();
 					bflushchars(); ch = 0;
 					while (keystatus[1] == 0)
 					{
@@ -5125,13 +5125,13 @@ void overheadeditor(void)
 						}
 					}
 					printmessage16("");
-					showframe(1);
+					showframe();
 				}
 				else if (ch == 'l' || ch == 'L' || ch == 'g' || ch == 'G')  //L and G
 				{
 					bad = 0;
 					printmessage16("Load board...");
-					showframe(1);
+					showframe();
 
 					strcpy(selectedboardfilename, boardfilename);
 					if (ch == 'g' || ch == 'G') {
@@ -5152,7 +5152,7 @@ void overheadeditor(void)
 							if (filer >= 0) {
 								if (filename && strlen(filename)+1 > sizeof(selectedboardfilename)) {
 									printmessage16("File path is too long.");
-									showframe(1);
+									showframe();
 									free(filename);
 									continue;
 								}
@@ -5332,7 +5332,7 @@ void overheadeditor(void)
 						startang = ang;
 						startsectnum = cursectnum;
 					}
-					showframe(1);
+					showframe();
 					keystatus[0x1c] = 0;
 				}
 				else if (ch == 'a' || ch == 'A')  //A
@@ -5342,7 +5342,7 @@ void overheadeditor(void)
 
 					bad = 0;
 					printmessage16("Save board as...");
-					showframe(1);
+					showframe();
 
 					strcpy(selectedboardfilename, boardfilename);
 					initialfile = findfilename(selectedboardfilename);
@@ -5357,7 +5357,7 @@ void overheadeditor(void)
 						if (filer >= 0) {
 							if (filename && strlen(filename)+1 > sizeof(selectedboardfilename)) {
 								printmessage16("File path is too long.");
-								showframe(1);
+								showframe();
 								free(filename);
 								continue;
 							}
@@ -5396,7 +5396,7 @@ void overheadeditor(void)
 					{
 						Bsprintf(buffer,"Save as: %s_", filename);
 						printmessage16(buffer);
-						showframe(1);
+						showframe();
 
 						if (handleevents()) {
 							if (quitevent) quitevent = 0;
@@ -5423,7 +5423,7 @@ void overheadeditor(void)
 					{
 						keystatus[1] = 0;
 						printmessage16("Operation cancelled");
-						showframe(1);
+						showframe();
 					}
 					if (bad == 2)
 					{
@@ -5432,7 +5432,7 @@ void overheadeditor(void)
 						strcat(filename, ".map");
 						Bsprintf(buffer,"Saving to %s...",filename);
 						printmessage16(buffer);
-						showframe(1);
+						showframe();
 
 						fixspritesectors();   //Do this before saving!
 						updatesector(startposx,startposy,&startsectnum);
@@ -5451,7 +5451,7 @@ void overheadeditor(void)
 						} else {
 							printmessage16("Board NOT saved!");
 						}
-						showframe(1);
+						showframe();
 					}
 					bad = 0;
 				}
@@ -5461,7 +5461,7 @@ void overheadeditor(void)
 
 					bad = 0;
 					printmessage16("Saving board...");
-					showframe(1);
+					showframe();
 					filename = boardfilename;
 					if (pathsearchmode == PATHSEARCH_GAME) {
 						filename = findfilename(filename);
@@ -5481,13 +5481,13 @@ void overheadeditor(void)
 					} else {
 						printmessage16("Board NOT saved!");
 					}
-					showframe(1);
+					showframe();
 				}
 				else if (ch == 'q' || ch == 'Q')  //Q
 				{
 					bad = 0;
 					printmessage16("Are you sure you want to quit?");
-					showframe(1);
+					showframe();
 					bflushchars();
 					while (keystatus[1] == 0)
 					{
@@ -5502,7 +5502,7 @@ void overheadeditor(void)
 							//QUIT!
 							if (asksave) {
 								printmessage16("Save changes?");
-								showframe(1);
+								showframe();
 								while (keystatus[1] == 0)
 								{
 									if (handleevents()) {
@@ -5549,7 +5549,7 @@ void overheadeditor(void)
 						}
 					}
 					printmessage16("");
-					showframe(1);
+					showframe();
 				}
 			}
 			clearkeys();
@@ -6059,7 +6059,7 @@ short getnumber16(char namestart[80], short num, int maxnumber, char sign)
 
 		Bsprintf(buffer,"%s%d_ ",namestart,danum);
 		printmessage16(buffer);
-		showframe(1);
+		showframe();
 
 		if (ch >= '0' && ch <= '9') {
 			if (sign && danum<0)
@@ -6103,7 +6103,7 @@ short getnumber256(char namestart[80], short num, int maxnumber, char sign)
 
 		Bsprintf(buffer,"%s%d_ ",namestart,danum);
 		printmessage256(buffer);
-		showframe(1);
+		showframe();
 
 		if (ch >= '0' && ch <= '9') {
 			if (sign && danum<0)
@@ -6253,7 +6253,7 @@ int menuselect(int newpathmode)
 			}
 		}
 		enddrawing();
-		showframe(1);
+		showframe();
 
 		keystatus[0xcb] = 0;
 		keystatus[0xcd] = 0;
@@ -6327,7 +6327,7 @@ int menuselect(int newpathmode)
 			begindrawing();
 			clearbuf((unsigned char *)frameplace, (bytesperline*ydim16) >> 2, 0l);
 			enddrawing();
-			showframe(1);
+			showframe();
 		}
 		if (ch == 13 && !findfileshigh) ch = 0;
 	}
