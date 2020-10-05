@@ -1115,7 +1115,7 @@ int setvideomode(int x, int y, int c, int fs)
 		frameplace = 0;
 		bytesperline = 0;
 		imageSize = 0;
-		numpages = 2;
+		numpages = 127;
 #else
 		return -1;
 #endif

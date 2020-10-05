@@ -3660,22 +3660,35 @@ void drawscreen(short snum, int dasmoothratio)
 
 	if (dimensionmode[myconnectindex] == 3)
 	{
+		int apply = 0;
 		tempint = screensize;
 
 		if (((loc.bits&32) > (screensizeflag&32)) && (screensize > 64))
 		{
-			ox1 = ((xdim-screensize)>>1);
-			ox2 = ox1+screensize-1;
-			oy1 = (((ydim-32)-scale(screensize,ydim-32,xdim))>>1);
-			oy2 = oy1 + scale(screensize,ydim-32,xdim)-1;
+			apply = 1;
 			screensize -= (screensize>>3);
-
-			if (tempint > xdim)
+		}
+		if (((loc.bits&16) > (screensizeflag&16)) && (screensize <= xdim))
+		{
+			apply = 1;
+			screensize += (screensize>>3);
+			if ((screensize > xdim) && (tempint == xdim))
 			{
-				screensize = xdim;
+				screensize = xdim+1;
+			}
+			else
+			{
+				if (screensize > xdim) screensize = xdim;
+			}
+		}
+		if (apply) {
+			ox1 = oy1 = 0;
+			ox2 = xdim-1; oy2 = ydim-32-1;
 
-				flushperms();
+			flushperms();
 
+			if (screensize <= xdim)
+			{
 				rotatesprite((xdim-320)<<15,(ydim-32)<<16,65536L,0,STATUSBAR,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L);
 				i = ((xdim-320)>>1);
 				while (i >= 8) i -= 8, rotatesprite(i<<16,(ydim-32)<<16,65536L,0,STATUSBARFILL8,0,0,8+16+64+128,0L,0L,xdim-1L,ydim-1L);
@@ -3687,10 +3700,18 @@ void drawscreen(short snum, int dasmoothratio)
 				drawstatusbar(screenpeek);   // Andy did this
 			}
 
-			x1 = ((xdim-screensize)>>1);
-			x2 = x1+screensize-1;
-			y1 = (((ydim-32)-scale(screensize,ydim-32,xdim))>>1);
-			y2 = y1 + scale(screensize,ydim-32,xdim)-1;
+			if (screensize > xdim)
+			{
+				x1 = 0; y1 = 0;
+				x2 = xdim-1; y2 = ydim-1;
+			}
+			else
+			{
+				x1 = ((xdim-screensize)>>1);
+				x2 = x1+screensize-1;
+				y1 = (((ydim-32)-scale(screensize,ydim-32,xdim))>>1);
+				y2 = y1 + scale(screensize,ydim-32,xdim)-1;
+			}
 			setview(x1,y1,x2,y2);
 
 			// (ox1,oy1)⁄ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒø
@@ -3705,25 +3726,6 @@ void drawscreen(short snum, int dasmoothratio)
 			drawtilebackground(0L,0L,BACKGROUND,8,x2+1,oy1,ox2,oy2,0);
 			drawtilebackground(0L,0L,BACKGROUND,8,x1,oy1,x2,y1-1,0);
 			drawtilebackground(0L,0L,BACKGROUND,8,x1,y2+1,x2,oy2,0);
-		}
-		if (((loc.bits&16) > (screensizeflag&16)) && (screensize <= xdim))
-		{
-			screensize += (screensize>>3);
-			if ((screensize > xdim) && (tempint == xdim))
-			{
-				screensize = xdim+1;
-				x1 = 0; y1 = 0;
-				x2 = xdim-1; y2 = ydim-1;
-			}
-			else
-			{
-				if (screensize > xdim) screensize = xdim;
-				x1 = ((xdim-screensize)>>1);
-				x2 = x1+screensize-1;
-				y1 = (((ydim-32)-scale(screensize,ydim-32,xdim))>>1);
-				y2 = y1 + scale(screensize,ydim-32,xdim)-1;
-			}
-			setview(x1,y1,x2,y2);
 		}
 		screensizeflag = loc.bits;
 	}

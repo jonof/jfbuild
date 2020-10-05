@@ -192,6 +192,8 @@ EXTERN int guniqhudid;
 EXTERN int spritesortcnt;
 EXTERN spritetype tsprite[MAXSPRITESONSCREEN];
 
+//numpages==127 means no persistence. Permanent rotatesprites will be retained until flushed.
+//The initial frame contents will be invalid after each swap.
 EXTERN int xdim, ydim, ylookup[MAXYDIM+1], numpages;
 EXTERN int yxaspect, xyaspect, pixelaspect, widescreen, tallscreen, viewingrange;
 

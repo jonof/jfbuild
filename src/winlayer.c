@@ -1963,7 +1963,7 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 	if (wglfunc.wglSwapIntervalEXT) {
 		wglfunc.wglSwapIntervalEXT(glswapinterval);
 	}
-	numpages = 2;	// KJS 20031225: tell rotatesprite that it's double buffered!
+	numpages = 127;
 
 	return FALSE;
 

@@ -7711,7 +7711,7 @@ void nextpage(void)
 										per->dashade,per->dapalnum,per->dastat,
 										per->cx1,per->cy1,per->cx2,per->cy2,per->uniqid);
 
-				if (per->pagesleft&127) per->pagesleft--;
+				if ((per->pagesleft&127) && (numpages < 127)) per->pagesleft--;
 				if (((per->pagesleft&127) == 0) && (i == permtail))
 					permtail = ((permtail+1)&(MAXPERMS-1));
 			}
@@ -9634,7 +9634,7 @@ void flushperms(void)
 void rotatesprite(int sx, int sy, int z, short a, short picnum, signed char dashade,
 	unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2)
 {
-	int i;
+	int i, gap = -1;
 	permfifotype *per, *per2;
 
 	if ((cx1 > cx2) || (cy1 > cy2)) return;
@@ -9655,6 +9655,25 @@ void rotatesprite(int sx, int sy, int z, short a, short picnum, signed char dash
 	if ((dastat&128) == 0) return;
 	if (numpages >= 2)
 	{
+		if (((permhead+1)&(MAXPERMS-1)) == permtail)
+		{
+			for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
+			{
+				if ((permfifo[i].pagesleft&127) == 0)
+					{ if (gap < 0) gap = i; }
+				else if (gap >= 0)
+				{
+					copybufbyte(&permfifo[i], &permfifo[gap], sizeof(permfifotype));
+					permfifo[i].pagesleft = 0;
+					for (;gap!=i;gap=((gap+1)&(MAXPERMS-1)))
+						if ((permfifo[gap].pagesleft&127) == 0)
+							break;
+					if (gap==i) gap = -1;
+				}
+			}
+			if (gap >= 0) permhead = gap;
+			else permtail = ((permtail+1)&(MAXPERMS-1));
+		}
 		per = &permfifo[permhead];
 		per->sx = sx; per->sy = sy; per->z = z; per->a = a;
 		per->picnum = picnum;
@@ -9683,12 +9702,12 @@ void rotatesprite(int sx, int sy, int z, short a, short picnum, signed char dash
 				if (per2->cy2 > per->cy2) continue;
 				per2->pagesleft = 0;
 			}
-			if ((per->z == 65536) && (per->a == 0))
+			if ((per->a == 0))
 				for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
 				{
 					per2 = &permfifo[i];
 					if ((per2->pagesleft&127) == 0) continue;
-					if (per2->z != 65536) continue;
+					if (per2->z != per->z) continue;
 					if (per2->a != 0) continue;
 					if (per2->cx1 < per->cx1) continue;
 					if (per2->cy1 < per->cy1) continue;
@@ -9696,8 +9715,8 @@ void rotatesprite(int sx, int sy, int z, short a, short picnum, signed char dash
 					if (per2->cy2 > per->cy2) continue;
 					if ((per2->sx>>16) < (per->sx>>16)) continue;
 					if ((per2->sy>>16) < (per->sy>>16)) continue;
-					if ((per2->sx>>16)+tilesizx[per2->picnum] > (per->sx>>16)+tilesizx[per->picnum]) continue;
-					if ((per2->sy>>16)+tilesizy[per2->picnum] > (per->sy>>16)+tilesizy[per->picnum]) continue;
+					if (per2->sx+(tilesizx[per2->picnum]*per2->z) > per->sx+(tilesizx[per->picnum]*per->z)) continue;
+					if (per2->sy+(tilesizy[per2->picnum]*per2->z) > per->sy+(tilesizy[per->picnum]*per->z)) continue;
 					per2->pagesleft = 0;
 				}
 		}

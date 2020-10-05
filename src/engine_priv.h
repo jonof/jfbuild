@@ -2,7 +2,7 @@
 #define ENGINE_PRIV_H
 
 #define MAXCLIPNUM 1024
-#define MAXPERMS 512
+#define MAXPERMS 1024
 #define MAXTILEFILES 256
 #define MAXYSAVES ((MAXXDIM*MAXSPRITES)>>7)
 #define MAXNODESPERLINE 42   //Warning: This depends on MAXYSAVES & MAXYDIM!
