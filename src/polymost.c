@@ -3187,6 +3187,12 @@ void polymost_drawrooms ()
 
 		polymost_drawalls(closest);
 
+		if (automapping)
+		{
+			for(j=bunchfirst[closest];j>=0;j=p2[j])
+				show2dwall[thewall[j]>>3] |= pow2char[thewall[j]&7];
+		}
+
 		numbunches--;
 		bunchfirst[closest] = bunchfirst[numbunches];
 		bunchlast[closest] = bunchlast[numbunches];
@@ -3409,15 +3415,22 @@ void polymost_drawsprite (int snum)
 
 	while (rendmode == 3 && !(spriteext[tspr->owner].flags&SPREXT_NOTMD)) {
 		if (usemodels && tile2model[tspr->picnum].modelid >= 0 && tile2model[tspr->picnum].framenum >= 0) {
-			if (mddraw(tspr, 0)) return;
+			if (mddraw(tspr, 0)) {
+				if (automapping == 1) show2dsprite[spritenum>>3] |= pow2char[spritenum&7];
+				return;
+			}
 			break;	// else, render as flat sprite
 		}
 		if (usevoxels && (tspr->cstat&48)!=48 && tiletovox[tspr->picnum] >= 0 && voxmodels[ tiletovox[tspr->picnum] ]) {
-			if (voxdraw(voxmodels[ tiletovox[tspr->picnum] ], tspr, 0)) return;
+			if (voxdraw(voxmodels[ tiletovox[tspr->picnum] ], tspr, 0)) {
+				if (automapping == 1) show2dsprite[spritenum>>3] |= pow2char[spritenum&7];
+				return;
+			}
 			break;	// else, render as flat sprite
 		}
 		if ((tspr->cstat&48)==48 && voxmodels[ tspr->picnum ]) {
 			voxdraw(voxmodels[ tspr->picnum ], tspr, 0);
+			if (automapping == 1) show2dsprite[spritenum>>3] |= pow2char[spritenum&7];
 			return;
 		}
 		break;
@@ -3680,6 +3693,7 @@ void polymost_drawsprite (int snum)
 		case 3: //Voxel sprite
 		    break;
 	}
+	if (automapping == 1) show2dsprite[spritenum>>3] |= pow2char[spritenum&7];
 }
 
 	//sx,sy       center of sprite; screen coods*65536
