@@ -4381,12 +4381,11 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 
 	if ((dastat&2) != 0)  //Auto window size scaling
 	{
-        int ys = mulscale16(200, pixelaspect);
 		if ((dastat&8) == 0)
 		{
 			if (widescreen) {
 				x = ydimenscale;   //= scale(xdimen,yxaspect,320);
-				sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),ydimen,ys);
+				sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),ydimen<<16,200*pixelaspect);
 			} else {
 				x = xdimenscale;   //= scale(xdimen,yxaspect,320);
 				sx = ((cx1+cx2+2)<<15)+scale(sx-(320<<15),xdimen,320);
@@ -4398,8 +4397,8 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 			  //If not clipping to startmosts, & auto-scaling on, as a
 			  //hard-coded bonus, scale to full screen instead
 			if (widescreen) {
-				x = scale(ydim,yxaspect,ys);
-				sx = (xdim<<15)+32768+scale(sx-(320<<15),ydim,ys);
+				x = scale(ydim<<16,yxaspect,200*pixelaspect);
+				sx = (xdim<<15)+32768+scale(sx-(320<<15),ydim<<16,200*pixelaspect);
 			} else {
 				x = scale(xdim,yxaspect,320);
 				sx = (xdim<<15)+32768+scale(sx-(320<<15),xdim,320);
