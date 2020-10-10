@@ -7676,6 +7676,9 @@ void nextpage(void)
 #endif
 
 			showframe();
+#if USE_POLYMOST
+			polymost_aftershowframe();
+#endif
 
 			/*
 			if (ratelimit > 0) {

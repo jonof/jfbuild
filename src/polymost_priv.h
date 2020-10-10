@@ -122,6 +122,7 @@ void polymost_setview(void);
 #endif //USE_OPENGL
 
 void polymost_nextpage(void);
+void polymost_aftershowframe(void);
 void polymost_drawrooms (void);
 void polymost_drawmaskwall (int damaskwallcnt);
 void polymost_drawsprite (int snum);

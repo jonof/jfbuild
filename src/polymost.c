@@ -139,8 +139,8 @@ int glusetexcache = 1;
 int glmultisample = 0, glnvmultisamplehint = 0;
 int gltexmaxsize = 0;      // 0 means autodetection on first run
 int gltexmiplevel = 0;		// discards this many mipmap levels
-static int lastglpolygonmode = 0; //FUK
-int glpolygonmode = 0;     // 0:GL_FILL,1:GL_LINE,2:GL_POINT //FUK
+static int lastglpolygonmode = 0;
+int glpolygonmode = 0;     // 0:GL_FILL,1:GL_LINE,2:GL_POINT,3:clear+GL_FILL
 
 static GLuint texttexture = 0;
 static GLuint nulltexture = 0;
@@ -462,6 +462,8 @@ void polymost_glreset ()
 	}
 
 	glox1 = -1;
+	lastglpolygonmode = -1;
+	lastglredbluemode = -1;
 
 	if (glfunc.glUseProgram) {
 		glfunc.glUseProgram(0);
@@ -739,7 +741,6 @@ void resizeglcheck ()
 	lastglredbluemode = glredbluemode;
 
 #if (USE_OPENGL != USE_GLES2)
-		//FUK
 	if (lastglpolygonmode != glpolygonmode)
 	{
 		lastglpolygonmode = glpolygonmode;
@@ -751,11 +752,6 @@ void resizeglcheck ()
 			case 2: glfunc.glPolygonMode(GL_FRONT_AND_BACK,GL_POINT); break;
 		}
 	}
-	if (glpolygonmode) //FUK
-	{
-		glfunc.glClearColor(1.0,1.0,1.0,0.0);
-		glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-	}
 #endif
 
 	if ((glox1 != windowx1) || (gloy1 != windowy1) || (glox2 != windowx2) || (gloy2 != windowy2))
@@ -765,6 +761,17 @@ void resizeglcheck ()
 
 		glfunc.glViewport(windowx1,yres-(windowy2+1),windowx2-windowx1+1,windowy2-windowy1+1);
 	}
+}
+
+void polymost_aftershowframe(void)
+{
+#if (USE_OPENGL != USE_GLES2)
+	if (glpolygonmode)
+	{
+		glfunc.glClearColor(1.0,1.0,1.0,0.0);
+		glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+	}
+#endif
 }
 
 void polymost_setview(void)
@@ -4842,7 +4849,7 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("gltexturemaxsize","gltexturemaxsize: changes the maximum OpenGL texture size limit",osdcmd_polymostvars);
 	OSD_RegisterFunction("gltexturemiplevel","gltexturemiplevel: changes the highest OpenGL mipmap level used",osdcmd_polymostvars);
 	OSD_RegisterFunction("usegoodalpha","usegoodalpha: enable/disable better looking OpenGL alpha hack",osdcmd_polymostvars);
-	OSD_RegisterFunction("glpolygonmode","glpolygonmode: debugging feature",osdcmd_polymostvars); //FUK
+	OSD_RegisterFunction("glpolygonmode","glpolygonmode: debugging feature. 0 = normal, 1 = edges, 2 = points, 3 = clear each frame",osdcmd_polymostvars);
 	OSD_RegisterFunction("glusetexcache","glusetexcache: enable/disable OpenGL compressed texture cache",osdcmd_polymostvars);
 	OSD_RegisterFunction("glmultisample","glmultisample: sets the number of samples used for antialiasing (0 = off)",osdcmd_polymostvars);
 	OSD_RegisterFunction("glnvmultisamplehint","glnvmultisamplehint: enable/disable Nvidia multisampling hinting",osdcmd_polymostvars);
