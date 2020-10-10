@@ -7676,7 +7676,7 @@ void nextpage(void)
 #endif
 
 			showframe();
-#if USE_POLYMOST
+#if USE_POLYMOST && USE_OPENGL
 			polymost_aftershowframe();
 #endif
 
