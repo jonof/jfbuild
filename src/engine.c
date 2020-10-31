@@ -526,7 +526,11 @@ static permfifotype permfifo[MAXPERMS];
 static int permhead = 0, permtail = 0;
 
 short numscans, numhits, numbunches;
-static short posfil, capturecount = 0, hitcnt;
+
+static short capturecount = 0;
+static char capturename[20], captureatnextpage = 0;
+static int screencapture_pcx(char *filename, char inverseit);
+static int screencapture_tga(char *filename, char inverseit);
 
 unsigned char vgapal16[4*256] =
 {
@@ -7675,6 +7679,12 @@ void nextpage(void)
 			polymost_nextpage();
 #endif
 
+			if (captureatnextpage) {
+				if (captureformat == 0) screencapture_tga(capturename,captureatnextpage&1);
+				else screencapture_pcx(capturename,captureatnextpage&1);
+				captureatnextpage = 0;
+			}
+
 			showframe();
 #if USE_POLYMOST && USE_OPENGL
 			polymost_aftershowframe();
@@ -11117,7 +11127,7 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 //
 // screencapture
 //
-int screencapture_tga(char *filename, char inverseit)
+static int screencapture_tga(char *filename, char inverseit)
 {
 	int i,j;
 	unsigned char *ptr, head[18] = { 0,1,1,0,0,0,1,24,0,0,0,0,0/*wlo*/,0/*whi*/,0/*hlo*/,0/*hhi*/,8,0 };
@@ -11278,7 +11288,7 @@ static void writepcxline(unsigned char *buf, int bytes, int step, BFILE *fp)
 	if (bytes&1) writepcxbyte(0, 1, fp);
 }
 
-int screencapture_pcx(char *filename, char inverseit)
+static int screencapture_pcx(char *filename, char inverseit)
 {
 	int i,j,bpl;
 	unsigned char *ptr, head[128], *inversebuf;
@@ -11400,10 +11410,15 @@ int screencapture_pcx(char *filename, char inverseit)
 	return(0);
 }
 
-int screencapture(char *filename, char inverseit)
+int screencapture(char *filename, char mode)
 {
-	if (captureformat == 0) return screencapture_tga(filename,inverseit);
-	else return screencapture_pcx(filename,inverseit);
+	if (qsetmode == 200 && (mode & 2)) {
+		captureatnextpage = mode;
+		strcpy(capturename, filename);
+		return 0;
+	}
+	if (captureformat == 0) return screencapture_tga(filename,mode&1);
+	else return screencapture_pcx(filename,mode&1);
 }
 
 

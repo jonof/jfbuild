@@ -458,7 +458,7 @@ int   changespritestat(short spritenum, short newstatnum);
 int   setsprite(short spritenum, int newx, int newy, int newz);
 int   setspritez(short spritenum, int newx, int newy, int newz);
 
-int   screencapture(char *filename, char inverseit);
+int   screencapture(char *filename, char mode);	// mode&1 == invert, mode&2 == wait for nextpage
 
 #define STATUS2DSIZ 144
 void   qsetmode640350(void);
