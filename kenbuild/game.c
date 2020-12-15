@@ -501,6 +501,7 @@ int app_main(int argc, char const * const argv[])
     settings.ydim3d = ydimgame;
     settings.bpp3d = bppgame;
     settings.forcesetup = forcesetup;
+    settings.netoverride = netparm > 0;
 
 #if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
 	if (i || (forcesetup && cmdsetup == 0) || (cmdsetup > 0)) {

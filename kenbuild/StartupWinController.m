@@ -214,19 +214,28 @@
     [fullscreenButton setEnabled:YES];
     [fullscreenButton setState: (settings->fullscreen ? NSOnState : NSOffState)];
 
-    [singlePlayerButton setEnabled:YES];
-    [singlePlayerButton setState:NSOnState];
+    if (!settings->netoverride) {
+        [singlePlayerButton setEnabled:YES];
+        [singlePlayerButton setState:NSOnState];
 
-    [hostMultiButton setEnabled:YES];
-    [hostMultiButton setState:NSOffState];
-    [numPlayersField setEnabled:NO];
-    [numPlayersField setIntValue:2];
-    [numPlayersStepper setEnabled:NO];
-    [numPlayersStepper setMaxValue:MAXPLAYERS];
+        [hostMultiButton setEnabled:YES];
+        [hostMultiButton setState:NSOffState];
+        [numPlayersField setEnabled:NO];
+        [numPlayersField setIntValue:2];
+        [numPlayersStepper setEnabled:NO];
+        [numPlayersStepper setMaxValue:MAXPLAYERS];
 
-    [joinMultiButton setEnabled:YES];
-    [joinMultiButton setState:NSOffState];
-    [hostField setEnabled:NO];
+        [joinMultiButton setEnabled:YES];
+        [joinMultiButton setState:NSOffState];
+        [hostField setEnabled:NO];
+    } else {
+        [singlePlayerButton setEnabled:NO];
+        [hostMultiButton setEnabled:NO];
+        [numPlayersField setEnabled:NO];
+        [numPlayersStepper setEnabled:NO];
+        [joinMultiButton setEnabled:NO];
+        [hostField setEnabled:NO];
+    }
 
     [cancelButton setEnabled:YES];
     [startButton setEnabled:YES];
