@@ -553,7 +553,6 @@ void setpackettimeout (int UNUSED(datimeoutcount), int UNUSED(daresendagaincount
 void genericmultifunction (int UNUSED(other), unsigned char *UNUSED(bufptr), int UNUSED(messleng), int UNUSED(command)) {}
 int getoutputcirclesize () { return(0); }
 void setsocket (int UNUSED(newsocket)) { }
-void flushpackets () {}
 void sendlogon () {}
 void sendlogoff () {}
 //--------------------------------------------------------------------------------------------------
@@ -1214,6 +1213,12 @@ int getpacket (int *retother, unsigned char *bufptr)
 	}
 
 	return(0);
+}
+
+void flushpackets(void)
+{
+	int i;
+	getpacket(&i,0);	// Process acks but no messages, do retransmission.
 }
 
 // Records the IP address of a peer, along with our IPV4 and/or IPV6 addresses
