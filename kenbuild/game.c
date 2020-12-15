@@ -479,6 +479,7 @@ int app_main(int argc, char const * const argv[])
 	for (i=1;i<argc;i++) {
 		if ((!Bstrcasecmp("-net",argv[i])) || (!Bstrcasecmp("/net",argv[i]))) { netparm = i+1; break; }
 		if (!Bstrcasecmp(argv[i], "-setup")) cmdsetup = 1;
+		else if (!Bstrcasecmp(argv[i], "-nosetup")) cmdsetup = -1;
 		else {
 			Bstrcpy(boardfilename, argv[i]);
 			if (!Bstrrchr(boardfilename,'.')) Bstrcat(boardfilename,".map");
@@ -502,7 +503,7 @@ int app_main(int argc, char const * const argv[])
     settings.forcesetup = forcesetup;
 
 #if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
-	if (i || forcesetup || cmdsetup) {
+	if (i || (forcesetup && cmdsetup == 0) || (cmdsetup > 0)) {
         if (quitevent) return 0;
 
         startretval = startwin_run(&settings);
