@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 48;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXAggregateTarget section */
@@ -117,6 +117,7 @@
 			outputFiles = (
 				"$(DERIVED_FILE_DIR)/$(INPUT_FILE_BASE).c",
 			);
+			runOncePerArchitecture = 0;
 			script = "sym=default_${INPUT_FILE_BASE}_glsl\nperl \"$SRCROOT/../tools/text2c.pl\" \"$INPUT_FILE_PATH\" $sym > \"$DERIVED_FILE_DIR/${INPUT_FILE_BASE}.c\"\n\n";
 		};
 /* End PBXBuildRule section */
@@ -595,7 +596,6 @@
 				AB48BD6B208C090300E38090 /* Generate version-auto.c */,
 				AB735F460A29A2DC003261DC /* Sources */,
 				AB735F470A29A2DC003261DC /* Frameworks */,
-				ABE362522144CE3700BA44B3 /* ShellScript */,
 			);
 			buildRules = (
 				AB4F6B6E23118B7600713ACC /* PBXBuildRule */,
@@ -785,19 +785,6 @@
 			shellScript = "cd $PROJECT_DIR/..\ngitdescribe=$(git describe --always 2>/dev/null || echo git error)\n\ncat >src/version-auto.c <<EOT\nconst char *build_version = \"$gitdescribe\";\nconst char *build_date = __DATE__;\nconst char *build_time = __TIME__;\nEOT";
 			showEnvVarsInLog = 0;
 		};
-		ABE362522144CE3700BA44B3 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "";
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -979,7 +966,8 @@
 					DEBUGGINGAIDS,
 					MMULTI_DEBUG_SENDRECV,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
+				ONLY_ACTIVE_ARCH = YES;
 			};
 			name = Debug;
 		};
@@ -1000,7 +988,7 @@
 					"USE_OPENGL=3",
 					RENDERTYPESDL,
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				MACOSX_DEPLOYMENT_TARGET = 10.9;
 			};
 			name = Release;
 		};
