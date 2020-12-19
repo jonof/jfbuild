@@ -17,7 +17,9 @@
 //#include <stdio.h>
 #include <math.h>
 
+#ifdef _MSC_VER
 #pragma warning (disable: 4201) //  nonstandard extension used : nameless struct/union
+#endif
 
 #if defined(_DEBUG) || defined(DEBUG)
 #define RG_ETC1_BUILD_DEBUG
@@ -1803,7 +1805,7 @@ namespace rg_etc1
          {
             if (block_inten[0] > m_pSorted_luma[n - 1])
             {
-               const uint min_error = labs(block_inten[0] - m_pSorted_luma[n - 1]);
+               const uint min_error = (block_inten[0] - m_pSorted_luma[n - 1]); //JonoF
                if (min_error >= trial_solution.m_error)
                   continue;
             }
@@ -1817,7 +1819,7 @@ namespace rg_etc1
          {
             if (m_pSorted_luma[0] > block_inten[3])
             {
-               const uint min_error = labs(m_pSorted_luma[0] - block_inten[3]);
+               const uint min_error = (m_pSorted_luma[0] - block_inten[3]); //JonoF
                if (min_error >= trial_solution.m_error)
                   continue;
             }
@@ -1878,7 +1880,7 @@ done:
          
    static uint etc1_decode_value(uint diff, uint inten, uint selector, uint packed_c)
    {
-      const uint limit = diff ? 32 : 16; limit;
+      const uint limit = diff ? 32 : 16; (void)limit;   //JonoF
       RG_ETC1_ASSERT((diff < 2) && (inten < 8) && (selector < 4) && (packed_c < limit));
       int c;
       if (diff)
@@ -1940,7 +1942,7 @@ done:
    // For random 888 inputs, MSE results are better than Erricson's ETC1 packer in "slow" mode ~9.5% of the time, is slightly worse only ~.01% of the time, and is equal the rest of the time.
    static uint64 pack_etc1_block_solid_color(etc1_block& block, const uint8* pColor, etc1_pack_params& pack_params)
    {
-      pack_params;
+      (void)pack_params;    //JonoF
       RG_ETC1_ASSERT(g_etc1_inverse_lookup[0][255]);
             
       static uint s_next_comp[4] = { 1, 2, 0, 1 };
@@ -2032,7 +2034,7 @@ found_perfect_match:
    {
       RG_ETC1_ASSERT(g_etc1_inverse_lookup[0][255]);
 
-      pack_params;
+      (void)pack_params;    //JonoF
       static uint s_next_comp[4] = { 1, 2, 0, 1 };
 
       uint best_error = cUINT32_MAX, best_i = 0;

@@ -240,6 +240,9 @@ int wm_idle(void *ptr)
 {
 #if defined HAVE_GTK
     return wmgtk_idle(ptr);
+#else
+    (void)ptr;
+    return 0;
 #endif
 }
 

@@ -9712,7 +9712,7 @@ void rotatesprite(int sx, int sy, int z, short a, short picnum, signed char dash
 				if (per2->cy2 > per->cy2) continue;
 				per2->pagesleft = 0;
 			}
-			if ((per->a == 0))
+			if (per->a == 0)
 				for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
 				{
 					per2 = &permfifo[i];

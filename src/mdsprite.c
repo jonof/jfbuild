@@ -353,7 +353,8 @@ static void md_initident(PTMIdent *id, const char * filename, int effects)
 {
     memset(id, 0, sizeof(PTMIdent));
     id->effects = effects;
-    strncpy(id->filename, filename, BMAX_PATH);
+    strncpy(id->filename, filename, sizeof(id->filename)-1);
+    id->filename[sizeof(id->filename)-1] = 0;
 }
 
 //Note: even though it says md2model, it works for both md2model&md3model

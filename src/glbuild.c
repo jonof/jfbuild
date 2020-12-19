@@ -209,7 +209,7 @@ GLuint glbuild_compile_shader(GLuint type, const GLchar *source)
 		return 0;
 	}
 
-	glfunc.glShaderSource(shader, 1, &cookedsource, NULL);
+	glfunc.glShaderSource(shader, 1, (const GLchar**)&cookedsource, NULL);
 	glfunc.glCompileShader(shader);
 	free(cookedsource);
 

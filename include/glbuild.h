@@ -131,7 +131,7 @@ struct glbuild_funcs {
     void (APIENTRY * glGetShaderInfoLog)(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog);
     GLint (APIENTRY * glGetUniformLocation)(GLuint program, const GLchar *name);
     void (APIENTRY * glLinkProgram)(GLuint program);
-    void (APIENTRY * glShaderSource)(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length);
+    void (APIENTRY * glShaderSource)(GLuint shader, GLsizei count, const GLchar **string, const GLint *length);
     void (APIENTRY * glUniform1i)(GLint location, GLint v0);
     void (APIENTRY * glUniform1f)(GLint location, GLfloat v0);
     void (APIENTRY * glUniform2f)(GLint location, GLfloat v0, GLfloat v1);

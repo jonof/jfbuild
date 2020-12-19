@@ -542,8 +542,8 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 		int8_t filename[BMAX_PATH];
 		int32_t effects, offsett, flags, mtime;
 
-		memset(filename, 0, sizeof(filename));
-		strncpy((char *) filename, tdef->filename, sizeof(filename));
+		strncpy((char *) filename, tdef->filename, sizeof(filename)-1);
+		filename[sizeof(filename)-1] = 0;
 		effects = B_LITTLE32(tdef->effects);
 		flags   = tdef->flags & (PTH_CLAMPED);	// we don't want the informational flags in the index
 		flags   = B_LITTLE32(flags);
