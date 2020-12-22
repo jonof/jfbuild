@@ -399,7 +399,7 @@ static int osdcmd_map(const osdfuncparm_t *parm) {
 int app_main(int argc, char const * const argv[])
 {
 	int cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
-	int other, packleng, netparm = 0, netsuccess = 0;
+	int other, packleng, netparm = 0, endnetparm = 0, netsuccess = 0;
     int startretval = STARTWIN_RUN;
     struct startwin_settings settings;
 
@@ -477,9 +477,20 @@ int app_main(int argc, char const * const argv[])
 
 	Bstrcpy(boardfilename, "nukeland.map");
 	for (i=1;i<argc;i++) {
-		if ((!Bstrcasecmp("-net",argv[i])) || (!Bstrcasecmp("/net",argv[i]))) { netparm = i+1; break; }
-		if (!Bstrcasecmp(argv[i], "-setup")) cmdsetup = 1;
-		else if (!Bstrcasecmp(argv[i], "-nosetup")) cmdsetup = -1;
+#ifdef _WIN32
+		if (argv[i][0] == '-' || argv[i][0] == '/') {
+#else
+		if (argv[i][0] == '-') {
+#endif
+			if (!Bstrcasecmp("net",&argv[i][1])) {
+				netparm = ++i;
+				for (; i<argc; i++)
+					if (!strcmp(argv[i], "--")) break;
+				endnetparm = i;
+			}
+			else if (!Bstrcasecmp(&argv[i][1], "setup")) cmdsetup = 1;
+			else if (!Bstrcasecmp(&argv[i][1], "nosetup")) cmdsetup = -1;
+		}
 		else {
 			Bstrcpy(boardfilename, argv[i]);
 			if (!Bstrrchr(boardfilename,'.')) Bstrcat(boardfilename,".map");
@@ -527,7 +538,7 @@ int app_main(int argc, char const * const argv[])
 
     if (netparm || settings.numplayers > 1) {
         if (netparm) {
-            netsuccess = initmultiplayersparms(argc - netparm, &argv[netparm]);
+            netsuccess = initmultiplayersparms(endnetparm - netparm, &argv[netparm]);
         } else {
             char modeparm[8];
             const char *parmarr[3] = { modeparm, NULL, NULL };
