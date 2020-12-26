@@ -82,19 +82,6 @@ ENGINEOBJS+= \
 	$(SRC)/crc32.$o \
 	$(SRC)/defs.$o \
 	$(SRC)/engine.$o \
-	$(SRC)/polymost.$o \
-	$(SRC)/polymost_fs.$o \
-	$(SRC)/polymost_vs.$o \
-	$(SRC)/polymostaux_fs.$o \
-	$(SRC)/polymostaux_vs.$o \
-	$(SRC)/polymosttex.$o \
-	$(SRC)/polymosttexcache.$o \
-	$(SRC)/polymosttexcompress.$o \
-	$(SRC)/hightile.$o \
-	$(SRC)/mdsprite.$o \
-	$(SRC)/glbuild.$o \
-	$(SRC)/glbuild_fs.$o \
-	$(SRC)/glbuild_vs.$o \
 	$(SRC)/kplib.$o \
 	$(SRC)/mmulti.$o \
 	$(SRC)/osd.$o \
@@ -102,6 +89,25 @@ ENGINEOBJS+= \
 	$(SRC)/scriptfile.$o \
 	$(SRC)/textfont.$o \
 	$(SRC)/smalltextfont.$o
+
+ifeq ($(USE_POLYMOST),1)
+	ENGINEOBJS+= $(SRC)/polymost.$o
+	ifeq ($(USE_OPENGL),1)
+		ENGINEOBJS+= \
+			$(SRC)/glbuild.$o \
+			$(SRC)/glbuild_fs.$o \
+			$(SRC)/glbuild_vs.$o \
+			$(SRC)/hightile.$o \
+			$(SRC)/mdsprite.$o \
+			$(SRC)/polymost_fs.$o \
+			$(SRC)/polymost_vs.$o \
+			$(SRC)/polymostaux_fs.$o \
+			$(SRC)/polymostaux_vs.$o \
+			$(SRC)/polymosttex.$o \
+			$(SRC)/polymosttexcache.$o \
+			$(SRC)/polymosttexcompress.$o
+	endif
+endif
 
 EDITOROBJS=$(SRC)/build.$o \
 	$(SRC)/config.$o
@@ -115,17 +121,19 @@ EDITOREXEOBJS=$(GAME)/bstub.$o \
 	$(EDITORLIB) \
 	$(ENGINELIB)
 
-ENGINEOBJS+= \
-	$(SRC)/rg_etc1.$o \
-	$(LIBSQUISH)/alpha.$o \
-	$(LIBSQUISH)/clusterfit.$o \
-	$(LIBSQUISH)/colourblock.$o \
-	$(LIBSQUISH)/colourfit.$o \
-	$(LIBSQUISH)/colourset.$o \
-	$(LIBSQUISH)/maths.$o \
-	$(LIBSQUISH)/rangefit.$o \
-	$(LIBSQUISH)/singlecolourfit.$o \
-	$(LIBSQUISH)/squish.$o
+ifeq ($(USE_OPENGL),1)
+	ENGINEOBJS+= \
+		$(SRC)/rg_etc1.$o \
+		$(LIBSQUISH)/alpha.$o \
+		$(LIBSQUISH)/clusterfit.$o \
+		$(LIBSQUISH)/colourblock.$o \
+		$(LIBSQUISH)/colourfit.$o \
+		$(LIBSQUISH)/colourset.$o \
+		$(LIBSQUISH)/maths.$o \
+		$(LIBSQUISH)/rangefit.$o \
+		$(LIBSQUISH)/singlecolourfit.$o \
+		$(LIBSQUISH)/squish.$o
+endif
 
 # detect the platform
 ifeq ($(PLATFORM),LINUX)
