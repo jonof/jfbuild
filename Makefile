@@ -90,9 +90,9 @@ ENGINEOBJS+= \
 	$(SRC)/textfont.$o \
 	$(SRC)/smalltextfont.$o
 
-ifeq ($(USE_POLYMOST),1)
+ifneq ($(USE_POLYMOST),0)
 	ENGINEOBJS+= $(SRC)/polymost.$o
-	ifeq ($(USE_OPENGL),1)
+	ifneq ($(USE_OPENGL),0)
 		ENGINEOBJS+= \
 			$(SRC)/glbuild.$o \
 			$(SRC)/glbuild_fs.$o \
@@ -121,7 +121,7 @@ EDITOREXEOBJS=$(GAME)/bstub.$o \
 	$(EDITORLIB) \
 	$(ENGINELIB)
 
-ifeq ($(USE_OPENGL),1)
+ifneq ($(USE_OPENGL),0)
 	ENGINEOBJS+= \
 		$(SRC)/rg_etc1.$o \
 		$(LIBSQUISH)/alpha.$o \
