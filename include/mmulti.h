@@ -3,6 +3,10 @@
 #ifndef __mmulti_h__
 #define __mmulti_h__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAXMULTIPLAYERS 16
 
 #define MMULTI_MODE_MS  0
@@ -27,6 +31,10 @@ void sendpacket(int other, unsigned char *bufptr, int messleng);
 int getpacket(int *other, unsigned char *bufptr);
 void flushpackets(void);
 void genericmultifunction(int other, unsigned char *bufptr, int messleng, int command);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	// __mmulti_h__
 
