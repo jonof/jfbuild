@@ -6061,14 +6061,14 @@ void drawmapview(int dax, int day, int zoome, short ang)
 			yspan = tilesizy[tilenum]; yrepeat = spr->yrepeat;
 
 			ox = ((xspan>>1)+xoff)*xrepeat; oy = ((yspan>>1)+yoff)*yrepeat;
-			x1 = spr->x + mulscale(sinang,ox,16) + mulscale(cosang,oy,16);
-			y1 = spr->y + mulscale(sinang,oy,16) - mulscale(cosang,ox,16);
+			x1 = spr->x + mulscale16(sinang,ox) + mulscale16(cosang,oy);
+			y1 = spr->y + mulscale16(sinang,oy) - mulscale16(cosang,ox);
 			l = xspan*xrepeat;
-			x2 = x1 - mulscale(sinang,l,16);
-			y2 = y1 + mulscale(cosang,l,16);
+			x2 = x1 - mulscale16(sinang,l);
+			y2 = y1 + mulscale16(cosang,l);
 			l = yspan*yrepeat;
-			k = -mulscale(cosang,l,16); x3 = x2+k; x4 = x1+k;
-			k = -mulscale(sinang,l,16); y3 = y2+k; y4 = y1+k;
+			k = -mulscale16(cosang,l); x3 = x2+k; x4 = x1+k;
+			k = -mulscale16(sinang,l); y3 = y2+k; y4 = y1+k;
 
 			xb1[0] = 1; xb1[1] = 2; xb1[2] = 3; xb1[3] = 0;
 			npoints = 4;
