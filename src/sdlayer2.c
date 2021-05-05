@@ -1001,6 +1001,7 @@ int setvideomode(int x, int y, int c, int fs)
 		if (fs & 1) {
 			if (c > 8) flags |= SDL_WINDOW_FULLSCREEN;
 			else flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
+			flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 		}
 
 		sdl_window = SDL_CreateWindow(wintitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
@@ -1066,13 +1067,19 @@ int setvideomode(int x, int y, int c, int fs)
 #if USE_OPENGL
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
+			int winx = x, winy = y;
+			if (flags & SDL_WINDOW_FULLSCREEN_DESKTOP) {
+				SDL_DisplayMode d;
+				if (SDL_GetWindowDisplayMode(sdl_window, &d) == 0)
+					winx = d.w, winy = d.h;
+			}
 			sdl_glcontext = SDL_GL_CreateContext(sdl_window);
 			if (!sdl_glcontext) {
 				buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
 				nogl = 1;
 			} else if (baselayer_setupopengl()) {
 				nogl = 1;
-			} else if (glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch) < 0) {
+			} else if (glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch, winx, winy) < 0) {
 				nogl = 1;
 			}
 			if (nogl) {

@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 struct glbuild_funcs glfunc;
 
@@ -272,7 +273,7 @@ GLuint glbuild_link_program(int shadercount, GLuint *shaders)
 	return program;
 }
 
-int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stride)
+int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stride, int winx, int winy)
 {
 	GLuint shaders[2] = {0,0}, prog = 0;
 	GLint status = 0;
@@ -283,6 +284,10 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	float tx = (float)resx / (float)stride, ty = 1.0;
 	int tsizx = stride, tsizy = resy;
 
+	float winaspect = (float)winx / (float)winy;
+	float frameaspect = (float)resx / (float)resy;
+	float aspectx, aspecty;
+
 	if (!glinfo.texnpot) {
 		for (tsizx = 1; tsizx < stride; tsizx <<= 1) { }
 		for (tsizy = 1; tsizy < resy; tsizy <<= 1) { }
@@ -290,14 +295,28 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 		ty = (float)resy / (float)tsizy;
 	}
 
+	// Correct for aspect ratio difference between the window size
+	// and the logical 8-bit surface by skewing the quad we draw.
+	if (fabs(winaspect - frameaspect) < 0.01) {
+		aspectx = aspecty = 1.0;
+	} else if (winaspect > frameaspect) {
+		// Window is wider than the frame.
+		aspectx = frameaspect / winaspect;
+		aspecty = 1.0;
+	} else {
+		// Window is narrower than the frame.
+		aspectx = 1.0;
+		aspecty = winaspect / frameaspect;
+	}
+
 	// Buffer contents: indexes and texcoord/vertex elements.
 	GLushort indexes[6] = { 0, 1, 2, 0, 2, 3 };
 	GLfloat elements[4][4] = {
 		// tx, ty,  vx, vy
-		{ 0.0, ty,  -1.0, -1.0 },
-		{ tx,  ty,   1.0, -1.0 },
-		{ tx,  0.0,  1.0,  1.0 },
-		{ 0.0, 0.0, -1.0,  1.0 },
+		{ 0.0, ty,  -aspectx, -aspecty },
+		{ tx,  ty,   aspectx, -aspecty },
+		{ tx,  0.0,  aspectx,  aspecty },
+		{ 0.0, 0.0, -aspectx,  aspecty },
 	};
 
 	GLint clamp = glinfo.clamptoedge ? GL_CLAMP_TO_EDGE : GL_CLAMP;

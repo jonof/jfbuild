@@ -168,7 +168,7 @@ void glbuild_check_errors(const char *file, int line);
 
 GLuint glbuild_compile_shader(GLuint type, const GLchar *source);
 GLuint glbuild_link_program(int shadercount, GLuint *shaders);
-int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stride);        // <0 = error
+int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stride, int winx, int winy);  // <0 = error
 void glbuild_delete_8bit_shader(glbuild8bit *state);
 void glbuild_update_8bit_palette(glbuild8bit *state, const GLvoid *pal);
 void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx, int resy, int stride);

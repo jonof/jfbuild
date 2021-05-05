@@ -98,7 +98,7 @@ static void updatejoystick(void);
 static void UninitDIB(void);
 static int SetupDIB(int width, int height);
 static void UninitOpenGL(void);
-static int SetupOpenGL(int width, int height, int bitspp, int cover);
+static int SetupOpenGL(int width, int height, int bitspp);
 static BOOL RegisterWindowClass(void);
 static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refresh);
 static void DestroyAppWindow(void);
@@ -1722,7 +1722,7 @@ static void EnumWGLExts(HDC hdc)
 //
 // SetupOpenGL() -- sets up opengl rendering
 //
-static int SetupOpenGL(int width, int height, int bitspp, int cover)
+static int SetupOpenGL(int width, int height, int bitspp)
 {
 	int err, pixelformat;
 
@@ -1798,47 +1798,19 @@ static int SetupOpenGL(int width, int height, int bitspp, int cover)
 	EnumWGLExts(dummyhDC);
 
 	// Step 3. Create the actual window we will use going forward.
-	{
-		int xpos, ypos, xscl, yscl;
-
-		if (cover) {
-			// The desktop resolution is set to the target. Fill the screen.
-			xpos = ypos = 0;
-			xscl = width;
-			yscl = height;
-		} else {
-			// The desktop resolution remains the same and we stretch to fit.
-			int desktopaspect = divscale16(desktopxdim, desktopydim);
-			int frameaspect = divscale16(width, height);
-			if (desktopaspect >= frameaspect) {
-				// Desktop is at least as wide as the frame. We maximise frame height and centre on width.
-				ypos = 0;
-				yscl = desktopydim;
-				xscl = mulscale16(desktopydim, frameaspect);
-				xpos = (desktopxdim - xscl) >> 1;
-			} else {
-				// Desktop is narrower than the frame. We maximise frame width and centre on height.
-				xpos = 0;
-				xscl = desktopxdim;
-				yscl = divscale16(desktopxdim, frameaspect);
-				ypos = (desktopydim - yscl) >> 1;
-			}
-		}
-
-		hGLWindow = CreateWindow(
-				WINDOW_CLASS,
-				"OpenGL Window",
-				WS_CHILD|WS_VISIBLE,
-				xpos, ypos,
-				xscl, yscl,
-				hWindow,
-				(HMENU)0,
-				hInstance,
-				NULL);
-		if (!hGLWindow) {
-			errmsg = "Error creating OpenGL child window.";
-			goto fail;
-		}
+	hGLWindow = CreateWindow(
+			WINDOW_CLASS,
+			"OpenGL Window",
+			WS_CHILD|WS_VISIBLE,
+			0, 0,
+			width, height,
+			hWindow,
+			(HMENU)0,
+			hInstance,
+			NULL);
+	if (!hGLWindow) {
+		errmsg = "Error creating OpenGL child window.";
+		goto fail;
 	}
 
 	hDCGLWindow = GetDC(hGLWindow);
@@ -2008,7 +1980,7 @@ fail:
 static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refresh)
 {
 	RECT rect;
-	int w, h, x, y, stylebits = 0, stylebitsex = 0;
+	int ww, wh, wx, wy, vw, vh, stylebits = 0, stylebitsex = 0;
 	HRESULT result;
 
 	if (width == xres && height == yres && fs == fullscreen && bitspp == bpp && !videomodereset) return FALSE;
@@ -2060,20 +2032,22 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 	if (!fs) {
 		rect.left = 0;
 		rect.top = 0;
-		rect.right = width-1;
-		rect.bottom = height-1;
-		AdjustWindowRect(&rect, stylebits, FALSE);
+		rect.right = width;
+		rect.bottom = height;
+		AdjustWindowRectEx(&rect, stylebits, FALSE, stylebitsex);
 
-		w = (rect.right - rect.left);
-		h = (rect.bottom - rect.top);
-		x = (desktopxdim - w) / 2;
-		y = (desktopydim - h) / 2;
+		ww = (rect.right - rect.left);
+		wh = (rect.bottom - rect.top);
+		wx = (desktopxdim - ww) / 2;
+		wy = (desktopydim - wh) / 2;
+		vw = width;
+		vh = height;
 	} else {
-		x=y=0;
-		w=desktopxdim;
-		h=desktopydim;
+		wx=wy=0;
+		ww=vw=desktopxdim;
+		wh=vh=desktopydim;
 	}
-	SetWindowPos(hWindow, HWND_TOP, x, y, w, h, 0);
+	SetWindowPos(hWindow, HWND_TOP, wx, wy, ww, wh, 0);
 
 	UpdateAppWindowTitle();
 	ShowWindow(hWindow, SW_SHOWNORMAL);
@@ -2096,7 +2070,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 #if USE_OPENGL
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
-			if (SetupOpenGL(width, height, bitspp, !fs)) {
+			if (SetupOpenGL(vw, vh, bitspp)) {
 				// No luck. Write off OpenGL and try DIB.
 				buildputs("OpenGL initialisation failed. Falling back to DIB mode.\n");
 				nogl = 1;
@@ -2105,7 +2079,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 
 			bytesperline = (((width|1) + 4) & ~3);
 
-			if (glbuild_prepare_8bit_shader(&gl8bit, width, height, bytesperline) < 0) {
+			if (glbuild_prepare_8bit_shader(&gl8bit, width, height, bytesperline, vw, vh) < 0) {
 				shutdownvideo();
 				return -1;
 			}
@@ -2155,7 +2129,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 		SetForegroundWindow(hWindow);
 		SetFocus(hWindow);
 
-		if (SetupOpenGL(width, height, bitspp, !desktopmodeset)) {
+		if (SetupOpenGL(width, height, bitspp)) {
 			return TRUE;
 		}
 
