@@ -32,3 +32,7 @@
 /wad2map
 /generatesdlappicon
 /bin2c
+
+tools/kextract
+tools/mkpalette
+tools/wad2art
