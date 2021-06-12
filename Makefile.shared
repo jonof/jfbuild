@@ -105,6 +105,7 @@ ifeq ($(RENDERTYPE),SDL)
 											-s USE_SDL_IMAGE=2 \
 											-s MAX_WEBGL_VERSION=2 \
 											-s SDL2_IMAGE_FORMATS='["png"]' \
+											--shell-file ./assets/shell.html \
 											--preload-file "./assets@/home/web_user/.kenbuild/"
 		SDLCONFIG_LIBS= -lSDL2 -lGLESv2 
 	endif
