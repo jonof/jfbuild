@@ -96,7 +96,7 @@
 # define NULL ((void *)0)
 #endif
 
-#if defined(__linux)
+#if defined(__linux) || defined(__EMSCRIPTEN__)
 # include <endian.h>
 # if __BYTE_ORDER == __LITTLE_ENDIAN
 #  define B_LITTLE_ENDIAN 1

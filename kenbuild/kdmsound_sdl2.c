@@ -37,7 +37,14 @@ void initsb(char dadigistat, char damusistat, int dasamplerate, char danumspeake
     want.freq = dasamplerate;
     want.format = dabytespersample == 1 ? AUDIO_U8 : AUDIO_S16SYS;
     want.channels = max(1, min(2, danumspeakers));
+#ifdef __EMSCRIPTEN__
+    // The browser can only support specific buffer sizes.
+    // https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createScriptProcessor
+    // TODO: this makes audio naf.
+    want.samples = 0;
+#else
     want.samples = (((want.freq/120)+1)&~1);
+#endif
     want.callback = preparesndbuf;
 
     if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {

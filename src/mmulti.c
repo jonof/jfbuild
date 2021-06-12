@@ -209,7 +209,7 @@ int netinit (int portnum)
 		}
 
 		// Request that we receive IPV4 packet info.
-#if defined(__linux) || defined(_WIN32)
+#if defined(__linux) || defined(_WIN32) || defined(__EMSCRIPTEN__)
 		if (setsockopt(mysock, IPPROTO_IP, IP_PKTINFO, (void *)&on, sizeof(on)) != 0)
 #else
 		if (domain == PF_INET && setsockopt(mysock, IPPROTO_IP, IP_RECVDSTADDR, &on, sizeof(on)) != 0)
@@ -337,7 +337,7 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 	// just have to cross our fingers.
 	if (replyfrom4[other].s_addr != INADDR_ANY) {
 		cmsg->cmsg_level = IPPROTO_IP;
-#if defined(__linux) || defined(_WIN32)
+#if defined(__linux) || defined(_WIN32) || defined(__EMSCRIPTEN__)
 		cmsg->cmsg_type = IP_PKTINFO;
 		cmsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
 		#ifdef _WIN32
@@ -449,7 +449,7 @@ int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 	memset(&snatchreplyfrom4, 0, sizeof(snatchreplyfrom4));
 	memset(&snatchreplyfrom6, 0, sizeof(snatchreplyfrom6));
 	for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-#if defined(__linux) || defined(_WIN32)
+#if defined(__linux) || defined(_WIN32) || defined(__EMSCRIPTEN__)
 		if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_PKTINFO) {
 			snatchreplyfrom4 = ((struct in_pktinfo *)CMSG_DATA(cmsg))->ipi_addr;
 #ifdef MMULTI_DEBUG_SENDRECV_WIRE

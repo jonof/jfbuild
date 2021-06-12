@@ -75,7 +75,7 @@ endif
 
 ENGINEOBJS+= \
 	$(SRC)/a-c.$o \
-  	$(SRC)/asmprot.$o \
+	$(SRC)/asmprot.$o \
 	$(SRC)/baselayer.$o \
 	$(SRC)/cache1d.$o \
 	$(SRC)/compat.$o \
@@ -136,6 +136,9 @@ ifneq ($(USE_OPENGL),0)
 endif
 
 # detect the platform
+ifeq ($(PLATFORM),WASM)
+	LIBS+= -lm 
+endif
 ifeq ($(PLATFORM),LINUX)
 	NASMFLAGS+= -f elf
 	LIBS+= -lm
@@ -216,7 +219,9 @@ editorlib: $(EDITORLIB)
 
 $(ENGINELIB): $(ENGINEOBJS)
 	$(AR) rc $@ $^
+ifneq ($(PLATFORM),WASM) # WASM can't read the library if we do this
 	$(RANLIB) $@
+endif
 
 $(EDITORLIB): $(EDITOROBJS)
 	$(AR) rc $@ $^

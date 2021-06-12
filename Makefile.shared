@@ -27,6 +27,9 @@ BUILDLIBS=
 machine=$(strip $(shell $(CC) -dumpmachine))
 ifndef PLATFORM
 	PLATFORM=UNKNOWN
+	ifneq (,$(findstring wasm,$(machine)))
+		PLATFORM=WASM
+	endif
 	ifneq (,$(findstring -linux,$(machine)))
 		PLATFORM=LINUX
 	endif
@@ -42,6 +45,9 @@ ifndef PLATFORM
 endif
 ifndef ARCHITECTURE
 	ARCHITECTURE=UNKNOWN
+	ifneq (,$(findstring wasm,$(machine)))
+		ARCHITECTURE=X86
+	endif
 	ifneq (,$(findstring aarch64-,$(machine)))
 		ARCHITECTURE=ARM_64
 	endif
@@ -74,12 +80,33 @@ else
 	EXESUFFIX=
 endif
 
+ifeq ($(PLATFORM),WASM)
+	RENDERTYPE=SDL
+	EXESUFFIX=.html
+endif
+
 ifeq ($(RENDERTYPE),SDL)
 	ifneq ($(SDL2CONFIG),)
 		SDLCONFIG_CFLAGS=$(shell $(SDL2CONFIG) --cflags)
 		SDLCONFIG_LIBS=$(shell $(SDL2CONFIG) --libs)
 	else
 		$(error No $(SDL2CONFIG) could be found)
+	endif
+
+	ifeq ($(PLATFORM),WASM)
+#	If you're feeling lazy:
+#	-s ALLOW_MEMORY_GROWTH
+#	-s MAXIMUM_MEMORY=4GB
+		SDLCONFIG_CFLAGS= -Os \
+											-s WASM=1 \
+											-s TOTAL_MEMORY=20MB \
+											-s ASSERTIONS=1 \
+											-s USE_SDL=2 \
+											-s USE_SDL_IMAGE=2 \
+											-s MAX_WEBGL_VERSION=2 \
+											-s SDL2_IMAGE_FORMATS='["png"]' \
+											--preload-file "./assets@/home/web_user/.kenbuild/"
+		SDLCONFIG_LIBS= -lSDL2 -lGLESv2 
 	endif
 
 	ifeq (1,$(WITHOUT_GTK))
