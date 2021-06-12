@@ -63,7 +63,9 @@ int glbuild_loadfunctions(void)
 	INIT_PROC(glReadPixels);
 
 	// Texture mapping
+#if (USE_OPENGL != USE_GLES2)
 	INIT_PROC(glTexEnvf);
+#endif
 	INIT_PROC(glGenTextures);
 	INIT_PROC(glDeleteTextures);
 	INIT_PROC(glBindTexture);
