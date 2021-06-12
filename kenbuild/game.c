@@ -15,6 +15,10 @@
 
 #include "baselayer.h"
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 #define TIMERINTSPERSECOND 140 //280
 #define MOVESPERSECOND 40
 #define TICSPERFRAME 3
@@ -396,6 +400,87 @@ static int osdcmd_map(const osdfuncparm_t *parm) {
     return OSDCMD_OK;
 }
 
+// Need to breakout the main game loop for Emscripten to be able
+// to call this via the browsers requestAnimationFrame loop
+void gameloop(void)
+{
+	int j, k, i = 0;
+
+	if (handleevents()) {
+		if (quitevent) {
+			keystatus[1] = 1;
+			quitevent = 0;
+			return;
+		}
+	}
+
+	refreshaudio();
+	OSD_DispatchQueued();
+
+		// backslash (useful only with KDM)
+		//      if (keystatus[0x2b]) { keystatus[0x2b] = 0; preparesndbuf(); }
+
+	if ((networkmode == 1) || (myconnectindex != connecthead))
+		while (fakemovefifoplc != movefifoend[myconnectindex]) fakedomovethings();
+
+	getpackets();
+
+	if (typemode == 0)           //if normal game keys active
+	{
+		if ((keystatus[0x2a]&keystatus[0x36]&keystatus[0x13]) > 0)   //Sh.Sh.R (replay)
+		{
+			keystatus[0x13] = 0;
+			playback();
+		}
+
+		if (keystatus[0x26]&(keystatus[0x1d]|keystatus[0x9d])) //Load game
+		{
+			keystatus[0x26] = 0;
+			loadgame();
+			drawstatusbar(screenpeek);   // Andy did this
+		}
+
+		if (keystatus[0x1f]&(keystatus[0x1d]|keystatus[0x9d])) //Save game
+		{
+			keystatus[0x1f] = 0;
+			savegame();
+		}
+	}
+
+	if ((networkmode == 0) || (option[4] == 0))
+	{
+		while (movefifoplc != movefifoend[0]) domovethings();
+	}
+	else
+	{
+		j = connecthead;
+		if (j == myconnectindex) j = connectpoint2[j];
+		averagelag[j] = ((averagelag[j]*7+(((movefifoend[myconnectindex]-movefifoend[j]+otherlag[j]+2)&255)<<8))>>3);
+		j = max(averagelag[j]>>9,1);
+		while (((movefifoend[myconnectindex]-movefifoplc)&(MOVEFIFOSIZ-1)) > j)
+		{
+			for(i=connecthead;i>=0;i=connectpoint2[i])
+				if (movefifoplc == movefifoend[i]) break;
+			if (i >= 0) break;
+			if (myconnectindex != connecthead)
+			{
+				k = ((movefifoend[myconnectindex]-movefifoend[connecthead]-otherlag[connecthead]+128)&255);
+				if (k > 128+1) ototalclock++;
+				if (k < 128-1) ototalclock--;
+			}
+			domovethings();
+		}
+	}
+	i = (totalclock-gotlastpacketclock)*(65536/(TIMERINTSPERSECOND/MOVESPERSECOND));
+
+	drawscreen(screenpeek,i);
+}
+
+void gameloop_wasm(void) 
+{
+	gameloop();
+}
+
 int app_main(int argc, char const * const argv[])
 {
 	int cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
@@ -701,76 +786,19 @@ int app_main(int argc, char const * const argv[])
 	ready2send = 1;
 	drawscreen(screenpeek,65536L);
 
-	while (!keystatus[1])       //Main loop starts here
-	{
-		if (handleevents()) {
-			if (quitevent) {
-				keystatus[1] = 1;
-				quitevent = 0;
-			}
-		}
 
-		refreshaudio();
-		OSD_DispatchQueued();
-
-			// backslash (useful only with KDM)
-//      if (keystatus[0x2b]) { keystatus[0x2b] = 0; preparesndbuf(); }
-
-		if ((networkmode == 1) || (myconnectindex != connecthead))
-			while (fakemovefifoplc != movefifoend[myconnectindex]) fakedomovethings();
-
-		getpackets();
-
-		if (typemode == 0)           //if normal game keys active
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(gameloop_wasm, // callback function to main loop
+                             0,             // frame rate (requestAnimationFrame() will be used)
+                             1);            // simulate infinite loop
+#endif
+#ifndef __EMSCRIPTEN__
+		//Main loop starts here
+		while(!keystatus[1]) 
 		{
-			if ((keystatus[0x2a]&keystatus[0x36]&keystatus[0x13]) > 0)   //Sh.Sh.R (replay)
-			{
-				keystatus[0x13] = 0;
-				playback();
-			}
-
-			if (keystatus[0x26]&(keystatus[0x1d]|keystatus[0x9d])) //Load game
-			{
-				keystatus[0x26] = 0;
-				loadgame();
-				drawstatusbar(screenpeek);   // Andy did this
-			}
-
-			if (keystatus[0x1f]&(keystatus[0x1d]|keystatus[0x9d])) //Save game
-			{
-				keystatus[0x1f] = 0;
-				savegame();
-			}
-		}
-
-		if ((networkmode == 0) || (option[4] == 0))
-		{
-			while (movefifoplc != movefifoend[0]) domovethings();
-		}
-		else
-		{
-			j = connecthead;
-			if (j == myconnectindex) j = connectpoint2[j];
-			averagelag[j] = ((averagelag[j]*7+(((movefifoend[myconnectindex]-movefifoend[j]+otherlag[j]+2)&255)<<8))>>3);
-			j = max(averagelag[j]>>9,1);
-			while (((movefifoend[myconnectindex]-movefifoplc)&(MOVEFIFOSIZ-1)) > j)
-			{
-				for(i=connecthead;i>=0;i=connectpoint2[i])
-					if (movefifoplc == movefifoend[i]) break;
-				if (i >= 0) break;
-				if (myconnectindex != connecthead)
-				{
-					k = ((movefifoend[myconnectindex]-movefifoend[connecthead]-otherlag[connecthead]+128)&255);
-					if (k > 128+1) ototalclock++;
-					if (k < 128-1) ototalclock--;
-				}
-				domovethings();
-			}
-		}
-		i = (totalclock-gotlastpacketclock)*(65536/(TIMERINTSPERSECOND/MOVESPERSECOND));
-
-		drawscreen(screenpeek,i);
-	}
+			gameloop();
+		} 
+#endif
 
 	sendlogoff();         //Signing off
 	musicoff();
