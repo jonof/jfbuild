@@ -96,7 +96,8 @@ static unsigned char pakbuf[MAXPAKSIZ], playerslive[MAXPLAYERS];
 #define FIFSIZ 512 //16384/40 = 6min:49sec
 static int ipak[MAXPLAYERS][FIFSIZ], icnt0[MAXPLAYERS];
 static int opak[MAXPLAYERS][FIFSIZ], ocnt0[MAXPLAYERS], ocnt1[MAXPLAYERS];
-static unsigned char pakmem[4194304]; static int pakmemi = 1;
+#define PAKMEMSIZ 4194304
+static unsigned char *pakmem; static int pakmemi = 1;
 
 #define NETPORT 0x5bd9
 static SOCKET mysock = -1;
@@ -135,6 +136,12 @@ int netinit (int portnum)
 #else
 	unsigned int off = 0, on = 1;
 #endif
+
+	// Never freed: the games still poll for packets after uninitmultiplayers().
+	if (!pakmem && (pakmem = calloc(1, PAKMEMSIZ)) == NULL) {
+		printf("mmulti error: Can't allocate %d bytes for the packet buffer\n", PAKMEMSIZ);
+		return 0;
+	}
 
 #ifdef _WIN32
 	if (WSAStartup(0x202, &ws) != 0) return(0);
@@ -994,7 +1001,7 @@ void sendpacket (int other, unsigned char *bufptr, int messleng)
 {
 	if (numplayers < 2) return;
 
-	if (pakmemi+messleng+2 > (int)sizeof(pakmem)) pakmemi = 1;
+	if (pakmemi+messleng+2 > PAKMEMSIZ) pakmemi = 1;
 	opak[other][ocnt1[other]&(FIFSIZ-1)] = pakmemi;
 	*(short *)&pakmem[pakmemi] = messleng;
 	memcpy(&pakmem[pakmemi+2],bufptr,messleng); pakmemi += messleng+2;
@@ -1191,7 +1198,7 @@ int getpacket (int *retother, unsigned char *bufptr)
 					j = *(int *)&pakbuf[k]; k += 4;
 					if ((j >= icnt0[other]) && (!ipak[other][j&(FIFSIZ-1)]))
 					{
-						if (pakmemi+messleng+2 > (int)sizeof(pakmem)) pakmemi = 1;
+						if (pakmemi+messleng+2 > PAKMEMSIZ) pakmemi = 1;
 						ipak[other][j&(FIFSIZ-1)] = pakmemi;
 						*(short *)&pakmem[pakmemi] = messleng;
 						memcpy(&pakmem[pakmemi+2],&pakbuf[k],messleng); pakmemi += messleng+2;
