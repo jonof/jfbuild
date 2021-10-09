@@ -531,6 +531,7 @@ static short capturecount = 0;
 static char capturename[20] = "capt0000.xxx", captureatnextpage = 0;
 static int screencapture_pcx(char mode);
 static int screencapture_tga(char mode);
+static int screencapture_png(char mode);
 
 unsigned char vgapal16[4*256] =
 {
@@ -5447,7 +5448,7 @@ int initengine(void)
 	visibility = 512;
 	parallaxvisibility = 512;
 
-	captureformat = 0;
+	captureformat = 2;  // PNG
 
 	if (loadtables()) return 1;
 	if (loadpalette()) return 1;
@@ -11403,6 +11404,145 @@ static int screencapture_pcx(char mode)
 	return(0);
 }
 
+struct pngsums {
+	unsigned int crc;
+	unsigned short adlers1;
+	unsigned short adlers2;
+};
+
+static void screencapture_writepngline(unsigned char *buf, int bytes, int elements, BFILE *fp, void *v)
+{
+	unsigned char header[6];
+	unsigned short blklen;
+	int i;
+	struct pngsums *sums = (struct pngsums *)v;
+
+	blklen = (unsigned short)B_LITTLE16(1 + bytes * elements);	// One extra for the filter type.
+	header[0] = 0;	// BFINAL = 0, BTYPE = 00.
+	memcpy(&header[1], &blklen, 2);
+	blklen = ~blklen;
+	memcpy(&header[3], &blklen, 2);
+
+	header[5] = 0;	// No filter.
+	sums->adlers2 = (sums->adlers2 + sums->adlers1) % 65521;
+	crc32block(&sums->crc, header, sizeof(header));
+	Bfwrite(header, sizeof(header), 1, fp);
+
+	for (i=0; i < bytes * elements; i++) {
+		sums->adlers1 = (sums->adlers1 + buf[i]) % 65521;
+		sums->adlers2 = (sums->adlers2 + sums->adlers1) % 65521;
+	}
+	crc32block(&sums->crc, buf, bytes * elements);
+	Bfwrite(buf, bytes, elements, fp);
+}
+
+static int screencapture_png(char mode)
+{
+	const unsigned char pngsig[] = { 0x89, 'P', 'N', 'G', 0xd, 0xa, 0x1a, 0xa };
+	const unsigned char enddeflate[] = { 1, 0, 0, 0xff, 0xff };
+
+#define BEGIN_PNG_CHUNK(type) { \
+	acclen = 4; \
+	memcpy(&buf[acclen], type, 4); \
+	acclen += 4; \
+}
+#define SET_PNG_CHUNK_LEN(fore) { \
+	/* Accumulated and forecast, minus length and type fields. */ \
+	int len = B_BIG32(acclen + fore - 8); \
+	memcpy(&buf[0], &len, 4); \
+}
+#define END_PNG_CHUNK(ccrc) { \
+	unsigned int crc = B_BIG32(ccrc); \
+	memcpy(&buf[acclen], &crc, 4); \
+	acclen += 4; \
+	Bfwrite(buf, acclen, 1, fil); \
+}
+
+	unsigned char buf[1024];
+	int length, i, acclen, glmode = 0;
+	unsigned short s;
+	BFILE *fil;
+	struct pngsums sums;
+
+#if USE_POLYMOST && USE_OPENGL
+	glmode = (rendmode == 3 && qsetmode == 200);
+#endif
+
+	if ((fil = screencapture_openfile("png")) == NULL) {
+		return -1;
+	}
+
+	Bfwrite(pngsig, sizeof(pngsig), 1, fil);
+
+	// Header.
+	BEGIN_PNG_CHUNK("IHDR");
+	i = B_BIG32(xdim); memcpy(&buf[acclen], &i, 4); acclen += 4;
+	i = B_BIG32(ydim); memcpy(&buf[acclen], &i, 4); acclen += 4;
+	buf[acclen++] = 8;	// Bit depth per sample/palette index.
+	buf[acclen++] = glmode ? 2 : 3;	// Colour type.
+	buf[acclen++] = 0;	// Deflate compression method.
+	buf[acclen++] = 0;	// Adaptive filter.
+	buf[acclen++] = 0;	// No interlace.
+	SET_PNG_CHUNK_LEN(0);
+	END_PNG_CHUNK(crc32once(&buf[4], acclen - 4));
+
+	// Palette if needed.
+#if USE_POLYMOST && USE_OPENGL
+	if (rendmode < 3 || (rendmode == 3 && qsetmode != 200)) {
+#endif
+		BEGIN_PNG_CHUNK("PLTE");
+		for (i=0; i<256; i++, acclen+=3) {
+			buf[acclen+0] = curpalettefaded[i].r;
+			buf[acclen+1] = curpalettefaded[i].g;
+			buf[acclen+2] = curpalettefaded[i].b;
+		}
+		SET_PNG_CHUNK_LEN(0);
+		END_PNG_CHUNK(crc32once(&buf[4], acclen - 4));
+#if USE_POLYMOST && USE_OPENGL
+	}
+#endif
+
+	// Image Data.
+	BEGIN_PNG_CHUNK("IDAT");
+	crc32init(&sums.crc);
+
+	// Content is a Zlib stream.
+	buf[acclen++] = 0x78;	// Deflate, 32k window.
+	buf[acclen++] = 1;		// Check bits 0-4: (0x7800 + 1) % 0x1f == 0
+
+	length = (1 + 2 + 2) + 1 + xdim * (glmode ? 3 : 1);	// Length of one scanline deflate block.
+	length *= ydim;			// By height.
+	length += sizeof(enddeflate);	// Plus length of 'End of Deflate' block.
+	length += 4;			// Plus Adler32 checksum.
+	SET_PNG_CHUNK_LEN(length);
+
+	crc32block(&sums.crc, &buf[4], acclen - 4);
+	Bfwrite(buf, acclen, 1, fil);	// Write header and start of Zlib stream.
+
+	sums.adlers1 = 1;
+	sums.adlers2 = 0;
+	screencapture_writeframe(fil, (mode&1), &sums, screencapture_writepngline);
+
+	// Finalise the Zlib stream.
+	acclen = 0;
+	memcpy(&buf[acclen], enddeflate, sizeof(enddeflate)); acclen += sizeof(enddeflate);
+	s = B_BIG16(sums.adlers2); memcpy(&buf[acclen], &s, 2); acclen += 2;
+	s = B_BIG16(sums.adlers1); memcpy(&buf[acclen], &s, 2); acclen += 2;
+
+	// Finalise the Image Data chunk and write what remains out.
+	crc32block(&sums.crc, buf, acclen);
+	crc32finish(&sums.crc);
+	END_PNG_CHUNK(sums.crc);
+
+	// End chunk.
+	BEGIN_PNG_CHUNK("IEND");
+	SET_PNG_CHUNK_LEN(0);
+	END_PNG_CHUNK(crc32once(&buf[4], acclen - 4));
+
+	Bfclose(fil);
+	return(0);
+}
+
 int screencapture(char *filename, char mode)
 {
 	int ret;
@@ -11414,8 +11554,11 @@ int screencapture(char *filename, char mode)
 		captureatnextpage = mode;
 		return 0;
 	}
-	if (captureformat == 0) ret = screencapture_tga(mode&1);
-	else ret = screencapture_pcx(mode&1);
+	switch (captureformat) {
+		case 0: ret = screencapture_tga(mode&1); break;
+		case 1: ret = screencapture_pcx(mode&1); break;
+		default: ret = screencapture_png(mode&1); break;
+	}
 	if (ret == 0) {
 		buildprintf("Saved screenshot to %s\n", capturename);
 	}
