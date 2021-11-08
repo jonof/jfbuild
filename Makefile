@@ -75,7 +75,7 @@ endif
 
 ENGINEOBJS+= \
 	$(SRC)/a-c.$o \
-  	$(SRC)/asmprot.$o \
+	$(SRC)/asmprot.$o \
 	$(SRC)/baselayer.$o \
 	$(SRC)/cache1d.$o \
 	$(SRC)/compat.$o \
@@ -90,13 +90,16 @@ ENGINEOBJS+= \
 	$(SRC)/textfont.$o \
 	$(SRC)/smalltextfont.$o
 
+ifneq ($(USE_OPENGL),0)
+	ENGINEOBJS+= \
+		$(SRC)/glbuild.$o \
+		$(SRC)/glbuild_fs.$o \
+		$(SRC)/glbuild_vs.$o
+endif
 ifneq ($(USE_POLYMOST),0)
 	ENGINEOBJS+= $(SRC)/polymost.$o
 	ifneq ($(USE_OPENGL),0)
 		ENGINEOBJS+= \
-			$(SRC)/glbuild.$o \
-			$(SRC)/glbuild_fs.$o \
-			$(SRC)/glbuild_vs.$o \
 			$(SRC)/hightile.$o \
 			$(SRC)/mdsprite.$o \
 			$(SRC)/polymost_fs.$o \
