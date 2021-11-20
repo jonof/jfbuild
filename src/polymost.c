@@ -729,7 +729,7 @@ void polymost_glinit()
 	polymost_loadshaders();
 }
 
-void resizeglcheck ()
+void resizeglcheck (void)
 {
 	float m[4][4];
 

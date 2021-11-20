@@ -115,7 +115,7 @@ static int issameaddress(struct sockaddr *a, struct sockaddr *b);
 static const char *presentaddress(struct sockaddr *a);
 static void savesnatchhost(int other);
 
-void netuninit ()
+void netuninit (void)
 {
 #ifdef _WIN32
 	if (mysock != INVALID_SOCKET) closesocket(mysock);
