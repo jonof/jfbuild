@@ -528,9 +528,9 @@ static int permhead = 0, permtail = 0;
 short numscans, numhits, numbunches;
 
 static short capturecount = 0;
-static char capturename[20], captureatnextpage = 0;
-static int screencapture_pcx(char *filename, char inverseit);
-static int screencapture_tga(char *filename, char inverseit);
+static char capturename[20] = "capt0000.xxx", captureatnextpage = 0;
+static int screencapture_pcx(char mode);
+static int screencapture_tga(char mode);
 
 unsigned char vgapal16[4*256] =
 {
@@ -7680,8 +7680,7 @@ void nextpage(void)
 #endif
 
 			if (captureatnextpage) {
-				if (captureformat == 0) screencapture_tga(capturename,captureatnextpage&1);
-				else screencapture_pcx(capturename,captureatnextpage&1);
+				screencapture(NULL, captureatnextpage);
 				captureatnextpage = 0;
 			}
 
@@ -11127,37 +11126,121 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 //
 // screencapture
 //
-static int screencapture_tga(char *filename, char inverseit)
+static BFILE *screencapture_openfile(const char *ext)
 {
-	int i,j;
-	unsigned char *ptr, head[18] = { 0,1,1,0,0,0,1,24,0,0,0,0,0/*wlo*/,0/*whi*/,0/*hlo*/,0/*hhi*/,8,0 };
-	//char palette[4*256];
-	char *fn = Bstrdup(filename), *inversebuf, c;
+	int i;
 	BFILE *fil;
 
 	do {	// JBF 2004022: So we don't overwrite existing screenshots
-        if (capturecount > 9999) {
-            Bfree(fn);
-            return -1;
-        }
+		if (capturecount > 9999) {
+			return NULL;
+		}
 
-		i = Bstrrchr(fn,'.')-fn-4;
-		fn[i++] = ((capturecount/1000)%10)+48;
-		fn[i++] = ((capturecount/100)%10)+48;
-		fn[i++] = ((capturecount/10)%10)+48;
-		fn[i++] = (capturecount%10)+48;
+		i = Bstrrchr(capturename,'.')-capturename-4;
+		capturename[i++] = ((capturecount/1000)%10)+48;
+		capturename[i++] = ((capturecount/100)%10)+48;
+		capturename[i++] = ((capturecount/10)%10)+48;
+		capturename[i++] = (capturecount%10)+48;
 		i++;
-		fn[i++] = 't';
-		fn[i++] = 'g';
-		fn[i++] = 'a';
+		capturename[i++] = ext[0];
+		capturename[i++] = ext[1];
+		capturename[i++] = ext[2];
 
-		if ((fil = Bfopen(fn,"rb")) == NULL) break;
+		if ((fil = Bfopen(capturename, "rb")) == NULL) break;
 		Bfclose(fil);
 		capturecount++;
 	} while (1);
-	fil = Bfopen(fn,"wb");
-	if (fil == NULL) {
-		Bfree(fn);
+	fil = Bfopen(capturename, "wb");
+	if (fil) capturecount++;
+	return fil;
+}
+
+static int screencapture_writeframe(BFILE *fil, char mode, void *v,
+	void (*writeline)(unsigned char *, int, int, BFILE *, void *))
+{
+	int y, ystart, yend, yinc, j;
+	unsigned char *ptr, *buf;
+	char inverseit = 0, bottotop = 0, bgr = 0;
+
+	inverseit = (mode & 1);
+	bottotop = (mode & 2);
+	bgr = (mode & 4);
+
+#if USE_POLYMOST && USE_OPENGL
+	if (rendmode >= 3 && qsetmode == 200) {
+		// OpenGL returns bottom-to-top ordered lines.
+		if (bottotop) {
+			ystart = 0;
+			yend = ydim;
+			yinc = 1;
+		} else {
+			ystart = ydim-1;
+			yend = -1;
+			yinc = -1;
+		}
+		buf = kmalloc(xdim*ydim*3);
+		if (buf) {
+			glfunc.glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,buf);
+			if (bgr) {
+				for (j=(xdim*ydim-1)*3; j>=0; j-=3) {
+					swapchar(&buf[j+0], &buf[j+2]);
+				}
+			}
+			for (y = ystart; y != yend; y += yinc) {
+				ptr = buf + y*xdim*3;
+				writeline(ptr, xdim, 3, fil, v);
+			}
+			kfree(buf);
+		}
+		return(0);
+	}
+#endif
+
+	begindrawing();	//{{{
+	ptr = (unsigned char *)frameplace;
+	if (bottotop) {
+		ystart = ydim-1;
+		yend = -1;
+		yinc = -1;
+	} else {
+		ystart = 0;
+		yend = ydim;
+		yinc = 1;
+	}
+
+	if (inverseit && qsetmode != 200) {
+		buf = kmalloc(bytesperline);
+		if (buf) {
+			for (y = ystart; y != yend; y += yinc) {
+				copybuf(ptr + y*bytesperline, buf, xdim >> 2);
+				for (j=(bytesperline>>2)-1; j>=0; j--) ((int *)buf)[j] ^= 0x0f0f0f0fL;
+				writeline(buf, xdim, 1, fil, v);
+			}
+			kfree(buf);
+		}
+	} else {
+		for (y = ystart; y != yend; y += yinc) {
+			writeline(ptr + y*bytesperline, xdim, 1, fil, v);
+		}
+	}
+
+	enddrawing();	//}}}
+	return(0);
+}
+
+static void screencapture_writetgaline(unsigned char *buf, int bytes, int elements, BFILE *fp, void *v)
+{
+	(void)v;
+	Bfwrite(buf, bytes, elements, fp);
+}
+
+static int screencapture_tga(char mode)
+{
+	int i,j;
+	unsigned char *ptr, head[18] = { 0,1,1,0,0,0,1,24,0,0,0,0,0/*wlo*/,0/*whi*/,0/*hlo*/,0/*hhi*/,8,0 };
+	BFILE *fil;
+
+	if ((fil = screencapture_openfile("tga")) == NULL) {
 		return -1;
 	}
 
@@ -11181,14 +11264,10 @@ static int screencapture_tga(char *filename, char inverseit)
 
 	Bfwrite(head, 18, 1, fil);
 
-	begindrawing();	//{{{
-	ptr = (unsigned char *)frameplace;
-
 	// palette first
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode < 3 || (rendmode == 3 && qsetmode != 200)) {
 #endif
-		//getpalette(0,256,palette);
 		for (i=0; i<256; i++) {
 			Bfputc(curpalettefaded[i].b, fil);	// b
 			Bfputc(curpalettefaded[i].g, fil);	// g
@@ -11198,48 +11277,11 @@ static int screencapture_tga(char *filename, char inverseit)
 	}
 #endif
 
-	// targa renders bottom to top, from left to right
-	if (inverseit && qsetmode != 200) {
-		inversebuf = kmalloc(bytesperline);
-		if (inversebuf) {
-			for (i=ydim-1; i>=0; i--) {
-				copybuf(ptr+i*bytesperline, inversebuf, xdim >> 2);
-				for (j=0; j < (bytesperline>>2); j++) ((int *)inversebuf)[j] ^= 0x0f0f0f0fL;
-				Bfwrite(inversebuf, xdim, 1, fil);
-			}
-			kfree(inversebuf);
-		}
-	} else {
-#if USE_POLYMOST && USE_OPENGL
-		if (rendmode >= 3 && qsetmode == 200) {
-			// 24bit
-			inversebuf = kmalloc(xdim*ydim*3);
-			if (inversebuf) {
-				glfunc.glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
-				j = xdim*ydim*3;
-				for (i=0; i<j; i+=3) {
-					c = inversebuf[i];
-					inversebuf[i] = inversebuf[i+2];
-					inversebuf[i+2] = c;
-				}
-				Bfwrite(inversebuf, xdim*ydim, 3, fil);
-				kfree(inversebuf);
-			}
-		} else {
-#endif
-			for (i=ydim-1; i>=0; i--)
-				Bfwrite(ptr+i*bytesperline, xdim, 1, fil);
-#if USE_POLYMOST && USE_OPENGL
-		}
-#endif
-	}
-
-	enddrawing();	//}}}
+	// Targa renders bottom to top, from left to right.
+	// 24bit images use BGR element order.
+	screencapture_writeframe(fil, (mode&1) | 2 | 4, NULL, screencapture_writetgaline);
 
 	Bfclose(fil);
-	buildprintf("Saved screenshot to %s\n", fn);
-	Bfree(fn);
-	capturecount++;
 	return(0);
 }
 
@@ -11273,51 +11315,40 @@ static void writepcxline(unsigned char *buf, int bytes, int step, BFILE *fp)
 			runCount++;
 			if (runCount == 63) {
 				writepcxbyte(last, runCount, fp);
-        	                runCount = 0;
-                	}
-	        } else {
+				runCount = 0;
+			}
+		} else {
 			if (runCount)
 				writepcxbyte(last, runCount, fp);
 
-                	last = ths;
+			last = ths;
 			runCount = 1;
-                }
-        }
+		}
+	}
 
 	if (runCount) writepcxbyte(last, runCount, fp);
 	if (bytes&1) writepcxbyte(0, 1, fp);
 }
 
-static int screencapture_pcx(char *filename, char inverseit)
+static void screencapture_writepcxline(unsigned char *buf, int bytes, int elements, BFILE *fp, void *v)
+{
+	(void)v;
+	if (elements == 3) {
+		writepcxline(buf,   bytes, 3, fp);
+		writepcxline(buf+1, bytes, 3, fp);
+		writepcxline(buf+2, bytes, 3, fp);
+		return;
+	}
+	writepcxline(buf, bytes, 1, fp);
+}
+
+static int screencapture_pcx(char mode)
 {
 	int i,j,bpl;
-	unsigned char *ptr, head[128], *inversebuf;
-	char *fn = Bstrdup(filename);
+	unsigned char *ptr, head[128];
 	BFILE *fil;
 
-	do {	// JBF 2004022: So we don't overwrite existing screenshots
-        if (capturecount > 9999) {
-            Bfree(fn);
-            return -1;
-        }
-
-		i = Bstrrchr(fn,'.')-fn-4;
-		fn[i++] = ((capturecount/1000)%10)+48;
-		fn[i++] = ((capturecount/100)%10)+48;
-		fn[i++] = ((capturecount/10)%10)+48;
-		fn[i++] = (capturecount%10)+48;
-		i++;
-		fn[i++] = 'p';
-		fn[i++] = 'c';
-		fn[i++] = 'x';
-
-		if ((fil = Bfopen(fn,"rb")) == NULL) break;
-		Bfclose(fil);
-		capturecount++;
-	} while (1);
-	fil = Bfopen(fn,"wb");
-	if (fil == NULL) {
-		Bfree(fn);
+	if ((fil = screencapture_openfile("pcx")) == NULL) {
 		return -1;
 	}
 
@@ -11349,44 +11380,9 @@ static int screencapture_pcx(char *filename, char inverseit)
 
 	Bfwrite(head, 128, 1, fil);
 
-	begindrawing();	//{{{
-	ptr = (unsigned char *)frameplace;
-
-	// targa renders bottom to top, from left to right
-	if (inverseit && qsetmode != 200) {
-		inversebuf = kmalloc(bytesperline);
-		if (inversebuf) {
-			for (i=0; i<ydim; i++) {
-				copybuf(ptr+i*bytesperline, inversebuf, xdim >> 2);
-				for (j=0; j < (bytesperline>>2); j++) ((int *)inversebuf)[j] ^= 0x0f0f0f0fL;
-				writepcxline(inversebuf, xdim, 1, fil);
-			}
-			kfree(inversebuf);
-		}
-	} else {
-#if USE_POLYMOST && USE_OPENGL
-		if (rendmode >= 3 && qsetmode == 200) {
-			// 24bit
-			inversebuf = kmalloc(xdim*ydim*3);
-			if (inversebuf) {
-				glfunc.glReadPixels(0,0,xdim,ydim,GL_RGB,GL_UNSIGNED_BYTE,inversebuf);
-				for (i=ydim-1; i>=0; i--) {
-					writepcxline(inversebuf+i*xdim*3,   xdim, 3, fil);
-					writepcxline(inversebuf+i*xdim*3+1, xdim, 3, fil);
-					writepcxline(inversebuf+i*xdim*3+2, xdim, 3, fil);
-				}
-				kfree(inversebuf);
-			}
-		} else {
-#endif
-			for (i=0; i<ydim; i++)
-				writepcxline(ptr+i*bytesperline, xdim, 1, fil);
-#if USE_POLYMOST && USE_OPENGL
-		}
-#endif
-	}
-
-	enddrawing();	//}}}
+	// PCX renders top to bottom, from left to right.
+	// 24-bit images have each scan line written as deinterleaved RGB.
+	screencapture_writeframe(fil, (mode&1), NULL, screencapture_writepcxline);
 
 	// palette last
 #if USE_POLYMOST && USE_OPENGL
@@ -11404,21 +11400,26 @@ static int screencapture_pcx(char *filename, char inverseit)
 #endif
 
 	Bfclose(fil);
-	buildprintf("Saved screenshot to %s\n", fn);
-	Bfree(fn);
-	capturecount++;
 	return(0);
 }
 
 int screencapture(char *filename, char mode)
 {
-	if (qsetmode == 200 && (mode & 2)) {
-		captureatnextpage = mode;
+	int ret;
+
+	if (filename) {
 		strcpy(capturename, filename);
+	}
+	if (qsetmode == 200 && (mode & 2) && !captureatnextpage) {
+		captureatnextpage = mode;
 		return 0;
 	}
-	if (captureformat == 0) return screencapture_tga(filename,mode&1);
-	else return screencapture_pcx(filename,mode&1);
+	if (captureformat == 0) ret = screencapture_tga(mode&1);
+	else ret = screencapture_pcx(mode&1);
+	if (ret == 0) {
+		buildprintf("Saved screenshot to %s\n", capturename);
+	}
+	return ret;
 }
 
 

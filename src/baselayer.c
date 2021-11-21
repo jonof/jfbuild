@@ -88,16 +88,17 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 	int showval = (parm->numparms < 1);
 
 	if (!Bstrcasecmp(parm->name, "screencaptureformat")) {
-		const char *fmts[2][2] = { {"TGA", "PCX"}, {"0", "1"} };
-		if (showval) { buildprintf("captureformat is %s\n", fmts[captureformat][0]); }
-		else {
-			int i,j;
-			for (j=0; j<2; j++)
-				for (i=0; i<2; i++)
-					if (!Bstrcasecmp(parm->parms[0], fmts[j][i])) break;
-			if (j == 2) return OSDCMD_SHOWHELP;
-			captureformat = i;
+		const char *fmts[2] = { "TGA", "PCX" };
+		if (!showval) {
+			int i;
+			for (i=0; i<2; i++)
+				if (!Bstrcasecmp(parm->parms[0], fmts[i]) || atoi(parm->parms[0]) == i) {
+					captureformat = i;
+					break;
+				}
+			if (i == 2) return OSDCMD_SHOWHELP;
 		}
+		buildprintf("screencaptureformat is %s\n", fmts[captureformat]);
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "novoxmips")) {
