@@ -38,7 +38,7 @@ int wmgtk_msgbox(char *name, char *msg)
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 			GTK_MESSAGE_INFO,
 			GTK_BUTTONS_OK,
-			msg);
+			"%s", msg);
 	gtk_window_set_title(GTK_WINDOW(dialog), name);
 	gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
@@ -57,7 +57,7 @@ int wmgtk_ynbox(char *name, char *msg)
 			GTK_DIALOG_DESTROY_WITH_PARENT,
 			GTK_MESSAGE_INFO,
 			GTK_BUTTONS_YES_NO,
-			msg);
+			"%s", msg);
 	gtk_window_set_title(GTK_WINDOW(dialog), name);
 	r = gtk_dialog_run(GTK_DIALOG(dialog));
 	gtk_widget_destroy(dialog);
@@ -76,6 +76,8 @@ int wmgtk_filechooser(const char *initialdir, const char *initialfile, const cha
 
 	GtkFileFilter *filter;
 	char typepat[20];
+
+	(void)initialdir;
 
 	*choice = NULL;
 	if (!gtkenabled) return -1;
@@ -147,6 +149,8 @@ void wmgtk_exit(void)
 
 int wmgtk_idle(void *ptr)
 {
+	(void)ptr;
+
 	if (!gtkenabled) return 0;
 	gtk_main_iteration_do(FALSE);
 	return 0;

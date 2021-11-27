@@ -52,9 +52,9 @@ NASM?=nasm
 WINDRES?=windres
 AR?=ar
 RANLIB?=ranlib
-OURCFLAGS=$(debug) -g -W -Wall -Wimplicit -Wno-unused \
-	-fno-strict-aliasing -DNO_GCC_BUILTINS \
-	-DKSFORBUILD -I$(INC) -I$(SRC)
+OURCFLAGS=$(debug) -g -W -Wall -Wno-unused-variable -Wno-unused-function \
+	-Wno-unused-but-set-variable -fno-strict-aliasing -DKSFORBUILD \
+	-I$(INC) -I$(SRC)
 OURCXXFLAGS=-fno-exceptions -fno-rtti
 GAMECFLAGS=-I$(GAME) -I$(INC)
 LIBS=
@@ -270,7 +270,7 @@ $(SRC)/%.$o: $(SRC)/%.cpp
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(LIBSQUISH)/%.$o: $(LIBSQUISH)/%.cpp
-	$(CXX) $(CXXFLAGS) $(BUILDCFLAGS) -O2 -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -O2 -c $< -o $@
 
 $(GAME)/%.$o: $(GAME)/%.c
 	$(CC) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@

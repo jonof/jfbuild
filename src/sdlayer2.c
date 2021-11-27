@@ -411,6 +411,7 @@ void debugprintf(const char *f, ...)
 	Bvfprintf(stderr, f, va);
 	va_end(va);
 #endif
+	(void)f;
 }
 
 
@@ -1407,7 +1408,7 @@ int handleevents(void)
 					grabmouse(!mouseacquired);
 					break;
 				}
-				// else: fallthrough
+				// else, fallthrough
 			case SDL_KEYDOWN:
 				code = keytranslation[ev.key.keysym.scancode].normal;
 				control = keytranslation[ev.key.keysym.scancode].controlchar;

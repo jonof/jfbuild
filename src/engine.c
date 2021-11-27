@@ -38,7 +38,7 @@
 void *kmalloc(bsize_t size) { return(Bmalloc(size)); }
 void kfree(void *buffer) { Bfree(buffer); }
 
-void loadvoxel(int voxindex) { voxindex=0; }
+void loadvoxel(int voxindex) { (void)voxindex; }
 int tiletovox[MAXTILES];
 int usevoxels = 1;
 #define kloadvoxel loadvoxel
@@ -1084,6 +1084,8 @@ static void prepwall(int z, walltype *wal)
 int animateoffs(short tilenum, short fakevar)
 {
 	int i, k, offs;
+
+	(void)fakevar;
 
 	offs = 0;
 	i = (totalclocklock>>((picanm[tilenum]>>24)&15));
@@ -2226,6 +2228,8 @@ static void parascan(int dax1, int dax2, int sectnum, unsigned char dastat, int 
 	sectortype *sec;
 	int j, k, l, m, n, x, z, wallnum, nextsectnum, globalhorizbak;
 	short *topptr, *botptr;
+
+	(void)dax1; (void)dax2;
 
 	sectnum = thesector[bunchfirst[bunch]]; sec = &sector[sectnum];
 
@@ -5313,6 +5317,9 @@ static int raytrace(int x3, int y3, int *x4, int *y4)
 static void sighandler(int sig, siginfo_t *info, void *ctx)
 {
 	const char *s;
+
+	(void)ctx;
+
 	switch (sig) {
 		case SIGFPE:
 			switch (info->si_code) {
@@ -7341,15 +7348,15 @@ int saveboard(char *filename, int *daposx, int *daposy, int *daposz,
 		mapversion = 8;
 	else
 		mapversion = 7;
-	tl = B_LITTLE32(mapversion);    Bwrite(fil,&tl,4);
+	tl = B_LITTLE32(mapversion);    if (Bwrite(fil,&tl,4) != 4) goto writeerror;
 
-	tl = B_LITTLE32(*daposx);       Bwrite(fil,&tl,4);
-	tl = B_LITTLE32(*daposy);       Bwrite(fil,&tl,4);
-	tl = B_LITTLE32(*daposz);       Bwrite(fil,&tl,4);
-	ts = B_LITTLE16(*daang);        Bwrite(fil,&ts,2);
-	ts = B_LITTLE16(*dacursectnum); Bwrite(fil,&ts,2);
+	tl = B_LITTLE32(*daposx);       if (Bwrite(fil,&tl,4) != 4) goto writeerror;
+	tl = B_LITTLE32(*daposy);       if (Bwrite(fil,&tl,4) != 4) goto writeerror;
+	tl = B_LITTLE32(*daposz);       if (Bwrite(fil,&tl,4) != 4) goto writeerror;
+	ts = B_LITTLE16(*daang);        if (Bwrite(fil,&ts,2) != 2) goto writeerror;
+	ts = B_LITTLE16(*dacursectnum); if (Bwrite(fil,&ts,2) != 2) goto writeerror;
 
-	ts = B_LITTLE16(numsectors);    Bwrite(fil,&ts,2);
+	ts = B_LITTLE16(numsectors);    if (Bwrite(fil,&ts,2) != 2) goto writeerror;
 	for (i=0; i<numsectors; i++) {
 		tsect = sector[i];
 		tsect.wallptr       = B_LITTLE16(tsect.wallptr);
@@ -7365,10 +7372,10 @@ int saveboard(char *filename, int *daposx, int *daposy, int *daposz,
 		tsect.lotag         = B_LITTLE16(tsect.lotag);
 		tsect.hitag         = B_LITTLE16(tsect.hitag);
 		tsect.extra         = B_LITTLE16(tsect.extra);
-		Bwrite(fil,&tsect,sizeof(sectortype));
+		if (Bwrite(fil,&tsect,sizeof(sectortype)) != sizeof(sectortype)) goto writeerror;
 	}
 
-	ts = B_LITTLE16(numwalls);      Bwrite(fil,&ts,2);
+	ts = B_LITTLE16(numwalls);      if (Bwrite(fil,&ts,2) != 2) goto writeerror;
 	for (i=0; i<numwalls; i++) {
 		twall = wall[i];
 		twall.x          = B_LITTLE32(twall.x);
@@ -7382,10 +7389,10 @@ int saveboard(char *filename, int *daposx, int *daposy, int *daposz,
 		twall.lotag      = B_LITTLE16(twall.lotag);
 		twall.hitag      = B_LITTLE16(twall.hitag);
 		twall.extra      = B_LITTLE16(twall.extra);
-		Bwrite(fil,&twall,sizeof(walltype));
+		if (Bwrite(fil,&twall,sizeof(walltype)) != sizeof(walltype)) goto writeerror;
 	}
 
-	ts = B_LITTLE16(numsprites);    Bwrite(fil,&ts,2);
+	ts = B_LITTLE16(numsprites);    if (Bwrite(fil,&ts,2) != 2) goto writeerror;
 
 	for(j=0;j<MAXSTATUS;j++)
 	{
@@ -7408,13 +7415,17 @@ int saveboard(char *filename, int *daposx, int *daposy, int *daposz,
 			tspri.lotag   = B_LITTLE16(tspri.lotag);
 			tspri.hitag   = B_LITTLE16(tspri.hitag);
 			tspri.extra   = B_LITTLE16(tspri.extra);
-			Bwrite(fil,&tspri,sizeof(spritetype));
+			if (Bwrite(fil,&tspri,sizeof(spritetype)) != sizeof(spritetype)) goto writeerror;
 			i = nextspritestat[i];
 		}
 	}
 
 	Bclose(fil);
 	return(0);
+
+writeerror:
+	Bclose(fil);
+	return(-1);
 }
 
 
@@ -10117,6 +10128,8 @@ void preparemirror(int dax, int day, int daz, short daang, int dahoriz, short da
 {
 	int i, j, x, y, dx, dy;
 
+	(void)daz; (void)dahoriz; (void)dasector;
+
 	x = wall[dawall].x; dx = wall[wall[dawall].point2].x-x;
 	y = wall[dawall].y; dy = wall[wall[dawall].point2].y-y;
 	j = dx*dx + dy*dy; if (j == 0) return;
@@ -10763,6 +10776,8 @@ void clear2dscreen(void)
 void draw2dgrid(int posxe, int posye, short ange, int zoome, short gride)
 {
 	int i, xp1, yp1, xp2=0, yp2, tempy;
+
+	(void)ange;
 
 	if (gride > 0)
 	{

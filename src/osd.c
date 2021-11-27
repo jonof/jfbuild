@@ -108,6 +108,8 @@ static void _internal_drawosdchar(int x, int y, char ch, int shade, int pal)
 	char st[2] = { 0,0 };
 	int colour;
 
+	(void)pal;
+
 	st[0] = ch;
 
 	switch (shade) {
@@ -122,6 +124,8 @@ static void _internal_drawosdstr(int x, int y, char *ch, int len, int shade, int
 {
 	char st[1024];
 	int colour;
+
+	(void)pal;
 
 	if (len>1023) len=1023;
 	memcpy(st,ch,len);
@@ -140,6 +144,8 @@ static void _internal_drawosdcursor(int x, int y, int type, int lastkeypress)
 	char st[2] = { '_',0 };
 	int colour;
 
+	(void)lastkeypress;
+
 	if (type) st[0] = '|';
 
 	printext256(4+(x<<3),4+(y<<3)+2, lightgrey, -1, st, 0);
@@ -157,6 +163,7 @@ static int _internal_getrowheight(int w)
 
 static void _internal_clearbackground(int cols, int rows)
 {
+	(void)cols; (void)rows;
 }
 
 static int _internal_gettime(void)
@@ -192,6 +199,8 @@ static int osdcmd_osdvars(const osdfuncparm_t *parm)
 static int osdcmd_listsymbols(const osdfuncparm_t *parm)
 {
 	symbol_t *i;
+
+	(void)parm;
 
 	OSD_Printf("Symbol listing:\n");
 	for (i=symbols; i!=NULL; i=i->next)

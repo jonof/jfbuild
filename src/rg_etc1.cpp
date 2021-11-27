@@ -20,6 +20,11 @@
 #ifdef _MSC_VER
 #pragma warning (disable: 4201) //  nonstandard extension used : nameless struct/union
 #endif
+#if defined(__GNUC__) && !defined(__clang__)   //JonoF
+#pragma GCC diagnostic ignored "-Wparentheses"
+#pragma GCC diagnostic ignored "-Wmisleading-indentation"
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#endif
 
 #if defined(_DEBUG) || defined(DEBUG)
 #define RG_ETC1_BUILD_DEBUG

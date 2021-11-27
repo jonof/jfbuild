@@ -104,8 +104,6 @@ void clearskins ()
 
 			for(sk=m2->skinmap;sk;sk=sk->next)
 			{
-				if (!sk->tex)
-					continue;
 				for(j=0;j<(HICEFFECTMASK+1);j++)
 				{
 					if (sk->tex[j] && sk->tex[j]->glpic) {

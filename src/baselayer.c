@@ -271,6 +271,8 @@ static void APIENTRY gl_debug_proc(GLenum source, GLenum type, GLuint id, GLenum
 	const char *typestr = "(unknown)";
 	const char *severitystr = "(unknown)";
 
+	(void)id; (void)length; (void)userParam;
+
 	if (debuggllogseverity < 1) return;
 
 	switch (source) {

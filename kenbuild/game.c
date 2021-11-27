@@ -331,6 +331,8 @@ int nextvoxid = 0;
 
 static int osdcmd_restartvid(const osdfuncparm_t *parm)
 {
+	(void)parm;
+
 	resetvideomode();
 	if (setgamemode(fullscreen,xdim,ydim,bpp))
 		buildputs("restartvid: Reset failed...\n");
@@ -4435,7 +4437,6 @@ void fakedomovethingscorrect(void)
 	myy = omyy = posy[myconnectindex];
 	myz = omyz = posz[myconnectindex]; myzvel = hvel[myconnectindex];
 	myang = omyang = ang[myconnectindex];
-	mycursectnum = mycursectnum;
 	myhoriz = omyhoriz = horiz[myconnectindex];
 
 	fakemovefifoplc = movefifoplc;
@@ -6367,6 +6368,8 @@ void printext(int x, int y, char *buffer, short tilenum, unsigned char invisible
 	int i;
 	unsigned char ch;
 
+	(void)invisiblecol;
+
 	for(i=0;buffer[i]!=0;i++)
 	{
 		ch = (unsigned char)buffer[i];
@@ -6381,6 +6384,8 @@ void drawtilebackground (int thex, int they, short tilenum,
 			  int cx2, int cy2, unsigned char dapalnum)
 {
 	int x, y, xsiz, ysiz, tx1, ty1, tx2, ty2;
+
+	(void)thex; (void)they;
 
 	xsiz = tilesizx[tilenum]; tx1 = cx1/xsiz; tx2 = cx2/xsiz;
 	ysiz = tilesizy[tilenum]; ty1 = cy1/ysiz; ty2 = cy2/ysiz;

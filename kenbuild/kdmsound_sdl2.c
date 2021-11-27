@@ -28,6 +28,8 @@ void initsb(char dadigistat, char damusistat, int dasamplerate, char danumspeake
 {
     SDL_AudioSpec want, have;
 
+    (void)daintspersec; (void)daquality;
+
     if (dev) return;
 
     if ((dadigistat == 0) && (damusistat != 1))
@@ -91,5 +93,7 @@ void refreshaudio(void)
 
 static void preparesndbuf(void *udata, Uint8 *sndoffsplc, int sndbufsiz)
 {
+    (void)udata;
+
     preparekdmsndbuf(sndoffsplc, sndbufsiz);
 }

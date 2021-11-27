@@ -447,6 +447,8 @@ void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx
 	GLenum extfmt = GL_RED;
 #endif
 
+	(void)resx;
+
 	glfunc.glActiveTexture(GL_TEXTURE0);
 	glfunc.glBindTexture(GL_TEXTURE_2D, state->frametex);
 	glfunc.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, stride, resy, extfmt, GL_UNSIGNED_BYTE, frame);
@@ -454,6 +456,8 @@ void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx
 
 void glbuild_draw_8bit_frame(glbuild8bit *state)
 {
+	(void)state;
+
 #if (USE_OPENGL == USE_GLES2)
 	glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 #endif

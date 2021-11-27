@@ -329,6 +329,7 @@ int startwin_settitle(const char *s)
 
 int startwin_idle(void *v)
 {
+    (void)v;
     return 0;
 }
 

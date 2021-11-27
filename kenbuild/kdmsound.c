@@ -700,6 +700,8 @@ static int monohicomb(int unused, int *volptr, int cnt, int dasinc, int dasplc, 
     unsigned char al, ah, bl, bh, dl, cf;
     int ocnt = 0;
 
+    (void)unused;
+
     while (cnt > 0) {
         bl = snd[kdmasm4 + (dasplc >> 12) + 0];     // mov bx, word ptr [esi+88888888h]
         bh = snd[kdmasm4 + (dasplc >> 12) + 1];
@@ -733,6 +735,8 @@ static int stereohicomb(int unused, int *volptr, int cnt, int dasinc, int dasplc
 {
     unsigned char al, ah, bl, bh, dl, cf;
     int ocnt = 0;
+
+    (void)unused;
 
     while (cnt > 0) {
         bl = snd[kdmasm4 + (dasplc >> 12) + 0];     // mov bx, word ptr [esi+88888888h]

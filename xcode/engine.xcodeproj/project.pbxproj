@@ -968,6 +968,12 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = YES;
 				SKIP_INSTALL = YES;
+				WARNING_CFLAGS = (
+					"-W",
+					"-Wall",
+					"-Wno-unused-variable",
+					"-Wno-unused-function",
+				);
 			};
 			name = Debug;
 		};
@@ -991,6 +997,12 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				SKIP_INSTALL = YES;
+				WARNING_CFLAGS = (
+					"-W",
+					"-Wall",
+					"-Wno-unused-variable",
+					"-Wno-unused-function",
+				);
 			};
 			name = Release;
 		};

@@ -445,13 +445,13 @@ int initgroupfile(const char *filename)
 	i = Bopen(zfn,BO_BINARY|BO_RDONLY,BS_IREAD);
 	if (i < 0) { free(zfn); return -1; }
 
-	Bread(i, buf, 4);
-	if (buf[0] == 0x50 && buf[1] == 0x4B && buf[2] == 0x03 && buf[3] == 0x04) {
-		Bclose(i);
-		j = kzaddstack(zfn);
-		free(zfn);
-		return j;
-	}
+	if (Bread(i, buf, 4) == 4)
+		if (buf[0] == 0x50 && buf[1] == 0x4B && buf[2] == 0x03 && buf[3] == 0x04) {
+			Bclose(i);
+			j = kzaddstack(zfn);
+			free(zfn);
+			return j;
+		}
 	free(zfn);
 
 	if (numgroupfiles >= MAXGROUPFILES) return(-1);
@@ -464,8 +464,8 @@ int initgroupfile(const char *filename)
 #endif
 	{
 		groupfilpos[numgroupfiles] = 0;
-		Bread(groupfil[numgroupfiles],buf,16);
-		if ((buf[0] != 'K') || (buf[1] != 'e') || (buf[2] != 'n') ||
+		if (Bread(groupfil[numgroupfiles],buf,16) != 16 ||
+			 (buf[0] != 'K') || (buf[1] != 'e') || (buf[2] != 'n') ||
 			 (buf[3] != 'S') || (buf[4] != 'i') || (buf[5] != 'l') ||
 			 (buf[6] != 'v') || (buf[7] != 'e') || (buf[8] != 'r') ||
 			 (buf[9] != 'm') || (buf[10] != 'a') || (buf[11] != 'n'))
@@ -481,7 +481,16 @@ int initgroupfile(const char *filename)
 		if ((gfileoffs[numgroupfiles] = (int *)kmalloc((gnumfiles[numgroupfiles]+1)<<2)) == 0)
 			{ buildprintf("Not enough memory for file grouping system\n"); exit(0); }
 
-		Bread(groupfil[numgroupfiles],gfilelist[numgroupfiles],gnumfiles[numgroupfiles]<<4);
+		if (Bread(groupfil[numgroupfiles],gfilelist[numgroupfiles],
+			 gnumfiles[numgroupfiles]<<4) != gnumfiles[numgroupfiles]<<4)
+		{
+			buildprintf("Group file %s is damaged\n", filename);
+			free(gfilelist[numgroupfiles]); gfilelist[numgroupfiles] = NULL;
+			free(gfileoffs[numgroupfiles]); gfileoffs[numgroupfiles] = NULL;
+			Bclose(groupfil[numgroupfiles]);
+			groupfil[numgroupfiles] = -1;
+			return(-1);
+		}
 
 		j = 0;
 		for(i=0;i<gnumfiles[numgroupfiles];i++)
@@ -1059,6 +1068,11 @@ static void lzwallocate(void)
 	if (lzwbuf5 == NULL) allocache((void **)&lzwbuf5,LZWSIZE+(LZWSIZE>>4),&lzwbuflock[4]);
 }
 
+static void lzwrelease(void)
+{
+	lzwbuflock[0] = lzwbuflock[1] = lzwbuflock[2] = lzwbuflock[3] = lzwbuflock[4] = 1;
+}
+
 int kdfread(void *buffer, bsize_t dasizeof, bsize_t count, int fil)
 {
 	size_t i, j;
@@ -1071,9 +1085,9 @@ int kdfread(void *buffer, bsize_t dasizeof, bsize_t count, int fil)
 	if (dasizeof > LZWSIZE) { count *= dasizeof; dasizeof = 1; }
 	ptr = (unsigned char *)buffer;
 
-	if (kread(fil,&leng,2) != 2) return -1;
+	if (kread(fil,&leng,2) != 2) { lzwrelease(); return -1; }
 	leng = B_LITTLE16(leng);
-	if (kread(fil,lzwbuf5,(int)leng) != leng) return -1;
+	if (kread(fil,lzwbuf5,(int)leng) != leng) { lzwrelease(); return -1; }
 	k = 0; kgoal = lzwuncompress(lzwbuf5,(int)leng,lzwbuf4);
 
 	copybufbyte(lzwbuf4,ptr,(int)dasizeof);
@@ -1083,16 +1097,16 @@ int kdfread(void *buffer, bsize_t dasizeof, bsize_t count, int fil)
 	{
 		if (k >= kgoal)
 		{
-			if (kread(fil,&leng,2) != 2) return -1;
+			if (kread(fil,&leng,2) != 2) { lzwrelease(); return -1; }
 			leng = B_LITTLE16(leng);
-			if (kread(fil,lzwbuf5,(int)leng) != leng) return -1;
+			if (kread(fil,lzwbuf5,(int)leng) != leng) { lzwrelease(); return -1; }
 			k = 0; kgoal = lzwuncompress(lzwbuf5,(int)leng,lzwbuf4);
 		}
 		for(j=0;j<dasizeof;j++) ptr[j+dasizeof] = ((ptr[j]+lzwbuf4[j+k])&255);
 		k += dasizeof;
 		ptr += dasizeof;
 	}
-	lzwbuflock[0] = lzwbuflock[1] = lzwbuflock[2] = lzwbuflock[3] = lzwbuflock[4] = 1;
+	lzwrelease();
 	return count;
 }
 
@@ -1108,9 +1122,9 @@ int dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 	if (dasizeof > LZWSIZE) { count *= dasizeof; dasizeof = 1; }
 	ptr = (unsigned char *)buffer;
 
-	if (Bfread(&leng,2,1,fil) != 1) return -1;
+	if (Bfread(&leng,2,1,fil) != 1) { lzwrelease(); return -1; }
 	leng = B_LITTLE16(leng);
-	if (Bfread(lzwbuf5,(int)leng,1,fil) != 1) return -1;
+	if (Bfread(lzwbuf5,(int)leng,1,fil) != 1) { lzwrelease(); return -1; }
 	k = 0; kgoal = lzwuncompress(lzwbuf5,(int)leng,lzwbuf4);
 
 	copybufbyte(lzwbuf4,ptr,(int)dasizeof);
@@ -1120,16 +1134,16 @@ int dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 	{
 		if (k >= kgoal)
 		{
-			if (Bfread(&leng,2,1,fil) != 1) return -1;
+			if (Bfread(&leng,2,1,fil) != 1) { lzwrelease(); return -1; }
 			leng = B_LITTLE16(leng);
-			if (Bfread(lzwbuf5,(int)leng,1,fil) != 1) return -1;
+			if (Bfread(lzwbuf5,(int)leng,1,fil) != 1) { lzwrelease(); return -1; }
 			k = 0; kgoal = lzwuncompress(lzwbuf5,(int)leng,lzwbuf4);
 		}
 		for(j=0;j<dasizeof;j++) ptr[j+dasizeof] = ((ptr[j]+lzwbuf4[j+k])&255);
 		k += dasizeof;
 		ptr += dasizeof;
 	}
-	lzwbuflock[0] = lzwbuflock[1] = lzwbuflock[2] = lzwbuflock[3] = lzwbuflock[4] = 1;
+	lzwrelease();
 	return count;
 }
 
@@ -1150,7 +1164,8 @@ void kdfwrite(void *buffer, bsize_t dasizeof, bsize_t count, int fil)
 	if (k > LZWSIZE-dasizeof)
 	{
 		leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); k = 0; swleng = B_LITTLE16(leng);
-		Bwrite(fil,&swleng,2); Bwrite(fil,lzwbuf5,(int)leng);
+		if (Bwrite(fil,&swleng,2) != 2) { lzwrelease(); return; }
+		if (Bwrite(fil,lzwbuf5,(int)leng) != leng) { lzwrelease(); return; }
 	}
 	
 	for(i=1;i<count;i++)
@@ -1160,16 +1175,18 @@ void kdfwrite(void *buffer, bsize_t dasizeof, bsize_t count, int fil)
 		if (k > LZWSIZE-dasizeof)
 		{
 			leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); k = 0; swleng = B_LITTLE16(leng);
-			Bwrite(fil,&swleng,2); Bwrite(fil,lzwbuf5,(int)leng);
+			if (Bwrite(fil,&swleng,2) != 2) { lzwrelease(); return; }
+			if (Bwrite(fil,lzwbuf5,(int)leng) != leng) { lzwrelease(); return; }
 		}
 		ptr += dasizeof;
 	}
 	if (k > 0)
 	{
 		leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); swleng = B_LITTLE16(leng);
-		Bwrite(fil,&swleng,2); Bwrite(fil,lzwbuf5,(int)leng);
+		if (Bwrite(fil,&swleng,2) != 2) { lzwrelease(); return; }
+		if (Bwrite(fil,lzwbuf5,(int)leng) != leng) { lzwrelease(); return; }
 	}
-	lzwbuflock[0] = lzwbuflock[1] = lzwbuflock[2] = lzwbuflock[3] = lzwbuflock[4] = 1;
+	lzwrelease();
 }
 
 void dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
@@ -1189,7 +1206,8 @@ void dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 	if (k > LZWSIZE-dasizeof)
 	{
 		leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); k = 0; swleng = B_LITTLE16(leng);
-		Bfwrite(&swleng,2,1,fil); Bfwrite(lzwbuf5,(int)leng,1,fil);
+		if (Bfwrite(&swleng,2,1,fil) != 1) { lzwrelease(); return; }
+		if (Bfwrite(lzwbuf5,(int)leng,1,fil) != 1) { lzwrelease(); return; }
 	}
 
 	for(i=1;i<count;i++)
@@ -1199,16 +1217,18 @@ void dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil)
 		if (k > LZWSIZE-dasizeof)
 		{
 			leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); k = 0; swleng = B_LITTLE16(leng);
-			Bfwrite(&swleng,2,1,fil); Bfwrite(lzwbuf5,(int)leng,1,fil);
+			if (Bfwrite(&swleng,2,1,fil) != 1) { lzwrelease(); return; }
+			if (Bfwrite(lzwbuf5,(int)leng,1,fil) != 1) { lzwrelease(); return; }
 		}
 		ptr += dasizeof;
 	}
 	if (k > 0)
 	{
 		leng = (short)lzwcompress(lzwbuf4,k,lzwbuf5); swleng = B_LITTLE16(leng);
-		Bfwrite(&swleng,2,1,fil); Bfwrite(lzwbuf5,(int)leng,1,fil);
+		if (Bfwrite(&swleng,2,1,fil) != 1) { lzwrelease(); return; }
+		if (Bfwrite(lzwbuf5,(int)leng,1,fil) != 1) { lzwrelease(); return; }
 	}
-	lzwbuflock[0] = lzwbuflock[1] = lzwbuflock[2] = lzwbuflock[3] = lzwbuflock[4] = 1;
+	lzwrelease();
 }
 
 static int lzwcompress(unsigned char *lzwinbuf, int uncompleng, unsigned char *lzwoutbuf)

@@ -164,6 +164,8 @@ static int osdcmd_restartvid(const osdfuncparm_t *parm)
 {
 	extern int qsetmode;
 
+	(void)parm;
+
 	if (qsetmode != 200) return OSDCMD_OK;
 
 	resetvideomode();
@@ -6041,7 +6043,7 @@ int numloopsofsector(short sectnum)
 	return(numloops);
 }
 
-short getnumber16(char namestart[80], short num, int maxnumber, char sign)
+short getnumber16(char *namestart, short num, int maxnumber, char sign)
 {
 	char buffer[80], ch;
 	int j, k, n, danum, oldnum;
@@ -6057,7 +6059,7 @@ short getnumber16(char namestart[80], short num, int maxnumber, char sign)
 
 		ch = bgetchar();
 
-		Bsprintf(buffer,"%s%d_ ",namestart,danum);
+		snprintf(buffer, sizeof(buffer), "%s%d_ ",namestart,danum);
 		printmessage16(buffer);
 		showframe();
 
@@ -6081,7 +6083,7 @@ short getnumber16(char namestart[80], short num, int maxnumber, char sign)
 	return((short)oldnum);
 }
 
-short getnumber256(char namestart[80], short num, int maxnumber, char sign)
+short getnumber256(char *namestart, short num, int maxnumber, char sign)
 {
 	char buffer[80], ch;
 	int j, k, n, danum, oldnum;
@@ -6101,7 +6103,7 @@ short getnumber256(char namestart[80], short num, int maxnumber, char sign)
 
 		ch = bgetchar();
 
-		Bsprintf(buffer,"%s%d_ ",namestart,danum);
+		snprintf(buffer, sizeof(buffer), "%s%d_ ",namestart,danum);
 		printmessage256(buffer);
 		showframe();
 
@@ -6218,8 +6220,7 @@ int menuselect(int newpathmode)
 		}
 		printext16(halfxdim16-(8*strlen(buffer)/2), 4, 14,0,buffer,0);
 
-		Bsnprintf(buffer,78,"(%d dirs, %d files) %s",numdirs,numfiles,selectedboardfilename);
-		buffer[sizeof(buffer)-1] = 0;
+		snprintf(buffer,sizeof(buffer),"(%d dirs, %d files) %s",numdirs,numfiles,selectedboardfilename);
 		printext16(1,ydim16-8-1,8,0,buffer,0);
 
 		if (finddirshigh) {
@@ -6934,7 +6935,7 @@ void keytimerstuff(void)
 	if (vel > 0) vel = max(vel-2,0);
 }
 
-void printmessage16(char name[82])
+void printmessage16(char *name)
 {
 	char snotbuf[60];
 	int i;
@@ -6957,7 +6958,7 @@ void printmessage16(char name[82])
 	enddrawing();
 }
 
-void printmessage256(char name[82])
+void printmessage256(char *name)
 {
 	char snotbuf[40];
 	int i;

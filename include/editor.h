@@ -64,10 +64,10 @@ int writesetup(const char *fn);	// from config.c
 void editinput(void);
 void clearmidstatbar16(void);
 
-short getnumber256(char namestart[80], short num, int maxnumber, char sign);
-short getnumber16(char namestart[80], short num, int maxnumber, char sign);
-void printmessage256(char name[82]);
-void printmessage16(char name[82]);
+short getnumber256(char *namestart, short num, int maxnumber, char sign);
+short getnumber16(char *namestart, short num, int maxnumber, char sign);
+void printmessage256(char *name);
+void printmessage16(char *name);
 
 void getpoint(int searchxe, int searchye, int *x, int *y);
 int getpointhighlight(int xplc, int yplc);

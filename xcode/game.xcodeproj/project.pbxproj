@@ -623,6 +623,11 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = YES;
 				PREBINDING = NO;
+				WARNING_CFLAGS = (
+					"-W",
+					"-Wall",
+					"-Wno-unused-variable",
+				);
 			};
 			name = Debug;
 		};
@@ -645,6 +650,11 @@
 				HEADER_SEARCH_PATHS = ../include;
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				PREBINDING = NO;
+				WARNING_CFLAGS = (
+					"-W",
+					"-Wall",
+					"-Wno-unused-variable",
+				);
 			};
 			name = Release;
 		};
