@@ -2,8 +2,8 @@ name: CI
 on: [ push, pull_request, workflow_dispatch ]
 
 jobs:
-  build:
-    name: polymost=${{ matrix.use_polymost }} gl=${{ matrix.use_opengl }} nogtk=${{ matrix.without_gtk || 0 }}
+  build-linux:
+    name: Linux polymost=${{ matrix.use_polymost }} gl=${{ matrix.use_opengl }} nogtk=${{ matrix.without_gtk || 0 }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -35,3 +35,29 @@ jobs:
                WITHOUT_GTK=${{ matrix.without_gtk || 0 }} \
                USE_ASM=0 \
                all utils
+
+  build-windows:
+    name: Windows polymost=${{ matrix.use_polymost }} gl=${{ matrix.use_opengl }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        use_polymost: [ 0, 1 ]
+        use_opengl: [ 0, 1 ]
+        exclude:
+          - use_polymost: 1
+            use_opengl: 0
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          sdk: 10.0.19041.0
+      - name: Make
+        shell: cmd
+        run: |
+          echo USE_POLYMOST=${{ matrix.use_polymost }} > Makefile.msvcuser
+          echo USE_OPENGL=${{ matrix.use_opengl }} >> Makefile.msvcuser
+          nmake /f Makefile.msvc all utils
