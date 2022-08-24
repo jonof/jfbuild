@@ -1017,7 +1017,8 @@ static int kpngrend (const char *kfilebuf, int kfilength,
 	INT_PTR daframeplace, int dabytesperline, int daxres, int dayres,
 	int daglobxoffs, int daglobyoffs)
 {
-	int i, j, k, bfinal, btype, hlit, hdist, leng;
+	int i, j, k, bfinal, btype, hlit, hdist;
+	unsigned int leng;
 	int slidew, slider;
 	//int qhuf0v, qhuf1v;
 
@@ -1035,6 +1036,7 @@ static int kpngrend (const char *kfilebuf, int kfilength,
 	{
 		leng = LSWAPIL(*(int *)&filptr[0]); i = *(int *)&filptr[4];
 		filptr = &filptr[8];
+		if (4+leng+((INT_PTR)filptr-(INT_PTR)kfilebuf) >= kfilength) return(-1); //Chunk length is OOB
 
 		if ((unsigned)i == LSWAPIB(0x52444849)) //IHDR (must be first)
 		{
