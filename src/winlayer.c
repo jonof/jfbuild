@@ -84,6 +84,7 @@ static struct winlayer_glfuncs {
 	int (WINAPI * wglGetSwapIntervalEXT)(void);
 
 	int have_ARB_create_context_profile;
+	int have_EXT_multisample;
 } wglfunc;
 #endif
 
@@ -1706,6 +1707,9 @@ static void EnumWGLExts(HDC hdc)
 		} else if (!strcmp(ext, "WGL_ARB_create_context_profile")) {
 			wglfunc.have_ARB_create_context_profile = 1;
 			ack = '+';
+		} else if (!strcmp(ext, "WGL_EXT_multisample") || !strcmp(ext, "WGL_ARB_multisample")) {
+			wglfunc.have_EXT_multisample = 1;
+			ack = '+';
 		} else if (!strcmp(ext, "WGL_EXT_swap_control")) {
 			wglfunc.wglSwapIntervalEXT = getglprocaddress("wglSwapIntervalEXT", 1);
 			wglfunc.wglGetSwapIntervalEXT = getglprocaddress("wglGetSwapIntervalEXT", 1);
@@ -1819,6 +1823,12 @@ static int SetupOpenGL(int width, int height, int bitspp)
 		goto fail;
 	}
 
+#if USE_POLYMOST && USE_OPENGL
+	if (!wglfunc.have_EXT_multisample) {
+		glmultisample = 0;
+	}
+#endif
+
 	// Step 3. Find and set a suitable pixel format.
 	if (wglfunc.wglChoosePixelFormatARB) {
 		UINT numformats;
@@ -1831,6 +1841,10 @@ static int SetupOpenGL(int width, int height, int bitspp)
 			WGL_DEPTH_BITS_ARB,     24,
 			WGL_STENCIL_BITS_ARB,   0,
 			WGL_ACCELERATION_ARB,   WGL_FULL_ACCELERATION_ARB,
+#if USE_POLYMOST && USE_OPENGL
+			WGL_SAMPLE_BUFFERS_EXT, glmultisample > 0,
+			WGL_SAMPLES_EXT,        glmultisample > 0 ? (1 << glmultisample) : 0,
+#endif
 			0,
 		};
 		if (!wglfunc.wglChoosePixelFormatARB(hDCGLWindow, pformatattribs, NULL, 1, &pixelformat, &numformats)) {

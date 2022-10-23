@@ -54,6 +54,7 @@ typedef struct {
 	char texnpot;
 	char multisample;
 	char nvmultisamplehint;
+	char sampleshading;
 
 	int multitex;
 	int maxtexsize;

@@ -75,6 +75,7 @@ struct glbuild_funcs {
     void (APIENTRY * glPixelStorei)( GLenum pname, GLint param );
     void (APIENTRY * glViewport)( GLint x, GLint y, GLsizei width, GLsizei height );
     void (APIENTRY * glScissor)( GLint x, GLint y, GLsizei width, GLsizei height );
+    void (APIENTRY * glMinSampleShadingARB)( GLfloat value );
 
     // Depth
     void (APIENTRY * glDepthFunc)( GLenum func );

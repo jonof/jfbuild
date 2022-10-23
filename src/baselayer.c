@@ -201,6 +201,9 @@ static void glext_enumerate_configure(const char *ext) {
 	} else if (!Bstrcmp(ext, "GL_NV_multisample_filter_hint")) {
 			// supports nvidia's multisample hint extension
 		glinfo.nvmultisamplehint = 1;
+	} else if (!Bstrcmp(ext, "GL_ARB_sample_shading")) {
+			// supports sample shading extension
+		glinfo.sampleshading = 1;
 	} else if (!strcmp(ext, "GL_ARB_shading_language_100")) {
 		const char *ver;
 
@@ -460,7 +463,8 @@ static void dumpglinfo(void)
 		" ETC1 texture compr:    %s\n"
 		" Clamp-to-edge:         %s\n"
 		" Multisampling:         %s\n"
-		"   Nvidia hint:         %s\n",
+		"   Nvidia quincunx:     %s\n"
+		"   Sample shading:      %s\n",
 		glfunc.glGetString(GL_VERSION),
 		glfunc.glGetString(GL_VENDOR),
 		glfunc.glGetString(GL_RENDERER),
@@ -473,7 +477,8 @@ static void dumpglinfo(void)
 		glinfo.texcompretc1 ? supported : unsupported,
 		glinfo.clamptoedge ? supported : unsupported,
 		glinfo.multisample ? supported : unsupported,
-		glinfo.nvmultisamplehint ? supported : unsupported
+		glinfo.nvmultisamplehint ? supported : unsupported,
+		glinfo.sampleshading ? supported : unsupported
 	);
 
 #ifdef DEBUGGINGAIDS

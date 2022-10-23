@@ -136,7 +136,7 @@ int glusetexcompr = 1;
 int gltexcomprquality = 0;	// 0 = fast, 1 = slow and pretty, 2 = very slow and pretty
 int gltexfiltermode = 5;   // GL_LINEAR_MIPMAP_LINEAR
 int glusetexcache = 1;
-int glmultisample = 0, glnvmultisamplehint = 0;
+int glmultisample = 0, glnvmultisamplehint = 0, glsampleshading = 0;
 int gltexmaxsize = 0;      // 0 means autodetection on first run
 int gltexmiplevel = 0;		// discards this many mipmap levels
 static int lastglpolygonmode = 0;
@@ -722,7 +722,13 @@ void polymost_glinit()
 #if (USE_OPENGL != USE_GLES2)
 		if (glinfo.nvmultisamplehint)
 			glfunc.glHint(GL_MULTISAMPLE_FILTER_HINT_NV, glnvmultisamplehint ? GL_NICEST:GL_FASTEST);
+
 		glfunc.glEnable(GL_MULTISAMPLE_ARB);
+
+		if (glsampleshading > 0 && glinfo.sampleshading) {
+			glfunc.glMinSampleShadingARB(1.f);
+			glfunc.glEnable(GL_SAMPLE_SHADING_ARB);
+		}
 #endif
 	}
 
@@ -4825,13 +4831,21 @@ static int osdcmd_polymostvars(const osdfuncparm_t *parm)
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "glmultisample")) {
-		if (showval) { buildprintf("glmultisample is %d\n", glmultisample); }
-		else glmultisample = max(0,val);
+		if (showval) {
+			if (!glmultisample) buildprintf("glmultisample is %d (off)\n", glmultisample);
+			else buildprintf("glmultisample is %d (%dx)\n", glmultisample, 1<<glmultisample);
+		}
+		else glmultisample = min(2,max(0,val));
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "glnvmultisamplehint")) {
 		if (showval) { buildprintf("glnvmultisamplehint is %d\n", glnvmultisamplehint); }
 		else glnvmultisamplehint = (val != 0);
+		return OSDCMD_OK;
+	}
+	else if (!Bstrcasecmp(parm->name, "glsampleshading")) {
+		if (showval) { buildprintf("glsampleshading is %d\n", glsampleshading); }
+		else glsampleshading = (val != 0);
 		return OSDCMD_OK;
 	}
 	else if (!Bstrcasecmp(parm->name, "polymosttexverbosity")) {
@@ -4868,8 +4882,9 @@ void polymost_initosdfuncs(void)
 	OSD_RegisterFunction("usegoodalpha","usegoodalpha: enable/disable better looking OpenGL alpha hack",osdcmd_polymostvars);
 	OSD_RegisterFunction("glpolygonmode","glpolygonmode: debugging feature. 0 = normal, 1 = edges, 2 = points, 3 = clear each frame",osdcmd_polymostvars);
 	OSD_RegisterFunction("glusetexcache","glusetexcache: enable/disable OpenGL compressed texture cache",osdcmd_polymostvars);
-	OSD_RegisterFunction("glmultisample","glmultisample: sets the number of samples used for antialiasing (0 = off)",osdcmd_polymostvars);
-	OSD_RegisterFunction("glnvmultisamplehint","glnvmultisamplehint: enable/disable Nvidia multisampling hinting",osdcmd_polymostvars);
+	OSD_RegisterFunction("glmultisample","glmultisample: enable/disable OpenGL (edge) multisampling. 0 = off, 1 = 2x, 2 = 4x",osdcmd_polymostvars);
+	OSD_RegisterFunction("glnvmultisamplehint","glnvmultisamplehint: enable/disable Nvidia multisampling (Quincunx)",osdcmd_polymostvars);
+	OSD_RegisterFunction("glsampleshading","glsampleshading: enable/disable OpenGL sample multisampling",osdcmd_polymostvars);
 	OSD_RegisterFunction("polymosttexverbosity","polymosttexverbosity: sets the level of chatter during texture loading. 0 = none, 1 = errors (default), 2 = all",osdcmd_polymostvars);
 	OSD_RegisterFunction("forcetexcacherebuild","forcetexcacherebuild: invalidates the compressed texture cache", osdcmd_forcetexcacherebuild);
 #ifdef SHADERDEV

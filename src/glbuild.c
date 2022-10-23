@@ -50,6 +50,7 @@ int glbuild_loadfunctions(void)
 	INIT_PROC(glPixelStorei);
 	INIT_PROC(glViewport);
 	INIT_PROC(glScissor);
+	INIT_PROC_SOFT(glMinSampleShadingARB);
 
 	// Depth
 	INIT_PROC(glDepthFunc);

@@ -175,7 +175,7 @@
 /* Begin PBXFileReference section */
 		AB1751260CEF5AF8003AF128 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Users/jonof/Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
 		AB3B2A0D0EE3FC0400944CD1 /* hightile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hightile.c; sourceTree = "<group>"; };
-		AB3B2A1C0EE3FCF900944CD1 /* polymost.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymost.c; sourceTree = "<group>"; };
+		AB3B2A1C0EE3FCF900944CD1 /* polymost.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymost.c; sourceTree = "<group>"; usesTabs = 1; };
 		AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mdsprite.c; sourceTree = "<group>"; };
 		AB3B2AB50EE402B600944CD1 /* engine_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = engine_priv.h; sourceTree = "<group>"; };
 		AB3B2ABF0EE4033300944CD1 /* hightile_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hightile_priv.h; sourceTree = "<group>"; };

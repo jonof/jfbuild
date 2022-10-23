@@ -511,7 +511,7 @@ extern int glusetexcompr;
 extern int gltexfiltermode;
 extern int glredbluemode;
 extern int glusetexcache;
-extern int glmultisample, glnvmultisamplehint;
+extern int glmultisample, glnvmultisamplehint, glsampleshading;
 void gltexapplyprops (void);
 
 extern int polymosttexfullbright;	// set to the first index of the fullbright palette

@@ -991,7 +991,7 @@ int setvideomode(int x, int y, int c, int fs)
 			SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 #if USE_POLYMOST
 			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, glmultisample > 0);
-			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glmultisample);
+			SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, glmultisample ? (1 << glmultisample) : 0);
 #endif
 
 			flags |= SDL_WINDOW_OPENGL;
