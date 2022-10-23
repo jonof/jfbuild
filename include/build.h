@@ -484,6 +484,10 @@ void    setrollangle(int rolla);
 # define POLYMOST_RENDERMODE_POLYGL() (0)
 #endif
 
+#if USE_OPENGL
+extern int glswapinterval;
+#endif
+
 #if USE_POLYMOST && USE_OPENGL
 //  pal: pass -1 to invalidate all palettes for the tile, or >=0 for a particular palette
 //  how: pass -1 to invalidate all instances of the tile in texture memory, or a bitfield

@@ -87,7 +87,7 @@ extern float curgamma;
 static SDL_GLContext sdl_glcontext;
 static glbuild8bit gl8bit;
 static char nogl=0;
-static int glswapinterval = 1;
+int glswapinterval = 1;
 
 static int set_glswapinterval(const osdfuncparm_t *parm);
 #endif
@@ -364,7 +364,7 @@ int initsystem(void)
 		}
 	}
 
-	OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes (0 = no vsync, max 2)", set_glswapinterval);
+	OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes. 0 = no vsync, -1 = adaptive, max 2", set_glswapinterval);
 #endif
 
 	return 0;
@@ -1682,18 +1682,18 @@ static int set_glswapinterval(const osdfuncparm_t *parm)
 		return OSDCMD_OK;
 	}
 	if (parm->numparms == 0) {
-		buildprintf("glswapinterval = %d\n", glswapinterval);
+		buildprintf("glswapinterval is %d\n", glswapinterval);
 		return OSDCMD_OK;
 	}
 	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
 
 	interval = Batol(parm->parms[0]);
-	if (interval < 0 || interval > 2) return OSDCMD_SHOWHELP;
+	if (interval < -1 || interval > 2) return OSDCMD_SHOWHELP;
 
 	if (SDL_GL_SetSwapInterval(interval) < 0) {
-		buildputs("note: OpenGL swap interval could not be changed\n");
+		buildprintf("error: could not change swap interval: %s\n", SDL_GetError());
 	} else {
-		glswapinterval = interval;
+		glswapinterval = SDL_GL_GetSwapInterval();
 	}
 	return OSDCMD_OK;
 }

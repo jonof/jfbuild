@@ -85,6 +85,8 @@ static struct winlayer_glfuncs {
 
 	int have_ARB_create_context_profile;
 	int have_EXT_multisample;
+	int have_EXT_swap_control;
+	int have_EXT_swap_control_tear;
 } wglfunc;
 #endif
 
@@ -457,13 +459,19 @@ static int set_glswapinterval(const osdfuncparm_t *parm)
 		return OSDCMD_OK;
 	}
 	if (parm->numparms == 0) {
-		buildprintf("glswapinterval = %d\n", glswapinterval);
+		if (glswapinterval == -1) buildprintf("glswapinterval is %d (adaptive vsync)\n", glswapinterval);
+		else buildprintf("glswapinterval is %d\n", glswapinterval);
 		return OSDCMD_OK;
 	}
 	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
 
 	interval = Batol(parm->parms[0]);
-	if (interval < 0 || interval > 2) return OSDCMD_SHOWHELP;
+	if (interval < -1 || interval > 2) return OSDCMD_SHOWHELP;
+
+	if (interval == -1 && !wglfunc.have_EXT_swap_control_tear) {
+		buildputs("adaptive glswapinterval is not available\n");
+		return OSDCMD_OK;
+	}
 
 	glswapinterval = interval;
 	wglfunc.wglSwapIntervalEXT(interval);
@@ -516,7 +524,7 @@ int initsystem(void)
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		memset(&wglfunc, 0, sizeof(wglfunc));
 	} else {
-		OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes (0 = no vsync, max 2)", set_glswapinterval);
+		OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes. 0 = no vsync, -1 = adaptive, max 2", set_glswapinterval);
 	}
 #endif
 
@@ -1711,9 +1719,13 @@ static void EnumWGLExts(HDC hdc)
 			wglfunc.have_EXT_multisample = 1;
 			ack = '+';
 		} else if (!strcmp(ext, "WGL_EXT_swap_control")) {
+			wglfunc.have_EXT_swap_control = 1;
 			wglfunc.wglSwapIntervalEXT = getglprocaddress("wglSwapIntervalEXT", 1);
 			wglfunc.wglGetSwapIntervalEXT = getglprocaddress("wglGetSwapIntervalEXT", 1);
 			ack = (!wglfunc.wglSwapIntervalEXT || !wglfunc.wglGetSwapIntervalEXT) ? '!' : '+';
+		} else if (!strcmp(ext, "WGL_EXT_swap_control_tear")) {
+			wglfunc.have_EXT_swap_control_tear = 1;
+			ack = '+';
 		} else {
 			ack = ' ';
 		}
@@ -1946,8 +1958,11 @@ static int SetupOpenGL(int width, int height, int bitspp)
 			goto fail;
 	}
 
-	if (wglfunc.wglSwapIntervalEXT) {
-		wglfunc.wglSwapIntervalEXT(glswapinterval);
+	if (wglfunc.have_EXT_swap_control && wglfunc.wglSwapIntervalEXT) {
+		if (glswapinterval == -1 && !wglfunc.have_EXT_swap_control_tear) glswapinterval = 1;
+		if (!wglfunc.wglSwapIntervalEXT(glswapinterval)) {
+			buildputs("note: OpenGL swap interval could not be changed\n");
+		}
 	}
 	numpages = 127;
 
