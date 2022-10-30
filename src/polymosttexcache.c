@@ -4,7 +4,7 @@
 
 #include "polymosttexcache.h"
 #include "baselayer.h"
-#include "glbuild.h"
+#include "glbuild_priv.h"
 #include "hightile_priv.h"
 #include "polymosttex_priv.h"
 

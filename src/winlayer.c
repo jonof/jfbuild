@@ -25,7 +25,7 @@
 #include "build.h"
 
 #if USE_OPENGL
-#include "glbuild.h"
+#include "glbuild_priv.h"
 #include "wglext.h"
 #endif
 
@@ -1944,7 +1944,7 @@ static int SetupOpenGL(int width, int height, int bitspp)
 	}
 
 	// Step 5. Done.
-	switch (baselayer_setupopengl()) {
+	switch (glbuild_init()) {
 		case 0:
 			break;
 		case -1:

@@ -1133,7 +1133,10 @@ int OSD_RegisterFunction(const char *name, const char *help, int (*func)(const o
 	}
 
 	symb = findexactsymbol(name);
-	if (symb) {
+	if (symb && symb->func == func) {
+		// Same function being defined a second time, so we'll quietly ignore it.
+		return 0;
+	} else if (symb) {
 		buildprintf("OSD_RegisterFunction(): \"%s\" is already defined\n", name);
 		return -1;
 	}

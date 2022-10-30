@@ -41,6 +41,9 @@
 		AB4F6B7223118E7B00713ACC /* polymostaux_vs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABE362572146955700BA44B3 /* polymostaux_vs.glsl */; };
 		AB4F6B7323118E7F00713ACC /* polymostaux_fs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABE3624E2144CC9000BA44B3 /* polymostaux_fs.glsl */; };
 		AB63426D2430617A002CDE1A /* osxbits.m in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5C0A29A39C003261DC /* osxbits.m */; };
+		AB66C6AA2907E89F0063C874 /* glbuild_priv.h in Headers */ = {isa = PBXBuildFile; fileRef = AB66C6A92907E89F0063C874 /* glbuild_priv.h */; };
+		AB66C6AD2907E8BE0063C874 /* rg_etc1.h in Headers */ = {isa = PBXBuildFile; fileRef = AB66C6AB2907E8BE0063C874 /* rg_etc1.h */; };
+		AB66C6AE2907E8BE0063C874 /* polymosttexcompress.h in Headers */ = {isa = PBXBuildFile; fileRef = AB66C6AC2907E8BE0063C874 /* polymosttexcompress.h */; };
 		AB6725F90F0F8114000C7D92 /* polymosttexcache.c in Sources */ = {isa = PBXBuildFile; fileRef = AB6725F80F0F8114000C7D92 /* polymosttexcache.c */; };
 		AB6727E40F1093DC000C7D92 /* polymosttexcompress.cc in Sources */ = {isa = PBXBuildFile; fileRef = AB6727E30F1093DC000C7D92 /* polymosttexcompress.cc */; };
 		AB6728580F1096AF000C7D92 /* alpha.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AB6728400F1096AF000C7D92 /* alpha.cpp */; };
@@ -186,6 +189,9 @@
 		AB3E07290A33035B00FF2442 /* EditorStartupWinController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EditorStartupWinController.m; sourceTree = "<group>"; };
 		AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditorsupp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB48BD6C208C0AEA00E38090 /* version-auto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "version-auto.c"; sourceTree = "<group>"; };
+		AB66C6A92907E89F0063C874 /* glbuild_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glbuild_priv.h; sourceTree = "<group>"; };
+		AB66C6AB2907E8BE0063C874 /* rg_etc1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rg_etc1.h; sourceTree = "<group>"; };
+		AB66C6AC2907E8BE0063C874 /* polymosttexcompress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymosttexcompress.h; sourceTree = "<group>"; };
 		AB6725F80F0F8114000C7D92 /* polymosttexcache.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymosttexcache.c; sourceTree = "<group>"; };
 		AB6727E30F1093DC000C7D92 /* polymosttexcompress.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = polymosttexcompress.cc; sourceTree = "<group>"; };
 		AB6728400F1096AF000C7D92 /* alpha.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = alpha.cpp; sourceTree = "<group>"; };
@@ -422,9 +428,6 @@
 				ABE362572146955700BA44B3 /* polymostaux_vs.glsl */,
 				ABE3624E2144CC9000BA44B3 /* polymostaux_fs.glsl */,
 				ABA9E3020FEF9D170024231F /* a.h */,
-				ABA9E3030FEF9D170024231F /* kplib.h */,
-				ABA9E3040FEF9D170024231F /* osxbits.h */,
-				ABA9E3060FEF9D170024231F /* polymosttexcache.h */,
 				AB735F4E0A29A39C003261DC /* a-c.c */,
 				ABF1DD181BB7D0F5007DE427 /* asmprot.c */,
 				AB735F4F0A29A39C003261DC /* baselayer.c */,
@@ -435,22 +438,28 @@
 				AB735F540A29A39C003261DC /* engine.c */,
 				AB3B2AB50EE402B600944CD1 /* engine_priv.h */,
 				AB735F550A29A39C003261DC /* glbuild.c */,
+				AB66C6A92907E89F0063C874 /* glbuild_priv.h */,
 				AB3B2A0D0EE3FC0400944CD1 /* hightile.c */,
 				AB3B2ABF0EE4033300944CD1 /* hightile_priv.h */,
 				AB735F560A29A39C003261DC /* kplib.c */,
+				ABA9E3030FEF9D170024231F /* kplib.h */,
 				AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */,
 				AB3B2AC00EE4033300944CD1 /* mdsprite_priv.h */,
 				AB735F5A0A29A39C003261DC /* mmulti.c */,
 				AB735F5B0A29A39C003261DC /* osd.c */,
 				AB735F5C0A29A39C003261DC /* osxbits.m */,
+				ABA9E3040FEF9D170024231F /* osxbits.h */,
 				AB3B2A1C0EE3FCF900944CD1 /* polymost.c */,
 				AB3B2AC10EE4033300944CD1 /* polymost_priv.h */,
 				AB726D4A0F046C3B00730EAA /* polymosttex.c */,
 				AB726D4B0F046C3B00730EAA /* polymosttex_priv.h */,
 				AB6725F80F0F8114000C7D92 /* polymosttexcache.c */,
+				ABA9E3060FEF9D170024231F /* polymosttexcache.h */,
 				AB6727E30F1093DC000C7D92 /* polymosttexcompress.cc */,
+				AB66C6AC2907E8BE0063C874 /* polymosttexcompress.h */,
 				AB735F5D0A29A39C003261DC /* pragmas.c */,
 				ABBB1E8C21C7926D00DD438B /* rg_etc1.cpp */,
+				AB66C6AB2907E8BE0063C874 /* rg_etc1.h */,
 				AB735F5E0A29A39C003261DC /* scriptfile.c */,
 				AB735F5F0A29A39C003261DC /* sdlayer2.c */,
 				AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */,
@@ -540,8 +549,10 @@
 				AB735F8A0A29A44C003261DC /* build.h in Headers */,
 				AB735F8B0A29A44C003261DC /* cache1d.h in Headers */,
 				AB735F8C0A29A44C003261DC /* compat.h in Headers */,
+				AB66C6AD2907E8BE0063C874 /* rg_etc1.h in Headers */,
 				AB735F8D0A29A44C003261DC /* crc32.h in Headers */,
 				AB735F8E0A29A44C003261DC /* glbuild.h in Headers */,
+				AB66C6AE2907E8BE0063C874 /* polymosttexcompress.h in Headers */,
 				AB735F920A29A44C003261DC /* mmulti.h in Headers */,
 				AB735F940A29A44C003261DC /* osd.h in Headers */,
 				AB735F960A29A44C003261DC /* pragmas.h in Headers */,
@@ -557,6 +568,7 @@
 				ABA9E3080FEF9D170024231F /* kplib.h in Headers */,
 				ABA9E3090FEF9D170024231F /* osxbits.h in Headers */,
 				ABA9E30B0FEF9D170024231F /* polymosttexcache.h in Headers */,
+				AB66C6AA2907E89F0063C874 /* glbuild_priv.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

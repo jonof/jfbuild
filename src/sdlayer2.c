@@ -41,7 +41,7 @@
 #include "pragmas.h"
 #include "a.h"
 #include "osd.h"
-#include "glbuild.h"
+#include "glbuild_priv.h"
 
 #if defined(__APPLE__)
 # include "osxbits.h"
@@ -1077,7 +1077,7 @@ int setvideomode(int x, int y, int c, int fs)
 			if (!sdl_glcontext) {
 				buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
 				nogl = 1;
-			} else if (baselayer_setupopengl()) {
+			} else if (glbuild_init()) {
 				nogl = 1;
 			} else if (glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch, winx, winy) < 0) {
 				nogl = 1;
@@ -1115,7 +1115,7 @@ int setvideomode(int x, int y, int c, int fs)
 			return -1;
 		}
 
-		if (baselayer_setupopengl()) {
+		if (glbuild_init()) {
 			shutdownvideo();
 			return -1;
 		}
