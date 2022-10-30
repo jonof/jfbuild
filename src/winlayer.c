@@ -1244,6 +1244,7 @@ int setvideomode(int x, int y, int c, int fs)
 		gammabrightness = 0;
 	}
 
+	if (baselayer_videomodewillchange) baselayer_videomodewillchange();
 	shutdownvideo();
 
 	buildprintf("Setting video mode %dx%d (%d-bit %s)\n",
@@ -1258,7 +1259,8 @@ int setvideomode(int x, int y, int c, int fs)
 
 	modechange=1;
 	videomodereset = 0;
-	//baselayer_onvideomodechange(c>8);
+	if (baselayer_videomodedidchange) baselayer_videomodedidchange();
+	OSD_ResizeDisplay(xres,yres);
 
 	return 0;
 }
@@ -2176,7 +2178,6 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 	fullscreen = fs;
 
 	modechange = 1;
-	OSD_ResizeDisplay(xres,yres);
 
 	UpdateWindow(hWindow);
 

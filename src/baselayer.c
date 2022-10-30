@@ -18,8 +18,8 @@
 struct glbuild_info glinfo;
 #endif //USE_OPENGL
 
-static void onvideomodechange(int UNUSED(newmode)) { }
-void (*baselayer_onvideomodechange)(int) = onvideomodechange;
+void (*baselayer_videomodewillchange)(void) = NULL;
+void (*baselayer_videomodedidchange)(void) = NULL;
 
 #if USE_POLYMOST
 static int osdfunc_setrendermode(const osdfuncparm_t *parm)

@@ -963,6 +963,7 @@ int setvideomode(int x, int y, int c, int fs)
 		grabmouse(0);
 	}
 
+	if (baselayer_videomodewillchange) baselayer_videomodewillchange();
 	shutdownvideo();
 
 	buildprintf("Setting video mode %dx%d (%d-bpp %s)\n", x,y,c,
@@ -1138,9 +1139,7 @@ int setvideomode(int x, int y, int c, int fs)
 	yres = y;
 	bpp = c;
 	fullscreen = fs;
-	modechange = 1;
-	videomodereset = 0;
-	OSD_ResizeDisplay(xres,yres);
+
 #if USE_OPENGL
 	if (sdl_glcontext) {
 		if (SDL_GL_SetSwapInterval(glswapinterval) < 0) {
@@ -1150,6 +1149,11 @@ int setvideomode(int x, int y, int c, int fs)
 #endif
 
 	gammabrightness = (SDL_SetWindowBrightness(sdl_window, curgamma) == 0);
+
+	modechange = 1;
+	videomodereset = 0;
+	if (baselayer_videomodedidchange) baselayer_videomodedidchange();
+	OSD_ResizeDisplay(xres,yres);
 
 	// setpalettefade will set the palette according to whether gamma worked
 	setpalettefade(palfadergb.r, palfadergb.g, palfadergb.b, palfadedelta);

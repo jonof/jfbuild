@@ -34,7 +34,8 @@ extern int xres, yres, bpp, fullscreen, bytesperline, imageSize;
 extern char offscreenrendering;
 extern intptr_t frameplace;
 
-extern void (*baselayer_onvideomodechange)(int);
+extern void (*baselayer_videomodewillchange)(void);
+extern void (*baselayer_videomodedidchange)(void);
 
 extern int inputdevices;
 
