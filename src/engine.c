@@ -7911,7 +7911,9 @@ int setgamemode(int dafullscreen, int daxdim, int daydim, int dabpp)
 		pixelaspect = divscale16(240*320L,320*200L);
 
 		if (ratio < 65536) {
-			widescreen = 1;
+			// 2:1 and wider (eg. 640x200, 640x240) are wide pixels on a 4:3 screen
+			if (xdim >= 2*ydim) pixelaspect = divscale16(ydim*320L,xdim*200L);
+			else widescreen = 1;
 		} else if (ratio > 65536) {
 			tallscreen = 1;
 
