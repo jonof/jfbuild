@@ -17,10 +17,7 @@
  */
 //#define SDLAYER_USE_RENDERER
 
-// have stdio.h declare vasprintf
-#ifndef _GNU_SOURCE
-# define _GNU_SOURCE 1
-#endif
+#include "build.h"
 
 #if defined __APPLE__
 # include <SDL2/SDL.h>
@@ -35,7 +32,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "build.h"
 #include "sdlayer.h"
 #include "cache1d.h"
 #include "pragmas.h"
@@ -50,9 +46,9 @@
 #else
 int startwin_open(void) { return 0; }
 int startwin_close(void) { return 0; }
-int startwin_puts(const char *UNUSED(s)) { return 0; }
-int startwin_idle(void *s) { return 0; }
-int startwin_settitle(const char *s) { s=s; return 0; }
+int startwin_puts(const char *s) { (void)s; return 0; }
+int startwin_idle(void *s) { (void)s; return 0; }
+int startwin_settitle(const char *s) { (void)s; return 0; }
 #endif
 
 // undefine to restrict windowed resolutions to conventional sizes
@@ -135,7 +131,7 @@ int wm_msgbox(const char *name, const char *fmt, ...)
 	}
 
 	va_start(va,fmt);
-	rv = vasprintf(&buf,fmt,va);
+	rv = Bvasprintf(&buf,fmt,va);
 	va_end(va);
 
 	if (rv < 0) return -1;
@@ -164,7 +160,7 @@ int wm_msgbox(const char *name, const char *fmt, ...)
 
 int wm_ynbox(const char *name, const char *fmt, ...)
 {
-	char *buf = NULL, ch;
+	char *buf = NULL;
 	int rv;
 	va_list va;
 
@@ -173,7 +169,7 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 	}
 
 	va_start(va,fmt);
-	rv = vasprintf(&buf,fmt,va);
+	rv = Bvasprintf(&buf,fmt,va);
 	va_end(va);
 
 	if (rv < 0) return -1;
@@ -232,6 +228,8 @@ int wm_filechooser(const char *initialdir, const char *initialfile, const char *
         SDL_SetRelativeMouseMode(SDL_TRUE);
     }
     return rv;
+#else
+    (void)initialdir; (void)initialfile; (void)type; (void)foropen; (void)choice;
 #endif
 	return -1;
 }
@@ -1285,8 +1283,9 @@ void showframe(void)
 //
 // setpalette() -- set palette values
 //
-int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
+int setpalette(int start, int num, unsigned char *dapal)
 {
+	(void)start; (void)num; (void)dapal;
 #if USE_OPENGL
 	if (!nogl) {
 		glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
@@ -1339,8 +1338,9 @@ int unloadgldriver(void)
 //
 // getglprocaddress
 //
-void *getglprocaddress(const char *name, int UNUSED(ext))
+void *getglprocaddress(const char *name, int ext)
 {
+	(void)ext;
 	return (void*)SDL_GL_GetProcAddress(name);
 }
 #endif

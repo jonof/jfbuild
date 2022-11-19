@@ -8,6 +8,8 @@
 #error winlayer.c is for Windows only.
 #endif
 
+#include "build.h"
+
 #define WINVER 0x0600
 #define _WIN32_WINNT 0x0600
 
@@ -21,8 +23,6 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <commdlg.h>
-
-#include "build.h"
 
 #if USE_OPENGL
 #include "glbuild_priv.h"
@@ -575,7 +575,7 @@ void debugprintf(const char *f, ...)
 	char buf[1024];
 
 	va_start(va,f);
-	Bvsnprintf(buf, 1024, f, va);
+	vsnprintf(buf, sizeof(buf), f, va);
 	va_end(va);
 
 	if (IsDebuggerPresent()) {
@@ -1477,8 +1477,10 @@ void showframe(void)
 //
 // setpalette() -- set palette values
 //
-int setpalette(int UNUSED(start), int UNUSED(num), unsigned char * UNUSED(dapal))
+int setpalette(int start, int num, unsigned char * dapal)
 {
+	(void)start; (void)num; (void)dapal;
+
 #if USE_OPENGL
 	if (!nogl && bpp == 8) {
 		glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
@@ -2219,7 +2221,6 @@ static void UpdateAppWindowTitle(void)
 
 	if (wintitle[0]) {
 		snprintf(tmp, sizeof(tmp), "%s - %s", wintitle, apptitle);
-		tmp[sizeof(tmp)-1] = 0;
 		SetWindowText(hWindow, tmp);
 	} else {
 		SetWindowText(hWindow, apptitle);

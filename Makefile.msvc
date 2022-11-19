@@ -60,7 +60,8 @@ CC=cl
 AS=ml
 RC=rc
 LINK=link
-OURCFLAGS=/nologo /MD $(flags_cl) /DKSFORBUILD /I$(INC) /I$(LIBSQUISH) /I$(SRC)
+OURCFLAGS=/nologo /MD /Zl $(flags_cl) /DKSFORBUILD /I$(INC) /I$(LIBSQUISH) /I$(SRC)
+OURCXXFLAGS=/EHsc
 GAMECFLAGS=/I$(GAME)
 ASFLAGS=/nologo /coff
 LINKFLAGS=/opt:ref /nologo $(flags_link)
@@ -155,28 +156,28 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 	$(AS) /c $(ASFLAGS) /Fo$@ $<
 
 {$(SRC)}.c{$(SRC)}.$o:
-	$(CC) /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
+	$(CC) /TC /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
 
 {$(SRC)}.cc{$(SRC)}.$o:
-	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
+	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) $(OURCXXFLAGS) /Fo$@ $<
 
 {$(SRC)}.cpp{$(SRC)}.$o:
-	$(CC) /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
+	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) $(OURCXXFLAGS) /Fo$@ $<
 
 {$(LIBSQUISH)}.cpp{$(LIBSQUISH)}.$o:
-	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
+	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) $(OURCXXFLAGS) /Fo$@ $<
 
 {$(TOOLS)}.c{$(TOOLS)}.$o:
-	$(CC) /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
+	$(CC) /TC /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
 
 {$(TOOLS)}.cc{$(TOOLS)}.$o:
-	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
+	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) $(OURCXXFLAGS) /Fo$@ $<
 
 {$(GAME)}.c{$(GAME)}.$o:
-	$(CC) /c $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) /Fo$@ $<
+	$(CC) /TC /c $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) /Fo$@ $<
 
 {$(GAME)}.cpp{$(GAME)}.$o:
-	$(CC) /c $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) /Fo$@ $<
+	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) $(OURCXXFLAGS) $(GAMECFLAGS) /Fo$@ $<
 
 {$(GAME)}.rc{$(GAME)}.$(res):
 	$(RC) $(RFLAGS) /fo$@ /r $<
@@ -201,10 +202,10 @@ $(SRC)\$(EDITORLIB): $(EDITOROBJS)
 
 
 $(GAMEDATA)\game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS "/LIBPATH:$(DXROOT)\lib" $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 $(GAMEDATA)\build$(EXESUFFIX): $(EDITOREXEOBJS)
-	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS "/LIBPATH:$(DXROOT)\lib" $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 # the tools
 kextract$(EXESUFFIX): $(TOOLS)\kextract.$o $(SRC)\compat.$o

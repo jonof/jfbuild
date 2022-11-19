@@ -3,10 +3,6 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #define USE_IPV6
 //#define MMULTI_DEBUG_SENDRECV
 //#define MMULTI_DEBUG_SENDRECV_WIRE
@@ -41,16 +37,16 @@ LPFN_WSARECVMSG WSARecvMsgPtr;
 #ifdef __APPLE__
 # define __APPLE_USE_RFC_3542
 #endif
-#ifdef __GNUC__
-# define __USE_GNU
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
 #endif
 
-#include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <stddef.h>
 #define SOCKET int
 
 #include <sys/time.h>
@@ -72,6 +68,7 @@ static int GetTickCount(void)
 #include "build.h"
 #include "mmulti.h"
 #include "baselayer.h"
+
 #define printf buildprintf
 
 #ifndef min
@@ -549,10 +546,10 @@ static const char *presentaddress(struct sockaddr *a) {
 
 //---------------------------------- Obsolete variables&functions ----------------------------------
 unsigned char syncstate = 0;
-void setpackettimeout (int UNUSED(datimeoutcount), int UNUSED(daresendagaincount)) {}
-void genericmultifunction (int UNUSED(other), unsigned char *UNUSED(bufptr), int UNUSED(messleng), int UNUSED(command)) {}
+void setpackettimeout (int datimeoutcount, int daresendagaincount) { (void)datimeoutcount; (void)daresendagaincount; }
+void genericmultifunction (int other, unsigned char *bufptr, int messleng, int command) { (void)other; (void)bufptr; (void)messleng; (void)command; }
 int getoutputcirclesize () { return(0); }
-void setsocket (int UNUSED(newsocket)) { }
+void setsocket (int newsocket) { (void)newsocket; }
 void sendlogon () {}
 void sendlogoff () {}
 //--------------------------------------------------------------------------------------------------

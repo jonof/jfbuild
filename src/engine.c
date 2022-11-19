@@ -11721,8 +11721,7 @@ void buildprintf(const char *fmt, ...)
 	}
 
 	va_copy(vac, va);
-	Bvsnprintf(tmpstr, sizeof(tmpstr)-1, fmt, vac);
-	tmpstr[sizeof(tmpstr)-1] = 0;
+	vsnprintf(tmpstr, sizeof(tmpstr), fmt, vac);
 	va_end(vac);
 
 	initputs(tmpstr);

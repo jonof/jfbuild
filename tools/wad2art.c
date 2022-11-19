@@ -262,7 +262,7 @@ int main(int argc, char **argv)
 	printf("Saving tiles000.art header\n");
 	artversion = 1; localtilestart = 0; localtileend = numwads-1;
 
-	endoffile = Btell(fil2);
+	endoffile = Blseek(fil2,0,BSEEK_CUR);
 	Blseek(fil2,0,BSEEK_SET);
 	Bwrite(fil2,&artversion,4);
 	Bwrite(fil2,&numwads,4);

@@ -55,7 +55,8 @@ RANLIB?=ranlib
 OURCFLAGS=$(debug) -g -W -Wall -Wno-unused-variable -Wno-unused-function \
 	-Wno-unused-but-set-variable -fno-strict-aliasing -DKSFORBUILD \
 	-I$(INC) -I$(SRC)
-OURCXXFLAGS=-fno-exceptions -fno-rtti
+OURCCFLAGS=-std=c99
+OURCXXFLAGS=-fno-exceptions -fno-rtti -std=c++98
 GAMECFLAGS=-I$(GAME) -I$(INC)
 LIBS=
 GAMELIBS=
@@ -263,7 +264,7 @@ $(SRC)/%.$o: $(SRC)/%.$(asm)
 	$(NASM) $(NASMFLAGS) $< -o $@
 
 $(SRC)/%.$o: $(SRC)/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(OURCFLAGS) $(OURCCFLAGS) -c $< -o $@
 
 $(SRC)/%.$o: $(SRC)/%.cc
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@
@@ -275,13 +276,13 @@ $(LIBSQUISH)/%.$o: $(LIBSQUISH)/%.cpp
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -O2 -c $< -o $@
 
 $(GAME)/%.$o: $(GAME)/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(OURCFLAGS) $(OURCCFLAGS) $(GAMECFLAGS) -c $< -o $@
 
 $(GAME)/%.$o: $(GAME)/%.cpp
 	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@
 
 $(GAME)/rsrc/%.$o: $(GAME)/rsrc/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(OURCFLAGS) $(OURCCFLAGS) -c $< -o $@
 
 $(GAME)/%.$(res): $(GAME)/%.rc
 	$(WINDRES) -O coff -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)

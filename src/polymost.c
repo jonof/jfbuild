@@ -4636,10 +4636,11 @@ int polymost_precache_run(int* done, int* total)
 
 #ifdef DEBUGGINGAIDS
 // because I'm lazy
-static int osdcmd_debugdumptexturedefs(const osdfuncparm_t * UNUSED(parm))
+static int osdcmd_debugdumptexturedefs(const osdfuncparm_t *parm)
 {
 	hicreplctyp *hr;
 	int i;
+	(void)parm;
 
 	if (!hicfirstinit) return OSDCMD_OK;
 
@@ -4661,11 +4662,12 @@ static int osdcmd_debugdumptexturedefs(const osdfuncparm_t * UNUSED(parm))
 	return OSDCMD_OK;	// no replacement found
 }
 
-static int osdcmd_debugtexturehash(const osdfuncparm_t * UNUSED(parm))
+static int osdcmd_debugtexturehash(const osdfuncparm_t *parm)
 {
 	PTIter iter;
 	PTHead * pth;
 	int i;
+	(void)parm;
 
 	if (!hicfirstinit) {
 		return OSDCMD_OK;
@@ -4694,8 +4696,9 @@ static int osdcmd_debugtexturehash(const osdfuncparm_t * UNUSED(parm))
 #endif
 
 #ifdef SHADERDEV
-static int osdcmd_debugreloadshaders(const osdfuncparm_t *UNUSED(parm))
+static int osdcmd_debugreloadshaders(const osdfuncparm_t *parm)
 {
+	(void)parm;
 	polymost_loadshaders();
 	return OSDCMD_OK;
 }
@@ -4762,8 +4765,9 @@ static int osdcmd_gltextureanisotropy(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
-static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *UNUSED(parm))
+static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *parm)
 {
+	(void)parm;
 	PTCacheForceRebuild();
 	buildprintf("Compressed texture cache invalidated. Use 'restartvid' to reinitialise it.\n");
 	return OSDCMD_OK;

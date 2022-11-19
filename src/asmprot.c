@@ -1,13 +1,15 @@
 #include "a.h"
 
-#if defined _WIN32
-# define WIN32_LEAN_AND_MEAN
-# include <windows.h>
-#elif defined __linux || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __APPLE__
-# include <sys/mman.h>
-# include <unistd.h>
-# include <stdio.h>
-# include <errno.h>
+#ifndef ENGINE_USING_A_C
+# if defined _WIN32
+#  define WIN32_LEAN_AND_MEAN
+#  include <windows.h>
+# elif defined __linux || defined __FreeBSD__ || defined __NetBSD__ || defined __OpenBSD__ || defined __APPLE__
+#  include <sys/mman.h>
+#  include <unistd.h>
+#  include <stdio.h>
+#  include <errno.h>
+# endif
 #endif
 
 void makeasmwriteable(void)

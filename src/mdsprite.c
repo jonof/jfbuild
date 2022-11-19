@@ -1338,9 +1338,10 @@ static void setrect (int x0, int y0, int dx, int dy)
 #endif
 }
 
-static void cntquad (int x0, int y0, int z0, int UNUSED(x1), int UNUSED(y1), int UNUSED(z1), int x2, int y2, int z2, int UNUSED(face))
+static void cntquad (int x0, int y0, int z0, int x1, int y1, int z1, int x2, int y2, int z2, int face)
 {
 	int x, y, z;
+	(void)x1; (void)y1; (void)z1; (void)face;
 
 	x = labs(x2-x0); y = labs(y2-y0); z = labs(z2-z0);
 	if (!x) x = z; else if (!y) y = z;

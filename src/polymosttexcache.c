@@ -15,10 +15,10 @@
    signature  "PolymostTexIndx"
    version    CACHEVER
    ENTRIES...
-     filename  char[BMAX_PATH]
+     filename  char[PTCACHEINDEXFILENAMELEN]
      effects   int32
      flags     int32		PTH_CLAMPED
-     offset    int32		Offset from the start of the STORAGE file
+     offset    uint32		Offset from the start of the STORAGE file
      mtime     int32		When kplib can return mtimes from ZIPs, this will be used to spot stale entries
 
  STORAGE (texture.cache):
@@ -43,12 +43,13 @@ struct PTCacheIndex_typ {
 	char * filename;
 	int effects;
 	int flags;
-	off_t offset;
+	unsigned offset;
 	struct PTCacheIndex_typ * next;
 };
 typedef struct PTCacheIndex_typ PTCacheIndex;
 #define PTCACHEHASHSIZ 512
 static PTCacheIndex * cachehead[PTCACHEHASHSIZ];	// will be initialized 0 by .bss segment
+#define PTCACHEINDEXFILENAMELEN 260
 
 static const char * CACHEINDEXFILE = "texture.cacheindex";
 static const char * CACHESTORAGEFILE = "texture.cache";
@@ -77,7 +78,7 @@ static unsigned int gethashhead(const char * filename)
  * @param flags
  * @param offset
  */
-static void ptcache_addhash(const char * filename, int effects, int flags, off_t offset)
+static void ptcache_addhash(const char * filename, int effects, int flags, unsigned offset)
 {
 	unsigned int hash = gethashhead(filename);
 
@@ -134,10 +135,10 @@ void PTCacheLoadIndex(void)
 	const int8_t indexsig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','I','n','d','x',CACHEVER };
 	const int8_t storagesig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','S','t','o','r',CACHEVER };
 
-	int8_t filename[BMAX_PATH+1];
+	char filename[PTCACHEINDEXFILENAMELEN];
 	int32_t effects;
 	int32_t flags;
-	int32_t offset;
+	uint32_t offset;
 	int32_t mtime;
 	PTCacheIndex * pci;
 
@@ -202,7 +203,7 @@ void PTCacheLoadIndex(void)
 
 	// now that the index is sitting at the first entry, load everything
 	while (!feof(fh)) {
-		if (fread(filename, BMAX_PATH, 1, fh) != 1 && feof(fh)) {
+		if (fread(filename, PTCACHEINDEXFILENAMELEN, 1, fh) != 1 && feof(fh)) {
 			break;
 		}
 		if (fread(&effects, 4,         1, fh) != 1 ||
@@ -221,13 +222,14 @@ void PTCacheLoadIndex(void)
 		offset  = B_LITTLE32(offset);
 		mtime   = B_LITTLE32(mtime);
 
-		pci = ptcache_findhash((char *) filename, (int) effects, (int) flags);
+		filename[sizeof(filename)-1] = 0;
+		pci = ptcache_findhash(filename, (int) effects, (int) flags);
 		if (pci) {
 			// superseding an old hash entry
-			pci->offset = (off_t) offset;
+			pci->offset = offset;
 			dups++;
 		} else {
-			ptcache_addhash((char *) filename, (int) effects, (int) flags, (off_t) offset);
+			ptcache_addhash(filename, (int) effects, (int) flags, offset);
 		}
 		total++;
 	}
@@ -469,6 +471,7 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	fseek(fh, 0, SEEK_END);
 	offset = ftell(fh);
 
+	if (offset >= UINT32_MAX) goto fail;
 	if (offset == 0) {
 		// new file
 		const int8_t storagesig[16] = { 'P','o','l','y','m','o','s','t','T','e','x','S','t','o','r',CACHEVER };
@@ -539,21 +542,22 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	}
 
 	{
-		int8_t filename[BMAX_PATH];
-		int32_t effects, offsett, flags, mtime;
+		char filename[PTCACHEINDEXFILENAMELEN];
+		int32_t effects, flags, mtime;
+		uint32_t offs;
 
-		strncpy((char *) filename, tdef->filename, sizeof(filename)-1);
+		strncpy(filename, tdef->filename, sizeof(filename));
 		filename[sizeof(filename)-1] = 0;
 		effects = B_LITTLE32(tdef->effects);
 		flags   = tdef->flags & (PTH_CLAMPED);	// we don't want the informational flags in the index
 		flags   = B_LITTLE32(flags);
-		offsett = B_LITTLE32(offset);
+		offs    = B_LITTLE32((uint32_t)offset);
 		mtime = 0;
 
 		if (fwrite(filename, sizeof(filename), 1, fh) != 1 ||
 		    fwrite(&effects, 4, 1, fh) != 1 ||
 		    fwrite(&flags, 4, 1, fh) != 1 ||
-		    fwrite(&offsett, 4, 1, fh) != 1 ||
+		    fwrite(&offs, 4, 1, fh) != 1 ||
 		    fwrite(&mtime, 4, 1, fh) != 1) {
 			goto fail;
 		}
@@ -565,9 +569,9 @@ int PTCacheWriteTile(PTCacheTile * tdef)
 	pci = ptcache_findhash(tdef->filename, tdef->effects, tdef->flags);
 	if (pci) {
 		// superseding an old hash entry
-		pci->offset = offset;
+		pci->offset = (unsigned)offset;
 	} else {
-		ptcache_addhash(tdef->filename, tdef->effects, tdef->flags, offset);
+		ptcache_addhash(tdef->filename, tdef->effects, tdef->flags, (unsigned)offset);
 	}
 
 	return 1;

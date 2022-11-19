@@ -179,7 +179,7 @@
 		AB1751260CEF5AF8003AF128 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Users/jonof/Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
 		AB3B2A0D0EE3FC0400944CD1 /* hightile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hightile.c; sourceTree = "<group>"; };
 		AB3B2A1C0EE3FCF900944CD1 /* polymost.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymost.c; sourceTree = "<group>"; usesTabs = 1; };
-		AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mdsprite.c; sourceTree = "<group>"; };
+		AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mdsprite.c; sourceTree = "<group>"; usesTabs = 1; };
 		AB3B2AB50EE402B600944CD1 /* engine_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = engine_priv.h; sourceTree = "<group>"; };
 		AB3B2ABF0EE4033300944CD1 /* hightile_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hightile_priv.h; sourceTree = "<group>"; };
 		AB3B2AC00EE4033300944CD1 /* mdsprite_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mdsprite_priv.h; sourceTree = "<group>"; };
@@ -222,13 +222,13 @@
 		AB726D4A0F046C3B00730EAA /* polymosttex.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymosttex.c; sourceTree = "<group>"; };
 		AB726D4B0F046C3B00730EAA /* polymosttex_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymosttex_priv.h; sourceTree = "<group>"; };
 		AB735F490A29A2DC003261DC /* libengine.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libengine.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		AB735F4E0A29A39C003261DC /* a-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "a-c.c"; sourceTree = "<group>"; };
+		AB735F4E0A29A39C003261DC /* a-c.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "a-c.c"; sourceTree = "<group>"; usesTabs = 1; };
 		AB735F4F0A29A39C003261DC /* baselayer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = baselayer.c; sourceTree = "<group>"; };
-		AB735F500A29A39C003261DC /* cache1d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cache1d.c; sourceTree = "<group>"; };
+		AB735F500A29A39C003261DC /* cache1d.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cache1d.c; sourceTree = "<group>"; usesTabs = 1; };
 		AB735F510A29A39C003261DC /* compat.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = compat.c; sourceTree = "<group>"; };
 		AB735F520A29A39C003261DC /* crc32.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = crc32.c; sourceTree = "<group>"; };
 		AB735F530A29A39C003261DC /* defs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = defs.c; sourceTree = "<group>"; };
-		AB735F540A29A39C003261DC /* engine.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = engine.c; sourceTree = "<group>"; };
+		AB735F540A29A39C003261DC /* engine.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = engine.c; sourceTree = "<group>"; usesTabs = 1; };
 		AB735F550A29A39C003261DC /* glbuild.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = glbuild.c; sourceTree = "<group>"; };
 		AB735F560A29A39C003261DC /* kplib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kplib.c; sourceTree = "<group>"; };
 		AB735F5A0A29A39C003261DC /* mmulti.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mmulti.c; sourceTree = "<group>"; };
@@ -960,6 +960,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++98";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -967,6 +968,7 @@
 				DEVELOPMENT_TEAM = S7U4E54CHC;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
+				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -993,6 +995,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++98";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
@@ -1000,6 +1003,7 @@
 				DEVELOPMENT_TEAM = S7U4E54CHC;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
+				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
 				GCC_ENABLE_CPP_RTTI = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (

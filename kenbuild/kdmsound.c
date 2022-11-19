@@ -4,15 +4,16 @@
 // This file has been modified from Ken Silverman's original release
 // by Jonathon Fowler (jf@jonof.id.au)
 
-#define KDMSOUND_INTERNAL
-#include "kdmsound.h"
+#include "compat.h"
 
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include "compat.h"
+
+#define KDMSOUND_INTERNAL
+#include "kdmsound.h"
+
 #include "pragmas.h"
 #include "cache1d.h"
-
 
 #define NUMCHANNELS 16
 #define MAXWAVES 256

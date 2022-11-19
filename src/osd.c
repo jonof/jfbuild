@@ -914,8 +914,7 @@ void OSD_Printf(const char *fmt, ...)
     if (!osdinited) return;
 
 	va_start(va, fmt);
-	Bvsnprintf(tmpstr, sizeof(tmpstr)-1, fmt, va);
-	tmpstr[sizeof(tmpstr)-1] = 0;
+	vsnprintf(tmpstr, sizeof(tmpstr), fmt, va);
 	va_end(va);
 
     OSD_Puts(tmpstr);

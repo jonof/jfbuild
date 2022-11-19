@@ -2649,7 +2649,7 @@ int drawtilescreen(int pictopleft, int picbox)
 	i = localartlookup[picbox];
 	Bsprintf(snotbuf,"%d",i);
 	printext256(0L,ydim-8,whitecol,-1,snotbuf,0);
-	printext256(xdim-(Bstrlen(names[i])<<3),ydim-8,whitecol,-1,names[i],0);
+	printext256(xdim-((int)strlen(names[i])<<3),ydim-8,whitecol,-1,names[i],0);
 
 	Bsprintf(snotbuf,"%dx%d",tilesizx[i],tilesizy[i]);
     printext256(xdim>>2,ydim-8,whitecol,-1,snotbuf,0);
@@ -2663,23 +2663,22 @@ void overheadeditor(void)
 {
 	char buffer[80];
 	const char *dabuffer;
-	int i, j, k, m=0, mousxplc, mousyplc, firstx=0, firsty=0, oposz, col, ch;
+	int i, j, k, m=0, mousxplc, mousyplc, firstx=0, firsty=0, oposz, col, ch, sl;
 	int templong, templong1, templong2, doubvel;
 	int startwall, endwall, dax, day, daz, x1, y1, x2, y2, x3, y3, x4, y4;
 	int highlightx1, highlighty1, highlightx2, highlighty2, xvect, yvect;
-	short pag, suckwall=0, sucksect, newnumwalls, newnumsectors, split=0, bad;
+	short suckwall=0, sucksect, newnumwalls, newnumsectors, split=0, bad;
 	short splitsect=0, danumwalls, secondstartwall, joinsector[2], joinsectnum;
 	short splitstartwall=0, splitendwall, loopnum;
 	int mousx, mousy, bstatus;
 	int centerx, centery, circlerad;
-	short circlewall, circlepoints, circleang1, circleang2, circleangdir;
+	short circlewall, circlepoints, circleang1, circleang2;
 	int sectorhighlightx=0, sectorhighlighty=0;
 	short cursectorhighlight, sectorhighlightstat;
 	short hitsect, hitwall, hitsprite;
 	int hitx, hity, hitz;
 	walltype *wal;
 
-	//qsetmode640480();
 	qsetmodeany(xdim2d,ydim2d);
 	xdim2d = xdim;
 	ydim2d = ydim;
@@ -2705,7 +2704,6 @@ void overheadeditor(void)
 	ydim16 = ydim-STATUS2DSIZ;
 	enddrawing();	//}}}
 
-	pag = 0;
 	highlightcnt = -1;
 	cursectorhighlight = -1;
 
@@ -2865,9 +2863,10 @@ void overheadeditor(void)
 					dax = mulscale14(dax-posx,zoom);
 					day = mulscale14(day-posy,zoom);
 
-					x1 = halfxdim16+dax-(Bstrlen(dabuffer)<<1);
+					sl = (int)strlen(dabuffer);
+					x1 = halfxdim16+dax-(sl<<1);
 					y1 = midydim16+day-4;
-					x2 = x1 + (Bstrlen(dabuffer)<<2)+2;
+					x2 = x1 + (sl<<2)+2;
 					y2 = y1 + 7;
 					if ((x1 >= 0) && (x2 < xdim) && (y1 >= 0) && (y2 < ydim16))
 						printext16(x1,y1,0,7,dabuffer,1);
@@ -2891,9 +2890,10 @@ void overheadeditor(void)
 					{
 						dax = mulscale14(dax-posx,zoom);
 						day = mulscale14(day-posy,zoom);
-						x1 = halfxdim16+dax-(Bstrlen(dabuffer)<<1);
+						sl = (int)strlen(dabuffer);
+						x1 = halfxdim16+dax-(sl<<1);
 						y1 = midydim16+day-4;
-						x2 = x1 + (Bstrlen(dabuffer)<<2)+2;
+						x2 = x1 + (sl<<2)+2;
 						y2 = y1 + 7;
 						if ((x1 >= 0) && (x2 < xdim) && (y1 >= 0) && (y2 < ydim16))
 							printext16(x1,y1,0,4,dabuffer,1);
@@ -2916,9 +2916,10 @@ void overheadeditor(void)
 						dax = mulscale14(dax-posx,zoom);
 						day = mulscale14(day-posy,zoom);
 
-						x1 = halfxdim16+dax-(Bstrlen(dabuffer)<<1);
+						sl = (int)strlen(dabuffer);
+						x1 = halfxdim16+dax-(sl<<1);
 						y1 = midydim16+day-4;
-						x2 = x1 + (Bstrlen(dabuffer)<<2)+2;
+						x2 = x1 + (sl<<2)+2;
 						y2 = y1 + 7;
 						if ((x1 >= 0) && (x2 < xdim) && (y1 >= 0) && (y2 < ydim16))
 						{
@@ -4206,11 +4207,9 @@ void overheadeditor(void)
 				circleang1 = getangle(x1-centerx,y1-centery);
 				circleang2 = getangle(x2-centerx,y2-centery);
 
-				circleangdir = 1;
 				k = ((circleang2-circleang1)&2047);
 				if (mulscale4(x3-x1,y2-y1) < mulscale4(x2-x1,y3-y1))
 				{
-					circleangdir = -1;
 					k = -((circleang1-circleang2)&2047);
 				}
 
@@ -5333,7 +5332,7 @@ void overheadeditor(void)
 				}
 				else if (ch == 'a' || ch == 'A')  //A
 				{
-					char * filename = NULL, *initialdir = NULL, *initialfile = NULL;
+					char *filename = NULL, *initialdir = NULL, *initialfile = NULL, *curs;
 					int filer;
 
 					bad = 0;
@@ -5383,14 +5382,14 @@ void overheadeditor(void)
 					// Find where the filename starts on the path.
 					filename = findfilename(selectedboardfilename);
 
-					// Cut off any .map extension.
-					for (i = strlen(filename) - 1; i >= 0 && filename[i] != '.'; i--) { }
-					if (i > 0 && Bstrcasecmp(&filename[i], ".map") == 0) filename[i] = 0;
+					// Find the end of the filename and cut off any .map extension.
+					curs = strrchr(filename, 0);
+					if (curs - filename >= 4 && strcasecmp(curs - 4, ".map") == 0) { curs -= 4; *curs = 0; }
 
 					bflushchars();
 					while (bad == 0)
 					{
-						Bsprintf(buffer,"Save as: %s_", filename);
+						snprintf(buffer, sizeof(buffer), "Save as: %s_", filename);
 						printmessage16(buffer);
 						showframe();
 
@@ -5403,15 +5402,14 @@ void overheadeditor(void)
 						if (keystatus[1] > 0) bad = 1;
 						else if (ch == 13) bad = 2;
 						else if (ch > 0) {
-							if (i > 0 && (ch == 8 || ch == 127)) {
-								i--;
-								filename[i] = 0;
+							if (curs - filename > 0 && (ch == 8 || ch == 127)) {
+								*(--curs) = 0;
 							}
 							else if (strlen(selectedboardfilename) < sizeof(selectedboardfilename)-5
 								&& ch > 32 && ch < 128)
 							{
-								filename[i++] = ch;
-								filename[i] = 0;
+								*(curs++) = ch;
+								*curs = 0;
 							}
 						}
 					}
@@ -6212,7 +6210,7 @@ int menuselect(int newpathmode)
 			if (grponlymode) strcat(buffer, "all files.");
 			else strcat(buffer, "GRP files only.");
 		}
-		printext16(halfxdim16-(8*strlen(buffer)/2), 4, 14,0,buffer,0);
+		printext16(halfxdim16-(8*(int)strlen(buffer)/2), 4, 14,0,buffer,0);
 
 		snprintf(buffer,sizeof(buffer),"(%d dirs, %d files) %s",numdirs,numfiles,selectedboardfilename);
 		printext16(1,ydim16-8-1,8,0,buffer,0);
@@ -6533,7 +6531,7 @@ int loadnames(void)
 	printf("Loading NAMES.H\n");
 
 	while (Bfgets(buffer, 1024, fp)) {
-		a = Bstrlen(buffer);
+		a = (int)strlen(buffer);
 		if (a >= 1) {
 			if (a > 1)
 				if (buffer[a-2] == '\r') buffer[a-2] = 0;
@@ -6574,7 +6572,7 @@ int loadnames(void)
 					if (*p != 0) *p = 0;
 
 					// add to list
-					num = Bstrtol(number, &endptr, 10);
+					num = (int)strtol(number, &endptr, 10);
 					if (*endptr != 0) {
 						p = endptr;
 						goto badline;

@@ -1,16 +1,9 @@
-/*
- * Playing-field leveller for Build
- * by Jonathon Fowler
- *
- * A note about this:
- * 1. There is some kind of problem somewhere in the functions below because
- *    compiling with __compat_h_macrodef__ disabled makes stupid things happen.
- * 2. The functions below, aside from the ones which aren't trivial, were never
- *    really intended to be used for anything except tracking anr removing ties
- *    to the standard C library from games. Using the Bxx versions of functions
- *    means we can redefine those names to link up with different runtime library
- *    names.
- */
+// "Build Engine & Tools" Copyright (c) 1993-1997 Ken Silverman
+// Ken Silverman's official web site: "http://www.advsys.net/ken"
+// See the included license file "BUILDLIC.TXT" for license info.
+//
+// This file has been modified from Ken Silverman's original release
+// by Jonathon Fowler (jf@jonof.id.au)
 
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
@@ -20,12 +13,7 @@
 #include <shlobj.h>
 #endif
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include "compat.h"
 
 #ifdef __APPLE__
 # include "osxbits.h"
@@ -33,8 +21,7 @@
 
 #if defined(__WATCOMC__)
 # include <direct.h>
-#elif defined(_MSC_VER)
-#else
+#elif !defined(_MSC_VER)
 # include <dirent.h>
 # ifdef _WIN32
 #  include <direct.h>	// for _getdcwd
@@ -49,293 +36,45 @@
 #  include <sys/sysctl.h> // for sysctl() to get path to executable
 #endif
 
-#include "compat.h"
 
-
-#ifndef __compat_h_macrodef__
-
-int Brand(void)
+#if !defined(_WIN32)
+char *strlwr(char *s)
 {
-	return rand();
+    char *t = s;
+    if (!s) return s;
+    while (*t) { *t = tolower(*t); t++; }
+    return s;
 }
 
-void *Bmalloc(bsize_t size)
+char *strupr(char *s)
 {
-	return malloc(size);
+    char *t = s;
+    if (!s) return s;
+    while (*t) { *t = toupper(*t); t++; }
+    return s;
 }
-
-void Bfree(void *ptr)
-{
-	free(ptr);
-}
-
-int Bopen(const char *pathname, int flags, unsigned mode)
-{
-	int n=0,o=0;
-	
-	if (flags&BO_BINARY) n|=O_BINARY; else n|=O_TEXT;
-	if ((flags&BO_RDWR)==BO_RDWR) n|=O_RDWR;
-	else if ((flags&BO_RDWR)==BO_WRONLY) n|=O_WRONLY;
-	else if ((flags&BO_RDWR)==BO_RDONLY) n|=O_RDONLY;
-	if (flags&BO_APPEND) n|=O_APPEND;
-	if (flags&BO_CREAT) n|=O_CREAT;
-	if (flags&BO_TRUNC) n|=O_TRUNC;
-	if (mode&BS_IREAD) o|=S_IREAD;
-	if (mode&BS_IWRITE) o|=S_IWRITE;
-	if (mode&BS_IEXEC) o|=S_IEXEC;
-	
-	return open(pathname,n,o);
-}
-
-int Bclose(int fd)
-{
-	return close(fd);
-}
-
-bssize_t Bwrite(int fd, const void *buf, bsize_t count)
-{
-	return write(fd,buf,count);
-}
-
-bssize_t Bread(int fd, void *buf, bsize_t count)
-{
-	return read(fd,buf,count);
-}
-
-boff_t Blseek(int fildes, boff_t offset, int whence)
-{
-	switch (whence) {
-		case BSEEK_SET: whence=SEEK_SET; break;
-		case BSEEK_CUR: whence=SEEK_CUR; break;
-		case BSEEK_END: whence=SEEK_END; break;
-	}
-	return lseek(fildes,offset,whence);
-}
-
-BFILE *Bfopen(const char *path, const char *mode)
-{
-	return (BFILE*)fopen(path,mode);
-}
-
-int Bfclose(BFILE *stream)
-{
-	return fclose((FILE*)stream);
-}
-
-void Brewind(BFILE *stream)
-{
-	rewind((FILE*)stream);
-}
-
-int Bfgetc(BFILE *stream)
-{
-	return fgetc((FILE*)stream);
-}
-
-char *Bfgets(char *s, int size, BFILE *stream)
-{
-	return fgets(s,size,(FILE*)stream);
-}
-
-int Bfputc(int c, BFILE *stream)
-{
-	return fputc(c,(FILE*)stream);
-}
-
-int Bfputs(const char *s, BFILE *stream)
-{
-	return fputs(s,(FILE*)stream);
-}
-
-bsize_t Bfread(void *ptr, bsize_t size, bsize_t nmemb, BFILE *stream)
-{
-	return fread(ptr,size,nmemb,(FILE*)stream);
-}
-
-bsize_t Bfwrite(const void *ptr, bsize_t size, bsize_t nmemb, BFILE *stream)
-{
-	return fwrite(ptr,size,nmemb,(FILE*)stream);
-}
-
-
-char *Bstrdup(const char *s)
-{
-	return strdup(s);
-}
-
-char *Bstrcpy(char *dest, const char *src)
-{
-	return strcpy(dest,src);
-}
-
-char *Bstrncpy(char *dest, const char *src, bsize_t n)
-{
-	return strncpy(dest,src,n);
-}
-
-int Bstrcmp(const char *s1, const char *s2)
-{
-	return strcmp(s1,s2);
-}
-
-int Bstrncmp(const char *s1, const char *s2, bsize_t n)
-{
-	return strncmp(s1,s2,n);
-}
-
-int Bstrcasecmp(const char *s1, const char *s2)
-{
-#ifdef _MSC_VER
-	return stricmp(s1,s2);
-#else
-	return strcasecmp(s1,s2);
 #endif
-}
 
-int Bstrncasecmp(const char *s1, const char *s2, bsize_t n)
+
+int Bvasprintf(char **ret, const char *format, va_list ap)
 {
-#ifdef _MSC_VER
-	return strnicmp(s1,s2,n);
-#else
-	return strncasecmp(s1,s2,n);
-#endif
+    int len;
+    va_list app;
+
+    va_copy(app, ap);
+    len = vsnprintf(NULL, 0, format, app);
+    va_end(app);
+
+    if (len < 0) return -1;
+    if ((*ret = malloc(len + 1)) == NULL) return -1;
+
+    va_copy(app, ap);
+    len = vsnprintf(*ret, len + 1, format, app);
+    va_end(app);
+
+    return len;
 }
 
-char *Bstrcat(char *dest, const char *src)
-{
-	return strcat(dest,src);
-}
-
-char *Bstrncat(char *dest, const char *src, bsize_t n)
-{
-	return strncat(dest,src,n);
-}
-
-bsize_t Bstrlen(const char *s)
-{
-	return strlen(s);
-}
-
-char *Bstrchr(const char *s, int c)
-{
-	return strchr(s,c);
-}
-
-char *Bstrrchr(const char *s, int c)
-{
-	return strrchr(s,c);
-}
-
-int Batoi(const char *nptr)
-{
-	return atoi(nptr);
-}
-
-long Batol(const char *nptr)
-{
-	return atol(nptr);
-}
-
-long int Bstrtol(const char *nptr, char **endptr, int base)
-{
-	return strtol(nptr,endptr,base);
-}
-
-unsigned long int Bstrtoul(const char *nptr, char **endptr, int base)
-{
-	return strtoul(nptr,endptr,base);
-}
-
-void *Bmemcpy(void *dest, const void *src, bsize_t n)
-{
-	return memcpy(dest,src,n);
-}
-
-void *Bmemmove(void *dest, const void *src, bsize_t n)
-{
-	return memmove(dest,src,n);
-}
-
-void *Bmemchr(const void *s, int c, bsize_t n)
-{
-	return memchr(s,c,n);
-}
-
-void *Bmemset(void *s, int c, bsize_t n)
-{
-	return memset(s,c,n);
-}
-
-int Bprintf(const char *format, ...)
-{
-	va_list ap;
-	int r;
-
-	va_start(ap,format);
-#ifdef _MSC_VER
-	r = _vprintf(format,ap);
-#else
-	r = vprintf(format,ap);
-#endif
-	va_end(ap);
-	return r;
-}
-
-int Bsprintf(char *str, const char *format, ...)
-{
-	va_list ap;
-	int r;
-
-	va_start(ap,format);
-#ifdef _MSC_VER
-	r = _vsprintf(str,format,ap);
-#else
-	r = vsprintf(str,format,ap);
-#endif
-	va_end(ap);
-	return r;
-}
-
-int Bsnprintf(char *str, bsize_t size, const char *format, ...)
-{
-	va_list ap;
-	int r;
-
-	va_start(ap,format);
-#ifdef _MSC_VER
-	r = _vsnprintf(str,size,format,ap);
-#else
-	r = vsnprintf(str,size,format,ap);
-#endif
-	va_end(ap);
-	return r;
-}
-
-int Bvsnprintf(char *str, bsize_t size, const char *format, va_list ap)
-{
-#ifdef _MSC_VER
-	return _vsnprintf(str,size,format,ap);
-#else
-	return vsnprintf(str,size,format,ap);
-#endif
-}
-
-char *Bgetenv(const char *name)
-{
-	return getenv(name);
-}
-
-char *Bgetcwd(char *buf, bsize_t size)
-{
-	return getcwd(buf,size);
-}
-
-#endif	// __compat_h_macrodef__
-
-
-//
-// Stuff which must be a function
-//
 
 /**
  * Get the location of the user's home/profile data directory.
@@ -581,11 +320,15 @@ char *Bgetsystemdrives(void)
 }
 
 
-boff_t Bfilelength(int fd)
+off_t Bfilelength(int fd)
 {
+#ifdef _MSC_VER
+	return (off_t)_filelength(fd);
+#else
 	struct stat st;
 	if (fstat(fd, &st) < 0) return -1;
-	return(boff_t)(st.st_size);
+	return(st.st_size);
+#endif
 }
 
 
@@ -595,9 +338,9 @@ typedef struct {
 	WIN32_FIND_DATA fid;
 #else
 	DIR *dir;
-	int rootlen;
+	size_t rootlen;
 	char *work;
-	int worklen;
+	size_t worklen;
 #endif
 	struct Bdirent info;
 	int status;
@@ -683,26 +426,26 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	dirr->info.name = (char *)dirr->fid.cFileName;
 	
 	dirr->info.mode = 0;
-	if (dirr->fid.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) dirr->info.mode |= BS_IFDIR;
-	else dirr->info.mode |= BS_IFREG;
+	if (dirr->fid.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) dirr->info.mode |= S_IFDIR;
+	else dirr->info.mode |= S_IFREG;
 	if (dirr->fid.dwFileAttributes & FILE_ATTRIBUTE_READONLY) dirr->info.mode |= S_IREAD;
 	else dirr->info.mode |= S_IREAD|S_IWRITE|S_IEXEC;
 
 	tmp.HighPart = dirr->fid.nFileSizeHigh;
 	tmp.LowPart = dirr->fid.nFileSizeLow;
-	dirr->info.size = (boff_t)tmp.QuadPart;
+	dirr->info.size = (off_t)tmp.QuadPart;
 
 	tmp.HighPart = dirr->fid.ftLastWriteTime.dwHighDateTime;
 	tmp.LowPart = dirr->fid.ftLastWriteTime.dwLowDateTime;
 	tmp.QuadPart -= INT64_C(116444736000000000);
-	dirr->info.mtime = (btime_t)(tmp.QuadPart / 10000000);
+	dirr->info.mtime = (time_t)(tmp.QuadPart / 10000000);
 	
 	dirr->status++;
 
 #else
     struct dirent *de;
     struct stat st;
-    int fnlen;
+    size_t fnlen;
 
     de = readdir(dirr->dir);
     if (de == NULL) {
@@ -814,24 +557,6 @@ int Bwildmatch (const char *i, const char *j)
 	} while (*j);
 	return(!*i);
 }
-
-#if !defined(_WIN32)
-char *Bstrlwr(char *s)
-{
-	char *t = s;
-	if (!s) return s;
-	while (*t) { *t = Btolower(*t); t++; }
-	return s;
-}
-
-char *Bstrupr(char *s)
-{
-	char *t = s;
-	if (!s) return s;
-	while (*t) { *t = Btoupper(*t); t++; }
-	return s;
-}
-#endif
 
 
 //
