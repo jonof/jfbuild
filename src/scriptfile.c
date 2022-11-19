@@ -62,7 +62,7 @@ static int scriptfile_getnumber_radix(scriptfile *sf, int *num, int radix)
 		sf->textptr++; //hack to treat octal numbers like decimal
 	
 	sf->ltextptr = sf->textptr;
-	(*num) = strtol((const char *)sf->textptr,&sf->textptr,radix);
+	(*num) = (int)strtol((const char *)sf->textptr,&sf->textptr,radix);
 	if (!ISWS(*sf->textptr) && *sf->textptr) {
 		char *p = sf->textptr;
 		skipovertoken(sf);
@@ -148,7 +148,7 @@ int scriptfile_getsymbol(scriptfile *sf, int *num)
 	t = scriptfile_gettoken(sf);
 	if (!t) return -1;
 
-	v = Bstrtol(t, &e, 10);
+	v = (int)strtol(t, &e, 10);
 	if (*e) {
 		// looks like a string, so find it in the symbol table
 		if (scriptfile_getsymbolvalue(t, num)) return 0;
@@ -192,7 +192,8 @@ int scriptfile_getbraces(scriptfile *sf, char **braceend)
 
 int scriptfile_getlinum (scriptfile *sf, char *ptr)
 {
-	int i, stp, ind;
+	int i, stp;
+	ptrdiff_t ind;
 
 	//for(i=0;i<sf->linenum;i++) if (sf->lineoffs[i] >= ind) return(i+1); //brute force algo
 
@@ -204,9 +205,10 @@ int scriptfile_getlinum (scriptfile *sf, char *ptr)
 	return(i+1); //i = index to highest lineoffs which is less than ind; convert to 1-based line numbers
 }
 
-void scriptfile_preparse (scriptfile *sf, char *tx, int flen)
+void scriptfile_preparse (scriptfile *sf, char *tx, size_t flen)
 {
-	int i, cr, numcr, nflen, ws, cs, inquote;
+	int cr, numcr, nflen, ws, cs, inquote;
+	size_t i;
 
 		//Count number of lines
 	numcr = 1;
@@ -307,7 +309,7 @@ scriptfile *scriptfile_fromstring(const char *string)
 {
 	scriptfile *sf;
 	char *tx;
-	unsigned int flen;
+	size_t flen;
 
 	if (!string) return NULL;
 
@@ -350,13 +352,13 @@ int scriptfile_eof(scriptfile *sf)
 }
 
 #define SYMBTABSTARTSIZE 256
-static int symbtablength=0, symbtaballoclength=0;
+static size_t symbtablength=0, symbtaballoclength=0;
 static char *symbtab = NULL;
 
-static char * getsymbtabspace(int reqd)
+static char * getsymbtabspace(size_t reqd)
 {
 	char *pos,*np;
-	int i;
+	size_t i;
 
 	if (symbtablength + reqd > symbtaballoclength)
 	{
@@ -375,8 +377,8 @@ int scriptfile_getsymbolvalue(const char *name, int *val)
 	char *scanner = symbtab;
 
 	if (!symbtab) return 0;
-	while (scanner - symbtab < symbtablength) {
-		if (!Bstrcasecmp(name, scanner)) {
+	while (scanner - symbtab < (ptrdiff_t)symbtablength) {
+		if (!strcasecmp(name, scanner)) {
 			*val = *(int*)(scanner + strlen(scanner) + 1);
 			return 1;
 		}
@@ -395,8 +397,8 @@ int scriptfile_addsymbolvalue(const char *name, int val)
 
 	if (symbtab) {
 		char *scanner = symbtab;
-		while (scanner - symbtab < symbtablength) {
-			if (!Bstrcasecmp(name, scanner)) {
+		while (scanner - symbtab < (ptrdiff_t)symbtablength) {
+			if (!strcasecmp(name, scanner)) {
 				*(int*)(scanner + strlen(scanner) + 1) = val;
 				return 1;
 			}

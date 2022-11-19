@@ -149,7 +149,6 @@ static void _internal_drawosdstr(int x, int y, char *ch, int len, int shade, int
 static void _internal_drawosdcursor(int x, int y, int type, int lastkeypress)
 {
 	char st[2] = { '_',0 };
-	int colour;
 
 	(void)lastkeypress;
 
@@ -233,8 +232,6 @@ static int osdcmd_help(const osdfuncparm_t *parm)
 
 static int osdcmd_clear(const osdfuncparm_t *parm)
 {
-	symbol_t *symb;
-
 	if (parm->numparms != 0) return OSDCMD_SHOWHELP;
 	Bmemset(osdtext, 0, TEXTSIZE);
 	osdlines=1;
@@ -246,7 +243,6 @@ static int osdcmd_clear(const osdfuncparm_t *parm)
 
 static int osdcmd_echo(const osdfuncparm_t *parm)
 {
-	symbol_t *symb;
 	int i;
 
 	if (parm->numparms == 0) return OSDCMD_SHOWHELP;
@@ -706,9 +702,6 @@ int OSD_HandleChar(int ch)
 //
 int OSD_HandleKey(int sc, int press)
 {
-	char ch;
-	int i,j;
-
 	if (!osdinited) return sc;
 	if (!osdvisible) return sc;
 
@@ -911,13 +904,13 @@ void OSD_Printf(const char *fmt, ...)
 	char tmpstr[1024];
 	va_list va;
 
-    if (!osdinited) return;
+	if (!osdinited) return;
 
 	va_start(va, fmt);
 	vsnprintf(tmpstr, sizeof(tmpstr), fmt, va);
 	va_end(va);
 
-    OSD_Puts(tmpstr);
+	OSD_Puts(tmpstr);
 }
 
 //

@@ -67,7 +67,7 @@ static inline int _filelength (int h)
 {
 	struct stat st;
 	if (fstat(h,&st) < 0) return(-1);
-	return(st.st_size);
+	return((int)st.st_size);
 }
 #define _fileno fileno
 #else
@@ -432,8 +432,8 @@ static void suckbitsnextblock ()
 	{
 			//NOTE: should only read bytes inside compsize, not 64K!!! :/
 		*(int *)&olinbuf[0] = *(int *)&olinbuf[sizeof(olinbuf)-4];
-		n = min((unsigned)(kzfs.compleng-kzfs.comptell),sizeof(olinbuf)-4);
-		n = fread(&olinbuf[4],1,n,kzfs.fil);
+		n = min((kzfs.compleng-kzfs.comptell),(int)sizeof(olinbuf)-4);
+		n = (int)fread(&olinbuf[4],1,n,kzfs.fil);
 		kzfs.comptell += n;
 		bitpos -= ((sizeof(olinbuf)-4)<<3);
 	}
@@ -589,7 +589,7 @@ static int Paeth (int a, int b, int c)
 {
 	int pa, pb, pc;
 
-	pa = b-c; pb = a-c; pc = labs(pa+pb); pa = labs(pa); pb = labs(pb);
+	pa = b-c; pb = a-c; pc = abs(pa+pb); pa = abs(pa); pb = abs(pb);
 	if ((pa <= pb) && (pa <= pc)) return(a);
 	if (pb <= pc) return(b); else return(c);
 }
@@ -1095,7 +1095,7 @@ static int kpngrend (const char *kfilebuf, int kfilength,
 					//else {} //WARNING: PNG docs say: MUST compare all 48 bits :(
 					break;
 				case 3:
-					for(i=min(leng,paleng)-1;i>=0;i--)
+					for(i=min((int)leng,paleng)-1;i>=0;i--)
 						palcol[i] &= LSWAPIB((((int)filptr[i])<<24)|0xffffff);
 					break;
 				default:;
@@ -2799,7 +2799,7 @@ int kzaddstack (const char *zipnam)
 	fil = fopen(zipnam,"rb"); if (!fil) return(-1);
 
 		//Write ZIP filename to hash
-	i = strlen(zipnam)+1; if (!kzcheckhashsiz(i)) { fclose(fil); return(-1); }
+	i = (int)strlen(zipnam)+1; if (!kzcheckhashsiz(i)) { fclose(fil); return(-1); }
 	strcpy(&kzhashbuf[kzhashpos],zipnam);
 	zipnamoffs = kzhashpos; kzhashpos += i;
 
@@ -2835,7 +2835,7 @@ int kzaddstack (const char *zipnam)
 		tempbuf[j+46] = 0;
 
 			//Write information into hash
-		j = strlen(&tempbuf[46])+17; if (!kzcheckhashsiz(j)) { fclose(fil); return(-1); }
+		j = (int)strlen(&tempbuf[46])+17; if (!kzcheckhashsiz(j)) { fclose(fil); return(-1); }
 		hashind = kzcalchash(&tempbuf[46]);
 		*(int *)&kzhashbuf[kzhashpos] = kzhashead[hashind];
 		*(int *)&kzhashbuf[kzhashpos+4] = kzlastfnam;
@@ -3071,7 +3071,7 @@ int kzread (void *buffer, int leng)
 		if (kzfs.pos != kzfs.i) //Seek only when position changes
 			fseek(kzfs.fil,kzfs.seek0+kzfs.pos,SEEK_SET);
 		i = min(kzfs.leng-kzfs.pos,leng);
-		i = fread(buffer,1,i,kzfs.fil);
+		i = (int)fread(buffer,1,i,kzfs.fil);
 		kzfs.i += i; //kzfs.i is a local copy of ftell(kzfs.fil);
 	}
 	else if (kzfs.comptyp == 8)
@@ -3091,8 +3091,8 @@ int kzread (void *buffer, int leng)
 			kzfs.jmpplc = 0;
 
 				//Initialize for suckbits/peekbits/getbits
-			kzfs.comptell = min((unsigned)kzfs.compleng,sizeof(olinbuf));
-			kzfs.comptell = fread(&olinbuf[0],1,kzfs.comptell,kzfs.fil);
+			kzfs.comptell = min(kzfs.compleng,(int)sizeof(olinbuf));
+			kzfs.comptell = (int)fread(&olinbuf[0],1,kzfs.comptell,kzfs.fil);
 				//Make it re-load when there are < 32 bits left in FIFO
 			bitpos = -(((int)sizeof(olinbuf)-4)<<3);
 				//Identity: filptr + (bitpos>>3) = &olinbuf[0]
@@ -3261,7 +3261,7 @@ retkzread:;
 
 int kzfilelength (void)
 {
-	if (!kzfs.fil) return(0);
+	if (!kzfs.fil) return(-1);
 	return(kzfs.leng);
 }
 

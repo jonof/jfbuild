@@ -7,8 +7,8 @@
 extern "C" {
 #endif
 
-void	initcache(void *dacachestart, int dacachesize);
-void	allocache(void **newhandle, int newbytes, unsigned char *newlockptr);
+void	initcache(void *dacachestart, size_t dacachesize);
+void	allocache(void **newhandle, size_t newbytes, unsigned char *newlockptr);
 void	suckcache(void *suckptr);
 void	agecache(void);
 
@@ -31,7 +31,7 @@ int 	initgroupfile(const char *filename);
 void	uninitsinglegroupfile(int grphandle);
 void	uninitgroupfile(void);
 int 	kopen4load(const char *filename, char searchfirst);	// searchfirst: 0 = anywhere, 1 = first group, 2 = any group
-int 	kread(int handle, void *buffer, int leng);
+int 	kread(int handle, void *buffer, unsigned leng);
 int 	kgetc(int handle);
 int 	klseek(int handle, int offset, int whence);
 int 	kfilelength(int handle);
@@ -60,10 +60,10 @@ typedef struct _CACHE1D_FIND_REC {
 void klistfree(CACHE1D_FIND_REC *rec);
 CACHE1D_FIND_REC *klistpath(const char *path, const char *mask, int type);
 
-int	kdfread(void *buffer, bsize_t dasizeof, bsize_t count, int fil);
-int	dfread(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil);
-void	kdfwrite(void *buffer, bsize_t dasizeof, bsize_t count, int fil);
-void	dfwrite(void *buffer, bsize_t dasizeof, bsize_t count, BFILE *fil);
+unsigned kdfread(void *buffer, unsigned dasizeof, unsigned count, int fil);
+unsigned dfread(void *buffer, unsigned dasizeof, unsigned count, BFILE *fil);
+unsigned kdfwrite(void *buffer, unsigned dasizeof, unsigned count, int fil);
+unsigned dfwrite(void *buffer, unsigned dasizeof, unsigned count, BFILE *fil);
 
 #ifdef __cplusplus
 }

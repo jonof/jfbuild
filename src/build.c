@@ -188,20 +188,20 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 
 	if (parm->numparms == 4) {
 		// fs, res, bpp switch
-		newfullscreen = (Batol(parm->parms[3]) != 0);
+		newfullscreen = (atoi(parm->parms[3]) != 0);
 	}
 	if (parm->numparms >= 3) {
 		// res & bpp switch
-		newbpp = Batol(parm->parms[2]);
+		newbpp = atoi(parm->parms[2]);
 	}
 	if (parm->numparms >= 2) {
 		// res switch
-		newy = Batol(parm->parms[1]);
-		newx = Batol(parm->parms[0]);
+		newy = atoi(parm->parms[1]);
+		newx = atoi(parm->parms[0]);
 	}
 	if (parm->numparms == 1) {
 		// bpp switch
-		newbpp = Batol(parm->parms[0]);
+		newbpp = atoi(parm->parms[0]);
 	}
 
 	if (setgamemode(newfullscreen,newx,newy,newbpp))
@@ -221,7 +221,7 @@ static int osdcmd_mapversion(const osdfuncparm_t *parm)
 		buildprintf("mapversion is %d\n", mapversion);
 		return OSDCMD_OK;
 	}
-	newversion = Batol(parm->parms[0]);
+	newversion = atoi(parm->parms[0]);
 	if (newversion < 5 || newversion > 8) {
 		return OSDCMD_SHOWHELP;
 	}

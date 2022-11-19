@@ -1680,6 +1680,7 @@ static int buildkeytranslationtable(void)
 static int set_glswapinterval(const osdfuncparm_t *parm)
 {
 	int interval;
+    char *p;
 
 	if (nogl) {
 		buildputs("glswapinterval is not adjustable\n");
@@ -1691,7 +1692,7 @@ static int set_glswapinterval(const osdfuncparm_t *parm)
 	}
 	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
 
-	interval = Batol(parm->parms[0]);
+	interval = atoi(parm->parms[0]);
 	if (interval < -1 || interval > 2) return OSDCMD_SHOWHELP;
 
 	if (SDL_GL_SetSwapInterval(interval) < 0) {

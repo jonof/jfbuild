@@ -33,9 +33,9 @@ static int osdfunc_setrendermode(const osdfuncparm_t *parm)
 	};
 
 	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
-	m = Bstrtol(parm->parms[0], &p, 10);
+	m = (int)strtol(parm->parms[0], &p, 10);
 
-	if (m < 0 || m > 3) return OSDCMD_SHOWHELP;
+	if (m < 0 || m > 3 || *p) return OSDCMD_SHOWHELP;
 
 	setrendermode(m);
 	buildprintf("Rendering method changed to %s\n", modestrs[ getrendermode() ] );
@@ -48,15 +48,14 @@ static int osdfunc_setrendermode(const osdfuncparm_t *parm)
 static int osdcmd_hicsetpalettetint(const osdfuncparm_t *parm)
 {
 	int pal, cols[3], eff;
-	char *p;
 
 	if (parm->numparms != 5) return OSDCMD_SHOWHELP;
 
-	pal = Batol(parm->parms[0]);
-	cols[0] = Batol(parm->parms[1]);
-	cols[1] = Batol(parm->parms[2]);
-	cols[2] = Batol(parm->parms[3]);
-	eff = Batol(parm->parms[4]);
+	pal = atoi(parm->parms[0]);
+	cols[0] = atoi(parm->parms[1]);
+	cols[1] = atoi(parm->parms[2]);
+	cols[2] = atoi(parm->parms[3]);
+	eff = atoi(parm->parms[4]);
 
 	hicsetpalettetint(pal,cols[0],cols[1],cols[2],eff);
 

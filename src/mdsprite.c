@@ -556,7 +556,7 @@ static md2model *md2load (int fil, const char *filnam)
 	md2model *m;
 	md2head_t head;
 	char *buf, st[BMAX_PATH];
-	int i;
+	size_t i;
 
 	m = (md2model *)calloc(1,sizeof(md2model)); if (!m) return(0);
 	m->mdnum = 2; m->scale = .01;
@@ -1343,7 +1343,7 @@ static void cntquad (int x0, int y0, int z0, int x1, int y1, int z1, int x2, int
 	int x, y, z;
 	(void)x1; (void)y1; (void)z1; (void)face;
 
-	x = labs(x2-x0); y = labs(y2-y0); z = labs(z2-z0);
+	x = abs(x2-x0); y = abs(y2-y0); z = abs(z2-z0);
 	if (!x) x = z; else if (!y) y = z;
 	if (x < y) { z = x; x = y; y = z; }
 	shcnt[y*shcntp+x]++;
@@ -1358,7 +1358,7 @@ static void addquad (int x0, int y0, int z0, int x1, int y1, int z1, int x2, int
 	int i, j, x, y, z, xx, yy, nx = 0, ny = 0, nz = 0, *lptr;
 	voxrect_t *qptr;
 
-	x = labs(x2-x0); y = labs(y2-y0); z = labs(z2-z0);
+	x = abs(x2-x0); y = abs(y2-y0); z = abs(z2-z0);
 	if (!x) { x = y; y = z; i = 0; } else if (!y) { y = z; i = 1; } else i = 2;
 	if (x < y) { z = x; x = y; y = z; i += 3; }
 	z = shcnt[y*shcntp+x]++;
@@ -1811,12 +1811,13 @@ voxmodel *voxload (const char *filnam)
 {
 	int i, is8bit, ret;
 	voxmodel *vm;
+	char *dot;
 
-	i = strlen(filnam)-4; if (i < 0) return(0);
-		  if (!Bstrcasecmp(&filnam[i],".vox")) { ret = loadvox(filnam); is8bit = 1; }
-	else if (!Bstrcasecmp(&filnam[i],".kvx")) { ret = loadkvx(filnam); is8bit = 1; }
-	else if (!Bstrcasecmp(&filnam[i],".kv6")) { ret = loadkv6(filnam); is8bit = 0; }
- //else if (!Bstrcasecmp(&filnam[i],".vxl")) { ret = loadvxl(filnam); is8bit = 0; }
+	dot = strrchr(filnam, '.'); if (!dot) return(0);
+	     if (!strcasecmp(dot,".vox")) { ret = loadvox(filnam); is8bit = 1; }
+	else if (!strcasecmp(dot,".kvx")) { ret = loadkvx(filnam); is8bit = 1; }
+	else if (!strcasecmp(dot,".kv6")) { ret = loadkv6(filnam); is8bit = 0; }
+	//else if (!strcasecmp(dot,".vxl")) { ret = loadvxl(filnam); is8bit = 0; }
 	else return(0);
 	if (ret >= 0) vm = vox2poly(); else vm = 0;
 	if (vm)

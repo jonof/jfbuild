@@ -53,12 +53,9 @@ LPFN_WSARECVMSG WSARecvMsgPtr;
 static int GetTickCount(void)
 {
 	struct timeval tv;
-	int ti;
 	if (gettimeofday(&tv,NULL) < 0) return 0;
 	// tv is sec.usec, GTC gives msec
-	ti = tv.tv_sec * 1000;
-	ti += tv.tv_usec / 1000;
-	return ti;
+	return (int)((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
 }
 
 #define IS_INVALID_SOCKET(sock) (sock < 0)
@@ -267,7 +264,11 @@ int netinit (int portnum)
 
 int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 {
-	char msg_control[1024];
+    #if defined(__linux) || defined(_WIN32)
+	char msg_control[CMSG_SPACE(sizeof(struct in_pktinfo)) + CMSG_SPACE(sizeof(struct in6_pktinfo))];
+	#else
+	char msg_control[CMSG_SPACE(sizeof(struct in_addr)) + CMSG_SPACE(sizeof(struct in6_pktinfo))];
+	#endif
 	if (otherhost[other].ss_family == AF_UNSPEC) return(0);
 
 	if (otherhost[other].ss_family != domain) {
@@ -375,7 +376,7 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 #ifdef _WIN32
 	if (WSASendMsgPtr(mysock, &msg, 0, &len, NULL, NULL) == SOCKET_ERROR)
 #else
-	if ((len = sendmsg(mysock, &msg, 0)) < 0)
+	if ((len = (int)sendmsg(mysock, &msg, 0)) < 0)
 #endif
 	{
 #ifdef MMULTI_DEBUG_SENDRECV_WIRE
@@ -425,7 +426,7 @@ int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 	msg.msg_controllen = sizeof(msg_control);
 	msg.msg_flags = 0;
 
-	if ((len = recvmsg(mysock, &msg, 0)) < 0) return 0;
+	if ((len = (int)recvmsg(mysock, &msg, 0)) < 0) return 0;
 #endif
 	if (len == 0) return 0;
 
@@ -639,7 +640,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 		// -p1234 = Listen port
 		if ((argv[i][1] == 'p' || argv[i][1] == 'P') && argv[i][2]) {
 			char *p;
-			j = strtol(argv[i]+2, &p, 10);
+			j = (int)strtol(argv[i]+2, &p, 10);
 			if (!(*p) && j > 0 && j<65535) portnum = j;
 
 			printf("mmulti: Using port %d\n", portnum);
@@ -660,7 +661,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 				if ((argv[i][3] == ':') && (argv[i][4] >= '0') && (argv[i][4] <= '9'))
 				{
 					char *p;
-					j = strtol(argv[i]+4, &p, 10);
+					j = (int)strtol(argv[i]+4, &p, 10);
 					if (!(*p) && j > 0 && j <= MAXPLAYERS) {
 						danumplayers = j;
 						printf("mmulti: %d-player game\n", danumplayers);
@@ -888,7 +889,7 @@ static int lookuphost(const char *name, struct sockaddr *host, int warnifmany)
 	if (portch) {
 		*(portch++) = 0;
 		if (*portch != 0) {
-			port = strtol(portch, NULL, 10);
+			port = (int)strtol(portch, NULL, 10);
 		}
 	}
 	if (port < 1025 || port > 65534) port = NETPORT;

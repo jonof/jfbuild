@@ -6,6 +6,7 @@
 
 void initsb(char dadigistat, char damusistat, int dasamplerate, char danumspeakers, char dabytespersample, char daintspersec, char daquality)
 {
+    (void)dadigistat; (void)damusistat; (void)dasamplerate; (void)danumspeakers; (void)dabytespersample; (void)daintspersec; (void)daquality;
 }
 
 void uninitsb(void)

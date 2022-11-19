@@ -324,6 +324,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	FILE *fp;
 	HDC hdc;
 
+	(void)lpCmdLine; (void)nCmdShow;
+
 	hInstance = hInst;
 
 	if (CheckWinVersion() || hPrevInst) {
@@ -440,7 +442,7 @@ static int set_maxrefreshfreq(const osdfuncparm_t *parm)
 	}
 	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
 
-	freq = Batol(parm->parms[0]);
+	freq = atoi(parm->parms[0]);
 	if (freq < 0) return OSDCMD_SHOWHELP;
 
 	maxrefreshfreq = (unsigned)freq;
@@ -465,7 +467,7 @@ static int set_glswapinterval(const osdfuncparm_t *parm)
 	}
 	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
 
-	interval = Batol(parm->parms[0]);
+	interval = atoi(parm->parms[0]);
 	if (interval < -1 || interval > 2) return OSDCMD_SHOWHELP;
 
 	if (interval == -1 && !wglfunc.have_EXT_swap_control_tear) {

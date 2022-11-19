@@ -317,7 +317,6 @@ static int drawingskybox = 0;
 int polymost_texmayhavealpha (int dapicnum, int dapalnum)
 {
 	PTHead * pth;
-	int i;
 
 	pth = PT_GetHead(dapicnum, dapalnum, 0, 1);
 	if (!pth) {
@@ -446,8 +445,6 @@ float glox1, gloy1, glox2, gloy2;
 static int gltexcacnum = -1;
 void polymost_glreset ()
 {
-	int i;
-
 	//Reset if this is -1 (meaning 1st texture call ever), or > 0 (textures in memory)
 	if (gltexcacnum < 0)
 	{
@@ -552,22 +549,23 @@ static GLuint polymost_load_shader(GLuint shadertype, const char *defaultsrc, co
 
 #ifdef SHADERDEV
 	GLchar *fileshadersrc = NULL;
-	int shadersrclen = 0;
+	long shadersrclen = 0;
 	BFILE *shaderfh = NULL;
 
 	shaderfh = fopen(filename, "rb");
 	if (shaderfh) {
 		fseek(shaderfh, 0, SEEK_END);
-		shadersrclen = (int)ftell(shaderfh);
+		shadersrclen = ftell(shaderfh);
 		fseek(shaderfh, 0, SEEK_SET);
 
-		fileshadersrc = (GLchar *)calloc(1, shadersrclen + 1);
+		fileshadersrc = (GLchar *)malloc(shadersrclen + 1);
 		shadersrclen = fread(fileshadersrc, 1, shadersrclen, shaderfh);
+		fileshadersrc[shadersrclen] = 0;
 
 		fclose(shaderfh);
 		shaderfh = NULL;
 
-		buildprintf("polymost_load_shader: loaded %s (%d bytes)\n", filename, shadersrclen);
+		buildprintf("polymost_load_shader: loaded %s (%ld bytes)\n", filename, shadersrclen);
 		shadersrc = fileshadersrc;
 	}
 #endif
@@ -2240,6 +2238,7 @@ static void polymost_drawalls (int bunch)
 				double nfy0, nfy1;
 				int skywalx[4] = {-512,512,512,-512}, skywaly[4] = {-512,-512,512,512};
 
+				(void)_nx0; (void)_ny0; (void)_nx1; (void)_ny1;
 				domostmethod = METH_CLAMPED;
 
 				for(i=0;i<4;i++)
@@ -2574,6 +2573,7 @@ static void polymost_drawalls (int bunch)
 				double ncy0, ncy1;
 				int skywalx[4] = {-512,512,512,-512}, skywaly[4] = {-512,-512,512,512};
 
+				(void)_nx0; (void)_ny0; (void)_nx1; (void)_ny1;
 				domostmethod = METH_CLAMPED;
 
 				for(i=0;i<4;i++)
@@ -3025,7 +3025,6 @@ void polymost_drawrooms ()
 		 //Enable this for OpenGL red-blue glasses mode :)
 		if (glredbluemode)
 		{
-			float m[4][4];
 			static int grbfcnt = 0; grbfcnt++;
 			if (redblueclearcnt < numpages) { redblueclearcnt++; glfunc.glColorMask(1,1,1,1); glfunc.glClear(GL_COLOR_BUFFER_BIT); }
 			if (grbfcnt&1)
@@ -3743,7 +3742,8 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 {
 	static int onumframes = 0;
 	int i, n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
-	int ogpicnum, ogshade, ogpal, ofoffset, oxdimen, oydimen, oldviewingrange;
+	int ogpicnum, ogshade, ogpal, oxdimen, oydimen, oldviewingrange;
+	intptr_t ofoffset;
 	double ogxyaspect, ogfogdensity;
 	double ogchang, ogshang, ogctang, ogstang, oghalfx, oghoriz, fx, fy, x1, y1, z1, x2, y2;
 	double ogrhalfxdown10, ogrhalfxdown10x;
@@ -4182,8 +4182,7 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints,
 void polymost_fillpolygon (int npoints)
 {
 	PTHead *pth;
-	float alphac=0.0;
-	int i, j, k;
+	int i;
 	unsigned short ptflags = 0;
 	struct polymostdrawpolycall draw;
 
@@ -4243,7 +4242,6 @@ void polymost_fillpolygon (int npoints)
 int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 {
 	float xdime, ydime, xdimepad, ydimepad, scx, scy;
-	int i;
 	PTHead *pth;
 	palette_t bgcolour;
 	struct polymostdrawauxcall draw;
@@ -4540,7 +4538,7 @@ static int polymost_preparetext(void)
 {
 	unsigned char *cptr;
 	unsigned int *tbuf, *tptr;
-	int h,i,j,l;
+	int h,i,j;
 
 	if (texttexture) {
 		return 0;
@@ -4678,11 +4676,11 @@ static int osdcmd_debugtexturehash(const osdfuncparm_t *parm)
 	while ((pth = PTIterNext(iter)) != 0) {
 		buildprintf(" picnum:%d palnum:%d flags:%04X repldef:%p\n",
 			   pth->picnum, pth->palnum, pth->flags,
-			   pth->repldef);
+			   (void*)pth->repldef);
 		for (i=0; i<6; i++) {
 			if (pth->pic[i]) {
 				buildprintf("   pic[%d]: %p => glpic:%d flags:%x sizx/y:%d/%d tsizx/y:%d/%d\n",
-					   i, pth->pic[i], pth->pic[i]->glpic, pth->pic[i]->flags,
+					   i, (void*)pth->pic[i], pth->pic[i]->glpic, pth->pic[i]->flags,
 					   pth->pic[i]->sizx, pth->pic[i]->sizy,
 					   pth->pic[i]->tsizx, pth->pic[i]->tsizy);
 			}
@@ -4718,7 +4716,7 @@ static int osdcmd_gltexturemode(const osdfuncparm_t *parm)
 		return OSDCMD_OK;
 	}
 
-	m = Bstrtoul(parm->parms[0], (char **)&p, 10);
+	m = (int)strtol(parm->parms[0], (char **)&p, 10);
 	if (p == parm->parms[0]) {
 		// string
 		for (m = 0; m < (int)numglfiltermodes; m++) {
@@ -4752,7 +4750,7 @@ static int osdcmd_gltextureanisotropy(const osdfuncparm_t *parm)
 		return OSDCMD_OK;
 	}
 
-	l = Bstrtoul(parm->parms[0], (char **)&p, 10);
+	l = (int)strtol(parm->parms[0], (char **)&p, 10);
 	if (l < 0 || l > glinfo.maxanisotropy) l = 0;
 
 	if (l != gltexfiltermode) {

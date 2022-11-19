@@ -441,7 +441,6 @@ static GLchar *glbuild_cook_source(const GLchar *source, const char *spec)
 	GLchar *cooked, *pos, *match, *end;
 	const char *marker = "#glbuild(";
 	const int markerlen = 9;
-	int keep;
 
 	cooked = strdup(source);
 	if (!cooked) {

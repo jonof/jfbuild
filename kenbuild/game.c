@@ -203,7 +203,7 @@ static unsigned char playerreadyflag[MAXPLAYERS];
 
 	//Miscellaneous variables
 static unsigned char packbuf[MAXXDIM];
-static unsigned char tempbuf[MAXXDIM];
+static char tempbuf[MAXXDIM];
 static char boardfilename[BMAX_PATH];
 static short tempshort[MAXSECTORS];
 static short screenpeek = 0, oldmousebstatus = 0;
@@ -244,9 +244,10 @@ static short waterfountainwall[MAXPLAYERS], waterfountaincnt[MAXPLAYERS];
 static short slimesoundcnt[MAXPLAYERS];
 
 	//Variables that let you type messages to other player
-static unsigned char getmessage[162], getmessageleng;
-static int getmessagetimeoff;
-static unsigned char typemessage[162], typemessageleng = 0, typemode = 0;
+static char getmessage[162];
+static int getmessageleng, getmessagetimeoff;
+static unsigned char typemessage[162];
+static int typemessageleng = 0, typemode = 0;
 /*
 static unsigned char scantoasc[128] =
 {
@@ -348,19 +349,19 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 
 	switch (parm->numparms) {
 		case 1:   // bpp switch
-			newbpp = Batol(parm->parms[0]);
+			newbpp = atoi(parm->parms[0]);
 			break;
 		case 2: // res switch
-			newx = Batol(parm->parms[0]);
-			newy = Batol(parm->parms[1]);
+			newx = atoi(parm->parms[0]);
+			newy = atoi(parm->parms[1]);
 			break;
 		case 3:   // res & bpp switch
 		case 4:
-			newx = Batol(parm->parms[0]);
-			newy = Batol(parm->parms[1]);
-			newbpp = Batol(parm->parms[2]);
+			newx = atoi(parm->parms[0]);
+			newy = atoi(parm->parms[1]);
+			newbpp = atoi(parm->parms[2]);
 			if (parm->numparms == 4)
-				newfullscreen = (Batol(parm->parms[3]) != 0);
+				newfullscreen = (atoi(parm->parms[3]) != 0);
 			break;
 	}
 
@@ -400,8 +401,8 @@ static int osdcmd_map(const osdfuncparm_t *parm) {
 
 int app_main(int argc, char const * const argv[])
 {
-	int cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
-	int other, packleng, netparm = 0, endnetparm = 0, netsuccess = 0;
+	int cmdsetup = 0, i, j, k, waitplayers, x1, y1, x2, y2;
+	int other, netparm = 0, endnetparm = 0, netsuccess = 0;
     int startretval = STARTWIN_RUN;
     struct startwin_settings settings;
 
@@ -443,17 +444,16 @@ int app_main(int argc, char const * const argv[])
         }
     } else {
         char *supportdir;
-        char dirpath[BMAX_PATH+1];
+        char dirpath[BMAX_PATH];
         int asperr;
 
         if ((supportdir = Bgetsupportdir(0))) {
-            Bsnprintf(dirpath, sizeof(dirpath), "%s/"
 #if defined(_WIN32) || defined(__APPLE__)
-                "KenBuild"
+            const char *dirname = "KenBuild";
 #else
-                ".kenbuild"
+            const char *dirname = ".kenbuild";
 #endif
-            , supportdir);
+            snprintf(dirpath, sizeof dirpath, "%s/%s", supportdir, dirname);
             asperr = addsearchpath(dirpath);
             if (asperr == -2) {
                 if (Bmkdir(dirpath, S_IRWXU) == 0) {
@@ -463,7 +463,7 @@ int app_main(int argc, char const * const argv[])
                 }
             }
             if (asperr == 0) {
-                chdir(dirpath);
+                (void)chdir(dirpath);
             }
             free(supportdir);
         }
@@ -613,15 +613,16 @@ int app_main(int argc, char const * const argv[])
 
 	initlava();
 
+	unsigned char remapbuf[256];
 	for(j=0;j<256;j++)
-		tempbuf[j] = ((j+32)&255);  //remap colors for screwy palette sectors
-	makepalookup(16,tempbuf,0,0,0,1);
+		remapbuf[j] = ((j+32)&255);  //remap colors for screwy palette sectors
+	makepalookup(16,remapbuf,0,0,0,1);
 
-	for(j=0;j<256;j++) tempbuf[j] = j;
-	makepalookup(17,tempbuf,24,24,24,1);
+	for(j=0;j<256;j++) remapbuf[j] = j;
+	makepalookup(17,remapbuf,24,24,24,1);
 
-	for(j=0;j<256;j++) tempbuf[j] = j; //(j&31)+32;
-	makepalookup(18,tempbuf,8,8,48,1);
+	for(j=0;j<256;j++) remapbuf[j] = j; //(j&31)+32;
+	makepalookup(18,remapbuf,8,8,48,1);
 
 	prepareboard(boardfilename);                   //Load board
 
@@ -646,8 +647,8 @@ int app_main(int argc, char const * const argv[])
 		if (option[4] < 5) waitplayers = 2; else waitplayers = option[4]-3;
 		while (numplayers < waitplayers)
 		{
-			sprintf((char *)tempbuf,"%d of %d players in...",numplayers,waitplayers);
-			printext256(68L,84L,31,0,(char *)tempbuf,0);
+			sprintf(tempbuf,"%d of %d players in...",numplayers,waitplayers);
+			printext256(68L,84L,31,0,tempbuf,0);
 			nextpage();
 
 			if (getpacket(&other,packbuf) > 0)
@@ -682,14 +683,14 @@ int app_main(int argc, char const * const argv[])
 			if (myconnectindex == i) break;
 			j++;
 		}
-		sprintf((char *)getmessage,"Player %d",j);
+		sprintf(getmessage,"Player %d",j);
 		if (networkmode == 0)
 		{
-			if (j == 1) Bstrcat((char *)getmessage," (Master)");
-			else Bstrcat((char *)getmessage," (Slave)");
+			if (j == 1) strcat(getmessage," (Master)");
+			else strcat(getmessage," (Slave)");
 		} else
-			Bstrcat((char *)getmessage," (Even)");
-		getmessageleng = Bstrlen((char *)getmessage);
+			strcat(getmessage," (Even)");
+		getmessageleng = (int)strlen(getmessage);
 		getmessagetimeoff = totalclock+120;
 	}
 
@@ -788,8 +789,8 @@ int app_main(int argc, char const * const argv[])
 
 void operatesector(short dasector)
 {     //Door code
-	int i, j, k, s, nexti, good, cnt, datag;
-	int dax, day, daz, dax2, day2, daz2, centx, centy;
+	int i, j, datag;
+	int daz, dax2, day2, centx, centy;
 	short startwall, endwall, wallfind[2];
 
 	datag = sector[dasector].lotag;
@@ -1045,9 +1046,6 @@ void operatesprite(short dasprite)
 
 int changehealth(short snum, short deltahealth)
 {
-	int dax, day;
-	short good, k, startwall, endwall, s;
-
 	if (health[snum] > 0)
 	{
 		health[snum] += deltahealth;
@@ -1063,11 +1061,11 @@ int changehealth(short snum, short deltahealth)
 		if ((snum == screenpeek) && (screensize <= xdim))
 		{
 			if (health[snum] > 0)
-				sprintf((char *)tempbuf,"Health:%3d",health[snum]);
+				sprintf(tempbuf,"Health:%3d",health[snum]);
 			else
-				sprintf((char *)tempbuf,"YOU STINK!");
+				sprintf(tempbuf,"YOU STINK!");
 
-			printext((xdim>>1)-(Bstrlen((char *)tempbuf)<<2),ydim-24,(char *)tempbuf,ALPHABET,80);
+			printext((xdim>>1)-(int)(strlen(tempbuf)<<2),ydim-24,tempbuf,ALPHABET,80);
 		}
 	}
 	return(health[snum] <= 0);      //You were just injured
@@ -1082,8 +1080,8 @@ void changenumbombs(short snum, short deltanumbombs) {   // Andy did this
 	}
 
 	if ((snum == screenpeek) && (screensize <= xdim)) {
-		sprintf((char *)tempbuf,"B:%3d",numbombs[snum]);
-		printext(8L,(ydim - 28L),(char *)tempbuf,ALPHABET,80);
+		sprintf(tempbuf,"B:%3d",numbombs[snum]);
+		printext(8L,(ydim - 28L),tempbuf,ALPHABET,80);
 	}
 }
 
@@ -1096,8 +1094,8 @@ void changenummissiles(short snum, short deltanummissiles) {   // Andy did this
 	}
 
 	if ((snum == screenpeek) && (screensize <= xdim)) {
-		sprintf((char *)tempbuf,"M:%3d",nummissiles[snum]);
-		printext(8L,(ydim - 20L),(char *)tempbuf,ALPHABET,80);
+		sprintf(tempbuf,"M:%3d",nummissiles[snum]);
+		printext(8L,(ydim - 20L),tempbuf,ALPHABET,80);
 	}
 }
 
@@ -1110,8 +1108,8 @@ void changenumgrabbers(short snum, short deltanumgrabbers) {   // Andy did this
 	}
 
 	if ((snum == screenpeek) && (screensize <= xdim)) {
-		sprintf((char *)tempbuf,"G:%3d",numgrabbers[snum]);
-		printext(8L,(ydim - 12L),(char *)tempbuf,ALPHABET,80);
+		sprintf(tempbuf,"G:%3d",numgrabbers[snum]);
+		printext(8L,(ydim - 12L),tempbuf,ALPHABET,80);
 	}
 }
 
@@ -1124,9 +1122,9 @@ void drawstatusflytime(short snum) {   // Andy did this
 		if (nstatusflytime > 1000) nstatusflytime = 1000;
 		else if (nstatusflytime < 0) nstatusflytime = 0;
 		if (nstatusflytime != ostatusflytime) {
-			if (nstatusflytime > 999) sprintf((char *)tempbuf,"FT:BIG");
-			else sprintf((char *)tempbuf,"FT:%3d",nstatusflytime);
-			printext((xdim - 56L),(ydim - 20L),(char *)tempbuf,ALPHABET,80);
+			if (nstatusflytime > 999) sprintf(tempbuf,"FT:BIG");
+			else sprintf(tempbuf,"FT:%3d",nstatusflytime);
+			printext((xdim - 56L),(ydim - 20L),tempbuf,ALPHABET,80);
 			ostatusflytime = nstatusflytime;
 		}
 	}
@@ -1136,39 +1134,39 @@ void drawstatusbar(short snum) {   // Andy did this
 	int nstatusflytime;
 
 	if ((snum == screenpeek) && (screensize <= xdim)) {
-		sprintf((char *)tempbuf,"Deaths:%d",deaths[snum]);
-		printext((xdim>>1)-(strlen((char *)tempbuf)<<2),ydim-16,(char *)tempbuf,ALPHABET,80);
-		sprintf((char *)tempbuf,"Health:%3d",health[snum]);
-		printext((xdim>>1)-(strlen((char *)tempbuf)<<2),ydim-24,(char *)tempbuf,ALPHABET,80);
+		sprintf(tempbuf,"Deaths:%d",deaths[snum]);
+		printext((xdim>>1)-(int)(strlen(tempbuf)<<2),ydim-16,tempbuf,ALPHABET,80);
+		sprintf(tempbuf,"Health:%3d",health[snum]);
+		printext((xdim>>1)-(int)(strlen(tempbuf)<<2),ydim-24,tempbuf,ALPHABET,80);
 
-		sprintf((char *)tempbuf,"B:%3d",numbombs[snum]);
-		printext(8L,(ydim - 28L),(char *)tempbuf,ALPHABET,80);
-		sprintf((char *)tempbuf,"M:%3d",nummissiles[snum]);
-		printext(8L,(ydim - 20L),(char *)tempbuf,ALPHABET,80);
-		sprintf((char *)tempbuf,"G:%3d",numgrabbers[snum]);
-		printext(8L,(ydim - 12L),(char *)tempbuf,ALPHABET,80);
+		sprintf(tempbuf,"B:%3d",numbombs[snum]);
+		printext(8L,(ydim - 28L),tempbuf,ALPHABET,80);
+		sprintf(tempbuf,"M:%3d",nummissiles[snum]);
+		printext(8L,(ydim - 20L),tempbuf,ALPHABET,80);
+		sprintf(tempbuf,"G:%3d",numgrabbers[snum]);
+		printext(8L,(ydim - 12L),tempbuf,ALPHABET,80);
 
 		nstatusflytime = (((flytime[snum] + 119) - lockclock) / 120);
 		if (nstatusflytime < 0) {
-			sprintf((char *)tempbuf,"FT:  0");
+			sprintf(tempbuf,"FT:  0");
 			ostatusflytime = 0;
 		}
 		else if (nstatusflytime > 999) {
-			sprintf((char *)tempbuf,"FT:BIG");
+			sprintf(tempbuf,"FT:BIG");
 			ostatusflytime = 999;
 		}
 		else {
-			sprintf((char *)tempbuf,"FT:%3d",nstatusflytime);
+			sprintf(tempbuf,"FT:%3d",nstatusflytime);
 			ostatusflytime = nstatusflytime;
 		}
-		printext((xdim - 56L),(ydim - 20L),(char *)tempbuf,ALPHABET,80);
+		printext((xdim - 56L),(ydim - 20L),tempbuf,ALPHABET,80);
 	}
 }
 
 void prepareboard(char *daboardfilename)
 {
 	short startwall, endwall, dasector;
-	int i, j, k=0, s, dax, day, daz, dax2, day2;
+	int i, j, k=0, s, dax, day, dax2, day2;
 
 	getmessageleng = 0;
 	typemessageleng = 0;
@@ -1844,7 +1842,7 @@ void shootgun(short snum, int x, int y, int z,
 	short daang, int dahoriz, short dasectnum, unsigned char guntype)
 {
 	short hitsect, hitwall, hitsprite, daang2;
-	int i, j, daz2, hitx, hity, hitz;
+	int j, daz2, hitx, hity, hitz;
 
 	switch(guntype)
 	{
@@ -2041,7 +2039,7 @@ void analyzesprites(int dax, int day)
 
 void tagcode(void)
 {
-	int i, nexti, j, k, l, s, dax, day, daz, dax2, day2, cnt, good;
+	int i, j, k, l, s, dax, day, cnt, good;
 	short startwall, endwall, dasector, p, oldang;
 
 	for(p=connecthead;p>=0;p=connectpoint2[p])
@@ -3195,11 +3193,8 @@ void bombexplode(int i)
 
 void processinput(short snum)
 {
-	int oldposx, oldposy, nexti;
 	int i, j, k, doubvel, xvect, yvect, goalz;
-	int dax, day, dax2, day2, odax, oday, odax2, oday2;
-	short startwall, endwall;
-	unsigned char *ptr;
+	int dax, day;
 
 		//SHARED KEYS:
 		//Movement code
@@ -3594,7 +3589,7 @@ void processinput(short snum)
 void view(short snum, int *vx, int *vy, int *vz, short *vsectnum, short ang, int horiz)
 {
 	spritetype *sp;
-	int i, nx, ny, nz, hx, hy, hz, hitx, hity, hitz;
+	int i, nx, ny, nz, hx, hy, hitx, hity, hitz;
 	short bakcstat, hitsect, hitwall, hitsprite, daang;
 
 	nx = (sintable[(ang+1536)&2047]>>4);
@@ -4118,9 +4113,9 @@ void drawscreen(short snum, int dasmoothratio)
 			else
 				tempbuf[charsperline] = 0;
 			//if (dimensionmode[snum] == 3)
-				printext256(0L,(i/charsperline)<<3,31/*183*/,-1,(char *)tempbuf,0);
+				printext256(0L,(i/charsperline)<<3,31/*183*/,-1,tempbuf,0);
 			//else
-			//   printext16(0L,((i/charsperline)<<3)+(pageoffset/640),10,-1,(char *)tempbuf,0);
+			//   printext16(0L,((i/charsperline)<<3)+(pageoffset/640),10,-1,tempbuf,0);
 		}
 	}
 
@@ -4138,7 +4133,7 @@ void drawscreen(short snum, int dasmoothratio)
 			else
 				tempbuf[charsperline] = 0;
 
-			printext256(0L,((i/charsperline)<<3)+(ydim-32-8)-(((getmessageleng-1)/charsperline)<<3),31/*151*/,-1,(char *)tempbuf,0);
+			printext256(0L,((i/charsperline)<<3)+(ydim-32-8)-(((getmessageleng-1)/charsperline)<<3),31/*151*/,-1,tempbuf,0);
 		}
 		if (totalclock > getmessagetimeoff)
 			getmessageleng = 0;
@@ -4151,8 +4146,8 @@ void drawscreen(short snum, int dasmoothratio)
 			if (i == screenpeek) break;
 			j++;
 		}
-		Bsprintf((char *)tempbuf,"(Player %d's view)",j);
-		printext256((xdim>>1)-(Bstrlen((char *)tempbuf)<<2),0,24,-1,(char *)tempbuf,0);
+		sprintf(tempbuf,"(Player %d's view)",j);
+		printext256((xdim>>1)-(int)(strlen(tempbuf)<<2),0,24,-1,tempbuf,0);
 	}
 
 	if (syncstat != 0) printext256(68L,84L,31,0,"OUT OF SYNC!",0);
@@ -4167,7 +4162,7 @@ void drawscreen(short snum, int dasmoothratio)
 //   for(i=0;i<cacnum;i++)
 //      if ((*cac[i].lock) >= 200)
 //      {
-//         Bsprintf(tempbuf,"Locked- %ld: Leng:%ld, Lock:%ld",i,cac[i].leng,*cac[i].lock);
+//         sprintf(tempbuf,"Locked- %ld: Leng:%ld, Lock:%ld",i,cac[i].leng,*cac[i].lock);
 //         printext256(0L,j,31,-1,tempbuf,1); j += 6;
 //      }
 
@@ -4218,8 +4213,8 @@ void drawscreen(short snum, int dasmoothratio)
 		}
 		screensize = xdim+1;
 
-		Bsprintf((char *)getmessage,"Video mode: %d x %d",xdim,ydim);
-		getmessageleng = Bstrlen((char *)getmessage);
+		sprintf(getmessage,"Video mode: %d x %d",xdim,ydim);
+		getmessageleng = (int)strlen(getmessage);
 		getmessagetimeoff = totalclock+120*5;
 	}
 	if (keystatus[0x57])  //F11 - brightness
@@ -4297,7 +4292,7 @@ void movethings(void)
 void fakedomovethings(void)
 {
 	input *syn;
-	int i, j, k, doubvel, xvect, yvect, goalz;
+	int doubvel, xvect, yvect, goalz;
 	short bakcstat;
 
 	syn = (input *)&baksync[fakemovefifoplc][myconnectindex];
@@ -4446,9 +4441,7 @@ void fakedomovethingscorrect(void)
 void domovethings(void)
 {
 	short i, j, startwall, endwall;
-	spritetype *spr;
 	walltype *wal;
-	point3d *ospr;
 
 	nummoves++;
 
@@ -4529,8 +4522,8 @@ void domovethings(void)
 
 void getinput(void)
 {
-	unsigned char ch, keystate, *ptr;
-	int i, j, k;
+	unsigned char ch;
+	int i, j;
 	int mousx, mousy, bstatus;
 
 	if (typemode == 0)           //if normal game keys active
@@ -4736,6 +4729,7 @@ void getinput(void)
 void initplayersprite(short snum)
 {
 	int i;
+	unsigned char remapbuf[256];
 
 	if (playersprite[snum] >= 0) return;
 
@@ -4745,16 +4739,16 @@ void initplayersprite(short snum)
 
 	switch(snum)
 	{
-		case 1: for(i=0;i<32;i++) tempbuf[i+192] = i+128; break; //green->red
-		case 2: for(i=0;i<32;i++) tempbuf[i+192] = i+32; break;  //green->blue
-		case 3: for(i=0;i<32;i++) tempbuf[i+192] = i+224; break; //green->pink
-		case 4: for(i=0;i<32;i++) tempbuf[i+192] = i+64; break;  //green->brown
-		case 5: for(i=0;i<32;i++) tempbuf[i+192] = i+96; break;
-		case 6: for(i=0;i<32;i++) tempbuf[i+192] = i+160; break;
-		case 7: for(i=0;i<32;i++) tempbuf[i+192] = i+192; break;
-		default: for(i=0;i<256;i++) tempbuf[i] = i; break;
+		case 1: for(i=0;i<32;i++) remapbuf[i+192] = i+128; break; //green->red
+		case 2: for(i=0;i<32;i++) remapbuf[i+192] = i+32; break;  //green->blue
+		case 3: for(i=0;i<32;i++) remapbuf[i+192] = i+224; break; //green->pink
+		case 4: for(i=0;i<32;i++) remapbuf[i+192] = i+64; break;  //green->brown
+		case 5: for(i=0;i<32;i++) remapbuf[i+192] = i+96; break;
+		case 6: for(i=0;i<32;i++) remapbuf[i+192] = i+160; break;
+		case 7: for(i=0;i<32;i++) remapbuf[i+192] = i+192; break;
+		default: for(i=0;i<256;i++) remapbuf[i] = i; break;
 	}
-	makepalookup(snum,tempbuf,0,0,0,1);
+	makepalookup(snum,remapbuf,0,0,0,1);
 }
 
 void playback(void)
@@ -5064,7 +5058,7 @@ int addlava(void *bx)
 
 void movelava(unsigned char *dapic)
 {
-	int i, j, x, y, z, zz, dalavadropsiz, dadropsizlookup;
+	int i, x, y, z, zz, dalavadropsiz, dadropsizlookup;
 	int dalavax, dalavay, *ptr, *ptr2;
 	unsigned char *pi, *pj, *py;
 
@@ -5244,10 +5238,10 @@ void checkmasterslaveswitch(void)
 				j++;
 			}
 			if (j == 1)
-				Bstrcpy((char *)getmessage,"Player 1 (Master)");
+				strcpy(getmessage,"Player 1 (Master)");
 			else
-				Bsprintf((char *)getmessage,"Player %d (Slave)",j);
-			getmessageleng = Bstrlen((char *)getmessage);
+				sprintf(getmessage,"Player %d (Slave)",j);
+			getmessageleng = (int)strlen(getmessage);
 			getmessagetimeoff = totalclock+120;
 
 			return;
@@ -5455,8 +5449,8 @@ int loadgame(void)
 	totalclock = lockclock;
 	ototalclock = lockclock;
 
-	Bstrcpy((char *)getmessage,"Game loaded.");
-	getmessageleng = Bstrlen((char *)getmessage);
+	strcpy(getmessage,"Game loaded.");
+	getmessageleng = (int)strlen(getmessage);
 	getmessagetimeoff = totalclock+360+(getmessageleng<<4);
 	return(0);
 }
@@ -5624,15 +5618,15 @@ int savegame(void)
 
 	Bfclose(fil);
 
-	Bstrcpy((char *)getmessage,"Game saved.");
-	getmessageleng = Bstrlen((char *)getmessage);
+	strcpy(getmessage,"Game saved.");
+	getmessageleng = (int)strlen(getmessage);
 	getmessagetimeoff = totalclock+360+(getmessageleng<<4);
 	return(0);
 }
 
 void faketimerhandler(void)
 {
-	short other, packbufleng;
+	short other;
 	int i, j, k, l;
 
 	sampletimer();
@@ -6137,7 +6131,7 @@ void drawoverheadmap(int cposx, int cposy, int czoom, short cang)
 	//movesprite function compatible with the older movesprite functions.
 int movesprite(short spritenum, int dx, int dy, int dz, int ceildist, int flordist, int clipmask)
 {
-	int daz, zoffs, tempint;
+	int daz, zoffs;
 	short retval, dasectnum, datempshort;
 	spritetype *spr;
 
@@ -6194,11 +6188,11 @@ void waitforeverybody ()
 		refreshaudio();
 
 		drawrooms(posx[myconnectindex],posy[myconnectindex],posz[myconnectindex],ang[myconnectindex],horiz[myconnectindex],cursectnum[myconnectindex]);
-		if (!networkmode) Bsprintf((char *)tempbuf,"Master/slave mode");
-						 else Bsprintf((char *)tempbuf,"Peer-peer mode");
-		printext256((xdim>>1)-(strlen((char *)tempbuf)<<2),(ydim>>1)-24,31,0,(char *)tempbuf,0);
-		Bsprintf((char *)tempbuf,"Waiting for players");
-		printext256((xdim>>1)-(strlen((char *)tempbuf)<<2),(ydim>>1)-16,31,0,(char *)tempbuf,0);
+		if (!networkmode) sprintf(tempbuf,"Master/slave mode");
+						 else sprintf(tempbuf,"Peer-peer mode");
+		printext256((xdim>>1)-(int)(strlen(tempbuf)<<2),(ydim>>1)-24,31,0,tempbuf,0);
+		sprintf(tempbuf,"Waiting for players");
+		printext256((xdim>>1)-(int)(strlen(tempbuf)<<2),(ydim>>1)-16,31,0,tempbuf,0);
 		for(i=connecthead;i>=0;i=connectpoint2[i])
 		{
 			if (playerreadyflag[i] < playerreadyflag[myconnectindex])
@@ -6206,24 +6200,24 @@ void waitforeverybody ()
 					//slaves in M/S mode only wait for master
 				if ((!networkmode) && (myconnectindex != connecthead) && (i != connecthead))
 				{
-					Bsprintf((char *)tempbuf,"Player %d",i);
-					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,15,0,(char *)tempbuf,0);
+					sprintf(tempbuf,"Player %d",i);
+					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,15,0,tempbuf,0);
 				}
 				else
 				{
-					Bsprintf((char *)tempbuf,"Player %d NOT ready",i);
-					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,127,0,(char *)tempbuf,0);
+					sprintf(tempbuf,"Player %d NOT ready",i);
+					printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,127,0,tempbuf,0);
 				}
 			}
 			else
 			{
-				Bsprintf((char *)tempbuf,"Player %d ready",i);
-				printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,31,0,(char *)tempbuf,0);
+				sprintf(tempbuf,"Player %d ready",i);
+				printext256((xdim>>1)-(16<<2),(ydim>>1)+i*8,31,0,tempbuf,0);
 			}
 			if (i == myconnectindex)
 			{
-				Bsprintf((char *)tempbuf,"You->");
-				printext256((xdim>>1)-(26<<2),(ydim>>1)+i*8,95,0,(char *)tempbuf,0);
+				sprintf(tempbuf,"You->");
+				printext256((xdim>>1)-(26<<2),(ydim>>1)+i*8,95,0,tempbuf,0);
 			}
 		}
 		nextpage();

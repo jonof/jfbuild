@@ -66,7 +66,7 @@ void slopevlin(void *p, int i, void *slopaloffs, int cnt, int bx, int by)
 	unsigned int u, v;
 	unsigned char *pp;
 
-	bz = asm3; bzinc = (asm1>>3);
+	bz = (int)asm3; bzinc = (asm1>>3);
 	slopalptr = (intptr_t *)slopaloffs;
 	pp = (unsigned char *)p;
 	for(;cnt>0;cnt--)
