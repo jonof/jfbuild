@@ -3,7 +3,7 @@ on: [ push, pull_request, workflow_dispatch ]
 
 jobs:
   build-linux:
-    name: Linux polymost=${{ matrix.use_polymost }} gl=${{ matrix.use_opengl }} nogtk=${{ matrix.without_gtk || 0 }}
+    name: Linux polymost=${{ matrix.use_polymost }} gl=${{ matrix.use_opengl }} nogtk=${{ matrix.without_gtk || 1 }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -16,13 +16,13 @@ jobs:
         include:
           - use_polymost: 1
             use_opengl: 3
-            without_gtk: 1
           - use_polymost: 1
             use_opengl: 'USE_GLES2'
+            without_gtk: '0'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -32,7 +32,7 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           make USE_POLYMOST=${{ matrix.use_polymost }} \
                USE_OPENGL=${{ matrix.use_opengl }} \
-               WITHOUT_GTK=${{ matrix.without_gtk || 0 }} \
+               WITHOUT_GTK=${{ matrix.without_gtk || 1 }} \
                USE_ASM=0 \
                all utils
 
@@ -47,10 +47,13 @@ jobs:
         exclude:
           - use_polymost: 1
             use_opengl: 0
+        include:
+          - use_polymost: 1
+            use_opengl: 3
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
