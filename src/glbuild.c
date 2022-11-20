@@ -22,7 +22,9 @@ static int osdcmd_glinfo(const osdfuncparm_t *);
 static void enumerate_configure(const char *ext) {
 	if (!Bstrcmp(ext, "GL_EXT_texture_filter_anisotropic")) {
 			// supports anisotropy. get the maximum anisotropy level
-		glfunc.glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY, &glinfo.maxanisotropy);
+#ifdef GL_EXT_texture_filter_anisotropic
+		glfunc.glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &glinfo.maxanisotropy);
+#endif
 	} else if (!Bstrcmp(ext, "GL_EXT_texture_edge_clamp") ||
 			!Bstrcmp(ext, "GL_SGIS_texture_edge_clamp")) {
 			// supports GL_CLAMP_TO_EDGE
@@ -69,8 +71,14 @@ static void enumerate_configure(const char *ext) {
 			// GLSL 1.10 or newer.
 			sscanf(ver, "%d.%d", &glinfo.glslmajver, &glinfo.glslminver);
 		}
-	} else if (!strcmp(ext, "GL_KHR_debug")) {
+#ifdef GL_KHR_debug
+	} else if (!strcmp(ext, "GL_KHR_debug") && glinfo.debugext < 2) {
+		glinfo.debugext = 2;
+#endif
+#ifdef GL_ARB_debug_output
+	} else if (!strcmp(ext, "GL_ARB_debug_output") && glinfo.debugext < 1) {
 		glinfo.debugext = 1;
+#endif
 	}
 }
 
@@ -116,7 +124,7 @@ static void glbuild_enumerate_exts(void (*callback)(const char *)) {
 	if (workstr) free(workstr);
 }
 
-#if defined(DEBUGGINGAIDS) && defined(GL_KHR_debug)
+#if defined(DEBUGGINGAIDS) && (defined(GL_KHR_debug) || defined(GL_ARB_debug_output))
 static void APIENTRY gl_debug_proc(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
 	const GLchar* message, const GLvoid* userParam)
 {
@@ -129,24 +137,34 @@ static void APIENTRY gl_debug_proc(GLenum source, GLenum type, GLuint id, GLenum
 	if (gldebuglogseverity < 1) return;
 
 	switch (source) {
-#if (USE_OPENGL == USE_GLES2)
+#if defined(GL_KHR_debug)
+		#if (USE_OPENGL == USE_GLES2)
 		case GL_DEBUG_SOURCE_API_KHR: sourcestr = "API"; break;
 		case GL_DEBUG_SOURCE_SHADER_COMPILER_KHR: sourcestr = "SHADER_COMPILER"; break;
 		case GL_DEBUG_SOURCE_WINDOW_SYSTEM_KHR: sourcestr = "WINDOW_SYSTEM"; break;
 		case GL_DEBUG_SOURCE_THIRD_PARTY_KHR: sourcestr = "THIRD_PARTY"; break;
 		case GL_DEBUG_SOURCE_APPLICATION_KHR: sourcestr = "APPLICATION"; break;
 		case GL_DEBUG_SOURCE_OTHER_KHR: sourcestr = "OTHER"; break;
-#else
+		#else
 		case GL_DEBUG_SOURCE_API: sourcestr = "API"; break;
 		case GL_DEBUG_SOURCE_SHADER_COMPILER: sourcestr = "SHADER_COMPILER"; break;
 		case GL_DEBUG_SOURCE_WINDOW_SYSTEM: sourcestr = "WINDOW_SYSTEM"; break;
 		case GL_DEBUG_SOURCE_THIRD_PARTY: sourcestr = "THIRD_PARTY"; break;
 		case GL_DEBUG_SOURCE_APPLICATION: sourcestr = "APPLICATION"; break;
 		case GL_DEBUG_SOURCE_OTHER: sourcestr = "OTHER"; break;
+		#endif
+#else
+		case GL_DEBUG_SOURCE_API_ARB: sourcestr = "API"; break;
+		case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB: sourcestr = "SHADER_COMPILER"; break;
+		case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB: sourcestr = "WINDOW_SYSTEM"; break;
+		case GL_DEBUG_SOURCE_THIRD_PARTY_ARB: sourcestr = "THIRD_PARTY"; break;
+		case GL_DEBUG_SOURCE_APPLICATION_ARB: sourcestr = "APPLICATION"; break;
+		case GL_DEBUG_SOURCE_OTHER_ARB: sourcestr = "OTHER"; break;
 #endif
 	}
 	switch (type) {
-#if (USE_OPENGL == USE_GLES2)
+#if defined(GL_KHR_debug)
+		#if (USE_OPENGL == USE_GLES2)
 		case GL_DEBUG_TYPE_ERROR_KHR: typestr = "ERROR"; break;
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_KHR: typestr = "DEPRECATED_BEHAVIOR"; break;
 		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_KHR: typestr = "UNDEFINED_BEHAVIOR"; break;
@@ -156,7 +174,7 @@ static void APIENTRY gl_debug_proc(GLenum source, GLenum type, GLuint id, GLenum
 		case GL_DEBUG_TYPE_MARKER_KHR: typestr = "MARKER"; break;
 		case GL_DEBUG_TYPE_PUSH_GROUP_KHR: typestr = "PUSH_GROUP"; break;
 		case GL_DEBUG_TYPE_POP_GROUP_KHR: typestr = "POP_GROUP"; break;
-#else
+		#else
 		case GL_DEBUG_TYPE_ERROR: typestr = "ERROR"; break;
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typestr = "DEPRECATED_BEHAVIOR"; break;
 		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR: typestr = "UNDEFINED_BEHAVIOR"; break;
@@ -166,10 +184,19 @@ static void APIENTRY gl_debug_proc(GLenum source, GLenum type, GLuint id, GLenum
 		case GL_DEBUG_TYPE_MARKER: typestr = "MARKER"; break;
 		case GL_DEBUG_TYPE_PUSH_GROUP: typestr = "PUSH_GROUP"; break;
 		case GL_DEBUG_TYPE_POP_GROUP: typestr = "POP_GROUP"; break;
+		#endif
+#else
+		case GL_DEBUG_TYPE_ERROR_ARB: typestr = "ERROR"; break;
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB: typestr = "DEPRECATED_BEHAVIOR"; break;
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB: typestr = "UNDEFINED_BEHAVIOR"; break;
+		case GL_DEBUG_TYPE_PORTABILITY_ARB: typestr = "PORTABILITY"; break;
+		case GL_DEBUG_TYPE_PERFORMANCE_ARB: typestr = "PERFORMANCE"; break;
+		case GL_DEBUG_TYPE_OTHER_ARB: typestr = "OTHER"; break;
 #endif
 	}
 	switch (severity) {
-#if (USE_OPENGL == USE_GLES2)
+#if defined(GL_KHR_debug)
+		#if (USE_OPENGL == USE_GLES2)
 		case GL_DEBUG_SEVERITY_HIGH_KHR:
 			severitystr = "HIGH";
 			break;
@@ -185,7 +212,7 @@ static void APIENTRY gl_debug_proc(GLenum source, GLenum type, GLuint id, GLenum
 			if (gldebuglogseverity > 1) return;
 			severitystr = "NOTIFICATION";
 			break;
-#else
+		#else
 		case GL_DEBUG_SEVERITY_HIGH:
 			severitystr = "HIGH";
 			break;
@@ -200,6 +227,19 @@ static void APIENTRY gl_debug_proc(GLenum source, GLenum type, GLuint id, GLenum
 		case GL_DEBUG_SEVERITY_NOTIFICATION:
 			if (gldebuglogseverity > 1) return;
 			severitystr = "NOTIFICATION";
+			break;
+		#endif
+#else
+		case GL_DEBUG_SEVERITY_HIGH_ARB:
+			severitystr = "HIGH";
+			break;
+		case GL_DEBUG_SEVERITY_MEDIUM_ARB:
+			if (gldebuglogseverity > 3) return;
+			severitystr = "MEDIUM";
+			break;
+		case GL_DEBUG_SEVERITY_LOW_ARB:
+			if (gldebuglogseverity > 2) return;
+			severitystr = "LOW";
 			break;
 #endif
 	}
@@ -268,14 +308,25 @@ int glbuild_init(void)
 	}
 #endif
 
-#if defined(DEBUGGINGAIDS) && defined(GL_KHR_debug)
+#if defined(DEBUGGINGAIDS) && (defined(GL_KHR_debug) || defined(GL_ARB_debug_output))
 	if (glinfo.debugext) {
-#if (USE_OPENGL == USE_GLES2)
-		glfunc.glDebugMessageCallbackKHR(gl_debug_proc, NULL);
-		glfunc.glEnable(GL_DEBUG_OUTPUT_KHR);
+#if defined(GL_KHR_debug)
+		#if (USE_OPENGL == USE_GLES2)
+		if (glfunc.glDebugMessageCallbackKHR) {
+			glfunc.glDebugMessageCallbackKHR(gl_debug_proc, NULL);
+			glfunc.glEnable(GL_DEBUG_OUTPUT_KHR);
+		}
+		#else
+		if (glfunc.glDebugMessageCallback) {
+			glfunc.glDebugMessageCallback(gl_debug_proc, NULL);
+			glfunc.glEnable(GL_DEBUG_OUTPUT);
+		}
+		#endif
 #else
-		glfunc.glDebugMessageCallback(gl_debug_proc, NULL);
-		glfunc.glEnable(GL_DEBUG_OUTPUT);
+		if (glfunc.glDebugMessageCallbackARB) {
+			glfunc.glDebugMessageCallbackARB(gl_debug_proc, NULL);
+			glfunc.glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+		}
 #endif
 	}
 #endif
@@ -297,106 +348,112 @@ static inline void * getproc_(const char *func, int *err, int fatal)
 	}
 	return proc;
 }
-#define INIT_PROC(s)        glfunc.s = getproc_(#s, &err, 1)
-#define INIT_PROC_SOFT(s)   glfunc.s = getproc_(#s, &err, 0)
+#define INIT_PROC(c,s)        glfunc.s = (c)getproc_(#s, &err, 1)
+#define INIT_PROC_SOFT(c,s)   glfunc.s = (c)getproc_(#s, &err, 0)
 
 int glbuild_loadfunctions(void)
 {
 	int err=0;
 
-	INIT_PROC(glClearColor);
-	INIT_PROC(glClear);
-	INIT_PROC(glColorMask);
-	INIT_PROC(glBlendFunc);
-	INIT_PROC(glCullFace);
-	INIT_PROC(glFrontFace);
-	INIT_PROC(glPolygonOffset);
+	INIT_PROC(PFNGLCLEARCOLORPROC, glClearColor);
+	INIT_PROC(PFNGLCLEARPROC, glClear);
+	INIT_PROC(PFNGLCOLORMASKPROC, glColorMask);
+	INIT_PROC(PFNGLBLENDFUNCPROC, glBlendFunc);
+	INIT_PROC(PFNGLCULLFACEPROC, glCullFace);
+	INIT_PROC(PFNGLFRONTFACEPROC, glFrontFace);
+	INIT_PROC(PFNGLPOLYGONOFFSETPROC, glPolygonOffset);
 #if (USE_OPENGL != USE_GLES2)
-	INIT_PROC(glPolygonMode);
+	INIT_PROC(PFNGLPOLYGONMODEPROC, glPolygonMode);
 #endif
-	INIT_PROC(glEnable);
-	INIT_PROC(glDisable);
-	INIT_PROC(glGetFloatv);
-	INIT_PROC(glGetIntegerv);
-	INIT_PROC(glGetString);
+	INIT_PROC(PFNGLENABLEPROC, glEnable);
+	INIT_PROC(PFNGLDISABLEPROC, glDisable);
+	INIT_PROC(PFNGLGETFLOATVPROC, glGetFloatv);
+	INIT_PROC(PFNGLGETINTEGERVPROC, glGetIntegerv);
+	INIT_PROC(PFNGLGETSTRINGPROC, glGetString);
 #if (USE_OPENGL == USE_GL3)
-	INIT_PROC(glGetStringi);
+	INIT_PROC(PFNGLGETSTRINGIPROC, glGetStringi);
 #endif
-	INIT_PROC(glGetError);
-	INIT_PROC(glHint);
-	INIT_PROC(glPixelStorei);
-	INIT_PROC(glViewport);
-	INIT_PROC(glScissor);
-	INIT_PROC_SOFT(glMinSampleShadingARB);
+	INIT_PROC(PFNGLGETERRORPROC, glGetError);
+	INIT_PROC(PFNGLHINTPROC, glHint);
+	INIT_PROC(PFNGLPIXELSTOREIPROC, glPixelStorei);
+	INIT_PROC(PFNGLVIEWPORTPROC, glViewport);
+	INIT_PROC(PFNGLSCISSORPROC, glScissor);
+#if (USE_OPENGL != USE_GLES2)
+	INIT_PROC_SOFT(PFNGLMINSAMPLESHADINGARBPROC, glMinSampleShadingARB);
+#endif
 
 	// Depth
-	INIT_PROC(glDepthFunc);
-	INIT_PROC(glDepthMask);
+	INIT_PROC(PFNGLDEPTHFUNCPROC, glDepthFunc);
+	INIT_PROC(PFNGLDEPTHMASKPROC, glDepthMask);
 #if (USE_OPENGL == USE_GLES2)
-	INIT_PROC(glDepthRangef);
+	INIT_PROC(PFNGLDEPTHRANGEFPROC, glDepthRangef);
 #else
-	INIT_PROC(glDepthRange);
+	INIT_PROC(PFNGLDEPTHRANGEPROC, glDepthRange);
 #endif
 
 	// Raster funcs
-	INIT_PROC(glReadPixels);
+	INIT_PROC(PFNGLREADPIXELSPROC, glReadPixels);
 
 	// Texture mapping
-	INIT_PROC(glTexEnvf);
-	INIT_PROC(glGenTextures);
-	INIT_PROC(glDeleteTextures);
-	INIT_PROC(glBindTexture);
-	INIT_PROC(glTexImage2D);
-	INIT_PROC(glTexSubImage2D);
-	INIT_PROC(glTexParameterf);
-	INIT_PROC(glTexParameteri);
-	INIT_PROC_SOFT(glCompressedTexImage2D);
+	INIT_PROC(PFNGLGENTEXTURESPROC, glGenTextures);
+	INIT_PROC(PFNGLDELETETEXTURESPROC, glDeleteTextures);
+	INIT_PROC(PFNGLBINDTEXTUREPROC, glBindTexture);
+	INIT_PROC(PFNGLTEXIMAGE2DPROC, glTexImage2D);
+	INIT_PROC(PFNGLTEXSUBIMAGE2DPROC, glTexSubImage2D);
+	INIT_PROC(PFNGLTEXPARAMETERFPROC, glTexParameterf);
+	INIT_PROC(PFNGLTEXPARAMETERIPROC, glTexParameteri);
+	INIT_PROC_SOFT(PFNGLCOMPRESSEDTEXIMAGE2DPROC, glCompressedTexImage2D);
 
 	// Buffer objects
-	INIT_PROC(glBindBuffer);
-	INIT_PROC(glBufferData);
-	INIT_PROC(glBufferSubData);
-	INIT_PROC(glDeleteBuffers);
-	INIT_PROC(glGenBuffers);
-	INIT_PROC(glDrawElements);
-	INIT_PROC(glEnableVertexAttribArray);
-	INIT_PROC(glDisableVertexAttribArray);
-	INIT_PROC(glVertexAttribPointer);
+	INIT_PROC(PFNGLBINDBUFFERPROC, glBindBuffer);
+	INIT_PROC(PFNGLBUFFERDATAPROC, glBufferData);
+	INIT_PROC(PFNGLBUFFERSUBDATAPROC, glBufferSubData);
+	INIT_PROC(PFNGLDELETEBUFFERSPROC, glDeleteBuffers);
+	INIT_PROC(PFNGLGENBUFFERSPROC, glGenBuffers);
+	INIT_PROC(PFNGLDRAWELEMENTSPROC, glDrawElements);
+	INIT_PROC(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray);
+	INIT_PROC(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray);
+	INIT_PROC(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer);
 #if (USE_OPENGL == USE_GL3)
-    INIT_PROC(glBindVertexArray);
-    INIT_PROC(glDeleteVertexArrays);
-    INIT_PROC(glGenVertexArrays);
+    INIT_PROC(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray);
+    INIT_PROC(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays);
+    INIT_PROC(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays);
 #endif
 
 	// Shaders
-	INIT_PROC(glActiveTexture);
-	INIT_PROC(glAttachShader);
-	INIT_PROC(glCompileShader);
-	INIT_PROC(glCreateProgram);
-	INIT_PROC(glCreateShader);
-	INIT_PROC(glDeleteProgram);
-	INIT_PROC(glDeleteShader);
-	INIT_PROC(glDetachShader);
-	INIT_PROC(glGetAttribLocation);
-	INIT_PROC(glGetProgramiv);
-	INIT_PROC(glGetProgramInfoLog);
-	INIT_PROC(glGetShaderiv);
-	INIT_PROC(glGetShaderInfoLog);
-	INIT_PROC(glGetUniformLocation);
-	INIT_PROC(glLinkProgram);
-	INIT_PROC(glShaderSource);
-	INIT_PROC(glUseProgram);
-	INIT_PROC(glUniform1i);
-	INIT_PROC(glUniform1f);
-	INIT_PROC(glUniform2f);
-	INIT_PROC(glUniform3f);
-	INIT_PROC(glUniform4f);
-	INIT_PROC(glUniformMatrix4fv);
+	INIT_PROC(PFNGLACTIVETEXTUREPROC, glActiveTexture);
+	INIT_PROC(PFNGLATTACHSHADERPROC, glAttachShader);
+	INIT_PROC(PFNGLCOMPILESHADERPROC, glCompileShader);
+	INIT_PROC(PFNGLCREATEPROGRAMPROC, glCreateProgram);
+	INIT_PROC(PFNGLCREATESHADERPROC, glCreateShader);
+	INIT_PROC(PFNGLDELETEPROGRAMPROC, glDeleteProgram);
+	INIT_PROC(PFNGLDELETESHADERPROC, glDeleteShader);
+	INIT_PROC(PFNGLDETACHSHADERPROC, glDetachShader);
+	INIT_PROC(PFNGLGETATTRIBLOCATIONPROC, glGetAttribLocation);
+	INIT_PROC(PFNGLGETPROGRAMIVPROC, glGetProgramiv);
+	INIT_PROC(PFNGLGETPROGRAMINFOLOGPROC, glGetProgramInfoLog);
+	INIT_PROC(PFNGLGETSHADERIVPROC, glGetShaderiv);
+	INIT_PROC(PFNGLGETSHADERINFOLOGPROC, glGetShaderInfoLog);
+	INIT_PROC(PFNGLGETUNIFORMLOCATIONPROC, glGetUniformLocation);
+	INIT_PROC(PFNGLLINKPROGRAMPROC, glLinkProgram);
+	INIT_PROC(PFNGLSHADERSOURCEPROC, glShaderSource);
+	INIT_PROC(PFNGLUNIFORM1IPROC, glUniform1i);
+	INIT_PROC(PFNGLUNIFORM1FPROC, glUniform1f);
+	INIT_PROC(PFNGLUNIFORM2FPROC, glUniform2f);
+	INIT_PROC(PFNGLUNIFORM3FPROC, glUniform3f);
+	INIT_PROC(PFNGLUNIFORM4FPROC, glUniform4f);
+	INIT_PROC(PFNGLUNIFORMMATRIX4FVPROC, glUniformMatrix4fv);
+	INIT_PROC(PFNGLUSEPROGRAMPROC, glUseProgram);
 
-#if (USE_OPENGL == USE_GLES2)
-    INIT_PROC_SOFT(glDebugMessageCallbackKHR);
-#else
-    INIT_PROC_SOFT(glDebugMessageCallback);
+#if defined(GL_KHR_debug)
+	#if (USE_OPENGL == USE_GLES2)
+	INIT_PROC_SOFT(PFNGLDEBUGMESSAGECALLBACKKHRPROC, glDebugMessageCallbackKHR);
+	#else
+	INIT_PROC_SOFT(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback);
+	#endif
+#endif
+#if defined(GL_ARB_debug_output)
+	INIT_PROC_SOFT(PFNGLDEBUGMESSAGECALLBACKARBPROC, glDebugMessageCallbackARB);
 #endif
 
 	if (err) glbuild_unloadfunctions();

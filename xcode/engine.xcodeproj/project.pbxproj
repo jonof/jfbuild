@@ -89,6 +89,7 @@
 		AB735FD10A29A99A003261DC /* build.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC20A29A8E5003261DC /* build.c */; };
 		AB735FD20A29A99A003261DC /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC30A29A8E5003261DC /* config.c */; };
 		AB73C4EA207A50B200121BF7 /* osxbits.m in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5C0A29A39C003261DC /* osxbits.m */; };
+		ABA0D1F3292CDD0F000CB76F /* glext.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA0D1F2292CDD0F000CB76F /* glext.h */; };
 		ABA9E3070FEF9D170024231F /* a.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3020FEF9D170024231F /* a.h */; };
 		ABA9E3080FEF9D170024231F /* kplib.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3030FEF9D170024231F /* kplib.h */; };
 		ABA9E3090FEF9D170024231F /* osxbits.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3040FEF9D170024231F /* osxbits.h */; };
@@ -229,7 +230,7 @@
 		AB735F520A29A39C003261DC /* crc32.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = crc32.c; sourceTree = "<group>"; };
 		AB735F530A29A39C003261DC /* defs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = defs.c; sourceTree = "<group>"; };
 		AB735F540A29A39C003261DC /* engine.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = engine.c; sourceTree = "<group>"; usesTabs = 1; };
-		AB735F550A29A39C003261DC /* glbuild.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = glbuild.c; sourceTree = "<group>"; };
+		AB735F550A29A39C003261DC /* glbuild.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = glbuild.c; sourceTree = "<group>"; usesTabs = 1; };
 		AB735F560A29A39C003261DC /* kplib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = kplib.c; sourceTree = "<group>"; };
 		AB735F5A0A29A39C003261DC /* mmulti.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mmulti.c; sourceTree = "<group>"; };
 		AB735F5B0A29A39C003261DC /* osd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = osd.c; sourceTree = "<group>"; };
@@ -252,6 +253,7 @@
 		AB735FC30A29A8E5003261DC /* config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = config.c; sourceTree = "<group>"; };
 		AB735FC60A29A8FD003261DC /* editor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = editor.h; sourceTree = "<group>"; };
 		AB735FCC0A29A916003261DC /* libeditor.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditor.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		ABA0D1F2292CDD0F000CB76F /* glext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glext.h; sourceTree = "<group>"; };
 		ABA9E3020FEF9D170024231F /* a.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = a.h; sourceTree = "<group>"; };
 		ABA9E3030FEF9D170024231F /* kplib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kplib.h; sourceTree = "<group>"; };
 		ABA9E3040FEF9D170024231F /* osxbits.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = osxbits.h; sourceTree = "<group>"; };
@@ -437,6 +439,7 @@
 				AB735F530A29A39C003261DC /* defs.c */,
 				AB735F540A29A39C003261DC /* engine.c */,
 				AB3B2AB50EE402B600944CD1 /* engine_priv.h */,
+				ABA0D1F2292CDD0F000CB76F /* glext.h */,
 				AB735F550A29A39C003261DC /* glbuild.c */,
 				AB66C6A92907E89F0063C874 /* glbuild_priv.h */,
 				AB3B2A0D0EE3FC0400944CD1 /* hightile.c */,
@@ -561,6 +564,7 @@
 				AB735FC70A29A8FD003261DC /* editor.h in Headers */,
 				AB3B2AB60EE402B600944CD1 /* engine_priv.h in Headers */,
 				AB3B2AC20EE4033300944CD1 /* hightile_priv.h in Headers */,
+				ABA0D1F3292CDD0F000CB76F /* glext.h in Headers */,
 				AB3B2AC30EE4033300944CD1 /* mdsprite_priv.h in Headers */,
 				AB3B2AC40EE4033300944CD1 /* polymost_priv.h in Headers */,
 				AB726D4D0F046C3B00730EAA /* polymosttex_priv.h in Headers */,
@@ -980,6 +984,7 @@
 					MMULTI_DEBUG_SENDRECV,
 				);
 				GCC_WARN_PEDANTIC = YES;
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../src";
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				ONLY_ACTIVE_ARCH = YES;
 				SKIP_INSTALL = YES;
@@ -1013,6 +1018,7 @@
 					RENDERTYPESDL,
 				);
 				GCC_WARN_PEDANTIC = YES;
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../src";
 				MACOSX_DEPLOYMENT_TARGET = 10.9;
 				SKIP_INSTALL = YES;
 				WARNING_CFLAGS = (

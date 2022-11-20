@@ -397,9 +397,11 @@ void gltexapplyprops (void)
 			glfunc.glBindTexture(GL_TEXTURE_2D,pth->pic[i]->glpic);
 			glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 			glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+#ifdef GL_EXT_texture_filter_anisotropic
 			if (glinfo.maxanisotropy > 1.0) {
 				glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 			}
+#endif
 		}
 	}
 	PTIterFree(iter);
@@ -419,8 +421,10 @@ void gltexapplyprops (void)
 				glfunc.glBindTexture(GL_TEXTURE_2D,m->tex[j]->glpic);
 				glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 				glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+#ifdef GL_EXT_texture_filter_anisotropic
 				if (glinfo.maxanisotropy > 1.0)
 					glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+#endif
 			}
 
 			for (sk=m->skinmap;sk;sk=sk->next)
@@ -430,8 +434,10 @@ void gltexapplyprops (void)
 					glfunc.glBindTexture(GL_TEXTURE_2D,sk->tex[j]->glpic);
 					glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 					glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+#ifdef GL_EXT_texture_filter_anisotropic
 					if (glinfo.maxanisotropy > 1.0)
 						glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+#endif
 				}
 			}
 		}
@@ -718,10 +724,12 @@ void polymost_glinit()
 
 	if (glmultisample > 0 && glinfo.multisample) {
 #if (USE_OPENGL != USE_GLES2)
+#ifdef GL_NV_multisample_filter_hint
 		if (glinfo.nvmultisamplehint)
 			glfunc.glHint(GL_MULTISAMPLE_FILTER_HINT_NV, glnvmultisamplehint ? GL_NICEST:GL_FASTEST);
+#endif
 
-		glfunc.glEnable(GL_MULTISAMPLE_ARB);
+		glfunc.glEnable(GL_MULTISAMPLE);
 
 		if (glsampleshading > 0 && glinfo.sampleshading) {
 			glfunc.glMinSampleShadingARB(1.f);
@@ -3011,7 +3019,6 @@ void polymost_drawrooms ()
 		resizeglcheck();
 
 		//glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-		//glfunc.glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE); //default anyway
 		glfunc.glEnable(GL_DEPTH_TEST);
 		glfunc.glDepthFunc(GL_ALWAYS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 

@@ -864,12 +864,14 @@ static void pt_load_applyparameters(PTHead * pth)
 		glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, glfiltermodes[gltexfiltermode].mag);
 		glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, glfiltermodes[gltexfiltermode].min);
 
+#ifdef GL_EXT_texture_filter_anisotropic
 		if (glinfo.maxanisotropy > 1.0) {
 			if (glanisotropy <= 0 || glanisotropy > glinfo.maxanisotropy) {
 				glanisotropy = (int)glinfo.maxanisotropy;
 			}
 			glfunc.glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, glanisotropy);
 		}
+#endif
 
 		if (! (pth->flags & PTH_CLAMPED)) {
 			glfunc.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
