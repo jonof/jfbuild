@@ -129,7 +129,7 @@ typedef struct
 {
 	FILE *fil;   //0:no file open, !=0:open file (either stand-alone or zip)
 	int comptyp; //0:raw data (can be ZIP or stand-alone), 8:PKZIP LZ77 *flate
-	int seek0;   //0:stand-alone file, !=0: start of zip compressed stream data
+	unsigned seek0;   //0:stand-alone file, !=0: start of zip compressed stream data
 	int compleng;//Global variable for compression FIFO
 	int comptell;//Global variable for compression FIFO
 	int leng;    //Uncompressed file size (bytes)
@@ -2773,7 +2773,7 @@ static int kzcalchash (const char *st)
 	return(hashind%(sizeof(kzhashead)/sizeof(kzhashead[0])));
 }
 
-static int kzcheckhash (const char *filnam, char **zipnam, int *zipseek)
+static int kzcheckhash (const char *filnam, char **zipnam, unsigned int *zipseek)
 {
 	int i;
 
@@ -2783,7 +2783,7 @@ static int kzcheckhash (const char *filnam, char **zipnam, int *zipseek)
 		if (!filnamcmp(filnam,&kzhashbuf[i+16]))
 		{
 			(*zipnam) = &kzhashbuf[*(int *)&kzhashbuf[i+8]];
-			(*zipseek) = *(int *)&kzhashbuf[i+12];
+			(*zipseek) = *(unsigned int *)&kzhashbuf[i+12];
 			return(1);
 		}
 	return(0);
@@ -2813,8 +2813,8 @@ int kzaddstack (const char *zipnam)
 	if (fread(tempbuf,22,1,fil) != 1) { fclose(fil); return(-1); }
 	if (*(unsigned int *)&tempbuf[0] == LSWAPIB(0x06054b50)) //Fast way of finding dir info
 	{
-		numfiles = SSWAPIB(*(short *)&tempbuf[10]);
-		fseek(fil,LSWAPIB(*(int *)&tempbuf[16]),SEEK_SET);
+		numfiles = SSWAPIB(*(unsigned short *)&tempbuf[10]);
+		fseek(fil,LSWAPIB(*(unsigned int *)&tempbuf[16]),SEEK_SET);
 	}
 	else //Slow way of finding dir info (used when ZIP has junk at end)
 	{
@@ -2825,7 +2825,7 @@ int kzaddstack (const char *zipnam)
 			if ((unsigned)j == LSWAPIB(0x02014b50)) break; //Found central file header :)
 			if ((unsigned)j != LSWAPIB(0x04034b50)) { numfiles = -1; break; }
 			if (fread(tempbuf,26,1,fil) != 1) { fclose(fil); return(-1); }
-			fseek(fil,LSWAPIB(*(int *)&tempbuf[14]) + SSWAPIB(*(short *)&tempbuf[24]) + SSWAPIB(*(short *)&tempbuf[22]),SEEK_CUR);
+			fseek(fil,LSWAPIB(*(unsigned int *)&tempbuf[14]) + SSWAPIB(*(unsigned short *)&tempbuf[24]) + SSWAPIB(*(unsigned short *)&tempbuf[22]),SEEK_CUR);
 			numfiles++;
 		}
 		if (numfiles < 0) { fclose(fil); return(-1); }
@@ -2836,7 +2836,7 @@ int kzaddstack (const char *zipnam)
 		if (fread(tempbuf,46,1,fil) != 1) { fclose(fil); return(-1); }
 		if (*(int *)&tempbuf[0] != LSWAPIB(0x02014b50)) { fclose(fil); return(0); }
 
-		j = SSWAPIB(*(short *)&tempbuf[28]); //filename length
+		j = SSWAPIB(*(unsigned short *)&tempbuf[28]); //filename length
 		if (fread(&tempbuf[46],j,1,fil) != 1) { fclose(fil); return(-1); }
 		tempbuf[j+46] = 0;
 
@@ -2846,12 +2846,12 @@ int kzaddstack (const char *zipnam)
 		*(int *)&kzhashbuf[kzhashpos] = kzhashead[hashind];
 		*(int *)&kzhashbuf[kzhashpos+4] = kzlastfnam;
 		*(int *)&kzhashbuf[kzhashpos+8] = zipnamoffs;
-		*(int *)&kzhashbuf[kzhashpos+12] = LSWAPIB(*(int *)&tempbuf[42]); //zipseek
+		*(unsigned int *)&kzhashbuf[kzhashpos+12] = LSWAPIB(*(unsigned int *)&tempbuf[42]); //zipseek
 		strcpy(&kzhashbuf[kzhashpos+16],&tempbuf[46]);
 		kzhashead[hashind] = kzhashpos; kzlastfnam = kzhashpos; kzhashpos += j;
 
-		j  = SSWAPIB(*(short *)&tempbuf[30]); //extra field length
-		j += SSWAPIB(*(short *)&tempbuf[32]); //file comment length
+		j  = SSWAPIB(*(unsigned short *)&tempbuf[30]); //extra field length
+		j += SSWAPIB(*(unsigned short *)&tempbuf[32]); //file comment length
 		fseek(fil,j,SEEK_CUR);
 	}
 	fclose(fil);
@@ -2861,7 +2861,7 @@ int kzaddstack (const char *zipnam)
 int kzopen (const char *filnam)
 {
 	FILE *fil;
-	int zipseek;
+	unsigned int zipseek;
 	char tempbuf[46+260], *zipnam;
 
 	//kzfs.fil = 0;
@@ -2884,13 +2884,14 @@ int kzopen (const char *filnam)
 		fseek(fil,zipseek,SEEK_SET);
 		if (fread(tempbuf,30,1,fil) != 1) { fclose(fil); return(0); }
 		if (*(int *)&tempbuf[0] != LSWAPIB(0x04034b50)) { fclose(fil); return(0); }
-		fseek(fil,SSWAPIB(*(short *)&tempbuf[26])+SSWAPIB(*(short *)&tempbuf[28]),SEEK_CUR);
+		fseek(fil,SSWAPIB(*(unsigned short *)&tempbuf[26])+SSWAPIB(*(unsigned short *)&tempbuf[28]),SEEK_CUR);
 
 		kzfs.fil = fil;
 		kzfs.comptyp = SSWAPIB(*(short *)&tempbuf[8]);
-		kzfs.seek0 = ftell(fil);
+		kzfs.seek0 = (unsigned int)ftell(fil);
 		kzfs.leng = LSWAPIB(*(int *)&tempbuf[22]);
 		kzfs.pos = 0;
+		if (kzfs.leng < 0) { fclose(kzfs.fil); kzfs.fil = 0; return(0); }   // File is ≥ 2GiB.
 		switch(kzfs.comptyp) //Compression method
 		{
 			case 0: kzfs.i = 0; return(1);
