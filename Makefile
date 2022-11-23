@@ -209,7 +209,7 @@ else
 ENGINEOBJS+= $(SRC)/version.$o
 endif
 
-UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX) arttool$(EXESUFFIX)
+UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) klist$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX) arttool$(EXESUFFIX)
 BUILDUTILS=generatesdlappicon$(EXESUFFIX) bin2c$(EXESUFFIX)
 
 all: enginelib editorlib $(GAMEDATA)/game$(EXESUFFIX) $(GAMEDATA)/build$(EXESUFFIX)
@@ -234,6 +234,8 @@ $(GAMEDATA)/build$(EXESUFFIX): $(EDITOREXEOBJS)
 kextract$(EXESUFFIX): $(TOOLS)/kextract.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
 kgroup$(EXESUFFIX): $(TOOLS)/kgroup.$o $(ENGINELIB)
+	$(CC) -o $@ $^ $(ENGINELIB)
+klist$(EXESUFFIX): $(TOOLS)/klist.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)
 transpal$(EXESUFFIX): $(TOOLS)/transpal.$o $(ENGINELIB)
 	$(CC) -o $@ $^ $(ENGINELIB)

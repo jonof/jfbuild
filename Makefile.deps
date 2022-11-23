@@ -88,6 +88,7 @@ $(GAME)/rsrc/sdlappicon_build.$o: $(GAME)/rsrc/sdlappicon_build.c
 $(TOOLS)/arttool.$o: $(TOOLS)/arttool.cc
 $(TOOLS)/kextract.$o: $(TOOLS)/kextract.c $(INC)/compat.h
 $(TOOLS)/kgroup.$o: $(TOOLS)/kgroup.c $(INC)/compat.h
+$(TOOLS)/klist.$o: $(TOOLS)/klist.c $(INC)/compat.h $(INC)/crc32.h
 $(TOOLS)/transpal.$o: $(TOOLS)/transpal.c $(INC)/compat.h $(INC)/pragmas.h
 $(TOOLS)/wad2art.$o: $(TOOLS)/wad2art.c $(INC)/compat.h $(INC)/pragmas.h
 $(TOOLS)/wad2map.$o: $(TOOLS)/wad2map.c $(INC)/compat.h $(INC)/pragmas.h

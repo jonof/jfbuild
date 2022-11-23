@@ -186,7 +186,7 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 	bin2c$(EXESUFFIX) -text $< default_$(@B)_glsl > $@
 
 # TARGETS
-UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) transpal$(EXESUFFIX) wad2map$(EXESUFFIX) wad2map$(EXESUFFIX)
+UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) klist$(EXESUFFIX) transpal$(EXESUFFIX) wad2map$(EXESUFFIX) wad2map$(EXESUFFIX)
 
 all: enginelib editorlib $(GAMEDATA)\game$(EXESUFFIX) $(GAMEDATA)\build$(EXESUFFIX) ;
 utils: $(UTILS) ;
@@ -211,6 +211,9 @@ kextract$(EXESUFFIX): $(TOOLS)\kextract.$o $(SRC)\compat.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 kgroup$(EXESUFFIX): $(TOOLS)\kgroup.$o $(SRC)\compat.$o
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+
+klist$(EXESUFFIX): $(TOOLS)\klist.$o $(SRC)\compat.$o $(SRC)\crc32.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 transpal$(EXESUFFIX): $(TOOLS)\transpal.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
