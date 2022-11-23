@@ -6,7 +6,7 @@
 #define MAXTILEFILES 256
 #define MAXYSAVES ((MAXXDIM*MAXSPRITES)>>7)
 #define MAXNODESPERLINE 42   //Warning: This depends on MAXYSAVES & MAXYDIM!
-#define MAXWALLSB 2048
+#define MAXWALLSB 4096
 #define MAXCLIPDIST 1024
 
 extern unsigned char pow2char[8];

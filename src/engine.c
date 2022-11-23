@@ -5545,6 +5545,13 @@ void drawrooms(int daposx, int daposy, int daposz,
 	int i, j, z, cz, fz, closest;
 	short *shortptr1, *shortptr2;
 
+#if defined(DEBUGGINGAIDS)
+	if (numscans > MAXWALLSB) debugprintf("damage report: numscans %d exceeded %d\n", numscans, MAXWALLSB);
+	if (numbunches > MAXWALLSB) debugprintf("damage report: numbunches %d exceeded %d\n", numbunches, MAXWALLSB);
+	if (maskwallcnt > MAXWALLSB) debugprintf("damage report: maskwallcnt %d exceeded %d\n", maskwallcnt, MAXWALLSB);
+	if (smostwallcnt > MAXWALLSB) debugprintf("damage report: smostwallcnt %d exceeded %d\n", smostwallcnt, MAXWALLSB);
+#endif
+
 	beforedrawrooms = 0;
 
 	globalposx = daposx; globalposy = daposy; globalposz = daposz;
@@ -6180,6 +6187,7 @@ int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *dap
 			 short *daang, short *dacursectnum)
 {
 	short fil, i, numsprites;
+	short maxsectors, maxwalls, maxsprites;
 
 	i = strlen(filename)-1;
 	if ((unsigned char)filename[i] == 255) { filename[i] = 0; fromwhere = 1; }	// JBF 20040119: "compatibility"
@@ -6187,7 +6195,23 @@ int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *dap
 		{ mapversion = 7L; return(-1); }
 
 	kread(fil,&mapversion,4); mapversion = B_LITTLE32(mapversion);
-	if (mapversion != 7L && mapversion != 8L) { kclose(fil); return(-2); }
+	if (mapversion == 7)
+	{
+		maxsectors = MAXSECTORSV7;
+		maxwalls = MAXWALLSV7;
+		maxsprites = MAXSPRITESV7;
+	}
+	else if (mapversion == 8)
+	{
+		maxsectors = MAXSECTORSV8;
+		maxwalls = MAXWALLSV8;
+		maxsprites = MAXSPRITESV8;
+	}
+	else
+	{
+		kclose(fil);
+		return(-2);
+	}
 
 	/*
 	// Enable this for doing map checksum tests
@@ -6197,10 +6221,6 @@ int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *dap
 	*/
 
 	initspritelists();
-
-#define MYMAXSECTORS (mapversion==7l?MAXSECTORSV7:MAXSECTORSV8)
-#define MYMAXWALLS   (mapversion==7l?MAXWALLSV7:MAXWALLSV8)
-#define MYMAXSPRITES (mapversion==7l?MAXSPRITESV7:MAXSPRITESV8)
 
 	clearbuf(&show2dsector[0],(int)((MAXSECTORS+3)>>5),0L);
 	clearbuf(&show2dsprite[0],(int)((MAXSPRITES+3)>>5),0L);
@@ -6213,7 +6233,7 @@ int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *dap
 	kread(fil,dacursectnum,2); *dacursectnum = B_LITTLE16(*dacursectnum);
 
 	kread(fil,&numsectors,2); numsectors = B_LITTLE16(numsectors);
-	if (numsectors > MYMAXSECTORS) { kclose(fil); return(-1); }
+	if (numsectors > maxsectors) { kclose(fil); return(-2); }
 	kread(fil,&sector[0],sizeof(sectortype)*numsectors);
 	for (i=numsectors-1; i>=0; i--) {
 		sector[i].wallptr       = B_LITTLE16(sector[i].wallptr);
@@ -6232,7 +6252,7 @@ int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *dap
 	}
 
 	kread(fil,&numwalls,2); numwalls = B_LITTLE16(numwalls);
-	if (numwalls > MYMAXWALLS) { kclose(fil); return(-1); }
+	if (numwalls > maxwalls) { kclose(fil); return(-2); }
 	kread(fil,&wall[0],sizeof(walltype)*numwalls);
 	for (i=numwalls-1; i>=0; i--) {
 		wall[i].x          = B_LITTLE32(wall[i].x);
@@ -6249,7 +6269,7 @@ int loadboard(char *filename, char fromwhere, int *daposx, int *daposy, int *dap
 	}
 
 	kread(fil,&numsprites,2); numsprites = B_LITTLE16(numsprites);
-	if (numsprites > MYMAXSPRITES) { kclose(fil); return(-1); }
+	if (numsprites > maxsprites) { kclose(fil); return(-2); }
 	kread(fil,&sprite[0],sizeof(spritetype)*numsprites);
 	for (i=numsprites-1; i>=0; i--) {
 		sprite[i].x       = B_LITTLE32(sprite[i].x);
