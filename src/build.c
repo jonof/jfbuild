@@ -2292,6 +2292,7 @@ void editinput(void)
 		{
 			if (searchstat == 3)
 			{
+				ExtDeleteSprite(searchwall);
 				deletesprite(searchwall);
 				updatenumsprites();
 				asksave = 1;
@@ -4915,6 +4916,7 @@ void overheadeditor(void)
 		{
 			if ((pointhighlight&0xc000) == 16384)   //Sprite Delete
 			{
+				ExtDeleteSprite(pointhighlight&16383);
 				deletesprite(pointhighlight&16383);
 				printmessage16("Sprite deleted.");
 				updatenumsprites();
@@ -5848,7 +5850,10 @@ int deletesector(short sucksect)
 	int i, j, k, nextk, startwall, endwall;
 
 	while (headspritesect[sucksect] >= 0)
+	{
+		ExtDeleteSprite(headspritesect[sucksect]);
 		deletesprite(headspritesect[sucksect]);
+	}
 	updatenumsprites();
 
 	startwall = sector[sucksect].wallptr;

@@ -259,6 +259,11 @@ void ExtPreCheckKeys(void)
 #endif
 }
 
+void ExtDeleteSprite(short spritenum)
+{
+	(void)spritenum;
+}
+
 #define MAXVOXMIPS 5
 extern unsigned char *voxoff[][MAXVOXMIPS];
 void ExtAnalyzeSprites(void)

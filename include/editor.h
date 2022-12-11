@@ -56,6 +56,7 @@ extern void ExtShowSpriteData(short spritenum);
 extern void ExtEditSectorData(short sectnum);
 extern void ExtEditWallData(short wallnum);
 extern void ExtEditSpriteData(short spritenum);
+extern void ExtDeleteSprite(short spritenum);
 
 
 int loadsetup(const char *fn);	// from config.c
