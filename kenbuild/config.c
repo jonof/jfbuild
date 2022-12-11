@@ -19,7 +19,6 @@ extern short brightness;
 extern int fullscreen;
 extern char option[8];
 extern int keys[NUMKEYS];
-extern double msens;
 
 /*
  * SETUP.DAT
@@ -144,9 +143,6 @@ static struct {
 		"; Enable joystick\n"
 		";   0 - No\n"
 		";   1 - Yes\n"
-	},
-	{ "mousesensitivity", type_double, &msens,
-		"; Mouse sensitivity\n"
 	},
 	{ "keyforward", type_hex, &keys[0],
 		"; Key Settings\n"

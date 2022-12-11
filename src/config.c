@@ -19,7 +19,7 @@ extern short brightness;
 extern int fullscreen;
 extern char option[8];
 extern int keys[NUMBUILDKEYS];
-extern double msens;
+extern int msens;
 
 /*
  * SETUP.DAT
@@ -64,6 +64,7 @@ enum {
 	type_double = 1,
 	type_int = 2,
 	type_hex = 3,
+	type_fixed16,	//int
 };
 
 static int tmprenderer = -1;
@@ -79,7 +80,7 @@ static struct {
 		"; Always show configuration options on startup\n"
 		";   0 - No\n"
 		";   1 - Yes\n"
-    },
+	},
 	{ "fullscreen", type_bool, &fullscreen,
 		"; Video mode selection\n"
 		";   0 - Windowed\n"
@@ -117,7 +118,7 @@ static struct {
 		"; Maximum OpenGL mode refresh rate (Windows only, in Hertz)\n"
 	},
 #endif
-	{ "mousesensitivity", type_double, &msens,
+	{ "mousesensitivity", type_fixed16, &msens,
 		"; Mouse sensitivity\n"
 	},
 	{ "keyforward", type_hex, &keys[0],
@@ -214,6 +215,12 @@ int loadsetup(const char *fn)
 						*(int*)configspec[item].store = value;
 						break;
 					}
+					case type_fixed16: {
+						double value = 0.0;
+						if (scriptfile_getdouble(cfg, &value)) break;
+						*(int*)configspec[item].store = (int)(value*65536.0);
+						break;
+					}
 					case type_double: {
 						double value = 0.0;
 						if (scriptfile_getdouble(cfg, &value)) break;
@@ -281,6 +288,10 @@ int writesetup(const char *fn)
 			}
 			case type_hex: {
 				fprintf(fp, "%X\n", *(int*)configspec[item].store);
+				break;
+			}
+			case type_fixed16: {
+				fprintf(fp, "%g\n", (double)(*(int*)configspec[item].store) / 65536.0);
 				break;
 			}
 			case type_double: {

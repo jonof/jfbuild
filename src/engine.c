@@ -545,7 +545,6 @@ short editstatus = 0;
 short searchit;
 int searchx = -1, searchy;                          //search input
 short searchsector, searchwall, searchstat;     //search output
-double msens = 1.0;
 
 static char artfilename[20];
 static int numtilefiles, artfil = -1, artfilnum, artfilplc;

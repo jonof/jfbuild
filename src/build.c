@@ -40,7 +40,7 @@ int hvel;
 
 int grponlymode = 0;
 extern int editorgridextent;	// in engine.c
-extern double msens;
+int msens = 1<<16;
 
 static int synctics = 0, lockclock = 0;
 
@@ -534,12 +534,9 @@ void editinput(void)
 
 	mousz = 0;
 	getmousevalues(&mousx,&mousy,&bstatus);
-	mousx = (mousx<<16)+mousexsurp;
-	mousy = (mousy<<16)+mouseysurp;
 	{
-	ldiv_t ld;
-	ld = ldiv((int)((double)mousx*msens), (1<<16)); mousx = ld.quot; mousexsurp = ld.rem;
-	ld = ldiv((int)((double)mousy*msens), (1<<16)); mousy = ld.quot; mouseysurp = ld.rem;
+	div_t ldx = div(mulscale16(mousx<<16, msens) + mousexsurp, (1<<16)); mousx = ldx.quot; mousexsurp = ldx.rem;
+	div_t ldy = div(mulscale16(mousy<<16, msens) + mouseysurp, (1<<16)); mousy = ldy.quot; mouseysurp = ldy.rem;
 	}
 	searchx += mousx;
 	searchy += mousy;
@@ -2761,12 +2758,9 @@ void overheadeditor(void)
 
 		oldmousebstatus = bstatus;
 		getmousevalues(&mousx,&mousy,&bstatus);
-		mousx = (mousx<<16)+mousexsurp;
-		mousy = (mousy<<16)+mouseysurp;
 		{
-		ldiv_t ld;
-		ld = ldiv((int)((double)mousx*msens), (1<<16)); mousx = ld.quot; mousexsurp = ld.rem;
-		ld = ldiv((int)((double)mousy*msens), (1<<16)); mousy = ld.quot; mouseysurp = ld.rem;
+		div_t ldx = div(mulscale16(mousx<<16, msens) + mousexsurp, (1<<16)); mousx = ldx.quot; mousexsurp = ldx.rem;
+		div_t ldy = div(mulscale16(mousy<<16, msens) + mouseysurp, (1<<16)); mousy = ldy.quot; mouseysurp = ldy.rem;
 		}
 		searchx += mousx;
 		searchy += mousy;
