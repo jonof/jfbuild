@@ -98,6 +98,7 @@ static int repeatcountx, repeatcounty;
 
 static int fillist[640];
 
+void (*ExtDeleteSprite)(short spritenum);
 
 void qsetmodeany(int,int);
 void clear2dscreen(void);
@@ -2327,6 +2328,7 @@ void editinput(void)
 		{
 			if (searchstat == 3)
 			{
+				if (ExtDeleteSprite) ExtDeleteSprite(searchwall);
 				deletesprite(searchwall);
 				updatenumsprites();
 				asksave = 1;
@@ -4920,6 +4922,7 @@ void overheadeditor(void)
 		{
 			if ((pointhighlight&0xc000) == 16384)   //Sprite Delete
 			{
+				if (ExtDeleteSprite) ExtDeleteSprite(pointhighlight&16383);
 				deletesprite(pointhighlight&16383);
 				printmessage16("Sprite deleted.");
 				updatenumsprites();
@@ -5848,7 +5851,10 @@ int deletesector(short sucksect)
 	int i, j, k, nextk, startwall, endwall;
 
 	while (headspritesect[sucksect] >= 0)
+	{
+		if (ExtDeleteSprite) ExtDeleteSprite(headspritesect[sucksect]);
 		deletesprite(headspritesect[sucksect]);
+	}
 	updatenumsprites();
 
 	startwall = sector[sucksect].wallptr;
