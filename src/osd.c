@@ -7,6 +7,7 @@
 #include "baselayer.h"
 
 extern int getclosestcol(int r, int g, int b);	// engine.c
+extern int qsetmode;	// engine.c
 
 typedef struct _symbol {
 	const char *name;
@@ -98,9 +99,15 @@ static void (*onshowosd)(int) = _internal_onshowosd;
 
 static void findwhite(void)
 {
-	white = getclosestcol(63,63,63);
-	lightgrey = getclosestcol(55,55,55);
-	darkgrey = getclosestcol(38,38,38);
+	if (qsetmode == 200) {
+		white = getclosestcol(63,63,63);
+		lightgrey = getclosestcol(55,55,55);
+		darkgrey = getclosestcol(38,38,38);
+	} else {
+		white = 15;
+		lightgrey = 7;
+		darkgrey = 8;
+	}
 }
 
 static void _internal_drawosdchar(int x, int y, char ch, int shade, int pal)
