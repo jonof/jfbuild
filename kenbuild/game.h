@@ -34,7 +34,7 @@ void	fakedomovethingscorrect(void);
 void	domovethings(void);
 void	getinput(void);
 void	initplayersprite(short snum);
-void	playback(void);
+void	playback(int cycles);
 void	setup3dscreen(void);
 void	findrandomspot(int *x, int *y, short *sectnum);
 void	warp(int *x, int *y, int *z, short *daang, short *dasector);

@@ -398,12 +398,40 @@ static int osdcmd_map(const osdfuncparm_t *parm) {
     return OSDCMD_OK;
 }
 
+static int osdcmd_saverec(const osdfuncparm_t *parm) {
+	int fh;
+	char *dot, namebuf[BMAX_PATH+1];
+
+	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
+
+	strncpy(namebuf, parm->parms[0], BMAX_PATH);
+	namebuf[BMAX_PATH] = 0;
+	dot = strrchr(namebuf, '.');
+	if ((!dot || strcasecmp(dot, ".rec")) && strlen(namebuf) <= BMAX_PATH-4) {
+		strcat(namebuf, ".rec");
+	}
+
+	fh = open(namebuf, O_CREAT | O_TRUNC | O_WRONLY | O_BINARY, S_IREAD | S_IWRITE);
+	if (fh < 0) {
+		buildprintf("Could not write recording to %s\n", namebuf);
+		return OSDCMD_OK;
+	}
+	write(fh, &numplayers, sizeof(numplayers));
+	write(fh, &reccnt, sizeof(reccnt));
+	write(fh, &recsync, sizeof(recsync));
+	close(fh);
+	buildprintf("%d inputs written to %s\n", reccnt, namebuf);
+
+	return OSDCMD_OK;
+}
+
 int app_main(int argc, char const * const argv[])
 {
 	int cmdsetup = 0, i, j, k, l, fil, waitplayers, x1, y1, x2, y2;
 	int other, packleng, netparm = 0, endnetparm = 0, netsuccess = 0;
     int startretval = STARTWIN_RUN;
     struct startwin_settings settings;
+    const char *recfile = NULL;
 
 #if defined(DATADIR)
     {
@@ -474,6 +502,7 @@ int app_main(int argc, char const * const argv[])
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
 	OSD_RegisterFunction("map", "map [filename]: load a map", osdcmd_map);
+	OSD_RegisterFunction("saverec", "saverec [filename]: save recording", osdcmd_saverec);
 
 	wm_setapptitle("KenBuild by Ken Silverman");
 
@@ -492,6 +521,9 @@ int app_main(int argc, char const * const argv[])
 			}
 			else if (!Bstrcasecmp(&argv[i][1], "setup")) cmdsetup = 1;
 			else if (!Bstrcasecmp(&argv[i][1], "nosetup")) cmdsetup = -1;
+			else if (!Bstrcasecmp(&argv[i][1], "playrec") && i+1 < argc) {
+				recfile = argv[++i];
+			}
 		}
 		else {
 			Bstrcpy(boardfilename, argv[i]);
@@ -703,6 +735,26 @@ int app_main(int argc, char const * const argv[])
 	ready2send = 1;
 	drawscreen(screenpeek,65536L);
 
+	if (recfile) {
+		int fh, recfileplayers = -1;
+
+		fh = open(recfile, O_RDONLY | O_BINARY, 0);
+		if (fh < 0) {
+			buildprintf("Could not open recording %s\n", recfile);
+		} else {
+			read(fh, &recfileplayers, sizeof(numplayers));
+			if (recfileplayers == numplayers) {
+				read(fh, &reccnt, sizeof(reccnt));
+				read(fh, &recsync, sizeof(recsync));
+				close(fh);
+
+				playback(1); // Exits from here.
+			} else {
+				buildprintf("Recording has a different number of players\n");
+			}
+			close(fh);
+		}
+	}
 	while (!keystatus[1])       //Main loop starts here
 	{
 		if (handleevents()) {
@@ -728,7 +780,7 @@ int app_main(int argc, char const * const argv[])
 			if ((keystatus[0x2a]&keystatus[0x36]&keystatus[0x13]) > 0)   //Sh.Sh.R (replay)
 			{
 				keystatus[0x13] = 0;
-				playback();
+				playback(INT_MAX);
 			}
 
 			if (keystatus[0x26]&(keystatus[0x1d]|keystatus[0x9d])) //Load game
@@ -4757,9 +4809,10 @@ void initplayersprite(short snum)
 	makepalookup(snum,tempbuf,0,0,0,1);
 }
 
-void playback(void)
+void playback(int cycles)
 {
 	int i, j, k;
+	unsigned int frames = 0, movetics = 0, starttime = getticks();
 
 	ready2send = 0;
 	recstat = 0; i = reccnt;
@@ -4779,6 +4832,10 @@ void playback(void)
 			sampletimer();
 			if (i >= reccnt)
 			{
+				if (cycles-- <= 0) {
+					keystatus[1] = 1;
+					break;
+				}
 				prepareboard(boardfilename);
 				for(i=connecthead;i>=0;i=connectpoint2[i])
 					initplayersprite((short)i);
@@ -4794,8 +4851,10 @@ void playback(void)
 			}
 			movethings(); domovethings();
 			i++;
+			movetics++;
 		}
 		drawscreen(screenpeek,(totalclock-gotlastpacketclock)*(65536/(TIMERINTSPERSECOND/MOVESPERSECOND)));
+		frames++;
 
 		if (keystatus[keys[15]])
 		{
@@ -4811,6 +4870,8 @@ void playback(void)
 			if (dimensionmode[screenpeek] > 3) dimensionmode[screenpeek] = 1;
 		}
 	}
+
+	buildprintf("%u frames over %d msec, %u move tics\n", frames, getticks() - starttime, movetics);
 
 	musicoff();
 	uninitmultiplayers();
