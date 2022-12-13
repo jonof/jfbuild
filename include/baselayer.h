@@ -51,34 +51,28 @@ extern int keyasciififoplc, keyasciififoend;
 extern int mousex, mousey, mouseb;
 
 // joystick
-extern int joyaxis[], joyb;
+extern int joyaxis[8], joyb;
 extern char joynumaxes, joynumbuttons;
 
 
-
-int initsystem(void);
-void uninitsystem(void);
 
 void initputs(const char *);
 void debugprintf(const char *,...) PRINTF_FORMAT(1, 2);
 
 int handleevents(void);
 
-typedef void (*KeyPressCallback)(int,int);
-typedef void (*MousePressCallback)(int,int);
-typedef void (*JoyPressCallback)(int,int);
 int initinput(void);
 void uninitinput(void);
 void releaseallbuttons(void);
-void setkeypresscallback(void (*callback)(int,int));
-void setmousepresscallback(void (*callback)(int,int));
-void setjoypresscallback(void (*callback)(int,int));
 const char *getkeyname(int num);
 const char *getjoyname(int what, int num);	// what: 0=axis, 1=button, 2=hat
 
 unsigned char bgetchar(void);
 int bkbhit(void);
 void bflushchars(void);
+int bgetkey(void);  // >0 = press, <0 = release
+int bkeyhit(void);
+void bflushkeys(void);
 
 int initmouse(void);
 void uninitmouse(void);
@@ -86,21 +80,18 @@ void grabmouse(int a);
 void readmousexy(int *x, int *y);
 void readmousebstatus(int *b);
 
-int inittimer(int);
+int inittimer(int, void(*)(void));
 void uninittimer(void);
 void sampletimer(void);
 unsigned int getticks(void);
 unsigned int getusecticks(void);
 int gettimerfreq(void);
-void (*installusertimercallback(void (*callback)(void)))(void);
 
 int checkvideomode(int *x, int *y, int c, int fs, int forced);
 int setvideomode(int x, int y, int c, int fs);
 void getvalidmodes(void);
 void resetvideomode(void);
 
-void begindrawing(void);
-void enddrawing(void);
 void showframe(void);
 
 int setpalette(int start, int num, unsigned char *dapal);
@@ -121,15 +112,7 @@ int wm_idle(void *);
 void wm_setapptitle(const char *name);
 void wm_setwindowtitle(const char *name);
 
-#if USE_OPENGL
-int loadgldriver(const char *driver);   // or NULL for platform default
-void *getglprocaddress(const char *name, int ext);
-int unloadgldriver(void);
-#endif
-
 // baselayer.c
-int baselayer_init(void);
-
 void makeasmwriteable(void);
 
 #ifdef __cplusplus

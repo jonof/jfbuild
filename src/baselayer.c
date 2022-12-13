@@ -8,6 +8,7 @@
 #include "build.h"
 #include "osd.h"
 #include "baselayer.h"
+#include "baselayer_priv.h"
 
 #ifdef RENDERTYPEWIN
 #include "winlayer.h"
@@ -16,10 +17,142 @@
 #if USE_OPENGL
 #include "glbuild.h"
 struct glbuild_info glinfo;
+int glswapinterval = 1;
+int glunavailable;
 #endif //USE_OPENGL
 
+int   _buildargc = 0;
+const char **_buildargv = NULL;
+
+char quitevent=0, appactive=1;
+
+int xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
+intptr_t frameplace=0;
+char modechange=1;
+char offscreenrendering=0;
+char videomodereset = 0;
 void (*baselayer_videomodewillchange)(void) = NULL;
 void (*baselayer_videomodedidchange)(void) = NULL;
+
+int inputdevices=0;
+
+// keys
+char keystatus[256];
+int keyfifo[KEYFIFOSIZ];
+unsigned char keyasciififo[KEYFIFOSIZ];
+int keyfifoplc, keyfifoend;
+int keyasciififoplc, keyasciififoend;
+
+// mouse
+int mousex=0, mousey=0, mouseb=0;
+
+// joystick
+int joyaxis[8], joyb=0;
+char joynumaxes=0, joynumbuttons=0;
+
+
+
+//
+// checkvideomode() -- makes sure the video mode passed is legal
+//
+int checkvideomode(int *x, int *y, int c, int fs, int forced)
+{
+	int i, nearest=-1, dx, dy, odx=INT_MAX, ody=INT_MAX;
+
+	getvalidmodes();
+
+#if USE_OPENGL
+	if (c > 8 && glunavailable) return -1;
+#else
+	if (c > 8) return -1;
+#endif
+
+	// fix up the passed resolution values to be multiples of 8
+	// and at least 320x200 or at most MAXXDIMxMAXYDIM
+	if (*x < 320) *x = 320;
+	if (*y < 200) *y = 200;
+	if (*x > MAXXDIM) *x = MAXXDIM;
+	if (*y > MAXYDIM) *y = MAXYDIM;
+	*x &= 0xfffffff8l;
+
+	for (i=0; i<validmodecnt; i++) {
+		if (validmode[i].bpp != c) continue;
+		if (validmode[i].fs != fs) continue;
+		dx = abs(validmode[i].xdim - *x);
+		dy = abs(validmode[i].ydim - *y);
+		if (!(dx | dy)) { 	// perfect match
+			nearest = i;
+			break;
+		}
+		if ((dx <= odx) && (dy <= ody)) {
+			nearest = i;
+			odx = dx; ody = dy;
+		}
+	}
+
+#ifdef ANY_WINDOWED_SIZE
+	if (!forced && (fs&1) == 0 && (nearest < 0 || validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)) {
+		// check the colour depth is recognised at the very least
+		for (i=0;i<validmodecnt;i++)
+			if (validmode[i].bpp == c)
+				return 0x7fffffffl;
+		return -1;	// strange colour depth
+	}
+#endif
+
+	if (nearest < 0) {
+		// no mode that will match (eg. if no fullscreen modes)
+		return -1;
+	}
+
+	*x = validmode[nearest].xdim;
+	*y = validmode[nearest].ydim;
+
+	return nearest;		// JBF 20031206: Returns the mode number
+}
+
+//
+// bgetchar, bkbhit, bflushchars -- character-based input functions
+//
+unsigned char bgetchar(void)
+{
+	unsigned char c;
+	if (keyasciififoplc == keyasciififoend) return 0;
+	c = keyasciififo[keyasciififoplc];
+	keyasciififoplc = ((keyasciififoplc+1)&(KEYFIFOSIZ-1));
+	return c;
+}
+
+int bkbhit(void)
+{
+	return (keyasciififoplc != keyasciififoend);
+}
+
+void bflushchars(void)
+{
+	keyasciififoplc = keyasciififoend = 0;
+}
+
+int bgetkey(void)
+{
+	int c;
+	if (keyfifoplc == keyfifoend) return 0;
+	c = keyfifo[keyfifoplc];
+	if (!keyfifo[(keyfifoplc+1)&(KEYFIFOSIZ-1)]) c = -c;
+	keyfifoplc = (keyfifoplc+2)&(KEYFIFOSIZ-1);
+	return c;
+}
+
+int bkeyhit(void)
+{
+	return (keyfifoplc != keyfifoend);
+}
+
+void bflushkeys(void)
+{
+	keyfifoplc = keyfifoend = 0;
+}
+
 
 #if USE_POLYMOST
 static int osdfunc_setrendermode(const osdfuncparm_t *parm)

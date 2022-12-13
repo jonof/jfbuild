@@ -241,7 +241,7 @@ int app_main(int argc, char const * const argv[])
 	wm_setapptitle("BUILD by Ken Silverman");
 
 #ifdef RENDERTYPEWIN
-	backgroundidle = 1;
+	win_allowbackgroundidle(1);
 #endif
 
 	editstatus = 1;
@@ -327,8 +327,7 @@ int app_main(int argc, char const * const argv[])
 
 	buildsetlogfile("build.log");
 
-	inittimer(TIMERINTSPERSECOND);
-	installusertimercallback(keytimerstuff);
+	inittimer(TIMERINTSPERSECOND, keytimerstuff);
 
 	loadpics("tiles000.art",1048576);
 	loadnames();
@@ -2577,8 +2576,6 @@ int drawtilescreen(int pictopleft, int picbox)
 
 	xtiles = (xdim>>6); ytiles = (ydim>>6); tottiles = xtiles*ytiles;
 
-	begindrawing(); //{{{
-
 #if USE_POLYMOST && USE_OPENGL
 	setpolymost2dview();	// JBF 20040205: set to 2d rendering
 #endif
@@ -2666,9 +2663,7 @@ int drawtilescreen(int pictopleft, int picbox)
 	printext256(xdim-((int)strlen(names[i])<<3),ydim-8,whitecol,-1,names[i],0);
 
 	Bsprintf(snotbuf,"%dx%d",tilesizx[i],tilesizy[i]);
-    printext256(xdim>>2,ydim-8,whitecol,-1,snotbuf,0);
-
-	enddrawing();	//}}}
+	printext256(xdim>>2,ydim-8,whitecol,-1,snotbuf,0);
 
 	return(0);
 }
@@ -2838,16 +2833,13 @@ void overheadeditor(void)
 			{
 				x1 = mulscale11(sintable[(startang+2560)&2047],zoom) / 768;
 				y1 = mulscale11(sintable[(startang+2048)&2047],zoom) / 768;
-				begindrawing();	//{{{
 				drawline16((halfxdim16+x2)+x1,(midydim16+y2)+y1,(halfxdim16+x2)-x1,(midydim16+y2)-y1,6);
 				drawline16((halfxdim16+x2)+x1,(midydim16+y2)+y1,(halfxdim16+x2)+y1,(midydim16+y2)-x1,6);
 				drawline16((halfxdim16+x2)+x1,(midydim16+y2)+y1,(halfxdim16+x2)-y1,(midydim16+y2)+x1,6);
-				enddrawing();	//}}}
 			}
 
 		draw2dscreen(posx,posy,ang,zoom,grid);
 
-		begindrawing();	//{{{
 		if ((showtags == 1) && (zoom >= 768))
 		{
 			for(i=0;i<numsectors;i++)
@@ -2969,7 +2961,6 @@ void overheadeditor(void)
 			drawline16(halfxdim16+x2,midydim16+y2,halfxdim16+x2,midydim16+y2,15);
 		else
 			drawline16(halfxdim16+x2,midydim16+y2,halfxdim16+x2,midydim16+y2,5);
-		enddrawing();	//}}}
 
 		OSD_Draw();
 
@@ -3580,12 +3571,10 @@ void overheadeditor(void)
 				if (highlightsectorcnt == 0)
 				{
 					highlightx2 = searchx, highlighty2 = searchy;
-					begindrawing();	//{{{
 					drawline16(highlightx2,highlighty1,highlightx1,highlighty1,10);
 					drawline16(highlightx2,highlighty2,highlightx1,highlighty2,10);
 					drawline16(highlightx1,highlighty2,highlightx1,highlighty1,10);
 					drawline16(highlightx2,highlighty2,highlightx2,highlighty1,10);
-					enddrawing();	//}}}
 				}
 				if (highlightsectorcnt != 0)
 				{
@@ -5526,8 +5515,6 @@ void overheadeditor(void)
 								}
 							}
 							clearfilenames();
-							uninittimer();
-							uninitinput();
 							ExtUnInit();
 							uninitengine();
 							printf("Memory status: %d(%d) bytes\n",cachesize,artsize);
@@ -5564,9 +5551,7 @@ void overheadeditor(void)
 	if (setgamemode(fullscreen,xdimgame,ydimgame,bppgame) < 0)
 	{
 		ExtUnInit();
-		uninitinput();
-		uninittimer();
-		uninitsystem();
+		uninitengine();
 		clearfilenames();
 		printf("%d * %d not supported in this graphics mode\n",xdim,ydim);
 		exit(0);
@@ -6186,12 +6171,9 @@ int menuselect(int newpathmode)
 
 	getfilenames(selectedboardfilename, "*.map");
 
-	begindrawing();
 	printmessage16("Select .MAP file with arrows&enter.");
-	enddrawing();
 
 	do {
-		begindrawing();
 		clearbuf((unsigned char *)frameplace, (bytesperline*ydim16) >> 2, 0l);
 
 		if (pathsearchmode == PATHSEARCH_SYSTEM) {
@@ -6238,7 +6220,6 @@ int menuselect(int newpathmode)
 				}
 			}
 		}
-		enddrawing();
 		showframe();
 
 		keystatus[0xcb] = 0;
@@ -6310,9 +6291,7 @@ int menuselect(int newpathmode)
 			getfilenames(selectedboardfilename, "*.map");
 			ch = 0;
 
-			begindrawing();
 			clearbuf((unsigned char *)frameplace, (bytesperline*ydim16) >> 2, 0l);
-			enddrawing();
 			showframe();
 		}
 		if (ch == 13 && !findfileshigh) ch = 0;
@@ -6601,7 +6580,6 @@ void drawline16(int x1, int y1, int x2, int y2, unsigned char col)
 		d = 0;
 		if (y2 > y1) pinc = bytesperline; else pinc = -bytesperline;
 
-		begindrawing();	//{{{
 		p = ((ytop16+y1)*bytesperline)+x1+frameplace;
 		if (dy == 0 && drawlinepat == 0xffffffff) {
 			i = ((int)col<<24)|((int)col<<16)|((int)col<<8)|col;
@@ -6615,7 +6593,6 @@ void drawline16(int x1, int y1, int x2, int y2, unsigned char col)
 			if (d >= dx) { d -= dx; p += pinc; }
 			p++;
 		}
-		enddrawing();	//}}}
 		return;
 	}
 
@@ -6627,7 +6604,6 @@ void drawline16(int x1, int y1, int x2, int y2, unsigned char col)
 	d = 0;
 	if (x2 > x1) pinc = 1; else pinc = -1;
 
-	begindrawing();	//{{{
 	p = ((ytop16+y1)*bytesperline)+x1+frameplace;
 	for(i=dy;i>0;i--)
 	{
@@ -6637,7 +6613,6 @@ void drawline16(int x1, int y1, int x2, int y2, unsigned char col)
 		if (d >= dy) { d -= dy; p += pinc; }
 		p += bytesperline;
 	}
-	enddrawing();	//}}}
 }
 
 void drawcircle16(int x1, int y1, int r, unsigned char col)
@@ -6667,7 +6642,6 @@ void drawcircle16(int x1, int y1, int r, unsigned char col)
 	de = 2;
 	dse = 5 - (r << 1);
 
-	begindrawing();
 	p = ((ytop16+y1)*bytesperline)+x1+frameplace;
 
 	if (drawlinepat & pow2long[(patc++)&31]) {
@@ -6716,7 +6690,6 @@ void drawcircle16(int x1, int y1, int r, unsigned char col)
 				drawpixel((void *)(p+yp-xpbpl), col);	// 8
 		}
 	}
-	enddrawing();
 }
 
 
@@ -6743,10 +6716,8 @@ void qsetmodeany(int daxdim, int daydim)
 		halfxdim16 = xres >> 1;
 		midydim16 = scale(200,yres,480);
 
-		begindrawing();	//{{{
 		clearbuf((void *)(frameplace + (ydim16*bytesperline)), (bytesperline*STATUS2DSIZ) >> 2, 0x08080808l);
 		clearbuf((void *)frameplace, (ydim16*bytesperline) >> 2, 0L);
-		enddrawing();	//}}}
 	}
 
 	qsetmode = ((daxdim<<16)|(daydim&0xffff));
@@ -6773,8 +6744,6 @@ void draw2dgrid(int posxe, int posye, short ange, int zoome, short gride)
 
 	if (gride > 0)
 	{
-		begindrawing();	//{{{
-
 		yp1 = midydim16-mulscale14(posye+editorgridextent,zoome);
 		if (yp1 < 0) yp1 = 0;
 		yp2 = midydim16-mulscale14(posye-editorgridextent,zoome);
@@ -6821,8 +6790,6 @@ void draw2dgrid(int posxe, int posye, short ange, int zoome, short gride)
 				}
 			}
 		}
-
-		enddrawing();	//}}}
 	}
 }
 
@@ -6838,8 +6805,6 @@ void draw2dscreen(int posxe, int posye, short ange, int zoome, short gride)
 	unsigned char col;
 
 	if (qsetmode == 200) return;
-
-	begindrawing();	//{{{
 
 	if (editstatus == 0)
 	{
@@ -7052,8 +7017,6 @@ void draw2dscreen(int posxe, int posye, short ange, int zoome, short gride)
 	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16-xp1,midydim16-yp1,15);
 	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16+yp1,midydim16-xp1,15);
 	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16-yp1,midydim16+xp1,15);
-
-	enddrawing();	//}}}
 }
 
 
@@ -7070,7 +7033,6 @@ void printext16(int xpos, int ypos, short col, short backcol, const char *name, 
 	if (fontsize) { fontptr = smalltextfont; charxsiz = 4; }
 	else { fontptr = textfont; charxsiz = 8; }
 
-	begindrawing();	//{{{
 	for(i=0;name[i];i++)
 	{
 		letptr = &fontptr[((int)(unsigned char)name[i])<<3];
@@ -7088,7 +7050,6 @@ void printext16(int xpos, int ypos, short col, short backcol, const char *name, 
 		}
 		stx += charxsiz;
 	}
-	enddrawing();	//}}}
 }
 
 void printcoords16(int posxe, int posye, short ange)

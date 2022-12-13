@@ -16,6 +16,7 @@
 #include "crc32.h"
 
 #include "baselayer.h"
+#include "baselayer_priv.h"
 
 #include "engine_priv.h"
 #if USE_POLYMOST
@@ -2821,8 +2822,6 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 	longptr = (int *)davoxptr;
 	xyvoxoffs = ((daxsiz+1)<<2);
 
-	begindrawing();	//{{{
-
 	for(cnt=0;cnt<8;cnt++)
 	{
 		switch(cnt)
@@ -2949,8 +2948,6 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 			}
 		}
 	}
-
-	enddrawing();	//}}}
 }
 
 
@@ -5586,8 +5583,6 @@ void drawrooms(int daposx, int daposy, int daposz,
 #endif
 	//============================================================================= //POLYMOST ENDS
 
-	begindrawing();	//{{{
-
 	frameoffset = frameplace + windowy1*bytesperline + windowx1;
 
 	numhits = xdimen; numscans = 0; numbunches = 0;
@@ -5669,8 +5664,6 @@ void drawrooms(int daposx, int daposy, int daposz,
 		bunchfirst[closest] = bunchfirst[numbunches];
 		bunchlast[closest] = bunchlast[numbunches];
 	}
-
-	enddrawing();	//}}}
 }
 
 
@@ -5761,8 +5754,6 @@ killsprite:
 		i = j;
 	}
 
-	begindrawing();	//{{{
-
 	/*for(i=spritesortcnt-1;i>=0;i--)
 	{
 		xs = tspriteptr[i].x-globalposx;
@@ -5779,7 +5770,6 @@ killsprite:
 		drawline256(xs-65536,ys-65536,xs+65536,ys+65536,31);
 		drawline256(xs+65536,ys-65536,xs-65536,ys+65536,31);
 	}*/
-
 
 #if USE_POLYMOST
 		//Hack to make it draw all opaque quads first. This should reduce the chances of
@@ -5872,8 +5862,6 @@ killsprite:
 	}
 	while (spritesortcnt > 0) drawsprite(--spritesortcnt);
 	while (maskwallcnt > 0) drawmaskwall(--maskwallcnt);
-
-	enddrawing();	//}}}
 }
 
 
@@ -5906,8 +5894,6 @@ void drawmapview(int dax, int day, int zoome, short ang)
 	yvect2 = mulscale16(yvect,yxaspect);
 
 	sortnum = 0;
-
-	begindrawing();	//{{{
 
 	for(s=0,sec=&sector[s];s<numsectors;s++,sec++)
 		if (show2dsector[s>>3]&pow2char[s&7])
@@ -6162,8 +6148,6 @@ void drawmapview(int dax, int day, int zoome, short ang)
 			fillpolygon(npoints);
 		}
 	}
-
-	enddrawing();	//}}}
 }
 
 
@@ -7567,7 +7551,6 @@ writeerror:
 // setgamemode
 //
 // JBF: davidoption now functions as a windowed-mode flag (0 == windowed, 1 == fullscreen)
-extern char videomodereset;
 int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 {
 	int i, j;
@@ -7683,7 +7666,6 @@ void nextpage(void)
 	switch(qsetmode)
 	{
 		case 200:
-			begindrawing();	//{{{
 			for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
 			{
 				per = &permfifo[i];
@@ -7692,7 +7674,6 @@ void nextpage(void)
 							per->dashade,per->dapalnum,per->dastat,
 							per->cx1,per->cy1,per->cx2,per->cy2,per->uniqid);
 			}
-			enddrawing();	//}}}
 
 			OSD_Draw();
 #if USE_POLYMOST
@@ -7731,7 +7712,6 @@ void nextpage(void)
 			}
 			*/
 
-			begindrawing();	//{{{
 			for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
 			{
 				per = &permfifo[i];
@@ -7744,7 +7724,6 @@ void nextpage(void)
 				if (((per->pagesleft&127) == 0) && (i == permtail))
 					permtail = ((permtail+1)&(MAXPERMS-1));
 			}
-			enddrawing();	//}}}
 			break;
 
 		case 480:
@@ -9670,9 +9649,7 @@ void rotatesprite(int sx, int sy, int z, short a, short picnum, signed char dash
 	if ((tilesizx[picnum] <= 0) || (tilesizy[picnum] <= 0)) return;
 
 	if (((dastat&128) == 0) || (numpages < 2) || (beforedrawrooms != 0)) {
-		begindrawing();	//{{{
 		dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2,guniqhudid);
-		enddrawing();	//}}}
 	}
 
 	if ((dastat&64) && (cx1 <= 0) && (cy1 <= 0) && (cx2 >= xdim-1) && (cy2 >= ydim-1) &&
@@ -9944,16 +9921,13 @@ void clearview(int dacol)
 	}
 #endif
 
-	begindrawing();	//{{{
 	dx = windowx2-windowx1+1;
-	//dacol += (dacol<<8); dacol += (dacol<<16);
+	dacol += (dacol<<8); dacol += (dacol<<16);
 	p = frameplace+ylookup[windowy1]+windowx1;
 	for(y=windowy1;y<=windowy2;y++) {
-		//clearbufbyte((void*)p,dx,dacol);
-		Bmemset((void*)p,dacol,dx);
+		clearbufbyte((void*)p,dx,dacol);
 		p += ylookup[1];
 	}
-	enddrawing();	//}}}
 
 	faketimerhandler();
 }
@@ -9965,7 +9939,6 @@ void clearview(int dacol)
 void clearallviews(int dacol)
 {
 	if (qsetmode != 200) return;
-	//dacol += (dacol<<8); dacol += (dacol<<16);
 
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3) {
@@ -9986,11 +9959,8 @@ void clearallviews(int dacol)
 	}
 #endif
 
-	begindrawing();	//{{{
-	//clearbufbyte((void*)frameplace,imageSize,0L);
-	Bmemset((void*)frameplace,dacol,imageSize);
-	enddrawing();	//}}}
-	//nextpage();
+	dacol += (dacol<<8); dacol += (dacol<<16);
+	clearbuf((void*)frameplace,imageSize>>2,dacol);
 
 	faketimerhandler();
 }
@@ -10005,9 +9975,7 @@ void plotpixel(int x, int y, unsigned char col)
 	if (!polymost_plotpixel(x,y,col)) return;
 #endif
 
-	begindrawing();	//{{{
 	drawpixel((void*)(ylookup[y]+x+frameplace),(int)col);
-	enddrawing();	//}}}
 }
 
 
@@ -10016,16 +9984,11 @@ void plotpixel(int x, int y, unsigned char col)
 //
 unsigned char getpixel(int x, int y)
 {
-	unsigned char r;
-
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3 && qsetmode == 200) return 0;
 #endif
 
-	begindrawing();	//{{{
-	r = readpixel((void*)(ylookup[y]+x+frameplace));
-	enddrawing();	//}}}
-	return(r);
+	return readpixel((void*)(ylookup[y]+x+frameplace));
 }
 
 
@@ -10163,7 +10126,6 @@ void completemirror(void)
 	if (mirrorsx2 < windowx2-windowx1-1) mirrorsx2++;
 	if (mirrorsx2 < mirrorsx1) return;
 
-	begindrawing();
 	p = frameplace+ylookup[windowy1+mirrorsy1]+windowx1+mirrorsx1;
 	i = windowx2-windowx1-mirrorsx2-mirrorsx1; mirrorsx2 -= mirrorsx1;
 	for(dy=mirrorsy2-mirrorsy1-1;dy>=0;dy--)
@@ -10174,7 +10136,6 @@ void completemirror(void)
 		p += ylookup[1];
 		faketimerhandler();
 	}
-	enddrawing();
 }
 
 
@@ -10434,7 +10395,6 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		plc = y1+mulscale12((2047-x1)&4095,inc);
 		i = ((x1+2048)>>12); daend = ((x2+2048)>>12);
 
-		begindrawing();	//{{{
 		for(;i<daend;i++)
 		{
 			j = (plc>>12);
@@ -10442,7 +10402,6 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 				drawpixel((void*)(frameplace+ylookup[j]+i),col);
 			plc += inc;
 		}
-		enddrawing();	//}}}
 	}
 	else
 	{
@@ -10457,7 +10416,6 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		plc = x1+mulscale12((2047-y1)&4095,inc);
 		i = ((y1+2048)>>12); daend = ((y2+2048)>>12);
 
-		begindrawing();	//{{{
 		p = ylookup[i]+frameplace;
 		for(;i<daend;i++)
 		{
@@ -10466,7 +10424,6 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 				drawpixel((void*)(j+p),col);
 			plc += inc; p += ylookup[1];
 		}
-		enddrawing();	//}}}
 	}
 }
 
@@ -10488,7 +10445,6 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 	if (!polymost_printext256(xpos,ypos,col,backcol,name,fontsize)) return;
 #endif
 
-	begindrawing();	//{{{
 	for(i=0;name[i];i++)
 	{
 		letptr = &fontptr[name[i]<<3];
@@ -10506,7 +10462,6 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 		}
 		stx += charxsiz;
 	}
-	enddrawing();	//}}}
 }
 
 
@@ -10584,7 +10539,6 @@ static int screencapture_writeframe(BFILE *fil, char mode, void *v,
 	}
 #endif
 
-	begindrawing();	//{{{
 	ptr = (unsigned char *)frameplace;
 	if (bottotop) {
 		ystart = ydim-1;
@@ -10612,7 +10566,6 @@ static int screencapture_writeframe(BFILE *fil, char mode, void *v,
 		}
 	}
 
-	enddrawing();	//}}}
 	return(0);
 }
 

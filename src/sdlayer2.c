@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "baselayer_priv.h"
 #include "sdlayer.h"
 #include "cache1d.h"
 #include "pragmas.h"
@@ -51,14 +52,6 @@ int startwin_idle(void *s) { (void)s; return 0; }
 int startwin_settitle(const char *s) { (void)s; return 0; }
 #endif
 
-// undefine to restrict windowed resolutions to conventional sizes
-#define ANY_WINDOWED_SIZE
-
-int   _buildargc = 1;
-const char **_buildargv = NULL;
-
-char quitevent=0, appactive=1;
-
 static char apptitle[256] = "Build Engine";
 static char wintitle[256] = "";
 
@@ -71,40 +64,20 @@ static SDL_Texture *sdl_texture;	// For non-GL 8-bit mode output.
 static SDL_Surface *sdl_surface;	// For non-GL 8-bit mode output.
 #endif
 static unsigned char *frame;
-int xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
-intptr_t frameplace=0;
-char modechange=1;
-char offscreenrendering=0;
-char videomodereset = 0;
 extern int gammabrightness;
 extern float curgamma;
 
 #if USE_OPENGL
 static SDL_GLContext sdl_glcontext;
 static glbuild8bit gl8bit;
-static char nogl=0;
-int glswapinterval = 1;
 
 static int set_glswapinterval(const osdfuncparm_t *parm);
 #endif
 
 // input
-int inputdevices=0;
-char keystatus[256];
-int keyfifo[KEYFIFOSIZ];
-unsigned char keyasciififo[KEYFIFOSIZ];
-int keyfifoplc, keyfifoend;
-int keyasciififoplc, keyasciififoend;
 static char keynames[256][24];
-int mousex=0,mousey=0,mouseb=0;
-int joyaxis[SDL_CONTROLLER_AXIS_MAX], joyb=0;
-char joynumaxes=0, joynumbuttons=0;
 static char mouseacquired=0,moustat=0;
 static SDL_GameController *controller = NULL;
-
-void (*keypresscallback)(int,int) = 0;
-void (*mousepresscallback)(int,int) = 0;
-void (*joypresscallback)(int,int) = 0;
 
 struct keytranslate {
 	unsigned char normal;
@@ -354,10 +327,10 @@ int initsystem(void)
 #if USE_OPENGL
 	if (getenv("BUILD_NOGL")) {
 		buildputs("OpenGL disabled.\n");
-		nogl = 1;
+		glunavailable = 1;
 	} else {
-		nogl = loadgldriver(getenv("BUILD_GLDRV"));
-		if (nogl) {
+		glunavailable = loadgldriver(getenv("BUILD_GLDRV"));
+		if (glunavailable) {
 			buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		}
 	}
@@ -485,7 +458,7 @@ int initinput(void)
 				buildprintf("Using controller %s\n", SDL_GameControllerName(controller));
 
 				inputdevices |= 4;
-				joynumaxes    = SDL_CONTROLLER_AXIS_MAX;
+				joynumaxes    = min(Barraylen(joyaxis), SDL_CONTROLLER_AXIS_MAX);
 				joynumbuttons = SDL_CONTROLLER_BUTTON_MAX;
 			} else {
 				buildprintf("No controllers are usable\n");
@@ -527,38 +500,6 @@ const char *getjoyname(int what, int num)
 	}
 }
 
-//
-// bgetchar, bkbhit, bflushchars -- character-based input functions
-//
-unsigned char bgetchar(void)
-{
-	unsigned char c;
-	if (keyasciififoplc == keyasciififoend) return 0;
-	c = keyasciififo[keyasciififoplc];
-	keyasciififoplc = ((keyasciififoplc+1)&(KEYFIFOSIZ-1));
-#ifdef __APPLE__
-	if (c == SDL_SCANCODE_DELETE) c = SDL_SCANCODE_BACKSPACE;
-#endif
-	return c;
-}
-
-int bkbhit(void)
-{
-	return (keyasciififoplc != keyasciififoend);
-}
-
-void bflushchars(void)
-{
-	keyasciififoplc = keyasciififoend = 0;
-}
-
-
-//
-// set{key|mouse|joy}presscallback() -- sets a callback which gets notified when keys are pressed
-//
-void setkeypresscallback(void (*callback)(int, int)) { keypresscallback = callback; }
-void setmousepresscallback(void (*callback)(int, int)) { mousepresscallback = callback; }
-void setjoypresscallback(void (*callback)(int, int)) { joypresscallback = callback; }
 
 //
 // initmouse() -- init mouse input
@@ -648,7 +589,7 @@ static void (*usertimercallback)(void) = NULL;
 //
 // inittimer() -- initialise timer
 //
-int inittimer(int tickspersecond)
+int inittimer(int tickspersecond, void(*callback)(void))
 {
 	if (timerfreq) return 0;    // already installed
 
@@ -658,7 +599,7 @@ int inittimer(int tickspersecond)
 	timerticspersec = tickspersecond;
 	timerlastsample = (Uint32)(SDL_GetPerformanceCounter() * timerticspersec / timerfreq);
 
-	usertimercallback = NULL;
+	usertimercallback = callback;
 
 	return 0;
 }
@@ -714,20 +655,6 @@ unsigned int getusecticks(void)
 int gettimerfreq(void)
 {
 	return timerticspersec;
-}
-
-
-//
-// installusertimercallback() -- set up a callback function to be called when the timer is fired
-//
-void (*installusertimercallback(void (*callback)(void)))(void)
-{
-	void (*oldtimercallback)(void);
-
-	oldtimercallback = usertimercallback;
-	usertimercallback = callback;
-
-	return oldtimercallback;
 }
 
 
@@ -808,7 +735,7 @@ void getvalidmodes(void)
 
 #if USE_POLYMOST && USE_OPENGL
 	// Fullscreen >8-bit modes
-	if (!nogl) {
+	if (!glunavailable) {
 		SDL_DisplayMode mode;
 		for (int j = SDL_GetNumDisplayModes(0) - 1; j >= 0; j--) {
 			SDL_GetDisplayMode(0, j, &mode);
@@ -828,7 +755,7 @@ void getvalidmodes(void)
 
 #if USE_POLYMOST && USE_OPENGL
 	// Windowed >8-bit modes
-	if (!nogl) {
+	if (!glunavailable) {
 		for (i=0; defaultres[i][0]; i++) {
 			CHECKL(defaultres[i][0],defaultres[i][1]) {
 				ADDMODE(defaultres[i][0], defaultres[i][1], SDL_BITSPERPIXEL(desktop.format), 0)
@@ -845,62 +772,6 @@ void getvalidmodes(void)
 	modeschecked=1;
 }
 
-
-//
-// checkvideomode() -- makes sure the video mode passed is legal
-//
-int checkvideomode(int *x, int *y, int c, int fs, int forced)
-{
-	int i, nearest=-1, dx, dy, odx=9999, ody=9999;
-
-	getvalidmodes();
-
-#if USE_POLYMOST && USE_OPENGL
-	if (c > 8 && nogl) return -1;
-#else
-	if (c > 8) return -1;
-#endif
-
-	// fix up the passed resolution values to be multiples of 8
-	// and at least 320x200 or at most MAXXDIMxMAXYDIM
-	if (*x < 320) *x = 320;
-	if (*y < 200) *y = 200;
-	if (*x > MAXXDIM) *x = MAXXDIM;
-	if (*y > MAXYDIM) *y = MAXYDIM;
-	*x &= 0xfffffff8l;
-
-	for (i=0; i<validmodecnt; i++) {
-		if (validmode[i].bpp != c) continue;
-		if (validmode[i].fs != fs) continue;
-		dx = klabs(validmode[i].xdim - *x);
-		dy = klabs(validmode[i].ydim - *y);
-		if (!(dx | dy)) {   // perfect match
-			nearest = i;
-			break;
-		}
-		if ((dx <= odx) && (dy <= ody)) {
-			nearest = i;
-			odx = dx; ody = dy;
-		}
-	}
-
-#ifdef ANY_WINDOWED_SIZE
-	if (!forced && (fs&1) == 0 && (nearest < 0 || (validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)))
-		return 0x7fffffffl;
-#endif
-
-	if (nearest < 0) {
-		// no mode that will match (eg. if no fullscreen modes)
-		return -1;
-	}
-
-	*x = validmode[nearest].xdim;
-	*y = validmode[nearest].ydim;
-
-	return nearest;     // JBF 20031206: Returns the mode number
-}
-
-
 static void shutdownvideo(void)
 {
 	if (frame) {
@@ -908,7 +779,7 @@ static void shutdownvideo(void)
 		frame = NULL;
 	}
 #if USE_OPENGL
-	if (!nogl) {
+	if (!glunavailable) {
 		glbuild_delete_8bit_shader(&gl8bit);
 	}
 	if (sdl_glcontext) {
@@ -972,7 +843,7 @@ int setvideomode(int x, int y, int c, int fs)
 		flags = SDL_WINDOW_HIDDEN;
 
 #if USE_OPENGL
-		if (!nogl) {
+		if (!glunavailable) {
 #if (USE_OPENGL == USE_GLES2)
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
 			SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
@@ -1036,7 +907,7 @@ int setvideomode(int x, int y, int c, int fs)
 		pitch = (((x|1) + 4) & ~3);
 
 #if USE_OPENGL
-		if (nogl) {
+		if (glunavailable) {
 #endif
 #ifdef SDLAYER_USE_RENDERER
 			// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
@@ -1076,13 +947,13 @@ int setvideomode(int x, int y, int c, int fs)
 			sdl_glcontext = SDL_GL_CreateContext(sdl_window);
 			if (!sdl_glcontext) {
 				buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
-				nogl = 1;
+				glunavailable = 1;
 			} else if (glbuild_init()) {
-				nogl = 1;
+				glunavailable = 1;
 			} else if (glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch, winx, winy) < 0) {
-				nogl = 1;
+				glunavailable = 1;
 			}
-			if (nogl) {
+			if (glunavailable) {
 				// Try again but without OpenGL.
 				buildputs("Falling back to non-OpenGL render.\n");
 				return setvideomode(x, y, c, fs);
@@ -1179,28 +1050,12 @@ void resetvideomode(void)
 
 
 //
-// begindrawing() -- locks the framebuffer for drawing
-//
-void begindrawing(void)
-{
-}
-
-
-//
-// enddrawing() -- unlocks the framebuffer
-//
-void enddrawing(void)
-{
-}
-
-
-//
 // showframe() -- update the display
 //
 void showframe(void)
 {
 #if USE_OPENGL
-	if (!nogl) {
+	if (!glunavailable) {
 		if (bpp == 8) {
 			glbuild_update_8bit_frame(&gl8bit, frame, xres, yres, bytesperline);
 			glbuild_draw_8bit_frame(&gl8bit);
@@ -1288,7 +1143,7 @@ int setpalette(int start, int num, unsigned char *dapal)
 {
 	(void)start; (void)num; (void)dapal;
 #if USE_OPENGL
-	if (!nogl) {
+	if (!glunavailable) {
 		glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
 	}
 #endif
@@ -1458,13 +1313,9 @@ int handleevents(void)
 				if (ev.key.type == SDL_KEYDOWN) {
 					if (!keystatus[code]) {
 						SetKey(code, 1);
-						if (keypresscallback)
-							keypresscallback(code, 1);
 					}
 				} else {
 					SetKey(code, 0);
-					if (keypresscallback)
-						keypresscallback(code, 0);
 				}
 				break;
 
@@ -1493,9 +1344,6 @@ int handleevents(void)
 					mouseb |= (1<<j);
 				else
 					mouseb &= ~(1<<j);
-
-				if (mousepresscallback)
-					mousepresscallback(j+1, ev.button.state == SDL_PRESSED);
 				break;
 
 			case SDL_MOUSEWHEEL:
@@ -1508,10 +1356,6 @@ int handleevents(void)
 				}
 				mouseb |= 1<<j;
 				// 'release' is done in readmousebstatus()
-				if (mousepresscallback) {
-					mousepresscallback(j+1, 1);
-					mousepresscallback(j+1, 0);
-				}
 				break;
 
 			case SDL_MOUSEMOTION:
@@ -1682,7 +1526,7 @@ static int set_glswapinterval(const osdfuncparm_t *parm)
 {
 	int interval;
 
-	if (nogl) {
+	if (glunavailable) {
 		buildputs("glswapinterval is not adjustable\n");
 		return OSDCMD_OK;
 	}

@@ -203,6 +203,8 @@ static inline float B_SWAPFLOAT(float f) {
 # define max(a,b) ( ((a) > (b)) ? (a) : (b) )
 #endif
 
+#define Barraylen(s) (sizeof s / sizeof s[0])
+
 // On Windows, _MAX_PATH is 260, null included.
 // POSIX says 256 is the most it will write into a user buffer of unspecified size, null included.
 // X/Open says 1024 for the same purposes as POSIX.

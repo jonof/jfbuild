@@ -2977,7 +2977,6 @@ void polymost_drawrooms ()
 
 	if (!rendmode) return;
 
-	begindrawing();
 	frameoffset = frameplace + windowy1*bytesperline + windowx1;
 
 #if USE_OPENGL
@@ -3080,7 +3079,7 @@ void polymost_drawrooms ()
 			pz2[n2] = SCISDIST; n2++;
 		}
 	}
-	if (n2 < 3) { enddrawing(); return; }
+	if (n2 < 3) return;
 	for(i=0;i<n2;i++)
 	{
 		r = ghalfx / pz2[i];
@@ -3213,8 +3212,6 @@ void polymost_drawrooms ()
 #endif
 	}
 #endif
-
-	enddrawing();
 }
 
 void polymost_drawmaskwall (int damaskwallcnt)

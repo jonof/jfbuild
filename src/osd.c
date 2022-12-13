@@ -862,8 +862,6 @@ void OSD_Draw(void)
 	row = osdrows-1;
 	lines = min( osdlines-osdhead, osdrows );
 
-	begindrawing();
-
 	clearbackground(osdcols,osdrows+1);
 
 	for (; lines>0; lines--, row--) {
@@ -879,8 +877,6 @@ void OSD_Draw(void)
 		drawosdchar(3+x,osdrows,osdeditbuf[osdeditwinstart+x],osdeditshade,osdeditpal);
 
 	drawosdcursor(3+osdeditcursor-osdeditwinstart,osdrows,osdovertype,keytime);
-
-	enddrawing();
 }
 
 

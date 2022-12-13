@@ -29,17 +29,13 @@
 #include "wglext.h"
 #endif
 
+#include "baselayer_priv.h"
 #include "winlayer.h"
 #include "pragmas.h"
 #include "a.h"
 #include "osd.h"
 
 
-// undefine to restrict windowed resolutions to conventional sizes
-#define ANY_WINDOWED_SIZE
-
-int   _buildargc = 0;
-const char **_buildargv = NULL;
 static char *argvbuf = NULL;
 
 // Windows crud
@@ -50,7 +46,7 @@ static HDC hDCWindow = NULL;
 static BOOL window_class_registered = FALSE;
 static HANDLE instanceflag = NULL;
 
-int    backgroundidle = 1;
+static int backgroundidle = 1;
 static char apptitle[256] = "Build Engine";
 static char wintitle[256] = "";
 
@@ -63,7 +59,6 @@ extern float curgamma;
 static HGLRC hGLRC = 0;
 static HANDLE hGLDLL;
 static glbuild8bit gl8bit;
-static unsigned char nogl=0;
 static unsigned char *frame = NULL;
 
 static HWND hGLWindow = NULL;
@@ -111,39 +106,18 @@ static void shutdownvideo(void);
 
 // video
 static int desktopxdim=0,desktopydim=0,desktopbpp=0, desktopmodeset=0;
-int xres=-1, yres=-1, fullscreen=0, bpp=0, bytesperline=0, imageSize=0;
-intptr_t frameplace=0;
 static int windowposx, windowposy;
 static unsigned modeschecked=0;
-unsigned maxrefreshfreq=60;
-char modechange=1;
-char offscreenrendering=0;
-int glswapinterval = 1;
-int glcolourdepth=32;
-char videomodereset = 0;
+static unsigned maxrefreshfreq=60;
 
 // input and events
-int inputdevices=0;
-char quitevent=0, appactive=1;
-int mousex=0, mousey=0, mouseb=0;
 static unsigned int mousewheel[2] = { 0,0 };
 #define MouseWheelFakePressTime (100)	// getticks() is a 1000Hz timer, and the button press is faked for 100ms
-int joyaxis[8], joyb=0;
-char joynumaxes=0, joynumbuttons=0;
 
 static char taskswitching=1;
 
-char keystatus[256];
-int keyfifo[KEYFIFOSIZ];
-unsigned char keyasciififo[KEYFIFOSIZ];
-int keyfifoplc, keyfifoend;
-int keyasciififoplc, keyasciififoend;
 static char keynames[256][24];
 static const int wscantable[256], wxscantable[256];
-
-void (*keypresscallback)(int,int) = 0;
-void (*mousepresscallback)(int,int) = 0;
-void (*joypresscallback)(int,int) = 0;
 
 
 
@@ -191,12 +165,32 @@ void win_allowtaskswitching(int onf)
 
 
 //
+// win_allowbackgroundidle() -- allow the application to idle in the background
+//
+void win_allowbackgroundidle(int onf)
+{
+	backgroundidle = onf;
+}
+
+
+//
 // win_checkinstance() -- looks for another instance of a Build app
 //
 int win_checkinstance(void)
 {
 	if (!instanceflag) return 0;
 	return (WaitForSingleObject(instanceflag,0) == WAIT_TIMEOUT);
+}
+
+
+void win_setmaxrefreshfreq(unsigned frequency)
+{
+	maxrefreshfreq = frequency;
+}
+
+unsigned win_getmaxrefreshfreq(void)
+{
+	return maxrefreshfreq;
 }
 
 
@@ -456,7 +450,7 @@ static int set_glswapinterval(const osdfuncparm_t *parm)
 {
 	int interval;
 
-	if (!wglfunc.wglSwapIntervalEXT || nogl) {
+	if (!wglfunc.wglSwapIntervalEXT || glunavailable) {
 		buildputs("glswapinterval is not adjustable\n");
 		return OSDCMD_OK;
 	}
@@ -508,21 +502,21 @@ int initsystem(void)
 
 #if USE_OPENGL
 	memset(&wglfunc, 0, sizeof(wglfunc));
-	nogl = loadgldriver(getenv("BUILD_GLDRV"));
-	if (!nogl) {
+	glunavailable = loadgldriver(getenv("BUILD_GLDRV"));
+	if (!glunavailable) {
 		// Load the core WGL functions.
 		wglfunc.wglGetProcAddress = getglprocaddress("wglGetProcAddress", 0);
 		wglfunc.wglCreateContext  = getglprocaddress("wglCreateContext", 0);
 		wglfunc.wglDeleteContext  = getglprocaddress("wglDeleteContext", 0);
 		wglfunc.wglMakeCurrent    = getglprocaddress("wglMakeCurrent", 0);
 		wglfunc.wglSwapBuffers    = getglprocaddress("wglSwapBuffers", 0);
-		nogl = !wglfunc.wglGetProcAddress ||
+		glunavailable = !wglfunc.wglGetProcAddress ||
 		 	   !wglfunc.wglCreateContext ||
 		 	   !wglfunc.wglDeleteContext ||
 		 	   !wglfunc.wglMakeCurrent ||
 		 	   !wglfunc.wglSwapBuffers;
 	}
-	if (nogl) {
+	if (glunavailable) {
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		memset(&wglfunc, 0, sizeof(wglfunc));
 	} else {
@@ -699,37 +693,6 @@ void uninitinput(void)
 
 
 //
-// bgetchar, bkbhit, bflushchars -- character-based input functions
-//
-unsigned char bgetchar(void)
-{
-	unsigned char c;
-	if (keyasciififoplc == keyasciififoend) return 0;
-	c = keyasciififo[keyasciififoplc];
-	keyasciififoplc = ((keyasciififoplc+1)&(KEYFIFOSIZ-1));
-	return c;
-}
-
-int bkbhit(void)
-{
-	return (keyasciififoplc != keyasciififoend);
-}
-
-void bflushchars(void)
-{
-	keyasciififoplc = keyasciififoend = 0;
-}
-
-
-//
-// set{key|mouse|joy}presscallback() -- sets a callback which gets notified when keys are pressed
-//
-void setkeypresscallback(void (*callback)(int, int)) { keypresscallback = callback; }
-void setmousepresscallback(void (*callback)(int, int)) { mousepresscallback = callback; }
-void setjoypresscallback(void (*callback)(int, int)) { joypresscallback = callback; }
-
-
-//
 // initmouse() -- init mouse input
 //
 int initmouse(void)
@@ -816,11 +779,9 @@ static void updatemouse(void)
 
 	// we only want the wheel to signal once, but hold the state for a moment
 	if (mousewheel[0] > 0 && t - mousewheel[0] > MouseWheelFakePressTime) {
-		if (mousepresscallback) mousepresscallback(5,0);
 		mousewheel[0] = 0; mouseb &= ~16;
 	}
 	if (mousewheel[1] > 0 && t - mousewheel[1] > MouseWheelFakePressTime) {
-		if (mousepresscallback) mousepresscallback(6,0);
 		mousewheel[1] = 0; mouseb &= ~32;
 	}
 }
@@ -902,21 +863,9 @@ void releaseallbuttons(void)
 {
 	int i;
 
-	if (mousepresscallback) {
-		if (mouseb & 1) mousepresscallback(1, 0);
-		if (mouseb & 2) mousepresscallback(2, 0);
-		if (mouseb & 4) mousepresscallback(3, 0);
-		if (mouseb & 8) mousepresscallback(4, 0);
-		if (mousewheel[0]>0) mousepresscallback(5,0);
-		if (mousewheel[1]>0) mousepresscallback(6,0);
-	}
 	mousewheel[0]=mousewheel[1]=0;
 	mouseb = 0;
 
-	if (joypresscallback) {
-		for (i=0;i<32;i++)
-			if (joyb & (1<<i)) joypresscallback(i+1, 0);
-	}
 	joyb = joyblast = 0;
 
 	for (i=0;i<256;i++) {
@@ -924,7 +873,6 @@ void releaseallbuttons(void)
 		//if (OSD_HandleKey(i, 0) != 0) {
 			OSD_HandleKey(i, 0);
 			SetKey(i, 0);
-			if (keypresscallback) keypresscallback(i, 0);
 		//}
 	}
 }
@@ -1025,23 +973,9 @@ static void (*usertimercallback)(void) = NULL;
 //  This timer stuff is all Ken's idea.
 
 //
-// installusertimercallback() -- set up a callback function to be called when the timer is fired
-//
-void (*installusertimercallback(void (*callback)(void)))(void)
-{
-	void (*oldtimercallback)(void);
-
-	oldtimercallback = usertimercallback;
-	usertimercallback = callback;
-
-	return oldtimercallback;
-}
-
-
-//
 // inittimer() -- initialise timer
 //
-int inittimer(int tickspersecond)
+int inittimer(int tickspersecond, void(*callback)(void))
 {
 	int64_t t;
 
@@ -1061,7 +995,7 @@ int inittimer(int tickspersecond)
 	QueryPerformanceCounter((LARGE_INTEGER*)&t);
 	timerlastsample = (int)(t*timerticspersec / timerfreq);
 
-	usertimercallback = NULL;
+	usertimercallback = callback;
 
 	return 0;
 }
@@ -1145,65 +1079,6 @@ static VOID    *lpPixels    = NULL;
 
 static int setgammaramp(WORD gt[3][256]);
 static int getgammaramp(WORD gt[3][256]);
-
-//
-// checkvideomode() -- makes sure the video mode passed is legal
-//
-int checkvideomode(int *x, int *y, int c, int fs, int forced)
-{
-	int i, nearest=-1, dx, dy, odx=9999, ody=9999;
-
-	getvalidmodes();
-
-#if USE_OPENGL
-	if (c > 8 && nogl) return -1;
-#else
-	if (c > 8) return -1;
-#endif
-
-	// fix up the passed resolution values to be multiples of 8
-	// and at least 320x200 or at most MAXXDIMxMAXYDIM
-	if (*x < 320) *x = 320;
-	if (*y < 200) *y = 200;
-	if (*x > MAXXDIM) *x = MAXXDIM;
-	if (*y > MAXYDIM) *y = MAXYDIM;
-	*x &= 0xfffffff8l;
-
-	for (i=0; i<validmodecnt; i++) {
-		if (validmode[i].bpp != c) continue;
-		if (validmode[i].fs != fs) continue;
-		dx = klabs(validmode[i].xdim - *x);
-		dy = klabs(validmode[i].ydim - *y);
-		if (!(dx | dy)) { 	// perfect match
-			nearest = i;
-			break;
-		}
-		if ((dx <= odx) && (dy <= ody)) {
-			nearest = i;
-			odx = dx; ody = dy;
-		}
-	}
-
-#ifdef ANY_WINDOWED_SIZE
-	if (!forced && (fs&1) == 0 && (nearest < 0 || validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)) {
-		// check the colour depth is recognised at the very least
-		for (i=0;i<validmodecnt;i++)
-			if (validmode[i].bpp == c)
-				return 0x7fffffffl;
-		return -1;	// strange colour depth
-	}
-#endif
-
-	if (nearest < 0) {
-		// no mode that will match (eg. if no fullscreen modes)
-		return -1;
-	}
-
-	*x = validmode[nearest].xdim;
-	*y = validmode[nearest].ydim;
-
-	return nearest;		// JBF 20031206: Returns the mode number
-}
 
 static void shutdownvideo(void)
 {
@@ -1367,7 +1242,7 @@ void getvalidmodes(void)
 
 #if USE_POLYMOST && USE_OPENGL
 	// Fullscreen >8-bit modes.
-	if (!nogl) cdsenummodes();
+	if (!glunavailable) cdsenummodes();
 #endif
 
 	// Windowed modes can't be bigger than the current desktop resolution.
@@ -1383,7 +1258,7 @@ void getvalidmodes(void)
 
 #if USE_POLYMOST && USE_OPENGL
 	// Windowed >8-bit modes
-	if (!nogl) {
+	if (!glunavailable) {
 		for (i=0; defaultres[i][0]; i++) {
 			CHECKL(defaultres[i][0],defaultres[i][1]) {
 				ADDMODE(defaultres[i][0], defaultres[i][1], desktopbpp, 0, -1);
@@ -1412,22 +1287,6 @@ void resetvideomode(void)
 
 
 //
-// begindrawing() -- locks the framebuffer for drawing
-//
-void begindrawing(void)
-{
-}
-
-
-//
-// enddrawing() -- unlocks the framebuffer
-//
-void enddrawing(void)
-{
-}
-
-
-//
 // showframe() -- update the display
 //
 void showframe(void)
@@ -1437,7 +1296,7 @@ void showframe(void)
 	int i,j;
 
 #if USE_OPENGL
-	if (!nogl) {
+	if (!glunavailable) {
 		if (bpp == 8) {
 			glbuild_update_8bit_frame(&gl8bit, frame, xres, yres, bytesperline);
 			glbuild_draw_8bit_frame(&gl8bit);
@@ -1484,7 +1343,7 @@ int setpalette(int start, int num, unsigned char * dapal)
 	(void)start; (void)num; (void)dapal;
 
 #if USE_OPENGL
-	if (!nogl && bpp == 8) {
+	if (!glunavailable && bpp == 8) {
 		glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
 		return 0;
 	}
@@ -2093,7 +1952,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 		int i, j;
 
 #if USE_OPENGL
-		if (nogl) {
+		if (glunavailable) {
 #endif
 			// 8-bit software with no GL shader uses classic Windows DIB blitting.
 			if (SetupDIB(width, height)) {
@@ -2108,7 +1967,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 			if (SetupOpenGL(vw, vh, bitspp)) {
 				// No luck. Write off OpenGL and try DIB.
 				buildputs("OpenGL initialisation failed. Falling back to DIB mode.\n");
-				nogl = 1;
+				glunavailable = 1;
 				return CreateAppWindow(width, height, bitspp, fs, refresh);
 			}
 
@@ -2409,7 +2268,6 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 				} else if (OSD_HandleKey(scan, press) != 0) {
 					if (!keystatus[scan] || !press) {
 						SetKey(scan, press);
-						if (keypresscallback) keypresscallback(scan, press);
 					}
 				}
 			}
@@ -2448,15 +2306,9 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 						switch ((raw.data.mouse.usButtonFlags >> (but << 1)) & 3) {
 							case 1:		// press
 								mouseb |= (1 << but);
-								if (mousepresscallback) {
-									mousepresscallback(but, 1);
-								}
 								break;
 							case 2:		// release
 								mouseb &= ~(1 << but);
-								if (mousepresscallback) {
-									mousepresscallback(but, 0);
-								}
 								break;
 							default: break;	// no change
 						}
@@ -2467,15 +2319,8 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 
 						// Repeated events before the fake button release timer
 						// expires need to trigger a release and a new press.
-						if (mousewheel[direction] > 0 && mousepresscallback) {
-							mousepresscallback(5 + direction, 0);
-						}
-
 						mousewheel[direction] = getticks();
 						mouseb |= (16 << direction);
-						if (mousepresscallback) {
-							mousepresscallback(5 + direction, 1);
-						}
 					}
 
 					if (raw.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE) {

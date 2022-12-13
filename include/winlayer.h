@@ -9,16 +9,15 @@
 extern "C" {
 #endif
 
-extern int backgroundidle;	// set to 1 to tell winlayer to go to idle priority when inactive
-extern unsigned maxrefreshfreq;
-
-extern int glusecds;
-
 intptr_t win_gethwnd(void);
 intptr_t win_gethinstance(void);
 
 void win_allowtaskswitching(int onf);
+void win_allowbackgroundidle(int onf);
 int win_checkinstance(void);
+
+void win_setmaxrefreshfreq(unsigned frequency);
+unsigned win_getmaxrefreshfreq(void);
 
 #ifdef __cplusplus
 }

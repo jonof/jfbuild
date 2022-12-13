@@ -3,15 +3,15 @@
 $(SRC)/a-c.$o: $(SRC)/a-c.c $(INC)/compat.h $(SRC)/a.h
 $(SRC)/a.$o: $(SRC)/a.$(asm)
 $(SRC)/asmprot.$o: $(SRC)/asmprot.c $(SRC)/a.h
-$(SRC)/baselayer.$o: $(SRC)/baselayer.c $(INC)/build.h $(INC)/compat.h $(INC)/osd.h $(INC)/baselayer.h $(INC)/glbuild.h
+$(SRC)/baselayer.$o: $(SRC)/baselayer.c $(INC)/build.h $(INC)/compat.h $(INC)/osd.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/glbuild.h
 $(SRC)/build.$o: $(SRC)/build.c $(INC)/build.h $(SRC)/engine_priv.h $(INC)/compat.h $(INC)/pragmas.h $(INC)/osd.h $(INC)/cache1d.h $(INC)/editor.h $(INC)/baselayer.h
 $(SRC)/cache1d.$o: $(SRC)/cache1d.c $(INC)/build.h $(INC)/compat.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/kplib.h
 $(SRC)/compat.$o: $(SRC)/compat.c $(INC)/compat.h
 $(SRC)/config.$o: $(SRC)/config.c $(INC)/build.h $(INC)/compat.h $(INC)/editor.h $(INC)/osd.h $(INC)/scriptfile.h $(INC)/winlayer.h $(INC)/baselayer.h
 $(SRC)/crc32.$o: $(SRC)/crc32.c $(INC)/crc32.h
 $(SRC)/defs.$o: $(SRC)/defs.c $(INC)/build.h $(INC)/compat.h $(INC)/baselayer.h $(INC)/scriptfile.h
-$(SRC)/engine.$o: $(SRC)/engine.c $(INC)/build.h $(INC)/compat.h $(INC)/pragmas.h $(INC)/cache1d.h $(SRC)/a.h $(INC)/osd.h $(INC)/crc32.h $(INC)/baselayer.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h $(SRC)/mdsprite_priv.h $(INC)/scriptfile.h
-$(SRC)/glbuild.$o: $(SRC)/glbuild.c $(INC)/build.h $(INC)/compat.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(INC)/osd.h $(INC)/baselayer.h
+$(SRC)/engine.$o: $(SRC)/engine.c $(INC)/build.h $(INC)/compat.h $(INC)/pragmas.h $(INC)/cache1d.h $(SRC)/a.h $(INC)/osd.h $(INC)/crc32.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h $(SRC)/mdsprite_priv.h $(INC)/scriptfile.h
+$(SRC)/glbuild.$o: $(SRC)/glbuild.c $(INC)/build.h $(INC)/compat.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(INC)/osd.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h
 $(SRC)/gtkbits.$o: $(SRC)/gtkbits.c $(INC)/build.h $(INC)/compat.h $(INC)/baselayer.h
 $(SRC)/hightile.$o: $(SRC)/hightile.c $(INC)/build.h $(INC)/compat.h $(SRC)/kplib.h $(SRC)/hightile_priv.h
 $(SRC)/kplib.$o: $(SRC)/kplib.c
@@ -26,12 +26,12 @@ $(SRC)/polymosttex.$o: $(SRC)/polymosttex.c $(INC)/build.h $(INC)/compat.h $(INC
 $(SRC)/pragmas.$o: $(SRC)/pragmas.c $(INC)/compat.h
 $(SRC)/rg_etc1.$o: $(SRC)/rg_etc1.cpp $(SRC)/rg_etc1.h
 $(SRC)/scriptfile.$o: $(SRC)/scriptfile.c $(INC)/build.h $(INC)/compat.h $(INC)/scriptfile.h $(INC)/cache1d.h
-$(SRC)/sdlayer2.$o: $(SRC)/sdlayer2.c $(INC)/build.h $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/osd.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(SRC)/gtkbits.h
+$(SRC)/sdlayer2.$o: $(SRC)/sdlayer2.c $(INC)/build.h $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/osd.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(SRC)/gtkbits.h
 $(SRC)/smalltextfont.$o: $(SRC)/smalltextfont.c
 $(SRC)/textfont.$o: $(SRC)/textfont.c
 $(SRC)/version-auto.$o: $(SRC)/version-auto.c
 $(SRC)/version.$o: $(SRC)/version.c
-$(SRC)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/baselayer.h $(INC)/pragmas.h $(INC)/build.h $(SRC)/a.h $(INC)/osd.h $(SRC)/dxdidf.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h
+$(SRC)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/pragmas.h $(INC)/build.h $(SRC)/a.h $(INC)/osd.h $(SRC)/dxdidf.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h
 
 $(LIBSQUISH)/alpha.$o: $(LIBSQUISH)/alpha.cpp $(LIBSQUISH)/alpha.h $(LIBSQUISH)/squish.h
 $(LIBSQUISH)/clusterfit.$o: $(LIBSQUISH)/clusterfit.cpp $(LIBSQUISH)/clusterfit.h $(LIBSQUISH)/squish.h $(LIBSQUISH)/maths.h $(LIBSQUISH)/config.h $(LIBSQUISH)/simd.h $(LIBSQUISH)/simd_float.h $(LIBSQUISH)/colourfit.h $(LIBSQUISH)/colourset.h $(LIBSQUISH)/colourblock.h
