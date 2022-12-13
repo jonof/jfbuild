@@ -4173,7 +4173,7 @@ void drawscreen(short snum, int dasmoothratio)
 
 	nextpage();   // send completed frame to display
 
-	while (totalclock >= ototalclock+(TIMERINTSPERSECOND/MOVESPERSECOND))
+	while (ready2send && totalclock >= ototalclock+(TIMERINTSPERSECOND/MOVESPERSECOND))
 		faketimerhandler();
 
 	if (keystatus[0x3f])   //F5
