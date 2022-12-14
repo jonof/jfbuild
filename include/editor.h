@@ -57,6 +57,7 @@ extern void ExtEditSectorData(short sectnum);
 extern void ExtEditWallData(short wallnum);
 extern void ExtEditSpriteData(short spritenum);
 
+#define STATUS2DSIZ 144
 
 int loadsetup(const char *fn);	// from config.c
 int writesetup(const char *fn);	// from config.c
@@ -64,6 +65,10 @@ int writesetup(const char *fn);	// from config.c
 void editinput(void);
 void clearmidstatbar16(void);
 
+void drawline16(int x1, int y1, int x2, int y2, unsigned char col);
+void drawcircle16(int x1, int y1, int r, unsigned char col);
+
+void printext16(int xpos, int ypos, short col, short backcol, const char *name, char fontsize);
 short getnumber256(char *namestart, short num, int maxnumber, char sign);
 short getnumber16(char *namestart, short num, int maxnumber, char sign);
 void printmessage256(char *name);

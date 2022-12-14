@@ -81,7 +81,6 @@ Low priority:
 # include "polymosttexcache.h"
 # include "mdsprite_priv.h"
 #endif
-extern char textfont[2048], smalltextfont[2048];
 
 int rendmode = 0;
 int usemodels=1, usehightile=1, usegoodalpha=0;

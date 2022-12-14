@@ -4,7 +4,7 @@ $(SRC)/a-c.$o: $(SRC)/a-c.c $(INC)/compat.h $(SRC)/a.h
 $(SRC)/a.$o: $(SRC)/a.$(asm)
 $(SRC)/asmprot.$o: $(SRC)/asmprot.c $(SRC)/a.h
 $(SRC)/baselayer.$o: $(SRC)/baselayer.c $(INC)/build.h $(INC)/compat.h $(INC)/osd.h $(INC)/baselayer.h $(INC)/glbuild.h
-$(SRC)/build.$o: $(SRC)/build.c $(INC)/build.h $(INC)/compat.h $(INC)/pragmas.h $(INC)/osd.h $(INC)/cache1d.h $(INC)/editor.h $(INC)/baselayer.h
+$(SRC)/build.$o: $(SRC)/build.c $(INC)/build.h $(SRC)/engine_priv.h $(INC)/compat.h $(INC)/pragmas.h $(INC)/osd.h $(INC)/cache1d.h $(INC)/editor.h $(INC)/baselayer.h
 $(SRC)/cache1d.$o: $(SRC)/cache1d.c $(INC)/build.h $(INC)/compat.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/kplib.h
 $(SRC)/compat.$o: $(SRC)/compat.c $(INC)/compat.h
 $(SRC)/config.$o: $(SRC)/config.c $(INC)/build.h $(INC)/compat.h $(INC)/editor.h $(INC)/osd.h $(INC)/scriptfile.h $(INC)/winlayer.h $(INC)/baselayer.h

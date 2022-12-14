@@ -211,7 +211,6 @@ short brightness = 0;
 static short screensize, screensizeflag = 0;
 static short neartagsector, neartagwall, neartagsprite;
 static int lockclock, neartagdist, neartaghitdist;
-extern int pageoffset, ydim16;
 static int globhiz, globloz, globhihit, globlohit;
 
 	//Over the shoulder mode variables

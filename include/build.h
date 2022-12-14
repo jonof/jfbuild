@@ -419,7 +419,6 @@ void   clearallviews(int dacol);
 void   drawmapview(int dax, int day, int zoome, short ang);
 void   rotatesprite(int sx, int sy, int z, short a, short picnum, signed char dashade, unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2);
 void   drawline256(int x1, int y1, int x2, int y2, unsigned char col);
-void   printext16(int xpos, int ypos, short col, short backcol, const char *name, char fontsize);
 void   printext256(int xpos, int ypos, short col, short backcol, const char *name, char fontsize);
 
 int   clipmove(int *x, int *y, int *z, short *sectnum, int xvect, int yvect, int walldist, int ceildist, int flordist, unsigned int cliptype);
@@ -459,16 +458,6 @@ int   setsprite(short spritenum, int newx, int newy, int newz);
 int   setspritez(short spritenum, int newx, int newy, int newz);
 
 int   screencapture(char *filename, char mode);	// mode&1 == invert, mode&2 == wait for nextpage
-
-#define STATUS2DSIZ 144
-void   qsetmode640350(void);
-void   qsetmode640480(void);
-void   qsetmodeany(int,int);
-void   clear2dscreen(void);
-void   draw2dgrid(int posxe, int posye, short ange, int zoome, short gride);
-void   draw2dscreen(int posxe, int posye, short ange, int zoome, short gride);
-void   drawline16(int x1, int y1, int x2, int y2, unsigned char col);
-void   drawcircle16(int x1, int y1, int r, unsigned char col);
 
 #if USE_POLYMOST
 int   setrendermode(int renderer);
