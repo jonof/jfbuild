@@ -379,7 +379,7 @@ public:
 		string tmpfilename(filename_ + ".arttooltmp");
 		ofstream outfile(tmpfilename.c_str(), ios::out | ios::trunc | ios::binary);
 		ifstream infile(filename_.c_str(), ios::in | ios::binary);
-		unsigned int i, left;
+		unsigned int i, left, numtiles;
 		char blk[4096];
 
 		if (!infile.is_open() && (markprelength_ > 0 || markskiplength_ > 0 || markpostlength_ > 0)) {
@@ -390,9 +390,14 @@ public:
 			infile.seekg(ofs, ios::cur);
 		}
 
+		// find the highest tile index that is non-zero sized to use as numtiles
+		for (numtiles = i = 0; i < (unsigned)(localtileend_ - localtilestart_ + 1); i++) {
+			if (tilesizx_[i] && tilesizy_[i]) numtiles = i + 1;
+		}
+
 		// write a header to the temporary file
 		writeLong(outfile, 1);	// version
-		writeLong(outfile, 0);	// numtiles
+		writeLong(outfile, numtiles);
 		writeLong(outfile, localtilestart_);
 		writeLong(outfile, localtileend_);
 		for (int i = 0; i < localtileend_ - localtilestart_ + 1; i++) {
@@ -508,7 +513,7 @@ private:
 	static void writeline(unsigned char *buf, int bytes, int step, ofstream& ofs)
 	{
 		unsigned char ths, last;
-		int srcIndex, i;
+		int srcIndex;
 		unsigned char runCount;
 
 		runCount = 1;
@@ -548,6 +553,8 @@ public:
 	 */
 	static int decode(unsigned char * data, size_t datalen, char ** imgdata, int& imgdataw, int& imgdatah)
 	{
+		(void)datalen;
+
 		if (data[0] != 10 ||
 			data[1] != 5 ||
 			data[2] != 1 ||
@@ -681,7 +688,6 @@ int saveimage(string filename, char * imgdata, int imgdataw, int imgdatah)
 {
 	ofstream outfile(filename.c_str(), ios::out | ios::trunc | ios::binary);
 	ifstream palfile("palette.dat", ios::in | ios::binary);
-	unsigned char * data = 0;
 	unsigned char palette[768];
 
 	if (palfile.is_open()) {
@@ -949,7 +955,7 @@ public:
 		int tilesperfile = 0, nextstart = 0;
 		int filenum = 0;
 		char * imgdata = 0;
-		int imgdatalen = 0, imgdataw = 0, imgdatah = 0;
+		int imgdataw = 0, imgdatah = 0;
 
 		// open the first art file to get the file size used by default
 		{
