@@ -61,7 +61,9 @@ enum {
 	type_hex = 3,
 };
 
+#if USE_POLYMOST
 static int tmprenderer = -1;
+#endif
 static int tmpbrightness = -1;
 static int tmpsamplerate = -1;
 static int tmpmusic = -1;

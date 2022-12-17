@@ -391,7 +391,7 @@ int scriptfile_getsymbolvalue(const char *name, int *val)
 
 int scriptfile_addsymbolvalue(const char *name, int val)
 {
-	int x;
+	//int x;
 	char *sp;
 	//if (scriptfile_getsymbolvalue(name, &x)) return -1;   // already exists
 

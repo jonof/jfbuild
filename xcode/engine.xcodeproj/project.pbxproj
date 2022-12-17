@@ -968,7 +968,6 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
-				COPY_PHASE_STRIP = NO;
 				DEVELOPMENT_TEAM = S7U4E54CHC;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
@@ -991,8 +990,6 @@
 				WARNING_CFLAGS = (
 					"-W",
 					"-Wall",
-					"-Wno-unused-variable",
-					"-Wno-unused-function",
 				);
 			};
 			name = Debug;
@@ -1005,7 +1002,6 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CODE_SIGN_IDENTITY = "Mac Developer";
-				COPY_PHASE_STRIP = YES;
 				DEVELOPMENT_TEAM = S7U4E54CHC;
 				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
@@ -1024,8 +1020,6 @@
 				WARNING_CFLAGS = (
 					"-W",
 					"-Wall",
-					"-Wno-unused-variable",
-					"-Wno-unused-function",
 				);
 			};
 			name = Release;

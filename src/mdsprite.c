@@ -204,7 +204,6 @@ static int framename2index (mdmodel *vm, const char *nam)
 
 int md_defineframe (int modelid, const char *framename, int tilenume, int skinnum)
 {
-	void *vm;
 	md2model *m;
 	int i;
 
@@ -557,7 +556,7 @@ static md2model *md2load (int fil, const char *filnam)
 {
 	md2model *m;
 	md2head_t head;
-	char *buf, st[BMAX_PATH];
+	char st[BMAX_PATH];
 	size_t i;
 
 	m = (md2model *)calloc(1,sizeof(md2model)); if (!m) return(0);
@@ -644,10 +643,10 @@ static md2model *md2load (int fil, const char *filnam)
 
 static int md2draw (md2model *m, spritetype *tspr, int method)
 {
-	point3d fp, m0, m1, a0, a1;
+	point3d m0, m1, a0;
 	md2frame_t *f0, *f1;
 	md2vert_t *c0, *c1;
-	int i, j, vbi, *lptr;
+	int i, j, vbi;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
 	PTMHead *ptmh = 0;
 	struct polymostdrawpolycall draw;
@@ -828,8 +827,7 @@ static void md3free (md3model *m);
 
 static md3model *md3load (int fil)
 {
-	char *buf, st[BMAX_PATH+2], bst[BMAX_PATH+2];
-	int i, j, surfi, ofsurf, bsc, offs[4], leng[4], maxsurftris = 0;
+	int surfi, ofsurf, offs[4], leng[4];
 	md3model *m;
 	md3surf_t *s;
 
@@ -877,7 +875,7 @@ static md3model *md3load (int fil)
 
 #if B_BIG_ENDIAN != 0
 	{
-		int *l;
+		int i, j, *l;
 
 		for (i = m->head.numframes-1; i>=0; i--) {
 			l = (int *)&m->head.frames[i].min;
@@ -964,9 +962,9 @@ static md3model *md3load (int fil)
 
 static int md3draw (md3model *m, spritetype *tspr, int method)
 {
-	point3d fp, m0, m1, a0, a1;
+	point3d m0, m1, a0;
 	md3xyzn_t *v0, *v1;
-	int i, j, k, vbi, surfi, *lptr;
+	int i, j, k, vbi, surfi;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
 	md3surf_t *s;
 	PTMHead * ptmh = 0;
@@ -1270,7 +1268,7 @@ static void putvox (int x, int y, int z, int col)
 	vcol[vnum].c = col;
 	vcol[vnum].n = vcolhashead[z]; vcolhashead[z] = vnum++;
 }
-
+/*
 	//Set all bits in vbit from (x,y,z0) to (x,y,z1-1) to 0's
 static void setzrange0 (int *lptr, int z0, int z1)
 {
@@ -1280,7 +1278,7 @@ static void setzrange0 (int *lptr, int z0, int z1)
 	lptr[z] &=~(-(1<<SHIFTMOD32(z0))); for(z++;z<ze;z++) lptr[z] = 0;
 	lptr[z] &= (-(1<<SHIFTMOD32(z1)));
 }
-
+*/
 	//Set all bits in vbit from (x,y,z0) to (x,y,z1-1) to 1's
 static void setzrange1 (int *lptr, int z0, int z1)
 {
@@ -1441,10 +1439,8 @@ static int isolid (int x, int y, int z)
 
 static voxmodel *vox2poly ()
 {
-	int i, j, x, y, z, v, ov, oz = 0, cnt, sc, x0, y0, dx, dy, i0, i1, *bx0, *by0;
+	int i, j, x, y, z, v, ov, oz = 0, cnt, sc, x0, y0, dx, dy, *bx0, *by0;
 	void (*daquad)(int, int, int, int, int, int, int, int, int, int);
-	coltype *pic;
-	unsigned char *cptr, ch;
 
 	gvox = (voxmodel *)malloc(sizeof(voxmodel)); if (!gvox) return(0);
 	memset(gvox,0,sizeof(voxmodel));
@@ -1702,7 +1698,7 @@ static int loadkvx (const char *filnam)
 
 static int loadkv6 (const char *filnam)
 {
-	int i, j, x, y, z, numvoxs, z0, z1, fil;
+	int i, j, x, y, numvoxs, z0, z1, fil;
 	float f;
 	unsigned short *ylen;
 	unsigned char c[8];
@@ -1811,7 +1807,7 @@ void voxfree (voxmodel *m)
 
 voxmodel *voxload (const char *filnam)
 {
-	int i, is8bit, ret;
+	int is8bit, ret;
 	voxmodel *vm;
 	char *dot;
 
@@ -1845,8 +1841,7 @@ static int voxloadbufs(voxmodel *m);
 	//Draw voxel model as perfect cubes
 int voxdraw (voxmodel *m, spritetype *tspr, int method)
 {
-	point3d fp, m0, a0;
-	int i, j, k, *lptr;
+	point3d m0, a0;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], omat[16], pc[4];
 	struct polymostdrawpolycall draw;
 
@@ -2085,7 +2080,6 @@ mdmodel *mdload (const char *filnam)
 // method: 0 = drawrooms projection, 1 = rotatesprite projection
 int mddraw (spritetype *tspr, int method)
 {
-	mdanim_t *anim;
 	mdmodel *vm;
 
 	if (maxmodelverts > allocmodelverts)

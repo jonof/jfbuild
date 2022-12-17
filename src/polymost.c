@@ -201,16 +201,6 @@ struct polymostcallcounts polymostcallcounts;
 #endif
 
 #if defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
-static inline void ftol (float f, int *a)
-{
-	_asm
-	{
-		mov eax, a
-		fld f
-		fistp dword ptr [eax]
-	}
-}
-
 static inline void dtol (double d, int *a)
 {
 	_asm
@@ -222,25 +212,11 @@ static inline void dtol (double d, int *a)
 }
 #elif defined(__WATCOMC__) && USE_ASM
 
-#pragma aux ftol =\
-	"fistp dword ptr [eax]",\
-	parm [eax 8087]
 #pragma aux dtol =\
 	"fistp dword ptr [eax]",\
 	parm [eax 8087]
 
 #elif defined(__GNUC__) && defined(__i386__) && USE_ASM
-
-static inline void ftol (float f, int *a)
-{
-	__asm__ __volatile__ (
-#if 0 //(__GNUC__ >= 3)
-			"flds %1; fistpl %0;"
-#else
-			"flds %1; fistpl (%0);"
-#endif
-			: "=r" (a) : "m" (f) : "memory","cc");
-}
 
 static inline void dtol (double d, int *a)
 {
@@ -254,10 +230,6 @@ static inline void dtol (double d, int *a)
 }
 
 #else
-static inline void ftol (float f, int *a)
-{
-	*a = (int)f;
-}
 
 static inline void dtol (double d, int *a)
 {
@@ -713,8 +685,6 @@ static void polymost_loadshaders(void)
 // one-time initialisation of OpenGL for polymost
 void polymost_glinit()
 {
-	GLfloat col[4];
-
 	glfunc.glClearColor(0,0,0,0.5); //Black Background
 	glfunc.glDisable(GL_DITHER);
 
@@ -743,8 +713,6 @@ void polymost_glinit()
 
 void resizeglcheck (void)
 {
-	float m[4][4];
-
 	if (glredbluemode < lastglredbluemode) {
 		glox1 = -1;
 		glfunc.glColorMask(1,1,1,1);
@@ -2002,7 +1970,7 @@ static void polymost_drawalls (int bunch)
 	sectortype *sec, *nextsec;
 	walltype *wal, *wal2, *nwal;
 	double ox, oy, oz, ox2, oy2, px[3], py[3], dd[3], uu[3], vv[3];
-	double fx, fy, x0, x1, y0, y1, cy0, cy1, fy0, fy1, xp0, yp0, xp1, yp1, ryp0, ryp1, nx0, ny0, nx1, ny1;
+	double fx, fy, x0, x1, cy0, cy1, fy0, fy1, xp0, yp0, xp1, yp1, ryp0, ryp1, nx0, ny0, nx1, ny1;
 	double t, r, t0, t1, ocy0, ocy1, ofy0, ofy1, oxp0, oyp0, ft[4];
 	double oguo, ogux, oguy;
 	int i, x, y, z, cz, fz, wallnum, sectnum, nextsectnum, domostmethod;
@@ -3004,7 +2972,7 @@ static void polymost_scansector (int sectnum)
 
 void polymost_drawrooms ()
 {
-	int i, j, k, n, n2, closest;
+	int i, j, n, n2, closest;
 	double ox, oy, oz, ox2, oy2, oz2, r, px[6], py[6], pz[6], px2[6], py2[6], pz2[6], sx[6], sy[6];
 	static unsigned char tempbuf[MAXWALLS];
 
@@ -3253,9 +3221,9 @@ void polymost_drawrooms ()
 void polymost_drawmaskwall (int damaskwallcnt)
 {
 	double dpx[8], dpy[8], dpx2[8], dpy2[8];
-	float fx, fy, x0, x1, sx0, sy0, sx1, sy1, xp0, yp0, xp1, yp1, oxp0, oyp0, ryp0, ryp1;
-	float f, r, t, t0, t1, nx0, ny0, nx1, ny1, py[4], csy[4], fsy[4];
-	int i, j, k, n, n2, x, z, sectnum, z1, z2, lx, rx, cz[4], fz[4], method;
+	float fy, x0, x1, sx0, sy0, sx1, sy1, xp0, yp0, xp1, yp1, oxp0, oyp0, ryp0, ryp1;
+	float r, t, t0, t1, csy[4], fsy[4];
+	int i, j, n, n2, z, sectnum, z1, z2, cz[4], fz[4], method;
 	sectortype *sec, *nsec;
 	walltype *wal, *wal2;
 
@@ -3416,7 +3384,7 @@ void polymost_drawmaskwall (int damaskwallcnt)
 void polymost_drawsprite (int snum)
 {
 	double px[6], py[6];
-	float f, r, c, s, fx, fy, sx0, sy0, sx1, sy1, xp0, yp0, xp1, yp1, oxp0, oyp0, ryp0, ryp1, ft[4];
+	float f, c, s, fx, fy, sx0, sy0, sx1, xp0, yp0, xp1, yp1, oxp0, oyp0, ryp0, ryp1, ft[4];
 	float x0, y0, x1, y1, sc0, sf0, sc1, sf1, px2[6], py2[6], xv, yv, t0, t1;
 	int i, j, spritenum, xoff=0, yoff=0, method, npoints;
 	spritetype *tspr;
@@ -3748,14 +3716,13 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	signed char dashade, unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
 {
 	static int onumframes = 0;
-	int i, n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
+	int n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
 	int ogpicnum, ogshade, ogpal, oxdimen, oydimen, oldviewingrange;
 	intptr_t ofoffset;
 	double ogxyaspect, ogfogdensity;
 	double ogchang, ogshang, ogctang, ogstang, oghalfx, oghoriz, fx, fy, x1, y1, z1, x2, y2;
 	double ogrhalfxdown10, ogrhalfxdown10x;
 	double d, cosang, sinang, cosang2, sinang2, px[8], py[8], px2[8], py2[8];
-	float m[4][4];
 
 #if USE_OPENGL
 	if (rendmode == 3 && usemodels && hudmem[(dastat&4)>>2][picnum].angadd)

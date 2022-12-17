@@ -363,10 +363,12 @@ static inline void cpuid (int a, int *s)
 
 #else
 
+#if defined(BIGENDIAN)
 static inline unsigned int bswap (unsigned int a)
 {
 	return(((a&0xff0000)>>8) + ((a&0xff00)<<8) + (a<<24) + (a>>24));
 }
+#endif
 
 static inline int bitrev (int b, int c)
 {
@@ -1275,7 +1277,7 @@ static int gcompid[4], gcomphsamp[4], gcompvsamp[4], gcompquantab[4], gcomphsamp
 static int lnumcomponents, lcompid[4], lcompdc[4], lcompac[4], lcomphsamp[4], lcompvsamp[4], lcompquantab[4];
 static int lcomphvsamp0, lcomphsampshift0, lcompvsampshift0;
 static int colclip[1024], colclipup8[1024], colclipup16[1024];
-static unsigned char pow2char[8] = {1,2,4,8,16,32,64,128};
+//static unsigned char pow2char[8] = {1,2,4,8,16,32,64,128};
 
 #if defined(__WATCOMC__) && USE_ASM
 
@@ -1551,10 +1553,10 @@ static int kpegrend (const char *kfilebuf, int kfilength,
 	intptr_t daframeplace, int dabytesperline, int daxres, int dayres,
 	int daglobxoffs, int daglobyoffs)
 {
-	int i, j, p, v, leng=0, xdim=0, ydim=0, index, prec, restartcnt, restartinterval;
-	int x, y, z, xx, yy, zz, *dc=NULL, *dc2, num, curbits, c, daval, dabits, *hqval, *hqbits, hqcnt, *quanptr;
+	int i, j, v, leng=0, xdim=0, ydim=0, index, prec, restartcnt, restartinterval;
+	int x, y, z, xx, yy, zz, *dc=NULL, num, curbits, c, daval, dabits, *hqval, *hqbits, hqcnt, *quanptr;
 	int passcnt = 0, ghsampmax=0, gvsampmax=0, glhsampmax=0, glvsampmax=0, glhstep, glvstep;
-	int eobrun, Ss, Se, Ah, Al, Alut[2], dctx[12], dcty[12], ldctx[12], ldcty[12], lshx[4], lshy[4];
+	int eobrun, Ss, Se, Ah, Al, Alut[2], dctx[12], dcty[12], ldctx[12], /*ldcty[12],*/ lshx[4], lshy[4];
 	short *dctbuf = NULL, *dctptr[12], *ldctptr[12], *dcs=NULL;
 	unsigned char ch, marker, dcflag;
 	const unsigned char *kfileptr;
@@ -1712,7 +1714,7 @@ static int kpegrend (const char *kfilebuf, int kfilength,
 						{
 							ldctptr[z] = dctptr[zz];
 							ldctx[z] = dctx[zz];
-							ldcty[z] = dcty[zz];
+							//ldcty[z] = dcty[zz];
 							lcomphsamp[z] = gcomphsamp[zz];
 							lcompvsamp[z] = gcompvsamp[zz];
 							lcompquantab[z] = gcompquantab[zz];

@@ -97,30 +97,6 @@ static int repeatcountx, repeatcounty;
 
 static int fillist[640];
 
-static unsigned char scantoasc[128] =
-{
-	0,0,'1','2','3','4','5','6','7','8','9','0','-','=',0,0,
-	'q','w','e','r','t','y','u','i','o','p','[',']',0,0,'a','s',
-	'd','f','g','h','j','k','l',';',39,'`',0,92,'z','x','c','v',
-	'b','n','m',',','.','/',0,'*',0,32,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,'7','8','9','-','4','5','6','+','1',
-	'2','3','0','.',0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-};
-static unsigned char scantoascwithshift[128] =
-{
-	0,0,'!','@','#','$','%','^','&','*','(',')','_','+',0,0,
-	'Q','W','E','R','T','Y','U','I','O','P','{','}',0,0,'A','S',
-	'D','F','G','H','J','K','L',':',34,'~',0,'|','Z','X','C','V',
-	'B','N','M','<','>','?',0,'*',0,32,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,'7','8','9','-','4','5','6','+','1',
-	'2','3','0','.',0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-};
-
-
 
 unsigned char changechar(unsigned char dachar, int dadir, unsigned char smooshyalign, unsigned char boundcheck);
 int adjustmark(int *xplc, int *yplc, short danumwalls);
@@ -232,15 +208,23 @@ static int osdcmd_mapversion(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
+# define HAVE_STARTWIN
+#endif
+
 extern char *defsfilename;	// set in bstub.c
 int app_main(int argc, char const * const argv[])
 {
-	char ch, quitflag, cmdsetup = 0;
-    struct startwin_settings settings;
-    int startretval = STARTWIN_RUN;
+	char quitflag;
 	int grpstoadd = 0;
 	char const ** grps = NULL;
-	int i, j, k, dark, light;
+	int i, j;
+
+#ifdef HAVE_STARTWIN
+	char cmdsetup = 0;
+    struct startwin_settings settings;
+    int startretval = STARTWIN_RUN;
+#endif
 
 	pathsearchmode = PATHSEARCH_SYSTEM;		// unrestrict findfrompath so that full access to the filesystem can be had
 
@@ -258,10 +242,9 @@ int app_main(int argc, char const * const argv[])
 	boardfilename[0] = 0;
 	for (i=1; i<argc; i++) {
 		if (argv[i][0] == '-') {
-			if (!strcmp(argv[i], "-setup")) cmdsetup = 1;
-			else if (!strcmp(argv[i], "-g") || !strcmp(argv[i], "-grp")) {
+			if (!strcmp(argv[i], "-g") || !strcmp(argv[i], "-grp")) {
 				i++;
-				grps = (char const **)realloc((void *)grps, sizeof(char const *)*(grpstoadd+1));
+				if (grpstoadd == 0) grps = (char const **)malloc(sizeof(char const *) * argc);
 				grps[grpstoadd++] = argv[i];
 			}
 			else if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-?")) {
@@ -269,19 +252,22 @@ int app_main(int argc, char const * const argv[])
 					"BUILD by Ken Silverman\n"
 					"Syntax: build [options] mapname\n"
 					"Options:\n"
-					"\t-grp\tUse an extra GRP or ZIP file.\n"
-					"\t-g\tSame as above.\n"
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
+					"\t-grp name.ext\tUse an extra GRP or ZIP file.\n"
+					"\t-g name.ext\tSame as above.\n"
+#ifdef HAVE_STARTWIN
 					"\t-setup\tDisplays the configuration dialogue box before entering the editor.\n"
 #endif
 					;
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
+#ifdef HAVE_STARTWIN
 				wm_msgbox("BUILD by Ken Silverman","%s",s);
 #else
 				puts(s);
 #endif
 				return 0;
 			}
+#ifdef HAVE_STARTWIN
+			else if (!strcmp(argv[i], "-setup")) cmdsetup = 1;
+#endif
 			continue;
 		}
 		if (!boardfilename[0]) {
@@ -298,6 +284,7 @@ int app_main(int argc, char const * const argv[])
 
 	if ((i = ExtInit()) < 0) return -1;
 
+#ifdef HAVE_STARTWIN
     memset(&settings, 0, sizeof(settings));
     settings.fullscreen = fullscreen;
     settings.xdim2d = xdim2d;
@@ -307,7 +294,6 @@ int app_main(int argc, char const * const argv[])
     settings.bpp3d = bppgame;
     settings.forcesetup = forcesetup;
 
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
     if (i || forcesetup || cmdsetup) {
         if (quitevent) return 0;
 
@@ -315,7 +301,6 @@ int app_main(int argc, char const * const argv[])
         if (startretval == STARTWIN_CANCEL)
             return 0;
     }
-#endif
 
     fullscreen = settings.fullscreen;
     xdim2d = settings.xdim2d;
@@ -324,6 +309,7 @@ int app_main(int argc, char const * const argv[])
     ydimgame = settings.ydim3d;
     bppgame = settings.bpp3d;
     forcesetup = settings.forcesetup;
+#endif
 
 	if (grps && grpstoadd > 0) {
 		for (i=0;i<grpstoadd;i++) {
@@ -334,6 +320,7 @@ int app_main(int argc, char const * const argv[])
 	}
 
 	buildsetlogfile("build.log");
+
 	inittimer(TIMERINTSPERSECOND);
 	installusertimercallback(keytimerstuff);
 
@@ -354,8 +341,8 @@ int app_main(int argc, char const * const argv[])
 		}
 		setbrightness(brightness,palette,0);
 
-	dark = INT_MAX;
-	light = 0;
+	int dark = INT_MAX;
+	int light = 0;
 	for(i=0;i<256;i++)
 	{
 		j = ((int)palette[i*3])+((int)palette[i*3+1])+((int)palette[i*3+2]);
@@ -501,8 +488,6 @@ int app_main(int argc, char const * const argv[])
 
 void showmouse(void)
 {
-	int i;
-
 	drawline256((searchx+1)<<12, (searchy  )<<12, (searchx+5)<<12, (searchy  )<<12, whitecol);
 	drawline256((searchx  )<<12, (searchy+1)<<12, (searchx  )<<12, (searchy+5)<<12, whitecol);
 	drawline256((searchx-1)<<12, (searchy  )<<12, (searchx-5)<<12, (searchy  )<<12, whitecol);
@@ -511,10 +496,10 @@ void showmouse(void)
 
 void editinput(void)
 {
-	unsigned char smooshyalign, repeatpanalign, *ptr, buffer[80];
-	short sectnum, nextsectnum, startwall, endwall, dasector, daang;
+	unsigned char smooshyalign, repeatpanalign, buffer[80];
+	short startwall, endwall, dasector, daang;
 	int mousx, mousy, mousz, bstatus;
-	int i, j, k, cnt, templong=0, doubvel, changedir, wallfind[2], daz[2];
+	int i, j, k, templong=0, doubvel, changedir;
 	int dashade[2], goalz, xvect, yvect, hiz, loz;
 	short hitsect, hitwall, hitsprite;
 	int hitx, hity, hitz, dax, day, hihit, lohit;
@@ -1658,7 +1643,11 @@ void editinput(void)
 			{
 				AutoAlignWalls((int)searchwall,0L);
 
-				/*wallfind[0] = searchwall;
+				/*
+				int wallfind[2], cnt, daz[2];
+				short sectnum, nextsectnum;
+
+				wallfind[0] = searchwall;
 				cnt = 4096;
 				do
 				{
@@ -2357,7 +2346,7 @@ unsigned char changechar(unsigned char dachar, int dadir, unsigned char smooshya
 int gettile(int tilenum)
 {
 	char snotbuf[80];
-	int i, j, k, otilenum, topleft, gap, temp, templong, ch;
+	int i, j, otilenum, topleft, gap, temp, templong, ch;
 	int xtiles, ytiles, tottiles;
 
 	if (tilenum < 0) tilenum = 0;
@@ -2556,7 +2545,7 @@ int gettile(int tilenum)
 int drawtilescreen(int pictopleft, int picbox)
 {
 	intptr_t vidpos, vidpos2;
-	int i, j, dat, wallnum, xdime, ydime, cnt, pinc;
+	int i, j, wallnum, xdime, ydime, cnt, pinc;
 	int dax, day, scaledown, xtiles, ytiles, tottiles;
 	unsigned char *picptr;
 	char snotbuf[80];
@@ -6038,7 +6027,7 @@ int numloopsofsector(short sectnum)
 short getnumber16(char *namestart, short num, int maxnumber, char sign)
 {
 	char buffer[80], ch;
-	int j, k, n, danum, oldnum;
+	int n, danum, oldnum;
 
 	danum = (int)num;
 	oldnum = danum;
@@ -6078,7 +6067,7 @@ short getnumber16(char *namestart, short num, int maxnumber, char sign)
 short getnumber256(char *namestart, short num, int maxnumber, char sign)
 {
 	char buffer[80], ch;
-	int j, k, n, danum, oldnum;
+	int n, danum, oldnum;
 
 	danum = (int)num;
 	oldnum = danum;
@@ -6173,8 +6162,8 @@ char *findfilename(char *path)
 int menuselect(int newpathmode)
 {
 	int listsize;
-	int i, j, topplc;
-	char ch, buffer[90], *sb;
+	int i;
+	char ch, buffer[90];
 	CACHE1D_FIND_REC *dir;
 
 	int bakpathsearchmode = pathsearchmode;
@@ -6458,58 +6447,6 @@ short whitelinescan(short dalinehighlight)
 	else
 		return(newnumwalls);
 }
-/*
-#define loadbyte(fil,tempbuf,bufplc,dat)        \
-{                                               \
-	if (bufplc == 0)                             \
-	{                                            \
-		for(bufplc=0;bufplc<4096;bufplc++)        \
-			tempbuf[bufplc] = 0;                   \
-		bufplc = 0;                               \
-		read(fil,tempbuf,4096);                   \
-	}                                            \
-	dat = tempbuf[bufplc];                       \
-	bufplc = ((bufplc+1)&4095);                  \
-}                                               \
-
-int loadnames(void)
-{
-	char buffer[80], firstch, ch;
-	int fil, i, num, buffercnt, bufplc;
-
-	if ((fil = open("names.h",O_BINARY|O_RDWR,S_IREAD)) == -1) return(-1);
-	bufplc = 0;
-	do { loadbyte(fil,tempbuf,bufplc,firstch); } while (firstch != '#');
-
-	while ((firstch == '#') || (firstch == '/'))
-	{
-		do { loadbyte(fil,tempbuf,bufplc,ch); } while (ch > 32);
-
-		buffercnt = 0;
-		do
-		{
-			loadbyte(fil,tempbuf,bufplc,ch);
-			if (ch > 32) buffer[buffercnt++] = ch;
-		}
-		while (ch > 32);
-
-		num = 0;
-		do
-		{
-			loadbyte(fil,tempbuf,bufplc,ch);
-			if ((ch >= 48) && (ch <= 57)) num = num*10+(ch-48);
-		}
-		while (ch != 13);
-		for(i=0;i<buffercnt;i++) names[num][i] = buffer[i];
-		names[num][buffercnt] = 0;
-
-		loadbyte(fil,tempbuf,bufplc,firstch);
-		if (firstch == 10) loadbyte(fil,tempbuf,bufplc,firstch);
-	}
-	close(fil);
-	return(0);
-}
-*/
 
 int loadnames(void)
 {

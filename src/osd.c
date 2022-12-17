@@ -84,8 +84,6 @@ static int  osdeditshade=0; // white
 static int  osdeditpal=0;
 static int  osdtextshade=1;	// light grey
 static int  osdtextpal=0;
-static int  osdcursorshade=0; // white
-static int  osdcursorpal=0;
 
 // application callbacks
 static void (*drawosdchar)(int, int, char, int, int) = _internal_drawosdchar;

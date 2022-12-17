@@ -328,7 +328,7 @@ static int defsparser(scriptfile *script)
 				break;
 			case T_DEFINEMODELFRAME:
 				{
-					char *framename, happy=1;
+					char *framename;
 					int ftilenume, ltilenume, tilex;
 
 					if (scriptfile_getstring(script,&framename)) break;
@@ -346,6 +346,7 @@ static int defsparser(scriptfile *script)
 						break;
 					}
 #if USE_POLYMOST && USE_OPENGL
+					char happy = 1;
 					for (tilex = ftilenume; tilex <= ltilenume && happy; tilex++) {
 						switch (md_defineframe(lastmodelid, framename, tilex, max(0,modelskin))) {
 							case 0: break;
@@ -398,7 +399,7 @@ static int defsparser(scriptfile *script)
 				break;
 			case T_DEFINEMODELSKIN:
 				{
-					int palnum, palnumer;
+					int palnum;
 					char *skinfn;
 
 					if (scriptfile_getsymbol(script,&palnum)) break;
@@ -960,7 +961,7 @@ static int defsparser(scriptfile *script)
 
 			case T_UNDEFMODELOF:
 				{
-					int mid,r0;
+					int r0;
 
 					if (scriptfile_getsymbol(script,&r0)) break;
 					if ((unsigned)r0 >= (unsigned)MAXTILES) {
@@ -969,7 +970,7 @@ static int defsparser(scriptfile *script)
 					}
 
 #if USE_POLYMOST && USE_OPENGL
-					mid = md_tilehasmodel(r0);
+					int mid = md_tilehasmodel(r0);
 					if (mid < 0) break;
 
 					md_undefinemodel(mid);
@@ -980,7 +981,7 @@ static int defsparser(scriptfile *script)
 			case T_UNDEFTEXTURE:
 			case T_UNDEFTEXTURERANGE:
 				{
-					int r0,r1,i;
+					int r0,r1;
 
 					if (scriptfile_getsymbol(script,&r0)) break;
 					if (tokn == T_UNDEFTEXTURERANGE) {
@@ -1005,7 +1006,7 @@ static int defsparser(scriptfile *script)
 
 #if USE_POLYMOST && USE_OPENGL
 					for (; r0 <= r1; r0++)
-						for (i=MAXPALOOKUPS-1; i>=0; i--)
+						for (int i=MAXPALOOKUPS-1; i>=0; i--)
 							hicclearsubst(r0,i);
 #endif
 				}

@@ -14,9 +14,9 @@ struct glbuild_funcs glfunc;
 
 #if defined(DEBUGGINGAIDS)
 static int gldebuglogseverity = 2;	// default to 'low'
+static int osdcmd_vars(const osdfuncparm_t *);
 #endif
 
-static int osdcmd_vars(const osdfuncparm_t *);
 static int osdcmd_glinfo(const osdfuncparm_t *);
 
 static void enumerate_configure(const char *ext) {
@@ -85,9 +85,9 @@ static void enumerate_configure(const char *ext) {
 static void glbuild_enumerate_exts(void (*callback)(const char *)) {
 	char *workstr = NULL, *workptr = NULL, *nextptr = NULL;
 	const char *ext = NULL;
-	GLint extn = 0, numexts = 0;
 
 #if (USE_OPENGL == USE_GL3)
+	GLint extn = 0, numexts = 0;
 	if (glinfo.majver >= 3) {
 		glfunc.glGetIntegerv(GL_NUM_EXTENSIONS, &numexts);
 	} else
@@ -618,7 +618,6 @@ GLuint glbuild_link_program(int shadercount, GLuint *shaders)
 int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stride, int winx, int winy)
 {
 	GLuint shaders[2] = {0,0}, prog = 0;
-	GLint status = 0;
 
 	extern const char default_glbuild_fs_glsl[];
 	extern const char default_glbuild_vs_glsl[];
@@ -832,11 +831,11 @@ void glbuild_draw_8bit_frame(glbuild8bit *state)
 //
 // OSD variables and commands
 //
+#if defined(DEBUGGINGAIDS)
 static int osdcmd_vars(const osdfuncparm_t *parm)
 {
 	int showval = (parm->numparms < 1);
 
-#if defined(DEBUGGINGAIDS)
 	if (!Bstrcasecmp(parm->name, "gldebuglogseverity")) {
 		const char *levels[] = {"none", "notification", "low", "medium", "high"};
 		if (showval) { buildprintf("gldebuglogseverity is %s (%d)\n", levels[gldebuglogseverity], gldebuglogseverity); }
@@ -847,10 +846,10 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 		}
 		return OSDCMD_OK;
 	}
-#endif
 
 	return OSDCMD_SHOWHELP;
 }
+#endif
 
 static void dumpglinfo(void)
 {
@@ -919,8 +918,6 @@ static void indentedputs(const char *ext) {
 
 static void dumpglexts(void)
 {
-	char *workstr, *workptr, *nextptr = NULL, *ext = NULL;
-
 	if (!glinfo.loaded) {
 		buildputs("OpenGL information not available.\n");
 		return;

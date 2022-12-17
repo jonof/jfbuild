@@ -428,7 +428,7 @@ void debugprintf(const char *f, ...)
 //
 int initinput(void)
 {
-	int i,j;
+	int i;
 
 	inputdevices = 1|2; // keyboard (1) and mouse (2)
 	mouseacquired = 0;
@@ -765,8 +765,8 @@ void getvalidmodes(void)
 		{1280,1024},{1280,960},{1280,800},{1280,720},{1152,864},{1024,768},{800,600},{640,480},
 		{640,400},{512,384},{480,360},{400,300},{320,240},{320,200},{0,0}
 	};
-	SDL_DisplayMode mode, desktop;
-	int i, j, maxx=0, maxy=0;
+	SDL_DisplayMode desktop;
+	int i, maxx=0, maxy=0;
 
 	if (modeschecked) return;
 
@@ -809,7 +809,8 @@ void getvalidmodes(void)
 #if USE_POLYMOST && USE_OPENGL
 	// Fullscreen >8-bit modes
 	if (!nogl) {
-		for (j = SDL_GetNumDisplayModes(0) - 1; j >= 0; j--) {
+		SDL_DisplayMode mode;
+		for (int j = SDL_GetNumDisplayModes(0) - 1; j >= 0; j--) {
 			SDL_GetDisplayMode(0, j, &mode);
 			if ((mode.w > MAXXDIM) || (mode.h > MAXYDIM)) continue;
 			if (SDL_BITSPERPIXEL(mode.format) < 8) continue;
@@ -945,7 +946,7 @@ static void shutdownvideo(void)
 //
 int setvideomode(int x, int y, int c, int fs)
 {
-	int modenum, regrab = 0;
+	int regrab = 0;
 	int flags;
 
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
@@ -1198,8 +1199,6 @@ void enddrawing(void)
 //
 void showframe(void)
 {
-	int i,j;
-
 #if USE_OPENGL
 	if (!nogl) {
 		if (bpp == 8) {
@@ -1213,9 +1212,10 @@ void showframe(void)
 #endif
 
 	unsigned char *pixels, *in;
-	int pitch, y, x;
 
 #ifdef SDLAYER_USE_RENDERER
+	int pitch, y, x;
+
 	if (SDL_LockTexture(sdl_texture, NULL, (void**)&pixels, &pitch)) {
 		debugprintf("Could not lock texture: %s\n", SDL_GetError());
 		return;
@@ -1252,6 +1252,7 @@ void showframe(void)
 
 #else //SDLAYER_USE_RENDERER
 	SDL_Surface *winsurface;
+	int pitch, y;
 
 	if (SDL_LockSurface(sdl_surface)) {
 		debugprintf("Could not lock surface: %s\n", SDL_GetError());
@@ -1680,7 +1681,6 @@ static int buildkeytranslationtable(void)
 static int set_glswapinterval(const osdfuncparm_t *parm)
 {
 	int interval;
-    char *p;
 
 	if (nogl) {
 		buildputs("glswapinterval is not adjustable\n");

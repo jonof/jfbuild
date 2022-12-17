@@ -52,8 +52,7 @@ NASM?=nasm
 WINDRES?=windres
 AR?=ar
 RANLIB?=ranlib
-OURCFLAGS=$(debug) -g -W -Wall -Wno-unused-variable -Wno-unused-function \
-	-Wno-unused-but-set-variable -fno-strict-aliasing -DKSFORBUILD \
+OURCFLAGS=$(debug) -g -W -Wall -fno-strict-aliasing -DKSFORBUILD \
 	-I$(INC) -I$(SRC)
 OURCCFLAGS=-std=c99
 OURCXXFLAGS=-fno-exceptions -fno-rtti -std=c++98

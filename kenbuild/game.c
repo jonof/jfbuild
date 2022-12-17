@@ -399,12 +399,20 @@ static int osdcmd_map(const osdfuncparm_t *parm) {
     return OSDCMD_OK;
 }
 
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
+# define HAVE_STARTWIN
+#endif
+
 int app_main(int argc, char const * const argv[])
 {
-	int cmdsetup = 0, i, j, k, waitplayers, x1, y1, x2, y2;
+	int i, j, k, waitplayers, x1, y1, x2, y2;
 	int other, netparm = 0, endnetparm = 0, netsuccess = 0;
+
+#ifdef HAVE_STARTWIN
+	int cmdsetup = 0;
     int startretval = STARTWIN_RUN;
     struct startwin_settings settings;
+#endif
 
 #if defined(DATADIR)
     {
@@ -490,8 +498,10 @@ int app_main(int argc, char const * const argv[])
 					if (!strcmp(argv[i], "--")) break;
 				endnetparm = i;
 			}
+#ifdef HAVE_STARTWIN
 			else if (!Bstrcasecmp(&argv[i][1], "setup")) cmdsetup = 1;
 			else if (!Bstrcasecmp(&argv[i][1], "nosetup")) cmdsetup = -1;
+#endif
 		}
 		else {
 			Bstrcpy(boardfilename, argv[i]);
@@ -508,6 +518,7 @@ int app_main(int argc, char const * const argv[])
 	if ((i = loadsetup("game.cfg")) < 0)
 		buildputs("Configuration file not found, using defaults.\n");
 
+#ifdef HAVE_STARTWIN
     memset(&settings, 0, sizeof(settings));
     settings.fullscreen = fullscreen;
     settings.xdim3d = xdimgame;
@@ -516,7 +527,6 @@ int app_main(int argc, char const * const argv[])
     settings.forcesetup = forcesetup;
     settings.netoverride = netparm > 0;
 
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
 	if (i || (forcesetup && cmdsetup == 0) || (cmdsetup > 0)) {
         if (quitevent) return 0;
 
@@ -524,13 +534,13 @@ int app_main(int argc, char const * const argv[])
         if (startretval == STARTWIN_CANCEL)
             return 0;
 	}
-#endif
 
     fullscreen = settings.fullscreen;
     xdimgame = settings.xdim3d;
     ydimgame = settings.ydim3d;
     bppgame = settings.bpp3d;
     forcesetup = settings.forcesetup;
+#endif
 
     writesetup("game.cfg");
 
@@ -538,32 +548,33 @@ int app_main(int argc, char const * const argv[])
 	if (option[3] != 0) initmouse();
 	inittimer(TIMERINTSPERSECOND);
 
-    if (netparm || settings.numplayers > 1) {
-        if (netparm) {
-            netsuccess = initmultiplayersparms(endnetparm - netparm, &argv[netparm]);
-        } else {
-            char modeparm[8];
-            const char *parmarr[3] = { modeparm, NULL, NULL };
-            int parmc = 0;
+	if (netparm) {
+		netsuccess = initmultiplayersparms(endnetparm - netparm, &argv[netparm]);
+	}
+#ifdef HAVE_STARTWIN
+	else if (settings.numplayers > 1) {
+		char modeparm[8];
+		const char *parmarr[3] = { modeparm, NULL, NULL };
+		int parmc = 0;
 
-            if (settings.joinhost) {
-                strcpy(modeparm, "-nm");
-                parmarr[1] = settings.joinhost;
-                parmc = 2;
-            } else if (settings.numplayers > 1 && settings.numplayers <= MAXPLAYERS) {
-                sprintf(modeparm, "-nm:%d", settings.numplayers);
-                parmc = 1;
-            }
+		if (settings.joinhost) {
+			strcpy(modeparm, "-nm");
+			parmarr[1] = settings.joinhost;
+			parmc = 2;
+		} else if (settings.numplayers > 1 && settings.numplayers <= MAXPLAYERS) {
+			sprintf(modeparm, "-nm:%d", settings.numplayers);
+			parmc = 1;
+		}
 
-            if (parmc > 0) {
-                netsuccess = initmultiplayersparms(parmc, parmarr);
-            }
+		if (parmc > 0) {
+			netsuccess = initmultiplayersparms(parmc, parmarr);
+		}
 
-            if (settings.joinhost) {
-                free(settings.joinhost);
-            }
-        }
-    }
+		if (settings.joinhost) {
+			free(settings.joinhost);
+		}
+	}
+#endif
 
     if (netsuccess) {
         buildputs("Waiting for players...\n");
@@ -4112,10 +4123,8 @@ void drawscreen(short snum, int dasmoothratio)
 			}
 			else
 				tempbuf[charsperline] = 0;
-			//if (dimensionmode[snum] == 3)
-				printext256(0L,(i/charsperline)<<3,31/*183*/,-1,tempbuf,0);
-			//else
-			//   printext16(0L,((i/charsperline)<<3)+(pageoffset/640),10,-1,tempbuf,0);
+
+			printext256(0L,(i/charsperline)<<3,31/*183*/,-1,tempbuf,0);
 		}
 	}
 

@@ -295,7 +295,7 @@ int PTM_LoadTextureFile(const char* filename, PTMHead* ptmh, int flags, int effe
 {
 	PTTexture tex;
 	int filh, picdatalen;
-	int x, y;
+	int y;
 	char * picdata = 0;
 	PTCacheTile * tdef = 0;
 	int writetocache = 0, iscached = 0;
@@ -474,7 +474,6 @@ static PTHash * pt_findhash(int picnum, int palnum, unsigned short flags, int cr
 {
 	int i = pt_gethashhead(picnum);
 	PTHash * pth;
-	PTHash * basepth;	// palette 0 in case we find we need it
 
 	unsigned short flagmask = flags & (PTH_HIGHTILE | PTH_CLAMPED | PTH_SKYBOX);
 
@@ -760,7 +759,6 @@ static int pt_load_art(PTHead * pth)
 static int pt_load_hightile(PTHead * pth)
 {
 	const char *filename = 0;
-	int hasalpha = 0;
 	int effects = 0;
 	int err = 0;
 	int texture = 0, loaded[PTHPIC_SIZE] = { 0,0,0,0,0,0, };
@@ -1115,7 +1113,6 @@ static void ptm_mipscale(PTTexture * tex)
  */
 static void ptm_uploadtexture(PTMHead * ptm, unsigned short flags, PTTexture * tex, PTCacheTile * tdef)
 {
-	int i;
 	GLint mipmap;
 	GLint intexfmt;
 	int compress = PTCOMPRESS_NONE;

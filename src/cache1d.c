@@ -758,7 +758,7 @@ int kfilelength(int handle)
 
 int ktell(int handle)
 {
-	int i, groupnum;
+	int groupnum;
 
 	groupnum = filegrp[handle];
 
@@ -952,7 +952,7 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 
 #ifdef WITHKPLIB
 	if (!pathsearchmode) {	// next, zip files
-		char buf[BMAX_PATH], *p;
+		char buf[BMAX_PATH];
 		int i, j, ftype;
 		strcpy(buf,path);
 		if (*path) strcat(buf,"/");
