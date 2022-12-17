@@ -453,8 +453,9 @@ void ExtShowSectorData(short sectnum)   //F5
 		Bsprintf((char *)tempbuf,"Sector %d",sectnum);
 		printext16(8,32,11,-1,(char *)tempbuf,0);
 
-		printext16(8,48,11,-1,"8*8 font: ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",0);
-		printext16(8,56,11,-1,"3*5 font: ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",1);
+		printext16(8,48,11,-1,"8*8 font:  ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",0);
+		printext16(8,56,11,-1,"3*5 font:  ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",1);
+		printext16(8,62,11,-1,"8*14 font: ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",2);
 
 		drawline16(320,68,344,80,4);       //Draw house
 		drawline16(344,80,344,116,4);

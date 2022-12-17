@@ -339,14 +339,14 @@ int app_main(int argc, char const * const argv[])
 
 	if (!loaddefinitionsfile(defsfilename)) buildputs("Definitions file loaded.\n");
 
-		if (setgamemode(fullscreen,xdimgame,ydimgame,bppgame) < 0)
-		{
-			ExtUnInit();
-			uninitengine();
-			buildprintf("%d * %d not supported in this graphics mode\n",xdim,ydim);
-			exit(0);
-		}
-		setbrightness(brightness,palette,0);
+	if (setgamemode(fullscreen,xdimgame,ydimgame,bppgame) < 0)
+	{
+		ExtUnInit();
+		uninitengine();
+		buildprintf("%d * %d not supported in this graphics mode\n",xdim,ydim);
+		exit(0);
+	}
+	setbrightness(brightness,palette,0);
 
 	int dark = INT_MAX;
 	int light = 0;
@@ -7027,30 +7027,30 @@ void draw2dscreen(int posxe, int posye, short ange, int zoome, short gride)
 //
 void printext16(int xpos, int ypos, short col, short backcol, const char *name, char fontsize)
 {
-	int stx, i, x, y, charxsiz;
-	unsigned char *fontptr, *letptr, *ptr;
+	int stx, i, x, y;
+	const unsigned char *letptr;
+	unsigned char *ptr;
+	const struct textfontspec *f;
 
+	f = &textfonts[min((unsigned)fontsize, 2)];
 	stx = xpos;
-
-	if (fontsize) { fontptr = smalltextfont; charxsiz = 4; }
-	else { fontptr = textfont; charxsiz = 8; }
 
 	for(i=0;name[i];i++)
 	{
-		letptr = &fontptr[((int)(unsigned char)name[i])<<3];
-		ptr = (unsigned char *)(bytesperline*(ytop16+ypos+7)+(stx-fontsize)+frameplace);
-		for(y=7;y>=0;y--)
+		letptr = &f->font[((int)(unsigned char)name[i])*f->cellh + f->cellyoff];
+		ptr = (unsigned char *)(bytesperline*(ytop16+ypos+f->charysiz-1)+stx+frameplace);
+		for(y=f->charysiz-1;y>=0;y--)
 		{
-			for(x=charxsiz-1;x>=0;x--)
+			for(x=f->charxsiz-1;x>=0;x--)
 			{
-				if (letptr[y]&pow2char[7-fontsize-x])
+				if (letptr[y]&pow2char[7-x-f->cellxoff])
 					ptr[x] = (unsigned char)col;
 				else if (backcol >= 0)
 					ptr[x] = (unsigned char)backcol;
 			}
 			ptr -= bytesperline;
 		}
-		stx += charxsiz;
+		stx += f->charxsiz;
 	}
 }
 

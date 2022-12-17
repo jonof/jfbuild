@@ -89,6 +89,7 @@
 		AB735FD10A29A99A003261DC /* build.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC20A29A8E5003261DC /* build.c */; };
 		AB735FD20A29A99A003261DC /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735FC30A29A8E5003261DC /* config.c */; };
 		AB73C4EA207A50B200121BF7 /* osxbits.m in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5C0A29A39C003261DC /* osxbits.m */; };
+		AB76E4FF294DFC0B00B11DAF /* talltextfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB76E4FE294DFC0B00B11DAF /* talltextfont.c */; };
 		ABA0D1F3292CDD0F000CB76F /* glext.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA0D1F2292CDD0F000CB76F /* glext.h */; };
 		ABA9E3070FEF9D170024231F /* a.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3020FEF9D170024231F /* a.h */; };
 		ABA9E3080FEF9D170024231F /* kplib.h in Headers */ = {isa = PBXBuildFile; fileRef = ABA9E3030FEF9D170024231F /* kplib.h */; };
@@ -253,6 +254,7 @@
 		AB735FC30A29A8E5003261DC /* config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = config.c; sourceTree = "<group>"; };
 		AB735FC60A29A8FD003261DC /* editor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = editor.h; sourceTree = "<group>"; };
 		AB735FCC0A29A916003261DC /* libeditor.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditor.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB76E4FE294DFC0B00B11DAF /* talltextfont.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = talltextfont.c; sourceTree = "<group>"; };
 		ABA0D1F2292CDD0F000CB76F /* glext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glext.h; sourceTree = "<group>"; };
 		ABA9E3020FEF9D170024231F /* a.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = a.h; sourceTree = "<group>"; };
 		ABA9E3030FEF9D170024231F /* kplib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = kplib.h; sourceTree = "<group>"; };
@@ -466,6 +468,7 @@
 				AB735F5E0A29A39C003261DC /* scriptfile.c */,
 				AB735F5F0A29A39C003261DC /* sdlayer2.c */,
 				AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */,
+				AB76E4FE294DFC0B00B11DAF /* talltextfont.c */,
 				AB3B2C800EE41B9000944CD1 /* textfont.c */,
 				AB48BD6C208C0AEA00E38090 /* version-auto.c */,
 			);
@@ -854,6 +857,7 @@
 				AB6728630F1096AF000C7D92 /* maths.cpp in Sources */,
 				AB6728650F1096AF000C7D92 /* rangefit.cpp in Sources */,
 				AB67286B0F1096AF000C7D92 /* singlecolourfit.cpp in Sources */,
+				AB76E4FF294DFC0B00B11DAF /* talltextfont.c in Sources */,
 				AB67286D0F1096AF000C7D92 /* squish.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

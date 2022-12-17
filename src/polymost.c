@@ -72,6 +72,7 @@ Low priority:
 #include "glbuild.h"
 #include "pragmas.h"
 #include "baselayer.h"
+#include "baselayer_priv.h"
 #include "osd.h"
 #include "engine_priv.h"
 #include "polymost_priv.h"
@@ -4302,7 +4303,7 @@ int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 
 int polymost_printext256(int xpos, int ypos, short col, short backcol, const  char *name, char fontsize)
 {
-	GLfloat tx, ty, txc, tyc, tyoff, cx, cy;
+	GLfloat tx, ty, txc, tyc, txg, tyg, tyoff, cx, cy;
 	int c, indexcnt, vbocnt;
 	palette_t colour;
 	struct polymostdrawauxcall draw;
@@ -4346,17 +4347,14 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 		draw.bgcolour.a = 0.f;
 	}
 
-	if (fontsize) {
-		tyoff = 8.f;
-		cx = 4.f;
-		cy = 6.f;
-	} else {
-		tyoff = 0.f;
-		cx = 8.f;
-		cy = 8.f;
-	}
-	txc = cx/256.f;
-	tyc = cy/128.f;
+	fontsize = min((unsigned)fontsize, 2);
+	tyoff = 64.f * (float)fontsize / 256.f;
+	cx = (float)textfonts[(unsigned)fontsize].charxsiz;
+	cy = (float)textfonts[(unsigned)fontsize].charysiz;
+	txc = cx/256.f;		// texture-space width/height of character
+	tyc = cy/256.f;
+	txg = 8.f/256.f;	// texture-space width/height of cell
+	tyg = (fontsize < 2 ? 8.f : 16.f) / 256.f;
 
 	draw.indexes = vboindexes;
 	draw.elementvbo = vboitem;
@@ -4365,8 +4363,8 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	indexcnt = vbocnt = 0;
 	while (name[c]) {
 		for (; name[c] && indexcnt < 80*6; c++) {
-			tx = (GLfloat)(name[c]%32)/32.0;
-			ty = ((GLfloat)(name[c]/32) + tyoff)/16.0;
+			tx = (GLfloat)(name[c]%32)*txg;
+			ty = (GLfloat)(name[c]/32)*tyg + tyoff;
 
 			vboindexes[indexcnt + 0] = vbocnt+0;
 			vboindexes[indexcnt + 1] = vbocnt+1;
@@ -4401,7 +4399,7 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 
 			indexcnt += 6;
 			vbocnt += 4;
-			xpos += (8>>fontsize);
+			xpos += textfonts[(unsigned)fontsize].charxsiz;
 		}
 
 		draw.indexcount = indexcnt;
@@ -4506,50 +4504,51 @@ int polymost_plotpixel(int x, int y, unsigned char col)
 
 static int polymost_preparetext(void)
 {
-	unsigned char *cptr;
-	unsigned int *tbuf, *tptr;
-	int h,i,j;
+	unsigned int *tbuf;
 
 	if (texttexture) {
 		return 0;
 	}
 
-	// construct a 256x128 rgba texture for the font glyph matrix
+	// construct a 256x256 rgba texture for the font glyph matrix.
 	glfunc.glGenTextures(1,&texttexture);
 	if (!texttexture) return -1;
 
-	tbuf = (unsigned int *)Bcalloc(256*128, sizeof(unsigned int));
+	tbuf = (unsigned int *)Bcalloc(256*256, sizeof(unsigned int));
 	if (!tbuf) {
 		glfunc.glDeleteTextures(1,&texttexture);
 		texttexture = 0;
 		return -1;
 	}
 
-	cptr = (unsigned char*)textfont;
-	for (h=0;h<256;h++) {
-		tptr = tbuf + (h%32)*8 + (h/32)*256*8;
-		for (i=0;i<8;i++) {
-			for (j=0;j<8;j++) {
-				if (cptr[h*8+i] & pow2char[7-j]) tptr[j] = 0xffffffff;
-			}
-			tptr += 256;
-		}
-	}
+	// 8x8 - lines 0 to 63, 8 lines per row
+	// 4x6 - lines 64 to 127, 8 lines per row
+	// 8x14 - lines 128-255, 16 lines per row
 
-	cptr = (unsigned char*)smalltextfont;
-	for (h=0;h<256;h++) {
-		tptr = tbuf + 256*64 + (h%32)*8 + (h/32)*256*8;
-		for (i=1;i<7;i++) {
-			for (j=2;j<6;j++) {
-				if (cptr[h*8+i] & pow2char[7-j]) tptr[j-2] = 0xffffffff;
+	for (int fn = 0; fn < 3; fn++) {
+		const struct textfontspec *f = &textfonts[fn];
+		unsigned int *tptr = tbuf + 256*64*fn;
+		int cellh = fn < 2 ? 8 : 16;
+
+		for (int c = 0; c < 256; c++) {
+			const unsigned char *letptr = &f->font[c * f->cellh + f->cellyoff];
+			unsigned int *cptr = tptr + ((c/32) * 256 * cellh) + ((c%32)*8);
+
+			for(int y = 0; y < f->charysiz; y++)
+			{
+				for(int x = 0; x < f->charxsiz; x++)
+				{
+					if (letptr[y] & pow2char[7 - x - f->cellxoff])
+						cptr[x] = 0xffffffff;
+				}
+				cptr += 256;
 			}
-			tptr += 256;
 		}
 	}
 
 	glfunc.glActiveTexture(GL_TEXTURE0);
 	glfunc.glBindTexture(GL_TEXTURE_2D, texttexture);
-	glfunc.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,256,128,0,GL_RGBA,GL_UNSIGNED_BYTE,(GLvoid*)tbuf);
+	glfunc.glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,256,256,0,GL_RGBA,GL_UNSIGNED_BYTE,(GLvoid*)tbuf);
 	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
 	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 	free(tbuf);

@@ -19,7 +19,7 @@ $(SRC)/mdsprite.$o: $(SRC)/mdsprite.c $(INC)/build.h $(INC)/compat.h $(INC)/glbu
 $(SRC)/mmulti.$o: $(SRC)/mmulti.c $(INC)/build.h $(INC)/compat.h $(INC)/mmulti.h $(INC)/baselayer.h
 $(SRC)/mmulti_null.$o: $(SRC)/mmulti_null.c $(INC)/mmulti.h
 $(SRC)/osd.$o: $(SRC)/osd.c $(INC)/build.h $(INC)/compat.h $(INC)/osd.h $(INC)/baselayer.h
-$(SRC)/polymost.$o: $(SRC)/polymost.c $(INC)/build.h $(INC)/compat.h $(INC)/glbuild.h $(INC)/pragmas.h $(INC)/baselayer.h $(INC)/osd.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/glbuild_priv.h $(SRC)/glext.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h $(SRC)/mdsprite_priv.h
+$(SRC)/polymost.$o: $(SRC)/polymost.c $(INC)/build.h $(INC)/compat.h $(INC)/glbuild.h $(INC)/pragmas.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/osd.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/glbuild_priv.h $(SRC)/glext.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h $(SRC)/mdsprite_priv.h
 $(SRC)/polymosttexcache.$o: $(SRC)/polymosttexcache.c $(INC)/build.h $(INC)/compat.h $(SRC)/polymosttexcache.h $(INC)/baselayer.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h
 $(SRC)/polymosttexcompress.$o: $(SRC)/polymosttexcompress.cc $(INC)/build.h $(INC)/compat.h $(SRC)/polymosttexcompress.h $(LIBSQUISH)/squish.h $(SRC)/rg_etc1.h $(INC)/glbuild.h
 $(SRC)/polymosttex.$o: $(SRC)/polymosttex.c $(INC)/build.h $(INC)/compat.h $(INC)/baselayer.h $(INC)/glbuild.h $(SRC)/kplib.h $(INC)/cache1d.h $(INC)/pragmas.h $(INC)/crc32.h $(SRC)/engine_priv.h $(SRC)/polymost_priv.h $(SRC)/glbuild_priv.h $(SRC)/glext.h $(SRC)/hightile_priv.h $(SRC)/polymosttex_priv.h $(SRC)/polymosttexcache.h $(SRC)/polymosttexcompress.h
@@ -28,6 +28,7 @@ $(SRC)/rg_etc1.$o: $(SRC)/rg_etc1.cpp $(SRC)/rg_etc1.h
 $(SRC)/scriptfile.$o: $(SRC)/scriptfile.c $(INC)/build.h $(INC)/compat.h $(INC)/scriptfile.h $(INC)/cache1d.h
 $(SRC)/sdlayer2.$o: $(SRC)/sdlayer2.c $(INC)/build.h $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/osd.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(SRC)/gtkbits.h
 $(SRC)/smalltextfont.$o: $(SRC)/smalltextfont.c
+$(SRC)/talltextfont.$o: $(SRC)/talltextfont.c
 $(SRC)/textfont.$o: $(SRC)/textfont.c
 $(SRC)/version-auto.$o: $(SRC)/version-auto.c
 $(SRC)/version.$o: $(SRC)/version.c

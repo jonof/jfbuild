@@ -112,6 +112,24 @@ static char kensmessage[128];
 char *engineerrstr = NULL;
 static BFILE *logfile=NULL;		// log filehandle
 
+extern const unsigned char textfont[], smalltextfont[], talltextfont[];
+const struct textfontspec textfonts[3] = {
+	{	//8x8
+		textfont,
+		8, 8,
+		8, 0, 0
+	},
+	{	// 4x6, centred on 8x8 cells
+		smalltextfont,
+		4, 6,
+		8, 2, 1
+	},
+	{	// 8x14
+		talltextfont,
+		8, 14,
+		14, 0, 0
+	}
+};
 
 //unsigned int ratelimitlast[32], ratelimitn = 0, ratelimit = 60;
 
@@ -10433,34 +10451,34 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 //
 void printext256(int xpos, int ypos, short col, short backcol, const char *name, char fontsize)
 {
-	int stx, i, x, y, charxsiz;
-	unsigned char *fontptr, *letptr, *ptr;
-
-	stx = xpos;
-
-	if (fontsize) { fontptr = smalltextfont; charxsiz = 4; }
-	else { fontptr = textfont; charxsiz = 8; }
+	int stx, i, x, y;
+	const unsigned char *letptr;
+	unsigned char *ptr;
+	const struct textfontspec *f;
 
 #if USE_POLYMOST && USE_OPENGL
 	if (!polymost_printext256(xpos,ypos,col,backcol,name,fontsize)) return;
 #endif
 
+	f = &textfonts[min((unsigned)fontsize, 2)];
+	stx = xpos;
+
 	for(i=0;name[i];i++)
 	{
-		letptr = &fontptr[name[i]<<3];
-		ptr = (unsigned char *)(ylookup[ypos+7]+(stx-fontsize)+frameplace);
-		for(y=7;y>=0;y--)
+		letptr = &f->font[((int)(unsigned char)name[i])*f->cellh + f->cellyoff];
+		ptr = (unsigned char *)(ylookup[ypos+f->charysiz-1]+stx+frameplace);
+		for(y=f->charysiz-1;y>=0;y--)
 		{
-			for(x=charxsiz-1;x>=0;x--)
+			for(x=f->charxsiz-1;x>=0;x--)
 			{
-				if (letptr[y]&pow2char[7-fontsize-x])
+				if (letptr[y]&pow2char[7-x-f->cellxoff])
 					ptr[x] = (unsigned char)col;
 				else if (backcol >= 0)
 					ptr[x] = (unsigned char)backcol;
 			}
-			ptr -= ylookup[1];
+			ptr -= bytesperline;
 		}
-		stx += charxsiz;
+		stx += f->charxsiz;
 	}
 }
 

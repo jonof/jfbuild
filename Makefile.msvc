@@ -95,6 +95,7 @@ ENGINEOBJS=$(SRC)\a-c.$o \
 	$(SRC)\pragmas.$o \
 	$(SRC)\scriptfile.$o \
 	$(SRC)\textfont.$o \
+	$(SRC)\talltextfont.$o \
 	$(SRC)\smalltextfont.$o \
 	$(SRC)\winlayer.$o
 

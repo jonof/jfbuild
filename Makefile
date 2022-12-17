@@ -88,6 +88,7 @@ ENGINEOBJS+= \
 	$(SRC)/pragmas.$o \
 	$(SRC)/scriptfile.$o \
 	$(SRC)/textfont.$o \
+	$(SRC)/talltextfont.$o \
 	$(SRC)/smalltextfont.$o
 
 ifneq ($(USE_OPENGL),0)
