@@ -328,6 +328,8 @@ int app_main(int argc, char const * const argv[])
 	buildsetlogfile("build.log");
 
 	inittimer(TIMERINTSPERSECOND, keytimerstuff);
+	initinput();
+	initmouse();
 
 	loadpics("tiles000.art",1048576);
 	loadnames();
