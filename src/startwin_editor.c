@@ -198,6 +198,8 @@ static void startbutton_clicked(void)
 
 static INT_PTR CALLBACK ConfigPageProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    (void)lParam;
+
     switch (uMsg) {
         case WM_INITDIALOG: {
             EnableThemeDialogTexture(hwndDlg, ETDT_ENABLETAB);
@@ -219,6 +221,8 @@ static INT_PTR CALLBACK ConfigPageProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, L
 
 static INT_PTR CALLBACK MessagesPageProc(HWND hwndDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    (void)wParam;
+
     switch (uMsg) {
         case WM_CTLCOLORSTATIC:
             if ((HWND)lParam == GetDlgItem(hwndDlg, IDC_MESSAGES))

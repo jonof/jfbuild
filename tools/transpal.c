@@ -174,14 +174,14 @@ int main(int argc, char **argv)
 	}
 
 	strcpy(palettefilename,"palette.dat");
-	numpalookups = atol(argv[1]);
-	transratio = atol(argv[2]);
+	numpalookups = atoi(argv[1]);
+	transratio = atoi(argv[2]);
 
 	if (argc == 6)
 	{
-		rscale = atol(argv[3]);
-		gscale = atol(argv[4]);
-		bscale = atol(argv[5]);
+		rscale = atoi(argv[3]);
+		gscale = atoi(argv[4]);
+		bscale = atoi(argv[5]);
 	}
 	else
 	{

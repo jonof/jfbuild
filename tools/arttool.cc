@@ -59,7 +59,7 @@ private:
 	short * tilesizx_;
 	short * tilesizy_;
 	int * picanm_;
-	int datastartoffset_;
+	streamoff datastartoffset_;
 
 	// for removing or replacing tile data
 	int markprelength_, markskiplength_, markpostlength_;
@@ -379,7 +379,7 @@ public:
 		string tmpfilename(filename_ + ".arttooltmp");
 		ofstream outfile(tmpfilename.c_str(), ios::out | ios::trunc | ios::binary);
 		ifstream infile(filename_.c_str(), ios::in | ios::binary);
-		int i, left;
+		unsigned int i, left;
 		char blk[4096];
 
 		if (!infile.is_open() && (markprelength_ > 0 || markskiplength_ > 0 || markpostlength_ > 0)) {
@@ -546,7 +546,7 @@ public:
 	 * @param imgdatah receives the decoded image height
 	 * @return 0 on success, 1 if the format is invalid
 	 */
-	static int decode(unsigned char * data, int datalen, char ** imgdata, int& imgdataw, int& imgdatah)
+	static int decode(unsigned char * data, size_t datalen, char ** imgdata, int& imgdataw, int& imgdatah)
 	{
 		if (data[0] != 10 ||
 			data[1] != 5 ||
@@ -627,6 +627,9 @@ public:
 			writeline(imgdata + i, imgdataw, imgdatah, ofs);
 		}
 
+		ofs.put(12);
+		ofs.write((char *)palette, 768);
+
 		return 0;
 	}
 };
@@ -643,7 +646,8 @@ int loadimage(string filename, char ** imgdata, int& imgdataw, int& imgdatah)
 {
 	ifstream infile(filename.c_str(), ios::in | ios::binary);
 	unsigned char * data = 0;
-	int datalen = 0, err = 0;
+	streamoff datalen = 0;
+	int err = 0;
 
 	if (!infile.is_open()) {
 		return 1;
@@ -699,9 +703,6 @@ int saveimage(string filename, char * imgdata, int imgdataw, int imgdatah)
 	}
 
 	PCX::write(outfile, (unsigned char *)imgdata, imgdataw, imgdatah, palette);
-
-	outfile.put(12);
-	outfile.write((char *)palette, 768);
 
 	return 0;
 }
@@ -791,6 +792,7 @@ public:
 
 	virtual Result setOption(string opt, string value)
 	{
+		(void)opt; (void)value;
 		return ERR_BAD_OPTION;
 	}
 
@@ -873,6 +875,7 @@ public:
 
 	virtual Result setParameter(int number, string value)
 	{
+		(void)number; (void)value;
 		return ERR_TOO_MANY_PARAMS;
 	}
 
@@ -1015,6 +1018,7 @@ public:
 
 	virtual Result setOption(string opt, string value)
 	{
+		(void)opt; (void)value;
 		return ERR_BAD_OPTION;
 	}
 
@@ -1062,6 +1066,7 @@ public:
 
 	virtual Result setOption(string opt, string value)
 	{
+		(void)opt; (void)value;
 		return ERR_BAD_OPTION;
 	}
 

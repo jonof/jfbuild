@@ -11,10 +11,6 @@
 #endif
 #include "baselayer.h"
 
-static int vesares[13][2] = {{320,200},{360,200},{320,240},{360,240},{320,400},
-				{360,400},{640,350},{640,400},{640,480},{800,600},
-				{1024,768},{1280,1024},{1600,1200}};
-
 extern short brightness;
 extern int fullscreen;
 extern char option[8];
@@ -65,7 +61,9 @@ enum {
 	type_hex = 3,
 };
 
+#if USE_POLYMOST
 static int tmprenderer = -1;
+#endif
 static int tmpbrightness = -1;
 static int tmpsamplerate = -1;
 static int tmpmusic = -1;

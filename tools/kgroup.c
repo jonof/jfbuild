@@ -28,19 +28,6 @@ int checkmatch(const struct Bdirent *a)
 	return Bwildmatch(a->name, matchstr);
 }
 
-int filesize(const char *path, const char *name)
-{
-	char p[BMAX_PATH];
-	struct stat st;
-
-	strcpy(p, path);
-	strcat(p, "/");
-	strcat(p, name);
-
-	if (!stat(p, &st)) return st.st_size;
-	return 0;
-}
-
 void findfiles(const char *dafilespec)
 {
 	struct Bdirent *name;
@@ -49,7 +36,7 @@ void findfiles(const char *dafilespec)
 	BDIR *di;
 
 	strcpy(daspec,dafilespec);
-	daspeclen=strlen(daspec);
+	daspeclen=(int)strlen(daspec);
 	while ((daspec[daspeclen] != '\\') && (daspec[daspeclen] != '/') && (daspeclen > 0)) daspeclen--;
 	if (daspeclen > 0) {
 		daspec[daspeclen]=0;
@@ -68,7 +55,7 @@ void findfiles(const char *dafilespec)
 
 		strcpy(&filelist[numfiles][0],name->name);
 		jstrupr(&filelist[numfiles][0]);
-		fileleng[numfiles] = name->size;
+		fileleng[numfiles] = (int)name->size;
 		filelist[numfiles][12] = (char)(fileleng[numfiles]&255);
 		filelist[numfiles][13] = (char)((fileleng[numfiles]>>8)&255);
 		filelist[numfiles][14] = (char)((fileleng[numfiles]>>16)&255);
@@ -110,7 +97,7 @@ int main(int argc, char **argv)
 		{
 			if ((fil = Bopen(&argv[i][1],BO_BINARY|BO_RDONLY,BS_IREAD)) != -1)
 			{
-				l = Bread(fil,buf,65536);
+				l = (int)Bread(fil,buf,65536);
 				j = 0;
 				while ((j < l) && (buf[j] <= 32)) j++;
 				while (j < l)

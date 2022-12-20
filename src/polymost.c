@@ -201,16 +201,6 @@ struct polymostcallcounts polymostcallcounts;
 #endif
 
 #if defined(_MSC_VER) && defined(_M_IX86) && USE_ASM
-static inline void ftol (float f, int *a)
-{
-	_asm
-	{
-		mov eax, a
-		fld f
-		fistp dword ptr [eax]
-	}
-}
-
 static inline void dtol (double d, int *a)
 {
 	_asm
@@ -222,25 +212,11 @@ static inline void dtol (double d, int *a)
 }
 #elif defined(__WATCOMC__) && USE_ASM
 
-#pragma aux ftol =\
-	"fistp dword ptr [eax]",\
-	parm [eax 8087]
 #pragma aux dtol =\
 	"fistp dword ptr [eax]",\
 	parm [eax 8087]
 
 #elif defined(__GNUC__) && defined(__i386__) && USE_ASM
-
-static inline void ftol (float f, int *a)
-{
-	__asm__ __volatile__ (
-#if 0 //(__GNUC__ >= 3)
-			"flds %1; fistpl %0;"
-#else
-			"flds %1; fistpl (%0);"
-#endif
-			: "=r" (a) : "m" (f) : "memory","cc");
-}
 
 static inline void dtol (double d, int *a)
 {
@@ -254,10 +230,6 @@ static inline void dtol (double d, int *a)
 }
 
 #else
-static inline void ftol (float f, int *a)
-{
-	*a = (int)f;
-}
 
 static inline void dtol (double d, int *a)
 {
@@ -317,7 +289,6 @@ static int drawingskybox = 0;
 int polymost_texmayhavealpha (int dapicnum, int dapalnum)
 {
 	PTHead * pth;
-	int i;
 
 	pth = PT_GetHead(dapicnum, dapalnum, 0, 1);
 	if (!pth) {
@@ -398,9 +369,11 @@ void gltexapplyprops (void)
 			glfunc.glBindTexture(GL_TEXTURE_2D,pth->pic[i]->glpic);
 			glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 			glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+#ifdef GL_EXT_texture_filter_anisotropic
 			if (glinfo.maxanisotropy > 1.0) {
 				glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
 			}
+#endif
 		}
 	}
 	PTIterFree(iter);
@@ -420,8 +393,10 @@ void gltexapplyprops (void)
 				glfunc.glBindTexture(GL_TEXTURE_2D,m->tex[j]->glpic);
 				glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 				glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+#ifdef GL_EXT_texture_filter_anisotropic
 				if (glinfo.maxanisotropy > 1.0)
 					glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+#endif
 			}
 
 			for (sk=m->skinmap;sk;sk=sk->next)
@@ -431,8 +406,10 @@ void gltexapplyprops (void)
 					glfunc.glBindTexture(GL_TEXTURE_2D,sk->tex[j]->glpic);
 					glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 					glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+#ifdef GL_EXT_texture_filter_anisotropic
 					if (glinfo.maxanisotropy > 1.0)
 						glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+#endif
 				}
 			}
 		}
@@ -446,8 +423,6 @@ float glox1, gloy1, glox2, gloy2;
 static int gltexcacnum = -1;
 void polymost_glreset ()
 {
-	int i;
-
 	//Reset if this is -1 (meaning 1st texture call ever), or > 0 (textures in memory)
 	if (gltexcacnum < 0)
 	{
@@ -552,22 +527,23 @@ static GLuint polymost_load_shader(GLuint shadertype, const char *defaultsrc, co
 
 #ifdef SHADERDEV
 	GLchar *fileshadersrc = NULL;
-	int shadersrclen = 0;
+	long shadersrclen = 0;
 	BFILE *shaderfh = NULL;
 
 	shaderfh = fopen(filename, "rb");
 	if (shaderfh) {
 		fseek(shaderfh, 0, SEEK_END);
-		shadersrclen = (int)ftell(shaderfh);
+		shadersrclen = ftell(shaderfh);
 		fseek(shaderfh, 0, SEEK_SET);
 
-		fileshadersrc = (GLchar *)calloc(1, shadersrclen + 1);
+		fileshadersrc = (GLchar *)malloc(shadersrclen + 1);
 		shadersrclen = fread(fileshadersrc, 1, shadersrclen, shaderfh);
+		fileshadersrc[shadersrclen] = 0;
 
 		fclose(shaderfh);
 		shaderfh = NULL;
 
-		buildprintf("polymost_load_shader: loaded %s (%d bytes)\n", filename, shadersrclen);
+		buildprintf("polymost_load_shader: loaded %s (%ld bytes)\n", filename, shadersrclen);
 		shadersrc = fileshadersrc;
 	}
 #endif
@@ -709,8 +685,6 @@ static void polymost_loadshaders(void)
 // one-time initialisation of OpenGL for polymost
 void polymost_glinit()
 {
-	GLfloat col[4];
-
 	glfunc.glClearColor(0,0,0,0.5); //Black Background
 	glfunc.glDisable(GL_DITHER);
 
@@ -720,10 +694,12 @@ void polymost_glinit()
 
 	if (glmultisample > 0 && glinfo.multisample) {
 #if (USE_OPENGL != USE_GLES2)
+#ifdef GL_NV_multisample_filter_hint
 		if (glinfo.nvmultisamplehint)
 			glfunc.glHint(GL_MULTISAMPLE_FILTER_HINT_NV, glnvmultisamplehint ? GL_NICEST:GL_FASTEST);
+#endif
 
-		glfunc.glEnable(GL_MULTISAMPLE_ARB);
+		glfunc.glEnable(GL_MULTISAMPLE);
 
 		if (glsampleshading > 0 && glinfo.sampleshading) {
 			glfunc.glMinSampleShadingARB(1.f);
@@ -737,8 +713,6 @@ void polymost_glinit()
 
 void resizeglcheck (void)
 {
-	float m[4][4];
-
 	if (glredbluemode < lastglredbluemode) {
 		glox1 = -1;
 		glfunc.glColorMask(1,1,1,1);
@@ -1996,7 +1970,7 @@ static void polymost_drawalls (int bunch)
 	sectortype *sec, *nextsec;
 	walltype *wal, *wal2, *nwal;
 	double ox, oy, oz, ox2, oy2, px[3], py[3], dd[3], uu[3], vv[3];
-	double fx, fy, x0, x1, y0, y1, cy0, cy1, fy0, fy1, xp0, yp0, xp1, yp1, ryp0, ryp1, nx0, ny0, nx1, ny1;
+	double fx, fy, x0, x1, cy0, cy1, fy0, fy1, xp0, yp0, xp1, yp1, ryp0, ryp1, nx0, ny0, nx1, ny1;
 	double t, r, t0, t1, ocy0, ocy1, ofy0, ofy1, oxp0, oyp0, ft[4];
 	double oguo, ogux, oguy;
 	int i, x, y, z, cz, fz, wallnum, sectnum, nextsectnum, domostmethod;
@@ -2240,6 +2214,7 @@ static void polymost_drawalls (int bunch)
 				double nfy0, nfy1;
 				int skywalx[4] = {-512,512,512,-512}, skywaly[4] = {-512,-512,512,512};
 
+				(void)_nx0; (void)_ny0; (void)_nx1; (void)_ny1;
 				domostmethod = METH_CLAMPED;
 
 				for(i=0;i<4;i++)
@@ -2574,6 +2549,7 @@ static void polymost_drawalls (int bunch)
 				double ncy0, ncy1;
 				int skywalx[4] = {-512,512,512,-512}, skywaly[4] = {-512,-512,512,512};
 
+				(void)_nx0; (void)_ny0; (void)_nx1; (void)_ny1;
 				domostmethod = METH_CLAMPED;
 
 				for(i=0;i<4;i++)
@@ -2996,7 +2972,7 @@ static void polymost_scansector (int sectnum)
 
 void polymost_drawrooms ()
 {
-	int i, j, k, n, n2, closest;
+	int i, j, n, n2, closest;
 	double ox, oy, oz, ox2, oy2, oz2, r, px[6], py[6], pz[6], px2[6], py2[6], pz2[6], sx[6], sy[6];
 	static unsigned char tempbuf[MAXWALLS];
 
@@ -3011,7 +2987,6 @@ void polymost_drawrooms ()
 		resizeglcheck();
 
 		//glfunc.glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-		//glfunc.glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE); //default anyway
 		glfunc.glEnable(GL_DEPTH_TEST);
 		glfunc.glDepthFunc(GL_ALWAYS); //NEVER,LESS,(,L)EQUAL,GREATER,(NOT,G)EQUAL,ALWAYS
 
@@ -3025,7 +3000,6 @@ void polymost_drawrooms ()
 		 //Enable this for OpenGL red-blue glasses mode :)
 		if (glredbluemode)
 		{
-			float m[4][4];
 			static int grbfcnt = 0; grbfcnt++;
 			if (redblueclearcnt < numpages) { redblueclearcnt++; glfunc.glColorMask(1,1,1,1); glfunc.glClear(GL_COLOR_BUFFER_BIT); }
 			if (grbfcnt&1)
@@ -3247,9 +3221,9 @@ void polymost_drawrooms ()
 void polymost_drawmaskwall (int damaskwallcnt)
 {
 	double dpx[8], dpy[8], dpx2[8], dpy2[8];
-	float fx, fy, x0, x1, sx0, sy0, sx1, sy1, xp0, yp0, xp1, yp1, oxp0, oyp0, ryp0, ryp1;
-	float f, r, t, t0, t1, nx0, ny0, nx1, ny1, py[4], csy[4], fsy[4];
-	int i, j, k, n, n2, x, z, sectnum, z1, z2, lx, rx, cz[4], fz[4], method;
+	float fy, x0, x1, sx0, sy0, sx1, sy1, xp0, yp0, xp1, yp1, oxp0, oyp0, ryp0, ryp1;
+	float r, t, t0, t1, csy[4], fsy[4];
+	int i, j, n, n2, z, sectnum, z1, z2, cz[4], fz[4], method;
 	sectortype *sec, *nsec;
 	walltype *wal, *wal2;
 
@@ -3410,7 +3384,7 @@ void polymost_drawmaskwall (int damaskwallcnt)
 void polymost_drawsprite (int snum)
 {
 	double px[6], py[6];
-	float f, r, c, s, fx, fy, sx0, sy0, sx1, sy1, xp0, yp0, xp1, yp1, oxp0, oyp0, ryp0, ryp1, ft[4];
+	float f, c, s, fx, fy, sx0, sy0, sx1, xp0, yp0, xp1, yp1, oxp0, oyp0, ryp0, ryp1, ft[4];
 	float x0, y0, x1, y1, sc0, sf0, sc1, sf1, px2[6], py2[6], xv, yv, t0, t1;
 	int i, j, spritenum, xoff=0, yoff=0, method, npoints;
 	spritetype *tspr;
@@ -3742,13 +3716,13 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	signed char dashade, unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
 {
 	static int onumframes = 0;
-	int i, n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
-	int ogpicnum, ogshade, ogpal, ofoffset, oxdimen, oydimen, oldviewingrange;
+	int n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
+	int ogpicnum, ogshade, ogpal, oxdimen, oydimen, oldviewingrange;
+	intptr_t ofoffset;
 	double ogxyaspect, ogfogdensity;
 	double ogchang, ogshang, ogctang, ogstang, oghalfx, oghoriz, fx, fy, x1, y1, z1, x2, y2;
 	double ogrhalfxdown10, ogrhalfxdown10x;
 	double d, cosang, sinang, cosang2, sinang2, px[8], py[8], px2[8], py2[8];
-	float m[4][4];
 
 #if USE_OPENGL
 	if (rendmode == 3 && usemodels && hudmem[(dastat&4)>>2][picnum].angadd)
@@ -4182,8 +4156,7 @@ static void tessectrap (float *px, float *py, int *point2, int numpoints,
 void polymost_fillpolygon (int npoints)
 {
 	PTHead *pth;
-	float alphac=0.0;
-	int i, j, k;
+	int i;
 	unsigned short ptflags = 0;
 	struct polymostdrawpolycall draw;
 
@@ -4243,7 +4216,6 @@ void polymost_fillpolygon (int npoints)
 int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 {
 	float xdime, ydime, xdimepad, ydimepad, scx, scy;
-	int i;
 	PTHead *pth;
 	palette_t bgcolour;
 	struct polymostdrawauxcall draw;
@@ -4540,7 +4512,7 @@ static int polymost_preparetext(void)
 {
 	unsigned char *cptr;
 	unsigned int *tbuf, *tptr;
-	int h,i,j,l;
+	int h,i,j;
 
 	if (texttexture) {
 		return 0;
@@ -4636,10 +4608,11 @@ int polymost_precache_run(int* done, int* total)
 
 #ifdef DEBUGGINGAIDS
 // because I'm lazy
-static int osdcmd_debugdumptexturedefs(const osdfuncparm_t * UNUSED(parm))
+static int osdcmd_debugdumptexturedefs(const osdfuncparm_t *parm)
 {
 	hicreplctyp *hr;
 	int i;
+	(void)parm;
 
 	if (!hicfirstinit) return OSDCMD_OK;
 
@@ -4661,11 +4634,12 @@ static int osdcmd_debugdumptexturedefs(const osdfuncparm_t * UNUSED(parm))
 	return OSDCMD_OK;	// no replacement found
 }
 
-static int osdcmd_debugtexturehash(const osdfuncparm_t * UNUSED(parm))
+static int osdcmd_debugtexturehash(const osdfuncparm_t *parm)
 {
 	PTIter iter;
 	PTHead * pth;
 	int i;
+	(void)parm;
 
 	if (!hicfirstinit) {
 		return OSDCMD_OK;
@@ -4676,11 +4650,11 @@ static int osdcmd_debugtexturehash(const osdfuncparm_t * UNUSED(parm))
 	while ((pth = PTIterNext(iter)) != 0) {
 		buildprintf(" picnum:%d palnum:%d flags:%04X repldef:%p\n",
 			   pth->picnum, pth->palnum, pth->flags,
-			   pth->repldef);
+			   (void*)pth->repldef);
 		for (i=0; i<6; i++) {
 			if (pth->pic[i]) {
 				buildprintf("   pic[%d]: %p => glpic:%d flags:%x sizx/y:%d/%d tsizx/y:%d/%d\n",
-					   i, pth->pic[i], pth->pic[i]->glpic, pth->pic[i]->flags,
+					   i, (void*)pth->pic[i], pth->pic[i]->glpic, pth->pic[i]->flags,
 					   pth->pic[i]->sizx, pth->pic[i]->sizy,
 					   pth->pic[i]->tsizx, pth->pic[i]->tsizy);
 			}
@@ -4694,8 +4668,9 @@ static int osdcmd_debugtexturehash(const osdfuncparm_t * UNUSED(parm))
 #endif
 
 #ifdef SHADERDEV
-static int osdcmd_debugreloadshaders(const osdfuncparm_t *UNUSED(parm))
+static int osdcmd_debugreloadshaders(const osdfuncparm_t *parm)
 {
+	(void)parm;
 	polymost_loadshaders();
 	return OSDCMD_OK;
 }
@@ -4715,7 +4690,7 @@ static int osdcmd_gltexturemode(const osdfuncparm_t *parm)
 		return OSDCMD_OK;
 	}
 
-	m = Bstrtoul(parm->parms[0], (char **)&p, 10);
+	m = (int)strtol(parm->parms[0], (char **)&p, 10);
 	if (p == parm->parms[0]) {
 		// string
 		for (m = 0; m < (int)numglfiltermodes; m++) {
@@ -4749,7 +4724,7 @@ static int osdcmd_gltextureanisotropy(const osdfuncparm_t *parm)
 		return OSDCMD_OK;
 	}
 
-	l = Bstrtoul(parm->parms[0], (char **)&p, 10);
+	l = (int)strtol(parm->parms[0], (char **)&p, 10);
 	if (l < 0 || l > glinfo.maxanisotropy) l = 0;
 
 	if (l != gltexfiltermode) {
@@ -4762,8 +4737,9 @@ static int osdcmd_gltextureanisotropy(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
-static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *UNUSED(parm))
+static int osdcmd_forcetexcacherebuild(const osdfuncparm_t *parm)
 {
+	(void)parm;
 	PTCacheForceRebuild();
 	buildprintf("Compressed texture cache invalidated. Use 'restartvid' to reinitialise it.\n");
 	return OSDCMD_OK;

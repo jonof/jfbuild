@@ -114,13 +114,12 @@ int ExtInit(void)
         int asperr;
 
         if ((supportdir = Bgetsupportdir(0))) {
-            Bsnprintf(dirpath, sizeof(dirpath), "%s/"
 #if defined(_WIN32) || defined(__APPLE__)
-                      "KenBuild"
+            const char *dirname = "KenBuild";
 #else
-                      ".kenbuild"
+            const char *dirname = ".kenbuild";
 #endif
-                      , supportdir);
+            snprintf(dirpath, sizeof dirpath, "%s/%s", supportdir, dirname);
             asperr = addsearchpath(dirpath);
             if (asperr == -2) {
                 if (Bmkdir(dirpath, S_IRWXU) == 0) {
@@ -130,7 +129,7 @@ int ExtInit(void)
                 }
             }
             if (asperr == 0) {
-                chdir(dirpath);
+                (void)chdir(dirpath);
             }
             free(supportdir);
         }

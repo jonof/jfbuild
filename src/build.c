@@ -97,30 +97,6 @@ static int repeatcountx, repeatcounty;
 
 static int fillist[640];
 
-static unsigned char scantoasc[128] =
-{
-	0,0,'1','2','3','4','5','6','7','8','9','0','-','=',0,0,
-	'q','w','e','r','t','y','u','i','o','p','[',']',0,0,'a','s',
-	'd','f','g','h','j','k','l',';',39,'`',0,92,'z','x','c','v',
-	'b','n','m',',','.','/',0,'*',0,32,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,'7','8','9','-','4','5','6','+','1',
-	'2','3','0','.',0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-};
-static unsigned char scantoascwithshift[128] =
-{
-	0,0,'!','@','#','$','%','^','&','*','(',')','_','+',0,0,
-	'Q','W','E','R','T','Y','U','I','O','P','{','}',0,0,'A','S',
-	'D','F','G','H','J','K','L',':',34,'~',0,'|','Z','X','C','V',
-	'B','N','M','<','>','?',0,'*',0,32,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,'7','8','9','-','4','5','6','+','1',
-	'2','3','0','.',0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-};
-
-
 
 unsigned char changechar(unsigned char dachar, int dadir, unsigned char smooshyalign, unsigned char boundcheck);
 int adjustmark(int *xplc, int *yplc, short danumwalls);
@@ -188,20 +164,20 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 
 	if (parm->numparms == 4) {
 		// fs, res, bpp switch
-		newfullscreen = (Batol(parm->parms[3]) != 0);
+		newfullscreen = (atoi(parm->parms[3]) != 0);
 	}
 	if (parm->numparms >= 3) {
 		// res & bpp switch
-		newbpp = Batol(parm->parms[2]);
+		newbpp = atoi(parm->parms[2]);
 	}
 	if (parm->numparms >= 2) {
 		// res switch
-		newy = Batol(parm->parms[1]);
-		newx = Batol(parm->parms[0]);
+		newy = atoi(parm->parms[1]);
+		newx = atoi(parm->parms[0]);
 	}
 	if (parm->numparms == 1) {
 		// bpp switch
-		newbpp = Batol(parm->parms[0]);
+		newbpp = atoi(parm->parms[0]);
 	}
 
 	if (setgamemode(newfullscreen,newx,newy,newbpp))
@@ -221,7 +197,7 @@ static int osdcmd_mapversion(const osdfuncparm_t *parm)
 		buildprintf("mapversion is %d\n", mapversion);
 		return OSDCMD_OK;
 	}
-	newversion = Batol(parm->parms[0]);
+	newversion = atoi(parm->parms[0]);
 	if (newversion < 5 || newversion > 8) {
 		return OSDCMD_SHOWHELP;
 	}
@@ -232,15 +208,23 @@ static int osdcmd_mapversion(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
+#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
+# define HAVE_STARTWIN
+#endif
+
 extern char *defsfilename;	// set in bstub.c
 int app_main(int argc, char const * const argv[])
 {
-	char ch, quitflag, cmdsetup = 0;
-    struct startwin_settings settings;
-    int startretval = STARTWIN_RUN;
+	char quitflag;
 	int grpstoadd = 0;
 	char const ** grps = NULL;
-	int i, j, k, dark, light;
+	int i, j;
+
+#ifdef HAVE_STARTWIN
+	char cmdsetup = 0;
+    struct startwin_settings settings;
+    int startretval = STARTWIN_RUN;
+#endif
 
 	pathsearchmode = PATHSEARCH_SYSTEM;		// unrestrict findfrompath so that full access to the filesystem can be had
 
@@ -258,10 +242,9 @@ int app_main(int argc, char const * const argv[])
 	boardfilename[0] = 0;
 	for (i=1; i<argc; i++) {
 		if (argv[i][0] == '-') {
-			if (!strcmp(argv[i], "-setup")) cmdsetup = 1;
-			else if (!strcmp(argv[i], "-g") || !strcmp(argv[i], "-grp")) {
+			if (!strcmp(argv[i], "-g") || !strcmp(argv[i], "-grp")) {
 				i++;
-				grps = (char const **)realloc((void *)grps, sizeof(char const *)*(grpstoadd+1));
+				if (grpstoadd == 0) grps = (char const **)malloc(sizeof(char const *) * argc);
 				grps[grpstoadd++] = argv[i];
 			}
 			else if (!strcmp(argv[i], "-help") || !strcmp(argv[i], "--help") || !strcmp(argv[i], "-?")) {
@@ -269,19 +252,22 @@ int app_main(int argc, char const * const argv[])
 					"BUILD by Ken Silverman\n"
 					"Syntax: build [options] mapname\n"
 					"Options:\n"
-					"\t-grp\tUse an extra GRP or ZIP file.\n"
-					"\t-g\tSame as above.\n"
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
+					"\t-grp name.ext\tUse an extra GRP or ZIP file.\n"
+					"\t-g name.ext\tSame as above.\n"
+#ifdef HAVE_STARTWIN
 					"\t-setup\tDisplays the configuration dialogue box before entering the editor.\n"
 #endif
 					;
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
+#ifdef HAVE_STARTWIN
 				wm_msgbox("BUILD by Ken Silverman","%s",s);
 #else
 				puts(s);
 #endif
 				return 0;
 			}
+#ifdef HAVE_STARTWIN
+			else if (!strcmp(argv[i], "-setup")) cmdsetup = 1;
+#endif
 			continue;
 		}
 		if (!boardfilename[0]) {
@@ -298,6 +284,7 @@ int app_main(int argc, char const * const argv[])
 
 	if ((i = ExtInit()) < 0) return -1;
 
+#ifdef HAVE_STARTWIN
     memset(&settings, 0, sizeof(settings));
     settings.fullscreen = fullscreen;
     settings.xdim2d = xdim2d;
@@ -307,7 +294,6 @@ int app_main(int argc, char const * const argv[])
     settings.bpp3d = bppgame;
     settings.forcesetup = forcesetup;
 
-#if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
     if (i || forcesetup || cmdsetup) {
         if (quitevent) return 0;
 
@@ -315,7 +301,6 @@ int app_main(int argc, char const * const argv[])
         if (startretval == STARTWIN_CANCEL)
             return 0;
     }
-#endif
 
     fullscreen = settings.fullscreen;
     xdim2d = settings.xdim2d;
@@ -324,6 +309,7 @@ int app_main(int argc, char const * const argv[])
     ydimgame = settings.ydim3d;
     bppgame = settings.bpp3d;
     forcesetup = settings.forcesetup;
+#endif
 
 	if (grps && grpstoadd > 0) {
 		for (i=0;i<grpstoadd;i++) {
@@ -334,6 +320,7 @@ int app_main(int argc, char const * const argv[])
 	}
 
 	buildsetlogfile("build.log");
+
 	inittimer(TIMERINTSPERSECOND);
 	installusertimercallback(keytimerstuff);
 
@@ -354,8 +341,8 @@ int app_main(int argc, char const * const argv[])
 		}
 		setbrightness(brightness,palette,0);
 
-	dark = INT_MAX;
-	light = 0;
+	int dark = INT_MAX;
+	int light = 0;
 	for(i=0;i<256;i++)
 	{
 		j = ((int)palette[i*3])+((int)palette[i*3+1])+((int)palette[i*3+2]);
@@ -501,8 +488,6 @@ int app_main(int argc, char const * const argv[])
 
 void showmouse(void)
 {
-	int i;
-
 	drawline256((searchx+1)<<12, (searchy  )<<12, (searchx+5)<<12, (searchy  )<<12, whitecol);
 	drawline256((searchx  )<<12, (searchy+1)<<12, (searchx  )<<12, (searchy+5)<<12, whitecol);
 	drawline256((searchx-1)<<12, (searchy  )<<12, (searchx-5)<<12, (searchy  )<<12, whitecol);
@@ -511,10 +496,10 @@ void showmouse(void)
 
 void editinput(void)
 {
-	unsigned char smooshyalign, repeatpanalign, *ptr, buffer[80];
-	short sectnum, nextsectnum, startwall, endwall, dasector, daang;
+	unsigned char smooshyalign, repeatpanalign, buffer[80];
+	short startwall, endwall, dasector, daang;
 	int mousx, mousy, mousz, bstatus;
-	int i, j, k, cnt, templong=0, doubvel, changedir, wallfind[2], daz[2];
+	int i, j, k, templong=0, doubvel, changedir;
 	int dashade[2], goalz, xvect, yvect, hiz, loz;
 	short hitsect, hitwall, hitsprite;
 	int hitx, hity, hitz, dax, day, hihit, lohit;
@@ -1658,7 +1643,11 @@ void editinput(void)
 			{
 				AutoAlignWalls((int)searchwall,0L);
 
-				/*wallfind[0] = searchwall;
+				/*
+				int wallfind[2], cnt, daz[2];
+				short sectnum, nextsectnum;
+
+				wallfind[0] = searchwall;
 				cnt = 4096;
 				do
 				{
@@ -2358,7 +2347,7 @@ unsigned char changechar(unsigned char dachar, int dadir, unsigned char smooshya
 int gettile(int tilenum)
 {
 	char snotbuf[80];
-	int i, j, k, otilenum, topleft, gap, temp, templong, ch;
+	int i, j, otilenum, topleft, gap, temp, templong, ch;
 	int xtiles, ytiles, tottiles;
 
 	if (tilenum < 0) tilenum = 0;
@@ -2557,7 +2546,7 @@ int gettile(int tilenum)
 int drawtilescreen(int pictopleft, int picbox)
 {
 	intptr_t vidpos, vidpos2;
-	int i, j, dat, wallnum, xdime, ydime, cnt, pinc;
+	int i, j, wallnum, xdime, ydime, cnt, pinc;
 	int dax, day, scaledown, xtiles, ytiles, tottiles;
 	unsigned char *picptr;
 	char snotbuf[80];
@@ -2650,7 +2639,7 @@ int drawtilescreen(int pictopleft, int picbox)
 	i = localartlookup[picbox];
 	Bsprintf(snotbuf,"%d",i);
 	printext256(0L,ydim-8,whitecol,-1,snotbuf,0);
-	printext256(xdim-(Bstrlen(names[i])<<3),ydim-8,whitecol,-1,names[i],0);
+	printext256(xdim-((int)strlen(names[i])<<3),ydim-8,whitecol,-1,names[i],0);
 
 	Bsprintf(snotbuf,"%dx%d",tilesizx[i],tilesizy[i]);
     printext256(xdim>>2,ydim-8,whitecol,-1,snotbuf,0);
@@ -2664,23 +2653,22 @@ void overheadeditor(void)
 {
 	char buffer[80];
 	const char *dabuffer;
-	int i, j, k, m=0, mousxplc, mousyplc, firstx=0, firsty=0, oposz, col, ch;
+	int i, j, k, m=0, mousxplc, mousyplc, firstx=0, firsty=0, oposz, col, ch, sl;
 	int templong, templong1, templong2, doubvel;
 	int startwall, endwall, dax, day, daz, x1, y1, x2, y2, x3, y3, x4, y4;
 	int highlightx1, highlighty1, highlightx2, highlighty2, xvect, yvect;
-	short pag, suckwall=0, sucksect, newnumwalls, newnumsectors, split=0, bad;
+	short suckwall=0, sucksect, newnumwalls, newnumsectors, split=0, bad;
 	short splitsect=0, danumwalls, secondstartwall, joinsector[2], joinsectnum;
 	short splitstartwall=0, splitendwall, loopnum;
 	int mousx, mousy, bstatus;
 	int centerx, centery, circlerad;
-	short circlewall, circlepoints, circleang1, circleang2, circleangdir;
+	short circlewall, circlepoints, circleang1, circleang2;
 	int sectorhighlightx=0, sectorhighlighty=0;
 	short cursectorhighlight, sectorhighlightstat;
 	short hitsect, hitwall, hitsprite;
 	int hitx, hity, hitz;
 	walltype *wal;
 
-	//qsetmode640480();
 	qsetmodeany(xdim2d,ydim2d);
 	xdim2d = xdim;
 	ydim2d = ydim;
@@ -2706,7 +2694,6 @@ void overheadeditor(void)
 	ydim16 = ydim-STATUS2DSIZ;
 	enddrawing();	//}}}
 
-	pag = 0;
 	highlightcnt = -1;
 	cursectorhighlight = -1;
 
@@ -2866,9 +2853,10 @@ void overheadeditor(void)
 					dax = mulscale14(dax-posx,zoom);
 					day = mulscale14(day-posy,zoom);
 
-					x1 = halfxdim16+dax-(Bstrlen(dabuffer)<<1);
+					sl = (int)strlen(dabuffer);
+					x1 = halfxdim16+dax-(sl<<1);
 					y1 = midydim16+day-4;
-					x2 = x1 + (Bstrlen(dabuffer)<<2)+2;
+					x2 = x1 + (sl<<2)+2;
 					y2 = y1 + 7;
 					if ((x1 >= 0) && (x2 < xdim) && (y1 >= 0) && (y2 < ydim16))
 						printext16(x1,y1,0,7,dabuffer,1);
@@ -2892,9 +2880,10 @@ void overheadeditor(void)
 					{
 						dax = mulscale14(dax-posx,zoom);
 						day = mulscale14(day-posy,zoom);
-						x1 = halfxdim16+dax-(Bstrlen(dabuffer)<<1);
+						sl = (int)strlen(dabuffer);
+						x1 = halfxdim16+dax-(sl<<1);
 						y1 = midydim16+day-4;
-						x2 = x1 + (Bstrlen(dabuffer)<<2)+2;
+						x2 = x1 + (sl<<2)+2;
 						y2 = y1 + 7;
 						if ((x1 >= 0) && (x2 < xdim) && (y1 >= 0) && (y2 < ydim16))
 							printext16(x1,y1,0,4,dabuffer,1);
@@ -2917,9 +2906,10 @@ void overheadeditor(void)
 						dax = mulscale14(dax-posx,zoom);
 						day = mulscale14(day-posy,zoom);
 
-						x1 = halfxdim16+dax-(Bstrlen(dabuffer)<<1);
+						sl = (int)strlen(dabuffer);
+						x1 = halfxdim16+dax-(sl<<1);
 						y1 = midydim16+day-4;
-						x2 = x1 + (Bstrlen(dabuffer)<<2)+2;
+						x2 = x1 + (sl<<2)+2;
 						y2 = y1 + 7;
 						if ((x1 >= 0) && (x2 < xdim) && (y1 >= 0) && (y2 < ydim16))
 						{
@@ -4207,11 +4197,9 @@ void overheadeditor(void)
 				circleang1 = getangle(x1-centerx,y1-centery);
 				circleang2 = getangle(x2-centerx,y2-centery);
 
-				circleangdir = 1;
 				k = ((circleang2-circleang1)&2047);
 				if (mulscale4(x3-x1,y2-y1) < mulscale4(x2-x1,y3-y1))
 				{
-					circleangdir = -1;
 					k = -((circleang1-circleang2)&2047);
 				}
 
@@ -5335,7 +5323,7 @@ void overheadeditor(void)
 				}
 				else if (ch == 'a' || ch == 'A')  //A
 				{
-					char * filename = NULL, *initialdir = NULL, *initialfile = NULL;
+					char *filename = NULL, *initialdir = NULL, *initialfile = NULL, *curs;
 					int filer;
 
 					bad = 0;
@@ -5385,14 +5373,14 @@ void overheadeditor(void)
 					// Find where the filename starts on the path.
 					filename = findfilename(selectedboardfilename);
 
-					// Cut off any .map extension.
-					for (i = strlen(filename) - 1; i >= 0 && filename[i] != '.'; i--) { }
-					if (i > 0 && Bstrcasecmp(&filename[i], ".map") == 0) filename[i] = 0;
+					// Find the end of the filename and cut off any .map extension.
+					curs = strrchr(filename, 0);
+					if (curs - filename >= 4 && strcasecmp(curs - 4, ".map") == 0) { curs -= 4; *curs = 0; }
 
 					bflushchars();
 					while (bad == 0)
 					{
-						Bsprintf(buffer,"Save as: %s_", filename);
+						snprintf(buffer, sizeof(buffer), "Save as: %s_", filename);
 						printmessage16(buffer);
 						showframe();
 
@@ -5405,15 +5393,14 @@ void overheadeditor(void)
 						if (keystatus[1] > 0) bad = 1;
 						else if (ch == 13) bad = 2;
 						else if (ch > 0) {
-							if (i > 0 && (ch == 8 || ch == 127)) {
-								i--;
-								filename[i] = 0;
+							if (curs - filename > 0 && (ch == 8 || ch == 127)) {
+								*(--curs) = 0;
 							}
 							else if (strlen(selectedboardfilename) < sizeof(selectedboardfilename)-5
 								&& ch > 32 && ch < 128)
 							{
-								filename[i++] = ch;
-								filename[i] = 0;
+								*(curs++) = ch;
+								*curs = 0;
 							}
 						}
 					}
@@ -6045,7 +6032,7 @@ int numloopsofsector(short sectnum)
 short getnumber16(char *namestart, short num, int maxnumber, char sign)
 {
 	char buffer[80], ch;
-	int j, k, n, danum, oldnum;
+	int n, danum, oldnum;
 
 	danum = (int)num;
 	oldnum = danum;
@@ -6085,7 +6072,7 @@ short getnumber16(char *namestart, short num, int maxnumber, char sign)
 short getnumber256(char *namestart, short num, int maxnumber, char sign)
 {
 	char buffer[80], ch;
-	int j, k, n, danum, oldnum;
+	int n, danum, oldnum;
 
 	danum = (int)num;
 	oldnum = danum;
@@ -6180,8 +6167,8 @@ char *findfilename(char *path)
 int menuselect(int newpathmode)
 {
 	int listsize;
-	int i, j, topplc;
-	char ch, buffer[90], *sb;
+	int i;
+	char ch, buffer[90];
 	CACHE1D_FIND_REC *dir;
 
 	int bakpathsearchmode = pathsearchmode;
@@ -6217,7 +6204,7 @@ int menuselect(int newpathmode)
 			if (grponlymode) strcat(buffer, "all files.");
 			else strcat(buffer, "GRP files only.");
 		}
-		printext16(halfxdim16-(8*strlen(buffer)/2), 4, 14,0,buffer,0);
+		printext16(halfxdim16-(8*(int)strlen(buffer)/2), 4, 14,0,buffer,0);
 
 		snprintf(buffer,sizeof(buffer),"(%d dirs, %d files) %s",numdirs,numfiles,selectedboardfilename);
 		printext16(1,ydim16-8-1,8,0,buffer,0);
@@ -6465,58 +6452,6 @@ short whitelinescan(short dalinehighlight)
 	else
 		return(newnumwalls);
 }
-/*
-#define loadbyte(fil,tempbuf,bufplc,dat)        \
-{                                               \
-	if (bufplc == 0)                             \
-	{                                            \
-		for(bufplc=0;bufplc<4096;bufplc++)        \
-			tempbuf[bufplc] = 0;                   \
-		bufplc = 0;                               \
-		read(fil,tempbuf,4096);                   \
-	}                                            \
-	dat = tempbuf[bufplc];                       \
-	bufplc = ((bufplc+1)&4095);                  \
-}                                               \
-
-int loadnames(void)
-{
-	char buffer[80], firstch, ch;
-	int fil, i, num, buffercnt, bufplc;
-
-	if ((fil = open("names.h",O_BINARY|O_RDWR,S_IREAD)) == -1) return(-1);
-	bufplc = 0;
-	do { loadbyte(fil,tempbuf,bufplc,firstch); } while (firstch != '#');
-
-	while ((firstch == '#') || (firstch == '/'))
-	{
-		do { loadbyte(fil,tempbuf,bufplc,ch); } while (ch > 32);
-
-		buffercnt = 0;
-		do
-		{
-			loadbyte(fil,tempbuf,bufplc,ch);
-			if (ch > 32) buffer[buffercnt++] = ch;
-		}
-		while (ch > 32);
-
-		num = 0;
-		do
-		{
-			loadbyte(fil,tempbuf,bufplc,ch);
-			if ((ch >= 48) && (ch <= 57)) num = num*10+(ch-48);
-		}
-		while (ch != 13);
-		for(i=0;i<buffercnt;i++) names[num][i] = buffer[i];
-		names[num][buffercnt] = 0;
-
-		loadbyte(fil,tempbuf,bufplc,firstch);
-		if (firstch == 10) loadbyte(fil,tempbuf,bufplc,firstch);
-	}
-	close(fil);
-	return(0);
-}
-*/
 
 int loadnames(void)
 {
@@ -6538,7 +6473,7 @@ int loadnames(void)
 	printf("Loading NAMES.H\n");
 
 	while (Bfgets(buffer, 1024, fp)) {
-		a = Bstrlen(buffer);
+		a = (int)strlen(buffer);
 		if (a >= 1) {
 			if (a > 1)
 				if (buffer[a-2] == '\r') buffer[a-2] = 0;
@@ -6579,7 +6514,7 @@ int loadnames(void)
 					if (*p != 0) *p = 0;
 
 					// add to list
-					num = Bstrtol(number, &endptr, 10);
+					num = (int)strtol(number, &endptr, 10);
 					if (*endptr != 0) {
 						p = endptr;
 						goto badline;

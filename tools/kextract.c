@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 		{
 			if ((fil2 = Bopen(&argv[i][1],BO_BINARY|BO_RDONLY,BS_IREAD)) != -1)
 			{
-				l = Bread(fil2,buf,65536);
+				l = (int)Bread(fil2,buf,65536);
 				j = 0;
 				while ((j < l) && (buf[j] <= 32)) j++;
 				while (j < l)

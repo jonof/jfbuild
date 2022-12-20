@@ -3,10 +3,6 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #define USE_IPV6
 //#define MMULTI_DEBUG_SENDRECV
 //#define MMULTI_DEBUG_SENDRECV_WIRE
@@ -41,28 +37,25 @@ LPFN_WSARECVMSG WSARecvMsgPtr;
 #ifdef __APPLE__
 # define __APPLE_USE_RFC_3542
 #endif
-#ifdef __GNUC__
-# define __USE_GNU
+#ifndef _GNU_SOURCE
+# define _GNU_SOURCE
 #endif
 
-#include <unistd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <stddef.h>
 #define SOCKET int
 
 #include <sys/time.h>
 static int GetTickCount(void)
 {
 	struct timeval tv;
-	int ti;
 	if (gettimeofday(&tv,NULL) < 0) return 0;
 	// tv is sec.usec, GTC gives msec
-	ti = tv.tv_sec * 1000;
-	ti += tv.tv_usec / 1000;
-	return ti;
+	return (int)((tv.tv_sec * 1000) + (tv.tv_usec / 1000));
 }
 
 #define IS_INVALID_SOCKET(sock) (sock < 0)
@@ -72,6 +65,7 @@ static int GetTickCount(void)
 #include "build.h"
 #include "mmulti.h"
 #include "baselayer.h"
+
 #define printf buildprintf
 
 #ifndef min
@@ -85,8 +79,10 @@ static int GetTickCount(void)
 #define SIMMIS 0     //Release:0  Test:100 Packets per 256 missed.
 #define SIMLAG 0     //Release:0  Test: 10 Packets to delay receipt
 #define PRESENCETIMEOUT 2000
+#if (SIMLAG > 1)
 static int simlagcnt[MAXPLAYERS];
 static unsigned char simlagfif[MAXPLAYERS][SIMLAG+1][MAXPAKSIZ+2];
+#endif
 #if ((SIMMIS != 0) || (SIMLAG != 0))
 #pragma message("\n\nWARNING! INTENTIONAL PACKET LOSS SIMULATION IS ENABLED!\nREMEMBER TO CHANGE SIMMIS&SIMLAG to 0 before RELEASE!\n\n")
 #endif
@@ -270,7 +266,11 @@ int netinit (int portnum)
 
 int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 {
-	char msg_control[1024];
+    #if defined(__linux) || defined(_WIN32)
+	char msg_control[CMSG_SPACE(sizeof(struct in_pktinfo)) + CMSG_SPACE(sizeof(struct in6_pktinfo))];
+	#else
+	char msg_control[CMSG_SPACE(sizeof(struct in_addr)) + CMSG_SPACE(sizeof(struct in6_pktinfo))];
+	#endif
 	if (otherhost[other].ss_family == AF_UNSPEC) return(0);
 
 	if (otherhost[other].ss_family != domain) {
@@ -378,7 +378,7 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 #ifdef _WIN32
 	if (WSASendMsgPtr(mysock, &msg, 0, &len, NULL, NULL) == SOCKET_ERROR)
 #else
-	if ((len = sendmsg(mysock, &msg, 0)) < 0)
+	if ((len = (int)sendmsg(mysock, &msg, 0)) < 0)
 #endif
 	{
 #ifdef MMULTI_DEBUG_SENDRECV_WIRE
@@ -428,7 +428,7 @@ int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 	msg.msg_controllen = sizeof(msg_control);
 	msg.msg_flags = 0;
 
-	if ((len = recvmsg(mysock, &msg, 0)) < 0) return 0;
+	if ((len = (int)recvmsg(mysock, &msg, 0)) < 0) return 0;
 #endif
 	if (len == 0) return 0;
 
@@ -549,10 +549,10 @@ static const char *presentaddress(struct sockaddr *a) {
 
 //---------------------------------- Obsolete variables&functions ----------------------------------
 unsigned char syncstate = 0;
-void setpackettimeout (int UNUSED(datimeoutcount), int UNUSED(daresendagaincount)) {}
-void genericmultifunction (int UNUSED(other), unsigned char *UNUSED(bufptr), int UNUSED(messleng), int UNUSED(command)) {}
+void setpackettimeout (int datimeoutcount, int daresendagaincount) { (void)datimeoutcount; (void)daresendagaincount; }
+void genericmultifunction (int other, unsigned char *bufptr, int messleng, int command) { (void)other; (void)bufptr; (void)messleng; (void)command; }
 int getoutputcirclesize () { return(0); }
-void setsocket (int UNUSED(newsocket)) { }
+void setsocket (int newsocket) { (void)newsocket; }
 void sendlogon () {}
 void sendlogoff () {}
 //--------------------------------------------------------------------------------------------------
@@ -642,7 +642,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 		// -p1234 = Listen port
 		if ((argv[i][1] == 'p' || argv[i][1] == 'P') && argv[i][2]) {
 			char *p;
-			j = strtol(argv[i]+2, &p, 10);
+			j = (int)strtol(argv[i]+2, &p, 10);
 			if (!(*p) && j > 0 && j<65535) portnum = j;
 
 			printf("mmulti: Using port %d\n", portnum);
@@ -663,7 +663,7 @@ int initmultiplayersparms(int argc, char const * const argv[])
 				if ((argv[i][3] == ':') && (argv[i][4] >= '0') && (argv[i][4] <= '9'))
 				{
 					char *p;
-					j = strtol(argv[i]+4, &p, 10);
+					j = (int)strtol(argv[i]+4, &p, 10);
 					if (!(*p) && j > 0 && j <= MAXPLAYERS) {
 						danumplayers = j;
 						printf("mmulti: %d-player game\n", danumplayers);
@@ -861,8 +861,6 @@ int initmultiplayerscycle(void)
 
 void initmultiplayers (int argc, char const * const argv[])
 {
-	int i, j, k, otims;
-
 	if (initmultiplayersparms(argc,argv))
 	{
 		while (initmultiplayerscycle())
@@ -891,7 +889,7 @@ static int lookuphost(const char *name, struct sockaddr *host, int warnifmany)
 	if (portch) {
 		*(portch++) = 0;
 		if (*portch != 0) {
-			port = strtol(portch, NULL, 10);
+			port = (int)strtol(portch, NULL, 10);
 		}
 	}
 	if (port < 1025 || port > 65534) port = NETPORT;
@@ -980,8 +978,6 @@ void dosendpackets (int other)
 
 void sendpacket (int other, unsigned char *bufptr, int messleng)
 {
-	int i, j;
-
 	if (numplayers < 2) return;
 
 	if (pakmemi+messleng+2 > (int)sizeof(pakmem)) pakmemi = 1;

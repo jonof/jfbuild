@@ -66,7 +66,7 @@ void slopevlin(void *p, int i, void *slopaloffs, int cnt, int bx, int by)
 	unsigned int u, v;
 	unsigned char *pp;
 
-	bz = asm3; bzinc = (asm1>>3);
+	bz = (int)asm3; bzinc = (asm1>>3);
 	slopalptr = (intptr_t *)slopaloffs;
 	pp = (unsigned char *)p;
 	for(;cnt>0;cnt--)
@@ -146,9 +146,10 @@ void tvlineasm1(int vinc, void *paloffs, int cnt, unsigned int vplc, void *bufpl
 
 	//Floor sprite horizontal line functions
 void msethlineshift(int logx, int logy) { glogx = logx; glogy = logy; }
-void mhline(void *bufplc, unsigned int bx, int cntup16, int UNUSED(junk), unsigned int by, void *p)
+void mhline(void *bufplc, unsigned int bx, int cntup16, int junk, unsigned int by, void *p)
 {
 	unsigned char ch, *pp;
+	(void)junk;
 
 	gbuf = (unsigned char *)bufplc;
 	gpal = (unsigned char *)asm3;
@@ -164,9 +165,10 @@ void mhline(void *bufplc, unsigned int bx, int cntup16, int UNUSED(junk), unsign
 }
 
 void tsethlineshift(int logx, int logy) { glogx = logx; glogy = logy; }
-void thline(void *bufplc, unsigned int bx, int cntup16, int UNUSED(junk), unsigned int by, void *p)
+void thline(void *bufplc, unsigned int bx, int cntup16, int junk, unsigned int by, void *p)
 {
 	unsigned char ch, *pp;
+	(void)junk;
 
 	gbuf = (unsigned char *)bufplc;
 	gpal = (unsigned char *)asm3;
@@ -297,9 +299,10 @@ void drawslab (int dx, int v, int dy, int vi, void *vptr, void *p)
 	}
 }
 
-void stretchhline (void * UNUSED(p0), int u, int cnt, int uinc, void *rptr, void *p)
+void stretchhline (void *p0, int u, int cnt, int uinc, void *rptr, void *p)
 {
 	unsigned char *pp, *rpptr, *np;
+	(void)p0;
 
 	rpptr = (unsigned char *)rptr;
 	pp = (unsigned char *)p;

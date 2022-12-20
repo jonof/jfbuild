@@ -1,9 +1,4 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "build.h"
 
 #include <gtk/gtk.h>
 
@@ -11,7 +6,6 @@
 # error Gtk+ 3.4 or higher required.
 #endif
 
-#include "build.h"
 #include "baselayer.h"
 
 // Copied from a glib-compile-resource generated header.

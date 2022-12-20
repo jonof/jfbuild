@@ -107,13 +107,13 @@
         ydim2d = settings->ydim2d;
     } else {
         fullscreen = ([fullscreenButton state] == NSOnState);
-        mode3d = [[videoMode3DPUButton selectedItem] tag];
+        mode3d = (int)[[videoMode3DPUButton selectedItem] tag];
         if (mode3d >= 0) {
             xdim = validmode[mode3d].xdim;
             ydim = validmode[mode3d].ydim;
             bpp = validmode[mode3d].bpp;
         }
-        mode2d = [[videoMode2DPUButton selectedItem] tag];
+        mode2d = (int)[[videoMode2DPUButton selectedItem] tag];
         if (mode2d >= 0) {
             xdim2d = validmode[mode2d].xdim;
             ydim2d = validmode[mode2d].ydim;
@@ -182,7 +182,7 @@
 {
     int mode = -1;
 
-    mode = [[videoMode3DPUButton selectedItem] tag];
+    mode = (int)[[videoMode3DPUButton selectedItem] tag];
     if (mode >= 0) {
         settings->xdim3d = validmode[mode].xdim;
         settings->ydim3d = validmode[mode].ydim;
@@ -190,7 +190,7 @@
         settings->fullscreen = validmode[mode].fs;
     }
 
-    mode = [[videoMode2DPUButton selectedItem] tag];
+    mode = (int)[[videoMode2DPUButton selectedItem] tag];
     if (mode >= 0) {
         settings->xdim2d = validmode[mode].xdim;
         settings->ydim2d = validmode[mode].ydim;

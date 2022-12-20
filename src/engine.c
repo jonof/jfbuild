@@ -85,7 +85,8 @@ unsigned char picsiz[MAXTILES], tilefilenum[MAXTILES];
 int lastageclock;
 int tilefileoffs[MAXTILES];
 
-int artsize = 0, cachesize = 0;
+int artsize = 0;
+size_t cachesize = 0;
 int editorgridextent = 131072;
 
 static short radarang[1280], radarang2[MAXXDIM];
@@ -854,6 +855,7 @@ static void maskwallscan(int x1, int x2, short *uwal, short *dwal, int *swal, in
 	}
 
 #else	// ENGINE_USING_A_C
+	(void)i; (void)u4; (void)d4; (void)dax; (void)z; (void)bad;
 
 	p = startx+frameoffset;
 	for(x=startx;x<=x2;x++,p++)
@@ -1699,7 +1701,7 @@ static void florscan(int x1, int x2, int sectnum)
 static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *lwal)
 {
 	int x, xnice, ynice;
-        intptr_t i, fpalookup;
+	intptr_t i, fpalookup;
 	int y1ve[4], y2ve[4], u4, d4, z, tsizx, tsizy;
 	char bad;
 
@@ -1822,6 +1824,7 @@ static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *l
 	}
 
 #else	// ENGINE_USING_A_C
+	(void)i; (void)u4; (void)d4; (void)z; (void)bad;
 
 	for(x=x1;x<=x2;x++)
 	{
@@ -2207,7 +2210,7 @@ static void grouscan(int dax1, int dax2, int sectnum, unsigned char dastat)
 			globalx3 = (globalx2>>10);
 			globaly3 = (globaly2>>10);
 			asm3 = mulscale16(y2,globalzd) + (globalzx>>6);
-			slopevlin((void *)(ylookup[y2]+x+frameoffset),krecipasm(asm3>>3),nptr2,y2-y1+1,globalx1,globaly1);
+			slopevlin((void *)(ylookup[y2]+x+frameoffset),krecipasm((int)asm3>>3),nptr2,y2-y1+1,globalx1,globaly1);
 
 			if ((x&15) == 0) faketimerhandler();
 		}
@@ -2741,6 +2744,8 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 	int yoff, xs=0, ys=0, xe, ye, xi=0, yi=0, cbackx, cbacky, dagxinc, dagyinc;
 	short *shortptr;
 	unsigned char *voxptr, *voxend, *davoxptr, oand, oand16, oand32;
+
+	(void)dazsiz;
 
 	cosang = sintable[(globalang+512)&2047];
 	sinang = sintable[globalang&2047];
@@ -4038,7 +4043,7 @@ static void fillpolygon(int npoints)
 	ptr = smost;
 	for(y=miny;y<=maxy;y++)
 	{
-		cnt = dotp1[y]-ptr; ptr2 = ptr+(MAXNODESPERLINE>>1);
+		cnt = (int)(dotp1[y]-ptr); ptr2 = ptr+(MAXNODESPERLINE>>1);
 		for(z=cnt-1;z>=0;z--)
 		{
 			day1 = 0; day2 = 0;
@@ -4357,16 +4362,17 @@ static int clippoly4(int cx1, int cy1, int cx2, int cy2)
 static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed char dashade,
 	unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
 {
-	int cosang, sinang, v, nextv, dax1, dax2, oy, bx, by, ny1, ny2;
-	int x, y, x1, y1, x2, y2, gx1, gy1;
+	int cosang, sinang, v, nextv, dax1, dax2, oy, bx, by;
+	int x, y, x1, y1, x2, y2, gx1, gy1, iv;
 	intptr_t i, p, bufplc, palookupoffs;
-	int xsiz, ysiz, xoff, yoff, npoints, yplc, yinc, lx, rx, xx, xend;
-	int xv, yv, xv2, yv2, obuffermode, qlinemode=0, y1ve[4], y2ve[4], u4, d4;
-	char bad;
+	int xsiz, ysiz, xoff, yoff, npoints, yplc, yinc, lx, rx;
+	int xv, yv, xv2, yv2;
 
 	//============================================================================= //POLYMOST BEGINS
 #if USE_POLYMOST
 	if (rendmode) { polymost_dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2,uniqid); return; }
+#else
+	(void)uniqid;
 #endif
 	//============================================================================= //POLYMOST ENDS
 
@@ -4479,9 +4485,9 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 
 	palookupoffs = (intptr_t)palookup[dapalnum] + (getpalookup(0L,(int)dashade)<<8);
 
-	i = divscale32(1L,z);
-	xv = mulscale14(sinang,i);
-	yv = mulscale14(cosang,i);
+	iv = divscale32(1L,z);
+	xv = mulscale14(sinang,iv);
+	yv = mulscale14(cosang,iv);
 	if (((dastat&2) != 0) || ((dastat&8) == 0)) //Don't aspect unscaled perms
 	{
 		yv2 = mulscale16(-xv,yxaspect);
@@ -4501,19 +4507,9 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 	by = dmulscale16(x,yv2,y,yv);
 	if (dastat&4) { yv = -yv; yv2 = -yv2; by = (ysiz<<16)-1-by; }
 
-/*	if (origbuffermode == 0)
-	{
-		if (dastat&128)
-		{
-			obuffermode = buffermode;
-			buffermode = 0;
-			setactivepage(activepage);
-		}
-	}
-	else if (dastat&8)
-		 permanentupdate = 1; */
-
 #ifndef ENGINE_USING_A_C
+	int ny1, ny2, xx, xend, qlinemode=0, y1ve[4], y2ve[4], u4, d4;
+	char bad;
 
 	if ((dastat&1) == 0)
 	{
@@ -4817,12 +4813,6 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 	}
 
 #endif
-
-/*	if ((dastat&128) && (origbuffermode == 0))
-	{
-		buffermode = obuffermode;
-		setactivepage(activepage);
-	}*/
 }
 
 
@@ -4849,7 +4839,7 @@ static void initksqrt(void)
 //
 static void dosetaspect(void)
 {
-	int i, j, k, x, xinc,a;
+	int i, j, k, x, xinc;
 
 	if (xyaspect != oxyaspect)
 	{
@@ -4971,7 +4961,8 @@ static void initfastcolorlookup(int rscale, int gscale, int bscale)
 //
 static int loadpalette(void)
 {
-	int fil = -1, flen, i;
+	int fil = -1;
+	off_t flen;
 
 	if ((fil = kopen4load("palette.dat",0)) < 0) goto badpalette;
 	flen = kfilelength(fil);
@@ -5701,7 +5692,7 @@ void drawmasks(void)
 		if (yp > (4<<8))
 		{
 			xp = dmulscale6(ys,cosglobalang,-xs,singlobalang);
-			if (mulscale24(labs(xp+yp),xdimen) >= yp) goto killsprite;
+			if (mulscale24(abs(xp+yp),xdimen) >= yp) goto killsprite;
 			spritesx[i] = scale(xp+yp,xdimen<<7,yp);
 		}
 		else if ((tspriteptr[i]->cstat&48) == 0)
@@ -7331,6 +7322,8 @@ int loadmaphack(char *filename)
 	}
 
 	scriptfile_close(script);
+#else
+	(void)filename;
 #endif //USE_POLYMOST && USE_OPENGL
 
 	return 0;
@@ -7580,7 +7573,7 @@ writeerror:
 extern char videomodereset;
 int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 {
-	int i, j, oldbpp;
+	int i, j;
 
 	if ((qsetmode == 200) && (videomodereset == 0) &&
 	    (davidoption == fullscreen) && (xdim == daxdim) && (ydim == daydim) && (bpp == dabpp))
@@ -7588,12 +7581,11 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 
 	strcpy(kensmessage,"!!!! BUILD engine&tools programmed by Ken Silverman of E.G. RI.  (c) Copyright 1995 Ken Silverman.  Summary:  BUILD = Ken. !!!!");
 
-	//if (checkvideomode(&daxdim, &daydim, dabpp, davidoption)<0) return (-1);
-
+#if USE_POLYMOST && USE_OPENGL
+	int oldbpp = bpp;
+#endif
 	//bytesperline is set in this function
-	oldbpp = bpp;
 	if (setvideomode(daxdim,daydim,dabpp,davidoption) < 0) return(-1);
-	daxdim = xres; daydim = yres;	// The mode set might not be a perfect match to what we asked for.
 
 	// it's possible the previous call protected our code sections again
 	makeasmwriteable();
@@ -7603,7 +7595,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	else if (dabpp == 8 && oldbpp != 8) rendmode = 0;	// going from GL to software activates classic
 #endif
 
-	xdim = daxdim; ydim = daydim;
+	xdim = xres; ydim = yres;
 
 	// determine the corrective factor for pixel-squareness. Build
 	// is built around the non-square pixels of Mode 13h, so to get
@@ -7923,7 +7915,7 @@ void loadtile(short tilenume)
 //
 // allocatepermanenttile
 //
-int allocatepermanenttile(short tilenume, int xsiz, int ysiz)
+intptr_t allocatepermanenttile(short tilenume, int xsiz, int ysiz)
 {
 	int j, dasiz;
 
@@ -9167,17 +9159,16 @@ int pushmove (int *x, int *y, int *z, short *sectnum,
 		 int walldist, int ceildist, int flordist, unsigned int cliptype)
 {
 	sectortype *sec, *sec2;
-	walltype *wal, *wal2;
-	spritetype *spr;
+	walltype *wal;
 	int i, j, k, t, dx, dy, dax, day, daz, daz2, bad, dir;
-	int dasprclipmask, dawalclipmask;
+	int dawalclipmask;
 	short startwall, endwall, clipsectcnt;
 	char bad2;
 
 	if ((*sectnum) < 0) return(-1);
 
 	dawalclipmask = (cliptype&65535);
-	dasprclipmask = (cliptype>>16);
+	//int dasprclipmask = (cliptype>>16);
 
 	k = 32;
 	dir = 1;
@@ -9192,7 +9183,7 @@ int pushmove (int *x, int *y, int *z, short *sectnum,
 			/*Push FACE sprites
 			for(i=headspritesect[clipsectorlist[clipsectcnt]];i>=0;i=nextspritesect[i])
 			{
-				spr = &sprite[i];
+				spritetype *spr = &sprite[i];
 				if (((spr->cstat&48) != 0) && ((spr->cstat&48) != 48)) continue;
 				if ((spr->cstat&dasprclipmask) == 0) continue;
 
@@ -9841,14 +9832,10 @@ void setvgapalette(void)
 //
 // setbrightness
 //
-static unsigned int lastpalettesum = 0;
 void setbrightness(int dabrightness, unsigned char *dapal, char noapply)
 {
 	int i, k, j;
-	float f;
-	unsigned int newpalettesum, lastbright;
 
-	lastbright = curbrightness;
 	if (!(noapply&4))
 		curbrightness = min(max((int)dabrightness,0),15);
 
@@ -9874,7 +9861,8 @@ void setbrightness(int dabrightness, unsigned char *dapal, char noapply)
 
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3) {
-		newpalettesum = crc32once((unsigned char *)curpalettefaded, sizeof(curpalettefaded));
+		static unsigned int lastpalettesum = 0;
+		unsigned int newpalettesum = crc32once((unsigned char *)curpalettefaded, sizeof(curpalettefaded));
 
 		// only reset the textures if the preserve flag (bit 1 of noapply) is clear and
 		// either (a) the new palette is different to the last, or (b) the brightness
@@ -10401,8 +10389,8 @@ void setfirstwall(short sectnum, short newfirstwall)
 //
 void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 {
-	int dx, dy, i, j, inc, daend;
-	intptr_t p, plc;
+	int dx, dy, i, j, inc, daend, plc;
+	intptr_t p;
 
 	col = palookup[0][col];
 
@@ -10860,9 +10848,9 @@ void draw2dgrid(int posxe, int posye, short ange, int zoome, short gride)
 void draw2dscreen(int posxe, int posye, short ange, int zoome, short gride)
 {
 	walltype *wal;
-	int i, j, k, xp1, yp1, xp2, yp2, tempy;
+	int i, j, xp1, yp1, xp2, yp2;
 	intptr_t templong;
-	unsigned char col, mask;
+	unsigned char col;
 
 	if (qsetmode == 200) return;
 
@@ -11163,7 +11151,7 @@ void printext256(int xpos, int ypos, short col, short backcol, const char *name,
 //
 static BFILE *screencapture_openfile(const char *ext)
 {
-	int i;
+	char *seq;
 	BFILE *fil;
 
 	do {	// JBF 2004022: So we don't overwrite existing screenshots
@@ -11171,15 +11159,15 @@ static BFILE *screencapture_openfile(const char *ext)
 			return NULL;
 		}
 
-		i = Bstrrchr(capturename,'.')-capturename-4;
-		capturename[i++] = ((capturecount/1000)%10)+48;
-		capturename[i++] = ((capturecount/100)%10)+48;
-		capturename[i++] = ((capturecount/10)%10)+48;
-		capturename[i++] = (capturecount%10)+48;
-		i++;
-		capturename[i++] = ext[0];
-		capturename[i++] = ext[1];
-		capturename[i++] = ext[2];
+		seq = strrchr(capturename, '.'); if (!seq) return NULL;
+		seq -= 4;
+		seq[0] = ((capturecount/1000)%10)+48;
+		seq[1] = ((capturecount/100)%10)+48;
+		seq[2] = ((capturecount/10)%10)+48;
+		seq[3] = (capturecount%10)+48;
+		seq[5] = ext[0];
+		seq[6] = ext[1];
+		seq[7] = ext[2];
 
 		if ((fil = Bfopen(capturename, "rb")) == NULL) break;
 		Bfclose(fil);
@@ -11195,14 +11183,15 @@ static int screencapture_writeframe(BFILE *fil, char mode, void *v,
 {
 	int y, ystart, yend, yinc, j;
 	unsigned char *ptr, *buf;
-	char inverseit = 0, bottotop = 0, bgr = 0;
+	char inverseit = 0, bottotop = 0;
 
 	inverseit = (mode & 1);
 	bottotop = (mode & 2);
-	bgr = (mode & 4);
 
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode >= 3 && qsetmode == 200) {
+		char bgr = (mode & 4);
+
 		// OpenGL returns bottom-to-top ordered lines.
 		if (bottotop) {
 			ystart = 0;
@@ -11271,8 +11260,8 @@ static void screencapture_writetgaline(unsigned char *buf, int bytes, int elemen
 
 static int screencapture_tga(char mode)
 {
-	int i,j;
-	unsigned char *ptr, head[18] = { 0,1,1,0,0,0,1,24,0,0,0,0,0/*wlo*/,0/*whi*/,0/*hlo*/,0/*hhi*/,8,0 };
+	int i;
+	unsigned char head[18] = { 0,1,1,0,0,0,1,24,0,0,0,0,0/*wlo*/,0/*whi*/,0/*hlo*/,0/*hhi*/,8,0 };
 	BFILE *fil;
 
 	if ((fil = screencapture_openfile("tga")) == NULL) {
@@ -11337,7 +11326,7 @@ static int writepcxbyte(unsigned char colour, unsigned char count, BFILE *fp)
 static void writepcxline(unsigned char *buf, int bytes, int step, BFILE *fp)
 {
 	unsigned char ths, last;
-	int srcIndex, i;
+	int srcIndex;
 	unsigned char runCount;
 
 	runCount = 1;
@@ -11379,8 +11368,8 @@ static void screencapture_writepcxline(unsigned char *buf, int bytes, int elemen
 
 static int screencapture_pcx(char mode)
 {
-	int i,j,bpl;
-	unsigned char *ptr, head[128];
+	int i,bpl;
+	unsigned char head[128];
 	BFILE *fil;
 
 	if ((fil = screencapture_openfile("pcx")) == NULL) {
@@ -11423,7 +11412,6 @@ static int screencapture_pcx(char mode)
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode < 3 || (rendmode == 3 && qsetmode != 200)) {
 #endif
-		//getpalette(0,256,palette);
 		Bfputc(12,fil);
 		for (i=0; i<256; i++) {
 			Bfputc(curpalettefaded[i].r, fil);	// b
@@ -11607,8 +11595,6 @@ int screencapture(char *filename, char mode)
 //
 int setrendermode(int renderer)
 {
-	int method;
-
 	if (bpp == 8) {
 		if (renderer < 0) renderer = 0;
 		else if (renderer > 2) renderer = 2;
@@ -11721,8 +11707,7 @@ void buildprintf(const char *fmt, ...)
 	}
 
 	va_copy(vac, va);
-	Bvsnprintf(tmpstr, sizeof(tmpstr)-1, fmt, vac);
-	tmpstr[sizeof(tmpstr)-1] = 0;
+	vsnprintf(tmpstr, sizeof(tmpstr), fmt, vac);
 	va_end(vac);
 
 	initputs(tmpstr);

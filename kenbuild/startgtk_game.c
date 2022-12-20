@@ -1,15 +1,8 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "build.h"
 
 #include <gtk/gtk.h>
 
-#include "compat.h"
 #include "baselayer.h"
-#include "build.h"
 #include "game.h"
 
 #define TAB_CONFIG 0

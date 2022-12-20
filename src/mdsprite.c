@@ -204,7 +204,6 @@ static int framename2index (mdmodel *vm, const char *nam)
 
 int md_defineframe (int modelid, const char *framename, int tilenume, int skinnum)
 {
-	void *vm;
 	md2model *m;
 	int i;
 
@@ -470,8 +469,10 @@ PTMHead * mdloadskin (md2model *m, int number, int pal, int surf)
 
 	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,glfiltermodes[gltexfiltermode].mag);
 	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,glfiltermodes[gltexfiltermode].min);
+#ifdef GL_EXT_texture_filter_anisotropic
 	if (glinfo.maxanisotropy > 1.0)
 		glfunc.glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAX_ANISOTROPY_EXT,glanisotropy);
+#endif
 	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
 	glfunc.glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
 
@@ -555,8 +556,8 @@ static md2model *md2load (int fil, const char *filnam)
 {
 	md2model *m;
 	md2head_t head;
-	char *buf, st[BMAX_PATH];
-	int i;
+	char st[BMAX_PATH];
+	size_t i;
 
 	m = (md2model *)calloc(1,sizeof(md2model)); if (!m) return(0);
 	m->mdnum = 2; m->scale = .01;
@@ -642,10 +643,10 @@ static md2model *md2load (int fil, const char *filnam)
 
 static int md2draw (md2model *m, spritetype *tspr, int method)
 {
-	point3d fp, m0, m1, a0, a1;
+	point3d m0, m1, a0;
 	md2frame_t *f0, *f1;
 	md2vert_t *c0, *c1;
-	int i, j, vbi, *lptr;
+	int i, j, vbi;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
 	PTMHead *ptmh = 0;
 	struct polymostdrawpolycall draw;
@@ -826,8 +827,7 @@ static void md3free (md3model *m);
 
 static md3model *md3load (int fil)
 {
-	char *buf, st[BMAX_PATH+2], bst[BMAX_PATH+2];
-	int i, j, surfi, ofsurf, bsc, offs[4], leng[4], maxsurftris = 0;
+	int surfi, ofsurf, offs[4], leng[4];
 	md3model *m;
 	md3surf_t *s;
 
@@ -875,7 +875,7 @@ static md3model *md3load (int fil)
 
 #if B_BIG_ENDIAN != 0
 	{
-		int *l;
+		int i, j, *l;
 
 		for (i = m->head.numframes-1; i>=0; i--) {
 			l = (int *)&m->head.frames[i].min;
@@ -962,9 +962,9 @@ static md3model *md3load (int fil)
 
 static int md3draw (md3model *m, spritetype *tspr, int method)
 {
-	point3d fp, m0, m1, a0, a1;
+	point3d m0, m1, a0;
 	md3xyzn_t *v0, *v1;
-	int i, j, k, vbi, surfi, *lptr;
+	int i, j, k, vbi, surfi;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], pc[4];
 	md3surf_t *s;
 	PTMHead * ptmh = 0;
@@ -1268,7 +1268,7 @@ static void putvox (int x, int y, int z, int col)
 	vcol[vnum].c = col;
 	vcol[vnum].n = vcolhashead[z]; vcolhashead[z] = vnum++;
 }
-
+/*
 	//Set all bits in vbit from (x,y,z0) to (x,y,z1-1) to 0's
 static void setzrange0 (int *lptr, int z0, int z1)
 {
@@ -1278,7 +1278,7 @@ static void setzrange0 (int *lptr, int z0, int z1)
 	lptr[z] &=~(-(1<<SHIFTMOD32(z0))); for(z++;z<ze;z++) lptr[z] = 0;
 	lptr[z] &= (-(1<<SHIFTMOD32(z1)));
 }
-
+*/
 	//Set all bits in vbit from (x,y,z0) to (x,y,z1-1) to 1's
 static void setzrange1 (int *lptr, int z0, int z1)
 {
@@ -1338,11 +1338,12 @@ static void setrect (int x0, int y0, int dx, int dy)
 #endif
 }
 
-static void cntquad (int x0, int y0, int z0, int UNUSED(x1), int UNUSED(y1), int UNUSED(z1), int x2, int y2, int z2, int UNUSED(face))
+static void cntquad (int x0, int y0, int z0, int x1, int y1, int z1, int x2, int y2, int z2, int face)
 {
 	int x, y, z;
+	(void)x1; (void)y1; (void)z1; (void)face;
 
-	x = labs(x2-x0); y = labs(y2-y0); z = labs(z2-z0);
+	x = abs(x2-x0); y = abs(y2-y0); z = abs(z2-z0);
 	if (!x) x = z; else if (!y) y = z;
 	if (x < y) { z = x; x = y; y = z; }
 	shcnt[y*shcntp+x]++;
@@ -1357,7 +1358,7 @@ static void addquad (int x0, int y0, int z0, int x1, int y1, int z1, int x2, int
 	int i, j, x, y, z, xx, yy, nx = 0, ny = 0, nz = 0, *lptr;
 	voxrect_t *qptr;
 
-	x = labs(x2-x0); y = labs(y2-y0); z = labs(z2-z0);
+	x = abs(x2-x0); y = abs(y2-y0); z = abs(z2-z0);
 	if (!x) { x = y; y = z; i = 0; } else if (!y) { y = z; i = 1; } else i = 2;
 	if (x < y) { z = x; x = y; y = z; i += 3; }
 	z = shcnt[y*shcntp+x]++;
@@ -1438,10 +1439,8 @@ static int isolid (int x, int y, int z)
 
 static voxmodel *vox2poly ()
 {
-	int i, j, x, y, z, v, ov, oz = 0, cnt, sc, x0, y0, dx, dy, i0, i1, *bx0, *by0;
+	int i, j, x, y, z, v, ov, oz = 0, cnt, sc, x0, y0, dx, dy, *bx0, *by0;
 	void (*daquad)(int, int, int, int, int, int, int, int, int, int);
-	coltype *pic;
-	unsigned char *cptr, ch;
 
 	gvox = (voxmodel *)malloc(sizeof(voxmodel)); if (!gvox) return(0);
 	memset(gvox,0,sizeof(voxmodel));
@@ -1699,7 +1698,7 @@ static int loadkvx (const char *filnam)
 
 static int loadkv6 (const char *filnam)
 {
-	int i, j, x, y, z, numvoxs, z0, z1, fil;
+	int i, j, x, y, numvoxs, z0, z1, fil;
 	float f;
 	unsigned short *ylen;
 	unsigned char c[8];
@@ -1808,14 +1807,15 @@ void voxfree (voxmodel *m)
 
 voxmodel *voxload (const char *filnam)
 {
-	int i, is8bit, ret;
+	int is8bit, ret;
 	voxmodel *vm;
+	char *dot;
 
-	i = strlen(filnam)-4; if (i < 0) return(0);
-		  if (!Bstrcasecmp(&filnam[i],".vox")) { ret = loadvox(filnam); is8bit = 1; }
-	else if (!Bstrcasecmp(&filnam[i],".kvx")) { ret = loadkvx(filnam); is8bit = 1; }
-	else if (!Bstrcasecmp(&filnam[i],".kv6")) { ret = loadkv6(filnam); is8bit = 0; }
- //else if (!Bstrcasecmp(&filnam[i],".vxl")) { ret = loadvxl(filnam); is8bit = 0; }
+	dot = strrchr(filnam, '.'); if (!dot) return(0);
+	     if (!strcasecmp(dot,".vox")) { ret = loadvox(filnam); is8bit = 1; }
+	else if (!strcasecmp(dot,".kvx")) { ret = loadkvx(filnam); is8bit = 1; }
+	else if (!strcasecmp(dot,".kv6")) { ret = loadkv6(filnam); is8bit = 0; }
+	//else if (!strcasecmp(dot,".vxl")) { ret = loadvxl(filnam); is8bit = 0; }
 	else return(0);
 	if (ret >= 0) vm = vox2poly(); else vm = 0;
 	if (vm)
@@ -1841,8 +1841,7 @@ static int voxloadbufs(voxmodel *m);
 	//Draw voxel model as perfect cubes
 int voxdraw (voxmodel *m, spritetype *tspr, int method)
 {
-	point3d fp, m0, a0;
-	int i, j, k, *lptr;
+	point3d m0, a0;
 	float f, g, k0, k1, k2, k3, k4, k5, k6, k7, mat[16], omat[16], pc[4];
 	struct polymostdrawpolycall draw;
 
@@ -2081,7 +2080,6 @@ mdmodel *mdload (const char *filnam)
 // method: 0 = drawrooms projection, 1 = rotatesprite projection
 int mddraw (spritetype *tspr, int method)
 {
-	mdanim_t *anim;
 	mdmodel *vm;
 
 	if (maxmodelverts > allocmodelverts)

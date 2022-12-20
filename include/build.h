@@ -391,7 +391,7 @@ int   saveoldboard(char *filename, int *daposx, int *daposy, int *daposz, short 
 int   loadpics(char *filename, int askedsize);
 void   loadtile(short tilenume);
 int   qloadkvx(int voxindex, char *filename);
-int   allocatepermanenttile(short tilenume, int xsiz, int ysiz);
+intptr_t allocatepermanenttile(short tilenume, int xsiz, int ysiz);
 void   copytilepiece(int tilenume1, int sx1, int sy1, int xsiz, int ysiz, int tilenume2, int sx2, int sy2);
 int    makepalookup(int palnum, unsigned char *remapbuf, signed char r, signed char g, signed char b, unsigned char dastat);
 void   setvgapalette(void);
