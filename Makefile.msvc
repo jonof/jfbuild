@@ -20,53 +20,46 @@ RELEASE=1
 !endif
 
 SRC=src
-GAME=kenbuild
-GAMEDATA=kenbuild-data
 TOOLS=tools
 INC=include
-
-o=obj
-res=res
-asm=masm
-
-ENGINELIB=engine.lib
-EDITORLIB=build.lib
-
 LIBSQUISH=libsquish
-
-flags_cl=
-flags_rc=
-!if "$(PLATFORM)" == "X64" || "$(PLATFORM)" == "x64"
-flags_rc=/d_M_AMD64
-USE_ASM=0
-!elseif "$(PLATFORM)" == "ARM"
-# Some day, perhaps.
-USE_ASM=0
-!else
-flags_cl=/arch:IA32
-!endif
-
-!if $(RELEASE)
-# release options
-flags_cl=$(flags_cl) /O2
-flags_link=/RELEASE
-!else
-# debugging options
-flags_cl=$(flags_cl) /Ot /Z7 /DDEBUGGINGAIDS
-flags_link=/DEBUG
-!endif
 
 CC=cl
 AS=ml
 RC=rc
 LINK=link
-OURCFLAGS=/nologo /MD /Zl $(flags_cl) /I$(INC) /I$(LIBSQUISH) /I$(SRC)
-OURCXXFLAGS=/EHsc
-GAMECFLAGS=/I$(GAME)
-ASFLAGS=/nologo /coff
-LINKFLAGS=/opt:ref /nologo $(flags_link)
-RFLAGS=/nologo /i$(INC) /i$(GAME) $(flags_rc)
-EXESUFFIX=.exe
+
+OURCFLAGS=/nologo /MD /Zl
+OURCXXFLAGS=/nologo /MD /Zl /EHsc
+OURCPPFLAGS=/I$(INC) /I$(SRC) /I$(LIBSQUISH)
+OURASFLAGS=/nologo /coff
+OURLINKFLAGS=/nologo /opt:ref
+OURLIBFLAGS=/nologo
+OURLIBS=msvcrt.lib
+
+!if $(RELEASE)
+# release options
+OURCFLAGS=$(OURCFLAGS) /O2
+OURCXXFLAGS=$(OURCXXFLAGS) /O2
+OURLINKFLAGS=$(OURLINKFLAGS) /RELEASE
+!else
+# debugging options
+OURCFLAGS=$(OURCFLAGS) /Ot /Z7
+OURCXXFLAGS=$(OURCXXFLAGS) /Ot /Z7
+OURCPPFLAGS=$(OURCPPFLAGS) /DDEBUGGINGAIDS
+OURLINKFLAGS=$(OURLINKFLAGS) /DEBUG
+!endif
+
+o=obj
+res=res
+asm=masm
+
+!include Makefile.msvcshared
+
+OURCFLAGS=$(OURCFLAGS) $(BUILDCFLAGS)
+OURCXXFLAGS=$(OURCXXFLAGS) $(BUILDCXXFLAGS)
+OURCPPFLAGS=$(OURCPPFLAGS) $(BUILDCPPFLAGS)
+OURLIBS=$(OURLIBS) $(BUILDLIBS)
 
 ENGINEOBJS=$(SRC)\a-c.$o \
 	$(SRC)\asmprot.$o \
@@ -76,19 +69,6 @@ ENGINEOBJS=$(SRC)\a-c.$o \
 	$(SRC)\crc32.$o \
 	$(SRC)\defs.$o \
 	$(SRC)\engine.$o \
-	$(SRC)\polymost.$o \
-	$(SRC)\polymost_fs.$o \
-	$(SRC)\polymost_vs.$o \
-	$(SRC)\polymostaux_fs.$o \
-	$(SRC)\polymostaux_vs.$o \
-	$(SRC)\polymosttex.$o \
-	$(SRC)\polymosttexcache.$o \
-	$(SRC)\polymosttexcompress.$o \
-	$(SRC)\hightile.$o \
-	$(SRC)\mdsprite.$o \
-	$(SRC)\glbuild.$o \
-	$(SRC)\glbuild_fs.$o \
-	$(SRC)\glbuild_vs.$o \
 	$(SRC)\kplib.$o \
 	$(SRC)\mmulti.$o \
 	$(SRC)\osd.$o \
@@ -99,49 +79,47 @@ ENGINEOBJS=$(SRC)\a-c.$o \
 	$(SRC)\smalltextfont.$o \
 	$(SRC)\winlayer.$o
 
-LIBSQUISHOBJS=$(LIBSQUISH)\alpha.$o $(LIBSQUISH)\clusterfit.$o \
-	      $(LIBSQUISH)\colourblock.$o $(LIBSQUISH)\colourfit.$o \
-	      $(LIBSQUISH)\colourset.$o $(LIBSQUISH)\maths.$o \
-	      $(LIBSQUISH)\rangefit.$o $(LIBSQUISH)\singlecolourfit.$o \
-	      $(LIBSQUISH)\squish.$o $(SRC)\rg_etc1.$o
-
-EDITOROBJS=$(SRC)\build.$o \
-	$(SRC)\startwin_editor.$o \
-	$(SRC)\config.$o
-
-GAMEEXEOBJS=$(GAME)\config.$o \
-	$(GAME)\game.$o \
-	$(GAME)\gameres.$(res) \
-	$(GAME)\startwin_game.$o \
-	$(GAME)\kdmsound.$o \
-	$(GAME)\kdmsound_stub.$o \
-	$(SRC)\$(ENGINELIB)
-
-EDITOREXEOBJS=$(GAME)\bstub.$o \
-	$(GAME)\buildres.$(res) \
-	$(SRC)\$(EDITORLIB) \
-	$(SRC)\$(ENGINELIB)
-
 !if $(USE_ASM)
 ENGINEOBJS=$(ENGINEOBJS) $(SRC)\a.$o
 !endif
 
-RENDERTYPE=WIN
-BUILDCFLAGS=/DRENDERTYPEWIN=1
-BUILDLIBS=user32.lib gdi32.lib shell32.lib ws2_32.lib comctl32.lib comdlg32.lib uxtheme.lib xinput9_1_0.lib
+!if $(USE_OPENGL)
+ENGINEOBJS=$(ENGINEOBJS) \
+	$(SRC)\glbuild.$o \
+	$(SRC)\glbuild_fs.$o \
+	$(SRC)\glbuild_vs.$o
+!endif
 
 !if $(USE_POLYMOST)
-BUILDCFLAGS=$(BUILDCFLAGS) /DUSE_POLYMOST=$(USE_POLYMOST)
-!endif
+ENGINEOBJS=$(ENGINEOBJS) $(SRC)\polymost.$o
+
 !if $(USE_OPENGL)
-BUILDCFLAGS=$(BUILDCFLAGS) /DUSE_OPENGL=$(USE_OPENGL)
+ENGINEOBJS=$(ENGINEOBJS) \
+	$(SRC)\hightile.$o \
+	$(SRC)\mdsprite.$o \
+	$(SRC)\polymost_fs.$o \
+	$(SRC)\polymost_vs.$o \
+	$(SRC)\polymostaux_fs.$o \
+	$(SRC)\polymostaux_vs.$o \
+	$(SRC)\polymosttex.$o \
+	$(SRC)\polymosttexcache.$o \
+	$(SRC)\polymosttexcompress.$o \
+	$(SRC)\rg_etc1.$o \
+	$(LIBSQUISH)\alpha.$o \
+	$(LIBSQUISH)\clusterfit.$o \
+	$(LIBSQUISH)\colourblock.$o \
+	$(LIBSQUISH)\colourfit.$o \
+	$(LIBSQUISH)\colourset.$o \
+	$(LIBSQUISH)\maths.$o \
+	$(LIBSQUISH)\rangefit.$o \
+	$(LIBSQUISH)\singlecolourfit.$o \
+	$(LIBSQUISH)\squish.$o
 !endif
-!if $(USE_ASM)
-BUILDCFLAGS=$(BUILDCFLAGS) /DUSE_ASM=$(USE_ASM)
 !endif
 
-LIBS=$(LIBS) $(BUILDLIBS)
-CFLAGS=$(CFLAGS) $(BUILDCFLAGS)
+EDITOROBJS=$(SRC)\build.$o \
+	$(SRC)\startwin_editor.$o \
+	$(SRC)\config.$o
 
 # Source-control version stamping
 !if [git --version >nul] == 0
@@ -157,31 +135,22 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 	$(AS) /c $(ASFLAGS) /Fo$@ $<
 
 {$(SRC)}.c{$(SRC)}.$o:
-	$(CC) /TC /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
+	$(CC) /TC /c $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
 
 {$(SRC)}.cc{$(SRC)}.$o:
-	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) $(OURCXXFLAGS) /Fo$@ $<
+	$(CC) /TP /c $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) /Fo$@ $<
 
 {$(SRC)}.cpp{$(SRC)}.$o:
-	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) $(OURCXXFLAGS) /Fo$@ $<
+	$(CC) /TP /c $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) /Fo$@ $<
 
 {$(LIBSQUISH)}.cpp{$(LIBSQUISH)}.$o:
-	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) $(OURCXXFLAGS) /Fo$@ $<
+	$(CC) /TP /c $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) /Fo$@ $<
 
 {$(TOOLS)}.c{$(TOOLS)}.$o:
-	$(CC) /TC /c $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
+	$(CC) /TC /c $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) /Fo$@ $<
 
 {$(TOOLS)}.cc{$(TOOLS)}.$o:
-	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) $(OURCXXFLAGS) /Fo$@ $<
-
-{$(GAME)}.c{$(GAME)}.$o:
-	$(CC) /TC /c $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) /Fo$@ $<
-
-{$(GAME)}.cpp{$(GAME)}.$o:
-	$(CC) /TP /c $(CFLAGS) $(OURCFLAGS) $(OURCXXFLAGS) $(GAMECFLAGS) /Fo$@ $<
-
-{$(GAME)}.rc{$(GAME)}.$(res):
-	$(RC) $(RFLAGS) /fo$@ /r $<
+	$(CC) /TP /c $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) /Fo$@ $<
 
 {$(SRC)}.glsl{$(SRC)}.c:
 	if not exist bin2c$(EXESUFFIX) $(MAKE) /f Makefile.msvc /$(MAKEFLAGS) /nologo bin2c$(EXESUFFIX)
@@ -190,45 +159,38 @@ ENGINEOBJS=$(ENGINEOBJS) $(SRC)\version.$o
 # TARGETS
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) klist$(EXESUFFIX) transpal$(EXESUFFIX) wad2map$(EXESUFFIX) wad2map$(EXESUFFIX)
 
-all: enginelib editorlib $(GAMEDATA)\game$(EXESUFFIX) $(GAMEDATA)\build$(EXESUFFIX) ;
+all: libs utils kenbuild ;
+libs: $(ENGINELIB) $(EDITORLIB) ;
 utils: $(UTILS) ;
 
-enginelib: $(SRC)\$(ENGINELIB) ;
-$(SRC)\$(ENGINELIB): $(ENGINEOBJS) $(LIBSQUISHOBJS)
-	lib /out:$@ /nologo $**
+$(ENGINELIB): $(ENGINEOBJS) $(LIBSQUISHOBJS)
+	lib /out:$@ $(OURLIBFLAGS) $**
 
-editorlib: $(SRC)\$(EDITORLIB) ;
-$(SRC)\$(EDITORLIB): $(EDITOROBJS)
-	lib /out:$@ /nologo $**
+$(EDITORLIB): $(EDITOROBJS)
+	lib /out:$@ $(OURLIBFLAGS) $**
 
-
-$(GAMEDATA)\game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
-
-$(GAMEDATA)\build$(EXESUFFIX): $(EDITOREXEOBJS)
-	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
 
 # the tools
 kextract$(EXESUFFIX): $(TOOLS)\kextract.$o $(SRC)\compat.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) $(OURLINKFLAGS) $** $(OURLIBS)
 
 kgroup$(EXESUFFIX): $(TOOLS)\kgroup.$o $(SRC)\compat.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) $(OURLINKFLAGS) $** $(OURLIBS)
 
 klist$(EXESUFFIX): $(TOOLS)\klist.$o $(SRC)\compat.$o $(SRC)\crc32.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) $(OURLINKFLAGS) $** $(OURLIBS)
 
 transpal$(EXESUFFIX): $(TOOLS)\transpal.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) $(OURLINKFLAGS) $** $(OURLIBS)
 
 wad2map$(EXESUFFIX): $(TOOLS)\wad2map.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) $(OURLINKFLAGS) $** $(OURLIBS)
 
 wad2art$(EXESUFFIX): $(TOOLS)\wad2art.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** $(LIBS) msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) $(OURLINKFLAGS) $** $(OURLIBS)
 
 bin2c$(EXESUFFIX): $(TOOLS)\bin2c.$o
-	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) $(OURLINKFLAGS) $** $(OURLIBS)
 
 $(SRC)\version-auto.c: ALWAYSBUILD
 	cmd /c $(TOOLS)\generateversion.cmd > $@
@@ -239,8 +201,18 @@ ALWAYSBUILD: ;
 !include Makefile.deps
 
 # PHONIES
-clean:
-	-del /q $(ENGINEOBJS) $(LIBSQUISHOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS)
-veryclean: clean
-	-del /q $(SRC)\$(ENGINELIB) $(SRC)\$(EDITORLIB) $(GAMEDATA)\game$(EXESUFFIX) $(GAMEDATA)\build$(EXESUFFIX) $(UTILS)
+kenbuild: ALWAYSBUILD
+	cd kenbuild
+	$(MAKE) /nologo /f Makefile.msvc /$(MAKEFLAGS) USE_POLYMOST=$(USE_POLYMOST) USE_OPENGL=$(USE_OPENGL) USE_ASM=$(USE_ASM) RELEASE=$(RELEASE)
+	cd "$(MAKEDIR)"
+
+clean::
+	-del /q $(ENGINEOBJS) $(LIBSQUISHOBJS) $(EDITOROBJS)
+veryclean:: clean
+	-del /q $(ENGINELIB) $(EDITORLIB) $(UTILS)
+
+clean veryclean::
+	cd kenbuild
+	-$(MAKE) /nologo /f Makefile.msvc $@
+	cd "$(MAKEDIR)"
 

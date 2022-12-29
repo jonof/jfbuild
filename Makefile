@@ -23,8 +23,6 @@ RELEASE?=1
 
 # Source locations
 SRC=src
-GAME=kenbuild
-GAMEDATA=kenbuild-data
 TOOLS=tools
 INC=include
 LIBSQUISH=libsquish
@@ -32,11 +30,9 @@ LIBSQUISH=libsquish
 CC?=gcc
 CXX?=g++
 NASM?=nasm
-WINDRES?=windres
 AR?=ar
 RANLIB?=ranlib
 NASMFLAGS=-s #-g
-EXESUFFIX=
 
 # Host platform compiler for build-time tools
 HOSTCC?=$(CC)
@@ -46,9 +42,6 @@ OURCFLAGS=-g -W -Wall -fno-strict-aliasing -std=c99
 OURCXXFLAGS=-g -W -Wall -fno-exceptions -fno-rtti -std=c++98
 OURCPPFLAGS=-I$(INC) -I$(SRC) -I$(LIBSQUISH)
 OURLDFLAGS=
-
-GAMECPPFLAGS=-I$(GAME) -I$(INC)
-GAMELDFLAGS=
 
 ifneq ($(RELEASE),0)
 	# Default optimisation settings
@@ -70,12 +63,13 @@ asm=nasm
 
 include Makefile.shared
 
-ENGINEOBJS=
-ifneq (0,$(USE_ASM))
-	ENGINEOBJS+= $(SRC)/a.$o
-endif
+# Apply shared flags
+OURCFLAGS+= $(BUILDCFLAGS)
+OURCXXFLAGS+= $(BUILDCXXFLAGS)
+OURCPPFLAGS+= $(BUILDCPPFLAGS)
+OURLDFLAGS+= $(BUILDLDFLAGS)
 
-ENGINEOBJS+= \
+ENGINEOBJS= \
 	$(SRC)/a-c.$o \
 	$(SRC)/asmprot.$o \
 	$(SRC)/baselayer.$o \
@@ -92,6 +86,10 @@ ENGINEOBJS+= \
 	$(SRC)/textfont.$o \
 	$(SRC)/talltextfont.$o \
 	$(SRC)/smalltextfont.$o
+
+ifneq (0,$(USE_ASM))
+	ENGINEOBJS+= $(SRC)/a.$o
+endif
 
 ifneq ($(USE_OPENGL),0)
 	ENGINEOBJS+= \
@@ -111,35 +109,22 @@ ifneq ($(USE_POLYMOST),0)
 			$(SRC)/polymostaux_vs.$o \
 			$(SRC)/polymosttex.$o \
 			$(SRC)/polymosttexcache.$o \
-			$(SRC)/polymosttexcompress.$o
+			$(SRC)/polymosttexcompress.$o \
+			$(SRC)/rg_etc1.$o \
+			$(LIBSQUISH)/alpha.$o \
+			$(LIBSQUISH)/clusterfit.$o \
+			$(LIBSQUISH)/colourblock.$o \
+			$(LIBSQUISH)/colourfit.$o \
+			$(LIBSQUISH)/colourset.$o \
+			$(LIBSQUISH)/maths.$o \
+			$(LIBSQUISH)/rangefit.$o \
+			$(LIBSQUISH)/singlecolourfit.$o \
+			$(LIBSQUISH)/squish.$o
 	endif
 endif
 
 EDITOROBJS=$(SRC)/build.$o \
 	$(SRC)/config.$o
-
-EDITOREXEOBJS=$(GAME)/bstub.$o \
-	$(EDITORLIB) \
-	$(ENGINELIB)
-
-ifneq ($(USE_OPENGL),0)
-	ENGINEOBJS+= \
-		$(SRC)/rg_etc1.$o \
-		$(LIBSQUISH)/alpha.$o \
-		$(LIBSQUISH)/clusterfit.$o \
-		$(LIBSQUISH)/colourblock.$o \
-		$(LIBSQUISH)/colourfit.$o \
-		$(LIBSQUISH)/colourset.$o \
-		$(LIBSQUISH)/maths.$o \
-		$(LIBSQUISH)/rangefit.$o \
-		$(LIBSQUISH)/singlecolourfit.$o \
-		$(LIBSQUISH)/squish.$o
-endif
-
-GAMEEXEOBJS=$(GAME)/game.$o \
-	$(GAME)/config.$o \
-	$(GAME)/kdmsound.$o \
-	$(ENGINELIB)
 
 # Specialise for the platform
 ifeq ($(PLATFORM),LINUX)
@@ -159,9 +144,6 @@ ifeq ($(PLATFORM),DARWIN)
 
 	ENGINEOBJS+= $(SRC)/osxbits.$o
 	EDITOROBJS+= $(SRC)/EditorStartupWinController.$o
-
-	GAMEEXEOBJS+= $(GAME)/StartupWinController.$o
-	GAMELDFLAGS+= -framework AppKit
 endif
 
 # Select the system layer
@@ -175,29 +157,12 @@ ifeq ($(RENDERTYPE),SDL)
 		OURLDFLAGS+= $(GTKCONFIG_LIBS)
 		ENGINEOBJS+= $(SRC)/gtkbits.$o
 		EDITOROBJS+= $(SRC)/startgtk_editor.$o
-
-		GAMEEXEOBJS+= $(GAME)/startgtk_game.$o $(GAME)/rsrc/startgtk_game_gresource.$o
-		EDITOREXEOBJS+= $(GAME)/rsrc/startgtk_build_gresource.$o
 	endif
-
-	GAMEEXEOBJS+= $(GAME)/kdmsound_sdl2.$o $(GAME)/rsrc/sdlappicon_game.$o
-	EDITOREXEOBJS+= $(GAME)/rsrc/sdlappicon_build.$o
 endif
 ifeq ($(RENDERTYPE),WIN)
 	ENGINEOBJS+= $(SRC)/winlayer.$o
 	EDITOROBJS+= $(SRC)/startwin_editor.$o
-
-	GAMEEXEOBJS+= $(GAME)/kdmsound_stub.$o $(GAME)/gameres.$(res) $(GAME)/startwin_game.$o
-	EDITOREXEOBJS+= $(GAME)/buildres.$(res)
 endif
-
-# Apply shared flags
-OURCFLAGS+= $(BUILDCFLAGS)
-OURCXXFLAGS+= $(BUILDCXXFLAGS)
-OURCPPFLAGS+= $(BUILDCPPFLAGS)
-OURLDFLAGS+= $(BUILDLDFLAGS)
-
-.PHONY: clean veryclean all utils enginelib editorlib
 
 # TARGETS
 
@@ -211,8 +176,10 @@ endif
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) klist$(EXESUFFIX) transpal$(EXESUFFIX) arttool$(EXESUFFIX)
 BUILDUTILS=generatesdlappicon$(EXESUFFIX) bin2c$(EXESUFFIX)
 
-all: enginelib editorlib $(GAMEDATA)/game$(EXESUFFIX) $(GAMEDATA)/build$(EXESUFFIX)
+.PHONY: clean veryclean all utils libs enginelib editorlib kenbuild
+all: libs utils kenbuild
 utils: $(UTILS)
+libs: enginelib editorlib
 enginelib: $(ENGINELIB)
 editorlib: $(EDITORLIB)
 
@@ -223,12 +190,6 @@ $(ENGINELIB): $(ENGINEOBJS)
 $(EDITORLIB): $(EDITOROBJS)
 	$(AR) rc $@ $^
 	$(RANLIB) $@
-
-$(GAMEDATA)/game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(CXX) $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) -o $@ $^ $(LDFLAGS) $(OURLDFLAGS) $(GAMELDFLAGS)
-
-$(GAMEDATA)/build$(EXESUFFIX): $(EDITOREXEOBJS)
-	$(CXX) $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) -o $@ $^ $(LDFLAGS) $(OURLDFLAGS) $(GAMELDFLAGS)
 
 kextract$(EXESUFFIX): $(TOOLS)/kextract.$o $(ENGINELIB)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(OURLDFLAGS)
@@ -272,28 +233,10 @@ $(SRC)/%.$o: $(SRC)/%.m
 	$(CC) $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(SRC)/%.c: $(SRC)/%.glsl | bin2c$(EXESUFFIX)
-	./bin2c -text $< default_$*_glsl > $@
+	./bin2c$(EXESUFFIX) -text $< default_$*_glsl > $@
 
 $(LIBSQUISH)/%.$o: $(LIBSQUISH)/%.cpp
 	$(CXX) $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) -O2 -c $< -o $@
-
-$(GAME)/%.$o: $(GAME)/%.c
-	$(CC) $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@
-
-$(GAME)/%.$o: $(GAME)/%.m
-	$(CC) $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@
-
-$(GAME)/rsrc/%.$o: $(GAME)/rsrc/%.c
-	$(CC) $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
-
-$(GAME)/%.$(res): $(GAME)/%.rc
-	$(WINDRES) -O coff -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
-
-$(GAME)/rsrc/%_gresource.c $(GAME)/rsrc/%_gresource.h: $(GAME)/rsrc/%.gresource.xml
-	glib-compile-resources --generate --manual-register --c-name=startgtk --target=$@ --sourcedir=$(GAME)/rsrc $<
-$(GAME)/rsrc/sdlappicon_%.c: $(GAME)/rsrc/%.png | generatesdlappicon$(EXESUFFIX)
-	./generatesdlappicon$(EXESUFFIX) $< > $@
-
 
 $(TOOLS)/%.$o: $(TOOLS)/%.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -I$(SRC) -I$(INC) -c $< -o $@
@@ -302,11 +245,20 @@ $(TOOLS)/%.$o: $(TOOLS)/%.cc
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 # PHONIES
+kenbuild:
+	$(MAKE) -C kenbuild -f Makefile \
+		USE_POLYMOST=$(USE_POLYMOST) \
+		USE_OPENGL=$(USE_OPENGL) \
+		USE_ASM=$(USE_ASM) \
+		RELEASE=$(RELEASE)
+
 clean:
-	-rm -f $(ENGINEOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS)
+	-rm -f $(ENGINEOBJS) $(EDITOROBJS)
+	-$(MAKE) -C kenbuild -f Makefile clean
 
 veryclean: clean
-	-rm -f $(ENGINELIB) $(EDITORLIB) $(GAMEDATA)/game$(EXESUFFIX) $(GAMEDATA)/build$(EXESUFFIX) $(UTILS) $(BUILDUTILS)
+	-rm -f $(ENGINELIB) $(EDITORLIB) $(UTILS) $(BUILDUTILS)
+	-$(MAKE) -C kenbuild -f Makefile veryclean
 
 .PHONY: $(SRC)/version-auto.c
 $(SRC)/version-auto.c:

@@ -17,14 +17,6 @@
 		AB43D737219DAA3300718BCE /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
 		AB43D738219DAA3300718BCE /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		AB63425724305DAA002CDE1A /* names.h in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D650F046E6E00730EAA /* names.h */; };
-		AB63425824305DB9002CDE1A /* ascboard.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D610F046E6E00730EAA /* ascboard.map */; };
-		AB63425924305DBA002CDE1A /* boards.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D620F046E6E00730EAA /* boards.map */; };
-		AB63425A24305DBC002CDE1A /* evilal.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D630F046E6E00730EAA /* evilal.map */; };
-		AB63425B24305DC0002CDE1A /* kensig.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D640F046E6E00730EAA /* kensig.map */; };
-		AB63425C24305DC3002CDE1A /* nsnoal.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D660F046E6E00730EAA /* nsnoal.map */; };
-		AB63425D24305DC5002CDE1A /* nukeland.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D670F046E6E00730EAA /* nukeland.map */; };
-		AB63425E24305DC8002CDE1A /* names.h in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D650F046E6E00730EAA /* names.h */; };
-		AB63425F24305DCD002CDE1A /* stuff.dat in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D680F046E6E00730EAA /* stuff.dat */; };
 		AB63426924305F35002CDE1A /* arttool in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9AD60F0B308900A528DC /* arttool */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		AB63426A24305F35002CDE1A /* kextract in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9C3E0F0CC83700A528DC /* kextract */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		AB63426B24305F35002CDE1A /* kgroup in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9C400F0CC83700A528DC /* kgroup */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -44,6 +36,14 @@
 		ABA9E3310FEF9E060024231F /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E32A0FEF9DD00024231F /* config.c */; };
 		ABA9E3350FEF9E470024231F /* game.c in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E3320FEF9E470024231F /* game.c */; };
 		ABA9E3360FEF9E470024231F /* StartupWinController.m in Sources */ = {isa = PBXBuildFile; fileRef = ABA9E3340FEF9E470024231F /* StartupWinController.m */; };
+		ABEFD271295BBE5C00058352 /* ascboard.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D610F046E6E00730EAA /* ascboard.map */; };
+		ABEFD272295BBE5C00058352 /* boards.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D620F046E6E00730EAA /* boards.map */; };
+		ABEFD273295BBE5C00058352 /* evilal.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D630F046E6E00730EAA /* evilal.map */; };
+		ABEFD274295BBE5C00058352 /* kensig.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D640F046E6E00730EAA /* kensig.map */; };
+		ABEFD275295BBE5C00058352 /* names.h in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D650F046E6E00730EAA /* names.h */; };
+		ABEFD276295BBE5C00058352 /* nsnoal.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D660F046E6E00730EAA /* nsnoal.map */; };
+		ABEFD277295BBE5C00058352 /* nukeland.map in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D670F046E6E00730EAA /* nukeland.map */; };
+		ABEFD278295BBE5C00058352 /* stuff.dat in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D680F046E6E00730EAA /* stuff.dat */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -183,14 +183,14 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
-				AB63425F24305DCD002CDE1A /* stuff.dat in Copy KenBuild game data */,
-				AB63425824305DB9002CDE1A /* ascboard.map in Copy KenBuild game data */,
-				AB63425924305DBA002CDE1A /* boards.map in Copy KenBuild game data */,
-				AB63425A24305DBC002CDE1A /* evilal.map in Copy KenBuild game data */,
-				AB63425B24305DC0002CDE1A /* kensig.map in Copy KenBuild game data */,
-				AB63425C24305DC3002CDE1A /* nsnoal.map in Copy KenBuild game data */,
-				AB63425D24305DC5002CDE1A /* nukeland.map in Copy KenBuild game data */,
-				AB63425E24305DC8002CDE1A /* names.h in Copy KenBuild game data */,
+				ABEFD271295BBE5C00058352 /* ascboard.map in Copy KenBuild game data */,
+				ABEFD272295BBE5C00058352 /* boards.map in Copy KenBuild game data */,
+				ABEFD273295BBE5C00058352 /* evilal.map in Copy KenBuild game data */,
+				ABEFD274295BBE5C00058352 /* kensig.map in Copy KenBuild game data */,
+				ABEFD275295BBE5C00058352 /* names.h in Copy KenBuild game data */,
+				ABEFD276295BBE5C00058352 /* nsnoal.map in Copy KenBuild game data */,
+				ABEFD277295BBE5C00058352 /* nukeland.map in Copy KenBuild game data */,
+				ABEFD278295BBE5C00058352 /* stuff.dat in Copy KenBuild game data */,
 			);
 			name = "Copy KenBuild game data";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -227,7 +227,7 @@
 		AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Game Images.xcassets"; sourceTree = "<group>"; };
 		AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Editor Images.xcassets"; sourceTree = "<group>"; };
 		AB3E07650A33068500FF2442 /* startwin.editor.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.editor.nib; sourceTree = SOURCE_ROOT; };
-		AB726D400F046BDE00730EAA /* kdmsound_sdl2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kdmsound_sdl2.c; path = ../kenbuild/kdmsound_sdl2.c; sourceTree = SOURCE_ROOT; };
+		AB726D400F046BDE00730EAA /* kdmsound_sdl2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kdmsound_sdl2.c; path = ../kenbuild/src/kdmsound_sdl2.c; sourceTree = SOURCE_ROOT; };
 		AB726D610F046E6E00730EAA /* ascboard.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = ascboard.map; sourceTree = "<group>"; };
 		AB726D620F046E6E00730EAA /* boards.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = boards.map; sourceTree = "<group>"; };
 		AB726D630F046E6E00730EAA /* evilal.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = evilal.map; sourceTree = "<group>"; };
@@ -247,13 +247,13 @@
 		AB81F9562590BB8500306B8E /* Common.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Common.xcconfig; sourceTree = "<group>"; };
 		AB81F95A2590BBDA00306B8E /* KenBuild.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KenBuild.entitlements; sourceTree = "<group>"; };
 		AB81F95B2590BBDC00306B8E /* Build Editor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Build Editor.entitlements"; sourceTree = "<group>"; };
-		AB829494231A5CAB0031B08F /* kdmsound.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kdmsound.c; path = ../kenbuild/kdmsound.c; sourceTree = "<group>"; };
-		AB829495231A5CAB0031B08F /* kdmsound.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = kdmsound.h; path = ../kenbuild/kdmsound.h; sourceTree = "<group>"; };
-		ABA9E3290FEF9DD00024231F /* bstub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bstub.c; path = ../kenbuild/bstub.c; sourceTree = SOURCE_ROOT; };
-		ABA9E32A0FEF9DD00024231F /* config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = config.c; path = ../kenbuild/config.c; sourceTree = SOURCE_ROOT; };
-		ABA9E3320FEF9E470024231F /* game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = game.c; path = ../kenbuild/game.c; sourceTree = SOURCE_ROOT; };
-		ABA9E3330FEF9E470024231F /* game.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = game.h; path = ../kenbuild/game.h; sourceTree = SOURCE_ROOT; };
-		ABA9E3340FEF9E470024231F /* StartupWinController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = StartupWinController.m; path = ../kenbuild/StartupWinController.m; sourceTree = SOURCE_ROOT; };
+		AB829494231A5CAB0031B08F /* kdmsound.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kdmsound.c; path = ../kenbuild/src/kdmsound.c; sourceTree = "<group>"; };
+		AB829495231A5CAB0031B08F /* kdmsound.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = kdmsound.h; path = ../kenbuild/src/kdmsound.h; sourceTree = "<group>"; };
+		ABA9E3290FEF9DD00024231F /* bstub.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bstub.c; path = ../kenbuild/src/bstub.c; sourceTree = SOURCE_ROOT; };
+		ABA9E32A0FEF9DD00024231F /* config.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = config.c; path = ../kenbuild/src/config.c; sourceTree = SOURCE_ROOT; };
+		ABA9E3320FEF9E470024231F /* game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = game.c; path = ../kenbuild/src/game.c; sourceTree = SOURCE_ROOT; };
+		ABA9E3330FEF9E470024231F /* game.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = game.h; path = ../kenbuild/src/game.h; sourceTree = SOURCE_ROOT; };
+		ABA9E3340FEF9E470024231F /* StartupWinController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = StartupWinController.m; path = ../kenbuild/src/StartupWinController.m; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -299,7 +299,7 @@
 				AB726D680F046E6E00730EAA /* stuff.dat */,
 			);
 			name = "KenBuild data";
-			path = "../kenbuild-data";
+			path = ../kenbuild/data;
 			sourceTree = "<group>";
 		};
 		AB7360090A29AA64003261DC = {

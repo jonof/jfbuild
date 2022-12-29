@@ -61,30 +61,6 @@ $(SRC)/polymostaux_fs.$o: $(SRC)/polymostaux_fs.c
 $(SRC)/polymostaux_vs.c: $(SRC)/polymostaux_vs.glsl
 $(SRC)/polymostaux_vs.$o: $(SRC)/polymostaux_vs.c
 
-# KenBuild test game
-$(GAME)/bstub.$o: $(GAME)/bstub.c $(INC)/compat.h $(INC)/build.h $(INC)/compat.h $(INC)/editor.h $(INC)/pragmas.h $(INC)/baselayer.h $(GAME)/names.h $(INC)/osd.h $(INC)/cache1d.h
-$(GAME)/config.$o: $(GAME)/config.c $(INC)/build.h $(INC)/compat.h $(GAME)/game.h $(INC)/osd.h $(INC)/scriptfile.h $(INC)/winlayer.h $(INC)/baselayer.h
-$(GAME)/game.$o: $(GAME)/game.c $(INC)/build.h $(INC)/compat.h $(GAME)/names.h $(INC)/pragmas.h $(INC)/cache1d.h $(GAME)/game.h $(INC)/osd.h $(INC)/mmulti.h $(GAME)/kdmsound.h $(INC)/baselayer.h
-$(GAME)/kdmsound.$o: $(GAME)/kdmsound.c $(GAME)/kdmsound.h $(INC)/compat.h $(INC)/pragmas.h $(INC)/cache1d.h
-$(GAME)/kdmsound_sdl2.$o: $(GAME)/kdmsound_sdl2.c $(GAME)/kdmsound.h
-$(GAME)/kdmsound_stub.$o: $(GAME)/kdmsound_stub.c
-
-$(GAME)/startgtk_game.$o: $(GAME)/startgtk_game.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h $(GAME)/game.h
-$(GAME)/startwin_game.$o: $(GAME)/startwin_game.c $(INC)/build.h $(INC)/winlayer.h $(INC)/compat.h $(GAME)/game.h $(GAME)/gameres.h
-
-$(GAME)/buildres.$(res): $(GAME)/buildres.rc $(INC)/buildres.h $(GAME)/rsrc/build.bmp $(GAME)/rsrc/build_icon.ico $(GAME)/rsrc/build.manifest
-$(GAME)/gameres.$(res): $(GAME)/gameres.rc $(GAME)/gameres.h $(GAME)/rsrc/game_icon.ico $(GAME)/rsrc/game.manifest
-
-# Derived source files from art assets
-$(GAME)/rsrc/startgtk_game_gresource.c: $(GAME)/rsrc/startgtk_game.gresource.xml $(GAME)/rsrc/game.png $(GAME)/rsrc/startgtk_game.glade
-$(GAME)/rsrc/startgtk_game_gresource.h: $(GAME)/rsrc/startgtk_game.gresource.xml
-$(GAME)/rsrc/startgtk_build_gresource.c: $(GAME)/rsrc/startgtk_build.gresource.xml $(GAME)/rsrc/build.png $(GAME)/rsrc/startgtk_build.glade
-$(GAME)/rsrc/startgtk_build_gresource.h: $(GAME)/rsrc/startgtk_build.gresource.xml
-$(GAME)/rsrc/sdlappicon_game.c: $(GAME)/rsrc/game.png
-$(GAME)/rsrc/sdlappicon_game.$o: $(GAME)/rsrc/sdlappicon_game.c
-$(GAME)/rsrc/sdlappicon_build.c: $(GAME)/rsrc/build.png
-$(GAME)/rsrc/sdlappicon_build.$o: $(GAME)/rsrc/sdlappicon_build.c
-
 # Tools
 $(TOOLS)/arttool.$o: $(TOOLS)/arttool.cc
 $(TOOLS)/kextract.$o: $(TOOLS)/kextract.c $(INC)/compat.h
