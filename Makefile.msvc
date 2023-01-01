@@ -6,7 +6,7 @@
 #     Define as 0 to disable OpenGL
 #     Define as 1 (or 2) for GL 2.0/2.1 profile
 #     Define as 3 for GL 3.2 Core profile
-#  USE_ASM        - enables the use of assembly code
+#  USE_ASM        - enables the use of assembly code if supported
 USE_POLYMOST=1
 USE_OPENGL=1
 USE_ASM=1
@@ -60,7 +60,7 @@ CC=cl
 AS=ml
 RC=rc
 LINK=link
-OURCFLAGS=/nologo /MD /Zl $(flags_cl) /DKSFORBUILD /I$(INC) /I$(LIBSQUISH) /I$(SRC)
+OURCFLAGS=/nologo /MD /Zl $(flags_cl) /I$(INC) /I$(LIBSQUISH) /I$(SRC)
 OURCXXFLAGS=/EHsc
 GAMECFLAGS=/I$(GAME)
 ASFLAGS=/nologo /coff
@@ -230,10 +230,10 @@ wad2art$(EXESUFFIX): $(TOOLS)\wad2art.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 bin2c$(EXESUFFIX): $(TOOLS)\bin2c.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) /MAP $** msvcrt.lib
 
-$(SRC)\version-auto.c: AlwaysBuild
+$(SRC)\version-auto.c: ALWAYSBUILD
 	cmd /c $(TOOLS)\generateversion.cmd > $@
 
-AlwaysBuild: ;
+ALWAYSBUILD: ;
 
 # DEPENDENCIES
 !include Makefile.deps

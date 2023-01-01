@@ -770,7 +770,7 @@ static void maskwallscan(int x1, int x2, short *uwal, short *dwal, int *swal, in
 
 	setupmvlineasm(globalshiftval);
 
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 
 	x = startx;
 	while ((startumost[x+windowx1] > startdmost[x+windowx1]) && (x <= x2)) x++;
@@ -870,7 +870,7 @@ static void maskwallscan(int x1, int x2, short *uwal, short *dwal, int *swal, in
 		mvlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],(void *)(bufplce[0]+waloff[globalpicnum]),(void *)(p+ylookup[y1ve[0]]));
 	}
 
-#else	// ENGINE_USING_A_C
+#else	// USING_A_C
 	(void)i; (void)u4; (void)d4; (void)dax; (void)z; (void)bad;
 
 	p = startx+frameoffset;
@@ -1741,7 +1741,7 @@ static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *l
 
 	setupvlineasm(globalshiftval);
 
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 
 	x = x1;
 	while ((umost[x] > dmost[x]) && (x <= x2)) x++;
@@ -1839,7 +1839,7 @@ static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *l
 		vlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],(void *)(bufplce[0]+waloff[globalpicnum]),(void *)(x+frameoffset+ylookup[y1ve[0]]));
 	}
 
-#else	// ENGINE_USING_A_C
+#else	// USING_A_C
 	(void)i; (void)u4; (void)d4; (void)z; (void)bad;
 
 	for(x=x1;x<=x2;x++)
@@ -1900,7 +1900,7 @@ static void transmaskvline(int x)
 //
 // transmaskvline2 (internal)
 //
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 static void transmaskvline2(int x)
 {
 	intptr_t i;
@@ -1987,7 +1987,7 @@ static void transmaskwallscan(int x1, int x2)
 
 	x = x1;
 	while ((startumost[x+windowx1] > startdmost[x+windowx1]) && (x <= x2)) x++;
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 	if ((x <= x2) && (x&1)) transmaskvline(x), x++;
 	while (x < x2) transmaskvline2(x), x += 2;
 #endif
@@ -4519,7 +4519,7 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 	by = dmulscale16(x,yv2,y,yv);
 	if (dastat&4) { yv = -yv; yv2 = -yv2; by = (ysiz<<16)-1-by; }
 
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 	int ny1, ny2, xx, xend, qlinemode=0, y1ve[4], y2ve[4], u4, d4;
 	char bad;
 
@@ -4773,7 +4773,7 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 		}
 	}
 
-#else	// ENGINE_USING_A_C
+#else	// USING_A_C
 
 	if ((dastat&1) == 0)
 	{
@@ -5349,7 +5349,6 @@ static void sighandler(int sig, siginfo_t *info, void *ctx)
 static int preinitcalled = 0;
 int preinitengine(void)
 {
-	char *e;
 	char compiler[30] = "an unidentified compiler";
 
 #if defined(_MSC_VER)
@@ -5378,14 +5377,15 @@ int preinitengine(void)
 
 	if (initsystem()) exit(1);
 
+#ifndef USING_A_C
 	makeasmwriteable();
 
-	if ((e = Bgetenv("BUILD_NOP6")) != NULL)
-		if (!Bstrcasecmp(e, "TRUE")) {
-			buildprintf("Disabling P6 optimizations.\n");
-			dommxoverlay = 0;
-		}
+	if (Bgetenv("BUILD_NOP6")) {
+		buildprintf("Disabling P6 optimizations.\n");
+		dommxoverlay = 0;
+	}
 	if (dommxoverlay) mmxoverlay();
+#endif
 
 	validmodecnt = 0;
 	getvalidmodes();
@@ -5434,10 +5434,6 @@ int initengine(void)
 		tiletovox[i] = -1;
 	clearbuf(&voxscale[0],sizeof(voxscale)>>2,65536L);
 
-#if USE_POLYMOST
-	polymost_initosdfuncs();
-#endif
-
 	searchit = 0; searchstat = -1;
 
 	for(i=0;i<MAXPALOOKUPS;i++) palookup[i] = NULL;
@@ -5462,6 +5458,9 @@ int initengine(void)
 	if (loadtables()) return 1;
 	if (loadpalette()) return 1;
 
+#if USE_POLYMOST
+	polymost_initosdfuncs();
+#endif
 #if USE_POLYMOST && USE_OPENGL
 	if (!hicfirstinit) hicinit();
 	if (!mdinited) mdinit();
@@ -7585,8 +7584,10 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	//bytesperline is set in this function
 	if (setvideomode(daxdim,daydim,dabpp,davidoption) < 0) return(-1);
 
+#ifndef USING_A_C
 	// it's possible the previous call protected our code sections again
 	makeasmwriteable();
+#endif
 
 #if USE_POLYMOST && USE_OPENGL
 	if (dabpp > 8) rendmode = 3;	// GL renderer

@@ -894,7 +894,7 @@ static void putkeyname(int vsc, int ex, int scan) {
 
 static void fetchkeynames(void)
 {
-	int scan, ex;
+	int scan;
 	unsigned i;
 
 	memset(keynames,0,sizeof(keynames));
@@ -1103,7 +1103,7 @@ static void shutdownvideo(void)
 //
 int setvideomode(int x, int y, int c, int fs)
 {
-	int i, modenum, refresh=-1;
+	int modenum, refresh=-1;
 
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) && !videomodereset) {
 		OSD_ResizeDisplay(xres,yres);
@@ -1224,7 +1224,7 @@ void getvalidmodes(void)
 		{1280,1024},{1280,960},{1280,800},{1280,720},{1152,864},{1024,768},{800,600},{640,480},
 		{640,400},{512,384},{480,360},{400,300},{320,240},{320,200},{0,0}
 	};
-	int i, j, maxx=0, maxy=0;
+	int i, maxx=0, maxy=0;
 
 	if (modeschecked) return;
 
@@ -1291,10 +1291,6 @@ void resetvideomode(void)
 //
 void showframe(void)
 {
-	HRESULT result;
-	char *p,*q;
-	int i,j;
-
 #if USE_OPENGL
 	if (!glunavailable) {
 		if (bpp == 8) {
@@ -1436,7 +1432,7 @@ static int SetupDIB(int width, int height)
 		BITMAPINFOHEADER header;
 		RGBQUAD colours[256];
 	} dibsect;
-	int i, bpl;
+	int i;
 
 	// create the new DIB section
 	memset(&dibsect, 0, sizeof(dibsect));
@@ -1875,7 +1871,6 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 {
 	RECT rect;
 	int ww, wh, wx, wy, vw, vh, stylebits = 0, stylebitsex = 0;
-	HRESULT result;
 
 	if (width == xres && height == yres && fs == fullscreen && bitspp == bpp && !videomodereset) return FALSE;
 
@@ -2174,10 +2169,6 @@ static const int wxscantable[256] = {
 //
 static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-	RECT rect;
-	POINT pt;
-	HRESULT result;
-
 #if USE_OPENGL
 	if (hGLWindow && hWnd == hGLWindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);
 	if (dummyhGLwindow && hWnd == dummyhGLwindow) return DefWindowProc(hWnd,uMsg,wParam,lParam);

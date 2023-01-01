@@ -32,7 +32,7 @@ $(SRC)/talltextfont.$o: $(SRC)/talltextfont.c
 $(SRC)/textfont.$o: $(SRC)/textfont.c
 $(SRC)/version-auto.$o: $(SRC)/version-auto.c
 $(SRC)/version.$o: $(SRC)/version.c
-$(SRC)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/pragmas.h $(INC)/build.h $(SRC)/a.h $(INC)/osd.h $(SRC)/dxdidf.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h
+$(SRC)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/pragmas.h $(INC)/build.h $(SRC)/a.h $(INC)/osd.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h
 
 $(LIBSQUISH)/alpha.$o: $(LIBSQUISH)/alpha.cpp $(LIBSQUISH)/alpha.h $(LIBSQUISH)/squish.h
 $(LIBSQUISH)/clusterfit.$o: $(LIBSQUISH)/clusterfit.cpp $(LIBSQUISH)/clusterfit.h $(LIBSQUISH)/squish.h $(LIBSQUISH)/maths.h $(LIBSQUISH)/config.h $(LIBSQUISH)/simd.h $(LIBSQUISH)/simd_float.h $(LIBSQUISH)/colourfit.h $(LIBSQUISH)/colourset.h $(LIBSQUISH)/colourblock.h
@@ -94,5 +94,4 @@ $(TOOLS)/transpal.$o: $(TOOLS)/transpal.c $(INC)/compat.h $(INC)/pragmas.h
 $(TOOLS)/wad2art.$o: $(TOOLS)/wad2art.c $(INC)/compat.h $(INC)/pragmas.h
 $(TOOLS)/wad2map.$o: $(TOOLS)/wad2map.c $(INC)/compat.h $(INC)/pragmas.h
 $(TOOLS)/generatesdlappicon.$o: $(TOOLS)/generatesdlappicon.c
-$(TOOLS)/cacheinfo.$o: $(TOOLS)/cacheinfo.c $(INC)/compat.h
 $(TOOLS)/bin2c.$o: $(TOOLS)/bin2c.cc

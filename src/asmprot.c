@@ -1,6 +1,6 @@
 #include "a.h"
 
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 # if defined _WIN32
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
@@ -14,7 +14,7 @@
 
 void makeasmwriteable(void)
 {
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
     extern int dep_begin, dep_end;
 
 # if defined _WIN32
@@ -48,5 +48,5 @@ void makeasmwriteable(void)
 #  error Dont know how to unprotect the self-modifying assembly on this platform!
 # endif
 
-#endif  //ENGINE_USING_A_C
+#endif  //USING_A_C
 }

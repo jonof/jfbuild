@@ -145,7 +145,7 @@ void __cdecl stretchhline(void *,int,int,int,void *,void *);
 
 #else				// GCC || MSVC
 
-#define ENGINE_USING_A_C
+#define USING_A_C
 
 void setvlinebpl(int dabpl);
 void fixtransluscence(void *datransoff);

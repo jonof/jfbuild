@@ -282,7 +282,13 @@ int startwin_open(void)
         startwin = [[EditorStartupWinController alloc] initWithWindowNibName:@"startwin.editor"];
         if (startwin == nil) return -1;
 
-        [startwin window];  // Forces the window controls on the controller to be initialised.
+        NSWindow *win = [startwin window];  // Forces the window controls on the controller to be initialised.
+        if (win == nil) {
+            [startwin closeQuietly];
+            [startwin release];
+            startwin = nil;
+            return -1;
+        }
         [startwin setupMessagesMode:YES];
         [startwin showWindow:nil];
 
@@ -337,7 +343,7 @@ int startwin_run(struct startwin_settings *settings)
 {
     int retval;
 
-    if (startwin == nil) return 0;
+    if (startwin == nil) return STARTWIN_RUN;
 
     @autoreleasepool {
         [startwin setSettings:settings];

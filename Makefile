@@ -11,40 +11,23 @@
 #     Define as USE_GL2 (or 1 or 2) for GL 2.0/2.1 profile
 #     Define as USE_GL3 (or 3) for GL 3.2 Core profile
 #     Define as USE_GLES2 (or 12) for GLES 2.0 profile
-#  USE_ASM        - enables the use of assembly code
+#  USE_ASM        - enables the use of assembly code if supported
 #
 USE_POLYMOST ?= 1
 USE_OPENGL ?= 1
 USE_ASM ?= 1
 
 # Debugging options
-#  RELEASE - 1 = no debugging
-#  EFENCE  - 1 = compile with Electric Fence for malloc() debugging
+#  RELEASE - 1 = optimised release build, no debugging aids
 RELEASE?=1
-EFENCE?=0
 
-# source locations
+# Source locations
 SRC=src
 GAME=kenbuild
 GAMEDATA=kenbuild-data
 TOOLS=tools
 INC=include
-
-# filename extensions - these won't need to change
-o=o
-res=o
-asm=nasm
-
-# debugging and release
-ifneq ($(RELEASE),0)
-  # debugging disabled
-  debug=-fomit-frame-pointer -O2
-else
-  # debugging enabled
-  debug=-Og -DDEBUGGINGAIDS
-  debug+= -DMMULTI_DEBUG_SENDRECV
-  #debug+= -DMMULTI_DEBUG_SENDRECV_WIRE
-endif
+LIBSQUISH=libsquish
 
 CC?=gcc
 CXX?=g++
@@ -52,25 +35,44 @@ NASM?=nasm
 WINDRES?=windres
 AR?=ar
 RANLIB?=ranlib
-OURCFLAGS=$(debug) -g -W -Wall -fno-strict-aliasing -DKSFORBUILD \
-	-I$(INC) -I$(SRC)
-OURCCFLAGS=-std=c99
-OURCXXFLAGS=-fno-exceptions -fno-rtti -std=c++98
-GAMECFLAGS=-I$(GAME) -I$(INC)
-LIBS=
-GAMELIBS=
 NASMFLAGS=-s #-g
 EXESUFFIX=
 
+# Host platform compiler for build-time tools
 HOSTCC?=$(CC)
 HOSTCXX?=$(CXX)
-PERL?=perl
+
+OURCFLAGS=-g -W -Wall -fno-strict-aliasing -std=c99
+OURCXXFLAGS=-g -W -Wall -fno-exceptions -fno-rtti -std=c++98
+OURCPPFLAGS=-I$(INC) -I$(SRC) -I$(LIBSQUISH)
+OURLDFLAGS=
+
+GAMECPPFLAGS=-I$(GAME) -I$(INC)
+GAMELDFLAGS=
+
+ifneq ($(RELEASE),0)
+	# Default optimisation settings
+	CFLAGS?=-fomit-frame-pointer -O2
+	CXXFLAGS?=-fomit-frame-pointer -O2
+else
+	CFLAGS?=-Og
+	CXXFLAGS?=-Og
+
+	OURCPPFLAGS+= -DDEBUGGINGAIDS
+	#OURCPPFLAGS+= -DMMULTI_DEBUG_SENDRECV
+	#OURCPPFLAGS+= -DMMULTI_DEBUG_SENDRECV_WIRE
+endif
+
+# Filename extensions, used in Makefile.deps etc
+o=o
+res=o
+asm=nasm
 
 include Makefile.shared
 
 ENGINEOBJS=
 ifneq (0,$(USE_ASM))
-  ENGINEOBJS+= $(SRC)/a.$o
+	ENGINEOBJS+= $(SRC)/a.$o
 endif
 
 ENGINEOBJS+= \
@@ -116,11 +118,6 @@ endif
 EDITOROBJS=$(SRC)/build.$o \
 	$(SRC)/config.$o
 
-GAMEEXEOBJS=$(GAME)/game.$o \
-	$(GAME)/config.$o \
-	$(GAME)/kdmsound.$o \
-	$(ENGINELIB)
-
 EDITOREXEOBJS=$(GAME)/bstub.$o \
 	$(EDITORLIB) \
 	$(ENGINELIB)
@@ -139,31 +136,46 @@ ifneq ($(USE_OPENGL),0)
 		$(LIBSQUISH)/squish.$o
 endif
 
-# detect the platform
+GAMEEXEOBJS=$(GAME)/game.$o \
+	$(GAME)/config.$o \
+	$(GAME)/kdmsound.$o \
+	$(ENGINELIB)
+
+# Specialise for the platform
 ifeq ($(PLATFORM),LINUX)
 	NASMFLAGS+= -f elf
-	LIBS+= -lm
+	OURLDFLAGS+= -lm
 endif
 ifeq ($(PLATFORM),BSD)
 	NASMFLAGS+= -f elf
-	OURCFLAGS+= -I/usr/X11R6/include
-	LIBS+= -lm
+	OURLDFLAGS+= -lm
 endif
 ifeq ($(PLATFORM),WINDOWS)
-	LIBS+= -lm
 	NASMFLAGS+= -f win32 --prefix _
+	OURLDFLAGS+= -lm
+endif
+ifeq ($(PLATFORM),DARWIN)
+	OURLDFLAGS+= -framework AppKit
+
+	ENGINEOBJS+= $(SRC)/osxbits.$o
+	EDITOROBJS+= $(SRC)/EditorStartupWinController.$o
+
+	GAMEEXEOBJS+= $(GAME)/StartupWinController.$o
+	GAMELDFLAGS+= -framework AppKit
 endif
 
+# Select the system layer
 ifeq ($(RENDERTYPE),SDL)
 	ENGINEOBJS+= $(SRC)/sdlayer2.$o
 	OURCFLAGS+= $(SDLCONFIG_CFLAGS)
-	LIBS+= $(SDLCONFIG_LIBS)
+	OURLDFLAGS+= $(SDLCONFIG_LIBS)
 
 	ifeq (1,$(HAVE_GTK))
 		OURCFLAGS+= $(GTKCONFIG_CFLAGS)
-		LIBS+= $(GTKCONFIG_LIBS)
+		OURLDFLAGS+= $(GTKCONFIG_LIBS)
 		ENGINEOBJS+= $(SRC)/gtkbits.$o
 		EDITOROBJS+= $(SRC)/startgtk_editor.$o
+
 		GAMEEXEOBJS+= $(GAME)/startgtk_game.$o $(GAME)/rsrc/startgtk_game_gresource.$o
 		EDITOREXEOBJS+= $(GAME)/rsrc/startgtk_build_gresource.$o
 	endif
@@ -174,34 +186,20 @@ endif
 ifeq ($(RENDERTYPE),WIN)
 	ENGINEOBJS+= $(SRC)/winlayer.$o
 	EDITOROBJS+= $(SRC)/startwin_editor.$o
+
 	GAMEEXEOBJS+= $(GAME)/kdmsound_stub.$o $(GAME)/gameres.$(res) $(GAME)/startwin_game.$o
 	EDITOREXEOBJS+= $(GAME)/buildres.$(res)
 endif
 
-ifneq (0,$(EFENCE))
-	LIBS+= -lefence
-	OURCFLAGS+= -DEFENCE
-endif
-
+# Apply shared flags
 OURCFLAGS+= $(BUILDCFLAGS)
-LIBS+= $(BUILDLIBS)
+OURCXXFLAGS+= $(BUILDCXXFLAGS)
+OURCPPFLAGS+= $(BUILDCPPFLAGS)
+OURLDFLAGS+= $(BUILDLDFLAGS)
 
 .PHONY: clean veryclean all utils enginelib editorlib
 
 # TARGETS
-
-# Invoking Make from the terminal in OSX just chains the build on to xcode
-ifeq ($(PLATFORM),DARWIN)
-ifeq ($(RELEASE),0)
-style=Debug
-else
-style=Release
-endif
-.PHONY: alldarwin
-alldarwin:
-	cd xcode && xcodebuild -project engine.xcodeproj -alltargets -configuration $(style)
-	cd xcode && xcodebuild -project game.xcodeproj -alltargets -configuration $(style)
-endif
 
 # Source-control version stamping
 ifneq (,$(findstring git version,$(shell git --version)))
@@ -210,7 +208,7 @@ else
 ENGINEOBJS+= $(SRC)/version.$o
 endif
 
-UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) klist$(EXESUFFIX) transpal$(EXESUFFIX) wad2art$(EXESUFFIX) wad2map$(EXESUFFIX) arttool$(EXESUFFIX)
+UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) klist$(EXESUFFIX) transpal$(EXESUFFIX) arttool$(EXESUFFIX)
 BUILDUTILS=generatesdlappicon$(EXESUFFIX) bin2c$(EXESUFFIX)
 
 all: enginelib editorlib $(GAMEDATA)/game$(EXESUFFIX) $(GAMEDATA)/build$(EXESUFFIX)
@@ -227,27 +225,25 @@ $(EDITORLIB): $(EDITOROBJS)
 	$(RANLIB) $@
 
 $(GAMEDATA)/game$(EXESUFFIX): $(GAMEEXEOBJS)
-	$(CXX) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(GAMELIBS) $(LIBS)
+	$(CXX) $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) -o $@ $^ $(LDFLAGS) $(OURLDFLAGS) $(GAMELDFLAGS)
 
 $(GAMEDATA)/build$(EXESUFFIX): $(EDITOREXEOBJS)
-	$(CXX) $(CFLAGS) $(OURCFLAGS) -o $@ $^ $(LIBS)
+	$(CXX) $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) -o $@ $^ $(LDFLAGS) $(OURLDFLAGS) $(GAMELDFLAGS)
 
 kextract$(EXESUFFIX): $(TOOLS)/kextract.$o $(ENGINELIB)
-	$(CC) -o $@ $^ $(ENGINELIB)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(OURLDFLAGS)
 kgroup$(EXESUFFIX): $(TOOLS)/kgroup.$o $(ENGINELIB)
-	$(CC) -o $@ $^ $(ENGINELIB)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(OURLDFLAGS)
 klist$(EXESUFFIX): $(TOOLS)/klist.$o $(ENGINELIB)
-	$(CC) -o $@ $^ $(ENGINELIB)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(OURLDFLAGS)
 transpal$(EXESUFFIX): $(TOOLS)/transpal.$o $(ENGINELIB)
-	$(CC) -o $@ $^ $(ENGINELIB)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(OURLDFLAGS)
 arttool$(EXESUFFIX): $(TOOLS)/arttool.$o
-	$(CXX) -o $@ $^
-wad2art$(EXESUFFIX): $(TOOLS)/wad2art.$o $(SRC)/pragmas.$o $(SRC)/compat.$o
-	$(CC) -o $@ $^
-wad2map$(EXESUFFIX): $(TOOLS)/wad2map.$o $(SRC)/pragmas.$o $(SRC)/compat.$o
-	$(CC) -o $@ $^
-cacheinfo$(EXESUFFIX): $(TOOLS)/cacheinfo.$o $(ENGINELIB)
-	$(CC) -o $@ $^ $(ENGINELIB)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ $^
+wad2art$(EXESUFFIX): $(TOOLS)/wad2art.$o $(ENGINELIB)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(OURLDFLAGS)
+wad2map$(EXESUFFIX): $(TOOLS)/wad2map.$o $(ENGINELIB)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(OURLDFLAGS)
 
 # These tools are only used at build time and should be compiled
 # using the host toolchain rather than any cross-compiler.
@@ -264,31 +260,34 @@ $(SRC)/%.$o: $(SRC)/%.$(asm)
 	$(NASM) $(NASMFLAGS) $< -o $@
 
 $(SRC)/%.$o: $(SRC)/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) $(OURCCFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(SRC)/%.$o: $(SRC)/%.cc
-	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) -c $< -o $@
 
 $(SRC)/%.$o: $(SRC)/%.cpp
-	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) -c $< -o $@
+
+$(SRC)/%.$o: $(SRC)/%.m
+	$(CC) $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
+
+$(SRC)/%.c: $(SRC)/%.glsl | bin2c$(EXESUFFIX)
+	./bin2c -text $< default_$*_glsl > $@
 
 $(LIBSQUISH)/%.$o: $(LIBSQUISH)/%.cpp
-	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) -O2 -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(OURCPPFLAGS) $(CXXFLAGS) $(OURCXXFLAGS) -O2 -c $< -o $@
 
 $(GAME)/%.$o: $(GAME)/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) $(OURCCFLAGS) $(GAMECFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@
 
-$(GAME)/%.$o: $(GAME)/%.cpp
-	$(CXX) $(CXXFLAGS) $(OURCXXFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@
+$(GAME)/%.$o: $(GAME)/%.m
+	$(CC) $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) $(GAMECFLAGS) -c $< -o $@
 
 $(GAME)/rsrc/%.$o: $(GAME)/rsrc/%.c
-	$(CC) $(CFLAGS) $(OURCFLAGS) $(OURCCFLAGS) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(OURCPPFLAGS) $(CFLAGS) $(OURCFLAGS) -c $< -o $@
 
 $(GAME)/%.$(res): $(GAME)/%.rc
 	$(WINDRES) -O coff -i $< -o $@ --include-dir=$(INC) --include-dir=$(GAME)
-
-$(SRC)/%.c: $(SRC)/%.glsl
-	$(PERL) $(TOOLS)/text2c.pl $< default_$*_glsl > $@
 
 $(GAME)/rsrc/%_gresource.c $(GAME)/rsrc/%_gresource.h: $(GAME)/rsrc/%.gresource.xml
 	glib-compile-resources --generate --manual-register --c-name=startgtk --target=$@ --sourcedir=$(GAME)/rsrc $<
@@ -297,25 +296,17 @@ $(GAME)/rsrc/sdlappicon_%.c: $(GAME)/rsrc/%.png | generatesdlappicon$(EXESUFFIX)
 
 
 $(TOOLS)/%.$o: $(TOOLS)/%.c
-	$(CC) $(CFLAGS) -I$(SRC) -I$(INC) -c $< -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -I$(SRC) -I$(INC) -c $< -o $@
 
 $(TOOLS)/%.$o: $(TOOLS)/%.cc
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
 # PHONIES
 clean:
-ifeq ($(PLATFORM),DARWIN)
-	cd xcode && xcodebuild -project engine.xcodeproj -alltargets -configuration $(style) clean
-	cd xcode && xcodebuild -project game.xcodeproj -alltargets -configuration $(style) clean
-else
 	-rm -f $(ENGINEOBJS) $(EDITOROBJS) $(GAMEEXEOBJS) $(EDITOREXEOBJS)
-endif
 
 veryclean: clean
-ifeq ($(PLATFORM),DARWIN)
-else
 	-rm -f $(ENGINELIB) $(EDITORLIB) $(GAMEDATA)/game$(EXESUFFIX) $(GAMEDATA)/build$(EXESUFFIX) $(UTILS) $(BUILDUTILS)
-endif
 
 .PHONY: $(SRC)/version-auto.c
 $(SRC)/version-auto.c:

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXAggregateTarget section */
@@ -789,6 +789,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		AB48BD6B208C090300E38090 /* Generate version-auto.c */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -799,7 +800,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd $PROJECT_DIR/..\ngitdescribe=$(git describe --always 2>/dev/null || echo git error)\n\ncat >src/version-auto.c <<EOT\nconst char *build_version = \"$gitdescribe\";\nconst char *build_date = __DATE__;\nconst char *build_time = __TIME__;\nEOT";
+			shellScript = "cd $PROJECT_DIR/..\ngitdescribe=$(git describe --always 2>/dev/null || echo git error)\n\ncat >src/version-auto.c <<EOT\nconst char *build_version = \"$gitdescribe\";\nconst char *build_date = __DATE__;\nconst char *build_time = __TIME__;\nEOT\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

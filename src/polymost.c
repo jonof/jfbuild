@@ -967,11 +967,7 @@ void polymost_nextpage(void)
 	    		polymostcallcounts.drawmaskwall,
 	    		polymostcallcounts.drawsprite
 		);
-		if (rendmode == 3) {
-			polymost_printext256(0, 8, 31, -1, buf, 0);
-		} else {
-			printext256(0, 8, 31, -1, buf, 0);
-		}
+		printext256(0, 8, 31, -1, buf, 0);
 	}
 	memset(&polymostcallcounts, 0, sizeof(polymostcallcounts));
 #endif
@@ -985,10 +981,10 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 {
 	#define PI 3.14159265358979323
 	double ngdx = 0.0, ngdy = 0.0, ngdo = 0.0, ngux = 0.0, nguy = 0.0, nguo = 0.0;
-	double ngvx = 0.0, ngvy = 0.0, ngvo = 0.0, dp, up, vp, rdp, du0 = 0.0, du1 = 0.0, dui, duj;
+	double ngvx = 0.0, ngvy = 0.0, ngvo = 0.0, dp, up, vp, rdp;
 	double ngdx2, ngux2, ngvx2;
-	double f, r, ox, oy, oz, ox2, oy2, oz2, dd[16], uu[16], vv[16], px[16], py[16], uoffs;
-	int i, j, k, x, y, z, nn, ix0, ix1, mini, maxi, tsizx, tsizy, tsizxm1 = 0, tsizym1 = 0, ltsizy = 0;
+	double f, r, ox, oy, oz, ox2, oy2, oz2, dd[16], uu[16], vv[16], px[16], py[16];
+	int i, j, k, x, y, z, ix0, ix1, mini, maxi, tsizx, tsizy, tsizxm1 = 0, tsizym1 = 0, ltsizy = 0;
 	int xx, yy, xi, d0, u0, v0, d1, u1, v1, xmodnice = 0, ymulnice = 0, dorot;
 	unsigned char dacol = 0, *walptr, *palptr = NULL, *vidp, *vide;
 
@@ -1072,6 +1068,9 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 	n = j;
 
 #if USE_OPENGL
+	int nn;
+	double uoffs, du0 = 0.0, du1 = 0.0, dui, duj;
+
 	if (rendmode == 3)
 	{
 		float hackscx, hackscy;
@@ -3712,16 +3711,19 @@ void polymost_drawsprite (int snum)
 void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	signed char dashade, unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
 {
-	static int onumframes = 0;
 	int n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
-	int ogpicnum, ogshade, ogpal, oxdimen, oydimen, oldviewingrange;
+	int ogpicnum, ogshade, ogpal, oxdimen, oydimen;
 	intptr_t ofoffset;
-	double ogxyaspect, ogfogdensity;
-	double ogchang, ogshang, ogctang, ogstang, oghalfx, oghoriz, fx, fy, x1, y1, z1, x2, y2;
+	double ogchang, ogshang, ogctang, ogstang, oghalfx, oghoriz, fx, fy, x1, y1, x2, y2;
 	double ogrhalfxdown10, ogrhalfxdown10x;
 	double d, cosang, sinang, cosang2, sinang2, px[8], py[8], px2[8], py2[8];
 
 #if USE_OPENGL
+	double z1;
+	double ogxyaspect, ogfogdensity;
+	int oldviewingrange;
+	static int onumframes = 0;
+
 	if (rendmode == 3 && usemodels && hudmem[(dastat&4)>>2][picnum].angadd)
 	{
 		if ((tile2model[picnum].modelid >= 0) && (tile2model[picnum].framenum >= 0))

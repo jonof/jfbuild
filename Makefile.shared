@@ -7,13 +7,9 @@ SDL2CONFIG?=$(shell which sdl2-config || which false)
 PKGCONFIG?=$(shell which pkg-config || which false)
 export SDL2CONFIG PKGCONFIG
 
-# Path to the included libsquish
-LIBSQUISH=libsquish
-
-# overridden for OSes that don't have the cutdown stdc++ that is supc++
-STDCPPLIB=-lsupc++
-
-BUILDCFLAGS=-I$(LIBSQUISH)
+BUILDCFLAGS=
+BUILDCXXFLAGS=
+BUILDCPPFLAGS=
 BUILDLIBS=
 
 # Detect the platform by interrogating the C compiler. This allows
@@ -85,7 +81,7 @@ ifeq ($(RENDERTYPE),SDL)
 	ifeq (1,$(WITHOUT_GTK))
 		HAVE_GTK=0
 	else
-		ifneq (No,$(shell $(PKGCONFIG) --atleast-version=3.4 gtk+-3.0 || echo -n No))
+		ifneq (,$(shell $(PKGCONFIG) --atleast-version=3.4 gtk+-3.0 && echo yes))
 			HAVE_GTK=1
 			GTKCONFIG_CFLAGS=-DHAVE_GTK $(shell $(PKGCONFIG) --cflags gtk+-3.0)
 			GTKCONFIG_LIBS=$(shell $(PKGCONFIG) --libs gtk+-3.0) -ldl
@@ -106,15 +102,15 @@ endif
 	USE_ASM=0
 #endif
 
-BUILDCFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
+BUILDCPPFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
 
 ifneq (0,$(USE_POLYMOST))
-  BUILDCFLAGS+= -DUSE_POLYMOST=$(USE_POLYMOST)
+  BUILDCPPFLAGS+= -DUSE_POLYMOST=$(USE_POLYMOST)
 endif
 ifneq (0,$(USE_OPENGL))
-  BUILDCFLAGS+= -DUSE_OPENGL=$(USE_OPENGL)
+  BUILDCPPFLAGS+= -DUSE_OPENGL=$(USE_OPENGL)
 endif
 ifneq (0,$(USE_ASM))
-  BUILDCFLAGS+= -DUSE_ASM=$(USE_ASM)
+  BUILDCPPFLAGS+= -DUSE_ASM=$(USE_ASM)
 endif
 

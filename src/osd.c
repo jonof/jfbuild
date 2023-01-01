@@ -151,14 +151,14 @@ static void _internal_drawosdstr(int x, int y, char *ch, int len, int shade, int
 
 static void _internal_drawosdcursor(int x, int y, int type, int lastkeypress)
 {
-	char st[2] = { 22, 0 };  // solid lower third of character cell
+	char st[2] = { '\x16', 0 };  // solid lower third of character cell
 	int colour, yoff = 2;
 
 	unsigned blinkcycle = gettime() - (unsigned)lastkeypress;
 	if (blinkcycle % 1000 > 500) return;  // blink each half-second.
 
 	if (type) {
-		st[0] = 219;  // solid block
+		st[0] = '\xdb';  // solid block
 		yoff = 0;
 	}
 

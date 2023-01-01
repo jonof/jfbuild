@@ -23,9 +23,6 @@
 # include <direct.h>
 #elif !defined(_MSC_VER)
 # include <dirent.h>
-# ifdef _WIN32
-#  include <direct.h>	// for _getdcwd
-# endif
 #endif
 
 #if defined(__linux) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__)
