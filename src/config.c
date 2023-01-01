@@ -67,6 +67,9 @@ enum {
 static int tmprenderer = -1;
 #endif
 static int tmpbrightness = -1;
+#ifdef RENDERTYPEWIN
+static unsigned tmpmaxrefreshfreq = -1;
+#endif
 
 static struct {
 	const char *name;
@@ -112,7 +115,7 @@ static struct {
 	},
 #endif
 #ifdef RENDERTYPEWIN
-	{ "maxrefreshfreq", type_int, &maxrefreshfreq,
+	{ "maxrefreshfreq", type_int, &tmpmaxrefreshfreq,
 		"; Maximum OpenGL mode refresh rate (Windows only, in Hertz)\n"
 	},
 #endif
@@ -244,6 +247,9 @@ int loadsetup(const char *fn)
 		setrendermode(tmprenderer);
 	}
 #endif
+#ifdef RENDERTYPEWIN
+	win_setmaxrefreshfreq(tmpmaxrefreshfreq);
+#endif
 	if (tmpbrightness >= 0) {
 		brightness = min(max(tmpbrightness,0),15);
 	}
@@ -266,6 +272,9 @@ int writesetup(const char *fn)
 	tmpbrightness = brightness;
 #if USE_POLYMOST
 	tmprenderer = getrendermode();
+#endif
+#ifdef RENDERTYPEWIN
+	tmpmaxrefreshfreq = win_getmaxrefreshfreq();
 #endif
 
 	for (item = 0; configspec[item].name; item++) {

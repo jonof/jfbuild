@@ -34,7 +34,7 @@ jobs:
                USE_OPENGL=${{ matrix.use_opengl }} \
                WITHOUT_GTK=${{ matrix.without_gtk || 1 }} \
                USE_ASM=0 \
-               all utils
+               all
 
   build-windows:
     name: Windows polymost=${{ matrix.use_polymost }} gl=${{ matrix.use_opengl }}
@@ -63,4 +63,4 @@ jobs:
         run: |
           echo USE_POLYMOST=${{ matrix.use_polymost }} > Makefile.msvcuser
           echo USE_OPENGL=${{ matrix.use_opengl }} >> Makefile.msvcuser
-          nmake /f Makefile.msvc all utils
+          nmake /f Makefile.msvc all

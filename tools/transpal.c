@@ -70,17 +70,17 @@ unsigned char getclosestcol(int r, int g, int b)
 	}
 	ptr = &closestcol[r][g][b];
 	*ptr = retcol;
-	if ((r >= 4) && (ptr[(-2)<<12] == retcol)) ptr[(-3)<<12] = retcol, ptr[(-2)<<12] = retcol, ptr[(-1)<<12] = retcol;
-	if ((g >= 4) && (ptr[(-2)<<6] == retcol)) ptr[(-3)<<6] = retcol, ptr[(-2)<<6] = retcol, ptr[(-1)<<6] = retcol;
-	if ((b >= 4) && (ptr[(-2)] == retcol)) ptr[(-3)] = retcol, ptr[(-2)] = retcol, ptr[(-1)] = retcol;
-	if ((r < 64-4) && (ptr[(2)<<12] == retcol)) ptr[(3)<<12] = retcol, ptr[(2)<<12] = retcol, ptr[(1)<<12] = retcol;
-	if ((g < 64-4) && (ptr[(2)<<6] == retcol)) ptr[(3)<<6] = retcol, ptr[(2)<<6] = retcol, ptr[(1)<<6] = retcol;
+	if ((r >= 4) && (ptr[-(2<<12)] == retcol)) ptr[-(3<<12)] = retcol, ptr[-(2<<12)] = retcol, ptr[-(1<<12)] = retcol;
+	if ((g >= 4) && (ptr[-(2<<6)] == retcol)) ptr[-(3<<6)] = retcol, ptr[-(2<<6)] = retcol, ptr[-(1<<6)] = retcol;
+	if ((b >= 4) && (ptr[-(2)] == retcol)) ptr[-(3)] = retcol, ptr[-(2)] = retcol, ptr[-(1)] = retcol;
+	if ((r < 64-4) && (ptr[(2<<12)] == retcol)) ptr[(3<<12)] = retcol, ptr[(2<<12)] = retcol, ptr[(1<<12)] = retcol;
+	if ((g < 64-4) && (ptr[(2<<6)] == retcol)) ptr[(3<<6)] = retcol, ptr[(2<<6)] = retcol, ptr[(1<<6)] = retcol;
 	if ((b < 64-4) && (ptr[(2)] == retcol)) ptr[(3)] = retcol, ptr[(2)] = retcol, ptr[(1)] = retcol;
-	if ((r >= 2) && (ptr[(-1)<<12] == retcol)) ptr[(-1)<<12] = retcol;
-	if ((g >= 2) && (ptr[(-1)<<6] == retcol)) ptr[(-1)<<6] = retcol;
-	if ((b >= 2) && (ptr[(-1)] == retcol)) ptr[(-1)] = retcol;
-	if ((r < 64-2) && (ptr[(1)<<12] == retcol)) ptr[(1)<<12] = retcol;
-	if ((g < 64-2) && (ptr[(1)<<6] == retcol)) ptr[(1)<<6] = retcol;
+	if ((r >= 2) && (ptr[-(1<<12)] == retcol)) ptr[-(1<<12)] = retcol;
+	if ((g >= 2) && (ptr[-(1<<6)] == retcol)) ptr[-(1<<6)] = retcol;
+	if ((b >= 2) && (ptr[-(1)] == retcol)) ptr[-(1)] = retcol;
+	if ((r < 64-2) && (ptr[(1<<12)] == retcol)) ptr[(1<<12)] = retcol;
+	if ((g < 64-2) && (ptr[(1<<6)] == retcol)) ptr[(1<<6)] = retcol;
 	if ((b < 64-2) && (ptr[(1)] == retcol)) ptr[(1)] = retcol;
 	return(retcol);
 }

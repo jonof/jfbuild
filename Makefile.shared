@@ -1,20 +1,16 @@
 # Shared make information between Build engine and games
 
-ENGINELIB=src/libengine.a
-EDITORLIB=src/libbuild.a
+ENGINELIB=libengine.a
+EDITORLIB=libbuild.a
 
 SDL2CONFIG?=$(shell which sdl2-config || which false)
 PKGCONFIG?=$(shell which pkg-config || which false)
 export SDL2CONFIG PKGCONFIG
 
-# Path to the included libsquish
-LIBSQUISH=libsquish
-
-# overridden for OSes that don't have the cutdown stdc++ that is supc++
-STDCPPLIB=-lsupc++
-
-BUILDCFLAGS=-I$(LIBSQUISH)
-BUILDLIBS=
+BUILDCFLAGS=
+BUILDCXXFLAGS=
+BUILDCPPFLAGS=
+BUILDLDFLAGS=-lm
 
 # Detect the platform by interrogating the C compiler. This allows
 # cross-compilation by overriding CC etc.
@@ -24,43 +20,45 @@ BUILDLIBS=
 #  macOS: x86_64-apple-darwin18.2.0
 #  mingw32: x86_64-w64-mingw32 i686-w64-mingw32
 #  FreeBSD: x86_64-unknown-freebsd10.4
-machine=$(strip $(shell $(CC) -dumpmachine))
+TARGETMACHINE?=$(strip $(shell $(CC) -dumpmachine))
+export TARGETMACHINE
+
 ifndef PLATFORM
 	PLATFORM=UNKNOWN
-	ifneq (,$(findstring -linux,$(machine)))
+	ifneq (,$(findstring -linux,$(TARGETMACHINE)))
 		PLATFORM=LINUX
 	endif
-	ifneq (,$(findstring -freebsd,$(machine)))
+	ifneq (,$(findstring -freebsd,$(TARGETMACHINE)))
 		PLATFORM=BSD
 	endif
-	ifneq (,$(findstring -mingw32,$(machine)))
+	ifneq (,$(findstring -mingw32,$(TARGETMACHINE)))
 		PLATFORM=WINDOWS
 	endif
-	ifneq (,$(findstring -darwin,$(machine)))
+	ifneq (,$(findstring -darwin,$(TARGETMACHINE)))
 		PLATFORM=DARWIN
 	endif
 endif
 ifndef ARCHITECTURE
 	ARCHITECTURE=UNKNOWN
-	ifneq (,$(findstring aarch64-,$(machine)))
+	ifneq (,$(findstring aarch64-,$(TARGETMACHINE)))
 		ARCHITECTURE=ARM_64
 	endif
-	ifneq (,$(findstring arm-,$(machine)))
+	ifneq (,$(findstring arm-,$(TARGETMACHINE)))
 		ARCHITECTURE=ARM
 	endif
-	ifneq (,$(findstring x86_64-,$(machine)))
+	ifneq (,$(findstring x86_64-,$(TARGETMACHINE)))
 		ARCHITECTURE=X86_64
 	endif
-	ifneq (,$(findstring i386-,$(machine)))
+	ifneq (,$(findstring i386-,$(TARGETMACHINE)))
 		ARCHITECTURE=X86
 	endif
-	ifneq (,$(findstring i486-,$(machine)))
+	ifneq (,$(findstring i486-,$(TARGETMACHINE)))
 		ARCHITECTURE=X86
 	endif
-	ifneq (,$(findstring i586-,$(machine)))
+	ifneq (,$(findstring i586-,$(TARGETMACHINE)))
 		ARCHITECTURE=X86
 	endif
-	ifneq (,$(findstring i686-,$(machine)))
+	ifneq (,$(findstring i686-,$(TARGETMACHINE)))
 		ARCHITECTURE=X86
 	endif
 endif
@@ -68,7 +66,7 @@ endif
 ifeq ($(PLATFORM),WINDOWS)
 	RENDERTYPE ?= WIN
 	EXESUFFIX=.exe
-	BUILDLIBS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -lcomdlg32 -luxtheme -lxinput9_1_0
+	BUILDLDFLAGS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -lcomdlg32 -luxtheme -lxinput9_1_0
 else
 	RENDERTYPE=SDL
 	EXESUFFIX=
@@ -85,7 +83,7 @@ ifeq ($(RENDERTYPE),SDL)
 	ifeq (1,$(WITHOUT_GTK))
 		HAVE_GTK=0
 	else
-		ifneq (No,$(shell $(PKGCONFIG) --atleast-version=3.4 gtk+-3.0 || echo -n No))
+		ifneq (,$(shell $(PKGCONFIG) --atleast-version=3.4 gtk+-3.0 && echo yes))
 			HAVE_GTK=1
 			GTKCONFIG_CFLAGS=-DHAVE_GTK $(shell $(PKGCONFIG) --cflags gtk+-3.0)
 			GTKCONFIG_LIBS=$(shell $(PKGCONFIG) --libs gtk+-3.0) -ldl
@@ -95,9 +93,9 @@ ifeq ($(RENDERTYPE),SDL)
 	endif
 endif
 ifeq ($(RENDERTYPE),WIN)
-	BUILDLIBS+= -mwindows -ldxguid
-	#BUILDLIBS+= -static
-	#BUILDLIBS+= -static-libgcc -static-libstdc++
+	BUILDLDFLAGS+= -mwindows -ldxguid
+	#BUILDLDFLAGS+= -static
+	#BUILDLDFLAGS+= -static-libgcc -static-libstdc++
 endif
 
 # Until I work out how to deal with PIE and PIC, the x86 inline
@@ -106,15 +104,15 @@ endif
 	USE_ASM=0
 #endif
 
-BUILDCFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
+BUILDCPPFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
 
 ifneq (0,$(USE_POLYMOST))
-  BUILDCFLAGS+= -DUSE_POLYMOST=$(USE_POLYMOST)
+  BUILDCPPFLAGS+= -DUSE_POLYMOST=$(USE_POLYMOST)
 endif
 ifneq (0,$(USE_OPENGL))
-  BUILDCFLAGS+= -DUSE_OPENGL=$(USE_OPENGL)
+  BUILDCPPFLAGS+= -DUSE_OPENGL=$(USE_OPENGL)
 endif
 ifneq (0,$(USE_ASM))
-  BUILDCFLAGS+= -DUSE_ASM=$(USE_ASM)
+  BUILDCPPFLAGS+= -DUSE_ASM=$(USE_ASM)
 endif
 

@@ -1,0 +1,38 @@
+# Shared make information between Build engine and games
+
+ENGINELIB=engine.lib
+EDITORLIB=build.lib
+
+RENDERTYPE=WIN
+EXESUFFIX=.exe
+
+BUILDCFLAGS=
+BUILDCXXFLAGS=
+BUILDCPPFLAGS=/DRENDERTYPEWIN=1
+BUILDLIBS=user32.lib gdi32.lib shell32.lib ws2_32.lib comctl32.lib comdlg32.lib uxtheme.lib xinput9_1_0.lib
+BUILDRFLAGS=
+
+!if "$(PLATFORM)" == "X64" || "$(PLATFORM)" == "x64"
+BUILDRFLAGS=/d_M_AMD64
+USE_ASM=0
+
+!elseif "$(PLATFORM)" == "ARM"
+USE_ASM=0
+
+!else
+!if "$(PLATFORM)" == ""
+PLATFORM=x86
+!endif
+BUILDCFLAGS=/arch:IA32
+BUILDCXXFLAGS=/arch:IA32
+!endif
+
+!if $(USE_POLYMOST)
+BUILDCPPFLAGS=$(BUILDCPPFLAGS) /DUSE_POLYMOST=$(USE_POLYMOST)
+!endif
+!if $(USE_OPENGL)
+BUILDCPPFLAGS=$(BUILDCPPFLAGS) /DUSE_OPENGL=$(USE_OPENGL)
+!endif
+!if $(USE_ASM)
+BUILDCPPFLAGS=$(BUILDCPPFLAGS) /DUSE_ASM=$(USE_ASM)
+!endif

@@ -270,8 +270,7 @@ static INT_PTR CALLBACK startup_dlgproc(HWND hwndDlg, UINT uMsg, WPARAM wParam, 
     switch (uMsg) {
         case WM_INITDIALOG: {
             HWND hwnd;
-            RECT r, rdlg, chrome, rtab, rcancel, rstart;
-            int xoffset = 0, yoffset = 0;
+            RECT r;
 
             {
                 TCITEM tab;

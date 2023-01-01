@@ -73,6 +73,7 @@
 
 #if defined(_WIN32)
 # include <io.h>
+# include <direct.h>   // for _getdcwd, _mkdir
 #else
 # include <unistd.h>
 #endif
@@ -203,6 +204,8 @@ static inline float B_SWAPFLOAT(float f) {
 # define max(a,b) ( ((a) > (b)) ? (a) : (b) )
 #endif
 
+#define Barraylen(s) (sizeof s / sizeof s[0])
+
 // On Windows, _MAX_PATH is 260, null included.
 // POSIX says 256 is the most it will write into a user buffer of unspecified size, null included.
 // X/Open says 1024 for the same purposes as POSIX.
@@ -228,7 +231,7 @@ int Bclosedir(BDIR *dir);
 #endif
 
 #ifdef __MINGW32__
-# define mkdir(s,x) mkdir(s)
+# define mkdir(s,x) _mkdir(s)
 #endif
 
 #ifdef _MSC_VER
@@ -251,6 +254,8 @@ int Bclosedir(BDIR *dir);
 # define stat      _stat
 # define strcasecmp _stricmp
 # define strdup    _strdup
+# define strlwr    _strlwr
+# define strupr    _strupr
 # define strncasecmp _strnicmp
 # define vsnprintf _vsnprintf
 # define write     _write
@@ -258,6 +263,7 @@ int Bclosedir(BDIR *dir);
 # define O_BINARY  _O_BINARY
 # define O_TEXT    _O_TEXT
 # define O_CREAT   _O_CREAT
+# define O_EXCL    _O_EXCL
 # define O_RDONLY  _O_RDONLY
 # define O_RDWR    _O_RDWR
 # define O_TRUNC   _O_TRUNC

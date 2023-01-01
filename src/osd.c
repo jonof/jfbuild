@@ -22,9 +22,9 @@ static symbol_t *addnewsymbol(const char *name);
 static symbol_t *findsymbol(const char *name, symbol_t *startingat);
 static symbol_t *findexactsymbol(const char *name);
 
-static int white=-1;			// colour of white (used by default display routines)
-static int lightgrey=-1;		// colour of light grey (used by default display routines)
-static int darkgrey=-1;			// colour of dark grey (used by default display routines)
+// Map of palette value to colour index for drawing: black, white, light grey, light blue.
+static int palmap256[4] = { -1, -1, -1, -1 };
+static int palmap16[4] = { 0, 15, 7, 9 };
 
 static void _internal_drawosdchar(int, int, char, int, int);
 static void _internal_drawosdstr(int, int, char*, int, int, int);
@@ -78,12 +78,12 @@ static symbol_t *lastmatch = NULL;
 static int  osdexeccount=0;		// number of lines from the head of the history buffer to execute
 
 // presentation parameters
-static int  osdpromptshade=2; // dark grey
-static int  osdpromptpal=0;
-static int  osdeditshade=0; // white
-static int  osdeditpal=0;
-static int  osdtextshade=1;	// light grey
-static int  osdtextpal=0;
+static int  osdpromptshade=0;
+static int  osdpromptpal=3;	// blue
+static int  osdeditshade=0;
+static int  osdeditpal=1;	// white
+static int  osdtextshade=0;
+static int  osdtextpal=2;	// light grey
 
 // application callbacks
 static void (*drawosdchar)(int, int, char, int, int) = _internal_drawosdchar;
@@ -98,61 +98,77 @@ static void (*onshowosd)(int) = _internal_onshowosd;
 static void findwhite(void)
 {
 	if (qsetmode == 200) {
-		white = getclosestcol(63,63,63);
-		lightgrey = getclosestcol(55,55,55);
-		darkgrey = getclosestcol(38,38,38);
-	} else {
-		white = 15;
-		lightgrey = 7;
-		darkgrey = 8;
+		palmap256[0] = getclosestcol(0,0,0);    // black
+		palmap256[1] = getclosestcol(63,63,63);	// white
+		palmap256[2] = getclosestcol(42,42,42);	// light grey
+		palmap256[3] = getclosestcol(21,21,63);	// light blue
 	}
 }
 
 static void _internal_drawosdchar(int x, int y, char ch, int shade, int pal)
 {
 	char st[2] = { 0,0 };
-	int colour;
+	int colour, shadow;
 
-	(void)pal;
+	(void)shade;
 
 	st[0] = ch;
 
-	switch (shade) {
-		case 2: colour = darkgrey; break;
-		case 1: colour = lightgrey; break;
-		default: colour = white; break;
+	if (qsetmode == 200) {
+		colour = palmap256[pal%4];
+		shadow = palmap256[0];
+	} else {
+		colour = palmap16[pal%4];
+		shadow = palmap16[0];
+		// printext256 happens to work in 2D mode.
 	}
-	printext256(4+(x<<3),4+(y<<3), colour, -1, st, 0);
+	printext256(4+(x*8)+1,4+(y*14)+1, shadow, -1, st, 2);
+	printext256(4+(x*8),4+(y*14), colour, -1, st, 2);
 }
 
 static void _internal_drawosdstr(int x, int y, char *ch, int len, int shade, int pal)
 {
 	char st[1024];
-	int colour;
+	int colour, shadow;
 
-	(void)pal;
+	(void)shade;
 
 	if (len>1023) len=1023;
 	memcpy(st,ch,len);
 	st[len]=0;
 
-	switch (shade) {
-		case 2: colour = darkgrey; break;
-		case 1: colour = lightgrey; break;
-		default: colour = white; break;
+	if (qsetmode == 200) {
+		colour = palmap256[pal%4];
+		shadow = palmap256[0];
+	} else {
+		colour = palmap16[pal%4];
+		shadow = palmap16[0];
+		// printext256 happens to work in 2D mode.
 	}
-	printext256(4+(x<<3),4+(y<<3), colour, -1, st, 0);
+	printext256(4+(x*8)+1,4+(y*14)+1, shadow, -1, st, 2);
+	printext256(4+(x*8),4+(y*14), colour, -1, st, 2);
 }
 
 static void _internal_drawosdcursor(int x, int y, int type, int lastkeypress)
 {
-	char st[2] = { '_',0 };
+	char st[2] = { '\x16', 0 };  // solid lower third of character cell
+	int colour, yoff = 2;
 
-	(void)lastkeypress;
+	unsigned blinkcycle = gettime() - (unsigned)lastkeypress;
+	if (blinkcycle % 1000 > 500) return;  // blink each half-second.
 
-	if (type) st[0] = '|';
+	if (type) {
+		st[0] = '\xdb';  // solid block
+		yoff = 0;
+	}
 
-	printext256(4+(x<<3),4+(y<<3)+2, lightgrey, -1, st, 0);
+	if (qsetmode == 200) {
+		colour = palmap256[2];
+	} else {
+		colour = palmap16[2];
+		// printext256 happens to work in 2D mode.
+	}
+	printext256(4+(x*8),4+(y*14)+yoff, colour, -1, st, 2);
 }
 
 static int _internal_getcolumnwidth(int w)
@@ -162,7 +178,7 @@ static int _internal_getcolumnwidth(int w)
 
 static int _internal_getrowheight(int w)
 {
-	return w/8;
+	return w/14;
 }
 
 static void _internal_clearbackground(int cols, int rows)
@@ -172,14 +188,12 @@ static void _internal_clearbackground(int cols, int rows)
 
 static int _internal_gettime(void)
 {
-	return 0;
+	return (int)getticks();
 }
 
 static void _internal_onshowosd(int shown)
 {
-	if (shown) {
-		findwhite();
-	}
+	(void)shown;
 }
 
 ////////////////////////////
@@ -823,8 +837,6 @@ void OSD_ResizeDisplay(int w, int h)
 
 	if (osdvisible) {
 		findwhite();
-	} else {
-		white = -1;
 	}
 }
 
@@ -845,6 +857,10 @@ void OSD_ShowDisplay(int onf)
 	onshowosd(osdvisible);
 	releaseallbuttons();
 	bflushchars();
+
+	if (osdvisible) {
+		findwhite();
+	}
 }
 
 
@@ -862,8 +878,6 @@ void OSD_Draw(void)
 	row = osdrows-1;
 	lines = min( osdlines-osdhead, osdrows );
 
-	begindrawing();
-
 	clearbackground(osdcols,osdrows+1);
 
 	for (; lines>0; lines--, row--) {
@@ -879,8 +893,6 @@ void OSD_Draw(void)
 		drawosdchar(3+x,osdrows,osdeditbuf[osdeditwinstart+x],osdeditshade,osdeditpal);
 
 	drawosdcursor(3+osdeditcursor-osdeditwinstart,osdrows,osdovertype,keytime);
-
-	enddrawing();
 }
 
 

@@ -5,6 +5,7 @@
 #include "glbuild_priv.h"
 #include "osd.h"
 #include "baselayer.h"
+#include "baselayer_priv.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

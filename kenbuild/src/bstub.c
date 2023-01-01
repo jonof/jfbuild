@@ -326,7 +326,6 @@ void ExtCheckKeys(void)
 			dx = dmulscale1(xdim,cosang,ydim,sinang);
 			dy = dmulscale1(-ydim,cosang,xdim,sinang);
 
-			begindrawing();
 			tsizy = tilesizy[4094];
 			tsizyup15 = (tsizy<<15);
 			dx = mulscale14(dx,daviewingrange);
@@ -344,7 +343,6 @@ void ExtCheckKeys(void)
 
 			Bsprintf(tempbuf,"%d",(hang*180)>>10);
 			printext256(0L,8L,31,-1,tempbuf,1);
-			enddrawing();
 		}
 #endif
 		if (keystatus[0xa]) setaspect(viewingrange+(viewingrange>>8),yxaspect+(yxaspect>>8));
@@ -355,15 +353,12 @@ void ExtCheckKeys(void)
 		//if (keystatus[0xb8]) setrollangle(rollangle-=((keystatus[0x2a]|keystatus[0x36])*6+2));
 		//if (keystatus[0x1d]|keystatus[0x9d]) setrollangle(rollangle=0);
 
-		begindrawing();
-		
 		i = frameval[framecnt&(AVERAGEFRAMES-1)];
 		j = frameval[framecnt&(AVERAGEFRAMES-1)] = getticks(); framecnt++;
 		if (i != j) averagefps = ((mul3(averagefps)+((AVERAGEFRAMES*1000)/(j-i)) )>>2);
 		Bsprintf((char *)tempbuf,"%d",averagefps);
 		printext256(0L,0L,31,-1,(char *)tempbuf,1);
-		
-		enddrawing();
+
 		editinput();
 	}
 	else
@@ -453,29 +448,25 @@ const char *ExtGetSpriteCaption(short spritenum)
 
 void ExtShowSectorData(short sectnum)   //F5
 {
-	int i;
 	if (qsetmode == 200)    //In 3D mode
 	{
 	}
 	else
 	{
-		begindrawing();
 		clearmidstatbar16();             //Clear middle of status bar
 
 		Bsprintf((char *)tempbuf,"Sector %d",sectnum);
-		printext16(8,ydim16+32,11,-1,(char *)tempbuf,0);
+		printext16(8,32,11,-1,(char *)tempbuf,0);
 
-		printext16(8,ydim16+48,11,-1,"8*8 font: ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",0);
-		printext16(8,ydim16+56,11,-1,"3*5 font: ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",1);
+		printext16(8,48,11,-1,"8*8 font:  ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",0);
+		printext16(8,56,11,-1,"3*5 font:  ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",1);
+		printext16(8,62,11,-1,"8*14 font: ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789",2);
 
-		i=ydim16; ydim16=ydim;
-		drawline16(320,i+68,344,i+80,4);       //Draw house
-		drawline16(344,i+80,344,i+116,4);
-		drawline16(344,i+116,296,i+116,4);
-		drawline16(296,i+116,296,i+80,4);
-		drawline16(296,i+80,320,i+68,4);
-		ydim16=i;
-		enddrawing();
+		drawline16(320,68,344,80,4);       //Draw house
+		drawline16(344,80,344,116,4);
+		drawline16(344,116,296,116,4);
+		drawline16(296,116,296,80,4);
+		drawline16(296,80,320,68,4);
 	}
 }
 
@@ -486,12 +477,10 @@ void ExtShowWallData(short wallnum)       //F6
 	}
 	else
 	{
-		begindrawing();
 		clearmidstatbar16();             //Clear middle of status bar
 
 		Bsprintf((char *)tempbuf,"Wall %d",wallnum);
-		printext16(8,ydim16+32,11,-1,(char *)tempbuf,0);
-		enddrawing();
+		printext16(8,32,11,-1,(char *)tempbuf,0);
 	}
 }
 
@@ -502,12 +491,10 @@ void ExtShowSpriteData(short spritenum)   //F6
 	}
 	else
 	{
-		begindrawing();
 		clearmidstatbar16();             //Clear middle of status bar
 
 		Bsprintf((char *)tempbuf,"Sprite %d",spritenum);
-		printext16(8,ydim16+32,11,-1,(char *)tempbuf,0);
-		enddrawing();
+		printext16(8,32,11,-1,(char *)tempbuf,0);
 	}
 }
 

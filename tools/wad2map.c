@@ -116,7 +116,7 @@ static sectortype sector[MAXSECTORS];
 static walltype wall[MAXWALLS];
 static spritetype sprite[MAXSPRITES];
 
-static unsigned char tempbuf[16384];
+static char tempbuf[16384];
 static short tempshort[4096];
 
 
@@ -348,12 +348,12 @@ void parsescript(void)
 						if (tempbuf[k] == '-')
 						{
 							tempbuf[k] = 0;
-							thingnum[numthings] = atol(&tempbuf[lasti]);
-							thingnum2[numthings] = atol(&tempbuf[k+1]);
+							thingnum[numthings] = atoi(&tempbuf[lasti]);
+							thingnum2[numthings] = atoi(&tempbuf[k+1]);
 						}
 						else
 						{
-							thingnum[numthings] = atol(&tempbuf[lasti]);
+							thingnum[numthings] = atoi(&tempbuf[lasti]);
 							thingnum2[numthings] = thingnum[numthings];
 						}
 
@@ -373,13 +373,13 @@ void parsescript(void)
 							if (tempbuf[k] == '-')
 							{
 								tempbuf[k] = 0;
-								tstart = atol(&tempbuf[lasti]);
-								tend = atol(&tempbuf[k+1]);
+								tstart = atoi(&tempbuf[lasti]);
+								tend = atoi(&tempbuf[k+1]);
 								for(k=tstart;k<=tend;k++)
 									tempshort[textnum++] = k;
 							}
 							else
-								tempshort[textnum++] = atol(&tempbuf[lasti]);
+								tempshort[textnum++] = atoi(&tempbuf[lasti]);
 						}
 						else
 						{
@@ -419,12 +419,12 @@ void parsescript(void)
 						if (tempbuf[k] == '-')
 						{
 							tempbuf[k] = 0;
-							tagnum[numtags] = atol(&tempbuf[lasti]);
-							tagnum2[numtags] = atol(&tempbuf[k+1]);
+							tagnum[numtags] = atoi(&tempbuf[lasti]);
+							tagnum2[numtags] = atoi(&tempbuf[k+1]);
 						}
 						else
 						{
-							tagnum[numtags] = atol(&tempbuf[lasti]);
+							tagnum[numtags] = atoi(&tempbuf[lasti]);
 							tagnum2[numtags] = tagnum[numtags];
 						}
 
@@ -443,12 +443,12 @@ void parsescript(void)
 						if (tempbuf[k] == '-')
 						{
 							tempbuf[k] = 0;
-							secnum[numsecs] = atol(&tempbuf[lasti]);
-							secnum2[numsecs] = atol(&tempbuf[k+1]);
+							secnum[numsecs] = atoi(&tempbuf[lasti]);
+							secnum2[numsecs] = atoi(&tempbuf[k+1]);
 						}
 						else
 						{
-							secnum[numsecs] = atol(&tempbuf[lasti]);
+							secnum[numsecs] = atoi(&tempbuf[lasti]);
 							secnum2[numsecs] = secnum[numsecs];
 						}
 						numsecs++;
@@ -468,7 +468,7 @@ void parsescript(void)
 					}
 					else if (definemode == 2)
 					{
-						defineval[numdefines++] = atol(&tempbuf[lasti]);
+						defineval[numdefines++] = atoi(&tempbuf[lasti]);
 						definemode = 0;
 					}
 
@@ -508,7 +508,7 @@ void parsescript(void)
 						if (Bstrcasecmp(&tempbuf[lasti],"extra") == 0) thingfield[thingopnum] = 21;
 
 						if ((tempbuf[k+1] >= 48) && (tempbuf[k+1] <= 57))
-							thingval[thingopnum] = atol(&tempbuf[k+1]);
+							thingval[thingopnum] = atoi(&tempbuf[k+1]);
 						else
 						{
 							for(l=0;l<numdefines;l++)
@@ -522,7 +522,7 @@ void parsescript(void)
 					if ((texturelookupmode == 1) && (j == 1))
 					{
 						if ((tempbuf[lasti] >= 48) && (tempbuf[lasti] <= 57))
-							l = atol(&tempbuf[lasti]);
+							l = atoi(&tempbuf[lasti]);
 						else
 						{
 							for(l=0;l<numdefines;l++)
@@ -623,7 +623,7 @@ void parsescript(void)
 						tagfield[tagopnum] += (frontbackstat<<7) + (spritenumstat<<8);
 
 						if ((tempbuf[k+1] >= 48) && (tempbuf[k+1] <= 57))
-							tagval[tagopnum] = atol(&tempbuf[k+1]);
+							tagval[tagopnum] = atoi(&tempbuf[k+1]);
 						else if (Bstrcasecmp("tag",&tempbuf[k+1]) == 0)
 							tagval[tagopnum] = 0x80000000;
 						else
@@ -704,7 +704,7 @@ void parsescript(void)
 						secfield[secopnum] += (spritenumstat<<8);
 
 						if ((tempbuf[k+1] >= 48) && (tempbuf[k+1] <= 57))
-							secval[secopnum] = atol(&tempbuf[k+1]);
+							secval[secopnum] = atoi(&tempbuf[k+1]);
 						else if (Bstrcasecmp("tag",&tempbuf[k+1]) == 0)
 							secval[secopnum] = 0x80000000;
 						else
@@ -991,9 +991,9 @@ int main(int argc, char **argv)
 	{
 		if ((z&1023) == 0) Bread(ifil,tempbuf,16384);
 		zz = ((z&1023)<<4);
-		iwadplc[z] = ((int)tempbuf[zz]) + (((int)tempbuf[zz+1])<<8) + (((int)tempbuf[zz+2])<<16) + (((int)tempbuf[zz+3])<<24);
+		iwadplc[z] = ((int)(uint8_t)tempbuf[zz]) + (((int)(uint8_t)tempbuf[zz+1])<<8) + (((int)(uint8_t)tempbuf[zz+2])<<16) + (((int)(uint8_t)tempbuf[zz+3])<<24);
 		zz += 4;
-		iwadlen[z] = ((int)tempbuf[zz]) + (((int)tempbuf[zz+1])<<8) + (((int)tempbuf[zz+2])<<16) + (((int)tempbuf[zz+3])<<24);
+		iwadlen[z] = ((int)(uint8_t)tempbuf[zz]) + (((int)(uint8_t)tempbuf[zz+1])<<8) + (((int)(uint8_t)tempbuf[zz+2])<<16) + (((int)(uint8_t)tempbuf[zz+3])<<24);
 		zz += 4;
 		iwadata[z][0] = tempbuf[zz+0]; iwadata[z][1] = tempbuf[zz+1];
 		iwadata[z][2] = tempbuf[zz+2]; iwadata[z][3] = tempbuf[zz+3];
@@ -1023,9 +1023,9 @@ int main(int argc, char **argv)
 		{
 			if ((z&1023) == 0) Bread(ifil,tempbuf,16384);
 			zz = ((z&1023)<<4);
-			pwadplc[z] = ((int)tempbuf[zz]) + (((int)tempbuf[zz+1])<<8) + (((int)tempbuf[zz+2])<<16) + (((int)tempbuf[zz+3])<<24);
+			pwadplc[z] = ((int)(uint8_t)tempbuf[zz]) + (((int)(uint8_t)tempbuf[zz+1])<<8) + (((int)(uint8_t)tempbuf[zz+2])<<16) + (((int)(uint8_t)tempbuf[zz+3])<<24);
 			zz += 4;
-			pwadlen[z] = ((int)tempbuf[zz]) + (((int)tempbuf[zz+1])<<8) + (((int)tempbuf[zz+2])<<16) + (((int)tempbuf[zz+3])<<24);
+			pwadlen[z] = ((int)(uint8_t)tempbuf[zz]) + (((int)(uint8_t)tempbuf[zz+1])<<8) + (((int)(uint8_t)tempbuf[zz+2])<<16) + (((int)(uint8_t)tempbuf[zz+3])<<24);
 			zz += 4;
 			pwadata[z][0] = tempbuf[zz+0]; pwadata[z][1] = tempbuf[zz+1];
 			pwadata[z][2] = tempbuf[zz+2]; pwadata[z][3] = tempbuf[zz+3];
@@ -1071,7 +1071,7 @@ int main(int argc, char **argv)
 		textname[z][4] = tempbuf[4]; textname[z][5] = tempbuf[5];
 		textname[z][6] = tempbuf[6]; textname[z][7] = tempbuf[7];
 		textname[z][8] = 0;
-		textpname[z] = ((int)tempbuf[26]) + (((int)tempbuf[27])<<8);
+		textpname[z] = ((int)(uint8_t)tempbuf[26]) + (((int)(uint8_t)tempbuf[27])<<8);
 	}
 
 	if ((w = getwadindex("TEXTURE2")) >= 0)
@@ -1089,7 +1089,7 @@ int main(int argc, char **argv)
 			textname[z][4] = tempbuf[4]; textname[z][5] = tempbuf[5];
 			textname[z][6] = tempbuf[6]; textname[z][7] = tempbuf[7];
 			textname[z][8] = 0;
-			textpname[z] = ((int)tempbuf[26]) + (((int)tempbuf[27])<<8);
+			textpname[z] = ((int)(uint8_t)tempbuf[26]) + (((int)(uint8_t)tempbuf[27])<<8);
 		}
 	}
 
@@ -1122,8 +1122,8 @@ int main(int argc, char **argv)
 			offs = 0;
 			for(z=0;z<dnumpoints;z++)
 			{
-				px[z] = ((short)tempbuf[offs])+(((short)tempbuf[offs+1])<<8);
-				py[z] = -(((short)tempbuf[offs+2])+(((short)tempbuf[offs+3])<<8));
+				px[z] = ((short)(uint8_t)tempbuf[offs])+(((short)(uint8_t)tempbuf[offs+1])<<8);
+				py[z] = -(((short)(uint8_t)tempbuf[offs+2])+(((short)(uint8_t)tempbuf[offs+3])<<8));
 				offs += 4;
 			}
 		}

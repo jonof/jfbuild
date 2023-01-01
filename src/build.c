@@ -6,6 +6,7 @@
 // by Jonathon Fowler (jf@jonof.id.au)
 
 #include "build.h"
+#include "engine_priv.h"
 #include "pragmas.h"
 #include "osd.h"
 #include "cache1d.h"
@@ -48,7 +49,8 @@ extern unsigned char picsiz[MAXTILES];
 extern int startposx, startposy, startposz;
 extern short startang, startsectnum;
 extern intptr_t frameplace;
-extern int ydim16, halfxdim16, midydim16;
+int ydim16, ytop16, halfxdim16, midydim16;
+static int bakydim16, bakytop16;
 int xdim2d = 640, ydim2d = 480, xdimgame = 640, ydimgame = 480, bppgame = 8;
 int forcesetup = 1;
 
@@ -80,7 +82,6 @@ extern int mapversion;
 
 short highlight[MAXWALLS];
 short highlightsector[MAXSECTORS], highlightsectorcnt = -1;
-extern unsigned char textfont[128][8];
 
 static unsigned char pskysearch[MAXSECTORS];
 
@@ -97,6 +98,11 @@ static int repeatcountx, repeatcounty;
 
 static int fillist[640];
 
+
+void qsetmodeany(int,int);
+void clear2dscreen(void);
+void draw2dgrid(int posxe, int posye, short ange, int zoome, short gride);
+void draw2dscreen(int posxe, int posye, short ange, int zoome, short gride);
 
 unsigned char changechar(unsigned char dachar, int dadir, unsigned char smooshyalign, unsigned char boundcheck);
 int adjustmark(int *xplc, int *yplc, short danumwalls);
@@ -235,7 +241,7 @@ int app_main(int argc, char const * const argv[])
 	wm_setapptitle("BUILD by Ken Silverman");
 
 #ifdef RENDERTYPEWIN
-	backgroundidle = 1;
+	win_allowbackgroundidle(1);
 #endif
 
 	editstatus = 1;
@@ -321,8 +327,9 @@ int app_main(int argc, char const * const argv[])
 
 	buildsetlogfile("build.log");
 
-	inittimer(TIMERINTSPERSECOND);
-	installusertimercallback(keytimerstuff);
+	inittimer(TIMERINTSPERSECOND, keytimerstuff);
+	initinput();
+	initmouse();
 
 	loadpics("tiles000.art",1048576);
 	loadnames();
@@ -332,14 +339,14 @@ int app_main(int argc, char const * const argv[])
 
 	if (!loaddefinitionsfile(defsfilename)) buildputs("Definitions file loaded.\n");
 
-		if (setgamemode(fullscreen,xdimgame,ydimgame,bppgame) < 0)
-		{
-			ExtUnInit();
-			uninitengine();
-			buildprintf("%d * %d not supported in this graphics mode\n",xdim,ydim);
-			exit(0);
-		}
-		setbrightness(brightness,palette,0);
+	if (setgamemode(fullscreen,xdimgame,ydimgame,bppgame) < 0)
+	{
+		ExtUnInit();
+		uninitengine();
+		buildprintf("%d * %d not supported in this graphics mode\n",xdim,ydim);
+		exit(0);
+	}
+	setbrightness(brightness,palette,0);
 
 	int dark = INT_MAX;
 	int light = 0;
@@ -415,11 +422,9 @@ int app_main(int argc, char const * const argv[])
 		if (keystatus[1] > 0)
 		{
 			keystatus[1] = 0;
-			begindrawing();	//{{{
-			printext256(0,0,whitecol,blackcol,"Really want to quit?",0);
-			enddrawing();	//}}}
-
+			printmessage256("Really want to quit?");
 			showframe();
+
 			synctics = totalclock-lockclock;
 			lockclock += synctics;
 
@@ -442,9 +447,8 @@ int app_main(int argc, char const * const argv[])
 
 	if (asksave)
 	{
-		begindrawing();	//{{{
-		printext256(0,8,whitecol,blackcol,"Save changes?",0);
-		showframe();	//}}}
+		printmessage256("Save changes?");
+		showframe();
 
 		while ((keystatus[1]|keystatus[0x1c]|keystatus[0x39]|keystatus[0x31]) == 0)
 		{
@@ -492,6 +496,28 @@ void showmouse(void)
 	drawline256((searchx  )<<12, (searchy+1)<<12, (searchx  )<<12, (searchy+5)<<12, whitecol);
 	drawline256((searchx-1)<<12, (searchy  )<<12, (searchx-5)<<12, (searchy  )<<12, whitecol);
 	drawline256((searchx  )<<12, (searchy-1)<<12, (searchx  )<<12, (searchy-5)<<12, whitecol);
+}
+
+void setoverheadviewport(void)
+{
+	bakydim16 = ydim16;
+	bakytop16 = ytop16;
+	ydim16 = yres - STATUS2DSIZ;
+	ytop16 = 0;
+}
+
+void setstatusbarviewport(void)
+{
+	bakydim16 = ydim16;
+	bakytop16 = ytop16;
+	ydim16 = STATUS2DSIZ;
+	ytop16 = yres - STATUS2DSIZ;
+}
+
+void restoreviewport(void)
+{
+	ydim16 = bakydim16;
+	ytop16 = bakytop16;
 }
 
 void editinput(void)
@@ -2553,8 +2579,6 @@ int drawtilescreen(int pictopleft, int picbox)
 
 	xtiles = (xdim>>6); ytiles = (ydim>>6); tottiles = xtiles*ytiles;
 
-	begindrawing(); //{{{
-
 #if USE_POLYMOST && USE_OPENGL
 	setpolymost2dview();	// JBF 20040205: set to 2d rendering
 #endif
@@ -2642,9 +2666,7 @@ int drawtilescreen(int pictopleft, int picbox)
 	printext256(xdim-((int)strlen(names[i])<<3),ydim-8,whitecol,-1,names[i],0);
 
 	Bsprintf(snotbuf,"%dx%d",tilesizx[i],tilesizy[i]);
-    printext256(xdim>>2,ydim-8,whitecol,-1,snotbuf,0);
-
-	enddrawing();	//}}}
+	printext256(xdim>>2,ydim-8,whitecol,-1,snotbuf,0);
 
 	return(0);
 }
@@ -2677,22 +2699,19 @@ void overheadeditor(void)
 	searchy = scale(searchy,ydim2d-STATUS2DSIZ,ydimgame);
 	oposz = posz;
 
-	begindrawing();	//{{{
-	ydim16 = ydim;
-	drawline16(0,ydim-STATUS2DSIZ,xdim-1,ydim-STATUS2DSIZ,7);
-	drawline16(0,ydim-1,xdim-1,ydim-1,7);
-	drawline16(0,ydim-STATUS2DSIZ,0,ydim-1,7);
-	drawline16(xdim-1,ydim-STATUS2DSIZ,xdim-1,ydim-1,7);
-	drawline16(0,ydim-STATUS2DSIZ+24,xdim-1,ydim-STATUS2DSIZ+24,7);
-	drawline16(192,ydim-STATUS2DSIZ,192,ydim-STATUS2DSIZ+24,7);
-	printext16(9L,ydim-STATUS2DSIZ+9L,4,-1,kensig,0);
-	printext16(8L,ydim-STATUS2DSIZ+8L,12,-1,kensig,0);
+	setstatusbarviewport();
+	drawline16(0,0,xdim-1,0,7);
+	drawline16(0,ydim16-1,xdim-1,ydim16-1,7);
+	drawline16(0,0,0,ydim16-1,7);
+	drawline16(xdim-1,0,xdim-1,ydim16-1,7);
+	drawline16(0,24,xdim-1,24,7);
+	drawline16(192,0,192,24,7);
+	printext16(9L,9L,4,-1,kensig,0);
+	printext16(8L,8L,12,-1,kensig,0);
 	sprintf(buffer, "Version: %s", build_version);
 	printmessage16(buffer);
-	drawline16(0,ydim-1-24,xdim-1,ydim-1-24,7);
-	drawline16(256,ydim-1-24,256,ydim-1,7);
-	ydim16 = ydim-STATUS2DSIZ;
-	enddrawing();	//}}}
+	drawline16(0,ydim16-1-24,xdim-1,ydim16-1-24,7);
+	drawline16(256,ydim16-1-24,256,ydim16-1,7);
 
 	highlightcnt = -1;
 	cursectorhighlight = -1;
@@ -2802,12 +2821,11 @@ void overheadeditor(void)
 			wall[newnumwalls].y = day;
 		}
 
-		ydim16 = ydim - STATUS2DSIZ;
-
 		templong = numwalls;
 		numwalls = newnumwalls;
 		if (numwalls < 0) numwalls = templong;
 
+		setoverheadviewport();
 		clear2dscreen();
 		draw2dgrid(posx,posy,ang,zoom,grid);
 
@@ -2818,16 +2836,13 @@ void overheadeditor(void)
 			{
 				x1 = mulscale11(sintable[(startang+2560)&2047],zoom) / 768;
 				y1 = mulscale11(sintable[(startang+2048)&2047],zoom) / 768;
-				begindrawing();	//{{{
 				drawline16((halfxdim16+x2)+x1,(midydim16+y2)+y1,(halfxdim16+x2)-x1,(midydim16+y2)-y1,6);
 				drawline16((halfxdim16+x2)+x1,(midydim16+y2)+y1,(halfxdim16+x2)+y1,(midydim16+y2)-x1,6);
 				drawline16((halfxdim16+x2)+x1,(midydim16+y2)+y1,(halfxdim16+x2)-y1,(midydim16+y2)+x1,6);
-				enddrawing();	//}}}
 			}
 
 		draw2dscreen(posx,posy,ang,zoom,grid);
 
-		begindrawing();	//{{{
 		if ((showtags == 1) && (zoom >= 768))
 		{
 			for(i=0;i<numsectors;i++)
@@ -2949,7 +2964,6 @@ void overheadeditor(void)
 			drawline16(halfxdim16+x2,midydim16+y2,halfxdim16+x2,midydim16+y2,15);
 		else
 			drawline16(halfxdim16+x2,midydim16+y2,halfxdim16+x2,midydim16+y2,5);
-		enddrawing();	//}}}
 
 		OSD_Draw();
 
@@ -3245,6 +3259,8 @@ void overheadeditor(void)
 			asksave = 1;
 		}
 
+		setstatusbarviewport();
+
 		if (keystatus[0x3f] > 0)  //F5
 		{
 			keystatus[0x3f] = 0;
@@ -3252,9 +3268,7 @@ void overheadeditor(void)
 			for (i=0;i<numsectors;i++)
 				if (inside(mousxplc,mousyplc,i) == 1)
 				{
-					ydim16 = STATUS2DSIZ;
 					ExtShowSectorData((short)i);
-					ydim16 = ydim-STATUS2DSIZ;
 					break;
 				}
 		}
@@ -3265,18 +3279,12 @@ void overheadeditor(void)
 			if (pointhighlight >= 16384)
 			{
 				i = pointhighlight-16384;
-
-				ydim16 = STATUS2DSIZ;
 				ExtShowSpriteData((short)i);
-				ydim16 = ydim-STATUS2DSIZ;
 			}
 			else if (linehighlight >= 0)
 			{
 				i = linehighlight;
-
-				ydim16 = STATUS2DSIZ;
 				ExtShowWallData((short)i);
-				ydim16 = ydim-STATUS2DSIZ;
 			}
 		}
 		if (keystatus[0x41] > 0)  //F7
@@ -3286,9 +3294,7 @@ void overheadeditor(void)
 			for (i=0;i<numsectors;i++)
 				if (inside(mousxplc,mousyplc,i) == 1)
 				{
-					ydim16 = STATUS2DSIZ;
 					ExtEditSectorData((short)i);
-					ydim16 = ydim-STATUS2DSIZ;
 					break;
 				}
 		}
@@ -3299,18 +3305,12 @@ void overheadeditor(void)
 			if (pointhighlight >= 16384)
 			{
 				i = pointhighlight-16384;
-
-				ydim16 = STATUS2DSIZ;
 				ExtEditSpriteData((short)i);
-				ydim16 = ydim-STATUS2DSIZ;
 			}
 			else if (linehighlight >= 0)
 			{
 				i = linehighlight;
-
-				ydim16 = STATUS2DSIZ;
 				ExtEditWallData((short)i);
-				ydim16 = ydim-STATUS2DSIZ;
 			}
 		}
 
@@ -3476,6 +3476,7 @@ void overheadeditor(void)
 			keystatus[0x0f] = 0;
 		}
 
+		setoverheadviewport();
 
 		if (highlightsectorcnt < 0)
 		{
@@ -3484,7 +3485,6 @@ void overheadeditor(void)
 				if (highlightcnt == 0)
 				{
 					highlightx2 = searchx, highlighty2 = searchy;
-					ydim16 = ydim-STATUS2DSIZ;
 					drawline16(highlightx2,highlighty1,highlightx1,highlighty1,5);
 					drawline16(highlightx2,highlighty2,highlightx1,highlighty2,5);
 					drawline16(highlightx1,highlighty2,highlightx1,highlighty1,5);
@@ -3574,13 +3574,10 @@ void overheadeditor(void)
 				if (highlightsectorcnt == 0)
 				{
 					highlightx2 = searchx, highlighty2 = searchy;
-					ydim16 = ydim-STATUS2DSIZ;
-					begindrawing();	//{{{
 					drawline16(highlightx2,highlighty1,highlightx1,highlighty1,10);
 					drawline16(highlightx2,highlighty2,highlightx1,highlighty2,10);
 					drawline16(highlightx1,highlighty2,highlightx1,highlighty1,10);
 					drawline16(highlightx2,highlighty2,highlightx2,highlighty1,10);
-					enddrawing();	//}}}
 				}
 				if (highlightsectorcnt != 0)
 				{
@@ -5522,8 +5519,6 @@ void overheadeditor(void)
 								}
 							}
 							clearfilenames();
-							uninittimer();
-							uninitinput();
 							ExtUnInit();
 							uninitengine();
 							printf("Memory status: %d(%d) bytes\n",cachesize,artsize);
@@ -5560,9 +5555,7 @@ void overheadeditor(void)
 	if (setgamemode(fullscreen,xdimgame,ydimgame,bppgame) < 0)
 	{
 		ExtUnInit();
-		uninitinput();
-		uninittimer();
-		uninitsystem();
+		uninitengine();
 		clearfilenames();
 		printf("%d * %d not supported in this graphics mode\n",xdim,ydim);
 		exit(0);
@@ -5980,13 +5973,11 @@ void fixrepeats(short i)
 
 void clearmidstatbar16(void)
 {
-	begindrawing();
-	ydim16 = ydim;
-	clearbuf((unsigned char *)(frameplace + (bytesperline*(ydim-STATUS2DSIZ+25L))),(bytesperline*(STATUS2DSIZ-1-(25<<1))) >> 2, 0x08080808l);
-	drawline16(0,ydim-STATUS2DSIZ,0,ydim-1,7);
-	drawline16(xdim-1,ydim-STATUS2DSIZ,xdim-1,ydim-1,7);
-	ydim16 = ydim-STATUS2DSIZ;
-	enddrawing();
+	setstatusbarviewport();
+	clearbuf((unsigned char *)(frameplace + (bytesperline*(ytop16+25L))),(bytesperline*(ydim16-1-(25<<1))) >> 2, 0x08080808l);
+	drawline16(0,0,0,ydim16-1,7);
+	drawline16(xdim-1,0,xdim-1,ydim16-1,7);
+	restoreviewport();
 }
 
 short loopinside(int x, int y, short startwall)
@@ -6187,12 +6178,9 @@ int menuselect(int newpathmode)
 
 	getfilenames(selectedboardfilename, "*.map");
 
-	begindrawing();
 	printmessage16("Select .MAP file with arrows&enter.");
-	enddrawing();
 
 	do {
-		begindrawing();
 		clearbuf((unsigned char *)frameplace, (bytesperline*ydim16) >> 2, 0l);
 
 		if (pathsearchmode == PATHSEARCH_SYSTEM) {
@@ -6239,7 +6227,6 @@ int menuselect(int newpathmode)
 				}
 			}
 		}
-		enddrawing();
 		showframe();
 
 		keystatus[0xcb] = 0;
@@ -6311,9 +6298,7 @@ int menuselect(int newpathmode)
 			getfilenames(selectedboardfilename, "*.map");
 			ch = 0;
 
-			begindrawing();
 			clearbuf((unsigned char *)frameplace, (bytesperline*ydim16) >> 2, 0l);
-			enddrawing();
 			showframe();
 		}
 		if (ch == 13 && !findfileshigh) ch = 0;
@@ -6462,7 +6447,7 @@ int loadnames(void)
 	fp = fopenfrompath("NAMES.H","r");
 	if (!fp) {
 		if ((fp = fopenfrompath("names.h","r")) == NULL) {
-			printf("Failed to open NAMES.H\n");
+			buildprintf("Failed to open NAMES.H\n");
 			return -1;
 		}
 	}
@@ -6470,7 +6455,7 @@ int loadnames(void)
 	//clearbufbyte(names, sizeof(names), 0);
 	memset(names,0,sizeof(names));
 
-	printf("Loading NAMES.H\n");
+	buildprintf("Loading NAMES.H\n");
 
 	while (Bfgets(buffer, 1024, fp)) {
 		a = (int)strlen(buffer);
@@ -6495,7 +6480,7 @@ int loadnames(void)
 				p += 7;
 				while (*p == 32) p++;
 				if (*p == 0) {
-					printf("Error: Malformed #define at line %d\n", line-1);
+					buildprintf("Error: Malformed #define at line %d\n", line-1);
 					continue;
 				}
 
@@ -6505,7 +6490,7 @@ int loadnames(void)
 					*(p++) = 0;
 					while (*p == 32) p++;
 					if (*p == 0) {	// #define_NAME with no number
-						printf("Error: No number given for name \"%s\" (line %d)\n", name, line-1);
+						buildprintf("Error: No number given for name \"%s\" (line %d)\n", name, line-1);
 						continue;
 					}
 
@@ -6519,14 +6504,13 @@ int loadnames(void)
 						p = endptr;
 						goto badline;
 					}
-					//printf("Grokked \"%s\" -> \"%d\"\n", name, num);
 					if (num < 0 || num >= MAXTILES) {
-						printf("Error: Constant %d for name \"%s\" out of range (line %d)\n", num, name, line-1);
+						buildprintf("Error: Constant %d for name \"%s\" out of range (line %d)\n", num, name, line-1);
 						continue;
 					}
 
 					if (Bstrlen(name) > 24)
-						printf("Warning: Name \"%s\" longer than 24 characters (line %d). Truncating.\n", name, line-1);
+						buildprintf("Warning: Name \"%s\" longer than 24 characters (line %d). Truncating.\n", name, line-1);
 
 					Bstrncpy(names[num], name, 24);
 					names[num][24] = 0;
@@ -6536,7 +6520,7 @@ int loadnames(void)
 					continue;
 
 				} else {	// #define_NAME with no number
-					printf("Error: No number given for name \"%s\" (line %d)\n", name, line-1);
+					buildprintf("Error: No number given for name \"%s\" (line %d)\n", name, line-1);
 					continue;
 				}
 			} else goto badline;
@@ -6544,18 +6528,543 @@ int loadnames(void)
 			if (*(p+1) == '/') continue;	// comment
 		}
 badline:
-		printf("Error: Invalid statement found at character %d on line %d\n", (int)(p-buffer), line-1);
+		buildprintf("Error: Invalid statement found at character %d on line %d\n", (int)(p-buffer), line-1);
 	}
-	printf("Read %d lines, loaded %d names.\n", line, syms);
+	buildprintf("Read %d lines, loaded %d names.\n", line, syms);
 
 	Bfclose(fp);
 	return 0;
+}
+
+
+//
+// drawline16
+//
+// JBF: Had to add extra tests to make sure x-coordinates weren't winding up -'ve
+//   after clipping or crashes would ensue
+unsigned int drawlinepat = 0xffffffff;
+
+void drawline16(int x1, int y1, int x2, int y2, unsigned char col)
+{
+	int i, dx, dy, pinc, d;
+	intptr_t p;
+	unsigned int patc=0;
+
+	dx = x2-x1; dy = y2-y1;
+	if (dx >= 0)
+	{
+		if ((x1 >= xres) || (x2 < 0)) return;
+		if (x1 < 0) { if (dy) y1 += scale(0-x1,dy,dx); x1 = 0; }
+		if (x2 >= xres) { if (dy) y2 += scale(xres-1-x2,dy,dx); x2 = xres-1; }
+	}
+	else
+	{
+		if ((x2 >= xres) || (x1 < 0)) return;
+		if (x2 < 0) { if (dy) y2 += scale(0-x2,dy,dx); x2 = 0; }
+		if (x1 >= xres) { if (dy) y1 += scale(xres-1-x1,dy,dx); x1 = xres-1; }
+	}
+	if (dy >= 0)
+	{
+		if ((y1 >= ydim16) || (y2 < 0)) return;
+		if (y1 < 0) { if (dx) x1 += scale(0-y1,dx,dy); y1 = 0; if (x1 < 0) x1 = 0; }
+		if (y2 >= ydim16) { if (dx) x2 += scale(ydim16-1-y2,dx,dy); y2 = ydim16-1; if (x2 < 0) x2 = 0; }
+	}
+	else
+	{
+		if ((y2 >= ydim16) || (y1 < 0)) return;
+		if (y2 < 0) { if (dx) x2 += scale(0-y2,dx,dy); y2 = 0; if (x2 < 0) x2 = 0; }
+		if (y1 >= ydim16) { if (dx) x1 += scale(ydim16-1-y1,dx,dy); y1 = ydim16-1; if (x1 < 0) x1 = 0; }
+	}
+
+	dx = klabs(x2-x1)+1; dy = klabs(y2-y1)+1;
+	if (dx >= dy)
+	{
+		if (x2 < x1)
+		{
+			i = x1; x1 = x2; x2 = i;
+			i = y1; y1 = y2; y2 = i;
+		}
+		d = 0;
+		if (y2 > y1) pinc = bytesperline; else pinc = -bytesperline;
+
+		p = ((ytop16+y1)*bytesperline)+x1+frameplace;
+		if (dy == 0 && drawlinepat == 0xffffffff) {
+			i = ((int)col<<24)|((int)col<<16)|((int)col<<8)|col;
+			clearbufbyte((void *)p, dx, i);
+		} else
+		for(i=dx;i>0;i--)
+		{
+			if (drawlinepat & pow2long[(patc++)&31])
+				drawpixel((void *)p, col);
+			d += dy;
+			if (d >= dx) { d -= dx; p += pinc; }
+			p++;
+		}
+		return;
+	}
+
+	if (y2 < y1)
+	{
+		i = x1; x1 = x2; x2 = i;
+		i = y1; y1 = y2; y2 = i;
+	}
+	d = 0;
+	if (x2 > x1) pinc = 1; else pinc = -1;
+
+	p = ((ytop16+y1)*bytesperline)+x1+frameplace;
+	for(i=dy;i>0;i--)
+	{
+		if (drawlinepat & pow2long[(patc++)&31])
+			drawpixel((void *)p, col);
+		d += dx;
+		if (d >= dy) { d -= dy; p += pinc; }
+		p += bytesperline;
+	}
+}
+
+void drawcircle16(int x1, int y1, int r, unsigned char col)
+{
+	int xp, yp, xpbpl, ypbpl, d, de, dse, patc=0;
+	intptr_t p;
+
+	if (r < 0) r = -r;
+	if (x1+r < 0 || x1-r >= xres) return;
+	if (y1+r < 0 || y1-r >= ydim16) return;
+
+	/*
+	 *      d
+	 *    6 | 7
+	 *   \  |  /
+	 *  5  \|/  8
+	 * c----+----a
+	 *  4  /|\  1
+	 *   /  |  \
+	 *    3 | 2
+	 *      b
+	 */
+
+	xp = 0;
+	yp = r;
+	d = 1 - r;
+	de = 2;
+	dse = 5 - (r << 1);
+
+	p = ((ytop16+y1)*bytesperline)+x1+frameplace;
+
+	if (drawlinepat & pow2long[(patc++)&31]) {
+		if ((unsigned int)y1 < (unsigned int)ydim16 && (unsigned int)(x1+r) < (unsigned int)xres  )
+			drawpixel((void *)(p+r), col);			// a
+		if ((unsigned int)x1 < (unsigned int)xres   && (unsigned int)(y1+r) < (unsigned int)ydim16)
+			drawpixel((void *)(p+(r*bytesperline)), col);	// b
+		if ((unsigned int)y1 < (unsigned int)ydim16 && (unsigned int)(x1-r) < (unsigned int)xres  )
+			drawpixel((void *)(p-r), col);			// c
+		if ((unsigned int)x1 < (unsigned int)xres   && (unsigned int)(y1-r) < (unsigned int)ydim16)
+			drawpixel((void *)(p-(r*bytesperline)), col);	// d
+	}
+
+	while (yp > xp) {
+		if (d < 0) {
+			d += de;
+			de += 2;
+			dse += 2;
+			xp++;
+		} else {
+			d += dse;
+			de += 2;
+			dse += 4;
+			xp++;
+			yp--;
+		}
+
+		ypbpl = yp*bytesperline;
+		xpbpl = xp*bytesperline;
+		if (drawlinepat & pow2long[(patc++)&31]) {
+			if ((unsigned int)(x1+yp) < (unsigned int)xres && (unsigned int)(y1+xp) < (unsigned int)ydim16)
+				drawpixel((void *)(p+yp+xpbpl), col);	// 1
+			if ((unsigned int)(x1+xp) < (unsigned int)xres && (unsigned int)(y1+yp) < (unsigned int)ydim16)
+				drawpixel((void *)(p+xp+ypbpl), col);	// 2
+			if ((unsigned int)(x1-xp) < (unsigned int)xres && (unsigned int)(y1+yp) < (unsigned int)ydim16)
+				drawpixel((void *)(p-xp+ypbpl), col);	// 3
+			if ((unsigned int)(x1-yp) < (unsigned int)xres && (unsigned int)(y1+xp) < (unsigned int)ydim16)
+				drawpixel((void *)(p-yp+xpbpl), col);	// 4
+			if ((unsigned int)(x1-yp) < (unsigned int)xres && (unsigned int)(y1-xp) < (unsigned int)ydim16)
+				drawpixel((void *)(p-yp-xpbpl), col);	// 5
+			if ((unsigned int)(x1-xp) < (unsigned int)xres && (unsigned int)(y1-yp) < (unsigned int)ydim16)
+				drawpixel((void *)(p-xp-ypbpl), col);	// 6
+			if ((unsigned int)(x1+xp) < (unsigned int)xres && (unsigned int)(y1-yp) < (unsigned int)ydim16)
+				drawpixel((void *)(p+xp-ypbpl), col);	// 7
+			if ((unsigned int)(x1+yp) < (unsigned int)xres && (unsigned int)(y1-xp) < (unsigned int)ydim16)
+				drawpixel((void *)(p+yp-xpbpl), col);	// 8
+		}
+	}
+}
+
+
+//
+// qsetmodeany
+//
+void qsetmodeany(int daxdim, int daydim)
+{
+	if (daxdim < 640) daxdim = 640;
+	if (daydim < 480) daydim = 480;
+
+	if (qsetmode != ((daxdim<<16)|(daydim&0xffff))) {
+		if (setvideomode(daxdim, daydim, 8, fullscreen) < 0)
+			return;
+
+		xdim = xres;
+		ydim = yres;
+		pixelaspect = 65536;
+
+		setvgapalette();
+
+		setoverheadviewport();
+		bakydim16 = ydim16; bakytop16 = ytop16;
+		halfxdim16 = xres >> 1;
+		midydim16 = scale(200,yres,480);
+
+		clearbuf((void *)(frameplace + (ydim16*bytesperline)), (bytesperline*STATUS2DSIZ) >> 2, 0x08080808l);
+		clearbuf((void *)frameplace, (ydim16*bytesperline) >> 2, 0L);
+	}
+
+	qsetmode = ((daxdim<<16)|(daydim&0xffff));
+}
+
+
+//
+// clear2dscreen
+//
+void clear2dscreen(void)
+{
+	clearbuf((void *)frameplace, (bytesperline*ydim16) >> 2, 0);
+}
+
+
+//
+// draw2dgrid
+//
+void draw2dgrid(int posxe, int posye, short ange, int zoome, short gride)
+{
+	int i, xp1, yp1, xp2=0, yp2, tempy;
+
+	(void)ange;
+
+	if (gride > 0)
+	{
+		yp1 = midydim16-mulscale14(posye+editorgridextent,zoome);
+		if (yp1 < 0) yp1 = 0;
+		yp2 = midydim16-mulscale14(posye-editorgridextent,zoome);
+		if (yp2 >= ydim16) yp2 = ydim16-1;
+
+		if ((yp1 < ydim16) && (yp2 >= 0) && (yp2 >= yp1))
+		{
+			xp1 = halfxdim16-mulscale14(posxe+editorgridextent,zoome);
+
+			for(i=-editorgridextent;i<=editorgridextent;i+=(2048>>gride))
+			{
+				xp2 = xp1;
+				xp1 = halfxdim16-mulscale14(posxe-i,zoome);
+
+				if (xp1 >= xdim) break;
+				if (xp1 >= 0)
+				{
+					if (xp1 != xp2)
+					{
+						drawline16(xp1,yp1,xp1,yp2,8);
+					}
+				}
+			}
+			if ((i >= editorgridextent) && (xp1 < xdim))
+				xp2 = xp1;
+			if ((xp2 >= 0) && (xp2 < xdim))
+			{
+				drawline16(xp2,yp1,xp2,yp2,8);
+			}
+		}
+
+		xp1 = mulscale14(posxe+editorgridextent,zoome);
+		xp2 = mulscale14(posxe-editorgridextent,zoome);
+		tempy = 0x80000000l;
+		for(i=-editorgridextent;i<=editorgridextent;i+=(2048>>gride))
+		{
+			yp1 = (((posye-i)*zoome)>>14);
+			if (yp1 != tempy)
+			{
+				if ((yp1 > midydim16-ydim16) && (yp1 <= midydim16))
+				{
+					drawline16(halfxdim16-xp1,midydim16-yp1,halfxdim16-xp2,midydim16-yp1,8);
+					tempy = yp1;
+				}
+			}
+		}
+	}
+}
+
+
+//
+// draw2dscreen
+//
+void draw2dscreen(int posxe, int posye, short ange, int zoome, short gride)
+{
+	walltype *wal;
+	int i, j, xp1, yp1, xp2, yp2;
+	intptr_t templong;
+	unsigned char col;
+
+	if (qsetmode == 200) return;
+
+	if (editstatus == 0)
+	{
+		faketimerhandler();
+		clear2dscreen();
+
+		faketimerhandler();
+		draw2dgrid(posxe,posye,ange,zoome,gride);
+	}
+
+	faketimerhandler();
+	for(i=numwalls-1,wal=&wall[i];i>=0;i--,wal--)
+	{
+		if (editstatus == 0)
+		{
+			if ((show2dwall[i>>3]&pow2char[i&7]) == 0) continue;
+			j = wal->nextwall;
+			if ((j >= 0) && (i > j))
+				if ((show2dwall[j>>3]&pow2char[j&7]) > 0) continue;
+		}
+		else
+		{
+			j = wal->nextwall;
+			if ((j >= 0) && (i > j)) continue;
+		}
+
+		if (j < 0)
+		{
+			col = 7;
+			if (i == linehighlight) if (totalclock & 8) col += (2<<2);
+		}
+		else
+		{
+			col = 4;
+			if ((wal->cstat&1) != 0) col = 5;
+			if ((i == linehighlight) || ((linehighlight >= 0) && (i == wall[linehighlight].nextwall)))
+				if (totalclock & 8) col += (2<<2);
+		}
+
+		xp1 = mulscale14(wal->x-posxe,zoome);
+		yp1 = mulscale14(wal->y-posye,zoome);
+		xp2 = mulscale14(wall[wal->point2].x-posxe,zoome);
+		yp2 = mulscale14(wall[wal->point2].y-posye,zoome);
+
+		if ((wal->cstat&64) > 0)
+		{
+			if (klabs(xp2-xp1) >= klabs(yp2-yp1))
+			{
+				drawline16(halfxdim16+xp1,midydim16+yp1+1,halfxdim16+xp2,midydim16+yp2+1,col);
+				drawline16(halfxdim16+xp1,midydim16+yp1-1,halfxdim16+xp2,midydim16+yp2-1,col);
+			}
+			else
+			{
+				drawline16(halfxdim16+xp1+1,midydim16+yp1,halfxdim16+xp2+1,midydim16+yp2,col);
+				drawline16(halfxdim16+xp1-1,midydim16+yp1,halfxdim16+xp2-1,midydim16+yp2,col);
+			}
+			col += 8;
+		}
+		drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16+xp2,midydim16+yp2,col);
+
+		if ((zoome >= 256) && (editstatus == 1))
+			if (((halfxdim16+xp1) >= 2) && ((halfxdim16+xp1) <= xdim-3))
+				if (((midydim16+yp1) >= 2) && ((midydim16+yp1) <= ydim16-3))
+				{
+					col = 2;
+					if (i == pointhighlight) {
+						if (totalclock & 8) col += (2<<2);
+					}
+					else if ((highlightcnt > 0) && (editstatus == 1))
+					{
+						if (show2dwall[i>>3]&pow2char[i&7])
+							if (totalclock & 8) col += (2<<2);
+					}
+
+					templong = ((midydim16+yp1)*bytesperline)+(halfxdim16+xp1)+frameplace;
+					drawpixel((void *)(templong-2-(bytesperline<<1)), col);
+					drawpixel((void *)(templong-1-(bytesperline<<1)), col);
+					drawpixel((void *)(templong+0-(bytesperline<<1)), col);
+					drawpixel((void *)(templong+1-(bytesperline<<1)), col);
+					drawpixel((void *)(templong+2-(bytesperline<<1)), col);
+
+					drawpixel((void *)(templong-2+(bytesperline<<1)), col);
+					drawpixel((void *)(templong-1+(bytesperline<<1)), col);
+					drawpixel((void *)(templong+0+(bytesperline<<1)), col);
+					drawpixel((void *)(templong+1+(bytesperline<<1)), col);
+					drawpixel((void *)(templong+2+(bytesperline<<1)), col);
+
+					drawpixel((void *)(templong-2-bytesperline), col);
+					drawpixel((void *)(templong-2+0), col);
+					drawpixel((void *)(templong-2+bytesperline), col);
+
+					drawpixel((void *)(templong+2-bytesperline), col);
+					drawpixel((void *)(templong+2+0), col);
+					drawpixel((void *)(templong+2+bytesperline), col);
+				}
+	}
+	faketimerhandler();
+
+	if ((zoome >= 256) || (editstatus == 0))
+		for(i=0;i<numsectors;i++)
+			for(j=headspritesect[i];j>=0;j=nextspritesect[j])
+				if ((editstatus == 1) || (show2dsprite[j>>3]&pow2char[j&7]))
+				{
+					col = 3;
+					if ((sprite[j].cstat&1) > 0) col = 5;
+					if (editstatus == 1)
+					{
+						if (j+16384 == pointhighlight) {
+							if (totalclock & 8) col += (2<<2);
+						}
+						else if ((highlightcnt > 0) && (editstatus == 1))
+						{
+							if (show2dsprite[j>>3]&pow2char[j&7])
+								if (totalclock & 8) col += (2<<2);
+						}
+					}
+
+					xp1 = mulscale14(sprite[j].x-posxe,zoome);
+					yp1 = mulscale14(sprite[j].y-posye,zoome);
+					if (((halfxdim16+xp1) >= 2) && ((halfxdim16+xp1) <= xdim-3))
+						if (((midydim16+yp1) >= 2) && ((midydim16+yp1) <= ydim16-3))
+						{
+							templong = ((midydim16+yp1)*bytesperline)+(halfxdim16+xp1)+frameplace;
+							drawpixel((void *)(templong-1-(bytesperline<<1)), col);
+							drawpixel((void *)(templong+0-(bytesperline<<1)), col);
+							drawpixel((void *)(templong+1-(bytesperline<<1)), col);
+
+							drawpixel((void *)(templong-1+(bytesperline<<1)), col);
+							drawpixel((void *)(templong+0+(bytesperline<<1)), col);
+							drawpixel((void *)(templong+1+(bytesperline<<1)), col);
+
+							drawpixel((void *)(templong-2-bytesperline), col);
+							drawpixel((void *)(templong-2+0), col);
+							drawpixel((void *)(templong-2+bytesperline), col);
+
+							drawpixel((void *)(templong+2-bytesperline), col);
+							drawpixel((void *)(templong+2+0), col);
+							drawpixel((void *)(templong+2+bytesperline), col);
+
+							drawpixel((void *)(templong+1+bytesperline), col);
+							drawpixel((void *)(templong-1+bytesperline), col);
+							drawpixel((void *)(templong+1-bytesperline), col);
+							drawpixel((void *)(templong-1-bytesperline), col);
+
+							/*
+							 * JBF 20050103: A little something intended for TerminX. It draws a box
+							 * indicating the extents of a floor-aligned sprite in the 2D view of the editor.
+							 *
+							if ((sprite[j].cstat&32) > 0) {
+								int fx = mulscale6(tilesizx[sprite[j].picnum], sprite[j].xrepeat);
+								int fy = mulscale6(tilesizy[sprite[j].picnum], sprite[j].yrepeat);
+								int co[4][2], ii;
+								int sinang = sintable[(sprite[j].ang+512+1024)&2047];
+								int cosang = sintable[(sprite[j].ang+1024)&2047];
+								int r,s;
+
+								fx = mulscale10(fx,zoome) >> 1;
+								fy = mulscale10(fy,zoome) >> 1;
+
+								co[0][0] = -fx;
+								co[0][1] = -fy;
+								co[1][0] =  fx;
+								co[1][1] = -fy;
+								co[2][0] =  fx;
+								co[2][1] =  fy;
+								co[3][0] = -fx;
+								co[3][1] =  fy;
+
+								for (ii=0;ii<4;ii++) {
+									r = mulscale14(cosang,co[ii][0]) - mulscale14(sinang,co[ii][1]);
+									s = mulscale14(sinang,co[ii][0]) + mulscale14(cosang,co[ii][1]);
+									co[ii][0] = r;
+									co[ii][1] = s;
+								}
+
+								drawlinepat = 0xcccccccc;
+								for (ii=0;ii<4;ii++) {
+									drawline16(halfxdim16 + xp1 + co[ii][0], midydim16 + yp1 - co[ii][1],
+										halfxdim16 + xp1 + co[(ii+1)&3][0], midydim16 + yp1 - co[(ii+1)&3][1],
+										col);
+								}
+								drawlinepat = 0xffffffff;
+							}
+							*/
+
+							xp2 = mulscale11(sintable[(sprite[j].ang+2560)&2047],zoome) / 768;
+							yp2 = mulscale11(sintable[(sprite[j].ang+2048)&2047],zoome) / 768;
+
+							if ((sprite[j].cstat&256) > 0)
+							{
+								if (((sprite[j].ang+256)&512) == 0)
+								{
+									drawline16(halfxdim16+xp1,midydim16+yp1-1,halfxdim16+xp1+xp2,midydim16+yp1+yp2-1,col);
+									drawline16(halfxdim16+xp1,midydim16+yp1+1,halfxdim16+xp1+xp2,midydim16+yp1+yp2+1,col);
+								}
+								else
+								{
+									drawline16(halfxdim16+xp1-1,midydim16+yp1,halfxdim16+xp1+xp2-1,midydim16+yp1+yp2,col);
+									drawline16(halfxdim16+xp1+1,midydim16+yp1,halfxdim16+xp1+xp2+1,midydim16+yp1+yp2,col);
+								}
+								col += 8;
+							}
+							drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16+xp1+xp2,midydim16+yp1+yp2,col);
+						}
+				}
+
+	faketimerhandler();
+	xp1 = mulscale11(sintable[(ange+2560)&2047],zoome) / 768; //Draw white arrow
+	yp1 = mulscale11(sintable[(ange+2048)&2047],zoome) / 768;
+	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16-xp1,midydim16-yp1,15);
+	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16+yp1,midydim16-xp1,15);
+	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16-yp1,midydim16+xp1,15);
+}
+
+
+//
+// printext16
+//
+void printext16(int xpos, int ypos, short col, short backcol, const char *name, char fontsize)
+{
+	int stx, i, x, y;
+	const unsigned char *letptr;
+	unsigned char *ptr;
+	const struct textfontspec *f;
+
+	f = &textfonts[min((unsigned)fontsize, 2)];
+	stx = xpos;
+
+	for(i=0;name[i];i++)
+	{
+		letptr = &f->font[((int)(unsigned char)name[i])*f->cellh + f->cellyoff];
+		ptr = (unsigned char *)(bytesperline*(ytop16+ypos+f->charysiz-1)+stx+frameplace);
+		for(y=f->charysiz-1;y>=0;y--)
+		{
+			for(x=f->charxsiz-1;x>=0;x--)
+			{
+				if (letptr[y]&pow2char[7-x-f->cellxoff])
+					ptr[x] = (unsigned char)col;
+				else if (backcol >= 0)
+					ptr[x] = (unsigned char)backcol;
+			}
+			ptr -= bytesperline;
+		}
+		stx += f->charxsiz;
+	}
 }
 
 void printcoords16(int posxe, int posye, short ange)
 {
 	char snotbuf[80];
 	int i, maxsect = 0, maxwall = 0, maxspri = 0;
+
+	setstatusbarviewport();
 
 	Bsprintf(snotbuf,"x=%d y=%d ang=%d",posxe,posye,ange);
 	i = 0;
@@ -6591,7 +7100,7 @@ void printcoords16(int posxe, int posye, short ange)
 			break;
 	}
 
-	printext16(8, ydim-STATUS2DSIZ+128, 11, 6, snotbuf,0);
+	printext16(8,128, 11, 6, snotbuf,0);
 
 	Bsprintf(snotbuf,"v%d %d/%d sect %d/%d wall %d/%d spri",
 					mapversion,
@@ -6608,7 +7117,9 @@ void printcoords16(int posxe, int posye, short ange)
 	}
 	snotbuf[46] = 0;
 
-	printext16(264, ydim-STATUS2DSIZ+128, 14, 6, snotbuf,0);
+	printext16(264,128, 14, 6, snotbuf,0);
+
+	restoreviewport();
 }
 
 void updatenumsprites(void)
@@ -6679,56 +7190,60 @@ void showsectordata(short sectnum)
 {
 	char snotbuf[80];
 
+	setstatusbarviewport();
+
 	Bsprintf(snotbuf,"Sector %d",sectnum);
-	printext16(8,ydim-STATUS2DSIZ+32,11,-1,snotbuf,0);
+	printext16(8,32,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Firstwall: %d",sector[sectnum].wallptr);
-	printext16(8,ydim-STATUS2DSIZ+48,11,-1,snotbuf,0);
+	printext16(8,48,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Numberofwalls: %d",sector[sectnum].wallnum);
-	printext16(8,ydim-STATUS2DSIZ+56,11,-1,snotbuf,0);
+	printext16(8,56,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Firstsprite: %d",headspritesect[sectnum]);
-	printext16(8,ydim-STATUS2DSIZ+64,11,-1,snotbuf,0);
+	printext16(8,64,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Tags: %d, %d",sector[sectnum].hitag,sector[sectnum].lotag);
-	printext16(8,ydim-STATUS2DSIZ+72,11,-1,snotbuf,0);
+	printext16(8,72,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"     (0x%x), (0x%x)",sector[sectnum].hitag,sector[sectnum].lotag);
-	printext16(8,ydim-STATUS2DSIZ+80,11,-1,snotbuf,0);
+	printext16(8,80,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Extra: %d",sector[sectnum].extra);
-	printext16(8,ydim-STATUS2DSIZ+88,11,-1,snotbuf,0);
+	printext16(8,88,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Visibility: %d",sector[sectnum].visibility);
-	printext16(8,ydim-STATUS2DSIZ+96,11,-1,snotbuf,0);
+	printext16(8,96,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Pixel height: %d",(sector[sectnum].floorz-sector[sectnum].ceilingz)>>8);
-	printext16(8,ydim-STATUS2DSIZ+104,11,-1,snotbuf,0);
+	printext16(8,104,11,-1,snotbuf,0);
 
-	printext16(200,ydim-STATUS2DSIZ+32,11,-1,"CEILINGS:",0);
+	printext16(200,32,11,-1,"CEILINGS:",0);
 	Bsprintf(snotbuf,"Flags (hex): %x",sector[sectnum].ceilingstat);
-	printext16(200,ydim-STATUS2DSIZ+48,11,-1,snotbuf,0);
+	printext16(200,48,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"(X,Y)pan: %d, %d",sector[sectnum].ceilingxpanning,sector[sectnum].ceilingypanning);
-	printext16(200,ydim-STATUS2DSIZ+56,11,-1,snotbuf,0);
+	printext16(200,56,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Shade byte: %d",sector[sectnum].ceilingshade);
-	printext16(200,ydim-STATUS2DSIZ+64,11,-1,snotbuf,0);
+	printext16(200,64,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Z-coordinate: %d",sector[sectnum].ceilingz);
-	printext16(200,ydim-STATUS2DSIZ+72,11,-1,snotbuf,0);
+	printext16(200,72,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Tile number: %d",sector[sectnum].ceilingpicnum);
-	printext16(200,ydim-STATUS2DSIZ+80,11,-1,snotbuf,0);
+	printext16(200,80,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Ceiling heinum: %d",sector[sectnum].ceilingheinum);
-	printext16(200,ydim-STATUS2DSIZ+88,11,-1,snotbuf,0);
+	printext16(200,88,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Palookup number: %d",sector[sectnum].ceilingpal);
-	printext16(200,ydim-STATUS2DSIZ+96,11,-1,snotbuf,0);
+	printext16(200,96,11,-1,snotbuf,0);
 
-	printext16(400,ydim-STATUS2DSIZ+32,11,-1,"FLOORS:",0);
+	printext16(400,32,11,-1,"FLOORS:",0);
 	Bsprintf(snotbuf,"Flags (hex): %x",sector[sectnum].floorstat);
-	printext16(400,ydim-STATUS2DSIZ+48,11,-1,snotbuf,0);
+	printext16(400,48,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"(X,Y)pan: %d, %d",sector[sectnum].floorxpanning,sector[sectnum].floorypanning);
-	printext16(400,ydim-STATUS2DSIZ+56,11,-1,snotbuf,0);
+	printext16(400,56,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Shade byte: %d",sector[sectnum].floorshade);
-	printext16(400,ydim-STATUS2DSIZ+64,11,-1,snotbuf,0);
+	printext16(400,64,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Z-coordinate: %d",sector[sectnum].floorz);
-	printext16(400,ydim-STATUS2DSIZ+72,11,-1,snotbuf,0);
+	printext16(400,72,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Tile number: %d",sector[sectnum].floorpicnum);
-	printext16(400,ydim-STATUS2DSIZ+80,11,-1,snotbuf,0);
+	printext16(400,80,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Floor heinum: %d",sector[sectnum].floorheinum);
-	printext16(400,ydim-STATUS2DSIZ+88,11,-1,snotbuf,0);
+	printext16(400,88,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Palookup number: %d",sector[sectnum].floorpal);
-	printext16(400,ydim-STATUS2DSIZ+96,11,-1,snotbuf,0);
+	printext16(400,96,11,-1,snotbuf,0);
+
+	restoreviewport();
 }
 
 void showwalldata(short wallnum)
@@ -6736,108 +7251,116 @@ void showwalldata(short wallnum)
 	int dax, day, dist;
 	char snotbuf[80];
 
+	setstatusbarviewport();
+
 	Bsprintf(snotbuf,"Wall %d",wallnum);
-	printext16(8,ydim-STATUS2DSIZ+32,11,-1,snotbuf,0);
+	printext16(8,32,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"X-coordinate: %d",wall[wallnum].x);
-	printext16(8,ydim-STATUS2DSIZ+48,11,-1,snotbuf,0);
+	printext16(8,48,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Y-coordinate: %d",wall[wallnum].y);
-	printext16(8,ydim-STATUS2DSIZ+56,11,-1,snotbuf,0);
+	printext16(8,56,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Point2: %d",wall[wallnum].point2);
-	printext16(8,ydim-STATUS2DSIZ+64,11,-1,snotbuf,0);
+	printext16(8,64,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Sector: %d",sectorofwall(wallnum));
-	printext16(8,ydim-STATUS2DSIZ+72,11,-1,snotbuf,0);
+	printext16(8,72,11,-1,snotbuf,0);
 
 	Bsprintf(snotbuf,"Tags: %d, %d",wall[wallnum].hitag,wall[wallnum].lotag);
-	printext16(8,ydim-STATUS2DSIZ+88,11,-1,snotbuf,0);
+	printext16(8,88,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"     (0x%x), (0x%x)",wall[wallnum].hitag,wall[wallnum].lotag);
-	printext16(8,ydim-STATUS2DSIZ+96,11,-1,snotbuf,0);
+	printext16(8,96,11,-1,snotbuf,0);
 
-	printext16(200,ydim-STATUS2DSIZ+32,11,-1,names[wall[wallnum].picnum],0);
+	printext16(200,32,11,-1,names[wall[wallnum].picnum],0);
 	Bsprintf(snotbuf,"Flags (hex): %x",wall[wallnum].cstat);
-	printext16(200,ydim-STATUS2DSIZ+48,11,-1,snotbuf,0);
+	printext16(200,48,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Shade: %d",wall[wallnum].shade);
-	printext16(200,ydim-STATUS2DSIZ+56,11,-1,snotbuf,0);
+	printext16(200,56,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Pal: %d",wall[wallnum].pal);
-	printext16(200,ydim-STATUS2DSIZ+64,11,-1,snotbuf,0);
+	printext16(200,64,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"(X,Y)repeat: %d, %d",wall[wallnum].xrepeat,wall[wallnum].yrepeat);
-	printext16(200,ydim-STATUS2DSIZ+72,11,-1,snotbuf,0);
+	printext16(200,72,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"(X,Y)pan: %d, %d",wall[wallnum].xpanning,wall[wallnum].ypanning);
-	printext16(200,ydim-STATUS2DSIZ+80,11,-1,snotbuf,0);
+	printext16(200,80,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Tile number: %d",wall[wallnum].picnum);
-	printext16(200,ydim-STATUS2DSIZ+88,11,-1,snotbuf,0);
+	printext16(200,88,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"OverTile number: %d",wall[wallnum].overpicnum);
-	printext16(200,ydim-STATUS2DSIZ+96,11,-1,snotbuf,0);
+	printext16(200,96,11,-1,snotbuf,0);
 
 	Bsprintf(snotbuf,"nextsector: %d",wall[wallnum].nextsector);
-	printext16(400,ydim-STATUS2DSIZ+48,11,-1,snotbuf,0);
+	printext16(400,48,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"nextwall: %d",wall[wallnum].nextwall);
-	printext16(400,ydim-STATUS2DSIZ+56,11,-1,snotbuf,0);
+	printext16(400,56,11,-1,snotbuf,0);
 
 	Bsprintf(snotbuf,"Extra: %d",wall[wallnum].extra);
-	printext16(400,ydim-STATUS2DSIZ+72,11,-1,snotbuf,0);
+	printext16(400,72,11,-1,snotbuf,0);
 
 	dax = wall[wallnum].x-wall[wall[wallnum].point2].x;
 	day = wall[wallnum].y-wall[wall[wallnum].point2].y;
 	dist = ksqrt(dax*dax+day*day);
 	Bsprintf(snotbuf,"Wall length: %d",dist>>4);
-	printext16(400,ydim-STATUS2DSIZ+96,11,-1,snotbuf,0);
+	printext16(400,96,11,-1,snotbuf,0);
 
 	dax = (int)sectorofwall(wallnum);
 	Bsprintf(snotbuf,"Pixel height: %d",(sector[dax].floorz-sector[dax].ceilingz)>>8);
-	printext16(400,ydim-STATUS2DSIZ+104,11,-1,snotbuf,0);
+	printext16(400,104,11,-1,snotbuf,0);
+
+	restoreviewport();
 }
 
 void showspritedata(short spritenum)
 {
 	char snotbuf[80];
 
+	setstatusbarviewport();
+
 	Bsprintf(snotbuf,"Sprite %d",spritenum);
-	printext16(8,ydim-STATUS2DSIZ+32,11,-1,snotbuf,0);
+	printext16(8,32,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"X-coordinate: %d",sprite[spritenum].x);
-	printext16(8,ydim-STATUS2DSIZ+48,11,-1,snotbuf,0);
+	printext16(8,48,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Y-coordinate: %d",sprite[spritenum].y);
-	printext16(8,ydim-STATUS2DSIZ+56,11,-1,snotbuf,0);
+	printext16(8,56,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Z-coordinate: %d",sprite[spritenum].z);
-	printext16(8,ydim-STATUS2DSIZ+64,11,-1,snotbuf,0);
+	printext16(8,64,11,-1,snotbuf,0);
 
 	Bsprintf(snotbuf,"Sectnum: %d",sprite[spritenum].sectnum);
-	printext16(8,ydim-STATUS2DSIZ+72,11,-1,snotbuf,0);
+	printext16(8,72,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Statnum: %d",sprite[spritenum].statnum);
-	printext16(8,ydim-STATUS2DSIZ+80,11,-1,snotbuf,0);
+	printext16(8,80,11,-1,snotbuf,0);
 
 	Bsprintf(snotbuf,"Tags: %d, %d",sprite[spritenum].hitag,sprite[spritenum].lotag);
-	printext16(8,ydim-STATUS2DSIZ+96,11,-1,snotbuf,0);
+	printext16(8,96,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"     (0x%x), (0x%x)",sprite[spritenum].hitag,sprite[spritenum].lotag);
-	printext16(8,ydim-STATUS2DSIZ+104,11,-1,snotbuf,0);
+	printext16(8,104,11,-1,snotbuf,0);
 
-	printext16(200,ydim-STATUS2DSIZ+32,11,-1,names[sprite[spritenum].picnum],0);
+	printext16(200,32,11,-1,names[sprite[spritenum].picnum],0);
 	Bsprintf(snotbuf,"Flags (hex): %x",sprite[spritenum].cstat);
-	printext16(200,ydim-STATUS2DSIZ+48,11,-1,snotbuf,0);
+	printext16(200,48,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Shade: %d",sprite[spritenum].shade);
-	printext16(200,ydim-STATUS2DSIZ+56,11,-1,snotbuf,0);
+	printext16(200,56,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Pal: %d",sprite[spritenum].pal);
-	printext16(200,ydim-STATUS2DSIZ+64,11,-1,snotbuf,0);
+	printext16(200,64,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"(X,Y)repeat: %d, %d",sprite[spritenum].xrepeat,sprite[spritenum].yrepeat);
-	printext16(200,ydim-STATUS2DSIZ+72,11,-1,snotbuf,0);
+	printext16(200,72,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"(X,Y)offset: %d, %d",sprite[spritenum].xoffset,sprite[spritenum].yoffset);
-	printext16(200,ydim-STATUS2DSIZ+80,11,-1,snotbuf,0);
+	printext16(200,80,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Tile number: %d",sprite[spritenum].picnum);
-	printext16(200,ydim-STATUS2DSIZ+88,11,-1,snotbuf,0);
+	printext16(200,88,11,-1,snotbuf,0);
 
 	Bsprintf(snotbuf,"Angle (2048 degrees): %d",sprite[spritenum].ang);
-	printext16(400,ydim-STATUS2DSIZ+48,11,-1,snotbuf,0);
+	printext16(400,48,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"X-Velocity: %d",sprite[spritenum].xvel);
-	printext16(400,ydim-STATUS2DSIZ+56,11,-1,snotbuf,0);
+	printext16(400,56,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Y-Velocity: %d",sprite[spritenum].yvel);
-	printext16(400,ydim-STATUS2DSIZ+64,11,-1,snotbuf,0);
+	printext16(400,64,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Z-Velocity: %d",sprite[spritenum].zvel);
-	printext16(400,ydim-STATUS2DSIZ+72,11,-1,snotbuf,0);
+	printext16(400,72,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Owner: %d",sprite[spritenum].owner);
-	printext16(400,ydim-STATUS2DSIZ+80,11,-1,snotbuf,0);
+	printext16(400,80,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Clipdist: %d",sprite[spritenum].clipdist);
-	printext16(400,ydim-STATUS2DSIZ+88,11,-1,snotbuf,0);
+	printext16(400,88,11,-1,snotbuf,0);
 	Bsprintf(snotbuf,"Extra: %d",sprite[spritenum].extra);
-	printext16(400,ydim-STATUS2DSIZ+96,11,-1,snotbuf,0);
+	printext16(400,96,11,-1,snotbuf,0);
+
+	restoreviewport();
 }
 
 void keytimerstuff(void)
@@ -6887,9 +7410,9 @@ void printmessage16(char *name)
 	}
 	snotbuf[54] = 0;
 
-	begindrawing();
-	printext16(200L, ydim-STATUS2DSIZ+8L, 0, 6, snotbuf, 0);
-	enddrawing();
+	setstatusbarviewport();
+	printext16(200L, 8L, 0, 6, snotbuf, 0);
+	restoreviewport();
 }
 
 void printmessage256(char *name)

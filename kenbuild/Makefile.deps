@@ -1,0 +1,23 @@
+# KenBuild test game
+$(SRC)/bstub.$o: $(SRC)/bstub.c $(ENGINEINC)/compat.h $(ENGINEINC)/build.h $(ENGINEINC)/compat.h $(ENGINEINC)/editor.h $(ENGINEINC)/pragmas.h $(ENGINEINC)/baselayer.h $(SRC)/names.h $(ENGINEINC)/osd.h $(ENGINEINC)/cache1d.h
+$(SRC)/config.$o: $(SRC)/config.c $(ENGINEINC)/build.h $(ENGINEINC)/compat.h $(SRC)/game.h $(ENGINEINC)/osd.h $(ENGINEINC)/scriptfile.h $(ENGINEINC)/winlayer.h $(ENGINEINC)/baselayer.h
+$(SRC)/game.$o: $(SRC)/game.c $(ENGINEINC)/build.h $(ENGINEINC)/compat.h $(SRC)/names.h $(ENGINEINC)/pragmas.h $(ENGINEINC)/cache1d.h $(SRC)/game.h $(ENGINEINC)/osd.h $(ENGINEINC)/mmulti.h $(SRC)/kdmsound.h $(ENGINEINC)/baselayer.h
+$(SRC)/kdmsound.$o: $(SRC)/kdmsound.c $(SRC)/kdmsound.h $(ENGINEINC)/compat.h $(ENGINEINC)/pragmas.h $(ENGINEINC)/cache1d.h
+$(SRC)/kdmsound_sdl2.$o: $(SRC)/kdmsound_sdl2.c $(SRC)/kdmsound.h
+$(SRC)/kdmsound_stub.$o: $(SRC)/kdmsound_stub.c
+
+$(SRC)/startgtk_game.$o: $(SRC)/startgtk_game.c $(ENGINEINC)/compat.h $(ENGINEINC)/baselayer.h $(ENGINEINC)/build.h $(ENGINEINC)/compat.h $(SRC)/game.h
+$(SRC)/startwin_game.$o: $(SRC)/startwin_game.c $(ENGINEINC)/build.h $(ENGINEINC)/winlayer.h $(ENGINEINC)/compat.h $(SRC)/game.h $(SRC)/gameres.h
+
+$(SRC)/buildres.$(res): $(SRC)/buildres.rc $(ENGINEINC)/buildres.h $(RSRC)/build.bmp $(RSRC)/build_icon.ico $(RSRC)/build.manifest
+$(SRC)/gameres.$(res): $(SRC)/gameres.rc $(SRC)/gameres.h $(RSRC)/game_icon.ico $(RSRC)/game.manifest
+
+# Derived source files from art assets
+$(RSRC)/startgtk_game_gresource.c: $(RSRC)/startgtk_game.gresource.xml $(RSRC)/game.png $(RSRC)/startgtk_game.glade
+$(RSRC)/startgtk_game_gresource.h: $(RSRC)/startgtk_game.gresource.xml
+$(RSRC)/startgtk_build_gresource.c: $(RSRC)/startgtk_build.gresource.xml $(RSRC)/build.png $(RSRC)/startgtk_build.glade
+$(RSRC)/startgtk_build_gresource.h: $(RSRC)/startgtk_build.gresource.xml
+$(RSRC)/sdlappicon_game.c: $(RSRC)/game.png
+$(RSRC)/sdlappicon_game.$o: $(RSRC)/sdlappicon_game.c
+$(RSRC)/sdlappicon_build.c: $(RSRC)/build.png
+$(RSRC)/sdlappicon_build.$o: $(RSRC)/sdlappicon_build.c

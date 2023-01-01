@@ -51,6 +51,13 @@ extern int rx1[MAXWALLSB], ry1[MAXWALLSB];
 extern short p2[MAXWALLSB];
 extern short numscans, numhits, numbunches;
 
+struct textfontspec {
+	const unsigned char *font;
+	int charxsiz, charysiz;
+	int cellh, cellxoff, cellyoff;
+};
+extern const struct textfontspec textfonts[3];
+
 #if USE_OPENGL
 extern palette_t palookupfog[MAXPALOOKUPS];
 #endif

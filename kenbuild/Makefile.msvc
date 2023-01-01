@@ -1,0 +1,106 @@
+# KenBuild Makefile for Microsoft NMake
+
+# Engine options - these may be overridden by game makefiles
+#  USE_POLYMOST   - enables Polymost renderer
+#  USE_OPENGL     - enables OpenGL support in Polymost
+#     Define as 0 to disable OpenGL
+#     Define as 1 (or 2) for GL 2.0/2.1 profile
+#     Define as 3 for GL 3.2 Core profile
+#  USE_ASM        - enables the use of assembly code if supported
+USE_POLYMOST=1
+USE_OPENGL=1
+USE_ASM=1
+
+RELEASE=1
+
+# Create Makefile.msvcuser yourself to provide your own overrides
+# for configurable values
+!if EXIST(Makefile.msvcuser)
+!include Makefile.msvcuser
+!endif
+
+ENGINEROOT=..
+ENGINEINC=$(ENGINEROOT)/include
+SRC=src
+RSRC=rsrc
+GAMEDATA=data
+
+CC=cl
+RC=rc
+LINK=link
+
+GAMECFLAGS=/nologo /MD /Zl
+GAMECXXFLAGS=/nologo /MD /Zl /EHsc
+GAMECPPFLAGS=/I$(SRC) /I$(ENGINEINC)
+GAMELINKFLAGS=/opt:ref /nologo
+GAMERFLAGS=/nologo /i$(SRC) /i$(ENGINEINC)
+GAMELIBS=msvcrt.lib
+
+!if $(RELEASE)
+# release options
+GAMECFLAGS=$(GAMECFLAGS) /O2
+GAMECXXFLAGS=$(GAMECXXFLAGS) /O2
+GAMELINKFLAGS=$(GAMELINKFLAGS) /RELEASE
+!else
+# debugging options
+GAMECFLAGS=$(GAMECFLAGS) /Ot /Z7
+GAMECXXFLAGS=$(GAMEXXCFLAGS) /Ot /Z7
+GAMELINKFLAGS=$(GAMELINKFLAGS) /DEBUG
+!endif
+
+o=obj
+res=res
+
+!include $(ENGINEROOT)/Makefile.msvcshared
+
+GAMECFLAGS=$(GAMECFLAGS) $(BUILDCFLAGS)
+GAMECXXFLAGS=$(GAMECXXFLAGS) $(BUILDCXXFLAGS)
+GAMECPPFLAGS=$(GAMECPPFLAGS) $(BUILDCPPFLAGS)
+GAMELIBS=$(GAMELIBS) $(BUILDLIBS)
+GAMERFLAGS=$(GAMERFLAGS) $(BUILDRLAGS)
+
+GAMEEXEOBJS=$(SRC)\config.$o \
+	$(SRC)\game.$o \
+	$(SRC)\gameres.$(res) \
+	$(SRC)\startwin_game.$o \
+	$(SRC)\kdmsound.$o \
+	$(SRC)\kdmsound_stub.$o
+
+EDITOREXEOBJS=$(SRC)\bstub.$o \
+	$(SRC)\buildres.$(res)
+
+# RULES
+{$(SRC)}.c{$(SRC)}.$o:
+	$(CC) /TC /c $(CPPFLAGS) $(GAMECPPFLAGS) $(CFLAGS) $(GAMECFLAGS) /Fo$@ $<
+
+{$(SRC)}.cpp{$(SRC)}.$o:
+	$(CC) /TP /c $(CPPFLAGS) $(GAMECPPFLAGS) $(CXXFLAGS) $(GAMECXXFLAGS) /Fo$@ $<
+
+{$(SRC)}.rc{$(SRC)}.$(res):
+	$(RC) $(GAMERFLAGS) /fo$@ /r $<
+
+# TARGETS
+all: $(GAMEDATA)\game$(EXESUFFIX) $(GAMEDATA)\build$(EXESUFFIX) ;
+
+$(GAMEDATA)\game$(EXESUFFIX): $(GAMEEXEOBJS) $(ENGINEROOT)\$(ENGINELIB)
+	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS $(LINKFLAGS) $(GAMELINKFLAGS) $** $(GAMELIBS)
+
+$(GAMEDATA)\build$(EXESUFFIX): $(EDITOREXEOBJS) $(ENGINEROOT)\$(ENGINELIB) $(ENGINEROOT)\$(EDITORLIB)
+	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS $(LINKFLAGS) $(GAMELINKFLAGS) $** $(GAMELIBS)
+
+$(ENGINEROOT)\$(ENGINELIB) $(ENGINEROOT)\$(EDITORLIB): ALWAYSBUILD
+	cd "$(@D)"
+	$(MAKE) /nologo /f Makefile.msvc /$(MAKEFLAGS) USE_POLYMOST=$(USE_POLYMOST) USE_OPENGL=$(USE_OPENGL) USE_ASM=$(USE_ASM) RELEASE=$(RELEASE) $(@F)
+	cd "$(MAKEDIR)"
+
+ALWAYSBUILD: ;
+
+# DEPENDENCIES
+!include Makefile.deps
+
+# PHONIES
+clean:
+	-del /q $(GAMEEXEOBJS) $(EDITOREXEOBJS)
+veryclean: clean
+	-del /q $(GAMEDATA)\game$(EXESUFFIX) $(GAMEDATA)\build$(EXESUFFIX)
+

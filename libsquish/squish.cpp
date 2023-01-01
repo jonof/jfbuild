@@ -360,7 +360,7 @@ void ComputeMSE( u8 const *rgba, int width, int height, int pitch, u8 const *dxt
             // decompress the block
             u8 targetRgba[4*16];
             Decompress( targetRgba, sourceBlock, flags );
-            u8 const* sourcePixel = targetRgba;
+            //JonoF: u8 const* sourcePixel = targetRgba;
 
             // copy across to a similar pixel block
             u8 originalRgba[4*16];
@@ -377,7 +377,7 @@ void ComputeMSE( u8 const *rgba, int width, int height, int pitch, u8 const *dxt
                         u8 const* targetPixel = rgba + pitch*sy + 4*sx;
                         CopyRGBA(targetPixel, originalPixel, flags);
                     }
-                    sourcePixel += 4;
+                    //JonoF: sourcePixel += 4;
                     originalPixel += 4;
                 }
             }

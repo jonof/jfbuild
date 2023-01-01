@@ -20,7 +20,10 @@
 #ifdef _MSC_VER
 #pragma warning (disable: 4201) //  nonstandard extension used : nameless struct/union
 #endif
-#if defined(__GNUC__) && !defined(__clang__)   //JonoF
+#if defined(__clang__)    //JonoF
+#pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+#pragma clang diagnostic ignored "-Wnested-anon-types"
+#elif defined(__GNUC__)   //JonoF
 #pragma GCC diagnostic ignored "-Wparentheses"
 #pragma GCC diagnostic ignored "-Wmisleading-indentation"
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
@@ -1916,7 +1919,7 @@ done:
                   for (uint packed_c = 0; packed_c < limit; packed_c++)
                   {
                      int v = etc1_decode_value(diff, inten, selector, packed_c);
-                     uint err = labs(v - static_cast<int>(color));
+                     uint err = abs(v - static_cast<int>(color));  //JonoF
                      if (err < best_error)
                      {
                         best_error = err;

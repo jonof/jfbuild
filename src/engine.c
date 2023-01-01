@@ -16,6 +16,7 @@
 #include "crc32.h"
 
 #include "baselayer.h"
+#include "baselayer_priv.h"
 
 #include "engine_priv.h"
 #if USE_POLYMOST
@@ -106,12 +107,29 @@ int pow2long[32] =
 int reciptable[2048], fpuasm;
 
 unsigned char britable[16][256];
-extern unsigned char textfont[2048], smalltextfont[2048];
 
 static char kensmessage[128];
 char *engineerrstr = NULL;
 static BFILE *logfile=NULL;		// log filehandle
 
+extern const unsigned char textfont[], smalltextfont[], talltextfont[];
+const struct textfontspec textfonts[3] = {
+	{	//8x8
+		textfont,
+		8, 8,
+		8, 0, 0
+	},
+	{	// 4x6, centred on 8x8 cells
+		smalltextfont,
+		4, 6,
+		8, 2, 1
+	},
+	{	// 8x14
+		talltextfont,
+		8, 14,
+		14, 0, 0
+	}
+};
 
 //unsigned int ratelimitlast[32], ratelimitn = 0, ratelimit = 60;
 
@@ -486,14 +504,12 @@ int globalx1, globaly1, globalx2, globaly2, globalx3, globaly3, globalzx;
 int globalx, globaly, globalz;
 
 short sectorborder[256], sectorbordercnt;
-int pageoffset, ydim16, qsetmode = 0;
+int qsetmode = 0;
 int startposx, startposy, startposz;
 short startang, startsectnum;
 short pointhighlight, linehighlight, highlightcnt;
 int lastx[MAXYDIM];
 unsigned char *transluc = NULL;
-
-int halfxdim16, midydim16;
 
 #define FASTPALGRIDSIZ 8
 static int rdist[129], gdist[129], bdist[129];
@@ -754,7 +770,7 @@ static void maskwallscan(int x1, int x2, short *uwal, short *dwal, int *swal, in
 
 	setupmvlineasm(globalshiftval);
 
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 
 	x = startx;
 	while ((startumost[x+windowx1] > startdmost[x+windowx1]) && (x <= x2)) x++;
@@ -854,7 +870,7 @@ static void maskwallscan(int x1, int x2, short *uwal, short *dwal, int *swal, in
 		mvlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],(void *)(bufplce[0]+waloff[globalpicnum]),(void *)(p+ylookup[y1ve[0]]));
 	}
 
-#else	// ENGINE_USING_A_C
+#else	// USING_A_C
 	(void)i; (void)u4; (void)d4; (void)dax; (void)z; (void)bad;
 
 	p = startx+frameoffset;
@@ -1725,7 +1741,7 @@ static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *l
 
 	setupvlineasm(globalshiftval);
 
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 
 	x = x1;
 	while ((umost[x] > dmost[x]) && (x <= x2)) x++;
@@ -1823,7 +1839,7 @@ static void wallscan(int x1, int x2, short *uwal, short *dwal, int *swal, int *l
 		vlineasm1(vince[0],(void *)palookupoffse[0],y2ve[0]-y1ve[0]-1,vplce[0],(void *)(bufplce[0]+waloff[globalpicnum]),(void *)(x+frameoffset+ylookup[y1ve[0]]));
 	}
 
-#else	// ENGINE_USING_A_C
+#else	// USING_A_C
 	(void)i; (void)u4; (void)d4; (void)z; (void)bad;
 
 	for(x=x1;x<=x2;x++)
@@ -1884,7 +1900,7 @@ static void transmaskvline(int x)
 //
 // transmaskvline2 (internal)
 //
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 static void transmaskvline2(int x)
 {
 	intptr_t i;
@@ -1971,7 +1987,7 @@ static void transmaskwallscan(int x1, int x2)
 
 	x = x1;
 	while ((startumost[x+windowx1] > startdmost[x+windowx1]) && (x <= x2)) x++;
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 	if ((x <= x2) && (x&1)) transmaskvline(x), x++;
 	while (x < x2) transmaskvline2(x), x += 2;
 #endif
@@ -2824,8 +2840,6 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 	longptr = (int *)davoxptr;
 	xyvoxoffs = ((daxsiz+1)<<2);
 
-	begindrawing();	//{{{
-
 	for(cnt=0;cnt<8;cnt++)
 	{
 		switch(cnt)
@@ -2952,8 +2966,6 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 			}
 		}
 	}
-
-	enddrawing();	//}}}
 }
 
 
@@ -4507,7 +4519,7 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 	by = dmulscale16(x,yv2,y,yv);
 	if (dastat&4) { yv = -yv; yv2 = -yv2; by = (ysiz<<16)-1-by; }
 
-#ifndef ENGINE_USING_A_C
+#ifndef USING_A_C
 	int ny1, ny2, xx, xend, qlinemode=0, y1ve[4], y2ve[4], u4, d4;
 	char bad;
 
@@ -4761,7 +4773,7 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 		}
 	}
 
-#else	// ENGINE_USING_A_C
+#else	// USING_A_C
 
 	if ((dastat&1) == 0)
 	{
@@ -5337,7 +5349,6 @@ static void sighandler(int sig, siginfo_t *info, void *ctx)
 static int preinitcalled = 0;
 int preinitengine(void)
 {
-	char *e;
 	char compiler[30] = "an unidentified compiler";
 
 #if defined(_MSC_VER)
@@ -5366,14 +5377,15 @@ int preinitengine(void)
 
 	if (initsystem()) exit(1);
 
+#ifndef USING_A_C
 	makeasmwriteable();
 
-	if ((e = Bgetenv("BUILD_NOP6")) != NULL)
-		if (!Bstrcasecmp(e, "TRUE")) {
-			buildprintf("Disabling P6 optimizations.\n");
-			dommxoverlay = 0;
-		}
+	if (Bgetenv("BUILD_NOP6")) {
+		buildprintf("Disabling P6 optimizations.\n");
+		dommxoverlay = 0;
+	}
 	if (dommxoverlay) mmxoverlay();
+#endif
 
 	validmodecnt = 0;
 	getvalidmodes();
@@ -5422,10 +5434,6 @@ int initengine(void)
 		tiletovox[i] = -1;
 	clearbuf(&voxscale[0],sizeof(voxscale)>>2,65536L);
 
-#if USE_POLYMOST
-	polymost_initosdfuncs();
-#endif
-
 	searchit = 0; searchstat = -1;
 
 	for(i=0;i<MAXPALOOKUPS;i++) palookup[i] = NULL;
@@ -5450,6 +5458,9 @@ int initengine(void)
 	if (loadtables()) return 1;
 	if (loadpalette()) return 1;
 
+#if USE_POLYMOST
+	polymost_initosdfuncs();
+#endif
 #if USE_POLYMOST && USE_OPENGL
 	if (!hicfirstinit) hicinit();
 	if (!mdinited) mdinit();
@@ -5589,8 +5600,6 @@ void drawrooms(int daposx, int daposy, int daposz,
 #endif
 	//============================================================================= //POLYMOST ENDS
 
-	begindrawing();	//{{{
-
 	frameoffset = frameplace + windowy1*bytesperline + windowx1;
 
 	numhits = xdimen; numscans = 0; numbunches = 0;
@@ -5672,8 +5681,6 @@ void drawrooms(int daposx, int daposy, int daposz,
 		bunchfirst[closest] = bunchfirst[numbunches];
 		bunchlast[closest] = bunchlast[numbunches];
 	}
-
-	enddrawing();	//}}}
 }
 
 
@@ -5764,8 +5771,6 @@ killsprite:
 		i = j;
 	}
 
-	begindrawing();	//{{{
-
 	/*for(i=spritesortcnt-1;i>=0;i--)
 	{
 		xs = tspriteptr[i].x-globalposx;
@@ -5782,7 +5787,6 @@ killsprite:
 		drawline256(xs-65536,ys-65536,xs+65536,ys+65536,31);
 		drawline256(xs+65536,ys-65536,xs-65536,ys+65536,31);
 	}*/
-
 
 #if USE_POLYMOST
 		//Hack to make it draw all opaque quads first. This should reduce the chances of
@@ -5875,8 +5879,6 @@ killsprite:
 	}
 	while (spritesortcnt > 0) drawsprite(--spritesortcnt);
 	while (maskwallcnt > 0) drawmaskwall(--maskwallcnt);
-
-	enddrawing();	//}}}
 }
 
 
@@ -5909,8 +5911,6 @@ void drawmapview(int dax, int day, int zoome, short ang)
 	yvect2 = mulscale16(yvect,yxaspect);
 
 	sortnum = 0;
-
-	begindrawing();	//{{{
 
 	for(s=0,sec=&sector[s];s<numsectors;s++,sec++)
 		if (show2dsector[s>>3]&pow2char[s&7])
@@ -6165,8 +6165,6 @@ void drawmapview(int dax, int day, int zoome, short ang)
 			fillpolygon(npoints);
 		}
 	}
-
-	enddrawing();	//}}}
 }
 
 
@@ -7570,7 +7568,6 @@ writeerror:
 // setgamemode
 //
 // JBF: davidoption now functions as a windowed-mode flag (0 == windowed, 1 == fullscreen)
-extern char videomodereset;
 int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 {
 	int i, j;
@@ -7587,8 +7584,10 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	//bytesperline is set in this function
 	if (setvideomode(daxdim,daydim,dabpp,davidoption) < 0) return(-1);
 
+#ifndef USING_A_C
 	// it's possible the previous call protected our code sections again
 	makeasmwriteable();
+#endif
 
 #if USE_POLYMOST && USE_OPENGL
 	if (dabpp > 8) rendmode = 3;	// GL renderer
@@ -7686,7 +7685,6 @@ void nextpage(void)
 	switch(qsetmode)
 	{
 		case 200:
-			begindrawing();	//{{{
 			for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
 			{
 				per = &permfifo[i];
@@ -7695,7 +7693,6 @@ void nextpage(void)
 							per->dashade,per->dapalnum,per->dastat,
 							per->cx1,per->cy1,per->cx2,per->cy2,per->uniqid);
 			}
-			enddrawing();	//}}}
 
 			OSD_Draw();
 #if USE_POLYMOST
@@ -7734,7 +7731,6 @@ void nextpage(void)
 			}
 			*/
 
-			begindrawing();	//{{{
 			for(i=permtail;i!=permhead;i=((i+1)&(MAXPERMS-1)))
 			{
 				per = &permfifo[i];
@@ -7747,10 +7743,8 @@ void nextpage(void)
 				if (((per->pagesleft&127) == 0) && (i == permtail))
 					permtail = ((permtail+1)&(MAXPERMS-1));
 			}
-			enddrawing();	//}}}
 			break;
 
-		case 350:
 		case 480:
 			break;
 	}
@@ -9674,9 +9668,7 @@ void rotatesprite(int sx, int sy, int z, short a, short picnum, signed char dash
 	if ((tilesizx[picnum] <= 0) || (tilesizy[picnum] <= 0)) return;
 
 	if (((dastat&128) == 0) || (numpages < 2) || (beforedrawrooms != 0)) {
-		begindrawing();	//{{{
 		dorotatesprite(sx,sy,z,a,picnum,dashade,dapalnum,dastat,cx1,cy1,cx2,cy2,guniqhudid);
-		enddrawing();	//}}}
 	}
 
 	if ((dastat&64) && (cx1 <= 0) && (cy1 <= 0) && (cx2 >= xdim-1) && (cy2 >= ydim-1) &&
@@ -9948,16 +9940,13 @@ void clearview(int dacol)
 	}
 #endif
 
-	begindrawing();	//{{{
 	dx = windowx2-windowx1+1;
-	//dacol += (dacol<<8); dacol += (dacol<<16);
+	dacol += (dacol<<8); dacol += (dacol<<16);
 	p = frameplace+ylookup[windowy1]+windowx1;
 	for(y=windowy1;y<=windowy2;y++) {
-		//clearbufbyte((void*)p,dx,dacol);
-		Bmemset((void*)p,dacol,dx);
+		clearbufbyte((void*)p,dx,dacol);
 		p += ylookup[1];
 	}
-	enddrawing();	//}}}
 
 	faketimerhandler();
 }
@@ -9969,7 +9958,6 @@ void clearview(int dacol)
 void clearallviews(int dacol)
 {
 	if (qsetmode != 200) return;
-	//dacol += (dacol<<8); dacol += (dacol<<16);
 
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3) {
@@ -9990,11 +9978,8 @@ void clearallviews(int dacol)
 	}
 #endif
 
-	begindrawing();	//{{{
-	//clearbufbyte((void*)frameplace,imageSize,0L);
-	Bmemset((void*)frameplace,dacol,imageSize);
-	enddrawing();	//}}}
-	//nextpage();
+	dacol += (dacol<<8); dacol += (dacol<<16);
+	clearbuf((void*)frameplace,imageSize>>2,dacol);
 
 	faketimerhandler();
 }
@@ -10009,9 +9994,7 @@ void plotpixel(int x, int y, unsigned char col)
 	if (!polymost_plotpixel(x,y,col)) return;
 #endif
 
-	begindrawing();	//{{{
 	drawpixel((void*)(ylookup[y]+x+frameplace),(int)col);
-	enddrawing();	//}}}
 }
 
 
@@ -10020,16 +10003,11 @@ void plotpixel(int x, int y, unsigned char col)
 //
 unsigned char getpixel(int x, int y)
 {
-	unsigned char r;
-
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3 && qsetmode == 200) return 0;
 #endif
 
-	begindrawing();	//{{{
-	r = readpixel((void*)(ylookup[y]+x+frameplace));
-	enddrawing();	//}}}
-	return(r);
+	return readpixel((void*)(ylookup[y]+x+frameplace));
 }
 
 
@@ -10167,7 +10145,6 @@ void completemirror(void)
 	if (mirrorsx2 < windowx2-windowx1-1) mirrorsx2++;
 	if (mirrorsx2 < mirrorsx1) return;
 
-	begindrawing();
 	p = frameplace+ylookup[windowy1+mirrorsy1]+windowx1+mirrorsx1;
 	i = windowx2-windowx1-mirrorsx2-mirrorsx1; mirrorsx2 -= mirrorsx1;
 	for(dy=mirrorsy2-mirrorsy1-1;dy>=0;dy--)
@@ -10178,7 +10155,6 @@ void completemirror(void)
 		p += ylookup[1];
 		faketimerhandler();
 	}
-	enddrawing();
 }
 
 
@@ -10438,7 +10414,6 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		plc = y1+mulscale12((2047-x1)&4095,inc);
 		i = ((x1+2048)>>12); daend = ((x2+2048)>>12);
 
-		begindrawing();	//{{{
 		for(;i<daend;i++)
 		{
 			j = (plc>>12);
@@ -10446,7 +10421,6 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 				drawpixel((void*)(frameplace+ylookup[j]+i),col);
 			plc += inc;
 		}
-		enddrawing();	//}}}
 	}
 	else
 	{
@@ -10461,7 +10435,6 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 		plc = x1+mulscale12((2047-y1)&4095,inc);
 		i = ((y1+2048)>>12); daend = ((y2+2048)>>12);
 
-		begindrawing();	//{{{
 		p = ylookup[i]+frameplace;
 		for(;i<daend;i++)
 		{
@@ -10470,640 +10443,7 @@ void drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 				drawpixel((void*)(j+p),col);
 			plc += inc; p += ylookup[1];
 		}
-		enddrawing();	//}}}
 	}
-}
-
-
-//
-// drawline16
-//
-// JBF: Had to add extra tests to make sure x-coordinates weren't winding up -'ve
-//   after clipping or crashes would ensue
-unsigned int drawlinepat = 0xffffffff;
-
-void drawline16(int x1, int y1, int x2, int y2, unsigned char col)
-{
-	int i, dx, dy, pinc, d;
-	intptr_t p;
-	unsigned int patc=0;
-
-	dx = x2-x1; dy = y2-y1;
-	if (dx >= 0)
-	{
-		if ((x1 >= xres) || (x2 < 0)) return;
-		if (x1 < 0) { if (dy) y1 += scale(0-x1,dy,dx); x1 = 0; }
-		if (x2 >= xres) { if (dy) y2 += scale(xres-1-x2,dy,dx); x2 = xres-1; }
-	}
-	else
-	{
-		if ((x2 >= xres) || (x1 < 0)) return;
-		if (x2 < 0) { if (dy) y2 += scale(0-x2,dy,dx); x2 = 0; }
-		if (x1 >= xres) { if (dy) y1 += scale(xres-1-x1,dy,dx); x1 = xres-1; }
-	}
-	if (dy >= 0)
-	{
-		if ((y1 >= ydim16) || (y2 < 0)) return;
-		if (y1 < 0) { if (dx) x1 += scale(0-y1,dx,dy); y1 = 0; if (x1 < 0) x1 = 0; }
-		if (y2 >= ydim16) { if (dx) x2 += scale(ydim16-1-y2,dx,dy); y2 = ydim16-1; if (x2 < 0) x2 = 0; }
-	}
-	else
-	{
-		if ((y2 >= ydim16) || (y1 < 0)) return;
-		if (y2 < 0) { if (dx) x2 += scale(0-y2,dx,dy); y2 = 0; if (x2 < 0) x2 = 0; }
-		if (y1 >= ydim16) { if (dx) x1 += scale(ydim16-1-y1,dx,dy); y1 = ydim16-1; if (x1 < 0) x1 = 0; }
-	}
-
-	dx = klabs(x2-x1)+1; dy = klabs(y2-y1)+1;
-	if (dx >= dy)
-	{
-		if (x2 < x1)
-		{
-			i = x1; x1 = x2; x2 = i;
-			i = y1; y1 = y2; y2 = i;
-		}
-		d = 0;
-		if (y2 > y1) pinc = bytesperline; else pinc = -bytesperline;
-
-		begindrawing();	//{{{
-		p = (y1*bytesperline)+x1+frameplace;
-		if (dy == 0 && drawlinepat == 0xffffffff) {
-			i = ((int)col<<24)|((int)col<<16)|((int)col<<8)|col;
-			clearbufbyte((void *)p, dx, i);
-		} else
-		for(i=dx;i>0;i--)
-		{
-			if (drawlinepat & pow2long[(patc++)&31])
-				drawpixel((void *)p, col);
-			d += dy;
-			if (d >= dx) { d -= dx; p += pinc; }
-			p++;
-		}
-		enddrawing();	//}}}
-		return;
-	}
-
-	if (y2 < y1)
-	{
-		i = x1; x1 = x2; x2 = i;
-		i = y1; y1 = y2; y2 = i;
-	}
-	d = 0;
-	if (x2 > x1) pinc = 1; else pinc = -1;
-
-	begindrawing();	//{{{
-	p = (y1*bytesperline)+x1+frameplace;
-	for(i=dy;i>0;i--)
-	{
-		if (drawlinepat & pow2long[(patc++)&31])
-			drawpixel((void *)p, col);
-		d += dx;
-		if (d >= dy) { d -= dy; p += pinc; }
-		p += bytesperline;
-	}
-	enddrawing();	//}}}
-}
-
-void drawcircle16(int x1, int y1, int r, unsigned char col)
-{
-#if 1
-	int xp, yp, xpbpl, ypbpl, d, de, dse, patc=0;
-	intptr_t p;
-
-	if (r < 0) r = -r;
-	if (x1+r < 0 || x1-r >= xres) return;
-	if (y1+r < 0 || y1-r >= ydim16) return;
-
-	/*
-	 *      d
-	 *    6 | 7
-	 *   \  |  /
-	 *  5  \|/  8
-	 * c----+----a
-	 *  4  /|\  1
-	 *   /  |  \
-	 *    3 | 2
-	 *      b
-	 */
-
-	xp = 0;
-	yp = r;
-	d = 1 - r;
-	de = 2;
-	dse = 5 - (r << 1);
-
-	begindrawing();
-	p = (y1*bytesperline)+x1+frameplace;
-
-	if (drawlinepat & pow2long[(patc++)&31]) {
-		if ((unsigned int)y1 < (unsigned int)ydim16 && (unsigned int)(x1+r) < (unsigned int)xres  )
-			drawpixel((void *)(p+r), col);			// a
-		if ((unsigned int)x1 < (unsigned int)xres   && (unsigned int)(y1+r) < (unsigned int)ydim16)
-			drawpixel((void *)(p+(r*bytesperline)), col);	// b
-		if ((unsigned int)y1 < (unsigned int)ydim16 && (unsigned int)(x1-r) < (unsigned int)xres  )
-			drawpixel((void *)(p-r), col);			// c
-		if ((unsigned int)x1 < (unsigned int)xres   && (unsigned int)(y1-r) < (unsigned int)ydim16)
-			drawpixel((void *)(p-(r*bytesperline)), col);	// d
-	}
-
-	while (yp > xp) {
-		if (d < 0) {
-			d += de;
-			de += 2;
-			dse += 2;
-			xp++;
-		} else {
-			d += dse;
-			de += 2;
-			dse += 4;
-			xp++;
-			yp--;
-		}
-
-		ypbpl = yp*bytesperline;
-		xpbpl = xp*bytesperline;
-		if (drawlinepat & pow2long[(patc++)&31]) {
-			if ((unsigned int)(x1+yp) < (unsigned int)xres && (unsigned int)(y1+xp) < (unsigned int)ydim16)
-				drawpixel((void *)(p+yp+xpbpl), col);	// 1
-			if ((unsigned int)(x1+xp) < (unsigned int)xres && (unsigned int)(y1+yp) < (unsigned int)ydim16)
-				drawpixel((void *)(p+xp+ypbpl), col);	// 2
-			if ((unsigned int)(x1-xp) < (unsigned int)xres && (unsigned int)(y1+yp) < (unsigned int)ydim16)
-				drawpixel((void *)(p-xp+ypbpl), col);	// 3
-			if ((unsigned int)(x1-yp) < (unsigned int)xres && (unsigned int)(y1+xp) < (unsigned int)ydim16)
-				drawpixel((void *)(p-yp+xpbpl), col);	// 4
-			if ((unsigned int)(x1-yp) < (unsigned int)xres && (unsigned int)(y1-xp) < (unsigned int)ydim16)
-				drawpixel((void *)(p-yp-xpbpl), col);	// 5
-			if ((unsigned int)(x1-xp) < (unsigned int)xres && (unsigned int)(y1-yp) < (unsigned int)ydim16)
-				drawpixel((void *)(p-xp-ypbpl), col);	// 6
-			if ((unsigned int)(x1+xp) < (unsigned int)xres && (unsigned int)(y1-yp) < (unsigned int)ydim16)
-				drawpixel((void *)(p+xp-ypbpl), col);	// 7
-			if ((unsigned int)(x1+yp) < (unsigned int)xres && (unsigned int)(y1-xp) < (unsigned int)ydim16)
-				drawpixel((void *)(p+yp-xpbpl), col);	// 8
-		}
-	}
-	enddrawing();
-#else
-	// JonoF's rough approximation of a circle
-	int l,spx,spy,lpx,lpy,px,py;
-
-	spx = lpx = x1+mulscale14(r,sintable[0]);
-	spy = lpy = y1+mulscale14(r,sintable[512]);
-
-	for (l=64;l<2048;l+=64) {
-		px = x1+mulscale14(r,sintable[l]);
-		py = y1+mulscale14(r,sintable[(l+512)&2047]);
-
-		drawline16(lpx,lpy,px,py,col);
-
-		lpx = px;
-		lpy = py;
-	}
-
-	drawline16(lpx,lpy,spx,spy,col);
-#endif
-}
-
-
-//
-// qsetmode640350
-//
-void qsetmode640350(void)
-{
-	if (qsetmode != 350)
-	{
-		if (setvideomode(640, 350, 8, fullscreen) < 0) {
-			//fprintf(stderr, "Couldn't set 640x350 video mode for some reason.\n");
-			return;
-		}
-
-		xdim = xres;
-		ydim = yres;
-		pixelaspect = 65536;
-
-		setvgapalette();
-
-		ydim16 = 350;
-		halfxdim16 = 320;
-		midydim16 = 146;
-
-		begindrawing();	//{{{
-		clearbuf((void *)frameplace, (bytesperline*350L) >> 2, 0);
-		enddrawing();	//}}}
-	}
-
-	qsetmode = 350;
-}
-
-
-//
-// qsetmode640480
-//
-void qsetmode640480(void)
-{
-	if (qsetmode != 480)
-	{
-		if (setvideomode(640, 480, 8, fullscreen) < 0) {
-			//fprintf(stderr, "Couldn't set 640x480 video mode for some reason.\n");
-			return;
-		}
-
-		xdim = xres;
-		ydim = yres;
-		pixelaspect = 65536;
-
-		setvgapalette();
-
-		ydim16 = 336;
-		halfxdim16 = 320;
-		midydim16 = 200;
-
-		begindrawing();	//{{{
-		clearbuf((void *)(frameplace + (336l*bytesperline)), (bytesperline*144L) >> 2, 0x08080808l);
-		clearbuf((void *)frameplace, (bytesperline*336L) >> 2, 0L);
-		enddrawing();	//}}}
-	}
-
-	qsetmode = 480;
-}
-
-
-//
-// qsetmodeany
-//
-void qsetmodeany(int daxdim, int daydim)
-{
-	if (daxdim < 640) daxdim = 640;
-	if (daydim < 480) daydim = 480;
-
-	if (qsetmode != ((daxdim<<16)|(daydim&0xffff))) {
-		if (setvideomode(daxdim, daydim, 8, fullscreen) < 0)
-			return;
-
-		xdim = xres;
-		ydim = yres;
-		pixelaspect = 65536;
-
-		setvgapalette();
-
-		ydim16 = yres - STATUS2DSIZ;
-		halfxdim16 = xres >> 1;
-		midydim16 = scale(200,yres,480);
-
-		begindrawing();	//{{{
-		clearbuf((void *)(frameplace + (ydim16*bytesperline)), (bytesperline*STATUS2DSIZ) >> 2, 0x08080808l);
-		clearbuf((void *)frameplace, (ydim16*bytesperline) >> 2, 0L);
-		enddrawing();	//}}}
-	}
-
-	qsetmode = ((daxdim<<16)|(daydim&0xffff));
-}
-
-
-//
-// clear2dscreen
-//
-void clear2dscreen(void)
-{
-	int clearsz;
-
-	begindrawing();	//{{{
-	if (qsetmode == 350) clearsz = 350;
-	else {
-		if (ydim16 <= yres-STATUS2DSIZ) clearsz = yres - STATUS2DSIZ;
-		else clearsz = yres;
-	}
-	clearbuf((void *)frameplace, (bytesperline*clearsz) >> 2, 0);
-	enddrawing();	//}}}
-}
-
-
-//
-// draw2dgrid
-//
-void draw2dgrid(int posxe, int posye, short ange, int zoome, short gride)
-{
-	int i, xp1, yp1, xp2=0, yp2, tempy;
-
-	(void)ange;
-
-	if (gride > 0)
-	{
-		begindrawing();	//{{{
-
-		yp1 = midydim16-mulscale14(posye+editorgridextent,zoome);
-		if (yp1 < 0) yp1 = 0;
-		yp2 = midydim16-mulscale14(posye-editorgridextent,zoome);
-		if (yp2 >= ydim16) yp2 = ydim16-1;
-
-		if ((yp1 < ydim16) && (yp2 >= 0) && (yp2 >= yp1))
-		{
-			xp1 = halfxdim16-mulscale14(posxe+editorgridextent,zoome);
-
-			for(i=-editorgridextent;i<=editorgridextent;i+=(2048>>gride))
-			{
-				xp2 = xp1;
-				xp1 = halfxdim16-mulscale14(posxe-i,zoome);
-
-				if (xp1 >= xdim) break;
-				if (xp1 >= 0)
-				{
-					if (xp1 != xp2)
-					{
-						drawline16(xp1,yp1,xp1,yp2,8);
-					}
-				}
-			}
-			if ((i >= editorgridextent) && (xp1 < xdim))
-				xp2 = xp1;
-			if ((xp2 >= 0) && (xp2 < xdim))
-			{
-				drawline16(xp2,yp1,xp2,yp2,8);
-			}
-		}
-
-		xp1 = mulscale14(posxe+editorgridextent,zoome);
-		xp2 = mulscale14(posxe-editorgridextent,zoome);
-		tempy = 0x80000000l;
-		for(i=-editorgridextent;i<=editorgridextent;i+=(2048>>gride))
-		{
-			yp1 = (((posye-i)*zoome)>>14);
-			if (yp1 != tempy)
-			{
-				if ((yp1 > midydim16-ydim16) && (yp1 <= midydim16))
-				{
-					drawline16(halfxdim16-xp1,midydim16-yp1,halfxdim16-xp2,midydim16-yp1,8);
-					tempy = yp1;
-				}
-			}
-		}
-
-		enddrawing();	//}}}
-	}
-}
-
-
-//
-// draw2dscreen
-//
-void draw2dscreen(int posxe, int posye, short ange, int zoome, short gride)
-{
-	walltype *wal;
-	int i, j, xp1, yp1, xp2, yp2;
-	intptr_t templong;
-	unsigned char col;
-
-	if (qsetmode == 200) return;
-
-	begindrawing();	//{{{
-
-	if (editstatus == 0)
-	{
-		faketimerhandler();
-		clear2dscreen();
-
-		faketimerhandler();
-		draw2dgrid(posxe,posye,ange,zoome,gride);
-	}
-
-	faketimerhandler();
-	for(i=numwalls-1,wal=&wall[i];i>=0;i--,wal--)
-	{
-		if (editstatus == 0)
-		{
-			if ((show2dwall[i>>3]&pow2char[i&7]) == 0) continue;
-			j = wal->nextwall;
-			if ((j >= 0) && (i > j))
-				if ((show2dwall[j>>3]&pow2char[j&7]) > 0) continue;
-		}
-		else
-		{
-			j = wal->nextwall;
-			if ((j >= 0) && (i > j)) continue;
-		}
-
-		if (j < 0)
-		{
-			col = 7;
-			if (i == linehighlight) if (totalclock & 8) col += (2<<2);
-		}
-		else
-		{
-			col = 4;
-			if ((wal->cstat&1) != 0) col = 5;
-			if ((i == linehighlight) || ((linehighlight >= 0) && (i == wall[linehighlight].nextwall)))
-				if (totalclock & 8) col += (2<<2);
-		}
-
-		xp1 = mulscale14(wal->x-posxe,zoome);
-		yp1 = mulscale14(wal->y-posye,zoome);
-		xp2 = mulscale14(wall[wal->point2].x-posxe,zoome);
-		yp2 = mulscale14(wall[wal->point2].y-posye,zoome);
-
-		if ((wal->cstat&64) > 0)
-		{
-			if (klabs(xp2-xp1) >= klabs(yp2-yp1))
-			{
-				drawline16(halfxdim16+xp1,midydim16+yp1+1,halfxdim16+xp2,midydim16+yp2+1,col);
-				drawline16(halfxdim16+xp1,midydim16+yp1-1,halfxdim16+xp2,midydim16+yp2-1,col);
-			}
-			else
-			{
-				drawline16(halfxdim16+xp1+1,midydim16+yp1,halfxdim16+xp2+1,midydim16+yp2,col);
-				drawline16(halfxdim16+xp1-1,midydim16+yp1,halfxdim16+xp2-1,midydim16+yp2,col);
-			}
-			col += 8;
-		}
-		drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16+xp2,midydim16+yp2,col);
-
-		if ((zoome >= 256) && (editstatus == 1))
-			if (((halfxdim16+xp1) >= 2) && ((halfxdim16+xp1) <= xdim-3))
-				if (((midydim16+yp1) >= 2) && ((midydim16+yp1) <= ydim16-3))
-				{
-					col = 2;
-					if (i == pointhighlight) {
-						if (totalclock & 8) col += (2<<2);	// JBF 20040116: two braces is all this needed. man I'm a fool sometimes.
-					}
-					else if ((highlightcnt > 0) && (editstatus == 1))
-					{
-						if (show2dwall[i>>3]&pow2char[i&7])
-							if (totalclock & 8) col += (2<<2);
-					}
-
-					templong = ((midydim16+yp1)*bytesperline)+(halfxdim16+xp1)+frameplace;
-					drawpixel((void *)(templong-2-(bytesperline<<1)), col);
-					drawpixel((void *)(templong-1-(bytesperline<<1)), col);
-					drawpixel((void *)(templong+0-(bytesperline<<1)), col);
-					drawpixel((void *)(templong+1-(bytesperline<<1)), col);
-					drawpixel((void *)(templong+2-(bytesperline<<1)), col);
-
-					drawpixel((void *)(templong-2+(bytesperline<<1)), col);
-					drawpixel((void *)(templong-1+(bytesperline<<1)), col);
-					drawpixel((void *)(templong+0+(bytesperline<<1)), col);
-					drawpixel((void *)(templong+1+(bytesperline<<1)), col);
-					drawpixel((void *)(templong+2+(bytesperline<<1)), col);
-
-					drawpixel((void *)(templong-2-bytesperline), col);
-					drawpixel((void *)(templong-2+0), col);
-					drawpixel((void *)(templong-2+bytesperline), col);
-
-					drawpixel((void *)(templong+2-bytesperline), col);
-					drawpixel((void *)(templong+2+0), col);
-					drawpixel((void *)(templong+2+bytesperline), col);
-				}
-	}
-	faketimerhandler();
-
-	if ((zoome >= 256) || (editstatus == 0))
-		for(i=0;i<numsectors;i++)
-			for(j=headspritesect[i];j>=0;j=nextspritesect[j])
-				if ((editstatus == 1) || (show2dsprite[j>>3]&pow2char[j&7]))
-				{
-					col = 3;
-					if ((sprite[j].cstat&1) > 0) col = 5;
-					if (editstatus == 1)
-					{
-						if (j+16384 == pointhighlight) {
-							if (totalclock & 8) col += (2<<2);
-						}
-						else if ((highlightcnt > 0) && (editstatus == 1))
-						{
-							if (show2dsprite[j>>3]&pow2char[j&7])
-								if (totalclock & 8) col += (2<<2);
-						}
-					}
-
-					xp1 = mulscale14(sprite[j].x-posxe,zoome);
-					yp1 = mulscale14(sprite[j].y-posye,zoome);
-					if (((halfxdim16+xp1) >= 2) && ((halfxdim16+xp1) <= xdim-3))
-						if (((midydim16+yp1) >= 2) && ((midydim16+yp1) <= ydim16-3))
-						{
-							templong = ((midydim16+yp1)*bytesperline)+(halfxdim16+xp1)+frameplace;
-							drawpixel((void *)(templong-1-(bytesperline<<1)), col);
-							drawpixel((void *)(templong+0-(bytesperline<<1)), col);
-							drawpixel((void *)(templong+1-(bytesperline<<1)), col);
-
-							drawpixel((void *)(templong-1+(bytesperline<<1)), col);
-							drawpixel((void *)(templong+0+(bytesperline<<1)), col);
-							drawpixel((void *)(templong+1+(bytesperline<<1)), col);
-
-							drawpixel((void *)(templong-2-bytesperline), col);
-							drawpixel((void *)(templong-2+0), col);
-							drawpixel((void *)(templong-2+bytesperline), col);
-
-							drawpixel((void *)(templong+2-bytesperline), col);
-							drawpixel((void *)(templong+2+0), col);
-							drawpixel((void *)(templong+2+bytesperline), col);
-
-							drawpixel((void *)(templong+1+bytesperline), col);
-							drawpixel((void *)(templong-1+bytesperline), col);
-							drawpixel((void *)(templong+1-bytesperline), col);
-							drawpixel((void *)(templong-1-bytesperline), col);
-
-							/*
-							 * JBF 20050103: A little something intended for TerminX. It draws a box
-							 * indicating the extents of a floor-aligned sprite in the 2D view of the editor.
-							 *
-							if ((sprite[j].cstat&32) > 0) {
-								int fx = mulscale6(tilesizx[sprite[j].picnum], sprite[j].xrepeat);
-								int fy = mulscale6(tilesizy[sprite[j].picnum], sprite[j].yrepeat);
-								int co[4][2], ii;
-								int sinang = sintable[(sprite[j].ang+512+1024)&2047];
-								int cosang = sintable[(sprite[j].ang+1024)&2047];
-								int r,s;
-
-								fx = mulscale10(fx,zoome) >> 1;
-								fy = mulscale10(fy,zoome) >> 1;
-
-								co[0][0] = -fx;
-								co[0][1] = -fy;
-								co[1][0] =  fx;
-								co[1][1] = -fy;
-								co[2][0] =  fx;
-								co[2][1] =  fy;
-								co[3][0] = -fx;
-								co[3][1] =  fy;
-
-								for (ii=0;ii<4;ii++) {
-									r = mulscale14(cosang,co[ii][0]) - mulscale14(sinang,co[ii][1]);
-									s = mulscale14(sinang,co[ii][0]) + mulscale14(cosang,co[ii][1]);
-									co[ii][0] = r;
-									co[ii][1] = s;
-								}
-
-								drawlinepat = 0xcccccccc;
-								for (ii=0;ii<4;ii++) {
-									drawline16(halfxdim16 + xp1 + co[ii][0], midydim16 + yp1 - co[ii][1],
-										halfxdim16 + xp1 + co[(ii+1)&3][0], midydim16 + yp1 - co[(ii+1)&3][1],
-										col);
-								}
-								drawlinepat = 0xffffffff;
-							}
-							*/
-
-							xp2 = mulscale11(sintable[(sprite[j].ang+2560)&2047],zoome) / 768;
-							yp2 = mulscale11(sintable[(sprite[j].ang+2048)&2047],zoome) / 768;
-
-							if ((sprite[j].cstat&256) > 0)
-							{
-								if (((sprite[j].ang+256)&512) == 0)
-								{
-									drawline16(halfxdim16+xp1,midydim16+yp1-1,halfxdim16+xp1+xp2,midydim16+yp1+yp2-1,col);
-									drawline16(halfxdim16+xp1,midydim16+yp1+1,halfxdim16+xp1+xp2,midydim16+yp1+yp2+1,col);
-								}
-								else
-								{
-									drawline16(halfxdim16+xp1-1,midydim16+yp1,halfxdim16+xp1+xp2-1,midydim16+yp1+yp2,col);
-									drawline16(halfxdim16+xp1+1,midydim16+yp1,halfxdim16+xp1+xp2+1,midydim16+yp1+yp2,col);
-								}
-								col += 8;
-							}
-							drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16+xp1+xp2,midydim16+yp1+yp2,col);
-						}
-				}
-
-	faketimerhandler();
-	xp1 = mulscale11(sintable[(ange+2560)&2047],zoome) / 768; //Draw white arrow
-	yp1 = mulscale11(sintable[(ange+2048)&2047],zoome) / 768;
-	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16-xp1,midydim16-yp1,15);
-	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16+yp1,midydim16-xp1,15);
-	drawline16(halfxdim16+xp1,midydim16+yp1,halfxdim16-yp1,midydim16+xp1,15);
-
-	enddrawing();	//}}}
-}
-
-
-//
-// printext16
-//
-void printext16(int xpos, int ypos, short col, short backcol, const char *name, char fontsize)
-{
-	int stx, i, x, y, charxsiz;
-	unsigned char *fontptr, *letptr, *ptr;
-
-	stx = xpos;
-
-	if (fontsize) { fontptr = smalltextfont; charxsiz = 4; }
-	else { fontptr = textfont; charxsiz = 8; }
-
-	begindrawing();	//{{{
-	for(i=0;name[i];i++)
-	{
-		letptr = &fontptr[((int)(unsigned char)name[i])<<3];
-		ptr = (unsigned char *)(bytesperline*(ypos+7)+(stx-fontsize)+frameplace);
-		for(y=7;y>=0;y--)
-		{
-			for(x=charxsiz-1;x>=0;x--)
-			{
-				if (letptr[y]&pow2char[7-fontsize-x])
-					ptr[x] = (unsigned char)col;
-				else if (backcol >= 0)
-					ptr[x] = (unsigned char)backcol;
-			}
-			ptr -= bytesperline;
-		}
-		stx += charxsiz;
-	}
-	enddrawing();	//}}}
 }
 
 
@@ -11112,37 +10452,35 @@ void printext16(int xpos, int ypos, short col, short backcol, const char *name, 
 //
 void printext256(int xpos, int ypos, short col, short backcol, const char *name, char fontsize)
 {
-	int stx, i, x, y, charxsiz;
-	unsigned char *fontptr, *letptr, *ptr;
-
-	stx = xpos;
-
-	if (fontsize) { fontptr = smalltextfont; charxsiz = 4; }
-	else { fontptr = textfont; charxsiz = 8; }
+	int stx, i, x, y;
+	const unsigned char *letptr;
+	unsigned char *ptr;
+	const struct textfontspec *f;
 
 #if USE_POLYMOST && USE_OPENGL
 	if (!polymost_printext256(xpos,ypos,col,backcol,name,fontsize)) return;
 #endif
 
-	begindrawing();	//{{{
+	f = &textfonts[min((unsigned)fontsize, 2)];
+	stx = xpos;
+
 	for(i=0;name[i];i++)
 	{
-		letptr = &fontptr[name[i]<<3];
-		ptr = (unsigned char *)(ylookup[ypos+7]+(stx-fontsize)+frameplace);
-		for(y=7;y>=0;y--)
+		letptr = &f->font[((int)(unsigned char)name[i])*f->cellh + f->cellyoff];
+		ptr = (unsigned char *)(ylookup[ypos+f->charysiz-1]+stx+frameplace);
+		for(y=f->charysiz-1;y>=0;y--)
 		{
-			for(x=charxsiz-1;x>=0;x--)
+			for(x=f->charxsiz-1;x>=0;x--)
 			{
-				if (letptr[y]&pow2char[7-fontsize-x])
+				if (letptr[y]&pow2char[7-x-f->cellxoff])
 					ptr[x] = (unsigned char)col;
 				else if (backcol >= 0)
 					ptr[x] = (unsigned char)backcol;
 			}
-			ptr -= ylookup[1];
+			ptr -= bytesperline;
 		}
-		stx += charxsiz;
+		stx += f->charxsiz;
 	}
-	enddrawing();	//}}}
 }
 
 
@@ -11220,7 +10558,6 @@ static int screencapture_writeframe(BFILE *fil, char mode, void *v,
 	}
 #endif
 
-	begindrawing();	//{{{
 	ptr = (unsigned char *)frameplace;
 	if (bottotop) {
 		ystart = ydim-1;
@@ -11248,7 +10585,6 @@ static int screencapture_writeframe(BFILE *fil, char mode, void *v,
 		}
 	}
 
-	enddrawing();	//}}}
 	return(0);
 }
 

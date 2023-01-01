@@ -211,7 +211,6 @@ short brightness = 0;
 static short screensize, screensizeflag = 0;
 static short neartagsector, neartagwall, neartagsprite;
 static int lockclock, neartagdist, neartaghitdist;
-extern int pageoffset, ydim16;
 static int globhiz, globloz, globhihit, globlohit;
 
 	//Over the shoulder mode variables
@@ -546,7 +545,7 @@ int app_main(int argc, char const * const argv[])
 
 	initinput();
 	if (option[3] != 0) initmouse();
-	inittimer(TIMERINTSPERSECOND);
+	inittimer(TIMERINTSPERSECOND, NULL);
 
 	if (netparm) {
 		netsuccess = initmultiplayersparms(endnetparm - netparm, &argv[netparm]);
@@ -584,8 +583,6 @@ int app_main(int argc, char const * const argv[])
                 sendlogoff();         //Signing off
                 musicoff();
                 uninitmultiplayers();
-                uninittimer();
-                uninitinput();
                 uninitengine();
                 uninitsb();
                 uninitgroupfile();
@@ -678,8 +675,6 @@ int app_main(int argc, char const * const argv[])
 				sendlogoff();         //Signing off
 				musicoff();
 				uninitmultiplayers();
-				uninittimer();
-				uninitinput();
 				uninitengine();
 				uninitsb();
 				uninitgroupfile();
@@ -789,8 +784,6 @@ int app_main(int argc, char const * const argv[])
 	sendlogoff();         //Signing off
 	musicoff();
 	uninitmultiplayers();
-	uninittimer();
-	uninitinput();
 	uninitengine();
 	uninitsb();
 	uninitgroupfile();
@@ -1194,8 +1187,6 @@ void prepareboard(char *daboardfilename)
 	{
 		musicoff();
 		uninitmultiplayers();
-		uninittimer();
-		uninitinput();
 		uninitengine();
 		uninitsb();
 		uninitgroupfile();
@@ -3931,7 +3922,6 @@ void drawscreen(short snum, int dasmoothratio)
 				if (POLYMOST_RENDERMODE_CLASSIC())
 				{
 					l = scale(choriz-100,windowx2-windowx1,320)+((windowy1+windowy2)>>1);
-					begindrawing();   //{{{
 					for(y1=windowy1,y2=windowy2;y1<y2;y1++,y2--)
 					{
 						ptr = (unsigned char *)(frameplace+ylookup[y1]);
@@ -3962,7 +3952,6 @@ void drawscreen(short snum, int dasmoothratio)
 						for(x1=ox1;x1<=ox2;x1++)
 							{ ch = ptr[x1]; ptr[x1] = ptr3[ptr2[x1]]; ptr2[x1] = ptr4[ch]; }
 					}
-					enddrawing(); //}}}
 				}
 				gotpic[FLOORMIRROR>>3] &= ~(1<<(FLOORMIRROR&7));
 			}
@@ -4817,8 +4806,6 @@ void playback(void)
 
 	musicoff();
 	uninitmultiplayers();
-	uninittimer();
-	uninitinput();
 	uninitengine();
 	uninitsb();
 	uninitgroupfile();
@@ -4836,8 +4823,6 @@ void setup3dscreen(void)
 		sendlogoff();
 		musicoff();
 		uninitmultiplayers();
-		uninittimer();
-		uninitinput();
 		uninitengine();
 		uninitsb();
 		uninitgroupfile();
@@ -6236,8 +6221,6 @@ void waitforeverybody ()
 			sendlogoff();         //Signing off
 			musicoff();
 			uninitmultiplayers();
-			uninittimer();
-			uninitinput();
 			uninitengine();
 			uninitsb();
 			uninitgroupfile();

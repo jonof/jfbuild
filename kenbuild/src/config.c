@@ -69,6 +69,9 @@ static int tmpsamplerate = -1;
 static int tmpmusic = -1;
 static int tmpmouse = -1;
 static int tmpjoystick = -1;
+#ifdef RENDERTYPEWIN
+static unsigned tmpmaxrefreshfreq = -1;
+#endif
 
 static struct {
 	const char *name;
@@ -112,7 +115,7 @@ static struct {
 	},
 #endif
 #ifdef RENDERTYPEWIN
-	{ "maxrefreshfreq", type_int, &maxrefreshfreq,
+	{ "maxrefreshfreq", type_int, &tmpmaxrefreshfreq,
 		"; Maximum OpenGL mode refresh rate (Windows only, in Hertz)\n"
 	},
 #endif
@@ -256,6 +259,9 @@ int loadsetup(const char *fn)
 		setrendermode(tmprenderer);
 	}
 #endif
+#ifdef RENDERTYPEWIN
+	win_setmaxrefreshfreq(tmpmaxrefreshfreq);
+#endif
 	if (tmpbrightness >= 0) {
 		brightness = min(max(tmpbrightness,0),15);
 	}
@@ -294,6 +300,9 @@ int writesetup(const char *fn)
 	tmpbrightness = brightness;
 #if USE_POLYMOST
 	tmprenderer = getrendermode();
+#endif
+#ifdef RENDERTYPEWIN
+	tmpmaxrefreshfreq = win_getmaxrefreshfreq();
 #endif
 	tmpsamplerate = option[7]>>4;
 	tmpmusic = option[2];
