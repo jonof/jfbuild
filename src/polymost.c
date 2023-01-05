@@ -4366,8 +4366,8 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	indexcnt = vbocnt = 0;
 	while (name[c]) {
 		for (; name[c] && indexcnt < 80*6; c++) {
-			tx = (GLfloat)(name[c]%32)*txg;
-			ty = (GLfloat)(name[c]/32)*tyg + tyoff;
+			tx = (GLfloat)((unsigned char)name[c]%32)*txg;
+			ty = (GLfloat)((unsigned char)name[c]/32)*tyg + tyoff;
 
 			vboindexes[indexcnt + 0] = vbocnt+0;
 			vboindexes[indexcnt + 1] = vbocnt+1;
