@@ -4187,6 +4187,7 @@ void polymost_fillpolygon (int npoints)
 	}
 	draw.texture1 = nulltexture;
 	draw.alphacut = 0.f;
+	draw.fogcolour.r = draw.fogcolour.g = draw.fogcolour.b = draw.fogcolour.a = 0.f;
 	draw.fogdensity = 0.f;
 
 	draw.colour.r = draw.colour.g = draw.colour.b =
