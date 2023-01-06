@@ -10,7 +10,7 @@
 
 #define MAXPALOOKUPS 256
 
-static int numpalookups, transratio;
+static int numpalookups, transratio, orignumpalookups;
 static char palettefilename[13];
 static unsigned char origpalookup[MAXPALOOKUPS<<8];
 static unsigned char palette[768], palookup[MAXPALOOKUPS<<8], transluc[65536];
@@ -149,8 +149,9 @@ void initfastcolorlookup(int rscale, int gscale, int bscale)
 int main(int argc, char **argv)
 {
 	char transonly = 0;
-	short orignumpalookups, s;
+	short s;
 	int fil, i, j, rscale, gscale, bscale;
+	ssize_t r;
 	unsigned char col, buf[65536];
 
 	if (argc>1) {
@@ -191,20 +192,31 @@ int main(int argc, char **argv)
 	}
 
 	if ((numpalookups < 1) || (numpalookups > 256))
-		{ printf("Invalid number of shades\n"); exit(0); }
+		{ printf("Invalid number of shades\n"); exit(1); }
 	if ((transratio < 0) || (transratio > 256))
-		{ printf("Invalid transluscent ratio\n"); exit(0); }
+		{ printf("Invalid transluscent ratio\n"); exit(1); }
 
 	if ((fil = Bopen(palettefilename,BO_BINARY|BO_RDONLY,BS_IREAD)) == -1)
 	{
 		printf("%s not found",palettefilename);
-		return(0);
+		return(1);
 	}
-	Bread(fil,palette,768);
-	Bread(fil,&orignumpalookups,2); orignumpalookups = B_LITTLE16(orignumpalookups);
+	if (Bread(fil,palette,768) != 768)
+	{
+		printf("Error: invalid palette\n");
+		return(1);
+	}
+
+	r = Bread(fil,&s,2);
+	orignumpalookups = B_LITTLE16(s);
 	orignumpalookups = min(max(orignumpalookups,1),256);
-	Bread(fil,origpalookup,(int)orignumpalookups<<8);
+	r += Bread(fil,origpalookup,orignumpalookups<<8);
 	Bclose(fil);
+	if (transonly && r != 2 + (orignumpalookups<<8))
+	{
+		printf("Warning: invalid palookups found, shade table will be updated\n");
+		transonly = 0;
+	}
 
 	memset(buf,0,65536);
 
@@ -240,18 +252,27 @@ int main(int argc, char **argv)
 
     if ((fil = Bopen(palettefilename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)
         { printf("Couldn't save file %s",palettefilename); return(0); }
-    Bwrite(fil,palette,768);
+    r = Bwrite(fil,palette,768);
     if (transonly) {
-        s = B_LITTLE16(orignumpalookups); Bwrite(fil,&s,2);
-        Bwrite(fil,origpalookup,(int)orignumpalookups<<8);
+        s = B_LITTLE16(orignumpalookups);
+        r += Bwrite(fil,&s,2);
+        r += Bwrite(fil,origpalookup,orignumpalookups<<8);
+        i = orignumpalookups;
         printf("Transluscent table updated\n");
     } else {
-        s = B_LITTLE16(numpalookups); Bwrite(fil,&s,2);
-        Bwrite(fil,palookup,numpalookups<<8);
+        s = B_LITTLE16(numpalookups);
+        r += Bwrite(fil,&s,2);
+        r += Bwrite(fil,palookup,numpalookups<<8);
+        i = numpalookups;
         printf("Shade table AND transluscent table updated\n");
     }
-    Bwrite(fil,transluc,65536);
+    r += Bwrite(fil,transluc,65536);
     Bclose(fil);
+    if (r != 768 + 2 + (i<<8) + 65536)
+    {
+    	printf("Write error\n");
+    	return(1);
+    }
 
 	return 0;
 }

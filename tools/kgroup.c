@@ -7,7 +7,7 @@
 
 #include "compat.h"
 
-// Glibc doesn't provide this function, so for the sake of less ugliess
+// Glibc doesn't provide this function, so for the sake of less ugliness
 // for all platforms, here's a replacement just for this program.
 static void jstrupr(char *s) { while (*s) { *s = Btoupper(*s); s++; } }
 
@@ -79,6 +79,7 @@ void findfiles(const char *dafilespec)
 int main(int argc, char **argv)
 {
 	int i, j, k, l, fil, fil2;
+	ssize_t r;
 
 	if (argc < 3)
 	{
@@ -121,11 +122,17 @@ int main(int argc, char **argv)
 	if ((fil = Bopen(argv[1],BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)
 	{
 		printf("Error: %s could not be opened\n",argv[1]);
-		exit(0);
+		exit(1);
 	}
-	Bwrite(fil,"KenSilverman",12);
-	Bwrite(fil,&numfiles,4);
-	Bwrite(fil,filelist,numfiles<<4);
+	r  = Bwrite(fil,"KenSilverman",12);
+	r += Bwrite(fil,&numfiles,4);
+	r += Bwrite(fil,filelist,numfiles<<4);
+	if (r != 12 + 4 + (numfiles<<4))
+	{
+		printf("Write error\n");
+		Bclose(fil);
+		return(1);
+	}
 
 	for(i=0;i<numfiles;i++)
 	{
@@ -139,13 +146,19 @@ int main(int argc, char **argv)
 		for(j=0;j<fileleng[i];j+=65536)
 		{
 			k = min(fileleng[i]-j,65536);
-			Bread(fil2,buf,k);
+			if (Bread(fil2,buf,k) < k)
+			{
+				Bclose(fil2);
+				Bclose(fil);
+				printf("Read error\n");
+				return(1);
+			}
 			if (Bwrite(fil,buf,k) < k)
 			{
 				Bclose(fil2);
 				Bclose(fil);
 				printf("OUT OF HD SPACE!\n");
-				return(0);
+				return(1);
 			}
 		}
 		Bclose(fil2);

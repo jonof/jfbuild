@@ -37,6 +37,7 @@ void findfiles(const char *dafilespec)
 int main(int argc, char **argv)
 {
     int i, j, k, l, fil, fil2;
+    ssize_t r;
     unsigned int crc;
 
     if (argc < 2)
@@ -54,11 +55,8 @@ int main(int argc, char **argv)
         return(0);
     }
 
-    Bread(fil,buf,16);
-    if ((buf[0] != 'K') || (buf[1] != 'e') || (buf[2] != 'n') ||
-         (buf[3] != 'S') || (buf[4] != 'i') || (buf[5] != 'l') ||
-         (buf[6] != 'v') || (buf[7] != 'e') || (buf[8] != 'r') ||
-         (buf[9] != 'm') || (buf[10] != 'a') || (buf[11] != 'n'))
+    r = Bread(fil,buf,16);
+    if (r != 16 || memcmp(buf, "KenSilverman", 12))
     {
         Bclose(fil);
         printf("Error: %s not a valid group file\n",argv[1]);
@@ -66,7 +64,13 @@ int main(int argc, char **argv)
     }
     numfiles = *((int*)&buf[12]); numfiles = B_LITTLE32(numfiles);
 
-    Bread(fil,filelist,numfiles<<4);
+    r = Bread(fil,filelist,numfiles<<4);
+    if (r != numfiles<<4)
+    {
+        Bclose(fil);
+        printf("Error: %s not a valid group file\n",argv[1]);
+        return(1);
+    }
 
     j = 0;
     for(i=0;i<numfiles;i++)
@@ -128,7 +132,12 @@ int main(int argc, char **argv)
         for(j=0;j<fileleng[i];j+=65536)
         {
             k = min(fileleng[i]-j,65536);
-            Bread(fil,buf,k);
+            if (Bread(fil,buf,k) < k)
+            {
+                printf("Read error\n");
+                Bclose(fil);
+                return(1);
+            }
             crc32block(&crc, (unsigned char *)buf, k);
         }
         crc32finish(&crc);

@@ -466,11 +466,12 @@ int app_main(int argc, char const * const argv[])
                 if (Bmkdir(dirpath, S_IRWXU) == 0) {
                     asperr = addsearchpath(dirpath);
                 } else {
+                    buildprintf("warning: could not create directory %s\n", dirpath);
                     asperr = -1;
                 }
             }
-            if (asperr == 0) {
-                (void)chdir(dirpath);
+            if (asperr == 0 && chdir(dirpath) < 0) {
+                buildprintf("warning: could not change directory to %s\n", dirpath);
             }
             free(supportdir);
         }
