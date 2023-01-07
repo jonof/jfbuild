@@ -70,6 +70,10 @@ ifeq ($(PLATFORM),WINDOWS)
 else
 	RENDERTYPE=SDL
 	EXESUFFIX=
+
+	ifeq ($(PLATFORM),DARWIN)
+		BUILDLDFLAGS+= -Wl,-dead_strip -Wl,-dead_strip_dylibs
+	endif
 endif
 
 ifeq ($(RENDERTYPE),SDL)
