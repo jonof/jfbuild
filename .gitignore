@@ -19,6 +19,7 @@
 /xcode/build
 
 /Makefile.*user
+/kenbuild/Makefile.*user
 /kenbuild/data/*
 
 /game

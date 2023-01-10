@@ -24,6 +24,7 @@ ENGINEINC=$(ENGINEROOT)/include
 SRC=src
 RSRC=rsrc
 GAMEDATA=data
+# VCPKG_ROOT=C:\vcpkg
 
 CC=cl
 RC=rc
@@ -44,7 +45,7 @@ GAMELINKFLAGS=$(GAMELINKFLAGS) /RELEASE
 !else
 # debugging options
 GAMECFLAGS=$(GAMECFLAGS) /Ot /Z7
-GAMECXXFLAGS=$(GAMEXXCFLAGS) /Ot /Z7
+GAMECXXFLAGS=$(GAMECXXFLAGS) /Ot /Z7
 GAMELINKFLAGS=$(GAMELINKFLAGS) /DEBUG
 !endif
 
@@ -63,11 +64,19 @@ GAMEEXEOBJS=$(SRC)\config.$o \
 	$(SRC)\game.$o \
 	$(SRC)\gameres.$(res) \
 	$(SRC)\startwin_game.$o \
-	$(SRC)\kdmsound.$o \
-	$(SRC)\kdmsound_stub.$o
+	$(SRC)\kdmsound.$o
 
 EDITOREXEOBJS=$(SRC)\bstub.$o \
 	$(SRC)\buildres.$(res)
+
+!if DEFINED(VCPKG_ROOT) && EXIST($(VCPKG_ROOT)\packages\xaudio2redist_$(PLATFORM)-windows)
+XAUDIO2REDIST=$(VCPKG_ROOT)\packages\xaudio2redist_$(PLATFORM)-windows
+GAMECPPFLAGS=$(GAMECPPFLAGS) /I$(XAUDIO2REDIST)\include\xaudio2redist
+GAMELIBS=$(GAMELIBS) ole32.lib $(XAUDIO2REDIST)\lib\xaudio2_9redist.lib
+GAMEEXEOBJS=$(GAMEEXEOBJS) $(SRC)\kdmsound_xaudio2.$o
+!else
+GAMEEXEOBJS=$(GAMEEXEOBJS) $(SRC)\kdmsound_stub.$o
+!endif
 
 # RULES
 {$(SRC)}.c{$(SRC)}.$o:
@@ -84,6 +93,9 @@ all: $(GAMEDATA)\game$(EXESUFFIX) $(GAMEDATA)\build$(EXESUFFIX) ;
 
 $(GAMEDATA)\game$(EXESUFFIX): $(GAMEEXEOBJS) $(ENGINEROOT)\$(ENGINELIB)
 	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS $(LINKFLAGS) $(GAMELINKFLAGS) $** $(GAMELIBS)
+!if DEFINED(XAUDIO2REDIST)
+	copy $(XAUDIO2REDIST)\bin\xaudio2_9redist.dll $(GAMEDATA)
+!endif
 
 $(GAMEDATA)\build$(EXESUFFIX): $(EDITOREXEOBJS) $(ENGINEROOT)\$(ENGINELIB) $(ENGINEROOT)\$(EDITORLIB)
 	$(LINK) /OUT:$@ /SUBSYSTEM:WINDOWS $(LINKFLAGS) $(GAMELINKFLAGS) $** $(GAMELIBS)

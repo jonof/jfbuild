@@ -80,9 +80,9 @@ static unsigned char *snd = NULL;
 
 static void startwave(int wavnum, int dafreq, int davolume1, int davolume2, int dafrqeff, int davoleff, int dapaneff);
 static void fsin(int *eax);
-static int msqrtasm(unsigned int c);
-static void bound2char(int count, int *stemp, unsigned char *charptr);
-static void bound2short(int count, int *stemp, short *shortptr);
+static inline int msqrtasm(unsigned int c);
+static inline void bound2char(int count, int *stemp, unsigned char *charptr);
+static inline void bound2short(int count, int *stemp, short *shortptr);
 static void calcvolookupmono(int *edi, int eax, int ebx);
 static void calcvolookupstereo(int *edi, int eax, int ebx, int ecx, int edx);
 static int monohicomb(int unused, int *volptr, int cnt, int dasinc, int dasplc, int *stemp);
@@ -596,7 +596,7 @@ static void fsin(int *eax)
     *eax = sinf(M_PI * (*eax) * oneshr10) * oneshl14;
 }
 
-static int msqrtasm(unsigned int c)
+static inline int msqrtasm(unsigned int c)
 {
     unsigned int a,b;
 
@@ -617,7 +617,7 @@ static int msqrtasm(unsigned int c)
     return a;
 }
 
-static void bound2char(int count, int *stemp, unsigned char *charptr)
+static inline void bound2char(int count, int *stemp, unsigned char *charptr)
 {
     int i, j;
 
@@ -632,7 +632,7 @@ static void bound2char(int count, int *stemp, unsigned char *charptr)
     }
 }
 
-static void bound2short(int count, int *stemp, short *shortptr)
+static inline void bound2short(int count, int *stemp, short *shortptr)
 {
     int i, j;
 

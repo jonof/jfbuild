@@ -46,7 +46,7 @@ static HDC hDCWindow = NULL;
 static BOOL window_class_registered = FALSE;
 static HANDLE instanceflag = NULL;
 
-static int backgroundidle = 1;
+static int backgroundidle = 0;
 static char apptitle[256] = "Build Engine";
 static char wintitle[256] = "";
 
