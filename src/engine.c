@@ -4505,7 +4505,7 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 
 	palookupoffs = (intptr_t)palookup[dapalnum] + (getpalookup(0L,(int)dashade)<<8);
 
-	iv = divscale32(1L,z);
+	iv = (z == 65536) ? 65536 : divscale32(1L,z);
 	xv = mulscale14(sinang,iv);
 	yv = mulscale14(cosang,iv);
 	if (((dastat&2) != 0 && (dastat&256) == 0) || ((dastat&8) == 0)) //Don't aspect unscaled perms
