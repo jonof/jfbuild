@@ -267,6 +267,7 @@ int loadsetup(const char *fn)
 	}
 	if (tmpsamplerate >= 0) {
 		option[7] = (tmpsamplerate & 0x0f) << 4;
+		option[7] |= 1|2|4;
 	}
 	if (tmpmusic >= 0) {
 		option[2] = !!tmpmusic;
