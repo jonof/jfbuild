@@ -33,6 +33,11 @@
 #  include <sys/sysctl.h> // for sysctl() to get path to executable
 #endif
 
+#if defined(__HAIKU__)
+#  include <kernel/image.h>
+#  include <libgen.h>
+#endif
+
 
 #if !defined(_WIN32)
 char *strlwr(char *s)
@@ -154,8 +159,16 @@ char *Bgetappdir(void)
         // on FreeBSD dirname() seems to use some internal buffer
         dir = strdup(dirname(buf));
     }
+#elif defined(__HAIKU__)
+    image_info info;
+    int32 cookie = 0;
+    while (get_next_image_info(0, &cookie, &info) == B_OK) {
+        if (info.type != B_APP_IMAGE) continue;
+        dir = strdup(dirname(info.name));
+        break;
+    }
 #endif
-    
+
     return dir;
 }
 
@@ -335,9 +348,6 @@ typedef struct {
 	WIN32_FIND_DATA fid;
 #else
 	DIR *dir;
-	size_t rootlen;
-	char *work;
-	size_t worklen;
 #endif
 	struct Bdirent info;
 	int status;
@@ -386,23 +396,10 @@ BDIR* Bopendir(const char *name)
 		free(dirr);
 		return NULL;
 	}
-
-	// Preallocate the work buffer.
-	dirr->rootlen = strlen(name);
-	dirr->worklen = dirr->rootlen + 1 + 64 + 1;
-	dirr->work = (char *)malloc(dirr->worklen);
-	if (!dirr->work) {
-		closedir(dirr->dir);
-		free(dirr);
-		return NULL;
-	}
-
-	strcpy(dirr->work, name);
-	strcat(dirr->work, "/");
 #endif
 
 	dirr->status = 0;
-	
+
 	return (BDIR*)dirr;
 }
 
@@ -421,7 +418,7 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	}
 	dirr->info.namlen = strlen(dirr->fid.cFileName);
 	dirr->info.name = (char *)dirr->fid.cFileName;
-	
+
 	dirr->info.mode = 0;
 	if (dirr->fid.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) dirr->info.mode |= S_IFDIR;
 	else dirr->info.mode |= S_IFREG;
@@ -436,16 +433,15 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	tmp.LowPart = dirr->fid.ftLastWriteTime.dwLowDateTime;
 	tmp.QuadPart -= INT64_C(116444736000000000);
 	dirr->info.mtime = (time_t)(tmp.QuadPart / 10000000);
-	
+
 	dirr->status++;
 
 #else
-    struct dirent *de;
-    struct stat st;
-    size_t fnlen;
+	struct dirent *de;
+	struct stat st;
 
-    de = readdir(dirr->dir);
-    if (de == NULL) {
+	de = readdir(dirr->dir);
+	if (de == NULL) {
 		dirr->status = -1;
 		return NULL;
 	} else {
@@ -458,23 +454,10 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	dirr->info.size = 0;
 	dirr->info.mtime = 0;
 
-	fnlen = dirr->rootlen + 1 + dirr->info.namlen + 1;
-	if (dirr->worklen < fnlen) {
-		char *newwork = (char *)realloc(dirr->work, fnlen);
-		if (!newwork) {
-			dirr->status = -1;
-			return NULL;
-		}
-
-		dirr->work = newwork;
-		dirr->worklen = fnlen;
-	}
-
-	strcpy(&dirr->work[dirr->rootlen + 1], dirr->info.name);
-	if (!stat(dirr->work, &st)) {
-        dirr->info.mode = st.st_mode;
-        dirr->info.size = st.st_size;
-        dirr->info.mtime = st.st_mtime;
+	if (!fstatat(dirfd(dirr->dir), de->d_name, &st, 0)) {
+		dirr->info.mode = st.st_mode;
+		dirr->info.size = st.st_size;
+ 		dirr->info.mtime = st.st_mtime;
 	}
 #endif
 
@@ -484,11 +467,10 @@ struct Bdirent*	Breaddir(BDIR *dir)
 int Bclosedir(BDIR *dir)
 {
 	BDIR_real *dirr = (BDIR_real*)dir;
-	
+
 #ifdef _MSC_VER
 	FindClose(dirr->hfind);
 #else
-	free(dirr->work);
 	closedir(dirr->dir);
 #endif
 	free(dirr);

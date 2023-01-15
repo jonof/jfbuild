@@ -332,7 +332,7 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 	memset(msg_control, 0, sizeof(msg_control));
 
 	cmsg = CMSG_FIRSTHDR(&msg);
-#ifndef __APPLE__
+#if !defined(__APPLE__) && !defined(__HAIKU__)
 	// OS X doesn't implement setting the UDP4 source. We'll
 	// just have to cross our fingers.
 	if (replyfrom4[other].s_addr != INADDR_ANY) {

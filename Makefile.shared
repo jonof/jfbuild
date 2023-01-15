@@ -37,6 +37,9 @@ ifndef PLATFORM
 	ifneq (,$(findstring -darwin,$(TARGETMACHINE)))
 		PLATFORM=DARWIN
 	endif
+	ifneq (,$(findstring -haiku,$(TARGETMACHINE)))
+		PLATFORM=HAIKU
+	endif
 endif
 ifndef ARCHITECTURE
 	ARCHITECTURE=UNKNOWN
@@ -73,6 +76,9 @@ else
 
 	ifeq ($(PLATFORM),DARWIN)
 		BUILDLDFLAGS+= -Wl,-dead_strip -Wl,-dead_strip_dylibs
+	endif
+	ifeq ($(PLATFORM),HAIKU)
+		BUILDLDFLAGS+= -lnetwork
 	endif
 endif
 

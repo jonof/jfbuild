@@ -3012,17 +3012,19 @@ int kzfindfile (char *filnam)
 			strcpy(&filnam[i],findata.cFileName);
 			if (findata.dwFileAttributes&FILE_ATTRIBUTE_DIRECTORY) strcat(&filnam[i],"\\");
 #else
+			struct stat st;
 			if ((findata = readdir(hfind)) == NULL)
 				{ closedir(hfind); hfind = NULL; if (!kzhashbuf) return 0; srchstat = kzlastfnam; break; }
 			i = wildstpathleng;
-			if (findata->d_type == DT_DIR)
+			if (fstatat(dirfd(hfind), findata->d_name, &st, 0)) continue;
+			if (st.st_mode & S_IFDIR)
 				{ if (findata->d_name[0] == '.' && !findata->d_name[1]) continue; } //skip .
-			else if ((findata->d_type == DT_REG) || (findata->d_type == DT_LNK))
+			else if ((st.st_mode & S_IFREG) || (st.st_mode & S_IFLNK))
 				{ if (findata->d_name[0] == '.') continue; } //skip hidden (dot) files
 			else continue; //skip devices and fifos and such
 			if (!wildmatch(findata->d_name,&wildst[wildstpathleng])) continue;
 			strcpy(&filnam[i],findata->d_name);
-			if (findata->d_type == DT_DIR) strcat(&filnam[i],"/");
+			if (st.st_mode & S_IFDIR) strcat(&filnam[i],"/");
 #endif
 			return(1);
 		}
