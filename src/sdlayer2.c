@@ -1277,6 +1277,18 @@ int handleevents(void)
 				}
 				// else, fallthrough
 			case SDL_KEYDOWN:
+#ifdef __APPLE__
+				// For Mac keyboards that removed the Help key, which shared a scancode
+				// with PC Insert, pretend Cmd+Delete is insert when in the editor.
+				if (ev.key.keysym.sym == SDLK_DELETE && ev.key.keysym.mod == KMOD_RGUI) {
+					extern short editstatus;
+					if (editstatus) {
+						ev.key.keysym.sym = SDLK_INSERT;
+						ev.key.keysym.scancode = SDL_SCANCODE_INSERT;
+						ev.key.keysym.mod &= ~KMOD_RGUI;
+					}
+				}
+#endif
 				code = keytranslation[ev.key.keysym.scancode].normal;
 				control = keytranslation[ev.key.keysym.scancode].controlchar;
 
