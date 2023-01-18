@@ -146,8 +146,6 @@ int ExtInit(void)
 				"There was a problem initialising the Build engine: %s", engineerrstr);
 		return -1;
 	}
-	initinput();
-	initmouse();
 
 		//You can load your own palette lookup tables here if you just
 		//copy the right code!
