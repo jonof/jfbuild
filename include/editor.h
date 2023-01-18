@@ -13,7 +13,7 @@ extern "C" {
 
 extern int qsetmode;
 extern short searchsector, searchwall, searchstat;
-extern int zmode, kensplayerheight;
+extern int zmode, kensplayerheight, kenswalldist;
 extern short defaultspritecstat;
 extern int posx, posy, posz, horiz;
 extern short ang, cursectnum;

@@ -58,7 +58,7 @@ extern int cachesize, artsize;
 
 static short oldmousebstatus = 0;
 short brightness = 0;
-int zlock = 0x7fffffff, zmode = 0, whitecol, blackcol, kensplayerheight = 32;
+int zlock = 0x7fffffff, zmode = 0, whitecol, blackcol, kensplayerheight = 32, kenswalldist = 128;
 short defaultspritecstat = 0;
 
 static short localartfreq[MAXTILES];
@@ -74,7 +74,7 @@ extern int searchx, searchy;                          //search input
 extern short searchsector, searchwall, searchstat;     //search output
 
 extern short pointhighlight, linehighlight, highlightcnt;
-short grid = 3, gridlock = 1, showtags = 1;
+short grid = 3, gridlock = 1, showtags = 1, showspriteextents = 0;
 int zoom = 768, gettilezoom = 1;
 
 int numsprites;
@@ -214,6 +214,24 @@ static int osdcmd_mapversion(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
+static int osdcmd_showspriteextents(const osdfuncparm_t *parm)
+{
+	int newval;
+
+	if (parm->numparms != 1) {
+		buildprintf("showspriteextents is %d\n", showspriteextents);
+		return OSDCMD_OK;
+	}
+	newval = atoi(parm->parms[0]);
+	if (newval < 0 || newval > 2) {
+		return OSDCMD_SHOWHELP;
+	}
+
+	buildprintf("showspriteextents is now %d (was %d)\n", newval, showspriteextents);
+	showspriteextents = newval;
+	return OSDCMD_OK;
+}
+
 #if defined RENDERTYPEWIN || (defined RENDERTYPESDL && (defined __APPLE__ || defined HAVE_GTK))
 # define HAVE_STARTWIN
 #endif
@@ -237,6 +255,8 @@ int app_main(int argc, char const * const argv[])
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
 	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
 	OSD_RegisterFunction("mapversion","mapversion [ver]: change the map version for save (min 5, max 8)", osdcmd_mapversion);
+	OSD_RegisterFunction("showspriteextents","showspriteextents [state]: show floor/wall sprite extents and "
+		"walldist clipping boundary (0 = off, 1 = extents, 2 = +clip)", osdcmd_showspriteextents);
 
 	wm_setapptitle("BUILD by Ken Silverman");
 
@@ -588,9 +608,9 @@ void editinput(void)
 			xvect += ((svel*doubvel*(int)sintable[(ang+2048)&2047])>>3);
 			yvect += ((svel*doubvel*(int)sintable[(ang+1536)&2047])>>3);
 		}
-		clipmove(&posx,&posy,&posz,&cursectnum,xvect,yvect,128L,4L<<8,4L<<8,CLIPMASK0);
+		clipmove(&posx,&posy,&posz,&cursectnum,xvect,yvect,kenswalldist,4L<<8,4L<<8,CLIPMASK0);
 	}
-	getzrange(posx,posy,posz,cursectnum,&hiz,&hihit,&loz,&lohit,128L,CLIPMASK0);
+	getzrange(posx,posy,posz,cursectnum,&hiz,&hihit,&loz,&lohit,kenswalldist,CLIPMASK0);
 
 	if (keystatus[0x3a] > 0)
 	{
@@ -2805,7 +2825,7 @@ void overheadeditor(void)
 				xvect += ((svel*doubvel*(int)sintable[(ang+2048)&2047])>>3);
 				yvect += ((svel*doubvel*(int)sintable[(ang+1536)&2047])>>3);
 			}
-			clipmove(&posx,&posy,&posz,&cursectnum,xvect,yvect,128L,4L<<8,4L<<8,CLIPMASK0);
+			clipmove(&posx,&posy,&posz,&cursectnum,xvect,yvect,kenswalldist,4L<<8,4L<<8,CLIPMASK0);
 		}
 
 		getpoint(searchx,searchy,&mousxplc,&mousyplc);
@@ -6951,46 +6971,83 @@ void draw2dscreen(int posxe, int posye, short ange, int zoome, short gride)
 							drawpixel((void *)(templong+1-bytesperline), col);
 							drawpixel((void *)(templong-1-bytesperline), col);
 
-							/*
-							 * JBF 20050103: A little something intended for TerminX. It draws a box
-							 * indicating the extents of a floor-aligned sprite in the 2D view of the editor.
-							 *
-							if ((sprite[j].cstat&32) > 0) {
-								int fx = mulscale6(tilesizx[sprite[j].picnum], sprite[j].xrepeat);
-								int fy = mulscale6(tilesizy[sprite[j].picnum], sprite[j].yrepeat);
-								int co[4][2], ii;
-								int sinang = sintable[(sprite[j].ang+512+1024)&2047];
-								int cosang = sintable[(sprite[j].ang+1024)&2047];
-								int r,s;
+							if (showspriteextents && (sprite[j].cstat&(32|16))) {
+								int np, p;
+								int xoff, yoff, dax, day;
+								int rxi[4], ryi[4];
+								int clipx[4] = {0}, clipy[4] = {0};
 
-								fx = mulscale10(fx,zoome) >> 1;
-								fy = mulscale10(fy,zoome) >> 1;
+								int tilenum = sprite[j].picnum;
+								int ang = sprite[j].ang;
+								int xrepeat = sprite[j].xrepeat, yrepeat = sprite[j].yrepeat;
 
-								co[0][0] = -fx;
-								co[0][1] = -fy;
-								co[1][0] =  fx;
-								co[1][1] = -fy;
-								co[2][0] =  fx;
-								co[2][1] =  fy;
-								co[3][0] = -fx;
-								co[3][1] =  fy;
+								xoff = (int)((signed char)((picanm[tilenum]>>8)&255))+((int)sprite[j].xoffset);
+								yoff = (int)((signed char)((picanm[tilenum]>>16)&255))+((int)sprite[j].yoffset);
+								if ((sprite[j].cstat&4) > 0) xoff = -xoff;
+								if ((sprite[j].cstat&8) > 0) yoff = -yoff;
 
-								for (ii=0;ii<4;ii++) {
-									r = mulscale14(cosang,co[ii][0]) - mulscale14(sinang,co[ii][1]);
-									s = mulscale14(sinang,co[ii][0]) + mulscale14(cosang,co[ii][1]);
-									co[ii][0] = r;
-									co[ii][1] = s;
+								if (sprite[j].cstat & 32) {
+									// Floor sprite
+									int cosang = sintable[(ang+512)&2047];
+									int sinang = sintable[(ang)&2047];
+
+									dax = ((tilesizx[tilenum]>>1)+xoff)*xrepeat;
+									day = ((tilesizy[tilenum]>>1)+yoff)*yrepeat;
+
+									rxi[0] = dmulscale16(sinang,dax,cosang,day);
+									ryi[0] = dmulscale16(sinang,day,-cosang,dax);
+									rxi[1] = rxi[0] - mulscale16(sinang,tilesizx[tilenum]*xrepeat);
+									ryi[1] = ryi[0] + mulscale16(cosang,tilesizx[tilenum]*xrepeat);
+									rxi[2] = rxi[1] - mulscale16(cosang,tilesizy[tilenum]*yrepeat);
+									rxi[3] = rxi[0] - mulscale16(cosang,tilesizy[tilenum]*yrepeat);
+									ryi[2] = ryi[1] - mulscale16(sinang,tilesizy[tilenum]*yrepeat);
+									ryi[3] = ryi[0] - mulscale16(sinang,tilesizy[tilenum]*yrepeat);
+									np = 4;
+								} else {
+									// Wall sprite
+									dax = sintable[ang&2047]*xrepeat;
+									day = sintable[(ang+1536)&2047]*xrepeat;
+									rxi[2] = rxi[1] = -mulscale16(dax,(tilesizx[tilenum]>>1)+xoff);
+									rxi[3] = rxi[0] = rxi[1] + mulscale16(dax,tilesizx[tilenum]);
+									ryi[2] = ryi[1] = -mulscale16(day,(tilesizx[tilenum]>>1)+xoff);
+									ryi[3] = ryi[0] = ryi[1] + mulscale16(day,tilesizx[tilenum]);
+									np = 1;
 								}
 
-								drawlinepat = 0xcccccccc;
-								for (ii=0;ii<4;ii++) {
-									drawline16(halfxdim16 + xp1 + co[ii][0], midydim16 + yp1 - co[ii][1],
-										halfxdim16 + xp1 + co[(ii+1)&3][0], midydim16 + yp1 - co[(ii+1)&3][1],
+								if (showspriteextents >= 2) {
+									// Apply clipping boundary.
+									dax = mulscale14(sintable[(ang-256+512)&2047],kenswalldist);
+									day = mulscale14(sintable[(ang-256)&2047],kenswalldist);
+									clipx[1] = rxi[1]-day; clipy[1] = ryi[1]+dax;
+									clipx[0] = rxi[0]+dax; clipy[0] = ryi[0]+day;
+									clipx[3] = rxi[3]+day; clipy[3] = ryi[3]-dax;
+									clipx[2] = rxi[2]-dax; clipy[2] = ryi[2]-day;
+								}
+
+								// Correct for zoom.
+								for (p=0;p<4;p++) {
+									rxi[p] = mulscale14(rxi[p],zoome);
+									ryi[p] = mulscale14(ryi[p],zoome);
+									clipx[p] = mulscale14(clipx[p],zoome);
+									clipy[p] = mulscale14(clipy[p],zoome);
+								}
+
+								drawlinepat = 0x99999999;
+								for (p=0;p<np;p++) {
+									drawline16(halfxdim16 + xp1 + rxi[p], midydim16 + yp1 + ryi[p],
+										halfxdim16 + xp1 + rxi[(p+1)&3], midydim16 + yp1 + ryi[(p+1)&3],
 										col);
+								}
+								if (showspriteextents >= 2) {
+									drawlinepat = 0x11111111;
+									for (p=0;p<4;p++) {
+										drawline16(halfxdim16 + xp1 + clipx[p], midydim16 + yp1 + clipy[p],
+											halfxdim16 + xp1 + clipx[(p+1)&3], midydim16 + yp1 + clipy[(p+1)&3],
+											col);
+									}
 								}
 								drawlinepat = 0xffffffff;
 							}
-							*/
 
 							xp2 = mulscale11(sintable[(sprite[j].ang+2560)&2047],zoome) / 768;
 							yp2 = mulscale11(sintable[(sprite[j].ang+2048)&2047],zoome) / 768;
