@@ -280,6 +280,13 @@ int netsend (int other, void *dabuf, int bufsiz) //0:buffer full... can't send
 		return 0;
 	}
 
+	if (IS_INVALID_SOCKET(mysock)) {
+#ifdef MMULTI_DEBUG_SENDRECV_WIRE
+		debugprintf("mmulti debug send error: invalid socket\n");
+#endif
+		return 0;
+	}
+
 #ifdef MMULTI_DEBUG_SENDRECV_WIRE
 	{
 		int i;
@@ -394,6 +401,13 @@ int netread (int *other, void *dabuf, int bufsiz) //0:no packets in buffer
 {
 	char msg_control[1024];
 	int i;
+
+	if (IS_INVALID_SOCKET(mysock)) {
+#ifdef MMULTI_DEBUG_SENDRECV_WIRE
+		debugprintf("mmulti debug recv error: invalid socket\n");
+#endif
+		return 0;
+	}
 
 #ifdef _WIN32
 	WSABUF iovec;
