@@ -931,7 +931,7 @@ static md3model *md3load (int fil)
 
 #if B_BIG_ENDIAN != 0
 		{
-			int *l;
+			int i, j, *l;
 
 			for (i=s->numtris-1;i>=0;i--) {
 				for (j=2;j>=0;j--) s->tris[i].i[j] = B_LITTLE32(s->tris[i].i[j]);
