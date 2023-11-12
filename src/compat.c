@@ -348,6 +348,9 @@ typedef struct {
 	WIN32_FIND_DATA fid;
 #else
 	DIR *dir;
+#ifdef __MINGW32__
+	char *path;
+#endif
 #endif
 	struct Bdirent info;
 	int status;
@@ -391,6 +394,9 @@ BDIR* Bopendir(const char *name)
 		return NULL;
 	}
 #else
+#ifdef __MINGW32__
+	dirr->path = strdup(name);
+#endif
 	dirr->dir = opendir(name);
 	if (dirr->dir == NULL) {
 		free(dirr);
@@ -406,7 +412,6 @@ BDIR* Bopendir(const char *name)
 struct Bdirent*	Breaddir(BDIR *dir)
 {
 	BDIR_real *dirr = (BDIR_real*)dir;
-
 #ifdef _MSC_VER
 	LARGE_INTEGER tmp;
 
@@ -454,11 +459,25 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	dirr->info.size = 0;
 	dirr->info.mtime = 0;
 
+#ifdef __MINGW32__
+    char *fn = (char *)malloc(Bstrlen(dirr->path) + 1 + dirr->info.namlen + 1);
+    Bsprintf(fn, "%s/%s", dirr->path, de->d_name);
+
+    if (!Bstat(fn, &st))
+    {
+        dirr->info.mode = st.st_mode;
+        dirr->info.size = st.st_size;
+        dirr->info.mtime = st.st_mtime;
+    }
+
+    free(fn);
+#else
 	if (!fstatat(dirfd(dirr->dir), de->d_name, &st, 0)) {
 		dirr->info.mode = st.st_mode;
 		dirr->info.size = st.st_size;
  		dirr->info.mtime = st.st_mtime;
 	}
+#endif
 #endif
 
 	return &dirr->info;
@@ -472,6 +491,9 @@ int Bclosedir(BDIR *dir)
 	FindClose(dirr->hfind);
 #else
 	closedir(dirr->dir);
+#ifdef __MINGW32__
+	free(dirr->path);
+#endif
 #endif
 	free(dirr);
 
