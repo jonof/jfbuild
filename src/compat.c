@@ -460,22 +460,22 @@ struct Bdirent*	Breaddir(BDIR *dir)
 	dirr->info.mtime = 0;
 
 #ifdef __MINGW32__
-    char *fn = (char *)malloc(Bstrlen(dirr->path) + 1 + dirr->info.namlen + 1);
-    Bsprintf(fn, "%s/%s", dirr->path, de->d_name);
+	char *fn = (char *)malloc(Bstrlen(dirr->path) + 1 + dirr->info.namlen + 1);
+	Bsprintf(fn, "%s/%s", dirr->path, de->d_name);
 
-    if (!Bstat(fn, &st))
-    {
-        dirr->info.mode = st.st_mode;
-        dirr->info.size = st.st_size;
-        dirr->info.mtime = st.st_mtime;
-    }
+	if (!Bstat(fn, &st))
+	{
+		dirr->info.mode = st.st_mode;
+		dirr->info.size = st.st_size;
+		dirr->info.mtime = st.st_mtime;
+	}
 
-    free(fn);
+	free(fn);
 #else
 	if (!fstatat(dirfd(dirr->dir), de->d_name, &st, 0)) {
 		dirr->info.mode = st.st_mode;
 		dirr->info.size = st.st_size;
- 		dirr->info.mtime = st.st_mtime;
+		dirr->info.mtime = st.st_mtime;
 	}
 #endif
 #endif
