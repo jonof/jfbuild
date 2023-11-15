@@ -88,6 +88,7 @@ These options are available:
  * `USE_OPENGL=USE_GLES2` – enable use of OpenGL ES 2.0 acceleration. (Not a valid setting for MSVC.)
  * `USE_OPENGL=0` – disable use of OpenGL acceleration.
  * `WITHOUT_GTK=1` – disable use of GTK+ to provide launch windows and load/save file choosers.
+ * `RENDERTYPE=SDL` - force use of SDL2 backend on windows (to enable sound on mingw for example)
 
 Test game configuration
 -----------------------
