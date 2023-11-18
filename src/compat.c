@@ -343,7 +343,7 @@ off_t Bfilelength(int fd)
 
 
 typedef struct {
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#ifdef _WIN32
 	HANDLE hfind;
 	WIN32_FIND_DATA fid;
 #else
@@ -357,7 +357,7 @@ BDIR* Bopendir(const char *name)
 {
 	BDIR_real *dirr;
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#ifdef _WIN32
 	char *tname, *tcurs;
 #endif
 
@@ -367,7 +367,7 @@ BDIR* Bopendir(const char *name)
 	}
 	memset(dirr, 0, sizeof(BDIR_real));
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#ifdef _WIN32
 	tname = (char*)malloc(strlen(name) + 4 + 1);
 	if (!tname) {
 		free(dirr);
@@ -407,7 +407,7 @@ struct Bdirent*	Breaddir(BDIR *dir)
 {
 	BDIR_real *dirr = (BDIR_real*)dir;
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#ifdef _WIN32
 	LARGE_INTEGER tmp;
 
 	if (dirr->status > 0) {
@@ -468,7 +468,7 @@ int Bclosedir(BDIR *dir)
 {
 	BDIR_real *dirr = (BDIR_real*)dir;
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#ifdef _WIN32
 	FindClose(dirr->hfind);
 #else
 	closedir(dirr->dir);
