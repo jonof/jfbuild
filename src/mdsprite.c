@@ -45,7 +45,7 @@ static struct polymostvboitem *elementvbo = NULL;	 // 3 per triangle.
 mdmodel *mdload (const char *);
 void mdfree (mdmodel *);
 
-void freeallmodels ()
+void freeallmodels (void)
 {
 	int i;
 
@@ -73,7 +73,7 @@ void freeallmodels ()
 
 }
 
-void clearskins ()
+void clearskins (void)
 {
 	mdmodel *m;
 	int i, j;
@@ -129,7 +129,7 @@ void clearskins ()
 	}
 }
 
-void mdinit ()
+void mdinit (void)
 {
 	memset(hudmem,0,sizeof(hudmem));
 	freeallmodels();
@@ -1437,7 +1437,7 @@ static int isolid (int x, int y, int z)
 	z += x*yzsiz + y*zsiz; return(vbit[z>>5]&(1<<SHIFTMOD32(z)));
 }
 
-static voxmodel *vox2poly ()
+static voxmodel *vox2poly (void)
 {
 	int i, j, x, y, z, v, ov, oz = 0, cnt, sc, x0, y0, dx, dy, *bx0, *by0;
 	void (*daquad)(int, int, int, int, int, int, int, int, int, int);

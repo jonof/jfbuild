@@ -94,7 +94,7 @@ static inline int ptm_gethashhead(const unsigned int idcrc)
 	return idcrc & (PTMHASHHEADSIZ-1);
 }
 
-static void detect_texture_size()
+static void detect_texture_size(void)
 {
 	if (gltexmaxsize <= 0) {
 		GLint siz = glinfo.maxtexsize;
@@ -1375,7 +1375,7 @@ int PTDoPrime(int* done, int* total)
 /**
  * Resets the texture hash but leaves the headers in memory
  */
-void PTReset()
+void PTReset(void)
 {
 	PTHash * pth;
 	int i;
@@ -1392,7 +1392,7 @@ void PTReset()
 /**
  * Clears the texture hash of all content
  */
-void PTClear()
+void PTClear(void)
 {
 	PTHash * pth, * next;
 	PTMHash * ptmh, * mnext;

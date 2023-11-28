@@ -316,7 +316,7 @@ void stretchhline (void *p0, int u, int cnt, int uinc, void *rptr, void *p)
 }
 
 
-void mmxoverlay() { }
+void mmxoverlay(void) { }
 
 #endif
 /*

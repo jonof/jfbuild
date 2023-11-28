@@ -329,7 +329,7 @@ void polymost_texinvalidate (int dapicnum, int dapalnum, int dameth)
 	//Make all textures "dirty" so they reload, but not re-allocate
 	//This should be much faster than polymost_glreset()
 	//Use this for palette effects ... but not ones that change every frame!
-void polymost_texinvalidateall ()
+void polymost_texinvalidateall (void)
 {
 	PTIter iter;
 	PTHead * pth;
@@ -421,7 +421,7 @@ float glox1, gloy1, glox2, gloy2;
 
 	//Use this for both initialization and uninitialization of OpenGL.
 static int gltexcacnum = -1;
-void polymost_glreset ()
+void polymost_glreset (void)
 {
 	//Reset if this is -1 (meaning 1st texture call ever), or > 0 (textures in memory)
 	if (gltexcacnum < 0)
@@ -683,7 +683,7 @@ static void polymost_loadshaders(void)
 }
 
 // one-time initialisation of OpenGL for polymost
-void polymost_glinit()
+void polymost_glinit(void)
 {
 	glfunc.glClearColor(0,0,0,0.5); //Black Background
 	glfunc.glDisable(GL_DITHER);
@@ -2969,7 +2969,7 @@ static void polymost_scansector (int sectnum)
 	} while (sectorbordercnt > 0);
 }
 
-void polymost_drawrooms ()
+void polymost_drawrooms (void)
 {
 	int i, j, n, n2, closest;
 	double ox, oy, oz, ox2, oy2, oz2, r, px[6], py[6], pz[6], px2[6], py2[6], pz2[6], sx[6], sy[6];
@@ -4559,7 +4559,7 @@ static int polymost_preparetext(void)
 	return 0;
 }
 
-void polymost_precache_begin()
+void polymost_precache_begin(void)
 {
 	PTBeginPriming();
 }

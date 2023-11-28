@@ -565,14 +565,14 @@ static const char *presentaddress(struct sockaddr *a) {
 unsigned char syncstate = 0;
 void setpackettimeout (int datimeoutcount, int daresendagaincount) { (void)datimeoutcount; (void)daresendagaincount; }
 void genericmultifunction (int other, unsigned char *bufptr, int messleng, int command) { (void)other; (void)bufptr; (void)messleng; (void)command; }
-int getoutputcirclesize () { return(0); }
+int getoutputcirclesize (void) { return(0); }
 void setsocket (int newsocket) { (void)newsocket; }
-void sendlogon () {}
-void sendlogoff () {}
+void sendlogon (void) {}
+void sendlogoff (void) {}
 //--------------------------------------------------------------------------------------------------
 
 static int crctab16[256];
-static void initcrc16 ()
+static void initcrc16 (void)
 {
 	int i, j, k, a;
 	for(j=0;j<256;j++)
@@ -595,7 +595,7 @@ static unsigned short getcrc16 (unsigned char *buffer, int bufleng)
 	return((unsigned short)(j&65535));
 }
 
-void uninitmultiplayers () { netuninit(); }
+void uninitmultiplayers (void) { netuninit(); }
 
 static void initmultiplayers_reset(void)
 {

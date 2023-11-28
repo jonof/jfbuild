@@ -385,7 +385,7 @@ static inline void cpuid (int a, int *s) { (void)a; (void)s; }
 
 	//Bit numbers of return value:
 	//0:FPU, 4:RDTSC, 15:CMOV, 22:MMX+, 23:MMX, 25:SSE, 26:SSE2, 30:3DNow!+, 31:3DNow!
-static int getcputype ()
+static int getcputype (void)
 {
 	int i, cpb[4], cpid[4];
 	if (!testflag(0x200000)) return(0);
@@ -405,7 +405,7 @@ static int getcputype ()
 
 static unsigned char fakebuf[8], *nfilptr;
 static int nbitpos;
-static void suckbitsnextblock ()
+static void suckbitsnextblock (void)
 {
 	int n;
 
@@ -522,7 +522,7 @@ static void hufgencode (int *inbuf, int inum, int *hitab, int *hbmax)
 	for(i=0;i<inum;i++) if (inbuf[i]) hitab[hbmax[inbuf[i]]++] = i;
 }
 
-static int initpass () //Interlaced images have 7 "passes", non-interlaced have 1
+static int initpass (void) //Interlaced images have 7 "passes", non-interlaced have 1
 {
 	int i, j, k;
 
@@ -981,7 +981,7 @@ static void putbuf (const unsigned char *buf, int leng)
 	}
 }
 
-static void initpngtables()
+static void initpngtables(void)
 {
 	int i, j, k;
 
@@ -1349,7 +1349,7 @@ static int cosqr16[8] =    //cosqr16[i] = ((cos(PI*i/16)*sqrt(2))<<24);
   {23726566,23270667,21920489,19727919,16777216,13181774,9079764,4628823};
 static int crmul[4096], cbmul[4096];
 
-static void initkpeg ()
+static void initkpeg (void)
 {
 	int i, x, y;
 

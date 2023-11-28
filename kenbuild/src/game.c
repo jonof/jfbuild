@@ -6166,7 +6166,7 @@ int movesprite(short spritenum, int dx, int dy, int dz, int ceildist, int flordi
 }
 
 
-void waitforeverybody ()
+void waitforeverybody (void)
 {
 	int i;
 	if (numplayers < 2) return;
