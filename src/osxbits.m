@@ -58,7 +58,7 @@ int wmosx_filechooser(const char *initialdir, const char *initialfile, const cha
     [panel setDirectoryURL:initialdirurl];
 
     resp = [panel runModal];
-    if (resp == NSFileHandlingPanelOKButton) {
+    if (resp == NSModalResponseOK) {
         NSURL *file = [panel URL];
         if ([file isFileURL]) {
             *choice = strdup([[file path] UTF8String]);
@@ -69,5 +69,5 @@ int wmosx_filechooser(const char *initialdir, const char *initialfile, const cha
     [filetypes release];
     [initialdirurl release];
 
-    return resp == NSFileHandlingPanelOKButton ? 1 : 0;
+    return resp == NSModalResponseOK ? 1 : 0;
 }

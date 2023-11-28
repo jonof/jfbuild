@@ -110,7 +110,7 @@
         bpp  = settings->bpp3d;
         fullscreen = settings->fullscreen;
     } else {
-        fullscreen = ([fullscreenButton state] == NSOnState);
+        fullscreen = ([fullscreenButton state] == NSControlStateValueOn);
         mode3d = (int)[[videoMode3DPUButton selectedItem] tag];
         if (mode3d >= 0) {
             xdim = validmode[mode3d].xdim;
@@ -155,12 +155,12 @@
 
 - (IBAction)multiPlayerModeClicked:(id)sender
 {
-    [singlePlayerButton setState:(sender == singlePlayerButton ? NSOnState : NSOffState)];
+    [singlePlayerButton setState:(sender == singlePlayerButton ? NSControlStateValueOn : NSControlStateValueOff)];
 
-    [joinMultiButton setState:(sender == joinMultiButton ? NSOnState : NSOffState)];
+    [joinMultiButton setState:(sender == joinMultiButton ? NSControlStateValueOn : NSControlStateValueOff)];
     [hostField setEnabled:(sender == joinMultiButton)];
 
-    [hostMultiButton setState:(sender == hostMultiButton ? NSOnState : NSOffState)];
+    [hostMultiButton setState:(sender == hostMultiButton ? NSControlStateValueOn : NSControlStateValueOff)];
     [numPlayersField setEnabled:(sender == hostMultiButton)];
     [numPlayersStepper setEnabled:(sender == hostMultiButton)];
 }
@@ -187,17 +187,17 @@
 
     settings->numplayers = 0;
     settings->joinhost = NULL;
-    if ([singlePlayerButton state] == NSOnState) {
+    if ([singlePlayerButton state] == NSControlStateValueOn) {
         settings->numplayers = 1;
-    } else if ([joinMultiButton state] == NSOnState) {
+    } else if ([joinMultiButton state] == NSControlStateValueOn) {
         NSString *host = [hostField stringValue];
         settings->numplayers = 2;
         settings->joinhost = strdup([host cStringUsingEncoding:NSUTF8StringEncoding]);
-    } else if ([hostMultiButton state] == NSOnState) {
+    } else if ([hostMultiButton state] == NSControlStateValueOn) {
         settings->numplayers = [numPlayersField intValue];
     }
 
-    settings->forcesetup = [alwaysShowButton state] == NSOnState;
+    settings->forcesetup = [alwaysShowButton state] == NSControlStateValueOn;
 
     if (inmodal) {
         [NSApp stopModalWithCode:STARTWIN_RUN];
@@ -206,27 +206,27 @@
 
 - (void)setupConfigMode
 {
-    [alwaysShowButton setState: (settings->forcesetup ? NSOnState : NSOffState)];
+    [alwaysShowButton setState: (settings->forcesetup ? NSControlStateValueOn : NSControlStateValueOff)];
     [alwaysShowButton setEnabled:YES];
 
     [videoMode3DPUButton setEnabled:YES];
     [self populateVideoModes:YES];
     [fullscreenButton setEnabled:YES];
-    [fullscreenButton setState: (settings->fullscreen ? NSOnState : NSOffState)];
+    [fullscreenButton setState: (settings->fullscreen ? NSControlStateValueOn : NSControlStateValueOff)];
 
     if (!settings->netoverride) {
         [singlePlayerButton setEnabled:YES];
-        [singlePlayerButton setState:NSOnState];
+        [singlePlayerButton setState:NSControlStateValueOn];
 
         [hostMultiButton setEnabled:YES];
-        [hostMultiButton setState:NSOffState];
+        [hostMultiButton setState:NSControlStateValueOff];
         [numPlayersField setEnabled:NO];
         [numPlayersField setIntValue:2];
         [numPlayersStepper setEnabled:NO];
         [numPlayersStepper setMaxValue:MAXPLAYERS];
 
         [joinMultiButton setEnabled:YES];
-        [joinMultiButton setState:NSOffState];
+        [joinMultiButton setState:NSControlStateValueOff];
         [hostField setEnabled:NO];
     } else {
         [singlePlayerButton setEnabled:NO];
