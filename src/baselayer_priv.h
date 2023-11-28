@@ -5,7 +5,6 @@
 #ifndef __baselayer_priv_h__
 #define __baselayer_priv_h__
 
-extern char modechange;
 extern char videomodereset;
 
 // undefine to restrict windowed resolutions to conventional sizes

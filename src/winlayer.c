@@ -1134,7 +1134,6 @@ int setvideomode(int x, int y, int c, int fs)
 		if (gammabrightness && setgamma(curgamma) < 0) gammabrightness = 0;
 	}
 
-	modechange=1;
 	videomodereset = 0;
 	if (baselayer_videomodedidchange) baselayer_videomodedidchange();
 	OSD_ResizeDisplay(xres,yres);
@@ -1988,7 +1987,6 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 		setvlinebpl(bytesperline);
 
 		for(i=j=0; i<=height; i++) ylookup[i] = j, j += bytesperline;
-		modechange=0;
 
 		numpages = 1;
 	} else {
@@ -2034,8 +2032,6 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 	yres = height;
 	bpp = bitspp;
 	fullscreen = fs;
-
-	modechange = 1;
 
 	UpdateWindow(hWindow);
 

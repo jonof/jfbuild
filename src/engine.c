@@ -10048,7 +10048,6 @@ void setviewtotile(short tilenume, int xsiz, int ysiz)
 //
 // setviewback
 //
-extern char modechange;
 void setviewback(void)
 {
 	int i, j, k;
@@ -10077,7 +10076,6 @@ void setviewback(void)
 		k = max(bakxsiz[setviewcnt-1],bakxsiz[setviewcnt]);
 	j = 0; for(i=0;i<=k;i++) ylookup[i] = j, j += bytesperline;
 	setvlinebpl(bytesperline);
-	modechange=1;
 }
 
 

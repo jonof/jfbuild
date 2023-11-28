@@ -28,7 +28,6 @@ char quitevent=0, appactive=1;
 
 int xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
 intptr_t frameplace=0;
-char modechange=1;
 char offscreenrendering=0;
 char videomodereset = 0;
 void (*baselayer_videomodewillchange)(void) = NULL;

@@ -1020,7 +1020,6 @@ int setvideomode(int x, int y, int c, int fs)
 
 	gammabrightness = (SDL_SetWindowBrightness(sdl_window, curgamma) == 0);
 
-	modechange = 1;
 	videomodereset = 0;
 	if (baselayer_videomodedidchange) baselayer_videomodedidchange();
 	OSD_ResizeDisplay(xres,yres);
