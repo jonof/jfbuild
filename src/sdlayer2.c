@@ -704,7 +704,7 @@ void getvalidmodes(void)
 		return;
 	}
 
-	buildputs("Detecting video modes:\n");
+	debugprintf("Detecting video modes:\n");
 
 #define ADDMODE(x,y,c,f) if (validmodecnt<MAXVALIDMODES) { \
 	int mn; \
@@ -717,7 +717,7 @@ void getvalidmodes(void)
 		validmode[validmodecnt].bpp=c; \
 		validmode[validmodecnt].fs=f; \
 		validmodecnt++; \
-		buildprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
+		debugprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
 	} \
 }
 

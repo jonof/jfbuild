@@ -1152,7 +1152,7 @@ int setvideomode(int x, int y, int c, int fs)
 	validmode[validmodecnt].fs=f; \
 	validmode[validmodecnt].extra=n; \
 	validmodecnt++; \
-	buildprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
+	debugprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
 	}
 
 #define CHECKL(w,h) if ((w < maxx) && (h < maxy))
@@ -1228,7 +1228,7 @@ void getvalidmodes(void)
 	if (modeschecked) return;
 
 	validmodecnt=0;
-	buildputs("Detecting video modes:\n");
+	debugprintf("Detecting video modes:\n");
 
 	// Fullscreen 8-bit modes: upsamples to the desktop mode.
 	maxx = desktopxdim;

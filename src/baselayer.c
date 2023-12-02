@@ -226,6 +226,34 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 	return OSDCMD_SHOWHELP;
 }
 
+static int osdcmd_listvidmodes(const osdfuncparm_t *parm)
+{
+	int filterbpp = -1, filterfs = -1, found = 0;
+
+	for (int i = 0; i < parm->numparms; i++) {
+		if (strcasecmp(parm->parms[i], "win") == 0) {
+			filterfs = 0;
+		} else if (strcasecmp(parm->parms[i], "fs") == 0) {
+			filterfs = 1;
+		} else {
+			char *e = NULL;
+			long l = strtol(parm->parms[i], &e, 10);
+			if (!e || *e != 0) return OSDCMD_SHOWHELP;
+			filterbpp = (int)l;
+		}
+	}
+
+	for (int i = 0; i < validmodecnt; i++) {
+		if (filterbpp >= 0 && validmode[i].bpp != filterbpp) continue;
+		if (filterfs >= 0 && (validmode[i].fs & 1) != filterfs) continue;
+		buildprintf(" %4dx%-4d %d-bit %s\n", validmode[i].xdim, validmode[i].ydim,
+			validmode[i].bpp, (validmode[i].fs & 1) ? "fullscreen" : "windowed");
+		found++;
+	}
+	buildprintf("%d modes identified\n", found);
+	return OSDCMD_OK;
+}
+
 int baselayer_init(void)
 {
     OSD_Init();
@@ -234,6 +262,7 @@ int baselayer_init(void)
 
 	OSD_RegisterFunction("novoxmips","novoxmips: turn off/on the use of mipmaps when rendering 8-bit voxels",osdcmd_vars);
 	OSD_RegisterFunction("usevoxels","usevoxels: enable/disable automatic sprite->voxel rendering",osdcmd_vars);
+	OSD_RegisterFunction("listvidmodes","listvidmodes [bpp|win|fs]: show all available video mode combinations",osdcmd_listvidmodes);
 
 #if USE_POLYMOST
 	OSD_RegisterFunction("setrendermode","setrendermode <number>: sets the engine's rendering mode.\n"
