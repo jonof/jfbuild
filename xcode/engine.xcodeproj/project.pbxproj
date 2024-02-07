@@ -7,6 +7,17 @@
 	objects = {
 
 /* Begin PBXAggregateTarget section */
+		AB4C36E32B75852A0092B8DD /* fetch-deps */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = AB4C36E62B75852A0092B8DD /* Build configuration list for PBXAggregateTarget "fetch-deps" */;
+			buildPhases = (
+				AB53C0A62B75858500410583 /* Fetch SDL2 framework */,
+			);
+			dependencies = (
+			);
+			name = "fetch-deps";
+			productName = "third-party";
+		};
 		AB77B4D2171AC3E800982712 /* tools */ = {
 			isa = PBXAggregateTarget;
 			buildConfigurationList = AB77B4EB171AC41C00982712 /* Build configuration list for PBXAggregateTarget "tools" */;
@@ -35,7 +46,7 @@
 		AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */; };
 		AB3B2C820EE41B9000944CD1 /* textfont.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2C800EE41B9000944CD1 /* textfont.c */; };
 		AB3FE4500C04336F00D5DBDC /* EditorStartupWinController.m in Sources */ = {isa = PBXBuildFile; fileRef = AB3E07290A33035B00FF2442 /* EditorStartupWinController.m */; };
-		AB48BD6D208C0AEA00E38090 /* version-auto.c in Sources */ = {isa = PBXBuildFile; fileRef = AB48BD6C208C0AEA00E38090 /* version-auto.c */; };
+		AB4C36DC2B74EFF30092B8DD /* engine-version.c in Sources */ = {isa = PBXBuildFile; fileRef = AB4C36DB2B74EFC50092B8DD /* engine-version.c */; };
 		AB4F6B7023118E6C00713ACC /* polymost_vs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABE362562144F78100BA44B3 /* polymost_vs.glsl */; };
 		AB4F6B7123118E7000713ACC /* polymost_fs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABE3624D2144CC9000BA44B3 /* polymost_fs.glsl */; };
 		AB4F6B7223118E7B00713ACC /* polymostaux_vs.glsl in Sources */ = {isa = PBXBuildFile; fileRef = ABE362572146955700BA44B3 /* polymostaux_vs.glsl */; };
@@ -135,6 +146,13 @@
 			remoteGlobalIDString = AB3FE44A0C04336F00D5DBDC;
 			remoteInfo = editorsupp;
 		};
+		AB4C36E72B7585340092B8DD /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB735F3A0A29A24A003261DC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AB4C36E32B75852A0092B8DD;
+			remoteInfo = "third-party";
+		};
 		AB77B4D5171AC3F700982712 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AB735F3A0A29A24A003261DC /* Project object */;
@@ -178,7 +196,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		AB1751260CEF5AF8003AF128 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Users/jonof/Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
+		AB1751260CEF5AF8003AF128 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = frameworks/SDL2.framework; sourceTree = SOURCE_ROOT; };
 		AB3B2A0D0EE3FC0400944CD1 /* hightile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hightile.c; sourceTree = "<group>"; };
 		AB3B2A1C0EE3FCF900944CD1 /* polymost.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymost.c; sourceTree = "<group>"; usesTabs = 1; };
 		AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mdsprite.c; sourceTree = "<group>"; usesTabs = 1; };
@@ -190,7 +208,7 @@
 		AB3B2C800EE41B9000944CD1 /* textfont.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = textfont.c; sourceTree = "<group>"; };
 		AB3E07290A33035B00FF2442 /* EditorStartupWinController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EditorStartupWinController.m; sourceTree = "<group>"; };
 		AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditorsupp.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		AB48BD6C208C0AEA00E38090 /* version-auto.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = "version-auto.c"; sourceTree = "<group>"; };
+		AB4C36DB2B74EFC50092B8DD /* engine-version.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "engine-version.c"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB66C6A92907E89F0063C874 /* glbuild_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glbuild_priv.h; sourceTree = "<group>"; };
 		AB66C6AB2907E8BE0063C874 /* rg_etc1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rg_etc1.h; sourceTree = "<group>"; };
 		AB66C6AC2907E8BE0063C874 /* polymosttexcompress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymosttexcompress.h; sourceTree = "<group>"; };
@@ -391,6 +409,7 @@
 			children = (
 				AB735FBF0A29A89F003261DC /* Editor */,
 				AB735F720A29A3A0003261DC /* Engine */,
+				AB4C36DB2B74EFC50092B8DD /* engine-version.c */,
 				ABAE9ADA0F0B30D500A528DC /* Tools */,
 				AB67283F0F109615000C7D92 /* libsquish */,
 				AB735F4A0A29A2DC003261DC /* Products */,
@@ -470,7 +489,6 @@
 				AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */,
 				AB76E4FE294DFC0B00B11DAF /* talltextfont.c */,
 				AB3B2C800EE41B9000944CD1 /* textfont.c */,
-				AB48BD6C208C0AEA00E38090 /* version-auto.c */,
 			);
 			name = src;
 			path = ../src;
@@ -612,7 +630,7 @@
 			buildConfigurationList = AB735F4B0A29A2DD003261DC /* Build configuration list for PBXNativeTarget "engine" */;
 			buildPhases = (
 				AB735F450A29A2DC003261DC /* Headers */,
-				AB48BD6B208C090300E38090 /* Generate version-auto.c */,
+				AB48BD6B208C090300E38090 /* Generate engine-version.c */,
 				AB735F460A29A2DC003261DC /* Sources */,
 				AB735F470A29A2DC003261DC /* Frameworks */,
 			);
@@ -620,6 +638,7 @@
 				AB4F6B6E23118B7600713ACC /* PBXBuildRule */,
 			);
 			dependencies = (
+				AB4C36E82B7585340092B8DD /* PBXTargetDependency */,
 			);
 			name = engine;
 			productName = engine;
@@ -736,6 +755,9 @@
 					AB3FE44A0C04336F00D5DBDC = {
 						DevelopmentTeam = S7U4E54CHC;
 					};
+					AB4C36E32B75852A0092B8DD = {
+						CreatedOnToolsVersion = 15.2;
+					};
 					AB735F480A29A2DC003261DC = {
 						DevelopmentTeam = S7U4E54CHC;
 					};
@@ -745,18 +767,8 @@
 					AB77B4D2171AC3E800982712 = {
 						DevelopmentTeam = S7U4E54CHC;
 					};
-					ABAE9AD10F0B307500A528DC = {
-						DevelopmentTeam = S7U4E54CHC;
-					};
-					ABAE9C270F0CC80200A528DC = {
-						DevelopmentTeam = S7U4E54CHC;
-					};
-					ABAE9C320F0CC81900A528DC = {
-						DevelopmentTeam = S7U4E54CHC;
-					};
 					ABD03E201A5189E00012B9D1 = {
 						CreatedOnToolsVersion = 6.1.1;
-						DevelopmentTeam = S7U4E54CHC;
 					};
 				};
 			};
@@ -782,12 +794,13 @@
 				ABAE9C320F0CC81900A528DC /* kgroup */,
 				ABD03E201A5189E00012B9D1 /* transpal */,
 				AB77B4D2171AC3E800982712 /* tools */,
+				AB4C36E32B75852A0092B8DD /* fetch-deps */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		AB48BD6B208C090300E38090 /* Generate version-auto.c */ = {
+		AB48BD6B208C090300E38090 /* Generate engine-version.c */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -795,12 +808,34 @@
 			);
 			inputPaths = (
 			);
-			name = "Generate version-auto.c";
+			name = "Generate engine-version.c";
 			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/engine-version.c",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd $PROJECT_DIR/..\ngitdescribe=$(git describe --always 2>/dev/null || echo git error)\n\ncat >src/version-auto.c <<EOT\nconst char *build_version = \"$gitdescribe\";\nconst char *build_date = __DATE__;\nconst char *build_time = __TIME__;\nEOT\n";
+			shellScript = "cd $PROJECT_DIR/..\ngitdescribe=$(git describe --always 2>/dev/null || echo git error)\n\ncat >$BUILT_PRODUCTS_DIR/engine-version.c <<EOT\nconst char *build_version = \"$gitdescribe\";\nconst char *build_date = __DATE__;\nconst char *build_time = __TIME__;\nEOT\n";
+			showEnvVarsInLog = 0;
+		};
+		AB53C0A62B75858500410583 /* Fetch SDL2 framework */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Fetch SDL2 framework";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(PROJECT_DIR)/SDL2.framework",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ -d $PROJECT_DIR/frameworks/SDL2.framework ]; then\n    echo \"SDL2.framework exists; skipping\"\n    exit\nfi\n\nsdlver=2.30.0\n\nset -xe\ncd $PROJECT_TEMP_DIR\nmkdir -p $PROJECT_TEMP_DIR/sdl2 $PROJECT_DIR/frameworks\ncurl -sfSOL https://github.com/libsdl-org/SDL/releases/download/release-$sdlver/SDL2-$sdlver.dmg\nhdiutil attach SDL2-$sdlver.dmg -mountpoint $PROJECT_TEMP_DIR/sdl2\ncp -R $PROJECT_TEMP_DIR/sdl2/SDL2.framework $PROJECT_DIR/frameworks/\nhdiutil eject $PROJECT_TEMP_DIR/sdl2\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -818,6 +853,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB4C36DC2B74EFF30092B8DD /* engine-version.c in Sources */,
 				AB735F600A29A39C003261DC /* a-c.c in Sources */,
 				AB735F610A29A39D003261DC /* baselayer.c in Sources */,
 				AB735F620A29A39D003261DC /* cache1d.c in Sources */,
@@ -844,7 +880,6 @@
 				AB4F6B7323118E7F00713ACC /* polymostaux_fs.glsl in Sources */,
 				AB3B2AE10EE403E000944CD1 /* mdsprite.c in Sources */,
 				AB3B2C810EE41B9000944CD1 /* smalltextfont.c in Sources */,
-				AB48BD6D208C0AEA00E38090 /* version-auto.c in Sources */,
 				AB3B2C820EE41B9000944CD1 /* textfont.c in Sources */,
 				AB726D4C0F046C3B00730EAA /* polymosttex.c in Sources */,
 				ABF1DD191BB7D0F5007DE427 /* asmprot.c in Sources */,
@@ -924,6 +959,11 @@
 			target = AB3FE44A0C04336F00D5DBDC /* editorsupp */;
 			targetProxy = AB3FE4660C0433A600D5DBDC /* PBXContainerItemProxy */;
 		};
+		AB4C36E82B7585340092B8DD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AB4C36E32B75852A0092B8DD /* fetch-deps */;
+			targetProxy = AB4C36E72B7585340092B8DD /* PBXContainerItemProxy */;
+		};
 		AB77B4D6171AC3F700982712 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = ABAE9AD10F0B307500A528DC /* arttool */;
@@ -965,6 +1005,20 @@
 			};
 			name = Release;
 		};
+		AB4C36E42B75852A0092B8DD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AB4C36E52B75852A0092B8DD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		AB735F3C0A29A24B003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -972,9 +1026,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++98";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				DEVELOPMENT_TEAM = S7U4E54CHC;
-				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
@@ -1006,9 +1058,7 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++98";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				DEVELOPMENT_TEAM = S7U4E54CHC;
-				FRAMEWORK_SEARCH_PATHS = "$(HOME)/Library/Frameworks";
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/frameworks";
 				GCC_CHAR_IS_UNSIGNED_CHAR = NO;
 				GCC_C_LANGUAGE_STANDARD = c99;
 				GCC_ENABLE_CPP_EXCEPTIONS = NO;
@@ -1169,6 +1219,15 @@
 			buildConfigurations = (
 				AB3FE4530C04336F00D5DBDC /* Debug */,
 				AB3FE4540C04336F00D5DBDC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AB4C36E62B75852A0092B8DD /* Build configuration list for PBXAggregateTarget "fetch-deps" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB4C36E42B75852A0092B8DD /* Debug */,
+				AB4C36E52B75852A0092B8DD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

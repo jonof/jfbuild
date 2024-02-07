@@ -17,6 +17,7 @@
 /xcode/*.xcodeproj/xcuserdata
 /xcode/Signing.xcconfig
 /xcode/build
+/xcode/frameworks
 
 /Makefile.*user
 /kenbuild/Makefile.*user
