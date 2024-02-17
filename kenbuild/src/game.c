@@ -366,6 +366,11 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 
 	if (setgamemode(newfullscreen,newx,newy,newbpp))
 		buildputs("vidmode: Mode change failed!\n");
+	else {
+		xdimgame = xdim;
+		ydimgame = ydim;
+		bppgame = bpp;
+	}
 	screensize = xdim+1;
 	return OSDCMD_OK;
 }
@@ -633,6 +638,7 @@ int app_main(int argc, char const * const argv[])
 	for(j=0;j<256;j++) remapbuf[j] = j; //(j&31)+32;
 	makepalookup(18,remapbuf,8,8,48,1);
 
+	setbrightness(brightness,NULL,1);
 	prepareboard(boardfilename);                   //Load board
 
 	initsb(option[1],option[2],digihz[option[7]>>4],((option[7]&4)>0)+1,((option[7]&2)>0)+1,60,option[7]&1);
@@ -788,6 +794,8 @@ int app_main(int argc, char const * const argv[])
 	uninitengine();
 	uninitsb();
 	uninitgroupfile();
+
+	writesetup("game.cfg");
 
 	return(0);
 }
