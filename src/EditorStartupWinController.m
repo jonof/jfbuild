@@ -106,7 +106,7 @@
         xdim2d = settings->xdim2d;
         ydim2d = settings->ydim2d;
     } else {
-        fullscreen = ([fullscreenButton state] == NSOnState);
+        fullscreen = ([fullscreenButton state] == NSControlStateValueOn);
         mode3d = (int)[[videoMode3DPUButton selectedItem] tag];
         if (mode3d >= 0) {
             xdim = validmode[mode3d].xdim;
@@ -196,7 +196,7 @@
         settings->ydim2d = validmode[mode].ydim;
     }
 
-    settings->forcesetup = [alwaysShowButton state] == NSOnState;
+    settings->forcesetup = [alwaysShowButton state] == NSControlStateValueOn;
 
     if (inmodal) {
         [NSApp stopModalWithCode:STARTWIN_RUN];
@@ -205,14 +205,14 @@
 
 - (void)setupConfigMode
 {
-    [alwaysShowButton setState: (settings->forcesetup ? NSOnState : NSOffState)];
+    [alwaysShowButton setState: (settings->forcesetup ? NSControlStateValueOn : NSControlStateValueOff)];
     [alwaysShowButton setEnabled:YES];
 
     [videoMode2DPUButton setEnabled:YES];
     [videoMode3DPUButton setEnabled:YES];
     [self populateVideoModes:YES];
     [fullscreenButton setEnabled:YES];
-    [fullscreenButton setState: (settings->fullscreen ? NSOnState : NSOffState)];
+    [fullscreenButton setState: (settings->fullscreen ? NSControlStateValueOn : NSControlStateValueOff)];
 
     [cancelButton setEnabled:YES];
     [startButton setEnabled:YES];
