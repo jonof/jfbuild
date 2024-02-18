@@ -192,6 +192,9 @@ wad2art$(EXESUFFIX): $(TOOLS)\wad2art.$o $(SRC)\pragmas.$o $(SRC)\compat.$o
 bin2c$(EXESUFFIX): $(TOOLS)\bin2c.$o
 	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) $(OURLINKFLAGS) $** $(OURLIBS)
 
+arttool$(EXESUFFIX): $(TOOLS)\arttool.$o
+	$(LINK) /OUT:$@ /SUBSYSTEM:CONSOLE $(LINKFLAGS) $(OURLINKFLAGS) $** $(OURLIBS)
+
 $(SRC)\version-auto.c: ALWAYSBUILD
 	cmd /c $(TOOLS)\generateversion.cmd > $@
 

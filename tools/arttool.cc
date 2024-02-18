@@ -9,6 +9,7 @@
 #include <string>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 
 using namespace std;
 
@@ -33,7 +34,8 @@ void usage()
 	cout << "    -ann <frames>  Animation frame span" << endl;
 	cout << "    -ant <type>    Animation type (0=none, 1=oscillate, 2=forward, 3=reverse)" << endl;
 	cout << "    -ans <speed>   Animation speed" << endl;
-	cout << "    Adds a tile to the 'tilesXXX.art' set from a TGA or PCX source" << endl;
+	cout << "    -regd <0|1>    Clear/set the registered-version flag" << endl;
+	cout << "    Adds a tile to the 'tilesXXX.art' set from a PCX source" << endl;
 	cout << endl;
 	cout << "  arttool rmtile <tilenum>" << endl;
 	cout << "    Removes a tile from the 'tilesXXX.art' set" << endl;
@@ -47,6 +49,7 @@ void usage()
 	cout << "    -ann <frames>  Animation frame span, may be -ve" << endl;
 	cout << "    -ant <type>    Animation type (0=none, 1=oscillate, 2=forward, 3=reverse)" << endl;
 	cout << "    -ans <speed>   Animation speed" << endl;
+	cout << "    -regd <0|1>    Clear/set the registered-version flag" << endl;
 	cout << "    Changes tile properties" << endl;
 	cout << endl;
 }
@@ -62,9 +65,10 @@ private:
 	streamoff datastartoffset_;
 
 	// for removing or replacing tile data
-	int markprelength_, markskiplength_, markpostlength_;
+	size_t markprelength_, markskiplength_, markpostlength_;
 	char * insert_;
-	int insertlen_;
+	size_t insertlen_;
+	bool propchanged_;
 
 	void writeShort(ofstream &ofs, short s)
 	{
@@ -151,11 +155,19 @@ private:
 	}
 
 public:
+	typedef enum {
+		NO_ERROR = 0,
+		ERR_OPEN_INPUT_ERROR = -1,
+		ERR_OPEN_OUTPUT_ERROR = -2,
+		ERR_READ_ERROR = -3,
+		ERR_WRITE_ERROR = -4,
+	} WriteResult;
+
 	ARTFile(string filename)
 	 : filename_(filename), localtilestart_(0), localtileend_(-1),
 	   tilesizx_(0), tilesizy_(0), picanm_(0),
 	   markprelength_(0), markskiplength_(0), markpostlength_(0),
-	   insert_(0), insertlen_(0)
+	   insert_(0), insertlen_(0), propchanged_(false)
 	{
 		load();
 	}
@@ -212,23 +224,21 @@ public:
 
 	void removeTile(int tile)
 	{
-		int i, end;
+		int i, j;
 
 		if (tile < localtilestart_ || tile > localtileend_) {
 			return;
 		}
 
-		end   = localtileend_ - tile;
-		tile -= localtilestart_;
-
 		markprelength_ = markpostlength_ = 0;
 
-		for (i = 0; i < tile; i++) {
-			markprelength_ += tilesizx_[i] * tilesizy_[i];
-		}
-		markskiplength_ = tilesizx_[tile] * tilesizy_[tile];
-		for (i = tile + 1; i <= end; i++) {
-			markpostlength_ += tilesizx_[i] * tilesizy_[i];
+		for (i = 0, j = localtilestart_; j <= localtileend_; i++, j++) {
+			if (j < tile)
+				markprelength_ += tilesizx_[i] * tilesizy_[i];
+			else if (j > tile)
+				markpostlength_ += tilesizx_[i] * tilesizy_[i];
+			else
+				markskiplength_ += tilesizx_[i] * tilesizy_[i];
 		}
 
 		tilesizx_[tile] = tilesizy_[tile] = 0;
@@ -267,6 +277,7 @@ public:
 		tile -= localtilestart_;
 		tilesizx_[tile] = x;
 		tilesizy_[tile] = y;
+		propchanged_ = true;
 	}
 
 	void setXOfs(int tile, int x)
@@ -278,6 +289,7 @@ public:
 		tile -= localtilestart_;
 		picanm_[tile] &= ~(255<<8);
 		picanm_[tile] |= ((int)((unsigned char)x) << 8);
+		propchanged_ = true;
 	}
 
 	void setYOfs(int tile, int y)
@@ -289,6 +301,7 @@ public:
 		tile -= localtilestart_;
 		picanm_[tile] &= ~(255<<16);
 		picanm_[tile] |= ((int)((unsigned char)y) << 16);
+		propchanged_ = true;
 	}
 
 	int getXOfs(int tile)
@@ -320,6 +333,7 @@ public:
 		tile -= localtilestart_;
 		picanm_[tile] &= ~(3<<6);
 		picanm_[tile] |= ((int)(type&3) << 6);
+		propchanged_ = true;
 	}
 
 	int getAnimType(int tile)
@@ -341,6 +355,7 @@ public:
 		tile -= localtilestart_;
 		picanm_[tile] &= ~(63);
 		picanm_[tile] |= ((int)(frames&63));
+		propchanged_ = true;
 	}
 
 	int getAnimFrames(int tile)
@@ -362,6 +377,7 @@ public:
 		tile -= localtilestart_;
 		picanm_[tile] &= ~(15<<24);
 		picanm_[tile] |= ((int)(speed&15) << 24);
+		propchanged_ = true;
 	}
 
 	int getAnimSpeed(int tile)
@@ -374,26 +390,66 @@ public:
 		return (picanm_[tile] >> 24) & 15;
 	}
 
-	int write()
+	void setRegisteredFlag(int tile, int yes)
+	{
+		if (tile < localtilestart_ || tile > localtileend_) {
+			return;
+		}
+
+		tile -= localtilestart_;
+		if (yes) picanm_[tile] |= 0x80000000;
+		else picanm_[tile] &= ~0x80000000;
+		propchanged_ = true;
+	}
+
+	int getRegisteredFlag(int tile)
+	{
+		if (tile < localtilestart_ || tile > localtileend_) {
+			return 0;
+		}
+
+		tile -= localtilestart_;
+		return !!(picanm_[tile] & 0x80000000);
+	}
+
+	WriteResult write()
 	{
 		string tmpfilename(filename_ + ".arttooltmp");
 		ofstream outfile(tmpfilename.c_str(), ios::out | ios::trunc | ios::binary);
 		ifstream infile(filename_.c_str(), ios::in | ios::binary);
-		unsigned int i, left, numtiles;
+		unsigned int i, numtiles;
+		size_t left;
 		char blk[4096];
 
-		if (!infile.is_open() && (markprelength_ > 0 || markskiplength_ > 0 || markpostlength_ > 0)) {
-			return -1;	// couldn't open the original file for copying
-		} else if (infile.is_open()) {
+		if (!infile.is_open() && ((propchanged_ && insertlen_ == 0) ||
+				(markprelength_ | markskiplength_ | markpostlength_) > 0)) {
+			if (outfile.is_open()) {
+				outfile.close();
+				remove(tmpfilename.c_str());
+			}
+			return ERR_OPEN_INPUT_ERROR;	// couldn't open the original file for copying
+		}
+		if (!outfile.is_open()) {
+			if (infile.is_open()) {
+				infile.close();
+			}
+			return ERR_OPEN_OUTPUT_ERROR;
+		}
+
+		if (infile.is_open()) {
 			// skip to the start of the existing ART data
 			int ofs = 4+4+4+4+(2+2+4)*(localtileend_-localtilestart_+1);
 			infile.seekg(ofs, ios::cur);
 		}
 
 		// find the highest tile index that is non-zero sized to use as numtiles
+		left = 0;
 		for (numtiles = i = 0; i < (unsigned)(localtileend_ - localtilestart_ + 1); i++) {
 			if (tilesizx_[i] && tilesizy_[i]) numtiles = i + 1;
+			left += tilesizx_[i] * tilesizy_[i];
 		}
+		if (propchanged_ && insertlen_ == 0 && (markprelength_ | markskiplength_ | markpostlength_) == 0)
+			markpostlength_ = left;
 
 		// write a header to the temporary file
 		writeLong(outfile, 1);	// version
@@ -413,18 +469,26 @@ public:
 		// copy the existing leading tile data to be kept
 		left = markprelength_;
 		while (left > 0) {
-			i = left;
-			if (i > sizeof(blk)) {
-				i = sizeof(blk);
+			size_t l = left;
+			if (l > sizeof(blk)) {
+				l = sizeof(blk);
 			}
-			infile.read(blk, i);
-			outfile.write(blk, i);
-			left -= i;
+			infile.read(blk, l);
+			outfile.write(blk, l);
+			left -= l;
 		}
 
 		// insert the replacement data
-		if (insertlen_ > 0) {
-			outfile.write(insert_, insertlen_);
+		left = insertlen_;
+		i = 0;
+		while (left > 0) {
+			size_t l = left;
+			if (l > sizeof(blk)) {
+				l = sizeof(blk);
+			}
+			outfile.write(&insert_[i], l);
+			left -= l;
+			i += l;
 		}
 
 		if (markskiplength_ > 0) {
@@ -434,26 +498,32 @@ public:
 		// copy the existing trailing tile data to be kept
 		left = markpostlength_;
 		while (left > 0) {
-			i = left;
-			if (i > sizeof(blk)) {
-				i = sizeof(blk);
+			size_t l = left;
+			if (l > sizeof(blk)) {
+				l = sizeof(blk);
 			}
-			infile.read(blk, i);
-			outfile.write(blk, i);
-			left -= i;
+			infile.read(blk, l);
+			outfile.write(blk, l);
+			left -= l;
 		}
 
-		// close our files
+		// close the files and determine the return code
+		WriteResult retcode = NO_ERROR;
 		if (infile.is_open()) {
+			if (infile.fail()) retcode = ERR_READ_ERROR;
 			infile.close();
 		}
+		if (outfile.fail()) retcode = min(retcode, ERR_WRITE_ERROR);
 		outfile.close();
 
-		// replace it with the new one
-		remove(filename_.c_str());
-		rename(tmpfilename.c_str(), filename_.c_str());
-
-		return 0;
+		// replace it with the new one if it was good
+		if (retcode == NO_ERROR) {
+			remove(filename_.c_str());
+			rename(tmpfilename.c_str(), filename_.c_str());
+		} else {
+			remove(tmpfilename.c_str());
+		}
+		return retcode;
 	}
 
 	char * readTile(int tile, int& bytes)
@@ -549,9 +619,9 @@ public:
 	 * @param imgdata receives a pointer to the decoded image data
 	 * @param imgdataw receives the decoded image width
 	 * @param imgdatah receives the decoded image height
-	 * @return 0 on success, 1 if the format is invalid
+	 * @return true on success, false if the format is invalid
 	 */
-	static int decode(unsigned char * data, size_t datalen, char ** imgdata, int& imgdataw, int& imgdatah)
+	static bool decode(unsigned char * data, size_t datalen, char ** imgdata, int& imgdataw, int& imgdatah)
 	{
 		(void)datalen;
 
@@ -561,7 +631,7 @@ public:
 			data[3] != 8 ||
 			data[64] != 0 ||
 			data[65] != 1) {
-			return 1;
+			return false;
 		}
 
 		int bpl = data[66] + ((int)data[67] << 8);
@@ -596,7 +666,7 @@ public:
 			} while (x < bpl);
 		}
 
-		return 0;
+		return true;
 	}
 
 	/**
@@ -606,9 +676,8 @@ public:
 	 * @param imgdataw the image width
 	 * @param imgdatah the image height
 	 * @param palette the image palette, 256*3 bytes
-	 * @return 0 on success
 	 */
-	static int write(ofstream& ofs, unsigned char * imgdata, int imgdataw, int imgdatah, unsigned char * palette)
+	static void write(ofstream& ofs, unsigned char * imgdata, int imgdataw, int imgdatah, unsigned char * palette)
 	{
 		unsigned char head[128];
 		int bpl = imgdataw + (imgdataw&1);
@@ -636,82 +705,9 @@ public:
 
 		ofs.put(12);
 		ofs.write((char *)palette, 768);
-
-		return 0;
 	}
 };
 
-/**
- * Loads a tile from a picture file into memory
- * @param filename the filename
- * @param imgdata receives a pointer to the decoded image data
- * @param imgdataw receives the decoded image width
- * @param imgdatah receives the decoded image height
- * @return 0 on success
- */
-int loadimage(string filename, char ** imgdata, int& imgdataw, int& imgdatah)
-{
-	ifstream infile(filename.c_str(), ios::in | ios::binary);
-	unsigned char * data = 0;
-	streamoff datalen = 0;
-	int err = 0;
-
-	if (!infile.is_open()) {
-		return 1;
-	}
-
-	infile.seekg(0, ios::end);
-	datalen = infile.tellg();
-	infile.seekg(0, ios::beg);
-
-	data = new unsigned char [datalen];
-	infile.read((char *) data, datalen);
-	infile.close();
-
-	err = PCX::decode(data, datalen, imgdata, imgdataw, imgdatah);
-
-	delete [] data;
-
-	return err;
-}
-
-
-/**
- * Saves a tile from memory to disk, taking the palette from palette.dat
- * @param filename the filename
- * @param imgdata a pointer to the image data
- * @param imgdataw the image width
- * @param imgdatah the image height
- * @return 0 on success
- */
-int saveimage(string filename, char * imgdata, int imgdataw, int imgdatah)
-{
-	ofstream outfile(filename.c_str(), ios::out | ios::trunc | ios::binary);
-	ifstream palfile("palette.dat", ios::in | ios::binary);
-	unsigned char palette[768];
-
-	if (palfile.is_open()) {
-		palfile.read((char *)palette, 768);
-		for (int i=0; i<256*3; i++) {
-			palette[i] <<= 2;
-		}
-	} else {
-		cerr << "warning: palette.dat could not be loaded\n" << endl;
-		for (int i=0; i<256; i++) {
-			palette[i*3+0] = i;
-			palette[i*3+1] = i;
-			palette[i*3+2] = i;
-		}
-	}
-
-	if (!outfile.is_open()) {
-		return 1;
-	}
-
-	PCX::write(outfile, (unsigned char *)imgdata, imgdataw, imgdatah, palette);
-
-	return 0;
-}
 
 class Operation {
 protected:
@@ -732,6 +728,8 @@ public:
 		ERR_TOO_MANY_PARAMS = 3,
 		ERR_NO_ART_FILE = 4,
 		ERR_INVALID_IMAGE = 5,
+		ERR_BAD_ART_READ = 6,
+		ERR_BAD_ART_WRITE = 7,
 	} Result;
 
 	static char const * translateResult(Result r)
@@ -743,6 +741,8 @@ public:
 			case ERR_TOO_MANY_PARAMS: return "too many parameters given";
 			case ERR_NO_ART_FILE: return "no ART file was found";
 			case ERR_INVALID_IMAGE: return "a corrupt or unrecognised image was given";
+			case ERR_BAD_ART_READ: return "an error occurred reading the ART file";
+			case ERR_BAD_ART_WRITE: return "an error occurred writing the ART file";
 			default: return "unknown error";
 		}
 	}
@@ -790,7 +790,9 @@ private:
 		cout << "Yofs: " << art.getYOfs(tile) << ", ";
 		cout << "AnimType: " << art.getAnimType(tile) << ", ";
 		cout << "AnimFrames: " << art.getAnimFrames(tile) << ", ";
-		cout << "AnimSpeed: " << art.getAnimSpeed(tile) << endl;
+		cout << "AnimSpeed: " << art.getAnimSpeed(tile);
+		if (art.getRegisteredFlag(tile)) cout << ", Registered";
+		cout << endl;
 	}
 
 public:
@@ -890,9 +892,17 @@ public:
 		ARTFile art(makefilename(filen_));
 
 		art.init(offset_, ntiles_);
-		art.write();
 
-		return NO_ERROR;
+		switch (art.write()) {
+			case ARTFile::ERR_OPEN_INPUT_ERROR:
+			case ARTFile::ERR_READ_ERROR:
+				return ERR_BAD_ART_READ;
+			case ARTFile::ERR_OPEN_OUTPUT_ERROR:
+			case ARTFile::ERR_WRITE_ERROR:
+				return ERR_BAD_ART_WRITE;
+			default:
+				return NO_ERROR;
+		}
 	}
 };
 
@@ -901,12 +911,48 @@ private:
 	int xofs_, yofs_;
 	int animframes_, animtype_, animspeed_;
 	int tilenum_;
+	bool registered_;
 	string filename_;
+
+	/**
+	 * Loads a tile from a picture file into memory
+	 * @param filename the filename
+	 * @param imgdata receives a pointer to the decoded image data
+	 * @param imgdataw receives the decoded image width
+	 * @param imgdatah receives the decoded image height
+	 * @return true on success
+	 */
+	bool loadimage(string filename, char ** imgdata, int& imgdataw, int& imgdatah)
+	{
+		ifstream infile(filename.c_str(), ios::in | ios::binary);
+		unsigned char * data = 0;
+		streamoff datalen = 0;
+		bool err = 0;
+
+		if (!infile.is_open()) {
+			return false;
+		}
+
+		infile.seekg(0, ios::end);
+		datalen = infile.tellg();
+		infile.seekg(0, ios::beg);
+
+		data = new unsigned char [datalen];
+		infile.read((char *) data, datalen);
+		infile.close();
+
+		err = PCX::decode(data, datalen, imgdata, imgdataw, imgdatah);
+
+		delete [] data;
+
+		return err;
+	}
+
 public:
 	AddTileOp()
 	 : xofs_(0), yofs_(0),
 	   animframes_(0), animtype_(0), animspeed_(0),
-	   tilenum_(-1), filename_("")
+	   tilenum_(-1), registered_(false), filename_("")
 	{ }
 
 	virtual Result setOption(string opt, string value)
@@ -930,6 +976,8 @@ public:
 			if (animspeed_ < 0 || animspeed_ > 15) {
 				return ERR_BAD_VALUE;
 			}
+		} else if (opt == "regd") {
+			registered_ = atoi(value.c_str()) != 0;
 		} else {
 			return ERR_BAD_OPTION;
 		}
@@ -967,9 +1015,8 @@ public:
 		}
 
 		// load the tile image into memory
-		switch (loadimage(filename_, &imgdata, imgdataw, imgdatah)) {
-			case 0: break;	// win
-			default: return ERR_INVALID_IMAGE;
+		if (!loadimage(filename_, &imgdata, imgdataw, imgdatah)) {
+			return ERR_INVALID_IMAGE;
 		}
 
 		// open art files until we find one that encompasses the range we need
@@ -992,6 +1039,7 @@ public:
 				art.setAnimFrames(tilenum_, animframes_);
 				art.setAnimSpeed(tilenum_, animspeed_);
 				art.setAnimType(tilenum_, animtype_);
+				art.setRegisteredFlag(tilenum_, registered_);
 				done = true;
 				dirty = true;
 
@@ -1001,7 +1049,15 @@ public:
 			nextstart += art.getNumTiles();
 
 			if (dirty) {
-				art.write();
+				switch (art.write()) {
+					case ARTFile::ERR_OPEN_INPUT_ERROR:
+					case ARTFile::ERR_READ_ERROR:
+						return ERR_BAD_ART_READ;
+					case ARTFile::ERR_OPEN_OUTPUT_ERROR:
+					case ARTFile::ERR_WRITE_ERROR:
+						return ERR_BAD_ART_WRITE;
+					case ARTFile::NO_ERROR: break;
+				}
 			}
 			if (done) {
 				return NO_ERROR;
@@ -1055,8 +1111,16 @@ public:
 
 			if (tilenum_ >= art.getFirstTile() && tilenum_ <= art.getLastTile()) {
 				art.removeTile(tilenum_);
-				art.write();
-				return NO_ERROR;
+				switch (art.write()) {
+					case ARTFile::ERR_OPEN_INPUT_ERROR:
+					case ARTFile::ERR_READ_ERROR:
+						return ERR_BAD_ART_READ;
+					case ARTFile::ERR_OPEN_OUTPUT_ERROR:
+					case ARTFile::ERR_WRITE_ERROR:
+						return ERR_BAD_ART_WRITE;
+					default:
+						return NO_ERROR;
+				}
 			}
 		}
 
@@ -1067,6 +1131,44 @@ public:
 class ExportTileOp : public Operation {
 private:
 	int tilenum_;
+
+	/**
+	 * Saves a tile from memory to disk, taking the palette from palette.dat
+	 * @param filename the filename
+	 * @param imgdata a pointer to the image data
+	 * @param imgdataw the image width
+	 * @param imgdatah the image height
+	 * @return true on success
+	 */
+	bool saveimage(string filename, char * imgdata, int imgdataw, int imgdatah)
+	{
+		ofstream outfile(filename.c_str(), ios::out | ios::trunc | ios::binary);
+		ifstream palfile("palette.dat", ios::in | ios::binary);
+		unsigned char palette[768];
+
+		if (palfile.is_open()) {
+			palfile.read((char *)palette, 768);
+			for (int i=0; i<256*3; i++) {
+				palette[i] <<= 2;
+			}
+		} else {
+			cerr << "warning: palette.dat could not be loaded\n" << endl;
+			for (int i=0; i<256; i++) {
+				palette[i*3+0] = i;
+				palette[i*3+1] = i;
+				palette[i*3+2] = i;
+			}
+		}
+
+		if (!outfile.is_open()) {
+			return false;
+		}
+
+		PCX::write(outfile, (unsigned char *)imgdata, imgdataw, imgdatah, palette);
+
+		return outfile.good();
+	}
+
 public:
 	ExportTileOp() : tilenum_(-1) { }
 
@@ -1116,9 +1218,8 @@ public:
 					return NO_ERROR;
 				}
 
-				switch (saveimage(filename, data, w, h)) {
-					case 0: break;	// win
-					default: return ERR_INVALID_IMAGE;
+				if (!saveimage(filename, data, w, h)) {
+					return ERR_INVALID_IMAGE;
 				}
 
 				delete [] data;
@@ -1136,6 +1237,7 @@ private:
 	int xofs_, yofs_;
 	int animframes_, animtype_, animspeed_;
 	int tilenum_;
+	bool registered_;
 
 	int settings_;
 
@@ -1145,12 +1247,13 @@ private:
 		SET_ANIMFRAMES = 4,
 		SET_ANIMTYPE = 8,
 		SET_ANIMSPEED = 16,
+		SET_REGISTERED = 32,
 	};
 public:
 	TilePropOp()
 	: xofs_(0), yofs_(0),
 	  animframes_(0), animtype_(0), animspeed_(0),
-	  tilenum_(-1), settings_(0)
+	  tilenum_(-1), registered_(false), settings_(0)
 	{ }
 
 	virtual Result setOption(string opt, string value)
@@ -1179,6 +1282,9 @@ public:
 			if (animspeed_ < 0 || animspeed_ > 15) {
 				return ERR_BAD_VALUE;
 			}
+		} else if (opt == "regd") {
+			registered_ = atoi(value.c_str()) != 0;
+			settings_ |= SET_REGISTERED;
 		} else {
 			return ERR_BAD_OPTION;
 		}
@@ -1230,8 +1336,18 @@ public:
 				if (settings_ & SET_ANIMTYPE) {
 					art.setAnimType(tilenum_, animtype_);
 				}
-				art.write();
-				return NO_ERROR;
+				if (settings_ & SET_REGISTERED) {
+					art.setRegisteredFlag(tilenum_, registered_);
+				}
+				switch (art.write()) {
+					case ARTFile::ERR_OPEN_INPUT_ERROR:
+					case ARTFile::ERR_READ_ERROR:
+						return ERR_BAD_ART_READ;
+					case ARTFile::ERR_OPEN_OUTPUT_ERROR:
+					case ARTFile::ERR_WRITE_ERROR:
+						return ERR_BAD_ART_WRITE;
+					default: return NO_ERROR;
+				}
 			}
 		}
 
