@@ -64,8 +64,7 @@ static SDL_Texture *sdl_texture;	// For non-GL 8-bit mode output.
 static SDL_Surface *sdl_surface;	// For non-GL 8-bit mode output.
 #endif
 static unsigned char *frame;
-extern int gammabrightness;
-extern float curgamma;
+static float curshadergamma = 1.f, cursysgamma = -1.f;
 
 #if USE_OPENGL
 static SDL_GLContext sdl_glcontext;
@@ -1018,8 +1017,6 @@ int setvideomode(int x, int y, int c, int fs)
 	}
 #endif
 
-	gammabrightness = (SDL_SetWindowBrightness(sdl_window, curgamma) == 0);
-
 	videomodereset = 0;
 	if (baselayer_videomodedidchange) baselayer_videomodedidchange();
 	OSD_ResizeDisplay(xres,yres);
@@ -1156,15 +1153,22 @@ int setpalette(int start, int num, unsigned char *dapal)
 	return 0;
 }
 
+
 //
-// setgamma
+// setsysgamma
 //
-int setgamma(float gamma)
+int setsysgamma(float shadergamma, float sysgamma)
 {
+	int r = 0;
+#if USE_OPENGL
+	if (!glunavailable && bpp == 8) glbuild_set_8bit_gamma(&gl8bit, shadergamma);
+#endif
 	if (sdl_window) {
-		return SDL_SetWindowBrightness(sdl_window, gamma) == 0;
+		if (sysgamma < 0.f) r = SDL_SetWindowBrightness(sdl_window, 1.0);
+		else r = SDL_SetWindowBrightness(sdl_window, sysgamma);
 	}
-	return 0;
+	if (r == 0) { curshadergamma = shadergamma; cursysgamma = sysgamma; }
+	return r;
 }
 
 

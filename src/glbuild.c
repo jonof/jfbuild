@@ -723,6 +723,7 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	state->program = prog;
 	state->attrib_vertex = glfunc.glGetAttribLocation(prog, "a_vertex");
 	state->attrib_texcoord = glfunc.glGetAttribLocation(prog, "a_texcoord");
+	state->unif_gamma = glfunc.glGetUniformLocation(prog, "u_gamma");
 
 #if (USE_OPENGL == USE_GL3)
 	glfunc.glGenVertexArrays(1, &state->vao);
@@ -798,6 +799,11 @@ void glbuild_update_8bit_palette(glbuild8bit *state, const GLvoid *pal)
 	glfunc.glActiveTexture(GL_TEXTURE1);
 	glfunc.glBindTexture(GL_TEXTURE_2D, state->paltex);
 	glfunc.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, pal);
+}
+
+void glbuild_set_8bit_gamma(glbuild8bit *state, GLfloat gamma)
+{
+	glfunc.glUniform1f(state->unif_gamma, gamma);
 }
 
 void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx, int resy, int stride)

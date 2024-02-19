@@ -19,6 +19,7 @@ uniform sampler2D u_texture;
 uniform vec4 u_colour;
 uniform vec4 u_bgcolour;
 uniform int u_mode;
+uniform float u_gamma;
 
 varying mediump vec2 v_texcoord;
 
@@ -38,4 +39,5 @@ void main(void)
         // Foreground colour.
         o_fragcolour = u_colour;
     }
+    o_fragcolour.rgb = pow(o_fragcolour.rgb, vec3(1.0/u_gamma));
 }

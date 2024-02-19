@@ -160,6 +160,7 @@ static struct {
 	GLint uniform_colour;		// Colour (vec4)
 	GLint uniform_fogcolour;    // Fog colour   (vec4)
 	GLint uniform_fogdensity;   // Fog density  (float)
+	GLint uniform_gamma;		// Gamma value (float)
 } polymostglsl;
 
 static struct {
@@ -177,6 +178,7 @@ static struct {
 		// 0 = texture is mask, render vertex colour/bgcolour.
 		// 1 = texture is image, blend with bgcolour.
 		// 2 = draw solid colour.
+	GLint uniform_gamma;		// Gamma value (float)
 } polymostauxglsl;
 
 static GLuint elementindexbuffer = 0;
@@ -610,6 +612,7 @@ static void polymost_loadshaders(void)
 		polymostglsl.uniform_colour      = polymost_get_uniform(polymostglsl.program, "u_colour");
 		polymostglsl.uniform_fogcolour   = polymost_get_uniform(polymostglsl.program, "u_fogcolour");
 		polymostglsl.uniform_fogdensity  = polymost_get_uniform(polymostglsl.program, "u_fogdensity");
+		polymostglsl.uniform_gamma       = polymost_get_uniform(polymostglsl.program, "u_gamma");
 
 #if (USE_OPENGL == USE_GL3)
 		glfunc.glGenVertexArrays(1, &polymostglsl.vao);
@@ -658,6 +661,7 @@ static void polymost_loadshaders(void)
 		polymostauxglsl.uniform_colour   = polymost_get_uniform(polymostauxglsl.program, "u_colour");
 		polymostauxglsl.uniform_bgcolour = polymost_get_uniform(polymostauxglsl.program, "u_bgcolour");
 		polymostauxglsl.uniform_mode     = polymost_get_uniform(polymostauxglsl.program, "u_mode");
+		polymostauxglsl.uniform_gamma    = polymost_get_uniform(polymostauxglsl.program, "u_gamma");
 
 #if (USE_OPENGL == USE_GL3)
 		glfunc.glGenVertexArrays(1, &polymostauxglsl.vao);
@@ -837,6 +841,8 @@ void polymost_drawpoly_glcall(GLenum mode, struct polymostdrawpolycall *draw)
 	glfunc.glUniformMatrix4fv(polymostglsl.uniform_modelview, 1, GL_FALSE, draw->modelview);
 	glfunc.glUniformMatrix4fv(polymostglsl.uniform_projection, 1, GL_FALSE, draw->projection);
 
+	glfunc.glUniform1f(polymostglsl.uniform_gamma, usegammabrightness == 1 ? curgamma : 1.0);
+
 	glfunc.glDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
 
 #if (USE_OPENGL == USE_GL3)
@@ -892,6 +898,8 @@ static void polymost_drawaux_glcall(GLenum mode, struct polymostdrawauxcall *dra
 	glfunc.glUniform1i(polymostauxglsl.uniform_mode, draw->mode);
 
 	glfunc.glUniformMatrix4fv(polymostauxglsl.uniform_projection, 1, GL_FALSE, &gorthoprojmat[0][0]);
+
+	glfunc.glUniform1f(polymostauxglsl.uniform_gamma, usegammabrightness == 1 ? curgamma : 1.0);
 
 	glfunc.glDrawElements(mode, draw->indexcount, GL_UNSIGNED_SHORT, 0);
 
@@ -4250,7 +4258,7 @@ int polymost_drawtilescreen (int tilex, int tiley, int wallnum, int dimen)
 	}
 
 	bgcolour = curpalette[255];
-	if (!gammabrightness) {
+	if (!usegammabrightness) {
 		bgcolour.r = britable[curbrightness][bgcolour.r];
 		bgcolour.g = britable[curbrightness][bgcolour.g];
 		bgcolour.b = britable[curbrightness][bgcolour.b];
@@ -4325,7 +4333,7 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	draw.texture0 = texttexture;
 
 	colour = curpalette[col];
-	if (!gammabrightness) {
+	if (!usegammabrightness) {
 		colour.r = britable[curbrightness][ colour.r ];
 		colour.g = britable[curbrightness][ colour.g ];
 		colour.b = britable[curbrightness][ colour.b ];
@@ -4336,7 +4344,7 @@ int polymost_printext256(int xpos, int ypos, short col, short backcol, const  ch
 	draw.colour.a = 1.f;
 
 	colour = curpalette[min(0, backcol)];
-	if (!gammabrightness) {
+	if (!usegammabrightness) {
 		colour.r = britable[curbrightness][ colour.r ];
 		colour.g = britable[curbrightness][ colour.g ];
 		colour.b = britable[curbrightness][ colour.b ];
@@ -4434,7 +4442,7 @@ int polymost_drawline256(int x1, int y1, int x2, int y2, unsigned char col)
 	draw.mode = 2;	// Solid colour.
 
 	colour = curpalette[col];
-	if (!gammabrightness) {
+	if (!usegammabrightness) {
 		colour.r = britable[curbrightness][ colour.r ];
 		colour.g = britable[curbrightness][ colour.g ];
 		colour.b = britable[curbrightness][ colour.b ];
@@ -4479,7 +4487,7 @@ int polymost_plotpixel(int x, int y, unsigned char col)
 	draw.mode = 2;	// Solid colour.
 
 	colour = curpalette[col];
-	if (!gammabrightness) {
+	if (!usegammabrightness) {
 		colour.r = britable[curbrightness][ colour.r ];
 		colour.g = britable[curbrightness][ colour.g ];
 		colour.b = britable[curbrightness][ colour.b ];

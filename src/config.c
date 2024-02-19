@@ -109,6 +109,14 @@ static struct {
 		";   0  - lowest\n"
 		";   15 - highest\n"
 	},
+	{ "usegammabrightness", type_bool, &usegammabrightness,
+		"; Brightness setting method\n"
+		";   0 - palette\n"
+#if USE_OPENGL
+		";   1 - shader gamma\n"
+#endif
+		";   2 - system gamma\n"
+	},
 #if USE_POLYMOST && USE_OPENGL
 	{ "glusetexcache", type_bool, &glusetexcache,
 		"; OpenGL mode options\n"

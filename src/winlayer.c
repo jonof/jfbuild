@@ -50,9 +50,8 @@ static int backgroundidle = 0;
 static char apptitle[256] = "Build Engine";
 static char wintitle[256] = "";
 
-static WORD sysgamma[3][256];
-extern int gammabrightness;
-extern float curgamma;
+static WORD defgamma[3][256], defgammaread = FALSE;
+static float curshadergamma = 1.f, cursysgamma = -1.f;
 
 #if USE_OPENGL
 // OpenGL stuff
@@ -1116,10 +1115,7 @@ int setvideomode(int x, int y, int c, int fs)
 		refresh = validmode[modenum].extra;
 	}
 
-	if (hWindow && gammabrightness) {
-		setgammaramp(sysgamma);
-		gammabrightness = 0;
-	}
+	if (defgammaread) setgammaramp(defgamma);
 
 	if (baselayer_videomodewillchange) baselayer_videomodewillchange();
 	shutdownvideo();
@@ -1129,10 +1125,8 @@ int setvideomode(int x, int y, int c, int fs)
 
 	if (CreateAppWindow(x, y, c, fs, refresh)) return -1;
 
-	if (!gammabrightness) {
-		if (getgammaramp(sysgamma) >= 0) gammabrightness = 1;
-		if (gammabrightness && setgamma(curgamma) < 0) gammabrightness = 0;
-	}
+	if (!defgammaread && getgammaramp(defgamma) == 0) defgammaread = 1;
+	if (!defgammaread && usegammabrightness > 0) usegammabrightness = 1;
 
 	videomodereset = 0;
 	if (baselayer_videomodedidchange) baselayer_videomodedidchange();
@@ -1366,37 +1360,41 @@ int setpalette(int start, int num, unsigned char * dapal)
 //
 static int setgammaramp(WORD gt[3][256])
 {
-	int i;
-	i = SetDeviceGammaRamp(hDCWindow, gt) ? 0 : -1;
-	return i;
+	if (!hDCWindow || !hWindow) return -1;
+	return SetDeviceGammaRamp(hDCWindow, gt) ? 0 : -1;
 }
 
-int setgamma(float gamma)
+static int getgammaramp(WORD gt[3][256])
+{
+	if (!hDCWindow || !hWindow) return -1;
+	return GetDeviceGammaRamp(hDCWindow, gt) ? 0 : -1;
+}
+
+static void makegammaramp(WORD gt[3][256], double gamma)
 {
 	int i;
-	WORD gt[3][256];
-
-	if (!hWindow) return -1;
-
-	gamma = 1.0 / gamma;
 	for (i=0;i<256;i++) {
 		gt[0][i] =
 		gt[1][i] =
 		gt[2][i] = (WORD)min(65535, max(0, (int)(pow((double)i / 256.0, gamma) * 65535.0 + 0.5)));
 	}
-
-	return setgammaramp(gt);
 }
 
-static int getgammaramp(WORD gt[3][256])
+int setsysgamma(float shadergamma, float sysgamma)
 {
-	int i;
-
-	if (!hWindow) return -1;
-
-	i = GetDeviceGammaRamp(hDCWindow, gt) ? 0 : -1;
-
-	return i;
+	int r = 0;
+#if USE_OPENGL
+	if (!glunavailable && bpp == 8) glbuild_set_8bit_gamma(&gl8bit, shadergamma);
+#endif
+	if (sysgamma < 0.0) {
+		if (defgammaread) r = setgammaramp(defgamma);
+	} else {
+		WORD gt[3][256];
+		makegammaramp(gt, 1.0/sysgamma);
+		if (hWindow) r = setgammaramp(gt);
+	}
+	if (r == 0) { curshadergamma = shadergamma; cursysgamma = sysgamma; }
+	return r;
 }
 
 
@@ -2044,9 +2042,8 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 //
 static void DestroyAppWindow(void)
 {
-	if (hWindow && gammabrightness) {
-		setgammaramp(sysgamma);
-		gammabrightness = 0;
+	if (defgammaread) {
+		setgammaramp(defgamma);
 	}
 
 	shutdownvideo();

@@ -18,6 +18,7 @@ varying mediump vec2 v_texcoord;
 
 uniform sampler2D u_palette;
 uniform sampler2D u_frame;
+uniform float u_gamma;
 
 void main(void)
 {
@@ -26,4 +27,5 @@ void main(void)
   pixelvalue = texture2D(u_frame, v_texcoord).r;
   palettevalue = texture2D(u_palette, vec2(pixelvalue, 0.5)).rgb;
   o_fragcolour = vec4(palettevalue, 1.0);
+  o_fragcolour.rgb = pow(o_fragcolour.rgb, vec3(1.0/u_gamma));
 }

@@ -256,6 +256,8 @@ EXTERN unsigned char gotpic[(MAXTILES+7)>>3];
 EXTERN unsigned char gotsector[(MAXSECTORS+7)>>3];
 
 EXTERN int captureformat;
+extern int usegammabrightness;	//0=palette, 1=shader, 2=system
+
 extern unsigned char vgapalette[5*256];
 extern unsigned int drawlinepat;
 
@@ -395,6 +397,9 @@ intptr_t allocatepermanenttile(short tilenume, int xsiz, int ysiz);
 void   copytilepiece(int tilenume1, int sx1, int sy1, int xsiz, int ysiz, int tilenume2, int sx2, int sy2);
 int    makepalookup(int palnum, unsigned char *remapbuf, signed char r, signed char g, signed char b, unsigned char dastat);
 void   setvgapalette(void);
+	//noapply&1 - update palette but don't apply
+	//noapply&2 - avoid invalidating all gl textures
+	//noapply&4 - preserve current brightness
 void   setbrightness(int dabrightness, unsigned char *dapal, char noapply);
 void   setpalettefade(unsigned char r, unsigned char g, unsigned char b, unsigned char offset);
 void   squarerotatetile(short tilenume);

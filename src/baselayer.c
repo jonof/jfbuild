@@ -223,6 +223,18 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 		else { usevoxels = (atoi(parm->parms[0]) != 0); }
 		return OSDCMD_OK;
 	}
+	else if (!Bstrcasecmp(parm->name, "usegammabrightness")) {
+		const char *types[3] = { "palette", "shader", "system" };
+		if (!showval) {
+			usegammabrightness = atoi(parm->parms[0]);
+			usegammabrightness = min(max(0, usegammabrightness), 2);
+#if USE_OPENGL
+			if (usegammabrightness == 1 && glunavailable) usegammabrightness = 2;
+#endif
+		}
+		buildprintf("usegammabrightness is %d (%s)\n", usegammabrightness, types[usegammabrightness]);
+		return OSDCMD_OK;
+	}
 	return OSDCMD_SHOWHELP;
 }
 
@@ -262,6 +274,7 @@ int baselayer_init(void)
 
 	OSD_RegisterFunction("novoxmips","novoxmips: turn off/on the use of mipmaps when rendering 8-bit voxels",osdcmd_vars);
 	OSD_RegisterFunction("usevoxels","usevoxels: enable/disable automatic sprite->voxel rendering",osdcmd_vars);
+	OSD_RegisterFunction("usegammabrightness","usegammabrightness: set brightness using system gamma (2), shader (1), or palette (0)",osdcmd_vars);
 	OSD_RegisterFunction("listvidmodes","listvidmodes [bpp|win|fs]: show all available video mode combinations",osdcmd_listvidmodes);
 
 #if USE_POLYMOST

@@ -20,6 +20,7 @@ uniform vec4 u_colour;
 uniform float u_alphacut;
 uniform vec4 u_fogcolour;
 uniform float u_fogdensity;
+uniform float u_gamma;
 
 varying mediump vec2 v_texcoord;
 
@@ -45,4 +46,5 @@ void main(void)
 
     texcolour = applyfog(texcolour);
     o_fragcolour = mix(texcolour * u_colour, glowcolour, glowcolour.a);
+    o_fragcolour.rgb = pow(o_fragcolour.rgb, vec3(1.0/u_gamma));
 }

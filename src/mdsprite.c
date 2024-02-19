@@ -1219,7 +1219,7 @@ unsigned gloadtex (int *picbuf, int xsiz, int ysiz, int is8bit, int dapal)
 
 	pic = (coltype *)picbuf; //Correct for GL's RGB order; also apply gamma here..
 	pic2 = (coltype *)malloc(xsiz*ysiz*sizeof(coltype)); if (!pic2) return((unsigned)-1);
-	cptr = (unsigned char*)&britable[gammabrightness ? 0 : curbrightness][0];
+	cptr = (unsigned char*)&britable[usegammabrightness ? 0 : curbrightness][0];
 	if (!is8bit)
 	{
 		for(i=xsiz*ysiz-1;i>=0;i--)

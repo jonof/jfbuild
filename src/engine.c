@@ -64,8 +64,9 @@ int dommxoverlay = 1, beforedrawrooms = 1;
 
 static int oxdimen = -1, oviewingrange = -1, oxyaspect = -1;
 
-int curbrightness = 0, gammabrightness = 0;
-float curgamma = 1.0;
+int curbrightness = 0;
+int usegammabrightness = 1, ousegammabrightness = 1;	// Default to shader brightness.
+float curgamma = 1.f;
 
 	//Textured Map variables
 static unsigned char globalpolytype;
@@ -557,6 +558,7 @@ unsigned char vgapal16[4*256] =
 	21,63,21,00, 63,63,21,00, 21,21,63,00, 63,21,63,00, 21,63,63,00,
 	63,63,63,00
 };
+static int setgamma(float gamma);
 
 short editstatus = 0;
 short searchit;
@@ -7708,6 +7710,7 @@ void nextpage(void)
 #if USE_POLYMOST && USE_OPENGL
 			polymost_aftershowframe();
 #endif
+			if (usegammabrightness!=ousegammabrightness) setbrightness(0,NULL,4);
 
 			/*
 			if (ratelimit > 0) {
@@ -9831,16 +9834,19 @@ void setbrightness(int dabrightness, unsigned char *dapal, char noapply)
 	if (!(noapply&4))
 		curbrightness = min(max((int)dabrightness,0),15);
 
-	curgamma = 1.0 + ((float)curbrightness / 10.0);
-	if (setgamma(curgamma)) j = curbrightness; else j = 0;
+	setgamma(1.f + ((float)curbrightness / 10.f));
+	ousegammabrightness = usegammabrightness;
 
+	if (usegammabrightness) j = 0; else j = curbrightness;
 	for(k=i=0;i<256;i++)
 	{
-		// save palette without any brightness adjustment
-		curpalette[i].r = dapal[i*3+0] << 2;
-		curpalette[i].g = dapal[i*3+1] << 2;
-		curpalette[i].b = dapal[i*3+2] << 2;
-		curpalette[i].f = 0;
+		if (dapal) {
+			// save palette without any brightness adjustment
+			curpalette[i].r = dapal[i*3+0] << 2;
+			curpalette[i].g = dapal[i*3+1] << 2;
+			curpalette[i].b = dapal[i*3+2] << 2;
+			curpalette[i].f = 0;
+		}
 
 		// brightness adjust the palette
 		curpalettefaded[i].b = (tempbuf[k++] = britable[j][ curpalette[i].b ]);
@@ -9857,8 +9863,7 @@ void setbrightness(int dabrightness, unsigned char *dapal, char noapply)
 		unsigned int newpalettesum = crc32once((unsigned char *)curpalettefaded, sizeof(curpalettefaded));
 
 		// only reset the textures if the preserve flag (bit 1 of noapply) is clear and
-		// either (a) the new palette is different to the last, or (b) the brightness
-		// changed and we couldn't set it using hardware gamma
+		// the new palette is different to the last
 		if (!(noapply&2) && (newpalettesum != lastpalettesum))
 			polymost_texinvalidateall();
 
@@ -9886,7 +9891,7 @@ void setpalettefade(unsigned char r, unsigned char g, unsigned char b, unsigned 
 
 	k = 0;
 	for (i=0;i<256;i++) {
-		if (gammabrightness) p = curpalette[i];
+		if (usegammabrightness) p = curpalette[i];
 		else {
 			p.b = britable[curbrightness][ curpalette[i].b ];
 			p.g	= britable[curbrightness][ curpalette[i].g ];
@@ -9910,6 +9915,52 @@ void setpalettefade(unsigned char r, unsigned char g, unsigned char b, unsigned 
 
 
 //
+// setgamma
+//
+static int setgamma(float gamma)
+{
+	int ssgfailed = 0;
+	const char *types[3] = { "palette", "shader", "system" };
+
+	do {
+		switch (usegammabrightness) {
+			case 0:	// Palette.
+				ssgfailed = setsysgamma(1.f, -1.f);
+				break;
+#if USE_OPENGL
+			case 1:	// Shader.
+				if (!glunavailable) {
+					ssgfailed = setsysgamma(gamma, -1.f);
+				} else {
+					if (ssgfailed) usegammabrightness = 0;	// Fall back to palette.
+					else usegammabrightness = 2;	// Fall back to system.
+					debugprintf("setgamma: shader not available, trying %s\n", types[usegammabrightness]);
+					continue;
+				}
+				break;
+#endif
+			default:	// System.
+				usegammabrightness = 2;
+				if ((ssgfailed = setsysgamma(1.f, gamma))) {
+					usegammabrightness = 0;	// Fall back to palette.
+#if USE_OPENGL
+					if (!glunavailable) usegammabrightness = 1;	// Fall back to shader.
+#endif
+					debugprintf("setgamma: sys gamma failed, trying %s\n", types[usegammabrightness]);
+					continue;
+				}
+				break;
+		}
+		break;
+	} while(1);
+	// debugprintf("setgamma: gamma set using %s\n", types[usegammabrightness]);
+
+	curgamma = gamma;
+	return 0;
+}
+
+
+//
 // clearview
 //
 void clearview(int dacol)
@@ -9922,7 +9973,7 @@ void clearview(int dacol)
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3) {
 		palette_t p;
-		if (gammabrightness) p = curpalette[dacol];
+		if (usegammabrightness) p = curpalette[dacol];
 		else {
 			p.r = britable[curbrightness][ curpalette[dacol].r ];
 			p.g = britable[curbrightness][ curpalette[dacol].g ];
@@ -9962,7 +10013,7 @@ void clearallviews(int dacol)
 #if USE_POLYMOST && USE_OPENGL
 	if (rendmode == 3) {
 		palette_t p;
-		if (gammabrightness) p = curpalette[dacol];
+		if (usegammabrightness) p = curpalette[dacol];
 		else {
 			p.r = britable[curbrightness][ curpalette[dacol].r ];
 			p.g = britable[curbrightness][ curpalette[dacol].g ];

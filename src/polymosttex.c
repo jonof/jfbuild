@@ -691,7 +691,7 @@ static int pt_load_art(PTHead * pth)
 					wpptr->a = 255;
 					dacol = (int) ((unsigned char)palookup[pth->palnum][dacol]);
 				}
-				if (gammabrightness) {
+				if (usegammabrightness) {
 					wpptr->r = curpalette[dacol].r;
 					wpptr->g = curpalette[dacol].g;
 					wpptr->b = curpalette[dacol].b;
@@ -978,7 +978,7 @@ static void ptm_applyeffects(PTTexture * tex, int effects)
 	int x, y;
 	coltype * tptr = tex->pic;
 
-	if (effects == 0 && gammabrightness) {
+	if (effects == 0 && usegammabrightness) {
 		// use a quicker scan for alpha since we don't need
 		// to be swizzling texel components
 		for (y = tex->tsizy - 1; y >= 0; y--, tptr += tex->sizx) {
@@ -987,7 +987,7 @@ static void ptm_applyeffects(PTTexture * tex, int effects)
 			}
 		}
 	} else {
-		unsigned char *brit = &britable[gammabrightness ? 0 : curbrightness][0];
+		unsigned char *brit = &britable[usegammabrightness ? 0 : curbrightness][0];
 		coltype tcol;
 
 		for (y = tex->tsizy - 1; y >= 0; y--, tptr += tex->sizx) {

@@ -6726,6 +6726,7 @@ void qsetmodeany(int daxdim, int daydim)
 	if (qsetmode != ((daxdim<<16)|(daydim&0xffff))) {
 		if (setvideomode(daxdim, daydim, 8, fullscreen) < 0)
 			return;
+		setbrightness(0,NULL,4);
 
 		xdim = xres;
 		ydim = yres;

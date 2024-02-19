@@ -95,7 +95,7 @@ void resetvideomode(void);
 void showframe(void);
 
 int setpalette(int start, int num, unsigned char *dapal);
-int setgamma(float gamma);
+int setsysgamma(float shadergamma, float sysgamma);     // sysgamma < 0.f == restore system gamma, return < 0 == system gamma set error
 
 int wm_msgbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 int wm_ynbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
