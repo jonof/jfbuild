@@ -21,7 +21,7 @@ Minimum system requirements
   * ARM 32-bit hard-float, 64-bit
 * A modern operating system:
   * Linux, BSD, possibly other systems supported by [SDL 2.0](http://libsdl.org/).
-  * macOS 10.8+
+  * macOS 10.15+
   * Windows Vista, 7, 8/10+
 * Optional: 3D acceleration with OpenGL 2.0 or OpenGL ES 2.0 capable hardware.
 
