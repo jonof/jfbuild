@@ -8,14 +8,15 @@
 
 /* Begin PBXBuildFile section */
 		AB053FAF0A33136D00FA2918 /* startwin.game.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB053FAE0A33136D00FA2918 /* startwin.game.nib */; };
+		AB3930032B942820002B0F5D /* klist in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = AB3930022B942814002B0F5D /* klist */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		AB3DEDA21BD23DAB0009D070 /* Game Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */; };
 		AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */; };
 		AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07650A33068500FF2442 /* startwin.editor.nib */; };
 		AB3FE4680C0433D000D5DBDC /* libeditorsupp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */; };
 		AB43D734219DAA2200718BCE /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
-		AB43D735219DAA2200718BCE /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AB43D735219DAA2200718BCE /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = ( ); }; };
 		AB43D737219DAA3300718BCE /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
-		AB43D738219DAA3300718BCE /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AB43D738219DAA3300718BCE /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = ( ); }; };
 		AB63425724305DAA002CDE1A /* names.h in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D650F046E6E00730EAA /* names.h */; };
 		AB63426924305F35002CDE1A /* arttool in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9AD60F0B308900A528DC /* arttool */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		AB63426A24305F35002CDE1A /* kextract in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9C3E0F0CC83700A528DC /* kextract */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -47,6 +48,20 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		AB392FFA2B942813002B0F5D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = AB392FEB2B9427BA002B0F5D;
+			remoteInfo = klist;
+		};
+		AB3930012B942814002B0F5D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = AB392FF52B9427BA002B0F5D;
+			remoteInfo = klist;
+		};
 		AB3FE4570C04338D00D5DBDC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AB7360140A29AA70003261DC /* engine.xcodeproj */;
@@ -215,6 +230,7 @@
 				AB63426924305F35002CDE1A /* arttool in Copy additional editor tools */,
 				AB63426A24305F35002CDE1A /* kextract in Copy additional editor tools */,
 				AB63426B24305F35002CDE1A /* kgroup in Copy additional editor tools */,
+				AB3930032B942820002B0F5D /* klist in Copy additional editor tools */,
 				AB63426C24305F35002CDE1A /* transpal in Copy additional editor tools */,
 			);
 			name = "Copy additional editor tools";
@@ -325,6 +341,7 @@
 				ABD2DF9421AC1C3D00BDB555 /* bin2c */,
 				ABAE9C3E0F0CC83700A528DC /* kextract */,
 				ABAE9C400F0CC83700A528DC /* kgroup */,
+				AB3930022B942814002B0F5D /* klist */,
 				ABF1DD221BB82822007DE427 /* transpal */,
 			);
 			name = Products;
@@ -421,6 +438,7 @@
 				AB63426124305EE4002CDE1A /* PBXTargetDependency */,
 				AB63426324305EE4002CDE1A /* PBXTargetDependency */,
 				AB63426524305EE4002CDE1A /* PBXTargetDependency */,
+				AB392FFB2B942813002B0F5D /* PBXTargetDependency */,
 				AB63426724305EE4002CDE1A /* PBXTargetDependency */,
 			);
 			name = build;
@@ -434,6 +452,14 @@
 		AB73600B0A29AA64003261DC /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				TargetAttributes = {
+					AB7360290A29AB08003261DC = {
+						ProvisioningStyle = Manual;
+					};
+					AB73604F0A29AD92003261DC = {
+						ProvisioningStyle = Manual;
+					};
+				};
 			};
 			buildConfigurationList = AB73600C0A29AA64003261DC /* Build configuration list for PBXProject "game" */;
 			compatibilityVersion = "Xcode 8.0";
@@ -461,6 +487,13 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
+		AB3930022B942814002B0F5D /* klist */ = {
+			isa = PBXReferenceProxy;
+			fileType = "compiled.mach-o.executable";
+			path = klist;
+			remoteRef = AB3930012B942814002B0F5D /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -564,6 +597,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		AB392FFB2B942813002B0F5D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = klist;
+			targetProxy = AB392FFA2B942813002B0F5D /* PBXContainerItemProxy */;
+		};
 		AB63426124305EE4002CDE1A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = arttool;

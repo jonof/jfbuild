@@ -16,6 +16,7 @@
 /xcode/*.xcodeproj/project.xcworkspace
 /xcode/*.xcodeproj/xcuserdata
 /xcode/Signing.xcconfig
+/xcode/Version.xcconfig
 /xcode/build
 /xcode/frameworks
 

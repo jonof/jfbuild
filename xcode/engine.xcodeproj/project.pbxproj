@@ -27,6 +27,7 @@
 				AB77B4D6171AC3F700982712 /* PBXTargetDependency */,
 				AB77B4D8171AC3F700982712 /* PBXTargetDependency */,
 				AB77B4DA171AC3F700982712 /* PBXTargetDependency */,
+				AB392FF92B9427F3002B0F5D /* PBXTargetDependency */,
 				ABD03E291A518A1F0012B9D1 /* PBXTargetDependency */,
 			);
 			name = tools;
@@ -36,6 +37,11 @@
 
 /* Begin PBXBuildFile section */
 		AB1751270CEF5AF8003AF128 /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB1751260CEF5AF8003AF128 /* SDL2.framework */; };
+		AB392FEE2B9427BA002B0F5D /* compat.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F510A29A39C003261DC /* compat.c */; };
+		AB392FEF2B9427BA002B0F5D /* osxbits.m in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5C0A29A39C003261DC /* osxbits.m */; };
+		AB392FF12B9427BA002B0F5D /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
+		AB392FF72B9427E5002B0F5D /* klist.c in Sources */ = {isa = PBXBuildFile; fileRef = AB392FF62B9427E5002B0F5D /* klist.c */; };
+		AB3930042B9428B2002B0F5D /* crc32.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F520A29A39C003261DC /* crc32.c */; };
 		AB3B2A0E0EE3FC0400944CD1 /* hightile.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2A0D0EE3FC0400944CD1 /* hightile.c */; };
 		AB3B2A1D0EE3FCF900944CD1 /* polymost.c in Sources */ = {isa = PBXBuildFile; fileRef = AB3B2A1C0EE3FCF900944CD1 /* polymost.c */; };
 		AB3B2AB60EE402B600944CD1 /* engine_priv.h in Headers */ = {isa = PBXBuildFile; fileRef = AB3B2AB50EE402B600944CD1 /* engine_priv.h */; };
@@ -139,6 +145,13 @@
 /* End PBXBuildRule section */
 
 /* Begin PBXContainerItemProxy section */
+		AB392FF82B9427F3002B0F5D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AB735F3A0A29A24A003261DC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AB392FEB2B9427BA002B0F5D;
+			remoteInfo = klist;
+		};
 		AB3FE4660C0433A600D5DBDC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AB735F3A0A29A24A003261DC /* Project object */;
@@ -197,6 +210,8 @@
 
 /* Begin PBXFileReference section */
 		AB1751260CEF5AF8003AF128 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = frameworks/SDL2.framework; sourceTree = SOURCE_ROOT; };
+		AB392FF52B9427BA002B0F5D /* klist */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = klist; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB392FF62B9427E5002B0F5D /* klist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = klist.c; sourceTree = "<group>"; };
 		AB3B2A0D0EE3FC0400944CD1 /* hightile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hightile.c; sourceTree = "<group>"; };
 		AB3B2A1C0EE3FCF900944CD1 /* polymost.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = polymost.c; sourceTree = "<group>"; usesTabs = 1; };
 		AB3B2A6B0EE4007B00944CD1 /* mdsprite.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mdsprite.c; sourceTree = "<group>"; usesTabs = 1; };
@@ -209,6 +224,7 @@
 		AB3E07290A33035B00FF2442 /* EditorStartupWinController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EditorStartupWinController.m; sourceTree = "<group>"; };
 		AB3FE4550C04336F00D5DBDC /* libeditorsupp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libeditorsupp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB4C36DB2B74EFC50092B8DD /* engine-version.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "engine-version.c"; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB6465A12B94376000A757A9 /* Common.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Common.xcconfig; sourceTree = "<group>"; };
 		AB66C6A92907E89F0063C874 /* glbuild_priv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = glbuild_priv.h; sourceTree = "<group>"; };
 		AB66C6AB2907E8BE0063C874 /* rg_etc1.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = rg_etc1.h; sourceTree = "<group>"; };
 		AB66C6AC2907E8BE0063C874 /* polymosttexcompress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = polymosttexcompress.h; sourceTree = "<group>"; };
@@ -299,6 +315,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		AB392FF02B9427BA002B0F5D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB392FF12B9427BA002B0F5D /* AppKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AB3FE4510C04336F00D5DBDC /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -407,6 +431,7 @@
 		AB735F380A29A24A003261DC = {
 			isa = PBXGroup;
 			children = (
+				AB6465A12B94376000A757A9 /* Common.xcconfig */,
 				AB735FBF0A29A89F003261DC /* Editor */,
 				AB735F720A29A3A0003261DC /* Engine */,
 				AB4C36DB2B74EFC50092B8DD /* engine-version.c */,
@@ -428,6 +453,7 @@
 				ABAE9C390F0CC81900A528DC /* kgroup */,
 				ABD03E211A5189E00012B9D1 /* transpal */,
 				ABE362492144CA6500BA44B3 /* bin2c */,
+				AB392FF52B9427BA002B0F5D /* klist */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -545,6 +571,7 @@
 		ABAE9ADA0F0B30D500A528DC /* Tools */ = {
 			isa = PBXGroup;
 			children = (
+				AB392FF62B9427E5002B0F5D /* klist.c */,
 				ABE3624A2144CA9000BA44B3 /* bin2c.cc */,
 				ABAE9ADB0F0B310900A528DC /* kextract.c */,
 				ABAE9ADC0F0B310900A528DC /* kgroup.c */,
@@ -608,6 +635,22 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		AB392FEB2B9427BA002B0F5D /* klist */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AB392FF22B9427BA002B0F5D /* Build configuration list for PBXNativeTarget "klist" */;
+			buildPhases = (
+				AB392FEC2B9427BA002B0F5D /* Sources */,
+				AB392FF02B9427BA002B0F5D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = klist;
+			productName = arttool;
+			productReference = AB392FF52B9427BA002B0F5D /* klist */;
+			productType = "com.apple.product-type.tool";
+		};
 		AB3FE44A0C04336F00D5DBDC /* editorsupp */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = AB3FE4520C04336F00D5DBDC /* Build configuration list for PBXNativeTarget "editorsupp" */;
@@ -792,6 +835,7 @@
 				ABE362422144CA6500BA44B3 /* bin2c */,
 				ABAE9C270F0CC80200A528DC /* kextract */,
 				ABAE9C320F0CC81900A528DC /* kgroup */,
+				AB392FEB2B9427BA002B0F5D /* klist */,
 				ABD03E201A5189E00012B9D1 /* transpal */,
 				AB77B4D2171AC3E800982712 /* tools */,
 				AB4C36E32B75852A0092B8DD /* fetch-deps */,
@@ -841,6 +885,17 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		AB392FEC2B9427BA002B0F5D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB392FF72B9427E5002B0F5D /* klist.c in Sources */,
+				AB3930042B9428B2002B0F5D /* crc32.c in Sources */,
+				AB392FEE2B9427BA002B0F5D /* compat.c in Sources */,
+				AB392FEF2B9427BA002B0F5D /* osxbits.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AB3FE44D0C04336F00D5DBDC /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -954,6 +1009,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		AB392FF92B9427F3002B0F5D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AB392FEB2B9427BA002B0F5D /* klist */;
+			targetProxy = AB392FF82B9427F3002B0F5D /* PBXContainerItemProxy */;
+		};
 		AB3FE4670C0433A600D5DBDC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = AB3FE44A0C04336F00D5DBDC /* editorsupp */;
@@ -987,6 +1047,22 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		AB392FF32B9427BA002B0F5D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		AB392FF42B9427BA002B0F5D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INSTALL_PATH = "$(HOME)/bin";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		AB3FE4530C04336F00D5DBDC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1021,6 +1097,7 @@
 		};
 		AB735F3C0A29A24B003261DC /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AB6465A12B94376000A757A9 /* Common.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++98";
@@ -1053,6 +1130,7 @@
 		};
 		AB735F3D0A29A24B003261DC /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AB6465A12B94376000A757A9 /* Common.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "c++98";
@@ -1214,6 +1292,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		AB392FF22B9427BA002B0F5D /* Build configuration list for PBXNativeTarget "klist" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AB392FF32B9427BA002B0F5D /* Debug */,
+				AB392FF42B9427BA002B0F5D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		AB3FE4520C04336F00D5DBDC /* Build configuration list for PBXNativeTarget "editorsupp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
