@@ -50,7 +50,7 @@ extern int startposx, startposy, startposz;
 extern short startang, startsectnum;
 extern intptr_t frameplace;
 int ydim16, ytop16, halfxdim16, midydim16;
-static int bakydim16, bakytop16;
+static int bakydim16 = -1, bakytop16 = -1;
 int xdim2d = 640, ydim2d = 480, xdimgame = 640, ydimgame = 480, bppgame = 8;
 int forcesetup = 1;
 
@@ -519,7 +519,7 @@ void showmouse(void)
 	drawline256((searchx  )<<12, (searchy-1)<<12, (searchx  )<<12, (searchy-5)<<12, whitecol);
 }
 
-void setoverheadviewport(void)
+void setoverheadviewport16(void)
 {
 	bakydim16 = ydim16;
 	bakytop16 = ytop16;
@@ -527,7 +527,7 @@ void setoverheadviewport(void)
 	ytop16 = 0;
 }
 
-void setstatusbarviewport(void)
+void setstatusbarviewport16(void)
 {
 	bakydim16 = ydim16;
 	bakytop16 = ytop16;
@@ -535,10 +535,15 @@ void setstatusbarviewport(void)
 	ytop16 = yres - STATUS2DSIZ;
 }
 
-void restoreviewport(void)
+void restoreviewport16(void)
 {
+	if (bakytop16 < 0) {
+		debugprintf("restoreviewport16: no viewport saved\n");
+		return;
+	}
 	ydim16 = bakydim16;
 	ytop16 = bakytop16;
+	bakytop16 = bakydim16 = -1;
 }
 
 void editinput(void)
@@ -2720,7 +2725,7 @@ void overheadeditor(void)
 	searchy = scale(searchy,ydim2d-STATUS2DSIZ,ydimgame);
 	oposz = posz;
 
-	setstatusbarviewport();
+	setstatusbarviewport16();
 	drawline16(0,0,xdim-1,0,7);
 	drawline16(0,ydim16-1,xdim-1,ydim16-1,7);
 	drawline16(0,0,0,ydim16-1,7);
@@ -2846,7 +2851,7 @@ void overheadeditor(void)
 		numwalls = newnumwalls;
 		if (numwalls < 0) numwalls = templong;
 
-		setoverheadviewport();
+		setoverheadviewport16();
 		clear2dscreen();
 		draw2dgrid(posx,posy,ang,zoom,grid);
 
@@ -3280,7 +3285,7 @@ void overheadeditor(void)
 			asksave = 1;
 		}
 
-		setstatusbarviewport();
+		setstatusbarviewport16();
 
 		if (keystatus[0x3f] > 0)  //F5
 		{
@@ -3497,7 +3502,7 @@ void overheadeditor(void)
 			keystatus[0x0f] = 0;
 		}
 
-		setoverheadviewport();
+		setoverheadviewport16();
 
 		if (highlightsectorcnt < 0)
 		{
@@ -5994,11 +5999,11 @@ void fixrepeats(short i)
 
 void clearmidstatbar16(void)
 {
-	setstatusbarviewport();
+	setstatusbarviewport16();
 	clearbuf((unsigned char *)(frameplace + (bytesperline*(ytop16+25L))),(bytesperline*(ydim16-1-(25<<1))) >> 2, 0x08080808l);
 	drawline16(0,0,0,ydim16-1,7);
 	drawline16(xdim-1,0,xdim-1,ydim16-1,7);
-	restoreviewport();
+	restoreviewport16();
 }
 
 short loopinside(int x, int y, short startwall)
@@ -6740,8 +6745,8 @@ void qsetmodeany(int daxdim, int daydim)
 
 		setvgapalette();
 
-		setoverheadviewport();
-		bakydim16 = ydim16; bakytop16 = ytop16;
+		setoverheadviewport16();
+		bakydim16 = -1; bakytop16 = -1;
 		halfxdim16 = xres >> 1;
 		midydim16 = scale(200,yres,480);
 
@@ -7123,7 +7128,7 @@ void printcoords16(int posxe, int posye, short ange)
 	char snotbuf[80];
 	int i, maxsect = 0, maxwall = 0, maxspri = 0;
 
-	setstatusbarviewport();
+	setstatusbarviewport16();
 
 	Bsprintf(snotbuf,"x=%d y=%d ang=%d",posxe,posye,ange);
 	i = 0;
@@ -7178,7 +7183,7 @@ void printcoords16(int posxe, int posye, short ange)
 
 	printext16(264,128, 14, 6, snotbuf,0);
 
-	restoreviewport();
+	restoreviewport16();
 }
 
 void updatenumsprites(void)
@@ -7249,7 +7254,7 @@ void showsectordata(short sectnum)
 {
 	char snotbuf[80];
 
-	setstatusbarviewport();
+	setstatusbarviewport16();
 
 	Bsprintf(snotbuf,"Sector %d",sectnum);
 	printext16(8,32,11,-1,snotbuf,0);
@@ -7302,7 +7307,7 @@ void showsectordata(short sectnum)
 	Bsprintf(snotbuf,"Palookup number: %d",sector[sectnum].floorpal);
 	printext16(400,96,11,-1,snotbuf,0);
 
-	restoreviewport();
+	restoreviewport16();
 }
 
 void showwalldata(short wallnum)
@@ -7310,7 +7315,7 @@ void showwalldata(short wallnum)
 	int dax, day, dist;
 	char snotbuf[80];
 
-	setstatusbarviewport();
+	setstatusbarviewport16();
 
 	Bsprintf(snotbuf,"Wall %d",wallnum);
 	printext16(8,32,11,-1,snotbuf,0);
@@ -7362,14 +7367,14 @@ void showwalldata(short wallnum)
 	Bsprintf(snotbuf,"Pixel height: %d",(sector[dax].floorz-sector[dax].ceilingz)>>8);
 	printext16(400,104,11,-1,snotbuf,0);
 
-	restoreviewport();
+	restoreviewport16();
 }
 
 void showspritedata(short spritenum)
 {
 	char snotbuf[80];
 
-	setstatusbarviewport();
+	setstatusbarviewport16();
 
 	Bsprintf(snotbuf,"Sprite %d",spritenum);
 	printext16(8,32,11,-1,snotbuf,0);
@@ -7419,7 +7424,7 @@ void showspritedata(short spritenum)
 	Bsprintf(snotbuf,"Extra: %d",sprite[spritenum].extra);
 	printext16(400,96,11,-1,snotbuf,0);
 
-	restoreviewport();
+	restoreviewport16();
 }
 
 void keytimerstuff(void)
@@ -7469,9 +7474,9 @@ void printmessage16(char *name)
 	}
 	snotbuf[54] = 0;
 
-	setstatusbarviewport();
+	setstatusbarviewport16();
 	printext16(200L, 8L, 0, 6, snotbuf, 0);
-	restoreviewport();
+	restoreviewport16();
 }
 
 void printmessage256(char *name)

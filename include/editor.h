@@ -66,6 +66,9 @@ int writesetup(const char *fn);	// from config.c
 
 void editinput(void);
 void clearmidstatbar16(void);
+void setoverheadviewport16(void);
+void setstatusbarviewport16(void);
+void restoreviewport16(void);
 
 void drawline16(int x1, int y1, int x2, int y2, unsigned char col);
 void drawcircle16(int x1, int y1, int r, unsigned char col);
