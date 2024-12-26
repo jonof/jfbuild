@@ -4,19 +4,6 @@
 //
 // Use SDL2 from http://www.libsdl.org
 
-/*
- * Re: SDL surface blit vs renderer.
- *
- * Experiments on a Raspberry Pi 3 Model B+ have demonstrated that
- * there's merit in both 8-bit mode blitting techniques depending on
- * the Pi's configuration. With the GL driver disabled, the surface blit
- * path is significantly faster. With the GL driver enabled, the SDL
- * renderer interface is slightly quicker. However, faster than both is
- * the forthcoming GLSL 2 blitter. Also, on a Mac Mini G4 with hampered
- * AGP under Debian 8, surface blit is fast and the renderer slower.
- */
-//#define SDLAYER_USE_RENDERER
-
 #include "build.h"
 
 #if defined __APPLE__
@@ -57,12 +44,10 @@ static char wintitle[256] = "";
 
 // video
 static SDL_Window *sdl_window;
-#ifdef SDLAYER_USE_RENDERER
 static SDL_Renderer *sdl_renderer;	// For non-GL 8-bit mode output.
 static SDL_Texture *sdl_texture;	// For non-GL 8-bit mode output.
-#else
 static SDL_Surface *sdl_surface;	// For non-GL 8-bit mode output.
-#endif
+static int usesdlrenderer = 0;
 static unsigned char *frame;
 static float curshadergamma = 1.f, cursysgamma = -1.f;
 
@@ -336,6 +321,10 @@ int initsystem(void)
 
 	OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes. 0 = no vsync, -1 = adaptive, max 2", set_glswapinterval);
 #endif
+	if (getenv("BUILD_USESDLRENDERER")) {
+		buildputs("Will use SDL renderer if OpenGL is not available.\n");
+		usesdlrenderer = 1;
+	}
 
 	return 0;
 }
@@ -790,7 +779,6 @@ static void shutdownvideo(void)
 		sdl_glcontext = NULL;
 	}
 #endif
-#ifdef SDLAYER_USE_RENDERER
 	if (sdl_texture) {
 		SDL_DestroyTexture(sdl_texture);
 		sdl_texture = NULL;
@@ -799,12 +787,10 @@ static void shutdownvideo(void)
 		SDL_DestroyRenderer(sdl_renderer);
 		sdl_renderer = NULL;
 	}
-#else
 	if (sdl_surface) {
 		SDL_FreeSurface(sdl_surface);
 		sdl_surface = NULL;
 	}
-#endif
 	if (sdl_window) {
 		SDL_DestroyWindow(sdl_window);
 		sdl_window = NULL;
@@ -818,6 +804,7 @@ int setvideomode(int x, int y, int c, int fs)
 {
 	int regrab = 0;
 	int flags;
+	int winx, winy;
 
 	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
 		!videomodereset) {
@@ -868,12 +855,13 @@ int setvideomode(int x, int y, int c, int fs)
 		}
 #endif
 
+		winx = x; winy = y;
 		if (fs & 1) {
 			if (c > 8) flags |= SDL_WINDOW_FULLSCREEN;
 			else flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 		}
 
-		sdl_window = SDL_CreateWindow(wintitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
+		sdl_window = SDL_CreateWindow(wintitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, winx, winy, flags);
 		if (!sdl_window) {
 			buildprintf("Error creating window: %s\n", SDL_GetError());
 
@@ -907,32 +895,36 @@ int setvideomode(int x, int y, int c, int fs)
 #if USE_OPENGL
 		if (glunavailable) {
 #endif
-#ifdef SDLAYER_USE_RENDERER
-			// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
-			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
+			if (usesdlrenderer) {
+				// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
+				SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");
 
-			sdl_renderer = SDL_CreateRenderer(sdl_window, -1, SDL_RENDERER_PRESENTVSYNC);
-			if (!sdl_renderer) {
-				buildprintf("Error creating renderer: %s\n", SDL_GetError());
-				return -1;
-			}
-			SDL_RenderSetLogicalSize(sdl_renderer, x, y);
-			SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, 255);
-			SDL_RenderClear(sdl_renderer);
+				sdl_renderer = SDL_CreateRenderer(sdl_window, -1, SDL_RENDERER_PRESENTVSYNC);
+				if (!sdl_renderer) {
+					buildprintf("Error creating renderer: %s\n", SDL_GetError());
+					return -1;
+				}
+				SDL_SetRenderDrawColor(sdl_renderer, 0, 0, 0, 255);
 
-			sdl_texture = SDL_CreateTexture(sdl_renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, x, y);
-			if (!sdl_texture) {
-				buildprintf("Error creating texture: %s\n", SDL_GetError());
-				return -1;
+				sdl_texture = SDL_CreateTexture(sdl_renderer,
+					B_LITTLE_ENDIAN ? SDL_PIXELFORMAT_ABGR8888 : SDL_PIXELFORMAT_RGBA8888,
+					SDL_TEXTUREACCESS_STREAMING, x, y);
+				if (!sdl_texture) {
+					buildprintf("Error creating texture: %s\n", SDL_GetError());
+					return -1;
+				}
+			} else {
+				// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
+				sdl_surface = SDL_CreateRGBSurface(0, x, y, 32,
+					255l<<(8*offsetof(palette_t, r)),
+					255l<<(8*offsetof(palette_t, g)),
+					255l<<(8*offsetof(palette_t, b)),
+					0);
+				if (!sdl_surface) {
+					buildprintf("Error creating surface: %s\n", SDL_GetError());
+					return -1;
+				}
 			}
-#else
-			// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
-			sdl_surface = SDL_CreateRGBSurface(0, x, y, 8, 0, 0, 0, 0);
-			if (!sdl_surface) {
-				buildprintf("Error creating surface: %s\n", SDL_GetError());
-				return -1;
-			}
-#endif
 #if USE_OPENGL
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
@@ -1066,72 +1058,82 @@ void showframe(void)
 #endif
 
 	unsigned char *pixels, *in;
-
-#ifdef SDLAYER_USE_RENDERER
 	int pitch, y, x;
+	int rendx, rendy, rendaspect, frameaspect;
+	SDL_Rect destrect;
+	SDL_Surface *winsurface = NULL;
 
-	if (SDL_LockTexture(sdl_texture, NULL, (void**)&pixels, &pitch)) {
-		debugprintf("Could not lock texture: %s\n", SDL_GetError());
-		return;
+	if (usesdlrenderer) {
+		if (SDL_LockTexture(sdl_texture, NULL, (void**)&pixels, &pitch)) {
+			debugprintf("Could not lock texture: %s\n", SDL_GetError());
+			return;
+		}
+	} else {
+		if (SDL_LockSurface(sdl_surface)) {
+			debugprintf("Could not lock surface: %s\n", SDL_GetError());
+			return;
+		}
+		pixels = (unsigned char *)sdl_surface->pixels;
+		pitch = sdl_surface->pitch;
 	}
 
 	in = frame;
 	for (y = yres - 1; y >= 0; y--) {
 		for (x = xres - 1; x >= 0; x--) {
-#if B_LITTLE_ENDIAN
-			// RGBA -> BGRA, ignoring A
-			/*
-			pixels[(x<<2)+0] = curpalettefaded[in[x]].b;
-			pixels[(x<<2)+1] = curpalettefaded[in[x]].g;
-			pixels[(x<<2)+2] = curpalettefaded[in[x]].r;
-			pixels[(x<<2)+3] = 0;
-			*/
-			((unsigned int *)pixels)[x] = B_SWAP32(*(unsigned int *)&curpalettefaded[in[x]]) >> 8;
-#else
-			pixels[(x<<2)+0] = 0;
-			pixels[(x<<2)+1] = curpalettefaded[in[x]].r;
-			pixels[(x<<2)+2] = curpalettefaded[in[x]].g;
-			pixels[(x<<2)+3] = curpalettefaded[in[x]].b;
-#endif
+			memcpy(&pixels[x<<2], &curpalettefaded[in[x]], 4);
 		}
 		pixels += pitch;
 		in += bytesperline;
 	}
 
-	SDL_UnlockTexture(sdl_texture);
-	if (SDL_RenderCopy(sdl_renderer, sdl_texture, NULL, NULL)) {
-		debugprintf("Could not copy render texture: %s\n", SDL_GetError());
-	}
-	SDL_RenderPresent(sdl_renderer);
-
-#else //SDLAYER_USE_RENDERER
-	SDL_Surface *winsurface;
-	int pitch, y;
-
-	if (SDL_LockSurface(sdl_surface)) {
-		debugprintf("Could not lock surface: %s\n", SDL_GetError());
-		return;
-	}
-	pixels = (unsigned char *)sdl_surface->pixels;
-	pitch = sdl_surface->pitch;
-
-	in = frame;
-	for (y = yres - 1; y >= 0; y--) {
-		memcpy(pixels, in, xres);
-		pixels += pitch;
-		in += bytesperline;
+	if (usesdlrenderer) {
+		SDL_UnlockTexture(sdl_texture);
+	} else {
+		SDL_UnlockSurface(sdl_surface);
 	}
 
-	SDL_UnlockSurface(sdl_surface);
-
-	winsurface = SDL_GetWindowSurface(sdl_window);
-	if (!winsurface) {
-		debugprintf("Could not get window surface: %s\n", SDL_GetError());
-		return;
+	if (usesdlrenderer) {
+		SDL_GetRendererOutputSize(sdl_renderer, &rendx, &rendy);
+	} else {
+		winsurface = SDL_GetWindowSurface(sdl_window);
+		if (!winsurface) {
+			debugprintf("Could not get window surface: %s\n", SDL_GetError());
+			return;
+		}
+		rendx = winsurface->w;
+		rendy = winsurface->h;
 	}
-	SDL_BlitSurface(sdl_surface, NULL, winsurface, NULL);
-	SDL_UpdateWindowSurface(sdl_window);
-#endif //SDLAYER_USE_RENDERER
+
+	rendaspect = divscale16(rendx, rendy);
+	frameaspect = divscale16(xres, yres);
+	if (rendaspect >= frameaspect) {
+		// Renderer is at least as wide as the frame. We maximise frame height and centre on width.
+		destrect.y = 0;
+		destrect.h = rendy;
+		destrect.w = mulscale16(rendy, frameaspect);
+		destrect.x = (rendx - destrect.w) >> 1;
+	} else {
+		// Renderer is narrower than the frame. We maximise frame width and centre on height.
+		destrect.x = 0;
+		destrect.w = rendx;
+		destrect.h = divscale16(rendx, frameaspect);
+		destrect.y = (rendy - destrect.h) >> 1;
+	}
+
+	if (usesdlrenderer) {
+		SDL_RenderClear(sdl_renderer);
+		if (SDL_RenderCopy(sdl_renderer, sdl_texture, NULL, &destrect)) {
+			debugprintf("Could not copy render texture: %s\n", SDL_GetError());
+		}
+		SDL_RenderPresent(sdl_renderer);
+	} else {
+		SDL_FillRect(winsurface, NULL, SDL_MapRGB(winsurface->format, 0, 0, 0));
+		if (SDL_BlitScaled(sdl_surface, NULL, winsurface, &destrect) < 0) {
+			debugprintf("Could not blit surface: %s\n", SDL_GetError());
+			return;
+		}
+		SDL_UpdateWindowSurface(sdl_window);
+	}
 }
 
 
@@ -1144,13 +1146,6 @@ int setpalette(int start, int num, unsigned char *dapal)
 #if USE_OPENGL
 	if (!glunavailable) {
 		glbuild_update_8bit_palette(&gl8bit, curpalettefaded);
-	}
-#endif
-#ifndef SDLAYER_USE_RENDERER
-	if (sdl_surface) {
-		if (SDL_SetPaletteColors(sdl_surface->format->palette, (const SDL_Color *)curpalettefaded, 0, 256)) {
-			debugprintf("Could not set palette: %s\n", SDL_GetError());
-		}
 	}
 #endif
 	return 0;
