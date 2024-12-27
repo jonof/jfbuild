@@ -9840,10 +9840,9 @@ void getzrange(int x, int y, int z, short sectnum,
 //
 void setview(int x1, int y1, int x2, int y2)
 {
-	int i;
-	float xfov;
+	int i, xfov = 65536;
 
-	xfov = ((float)xdim / (float)ydim) / (4.f / 3.f);
+	if (widescreen) xfov = divscale16(xdim*3, ydim*4);
 
 	windowx1 = x1; wx1 = (x1<<12);
 	windowy1 = y1; wy1 = (y1<<12);
@@ -9854,7 +9853,7 @@ void setview(int x1, int y1, int x2, int y2)
 	xdimenrecip = divscale32(1L,xdimen);
 	ydimen = (y2-y1)+1;
 
-	setaspect((int)(65536.f * xfov), pixelaspect);
+	setaspect(mulscale16(65536,xfov), pixelaspect);
 
 	for(i=0;i<windowx1;i++) { startumost[i] = 1, startdmost[i] = 0; }
 	for(i=windowx1;i<=windowx2;i++)
