@@ -623,44 +623,21 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	extern const char default_glbuild_fs_glsl[];
 	extern const char default_glbuild_vs_glsl[];
 
-	float tx = (float)resx / (float)stride, ty = 1.0;
 	int tsizx = stride, tsizy = resy;
 
-	float winaspect = (float)winx / (float)winy;
-	float frameaspect = (float)resx / (float)resy;
-	float aspectx, aspecty;
-
+	state->resx = resx;
+	state->resy = resy;
+	state->winx = state->winy = 0;
+	state->tx = (float)resx / (float)stride;
+	state->ty = 1.0;
 	if (!glinfo.texnpot) {
 		for (tsizx = 1; tsizx < stride; tsizx <<= 1) { }
 		for (tsizy = 1; tsizy < resy; tsizy <<= 1) { }
-		tx = (float)resx / (float)tsizx;
-		ty = (float)resy / (float)tsizy;
+		state->tx = (float)resx / (float)tsizx;
+		state->ty = (float)resy / (float)tsizy;
 	}
 
-	// Correct for aspect ratio difference between the window size
-	// and the logical 8-bit surface by skewing the quad we draw.
-	if (fabs(winaspect - frameaspect) < 0.01) {
-		aspectx = aspecty = 1.0;
-	} else if (winaspect > frameaspect) {
-		// Window is wider than the frame.
-		aspectx = frameaspect / winaspect;
-		aspecty = 1.0;
-	} else {
-		// Window is narrower than the frame.
-		aspectx = 1.0;
-		aspecty = winaspect / frameaspect;
-	}
-
-	// Buffer contents: indexes and texcoord/vertex elements.
 	GLushort indexes[6] = { 0, 1, 2, 0, 2, 3 };
-	GLfloat elements[4][4] = {
-		// tx, ty,  vx, vy
-		{ 0.0, ty,  -aspectx, -aspecty },
-		{ tx,  ty,   aspectx, -aspecty },
-		{ tx,  0.0,  aspectx,  aspecty },
-		{ 0.0, 0.0, -aspectx,  aspecty },
-	};
-
 	GLint clamp = glinfo.clamptoedge ? GL_CLAMP_TO_EDGE : GL_CLAMP;
 	GLenum intfmt, extfmt;
 
@@ -736,8 +713,7 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 	glfunc.glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indexes), indexes, GL_STATIC_DRAW);
 
 	glfunc.glGenBuffers(1, &state->buffer_elements);
-	glfunc.glBindBuffer(GL_ARRAY_BUFFER, state->buffer_elements);
-	glfunc.glBufferData(GL_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+	glbuild_update_window_size(state, winx, winy);
 
 	glfunc.glEnableVertexAttribArray(state->attrib_texcoord);
 	glfunc.glVertexAttribPointer(state->attrib_texcoord, 2, GL_FLOAT, GL_FALSE,
@@ -806,7 +782,7 @@ void glbuild_set_8bit_gamma(glbuild8bit *state, GLfloat gamma)
 	glfunc.glUniform1f(state->unif_gamma, gamma);
 }
 
-void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx, int resy, int stride)
+void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int stride, int resy)
 {
 #if (USE_OPENGL == USE_GLES2)
 	GLenum extfmt = GL_LUMINANCE;
@@ -814,11 +790,51 @@ void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx
 	GLenum extfmt = GL_RED;
 #endif
 
-	(void)resx;
-
 	glfunc.glActiveTexture(GL_TEXTURE0);
 	glfunc.glBindTexture(GL_TEXTURE_2D, state->frametex);
 	glfunc.glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, stride, resy, extfmt, GL_UNSIGNED_BYTE, frame);
+}
+
+void glbuild_update_window_size(glbuild8bit *state, int winx, int winy)
+{
+	if (winx == state->winx && winy == state->winy) {
+		return;
+	}
+
+	float winaspect = (float)winx / (float)winy;
+	float frameaspect = (float)state->resx / (float)state->resy;
+	float aspectx, aspecty;
+
+	state->winx = winx;
+	state->winy = winy;
+
+	// Correct for aspect ratio difference between the window size
+	// and the logical 8-bit surface by skewing the quad we draw.
+	if (fabs(winaspect - frameaspect) < 0.01) {
+		aspectx = aspecty = 1.0;
+	} else if (winaspect > frameaspect) {
+		// Window is wider than the frame.
+		aspectx = frameaspect / winaspect;
+		aspecty = 1.0;
+	} else {
+		// Window is narrower than the frame.
+		aspectx = 1.0;
+		aspecty = winaspect / frameaspect;
+	}
+
+	// Texcoord/vertex elements.
+	GLfloat elements[4][4] = {
+		// tx, ty,  vx, vy
+		{ 0.0,        state->ty,  -aspectx, -aspecty },
+		{ state->tx,  state->ty,   aspectx, -aspecty },
+		{ state->tx,  0.0,         aspectx,  aspecty },
+		{ 0.0,        0.0,        -aspectx,  aspecty },
+	};
+
+	glfunc.glViewport(0, 0, winx, winy);
+
+	glfunc.glBindBuffer(GL_ARRAY_BUFFER, state->buffer_elements);
+	glfunc.glBufferData(GL_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 }
 
 void glbuild_draw_8bit_frame(glbuild8bit *state)

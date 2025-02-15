@@ -1287,7 +1287,7 @@ void showframe(void)
 #if USE_OPENGL
 	if (!glunavailable) {
 		if (bpp == 8) {
-			glbuild_update_8bit_frame(&gl8bit, frame, xres, yres, bytesperline);
+			glbuild_update_8bit_frame(&gl8bit, frame, bytesperline, yres);
 			glbuild_draw_8bit_frame(&gl8bit);
 		}
 
