@@ -184,6 +184,8 @@ typedef struct {
     GLuint buffer_indexes;
     GLuint buffer_elements;
     GLint unif_gamma;   // float
+    int resx, resy, winx, winy;
+    float tx, ty;
 } glbuild8bit;
 
 int glbuild_init(void);
@@ -199,7 +201,8 @@ int glbuild_prepare_8bit_shader(glbuild8bit *state, int resx, int resy, int stri
 void glbuild_delete_8bit_shader(glbuild8bit *state);
 void glbuild_update_8bit_palette(glbuild8bit *state, const GLvoid *pal);
 void glbuild_set_8bit_gamma(glbuild8bit *state, GLfloat gamma);
-void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int resx, int resy, int stride);
+void glbuild_update_8bit_frame(glbuild8bit *state, const GLvoid *frame, int stride, int resy);
+void glbuild_update_window_size(glbuild8bit *state, int winx, int winy);
 void glbuild_draw_8bit_frame(glbuild8bit *state);
 
 #endif //USE_OPENGL

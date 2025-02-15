@@ -871,7 +871,6 @@ int setvideomode(int x, int y, int c, int fs)
 		if (fs & 1) {
 			if (c > 8) flags |= SDL_WINDOW_FULLSCREEN;
 			else flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
-			flags |= SDL_WINDOW_ALLOW_HIGHDPI;
 		}
 
 		sdl_window = SDL_CreateWindow(wintitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, x, y, flags);
@@ -938,19 +937,18 @@ int setvideomode(int x, int y, int c, int fs)
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
 			int winx = x, winy = y;
-			if (flags & SDL_WINDOW_FULLSCREEN_DESKTOP) {
-				SDL_DisplayMode d;
-				if (SDL_GetWindowDisplayMode(sdl_window, &d) == 0)
-					winx = d.w, winy = d.h;
-			}
+
 			sdl_glcontext = SDL_GL_CreateContext(sdl_window);
 			if (!sdl_glcontext) {
 				buildprintf("Error creating OpenGL context: %s\n", SDL_GetError());
 				glunavailable = 1;
 			} else if (glbuild_init()) {
 				glunavailable = 1;
-			} else if (glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch, winx, winy) < 0) {
-				glunavailable = 1;
+			} else {
+				SDL_GL_GetDrawableSize(sdl_window, &winx, &winy);
+				if (glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch, winx, winy) < 0) {
+					glunavailable = 1;
+				}
 			}
 			if (glunavailable) {
 				// Try again but without OpenGL.
@@ -1015,6 +1013,11 @@ int setvideomode(int x, int y, int c, int fs)
 			buildputs("note: OpenGL swap interval could not be changed\n");
 		}
 	}
+	if (c == 8 && !glunavailable) {
+		// The drawable size may have changed once the window was shown.
+		SDL_GL_GetDrawableSize(sdl_window, &winx, &winy);
+		glbuild_update_window_size(&gl8bit, winx, winy);
+	}
 #endif
 
 	videomodereset = 0;
@@ -1053,7 +1056,7 @@ void showframe(void)
 #if USE_OPENGL
 	if (!glunavailable) {
 		if (bpp == 8) {
-			glbuild_update_8bit_frame(&gl8bit, frame, xres, yres, bytesperline);
+			glbuild_update_8bit_frame(&gl8bit, frame, bytesperline, yres);
 			glbuild_draw_8bit_frame(&gl8bit);
 		}
 
