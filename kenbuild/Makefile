@@ -75,7 +75,7 @@ ifeq ($(RENDERTYPE),SDL)
 	GAMECFLAGS+= $(SDLCONFIG_CFLAGS)
 	GAMELDFLAGS+= $(SDLCONFIG_LIBS)
 
-	GAMEEXEOBJS+= $(SRC)/kdmsound_sdl2.$o $(RSRC)/sdlappicon_game.$o
+	GAMEEXEOBJS+= $(SRC)/kdmsound_sdl$(RENDERTYPEVER).$o $(RSRC)/sdlappicon_game.$o
 	EDITOREXEOBJS+= $(RSRC)/sdlappicon_build.$o
 
 	ifeq (1,$(HAVE_GTK))

@@ -11,7 +11,7 @@
 			isa = PBXAggregateTarget;
 			buildConfigurationList = AB4C36E62B75852A0092B8DD /* Build configuration list for PBXAggregateTarget "fetch-deps" */;
 			buildPhases = (
-				AB53C0A62B75858500410583 /* Fetch SDL2 framework */,
+				AB53C0A62B75858500410583 /* Fetch SDL3 framework */,
 			);
 			dependencies = (
 			);
@@ -36,7 +36,7 @@
 /* End PBXAggregateTarget section */
 
 /* Begin PBXBuildFile section */
-		AB1751270CEF5AF8003AF128 /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB1751260CEF5AF8003AF128 /* SDL2.framework */; };
+		AB1751270CEF5AF8003AF128 /* SDL3.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB1751260CEF5AF8003AF128 /* SDL3.xcframework */; };
 		AB392FEE2B9427BA002B0F5D /* compat.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F510A29A39C003261DC /* compat.c */; };
 		AB392FEF2B9427BA002B0F5D /* osxbits.m in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5C0A29A39C003261DC /* osxbits.m */; };
 		AB392FF12B9427BA002B0F5D /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7029840AEB2D69004FCD2A /* AppKit.framework */; };
@@ -89,7 +89,7 @@
 		AB735F6E0A29A39D003261DC /* osxbits.m in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5C0A29A39C003261DC /* osxbits.m */; };
 		AB735F6F0A29A39D003261DC /* pragmas.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5D0A29A39C003261DC /* pragmas.c */; };
 		AB735F700A29A39D003261DC /* scriptfile.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5E0A29A39C003261DC /* scriptfile.c */; };
-		AB735F710A29A39D003261DC /* sdlayer2.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5F0A29A39C003261DC /* sdlayer2.c */; };
+		AB735F710A29A39D003261DC /* sdlayer3.c in Sources */ = {isa = PBXBuildFile; fileRef = AB735F5F0A29A39C003261DC /* sdlayer3.c */; };
 		AB735F890A29A44C003261DC /* baselayer.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F780A29A44C003261DC /* baselayer.h */; };
 		AB735F8A0A29A44C003261DC /* build.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F790A29A44C003261DC /* build.h */; };
 		AB735F8B0A29A44C003261DC /* cache1d.h in Headers */ = {isa = PBXBuildFile; fileRef = AB735F7A0A29A44C003261DC /* cache1d.h */; };
@@ -209,7 +209,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		AB1751260CEF5AF8003AF128 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = frameworks/SDL2.framework; sourceTree = SOURCE_ROOT; };
+		AB1751260CEF5AF8003AF128 /* SDL3.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SDL3.xcframework; path = frameworks/SDL3.xcframework; sourceTree = SOURCE_ROOT; };
 		AB392FF52B9427BA002B0F5D /* klist */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = klist; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB392FF62B9427E5002B0F5D /* klist.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = klist.c; sourceTree = "<group>"; };
 		AB3B2A0D0EE3FC0400944CD1 /* hightile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = hightile.c; sourceTree = "<group>"; };
@@ -272,7 +272,7 @@
 		AB735F5C0A29A39C003261DC /* osxbits.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = osxbits.m; sourceTree = "<group>"; };
 		AB735F5D0A29A39C003261DC /* pragmas.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = pragmas.c; sourceTree = "<group>"; };
 		AB735F5E0A29A39C003261DC /* scriptfile.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = scriptfile.c; sourceTree = "<group>"; };
-		AB735F5F0A29A39C003261DC /* sdlayer2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sdlayer2.c; sourceTree = "<group>"; };
+		AB735F5F0A29A39C003261DC /* sdlayer3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = sdlayer3.c; sourceTree = "<group>"; };
 		AB735F780A29A44C003261DC /* baselayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = baselayer.h; sourceTree = "<group>"; };
 		AB735F790A29A44C003261DC /* build.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = build.h; sourceTree = "<group>"; };
 		AB735F7A0A29A44C003261DC /* cache1d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cache1d.h; sourceTree = "<group>"; };
@@ -335,7 +335,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AB7029850AEB2D69004FCD2A /* AppKit.framework in Frameworks */,
-				AB1751270CEF5AF8003AF128 /* SDL2.framework in Frameworks */,
+				AB1751270CEF5AF8003AF128 /* SDL3.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -421,7 +421,7 @@
 		AB7029790AEB2D0B004FCD2A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				AB1751260CEF5AF8003AF128 /* SDL2.framework */,
+				AB1751260CEF5AF8003AF128 /* SDL3.xcframework */,
 				AB7029840AEB2D69004FCD2A /* AppKit.framework */,
 			);
 			name = Frameworks;
@@ -511,7 +511,7 @@
 				ABBB1E8C21C7926D00DD438B /* rg_etc1.cpp */,
 				AB66C6AB2907E8BE0063C874 /* rg_etc1.h */,
 				AB735F5E0A29A39C003261DC /* scriptfile.c */,
-				AB735F5F0A29A39C003261DC /* sdlayer2.c */,
+				AB735F5F0A29A39C003261DC /* sdlayer3.c */,
 				AB3B2C7F0EE41B9000944CD1 /* smalltextfont.c */,
 				AB76E4FE294DFC0B00B11DAF /* talltextfont.c */,
 				AB3B2C800EE41B9000944CD1 /* textfont.c */,
@@ -861,7 +861,7 @@
 			shellScript = "cd $PROJECT_DIR/..\ngitdescribe=$(git describe --always 2>/dev/null || echo git error)\n\ncat >$BUILT_PRODUCTS_DIR/engine-version.c <<EOT\nconst char *build_version = \"$gitdescribe\";\nconst char *build_date = __DATE__;\nconst char *build_time = __TIME__;\nEOT\n";
 			showEnvVarsInLog = 0;
 		};
-		AB53C0A62B75858500410583 /* Fetch SDL2 framework */ = {
+		AB53C0A62B75858500410583 /* Fetch SDL3 framework */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -871,7 +871,7 @@
 			);
 			inputPaths = (
 			);
-			name = "Fetch SDL2 framework";
+			name = "Fetch SDL3 framework";
 			outputFileListPaths = (
 			);
 			outputPaths = (
@@ -879,7 +879,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -d $PROJECT_DIR/frameworks/SDL2.framework ]; then\n    echo \"SDL2.framework exists; skipping\"\n    exit\nfi\n\nsdlver=2.30.0\n\nset -xe\ncd $PROJECT_TEMP_DIR\nmkdir -p $PROJECT_TEMP_DIR/sdl2 $PROJECT_DIR/frameworks\ncurl -sfSOL https://github.com/libsdl-org/SDL/releases/download/release-$sdlver/SDL2-$sdlver.dmg\nhdiutil attach SDL2-$sdlver.dmg -mountpoint $PROJECT_TEMP_DIR/sdl2\ncp -R $PROJECT_TEMP_DIR/sdl2/SDL2.framework $PROJECT_DIR/frameworks/\nhdiutil eject $PROJECT_TEMP_DIR/sdl2\n";
+			shellScript = "if [ -d $PROJECT_DIR/frameworks/SDL3.xcframework ]; then\n    echo \"SDL3.xcframework exists; skipping\"\n    exit\nfi\n\nsdlver=3.2.16\n\nset -xe\ncd $PROJECT_TEMP_DIR\nmkdir -p $PROJECT_TEMP_DIR/sdl3 $PROJECT_DIR/frameworks\ncurl -sfSOL https://github.com/libsdl-org/SDL/releases/download/release-$sdlver/SDL3-$sdlver.dmg\nhdiutil attach SDL3-$sdlver.dmg -mountpoint $PROJECT_TEMP_DIR/sdl3\ncp -R $PROJECT_TEMP_DIR/sdl3/SDL3.xcframework $PROJECT_DIR/frameworks/\nhdiutil eject $PROJECT_TEMP_DIR/sdl3\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -925,7 +925,7 @@
 				AB735F6E0A29A39D003261DC /* osxbits.m in Sources */,
 				AB735F6F0A29A39D003261DC /* pragmas.c in Sources */,
 				AB735F700A29A39D003261DC /* scriptfile.c in Sources */,
-				AB735F710A29A39D003261DC /* sdlayer2.c in Sources */,
+				AB735F710A29A39D003261DC /* sdlayer3.c in Sources */,
 				AB3B2A0E0EE3FC0400944CD1 /* hightile.c in Sources */,
 				ABBB1E8D21C7926D00DD438B /* rg_etc1.cpp in Sources */,
 				AB3B2A1D0EE3FCF900944CD1 /* polymost.c in Sources */,

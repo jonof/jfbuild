@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 48;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -13,21 +13,21 @@
 		AB3DEDA41BD23EE70009D070 /* Editor Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */; };
 		AB3E07660A33068500FF2442 /* startwin.editor.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB3E07650A33068500FF2442 /* startwin.editor.nib */; };
 		AB3FE4680C0433D000D5DBDC /* libeditorsupp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB3FE4580C04338D00D5DBDC /* libeditorsupp.a */; };
-		AB43D734219DAA2200718BCE /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
-		AB43D735219DAA2200718BCE /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = (); }; };
-		AB43D737219DAA3300718BCE /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
-		AB43D738219DAA3300718BCE /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = (); }; };
+		AB43D734219DAA2200718BCE /* SDL3.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL3.xcframework */; };
+		AB43D735219DAA2200718BCE /* SDL3.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL3.xcframework */; settings = {ATTRIBUTES = (); }; };
+		AB43D737219DAA3300718BCE /* SDL3.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL3.xcframework */; };
+		AB43D738219DAA3300718BCE /* SDL3.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL3.xcframework */; settings = {ATTRIBUTES = (); }; };
 		AB63425724305DAA002CDE1A /* names.h in Copy KenBuild game data */ = {isa = PBXBuildFile; fileRef = AB726D650F046E6E00730EAA /* names.h */; };
 		AB63426924305F35002CDE1A /* arttool in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9AD60F0B308900A528DC /* arttool */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		AB63426A24305F35002CDE1A /* kextract in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9C3E0F0CC83700A528DC /* kextract */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		AB63426B24305F35002CDE1A /* kgroup in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABAE9C400F0CC83700A528DC /* kgroup */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		AB63426C24305F35002CDE1A /* transpal in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = ABF1DD221BB82822007DE427 /* transpal */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		AB726D410F046BDE00730EAA /* kdmsound_sdl2.c in Sources */ = {isa = PBXBuildFile; fileRef = AB726D400F046BDE00730EAA /* kdmsound_sdl2.c */; };
+		AB726D410F046BDE00730EAA /* kdmsound_sdl3.c in Sources */ = {isa = PBXBuildFile; fileRef = AB726D400F046BDE00730EAA /* kdmsound_sdl3.c */; };
 		AB73604B0A29AD5F003261DC /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601B0A29AA70003261DC /* libengine.a */; };
 		AB73605A0A29ADB5003261DC /* libengine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601B0A29AA70003261DC /* libengine.a */; };
 		AB73605B0A29ADB7003261DC /* libeditor.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73601D0A29AA70003261DC /* libeditor.a */; };
-		AB7361230A29B9D4003261DC /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; settings = {ATTRIBUTES = (Required, ); }; };
-		AB7361240A29B9D4003261DC /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL2.framework */; };
+		AB7361230A29B9D4003261DC /* SDL3.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL3.xcframework */; settings = {ATTRIBUTES = (Required, ); }; };
+		AB7361240A29B9D4003261DC /* SDL3.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361220A29B9D4003261DC /* SDL3.xcframework */; };
 		AB7361290A29BA60003261DC /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361280A29BA60003261DC /* CoreFoundation.framework */; };
 		AB73612A0A29BA60003261DC /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7361280A29BA60003261DC /* CoreFoundation.framework */; };
 		AB73612D0A29BA7A003261DC /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB73612C0A29BA7A003261DC /* AppKit.framework */; };
@@ -176,7 +176,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				AB43D735219DAA2200718BCE /* SDL2.framework in Embed Frameworks */,
+				AB43D735219DAA2200718BCE /* SDL3.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -187,7 +187,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				AB43D738219DAA3300718BCE /* SDL2.framework in Embed Frameworks */,
+				AB43D738219DAA3300718BCE /* SDL3.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -243,7 +243,7 @@
 		AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Game Images.xcassets"; sourceTree = "<group>"; };
 		AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Editor Images.xcassets"; sourceTree = "<group>"; };
 		AB3E07650A33068500FF2442 /* startwin.editor.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.editor.nib; sourceTree = SOURCE_ROOT; };
-		AB726D400F046BDE00730EAA /* kdmsound_sdl2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kdmsound_sdl2.c; path = ../kenbuild/src/kdmsound_sdl2.c; sourceTree = SOURCE_ROOT; };
+		AB726D400F046BDE00730EAA /* kdmsound_sdl3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = kdmsound_sdl3.c; path = ../kenbuild/src/kdmsound_sdl3.c; sourceTree = SOURCE_ROOT; };
 		AB726D610F046E6E00730EAA /* ascboard.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = ascboard.map; sourceTree = "<group>"; };
 		AB726D620F046E6E00730EAA /* boards.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = boards.map; sourceTree = "<group>"; };
 		AB726D630F046E6E00730EAA /* evilal.map */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.module-map"; path = evilal.map; sourceTree = "<group>"; };
@@ -257,7 +257,7 @@
 		AB73602D0A29AB08003261DC /* game-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "game-Info.plist"; sourceTree = "<group>"; };
 		AB7360500A29AD92003261DC /* Build Editor.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Build Editor.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7360520A29AD92003261DC /* build-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "build-Info.plist"; sourceTree = "<group>"; };
-		AB7361220A29B9D4003261DC /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = frameworks/SDL2.framework; sourceTree = SOURCE_ROOT; };
+		AB7361220A29B9D4003261DC /* SDL3.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = SDL3.xcframework; path = frameworks/SDL3.xcframework; sourceTree = SOURCE_ROOT; };
 		AB7361280A29BA60003261DC /* CoreFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreFoundation.framework; path = /System/Library/Frameworks/CoreFoundation.framework; sourceTree = "<absolute>"; };
 		AB73612C0A29BA7A003261DC /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		AB81F9562590BB8500306B8E /* Common.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Common.xcconfig; sourceTree = "<group>"; };
@@ -277,9 +277,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AB43D737219DAA3300718BCE /* SDL2.framework in Frameworks */,
+				AB43D737219DAA3300718BCE /* SDL3.xcframework in Frameworks */,
 				AB73604B0A29AD5F003261DC /* libengine.a in Frameworks */,
-				AB7361230A29B9D4003261DC /* SDL2.framework in Frameworks */,
+				AB7361230A29B9D4003261DC /* SDL3.xcframework in Frameworks */,
 				AB7361290A29BA60003261DC /* CoreFoundation.framework in Frameworks */,
 				AB73612D0A29BA7A003261DC /* AppKit.framework in Frameworks */,
 			);
@@ -292,10 +292,10 @@
 				AB73605B0A29ADB7003261DC /* libeditor.a in Frameworks */,
 				AB73605A0A29ADB5003261DC /* libengine.a in Frameworks */,
 				AB3FE4680C0433D000D5DBDC /* libeditorsupp.a in Frameworks */,
-				AB7361240A29B9D4003261DC /* SDL2.framework in Frameworks */,
+				AB7361240A29B9D4003261DC /* SDL3.xcframework in Frameworks */,
 				AB73612A0A29BA60003261DC /* CoreFoundation.framework in Frameworks */,
 				AB73612E0A29BA7A003261DC /* AppKit.framework in Frameworks */,
-				AB43D734219DAA2200718BCE /* SDL2.framework in Frameworks */,
+				AB43D734219DAA2200718BCE /* SDL3.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -356,7 +356,7 @@
 				ABA9E3340FEF9E470024231F /* StartupWinController.m */,
 				AB829494231A5CAB0031B08F /* kdmsound.c */,
 				AB829495231A5CAB0031B08F /* kdmsound.h */,
-				AB726D400F046BDE00730EAA /* kdmsound_sdl2.c */,
+				AB726D400F046BDE00730EAA /* kdmsound_sdl3.c */,
 				ABA9E32A0FEF9DD00024231F /* config.c */,
 				AB053FAE0A33136D00FA2918 /* startwin.game.nib */,
 				AB73602D0A29AB08003261DC /* game-Info.plist */,
@@ -391,7 +391,7 @@
 			children = (
 				AB73612C0A29BA7A003261DC /* AppKit.framework */,
 				AB7361280A29BA60003261DC /* CoreFoundation.framework */,
-				AB7361220A29B9D4003261DC /* SDL2.framework */,
+				AB7361220A29B9D4003261DC /* SDL3.xcframework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -578,7 +578,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AB726D410F046BDE00730EAA /* kdmsound_sdl2.c in Sources */,
+				AB726D410F046BDE00730EAA /* kdmsound_sdl3.c in Sources */,
 				ABA9E3310FEF9E060024231F /* config.c in Sources */,
 				AB829496231A5CAB0031B08F /* kdmsound.c in Sources */,
 				ABA9E3350FEF9E470024231F /* game.c in Sources */,
@@ -707,7 +707,10 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/../Frameworks",
+				);
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = au.id.jonof.kenbuild;
 				PRODUCT_NAME = KenBuild;
@@ -725,7 +728,10 @@
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				INFOPLIST_FILE = "game-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/../Frameworks",
+				);
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = au.id.jonof.kenbuild;
 				PRODUCT_NAME = KenBuild;
@@ -742,7 +748,10 @@
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/frameworks";
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/../Frameworks",
+				);
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = au.id.jonof.kenbuild.build;
 				PRODUCT_NAME = "Build Editor";
@@ -759,7 +768,10 @@
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/frameworks";
 				INFOPLIST_FILE = "build-Info.plist";
 				INSTALL_PATH = "$(HOME)/Applications";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/../Frameworks",
+				);
 				OTHER_LDFLAGS = "-lc++";
 				PRODUCT_BUNDLE_IDENTIFIER = au.id.jonof.kenbuild.build;
 				PRODUCT_NAME = "Build Editor";

@@ -4,6 +4,7 @@ $(SRC)/config.$o: $(SRC)/config.c $(ENGINEINC)/build.h $(ENGINEINC)/compat.h $(S
 $(SRC)/game.$o: $(SRC)/game.c $(ENGINEINC)/build.h $(ENGINEINC)/compat.h $(SRC)/names.h $(ENGINEINC)/pragmas.h $(ENGINEINC)/cache1d.h $(SRC)/game.h $(ENGINEINC)/osd.h $(ENGINEINC)/mmulti.h $(SRC)/kdmsound.h $(ENGINEINC)/baselayer.h
 $(SRC)/kdmsound.$o: $(SRC)/kdmsound.c $(SRC)/kdmsound.h $(ENGINEINC)/compat.h $(ENGINEINC)/pragmas.h $(ENGINEINC)/cache1d.h
 $(SRC)/kdmsound_sdl2.$o: $(SRC)/kdmsound_sdl2.c $(SRC)/kdmsound.h
+$(SRC)/kdmsound_sdl3.$o: $(SRC)/kdmsound_sdl3.c $(SRC)/kdmsound.h
 $(SRC)/kdmsound_stub.$o: $(SRC)/kdmsound_stub.c
 
 $(SRC)/startgtk_game.$o: $(SRC)/startgtk_game.c $(ENGINEINC)/compat.h $(ENGINEINC)/baselayer.h $(ENGINEINC)/build.h $(ENGINEINC)/compat.h $(SRC)/game.h

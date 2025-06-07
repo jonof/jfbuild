@@ -83,11 +83,24 @@ else
 endif
 
 ifeq ($(RENDERTYPE),SDL)
-	ifneq ($(SDL2CONFIG),)
-		SDLCONFIG_CFLAGS=$(shell $(SDL2CONFIG) --cflags)
-		SDLCONFIG_LIBS=$(shell $(SDL2CONFIG) --libs)
+	ifneq (,$(shell $(PKGCONFIG) --exists sdl3 && echo yes))
+		SDLCONFIG_CFLAGS=$(shell $(PKGCONFIG) --cflags sdl3)
+		SDLCONFIG_LIBS=$(shell $(PKGCONFIG) --libs sdl3)
+		RENDERTYPEVER=3
 	else
-		$(error No $(SDL2CONFIG) could be found)
+		ifneq (,$(shell $(PKGCONFIG) --exists sdl2 && echo yes))
+			SDLCONFIG_CFLAGS=$(shell $(PKGCONFIG) --cflags sdl2)
+			SDLCONFIG_LIBS=$(shell $(PKGCONFIG) --libs sdl2)
+			RENDERTYPEVER=2
+		else
+			ifneq ($(SDL2CONFIG),)
+				SDLCONFIG_CFLAGS=$(shell $(SDL2CONFIG) --cflags)
+				SDLCONFIG_LIBS=$(shell $(SDL2CONFIG) --libs)
+				RENDERTYPEVER=2
+			else
+				$(error No SDL2 or SDL3 could be found)
+			endif
+		endif
 	endif
 
 	ifeq (1,$(WITHOUT_GTK))
@@ -106,6 +119,7 @@ ifeq ($(RENDERTYPE),WIN)
 	BUILDLDFLAGS+= -mwindows -ldxguid
 	#BUILDLDFLAGS+= -static
 	#BUILDLDFLAGS+= -static-libgcc -static-libstdc++
+	RENDERTYPEVER=1
 endif
 
 # Until I work out how to deal with PIE and PIC, the x86 inline
@@ -114,7 +128,7 @@ endif
 	USE_ASM=0
 #endif
 
-BUILDCPPFLAGS+= -DRENDERTYPE$(RENDERTYPE)=1
+BUILDCPPFLAGS+= -DRENDERTYPE$(RENDERTYPE)=$(RENDERTYPEVER)
 
 ifneq (0,$(USE_POLYMOST))
   BUILDCPPFLAGS+= -DUSE_POLYMOST=$(USE_POLYMOST)

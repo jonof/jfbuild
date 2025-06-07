@@ -27,6 +27,7 @@ $(SRC)/pragmas.$o: $(SRC)/pragmas.c $(INC)/compat.h
 $(SRC)/rg_etc1.$o: $(SRC)/rg_etc1.cpp $(SRC)/rg_etc1.h
 $(SRC)/scriptfile.$o: $(SRC)/scriptfile.c $(INC)/build.h $(INC)/compat.h $(INC)/scriptfile.h $(INC)/cache1d.h
 $(SRC)/sdlayer2.$o: $(SRC)/sdlayer2.c $(INC)/build.h $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/osd.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(SRC)/gtkbits.h
+$(SRC)/sdlayer3.$o: $(SRC)/sdlayer3.c $(INC)/build.h $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/osd.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(SRC)/gtkbits.h
 $(SRC)/smalltextfont.$o: $(SRC)/smalltextfont.c
 $(SRC)/talltextfont.$o: $(SRC)/talltextfont.c
 $(SRC)/textfont.$o: $(SRC)/textfont.c

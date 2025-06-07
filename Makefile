@@ -148,7 +148,7 @@ endif
 
 # Select the system layer
 ifeq ($(RENDERTYPE),SDL)
-	ENGINEOBJS+= $(SRC)/sdlayer2.$o
+	ENGINEOBJS+= $(SRC)/sdlayer$(RENDERTYPEVER).$o
 	OURCFLAGS+= $(SDLCONFIG_CFLAGS)
 	OURLDFLAGS+= $(SDLCONFIG_LIBS)
 
