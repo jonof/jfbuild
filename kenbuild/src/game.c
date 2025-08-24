@@ -15,7 +15,7 @@
 
 #include "baselayer.h"
 
-#define TIMERINTSPERSECOND 140 //280
+#define TIMERINTSPERSECOND 280
 #define MOVESPERSECOND 40
 #define TICSPERFRAME 3
 #define MOVEFIFOSIZ 256
