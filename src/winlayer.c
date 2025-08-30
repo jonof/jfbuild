@@ -625,17 +625,6 @@ static int joyblast=0;
 
 static int xinputusernum = -1;
 
-// I don't see any pressing need to store the key-up events yet
-#define SetKey(key,state) { \
-	keystatus[key] = state; \
-		if (state) { \
-	keyfifo[keyfifoend] = key; \
-	keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = state; \
-	keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1)); \
-		} \
-}
-
-
 //
 // initinput() -- init input system
 //
@@ -871,7 +860,7 @@ void releaseallbuttons(void)
 		//if (!keystatus[i]) continue;
 		//if (OSD_HandleKey(i, 0) != 0) {
 			OSD_HandleKey(i, 0);
-			SetKey(i, 0);
+			keystatus[i] = 0;
 		//}
 	}
 }
@@ -2229,7 +2218,7 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 		case WM_KEYDOWN:
 		case WM_KEYUP:
 			{
-				int press = (lParam & 0x80000000l) == 0;
+				int press = (lParam & 0x80000000l) == 0, held = (lParam & 0x40000000) != 0;
 				int wscan = (lParam >> 16) & 0xff;
 				int scan = 0;
 
@@ -2250,8 +2239,15 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 						eatosdinput = 1;
 					}
 				} else if (OSD_HandleKey(scan, press) != 0) {
-					if (!keystatus[scan] || !press) {
-						SetKey(scan, press);
+					if (press) {
+						if (!keystatus[scan] && !held) {
+							keystatus[scan] = 1;
+							keyfifo[keyfifoend] = scan;
+							keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = 1;
+							keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1));
+						}
+					} else {
+						keystatus[scan] = 0;
 					}
 				}
 			}

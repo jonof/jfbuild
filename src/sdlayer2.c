@@ -1239,15 +1239,6 @@ int handleevents(void)
 	static int firstcall = 1;
 	int eattextinput = 0;
 
-#define SetKey(key,state) { \
-	keystatus[key] = state; \
-		if (state) { \
-	keyfifo[keyfifoend] = key; \
-	keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = state; \
-	keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1)); \
-		} \
-}
-
 	while (SDL_PollEvent(&ev)) {
 		switch (ev.type) {
 			case SDL_TEXTINPUT:
@@ -1324,11 +1315,14 @@ int handleevents(void)
 					break;
 
 				if (ev.key.type == SDL_KEYDOWN) {
-					if (!keystatus[code]) {
-						SetKey(code, 1);
+					if (!keystatus[code] && !ev.key.repeat) {
+						keystatus[code] = 1;
+						keyfifo[keyfifoend] = code;
+						keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = 1;
+						keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1));
 					}
 				} else {
-					SetKey(code, 0);
+					keystatus[code] = 0;
 				}
 				break;
 
@@ -1410,7 +1404,6 @@ int handleevents(void)
 	sampletimer();
 	startwin_idle(NULL);
 	wm_idle(NULL);
-#undef SetKey
 
 	firstcall = 0;
 
