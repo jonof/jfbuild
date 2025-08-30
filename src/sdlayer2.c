@@ -319,7 +319,7 @@ int initsystem(void)
 		}
 	}
 
-	OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes. 0 = no vsync, -1 = adaptive, max 2", set_glswapinterval);
+	OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes. 0 = no vsync, -1 = adaptive, max 8", set_glswapinterval);
 #endif
 	if (getenv("BUILD_USESDLRENDERER")) {
 		buildputs("Will use SDL renderer if OpenGL is not available.\n");
@@ -1543,7 +1543,7 @@ static int set_glswapinterval(const osdfuncparm_t *parm)
 	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
 
 	interval = atoi(parm->parms[0]);
-	if (interval < -1 || interval > 2) return OSDCMD_SHOWHELP;
+	if (interval < -1 || interval > 8) return OSDCMD_SHOWHELP;
 
 	if (SDL_GL_SetSwapInterval(interval) < 0) {
 		buildprintf("error: could not change swap interval: %s\n", SDL_GetError());

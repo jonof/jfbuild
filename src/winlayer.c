@@ -461,7 +461,7 @@ static int set_glswapinterval(const osdfuncparm_t *parm)
 	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
 
 	interval = atoi(parm->parms[0]);
-	if (interval < -1 || interval > 2) return OSDCMD_SHOWHELP;
+	if (interval < -1 || interval > 8) return OSDCMD_SHOWHELP;
 
 	if (interval == -1 && !wglfunc.have_EXT_swap_control_tear) {
 		buildputs("adaptive glswapinterval is not available\n");
@@ -519,7 +519,7 @@ int initsystem(void)
 		buildputs("Failed loading OpenGL driver. GL modes will be unavailable.\n");
 		memset(&wglfunc, 0, sizeof(wglfunc));
 	} else {
-		OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes. 0 = no vsync, -1 = adaptive, max 2", set_glswapinterval);
+		OSD_RegisterFunction("glswapinterval", "glswapinterval: frame swap interval for OpenGL modes. 0 = no vsync, -1 = adaptive, max 8", set_glswapinterval);
 	}
 #endif
 
