@@ -1228,7 +1228,7 @@ void drawpoly (double *dpx, double *dpy, int n, int method)
 			f = 1.0/(double)tsizx;
 			ix0 = (int)floor(du0*f);
 			ix1 = (int)floor(du1*f);
-			for(;ix0<=ix1;ix0++)
+			if (!isinf(f)) for(;ix0<=ix1;ix0++)
 			{
 				du0 = (double)((ix0  )*tsizx); // + uoffs;
 				du1 = (double)((ix0+1)*tsizx); // + uoffs;
