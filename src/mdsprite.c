@@ -1663,7 +1663,7 @@ static int loadkvx (const char *filnam)
 		{ kread(fil,c,3); pal[i] = B_LITTLE32((((int)c[0])<<18)+(((int)c[1])<<10)+(((int)c[2])<<2)+(i<<24)); }
 
 	yzsiz = ysiz*zsiz; i = ((xsiz*yzsiz+31)>>3);
-	vbit = (int *)malloc(i); if (!vbit) { free(xyoffs); kclose(fil); return(-1); }
+	vbit = (int *)malloc(i+1); if (!vbit) { free(xyoffs); kclose(fil); return(-1); }
 	memset(vbit,0,i);
 
 	for(vcolhashsizm1=4096;vcolhashsizm1<(mip1leng>>1);vcolhashsizm1<<=1) ;

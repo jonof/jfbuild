@@ -415,7 +415,6 @@ int initinput(void)
 		}
 		if (dbuf) {
 			flen = kread(fh, dbuf, flen);
-			dbuf[flen+1] = 0;
 			kclose(fh);
 			if (flen >= 0) {
 				rwops = SDL_RWFromConstMem(dbuf, flen);
