@@ -2240,14 +2240,15 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 					}
 				} else if (OSD_HandleKey(scan, press) != 0) {
 					if (press) {
-						if (!keystatus[scan] && !held) {
-							keystatus[scan] = 1;
-							keyfifo[keyfifoend] = scan;
-							keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = 1;
-							keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1));
-						}
+						if (!keystatus[scan] && !held) keystatus[scan] = 1;
+						keyfifo[keyfifoend] = scan;
+						keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = 1;
+						keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1));
 					} else {
 						keystatus[scan] = 0;
+						keyfifo[keyfifoend] = scan;
+						keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = 0;
+						keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1));
 					}
 				}
 			}

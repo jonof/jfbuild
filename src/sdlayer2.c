@@ -1314,14 +1314,15 @@ int handleevents(void)
 					break;
 
 				if (ev.key.type == SDL_KEYDOWN) {
-					if (!keystatus[code] && !ev.key.repeat) {
-						keystatus[code] = 1;
-						keyfifo[keyfifoend] = code;
-						keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = 1;
-						keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1));
-					}
+					if (!keystatus[code] && !ev.key.repeat) keystatus[code] = 1;
+					keyfifo[keyfifoend] = code;
+					keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = 1;
+					keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1));
 				} else {
 					keystatus[code] = 0;
+					keyfifo[keyfifoend] = code;
+					keyfifo[(keyfifoend+1)&(KEYFIFOSIZ-1)] = 0;
+					keyfifoend = ((keyfifoend+2)&(KEYFIFOSIZ-1));
 				}
 				break;
 

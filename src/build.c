@@ -2470,7 +2470,8 @@ int gettile(int tilenum)
 	topleft = ((tilenum/(xtiles<<gettilezoom))*(xtiles<<gettilezoom))-(xtiles<<gettilezoom);
 	if (topleft < 0) topleft = 0;
 	if (topleft > MAXTILES-(tottiles<<(gettilezoom<<1))) topleft = MAXTILES-(tottiles<<(gettilezoom<<1));
-	while ((keystatus[0x1c]|keystatus[1]) == 0)
+	bflushkeys();
+	while (1)
 	{
 		drawtilescreen(topleft,tilenum);
 		OSD_Draw();
@@ -2479,11 +2480,13 @@ int gettile(int tilenum)
 		if (handleevents()) {
 			if (quitevent) quitevent = 0;
 		}
+		ch = bgetkey();
+		if (ch == 0x1c || ch == 0x1) break;
 
 		synctics = totalclock-lockclock;
 		lockclock += synctics;
 
-		if ((keystatus[0x37] > 0) && (gettilezoom < 2))
+		if ((ch == 0x37) && (gettilezoom < 2))
 		{
 			gettilezoom++;
 			topleft = ((tilenum/(xtiles<<gettilezoom))*(xtiles<<gettilezoom))-(xtiles<<gettilezoom);
@@ -2491,7 +2494,7 @@ int gettile(int tilenum)
 			if (topleft > MAXTILES-(tottiles<<(gettilezoom<<1))) topleft = MAXTILES-(tottiles<<(gettilezoom<<1));
 			keystatus[0x37] = 0;
 		}
-		if ((keystatus[0xb5] > 0) && (gettilezoom > 0))
+		if ((ch == 0xb5) && (gettilezoom > 0))
 		{
 			gettilezoom--;
 			topleft = ((tilenum/(xtiles<<gettilezoom))*(xtiles<<gettilezoom))-(xtiles<<gettilezoom);
@@ -2499,27 +2502,27 @@ int gettile(int tilenum)
 			if (topleft > MAXTILES-(tottiles<<(gettilezoom<<1))) topleft = MAXTILES-(tottiles<<(gettilezoom<<1));
 			keystatus[0xb5] = 0;
 		}
-		if ((keystatus[0xcb] > 0) && (tilenum > 0))
+		if ((ch == 0xcb) && (tilenum > 0))
 			tilenum--, keystatus[0xcb] = 0;
-		if ((keystatus[0xcd] > 0) && (tilenum < MAXTILES-1))
+		if ((ch == 0xcd) && (tilenum < MAXTILES-1))
 			tilenum++, keystatus[0xcd] = 0;
-		if ((keystatus[0xc8] > 0) && (tilenum >= (xtiles<<gettilezoom)))
+		if ((ch == 0xc8) && (tilenum >= (xtiles<<gettilezoom)))
 			tilenum-=(xtiles<<gettilezoom), keystatus[0xc8] = 0;
-		if ((keystatus[0xd0] > 0) && (tilenum < MAXTILES-(xtiles<<gettilezoom)))
+		if ((ch == 0xd0) && (tilenum < MAXTILES-(xtiles<<gettilezoom)))
 			tilenum+=(xtiles<<gettilezoom), keystatus[0xd0] = 0;
-		if ((keystatus[0xc9] > 0) && (tilenum >= (xtiles<<gettilezoom)))
+		if ((ch == 0xc9) && (tilenum >= (xtiles<<gettilezoom)))
 		{
 			tilenum-=(tottiles<<(gettilezoom<<1));
 			if (tilenum < 0) tilenum = 0;
 			keystatus[0xc9] = 0;
 		}
-		if ((keystatus[0xd1] > 0) && (tilenum < MAXTILES-(xtiles<<gettilezoom)))
+		if ((ch == 0xd1) && (tilenum < MAXTILES-(xtiles<<gettilezoom)))
 		{
 			tilenum+=(tottiles<<(gettilezoom<<1));
 			if (tilenum >= MAXTILES) tilenum = MAXTILES-1;
 			keystatus[0xd1] = 0;
 		}
-		if (keystatus[0x2f] > 0)   //V
+		if (ch == 0x2f)   //V
 		{
 			keystatus[0x2f] = 0;
 			if (tilenum < localartlookupnum)
@@ -2530,7 +2533,7 @@ int gettile(int tilenum)
 			for(i=0;i<MAXTILES;i++)
 				localartlookup[i] = i;
 		}
-		if (keystatus[0x22] > 0)       //G (goto)
+		if (ch == 0x22)       //G (goto)
 		{
 			if (tilenum < localartlookupnum)         //Automatically press 'V'
 				tilenum = localartlookup[tilenum];
@@ -2567,7 +2570,9 @@ int gettile(int tilenum)
 					break;
 				}
 			}
+			ch = 0;
 			clearkeys();
+			bflushkeys();
 		}
 		while (tilenum < topleft) topleft -= (xtiles<<gettilezoom);
 		while (tilenum >= topleft+(tottiles<<(gettilezoom<<1))) topleft += (xtiles<<gettilezoom);
@@ -2575,7 +2580,7 @@ int gettile(int tilenum)
 		if (topleft > MAXTILES-(tottiles<<(gettilezoom<<1))) topleft = MAXTILES-(tottiles<<(gettilezoom<<1));
 	}
 
-	if (keystatus[0x1c] == 0)
+	if (ch == 0x1)
 	{
 		tilenum = otilenum;
 	}
@@ -6184,8 +6189,8 @@ char *findfilename(char *path)
 int menuselect(int newpathmode)
 {
 	int listsize;
-	int i;
-	char ch, buffer[90];
+	int i, ch;
+	char buffer[90];
 	CACHE1D_FIND_REC *dir;
 
 	int bakpathsearchmode = pathsearchmode;
@@ -6255,14 +6260,8 @@ int menuselect(int newpathmode)
 		}
 		showframe();
 
-		keystatus[0xcb] = 0;
-		keystatus[0xcd] = 0;
-		keystatus[0xc8] = 0;
-		keystatus[0xd0] = 0;
-		keystatus[0x1c] = 0;	//enter
-		keystatus[0xf] = 0;		//tab
-		keystatus[1] = 0;		//esc
-		ch = 0;                      //Interesting fakery of ch = getch()
+		bflushkeys();
+		ch = 0;
 		while (ch == 0)
 		{
 			if (handleevents()) {
@@ -6271,15 +6270,10 @@ int menuselect(int newpathmode)
 					quitevent = 0;
 				}
 			}
-			ch = bgetchar();
-			if (keystatus[0xcb] > 0) ch = 9;		// left arr
-			if (keystatus[0xcd] > 0) ch = 9;		// right arr
-			if (keystatus[0xc8] > 0) ch = 72;		// up arr
-			if (keystatus[0xd0] > 0) ch = 80;		// down arr
-
+			ch = bgetkey();
 		}
 
-		if (ch == 'f' || ch == 'F') {
+		if (ch == 0x21) { //f
 			currentlist = 0;
 			pathsearchmode = 1-pathsearchmode;
 			if (pathsearchmode == PATHSEARCH_SYSTEM) {
@@ -6287,27 +6281,27 @@ int menuselect(int newpathmode)
 				Bcanonicalisefilename(selectedboardfilename, 1);
 			} else strcpy(selectedboardfilename, "/");
 			getfilenames(selectedboardfilename, "*.map");
-		} else if (ch == 'g' || ch == 'G') {
+		} else if (ch == 0x22) { //g
 			if (pathsearchmode == PATHSEARCH_GAME) {
 				grponlymode = 1-grponlymode;
 				getfilenames(selectedboardfilename, "*.map");
 			}
-		} else if (ch == 9) {
+		} else if (ch == 0xf) { //tab
 			if ((currentlist == 0 && findfiles) || (currentlist == 1 && finddirs))
 				currentlist = 1-currentlist;
-		} else if ((ch == 75) || (ch == 72)) {
+		} else if ((ch == 0xcb) || (ch == 0xc8) || (ch == 75) || (ch == 72)) { //left,up arrow
 			if (currentlist == 0) {
 				if (finddirshigh && finddirshigh->prev) finddirshigh = finddirshigh->prev;
 			} else {
 				if (findfileshigh && findfileshigh->prev) findfileshigh = findfileshigh->prev;
 			}
-		} else if ((ch == 77) || (ch == 80)) {
+		} else if ((ch == 0xcd) || (ch == 0xd0) || (ch == 77) || (ch == 80)) { //right,down arrow
 			if (currentlist == 0) {
 				if (finddirshigh && finddirshigh->next) finddirshigh = finddirshigh->next;
 			} else {
 				if (findfileshigh && findfileshigh->next) findfileshigh = findfileshigh->next;
 			}
-		} else if ((ch == 13) && (currentlist == 0) && finddirshigh) {
+		} else if ((ch == 0x1c) && (currentlist == 0) && finddirshigh) { //enter
 			if (finddirshigh->type == CACHE1D_FIND_DRIVE) {
 				strcpy(selectedboardfilename, finddirshigh->name);
 			} else {
@@ -6327,10 +6321,10 @@ int menuselect(int newpathmode)
 			clearbuf((unsigned char *)frameplace, (bytesperline*ydim16) >> 2, 0l);
 			showframe();
 		}
-		if (ch == 13 && !findfileshigh) ch = 0;
+		if (ch == 0x1c && !findfileshigh) ch = 0;
 	}
-	while ((ch != 13) && (ch != 27));
-	if (ch == 13)
+	while ((ch != 0x1c) && (ch != 0x1));
+	if (ch == 0x1c)
 	{
 		Bstrcat(selectedboardfilename, findfileshigh->name);
 		//printf("Selected file: %s\n", selectedboardfilename);
