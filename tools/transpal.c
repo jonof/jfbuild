@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 	short s;
 	int fil, i, j, rscale, gscale, bscale;
 	ssize_t r;
-	unsigned char col, buf[65536];
+	unsigned char col;
 
 	if (argc>1) {
 		if (argv[1][0] == '-') {
@@ -218,8 +218,6 @@ int main(int argc, char **argv)
 		transonly = 0;
 	}
 
-	memset(buf,0,65536);
-
 	initfastcolorlookup(rscale,gscale,bscale);
 	memset(closestcol, 0xff, 262144);
 
@@ -228,17 +226,6 @@ int main(int argc, char **argv)
 		{
 			col = getpalookup((char)i,(unsigned char)j);
 			palookup[(i<<8)+j] = col;
-
-			drawpixel(((((i<<1)+0)*320+(j+8))>>2)+buf,(int)col);
-			drawpixel(((((i<<1)+1)*320+(j+8))>>2)+buf,(int)col);
-		}
-
-	for(i=0;i<256;i++)
-		for(j=0;j<6;j++)
-		{
-			drawpixel((((j+132+0)*320+(i+8))>>2)+buf,i);
-
-			drawpixel((((i+132+8)*320+(j+0))>>2)+buf,i);
 		}
 
 	for(i=0;i<256;i++)
@@ -246,8 +233,6 @@ int main(int argc, char **argv)
 		{
 			col = gettrans((unsigned char)i,(unsigned char)j,transratio);
 			transluc[(i<<8)+j] = col;
-
-			drawpixel((((j+132+8)*320+(i+8))>>2)+buf,(int)col);
 		}
 
     if ((fil = Bopen(palettefilename,BO_BINARY|BO_TRUNC|BO_CREAT|BO_WRONLY,BS_IREAD|BS_IWRITE)) == -1)

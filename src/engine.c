@@ -4970,6 +4970,34 @@ static void initfastcolorlookup(int rscale, int gscale, int bscale)
 }
 
 
+// calcpalookup (internal) -- transpal's getpalookup()
+static unsigned char calcpalookup(char dashade, unsigned char dacol)
+{
+	int r, g, b, t;
+	unsigned char *ptr;
+
+	ptr = &palette[dacol*3];
+	t = divscale16(numpalookups-dashade,numpalookups);
+	r = ((ptr[0]*t+32768)>>16);
+	g = ((ptr[1]*t+32768)>>16);
+	b = ((ptr[2]*t+32768)>>16);
+	return(getclosestcol(r,g,b));
+}
+
+// calctrans (internal) -- transpal's gettrans()
+static unsigned char calctrans(unsigned char dat1, unsigned char dat2, int datransratio)
+{
+	int r, g, b;
+	unsigned char *ptr, *ptr2;
+
+	ptr = &palette[dat1*3];
+	ptr2 = &palette[dat2*3];
+	r = ptr[0]; r += (((ptr2[0]-r)*datransratio+128)>>8);
+	g = ptr[1]; g += (((ptr2[1]-g)*datransratio+128)>>8);
+	b = ptr[2]; b += (((ptr2[2]-b)*datransratio+128)>>8);
+	return(getclosestcol(r,g,b));
+}
+
 //
 // loadpalette (internal)
 //
@@ -4998,7 +5026,8 @@ static int loadpalette(void)
 		numpalookups = (flen - 32640 - 768) >> 8;
 		buildprintf("loadpalette: old format palette (%d shades)\n",
 			numpalookups);
-		goto badpalette;
+		kclose(fil); // Recompute translucence and shade tables.
+		fil = -1;
 	} else {
 		buildprintf("loadpalette: damaged palette\n");
 		goto badpalette;
@@ -5017,14 +5046,35 @@ static int loadpalette(void)
 
 	globalpalwritten = palookup[0]; globalpal = 0;
 	setpalookupaddress(globalpalwritten);
-
 	fixtransluscence(transluc);
 
-	kread(fil,palookup[globalpal],numpalookups<<8);
-	kread(fil,transluc,65536);
-	kclose(fil);
+	if (fil >= 0) {
+		kread(fil,palookup[globalpal],numpalookups<<8);
+		kread(fil,transluc,65536);
+		kclose(fil);
+	}
 
 	initfastcolorlookup(30L,59L,11L);
+
+	if (fil < 0) {
+		// The guts of transpal.
+		int i,j;
+		unsigned char col;
+
+		for(i=0;i<numpalookups;i++)
+			for(j=0;j<256;j++)
+			{
+				col = calcpalookup((char)i,(unsigned char)j);
+				palookup[0][(i<<8)+j] = col;
+			}
+
+		for(i=0;i<256;i++)
+			for(j=0;j<256;j++)
+			{
+				col = calctrans((unsigned char)i,(unsigned char)j,128);
+				transluc[(i<<8)+j] = col;
+			}
+	}
 
 	return 0;
 

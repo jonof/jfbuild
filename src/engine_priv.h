@@ -66,6 +66,7 @@ int wallmost(short *mostbuf, int w, int sectnum, unsigned char dastat);
 int wallfront(int l1, int l2);
 int animateoffs(short tilenum, short fakevar);
 
+int getclosestcol(int r, int g, int b);
 
 #if defined(__WATCOMC__) && USE_ASM
 
