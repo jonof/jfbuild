@@ -879,7 +879,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -d $PROJECT_DIR/frameworks/SDL2.framework ]; then\n    echo \"SDL2.framework exists; skipping\"\n    exit\nfi\n\nsdlver=2.30.0\n\nset -xe\ncd $PROJECT_TEMP_DIR\nmkdir -p $PROJECT_TEMP_DIR/sdl2 $PROJECT_DIR/frameworks\ncurl -sfSOL https://github.com/libsdl-org/SDL/releases/download/release-$sdlver/SDL2-$sdlver.dmg\nhdiutil attach SDL2-$sdlver.dmg -mountpoint $PROJECT_TEMP_DIR/sdl2\ncp -R $PROJECT_TEMP_DIR/sdl2/SDL2.framework $PROJECT_DIR/frameworks/\nhdiutil eject $PROJECT_TEMP_DIR/sdl2\n";
+			shellScript = "sdlver=2.32.10\n\nif [ -d $PROJECT_DIR/frameworks/SDL2.framework ]; then\n    fwkver=$(plutil -extract CFBundleVersion raw $PROJECT_DIR/frameworks/SDL2.framework/Resources/Info.plist)\n    vercheck=$(perl -mversion=0.77 -e 'print version->parse(\"'$fwkver'\") <=> version->parse(\"'$sdlver'\")')\n    if [ $vercheck -lt 0 ]; then\n        echo \"SDL2.framework version $fwkver exists, which is older than desired $sdlver; updating\"\n        rm -rf $PROJECT_DIR/frameworks/SDL2.framework\n    else\n        echo \"SDL2.framework version $sdlver exists; skipping\"\n        exit\n    fi\nfi\n\nset -xe\ncd $PROJECT_TEMP_DIR\nmkdir -p $PROJECT_TEMP_DIR/sdl2 $PROJECT_DIR/frameworks\ncurl -sfSOL https://github.com/libsdl-org/SDL/releases/download/release-$sdlver/SDL2-$sdlver.dmg\nhdiutil attach SDL2-$sdlver.dmg -mountpoint $PROJECT_TEMP_DIR/sdl2\ncp -R $PROJECT_TEMP_DIR/sdl2/SDL2.framework $PROJECT_DIR/frameworks/\nhdiutil eject $PROJECT_TEMP_DIR/sdl2\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */

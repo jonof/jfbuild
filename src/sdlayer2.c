@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
 	buildkeytranslationtable();
 
 	// SDL must be initialised before GTK or else crashing will ensue.
-	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER)) {
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER)) {
 		buildprintf("Early initialisation of SDL failed! (%s)\n", SDL_GetError());
 		return 1;
 	}
@@ -400,7 +400,7 @@ int initinput(void)
 		strncpy(keynames[ keytranslation[i].normal ], SDL_GetScancodeName(i), sizeof(keynames[i])-1);
 	}
 
-	if (!SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER)) {
+	if (SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
 		int flen, fh;
 		char *dbuf = NULL;
 		SDL_RWops *rwops = NULL;

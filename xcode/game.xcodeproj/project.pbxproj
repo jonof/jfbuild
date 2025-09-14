@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB0427BD2E7669CA00E2A322 /* gamecontrollerdb.txt in Resources */ = {isa = PBXBuildFile; fileRef = AB0427BC2E7669CA00E2A322 /* gamecontrollerdb.txt */; };
 		AB053FAF0A33136D00FA2918 /* startwin.game.nib in Resources */ = {isa = PBXBuildFile; fileRef = AB053FAE0A33136D00FA2918 /* startwin.game.nib */; };
 		AB3930032B942820002B0F5D /* klist in Copy additional editor tools */ = {isa = PBXBuildFile; fileRef = AB3930022B942814002B0F5D /* klist */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		AB3DEDA21BD23DAB0009D070 /* Game Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */; };
@@ -239,6 +240,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		AB0427BC2E7669CA00E2A322 /* gamecontrollerdb.txt */ = {isa = PBXFileReference; lastKnownFileType = text; name = gamecontrollerdb.txt; path = ../kenbuild/rsrc/gamecontrollerdb.txt; sourceTree = "<group>"; };
 		AB053FAE0A33136D00FA2918 /* startwin.game.nib */ = {isa = PBXFileReference; lastKnownFileType = wrapper.nib; path = startwin.game.nib; sourceTree = SOURCE_ROOT; };
 		AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Game Images.xcassets"; sourceTree = "<group>"; };
 		AB3DEDA31BD23EE70009D070 /* Editor Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Editor Images.xcassets"; sourceTree = "<group>"; };
@@ -350,6 +352,7 @@
 		AB7360200A29AA88003261DC /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				AB0427BC2E7669CA00E2A322 /* gamecontrollerdb.txt */,
 				AB3DEDA11BD23DAB0009D070 /* Game Images.xcassets */,
 				ABA9E3320FEF9E470024231F /* game.c */,
 				ABA9E3330FEF9E470024231F /* game.h */,
@@ -557,6 +560,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB0427BD2E7669CA00E2A322 /* gamecontrollerdb.txt in Resources */,
 				AB3DEDA21BD23DAB0009D070 /* Game Images.xcassets in Resources */,
 				AB053FAF0A33136D00FA2918 /* startwin.game.nib in Resources */,
 			);
