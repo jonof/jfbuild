@@ -69,6 +69,13 @@ _SDL2.framework_ found in the _.dmg_ file to _xcode/frameworks_.
    game with: `nmake /f Makefile.msvc`
 4. Assuming that was successful, run the test game with: `data\game`
 
+### With MinGW-W64 cross-compiling for Windows
+
+1. (For example, on macOS with Homebrew) Install _mingw-w64_ with: `brew install mingw-w64`
+2. Change into the _kenbuild_ subdirectory of this cloned repository, then compile
+   the test game with: `make HOST{CC=cc,CXX=c++} $(set CC=gcc CXX=g++ RC=windres
+   RANLIB=ranlib AR=ar; echo ${@/=/=x86_64-w64-mingw32-})`
+
 Compilation options
 -------------------
 

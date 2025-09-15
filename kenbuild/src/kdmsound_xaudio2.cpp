@@ -11,6 +11,12 @@
 #include "windows.h"
 #include "xaudio2.h"
 
+#if defined(__MINGW32__) && !defined(XAUDIO2_USE_DEFAULT_PROCESSOR)
+#define XAUDIO2_USE_DEFAULT_PROCESSOR XAUDIO2_ANY_PROCESSOR
+#endif
+#define kmin(a,b) ((a)<(b)?(a):(b))
+#define kmax(a,b) ((a)>(b)?(a):(b))
+
 extern "C" {
 #define KDMSOUND_INTERNAL
 #include "kdmsound.h"
@@ -73,7 +79,7 @@ void initsb(char dadigistat, char damusistat, int dasamplerate, char danumspeake
 
     WAVEFORMATEX sourcefmt = {0};
     sourcefmt.wFormatTag = WAVE_FORMAT_PCM;
-    sourcefmt.nChannels = max(1, min(2, danumspeakers));
+    sourcefmt.nChannels = kmax(1, kmin(2, danumspeakers));
     sourcefmt.nSamplesPerSec = dasamplerate;
     sourcefmt.wBitsPerSample = dabytespersample * 8;
     sourcefmt.nBlockAlign = sourcefmt.nChannels * dabytespersample;

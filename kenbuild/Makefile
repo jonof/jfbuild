@@ -87,8 +87,9 @@ ifeq ($(RENDERTYPE),SDL)
 	endif
 endif
 ifeq ($(RENDERTYPE),WIN)
-	GAMEEXEOBJS+= $(SRC)/kdmsound_stub.$o $(SRC)/gameres.$(res) $(SRC)/startwin_game.$o
+	GAMEEXEOBJS+= $(SRC)/kdmsound_xaudio2.$o $(SRC)/gameres.$(res) $(SRC)/startwin_game.$o
 	EDITOREXEOBJS+= $(SRC)/buildres.$(res)
+	GAMELDFLAGS+= -lxaudio2_9 -lole32
 endif
 
 .PHONY: clean veryclean all
