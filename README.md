@@ -48,7 +48,7 @@ Now, based on your chosen OS and compiler:
 
 1. [Install Xcode from the Mac App Store](https://itunes.apple.com/au/app/xcode/id497799835?mt=12).
 2. Open _game.xcodeproj_ from within the JFBuild source code's _xcode_ folder.
-3. From the Product menu choose Run.
+3. Select the 'game' target and then from the Product menu choose Run.
 
 The project will automatically download the SDL2 framework to _xcode/frameworks_
 upon first build. If there are problems with this process, you can manually
