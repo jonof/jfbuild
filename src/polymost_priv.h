@@ -127,5 +127,5 @@ void polymost_drawrooms (void);
 void polymost_drawmaskwall (int damaskwallcnt);
 void polymost_drawsprite (int snum);
 void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
-    signed char dashade, unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid);
+    signed char dashade, unsigned char dapalnum, unsigned short dastat, int cx1, int cy1, int cx2, int cy2, int uniqid);
 void polymost_initosdfuncs(void);

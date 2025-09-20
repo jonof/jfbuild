@@ -536,7 +536,8 @@ typedef struct
 	int sx, sy, z;
 	short a, picnum;
 	signed char dashade;
-	unsigned char dapalnum, dastat, pagesleft;
+	unsigned char dapalnum, pagesleft;
+	unsigned short dastat;
 	int cx1, cy1, cx2, cy2;
 	int uniqid;	//JF extension
 } permfifotype;
@@ -4374,7 +4375,7 @@ static int clippoly4(int cx1, int cy1, int cx2, int cy2)
 //
 	//JBF 20031206: Thanks to Ken's hunting, s/(rx1|ry1|rx2|ry2)/n\1/ in this function
 static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed char dashade,
-	unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
+	unsigned char dapalnum, unsigned short dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
 {
 	int cosang, sinang, v, nextv, dax1, dax2, oy, bx, by;
 	int x, y, x1, y1, x2, y2, gx1, gy1, iv;
@@ -4438,10 +4439,15 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 
 	xv = mulscale14(cosang,z);
 	yv = mulscale14(sinang,z);
-	if (((dastat&2) != 0) || ((dastat&8) == 0)) //Don't aspect unscaled perms
+	if (((dastat&2) != 0 && (dastat&256) == 0) || ((dastat&8) == 0)) //Don't aspect unscaled perms
 	{
 		xv2 = mulscale16(xv,xyaspect);
 		yv2 = mulscale16(yv,xyaspect);
+	}
+	else if (pixelaspect == 65536 && ((dastat&2) && (dastat&256))) //Skew 1:1 to 1.2:1 aspect
+	{
+		xv2 = mulscale16(xv,78643);
+		yv2 = mulscale16(yv,78643);
 	}
 	else
 	{
@@ -4502,10 +4508,15 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 	iv = divscale32(1L,z);
 	xv = mulscale14(sinang,iv);
 	yv = mulscale14(cosang,iv);
-	if (((dastat&2) != 0) || ((dastat&8) == 0)) //Don't aspect unscaled perms
+	if (((dastat&2) != 0 && (dastat&256) == 0) || ((dastat&8) == 0)) //Don't aspect unscaled perms
 	{
 		yv2 = mulscale16(-xv,yxaspect);
 		xv2 = mulscale16(yv,yxaspect);
+	}
+	else if (pixelaspect == 65536 && ((dastat&2) && (dastat&256))) //Skew 1:1 to 1.2:1 aspect
+	{
+		yv2 = mulscale16(-xv,54613);
+		xv2 = mulscale16(yv,54613);
 	}
 	else
 	{
@@ -9948,7 +9959,7 @@ void flushperms(void)
 // rotatesprite
 //
 void rotatesprite(int sx, int sy, int z, short a, short picnum, signed char dashade,
-	unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2)
+	unsigned char dapalnum, unsigned short dastat, int cx1, int cy1, int cx2, int cy2)
 {
 	int i, gap = -1;
 	permfifotype *per, *per2;

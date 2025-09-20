@@ -3715,9 +3715,10 @@ void polymost_drawsprite (int snum)
 	//dastat&32   1:reverse translucence
 	//dastat&64   1:non-masked, 0:masked
 	//dastat&128  1:draw all pages (permanent)
+	//dastat&256  1:one-to-one pixel aspect (when dastat&2)
 	//cx1,...     clip window (actual screen coords)
 void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
-	signed char dashade, unsigned char dapalnum, unsigned char dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
+	signed char dashade, unsigned char dapalnum, unsigned short dastat, int cx1, int cy1, int cx2, int cy2, int uniqid)
 {
 	int n, nn, x, zz, xoff, yoff, xsiz, ysiz, method;
 	int ogpicnum, ogshade, ogpal, oxdimen, oydimen;
@@ -3768,7 +3769,7 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 					d = (double)z/(65536.0*16384.0);
 					cosang2 = cosang = (double)sintable[(a+512)&2047]*d;
 					sinang2 = sinang = (double)sintable[a&2047]*d;
-					if ((dastat&2) || (!(dastat&8))) //Don't aspect unscaled perms
+					if (((dastat&2) && !(dastat&256)) || (!(dastat&8))) //Don't aspect unscaled perms
 						{ d = (double)xyaspect/65536.0; cosang2 *= d; sinang2 *= d; }
 					fx += -(double)xoff*cosang2+ (double)yoff*sinang2;
 					fy += -(double)xoff*sinang - (double)yoff*cosang;
@@ -3902,8 +3903,10 @@ void polymost_dorotatesprite (int sx, int sy, int z, short a, short picnum,
 	d = (double)z/(65536.0*16384.0);
 	cosang2 = cosang = (double)sintable[(a+512)&2047]*d;
 	sinang2 = sinang = (double)sintable[a&2047]*d;
-	if ((dastat&2) || (!(dastat&8))) //Don't aspect unscaled perms
+	if (((dastat&2) && !(dastat&256)) || (!(dastat&8))) //Don't aspect unscaled perms
 		{ d = (double)xyaspect/65536.0; cosang2 *= d; sinang2 *= d; }
+	else if (pixelaspect == 65536 && ((dastat&2) && (dastat&256))) //Skew 1:1 to 1.2:1 aspect
+		{ d = 1.2; cosang2 *= d; sinang2 *= d; }
 	px[0] = (double)sx/65536.0 - (double)xoff*cosang2+ (double)yoff*sinang2;
 	py[0] = (double)sy/65536.0 - (double)xoff*sinang - (double)yoff*cosang;
 	px[1] = px[0] + (double)xsiz*cosang2;
