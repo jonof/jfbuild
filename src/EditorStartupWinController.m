@@ -20,6 +20,7 @@
     IBOutlet NSTabViewItem *tabMessages;
     IBOutlet NSPopUpButton *videoMode2DPUButton;
     IBOutlet NSPopUpButton *videoMode3DPUButton;
+    IBOutlet NSPopUpButton *displayPUButton;
 
     IBOutlet NSButton *cancelButton;
     IBOutlet NSButton *startButton;
@@ -29,7 +30,7 @@
 - (void)closeQuietly;
 - (void)populateVideoModes:(BOOL)firstTime;
 
-- (IBAction)fullscreenClicked:(id)sender;
+- (IBAction)fullscreenOrDisplayClicked:(id)sender;
 
 - (IBAction)cancel:(id)sender;
 - (IBAction)start:(id)sender;
@@ -83,16 +84,10 @@
 
 - (void)populateVideoModes:(BOOL)firstTime
 {
-    int i, mode2d = -1, mode3d = -1;
-    int idx2d = -1, idx3d = -1;
-    int xdim = 0, ydim = 0, bpp = 0, fullscreen = 0;
+    int i, mode2d = -1, mode3d = -1, idx2d = -1, idx3d = -1;
+    int xdim = 0, ydim = 0, bitspp = 0, display = 0, fullsc = 0;
     int xdim2d = 0, ydim2d = 0;
-    int cd[] = {
-#if USE_POLYMOST && USE_OPENGL
-        32, 24, 16, 15,
-#endif
-        8, 0
-    };
+    int cd[] = { 32, 24, 16, 15, 8, 0 };
     NSMenu *menu3d = nil, *menu2d = nil;
     NSMenuItem *menuitem = nil;
 
@@ -100,20 +95,33 @@
         getvalidmodes();
         xdim = settings->xdim3d;
         ydim = settings->ydim3d;
-        bpp  = settings->bpp3d;
-        fullscreen = settings->fullscreen;
+        bitspp = settings->bpp3d;
+        fullsc = settings->fullscreen & 255;
+        display = min(displaycnt, max(0, (settings->fullscreen >> 8)));
 
         xdim2d = settings->xdim2d;
         ydim2d = settings->ydim2d;
+
+        NSMenu *menu = [displayPUButton menu];
+        [menu removeAllItems];
+        for (int i = 0; i < displaycnt; i++) {
+            menuitem = [menu addItemWithTitle:[NSString stringWithFormat:@"Display %d \u2013 %s",
+                                               i, getdisplayname(i)]
+                                       action:nil
+                                keyEquivalent:@""];
+            [menuitem setTag:i];
+        }
+        if (displaycnt < 2) [displayPUButton setHidden:YES];
     } else {
-        fullscreen = ([fullscreenButton state] == NSControlStateValueOn);
-        mode3d = (int)[[videoMode3DPUButton selectedItem] tag];
+        fullsc = ([fullscreenButton state] == NSControlStateValueOn);
+        if (fullsc) display = max(0, (int)[displayPUButton selectedTag]);
+        mode3d = (int)[videoMode3DPUButton selectedTag];
         if (mode3d >= 0) {
             xdim = validmode[mode3d].xdim;
             ydim = validmode[mode3d].ydim;
-            bpp = validmode[mode3d].bpp;
+            bitspp = validmode[mode3d].bpp;
         }
-        mode2d = (int)[[videoMode2DPUButton selectedItem] tag];
+        mode2d = (int)[videoMode2DPUButton selectedTag];
         if (mode2d >= 0) {
             xdim2d = validmode[mode2d].xdim;
             ydim2d = validmode[mode2d].ydim;
@@ -121,51 +129,52 @@
     }
 
     // Find an ideal match.
-    mode3d = checkvideomode(&xdim, &ydim, bpp, fullscreen, 1);
-    mode2d = checkvideomode(&xdim2d, &ydim2d, 8, fullscreen, 1);
-    if (mode2d < 0) {
-        mode2d = 0;
+    mode3d = checkvideomode(&xdim, &ydim, bitspp, SETGAMEMODE_FULLSCREEN(display, fullsc), 1);
+    mode2d = checkvideomode(&xdim2d, &ydim2d, 8, SETGAMEMODE_FULLSCREEN(display, fullsc), 1);
+    if (mode2d < 0) mode2d = 0;
+    for (i=0; mode3d < 0 && cd[i]; i++) {
+        mode3d = checkvideomode(&xdim, &ydim, cd[i], SETGAMEMODE_FULLSCREEN(display, fullsc), 1);
     }
-    if (mode3d < 0) {
-        for (i=0; cd[i]; ) { if (cd[i] >= bpp) i++; else break; }
-        for ( ; cd[i]; i++) {
-            mode3d = checkvideomode(&xdim, &ydim, cd[i], fullscreen, 1);
-            if (mode3d < 0) continue;
-            break;
-        }
-    }
+    if (mode3d < 0) mode3d = 0;
+    fullsc = validmode[mode3d].fs;
+    display = validmode[mode3d].display;
 
-    // Repopulate the lists.
+    // Repopulate the mode lists.
     menu3d = [videoMode3DPUButton menu];
     menu2d = [videoMode2DPUButton menu];
     [menu3d removeAllItems];
     [menu2d removeAllItems];
 
     for (i = 0; i < validmodecnt; i++) {
-        if (validmode[i].fs != fullscreen) continue;
+        if (validmode[i].fs != fullsc) continue;
+        if (validmode[i].display != display) continue;
 
-        if (i == mode3d) idx3d = i;
-        menuitem = [menu3d addItemWithTitle:[NSString stringWithFormat:@"%d %C %d %d-bpp",
-                                          validmode[i].xdim, 0xd7, validmode[i].ydim, validmode[i].bpp]
+        if (i == mode3d || idx3d < 0) idx3d = i;
+        menuitem = [menu3d addItemWithTitle:[NSString stringWithFormat:@"%d \u00d7 %d %d-bpp",
+                                             validmode[i].xdim, validmode[i].ydim,
+                                             validmode[i].bpp]
                                      action:nil
                               keyEquivalent:@""];
         [menuitem setTag:i];
 
         if (validmode[i].bpp == 8 && validmode[i].xdim >= 640 && validmode[i].ydim >= 480) {
-            if (i == mode2d) idx2d = i;
-            menuitem = [menu2d addItemWithTitle:[NSString stringWithFormat:@"%d %C %d",
-                                                 validmode[i].xdim, 0xd7, validmode[i].ydim]
+            if (i == mode2d || idx2d < 0) idx2d = i;
+            menuitem = [menu2d addItemWithTitle:[NSString stringWithFormat:@"%d \u00d7 %d",
+                                                 validmode[i].xdim, validmode[i].ydim]
                                          action:nil
                                   keyEquivalent:@""];
             [menuitem setTag:i];
         }
     }
-
     if (idx2d >= 0) [videoMode2DPUButton selectItemWithTag:idx2d];
     if (idx3d >= 0) [videoMode3DPUButton selectItemWithTag:idx3d];
+
+    [displayPUButton selectItemWithTag:validmode[mode3d].display];
+    [displayPUButton setEnabled: validmode[mode3d].fs ? YES : NO];
+    [fullscreenButton setState: validmode[mode3d].fs ? NSControlStateValueOn : NSControlStateValueOff];
 }
 
-- (IBAction)fullscreenClicked:(id)sender
+- (IBAction)fullscreenOrDisplayClicked:(id)sender
 {
     [self populateVideoModes:NO];
 }
@@ -182,15 +191,15 @@
 {
     int mode = -1;
 
-    mode = (int)[[videoMode3DPUButton selectedItem] tag];
+    mode = (int)[videoMode3DPUButton selectedTag];
     if (mode >= 0) {
         settings->xdim3d = validmode[mode].xdim;
         settings->ydim3d = validmode[mode].ydim;
         settings->bpp3d = validmode[mode].bpp;
-        settings->fullscreen = validmode[mode].fs;
+        settings->fullscreen = SETGAMEMODE_FULLSCREEN(validmode[mode].display, validmode[mode].fs);
     }
 
-    mode = (int)[[videoMode2DPUButton selectedItem] tag];
+    mode = (int)[videoMode2DPUButton selectedTag];
     if (mode >= 0) {
         settings->xdim2d = validmode[mode].xdim;
         settings->ydim2d = validmode[mode].ydim;
@@ -210,9 +219,9 @@
 
     [videoMode2DPUButton setEnabled:YES];
     [videoMode3DPUButton setEnabled:YES];
-    [self populateVideoModes:YES];
     [fullscreenButton setEnabled:YES];
-    [fullscreenButton setState: (settings->fullscreen ? NSControlStateValueOn : NSControlStateValueOff)];
+    [displayPUButton setEnabled:YES];
+    [self populateVideoModes:YES];
 
     [cancelButton setEnabled:YES];
     [startButton setEnabled:YES];

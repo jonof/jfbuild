@@ -64,6 +64,7 @@ enum {
 #if USE_POLYMOST
 static int tmprenderer = -1;
 #endif
+static int tmpfullscreen = -1, tmpdisplay = -1;
 static int tmpbrightness = -1;
 static int tmpsamplerate = -1;
 static int tmpmusic = -1;
@@ -84,10 +85,14 @@ static struct {
 		";   0 - No\n"
 		";   1 - Yes\n"
 	},
-	{ "fullscreen", type_bool, &fullscreen,
+	{ "fullscreen", type_bool, &tmpfullscreen,
 		"; Video mode selection\n"
 		";   0 - Windowed\n"
 		";   1 - Fullscreen\n"
+	},
+	{ "display", type_int, &tmpdisplay,
+		"; Video display number\n"
+		";   0 - Primary display\n"
 	},
 	{ "xdim", type_int, &xdimgame,
 		"; Video resolution\n"
@@ -273,6 +278,13 @@ int loadsetup(const char *fn)
 	if (tmpbrightness >= 0) {
 		brightness = min(max(tmpbrightness,0),15);
 	}
+	fullscreen = 0;
+	if (tmpfullscreen >= 0) {
+		fullscreen = tmpfullscreen;
+	}
+	if (tmpdisplay >= 0) {
+		fullscreen |= tmpdisplay<<8;
+	}
 	if (tmpsamplerate >= 0) {
 		option[7] = (tmpsamplerate & 0x0f) << 4;
 		option[7] |= 1|2|4;
@@ -307,6 +319,8 @@ int writesetup(const char *fn)
 	if (!fp) return -1;
 
 	tmpbrightness = brightness;
+	tmpfullscreen = !!(fullscreen&255);
+	tmpdisplay = fullscreen>>8;
 #if USE_POLYMOST
 	tmprenderer = getrendermode();
 #endif

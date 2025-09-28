@@ -8,6 +8,7 @@
 #define IDC_FULLSCREEN              1101
 #define IDC_VMODE3D                 1102
 #define IDC_VMODE2D                 1103
+#define IDC_DISPLAY                 1104
 
 #define IDD_PAGE_MESSAGES           1200
 #define IDC_MESSAGES                1201

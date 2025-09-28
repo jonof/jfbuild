@@ -54,60 +54,134 @@ char joynumaxes=0, joynumbuttons=0;
 //
 // checkvideomode() -- makes sure the video mode passed is legal
 //
-int checkvideomode(int *x, int *y, int c, int fs, int forced)
+int checkvideomode(int *xdim, int *ydim, int bitspp, int fullsc, int strict)
 {
-	int i, nearest=-1, dx, dy, odx=INT_MAX, ody=INT_MAX;
+	int i, display, nearest=-1, dx, dy, darea, odx=INT_MAX, ody=INT_MAX, odarea=INT_MAX;
 
 	getvalidmodes();
 
 #if USE_OPENGL
-	if (c > 8 && glunavailable) return -1;
+	if (bitspp > 8 && glunavailable) return -1;
 #else
-	if (c > 8) return -1;
+	if (bitspp > 8) return -1;
 #endif
 
 	// fix up the passed resolution values to be multiples of 8
 	// and at least 320x200 or at most MAXXDIMxMAXYDIM
-	if (*x < 320) *x = 320;
-	if (*y < 200) *y = 200;
-	if (*x > MAXXDIM) *x = MAXXDIM;
-	if (*y > MAXYDIM) *y = MAXYDIM;
-	*x &= 0xfffffff8l;
+	if (*xdim < 320) *xdim = 320;
+	if (*ydim < 200) *ydim = 200;
+	if (*xdim > MAXXDIM) *xdim = MAXXDIM;
+	if (*ydim > MAXYDIM) *ydim = MAXYDIM;
+	*xdim &= 0xfffffff8l;
+	display = (fullsc&255) ? (fullsc>>8) : 0;
+	fullsc &= 255;
 
 	for (i=0; i<validmodecnt; i++) {
-		if (validmode[i].bpp != c) continue;
-		if (validmode[i].fs != fs) continue;
-		dx = abs(validmode[i].xdim - *x);
-		dy = abs(validmode[i].ydim - *y);
+		if (validmode[i].bpp != bitspp) continue;
+		if (validmode[i].fs != fullsc) continue;
+		if (validmode[i].display != display) continue;
+		dx = abs(validmode[i].xdim - *xdim);
+		dy = abs(validmode[i].ydim - *ydim);
+		darea = dx*dy;
 		if (!(dx | dy)) { 	// perfect match
 			nearest = i;
 			break;
 		}
-		if ((dx <= odx) && (dy <= ody)) {
+		if (((dx <= odx) && (dy <= ody)) || (darea < odarea)) {
 			nearest = i;
-			odx = dx; ody = dy;
+			odx = dx; ody = dy; odarea = darea;
 		}
 	}
 
-#ifdef ANY_WINDOWED_SIZE
-	if (!forced && (fs&1) == 0 && (nearest < 0 || validmode[nearest].xdim!=*x || validmode[nearest].ydim!=*y)) {
+	if (!strict && !fullsc && (nearest < 0 || validmode[nearest].xdim!=*xdim ||
+			validmode[nearest].ydim!=*ydim)) {
 		// check the colour depth is recognised at the very least
 		for (i=0;i<validmodecnt;i++)
-			if (validmode[i].bpp == c)
-				return 0x7fffffffl;
+			if (validmode[i].bpp == bitspp && validmode[i].display == display)
+				return VIDEOMODE_RELAXED;
 		return -1;	// strange colour depth
 	}
-#endif
 
 	if (nearest < 0) {
 		// no mode that will match (eg. if no fullscreen modes)
 		return -1;
 	}
 
-	*x = validmode[nearest].xdim;
-	*y = validmode[nearest].ydim;
+	*xdim = validmode[nearest].xdim;
+	*ydim = validmode[nearest].ydim;
 
 	return nearest;		// JBF 20031206: Returns the mode number
+}
+
+void addvalidmode(int w, int h, int bpp, int fs, int display, int extra)
+{
+	int m;
+
+	if (validmodecnt>=MAXVALIDMODES) return;
+	if ((w > MAXXDIM) || (h > MAXYDIM)) return;
+	if (!(fs&255)) display=0; // Windowed modes don't declare a display.
+
+	// Check for a duplicate.
+	for (m=0; m<validmodecnt; m++)
+		if (validmode[m].xdim==w && validmode[m].ydim==h &&
+				validmode[m].bpp==bpp && validmode[m].fs==fs &&
+				validmode[m].display==display)
+			return;
+
+	validmode[validmodecnt].xdim=w;
+	validmode[validmodecnt].ydim=h;
+	validmode[validmodecnt].bpp=bpp;
+	validmode[validmodecnt].fs=fs;
+	validmode[validmodecnt].display=display;
+	validmode[validmodecnt].extra=extra;
+	validmodecnt++;
+}
+
+void addstandardvalidmodes(int maxx, int maxy, int bpp, int fs, int display, int extra)
+{
+	static const int defaultres[][2] = {
+		{1920,1200}, {1920,1080}, {1600,1200}, {1680,1050}, {1600,900},
+		{1400,1050}, {1440,900},  {1366,768},  {1280,1024}, {1280,960},
+		{1280,800},  {1280,720},  {1152,864},  {1024,768},  {800,600},
+		{640,480},   {640,400},   {320,240},   {320,200},   {0,0}
+	};
+	for (int i=0; defaultres[i][0]; i++) {
+		if (defaultres[i][0] <= maxx && defaultres[i][1] <= maxy)
+			addvalidmode(defaultres[i][0], defaultres[i][1], bpp, fs, display, extra);
+	}
+}
+
+static int sortmodes(const struct validmode_t *a, const struct validmode_t *b)
+{
+	int x;
+
+	if ((x = a->fs   - b->fs)   != 0) return x;
+	if ((x = a->display - b->display) != 0) return x;
+	if ((x = a->bpp  - b->bpp)  != 0) return x;
+	if ((x = a->xdim - b->xdim) != 0) return x;
+	if ((x = a->ydim - b->ydim) != 0) return x;
+
+	return 0;
+}
+
+void sortvalidmodes(void)
+{
+	qsort((void*)validmode, validmodecnt, sizeof(struct validmode_t), (int(*)(const void*,const void*))sortmodes);
+
+#ifdef DEBUGGINGAIDS
+	debugprintf("Video modes available:\n");
+	for (int i=0; i<validmodecnt; i++) {
+		if (validmode[i].fs) {
+			debugprintf("  - %dx%d %d-bit fullscreen, display %d\n",
+				validmode[i].xdim, validmode[i].ydim,
+				validmode[i].bpp, validmode[i].display);
+		} else {
+			debugprintf("  - %dx%d %d-bit windowed\n",
+				validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
+		}
+
+	}
+#endif
 }
 
 //
@@ -242,6 +316,12 @@ static int osdcmd_listvidmodes(const osdfuncparm_t *parm)
 {
 	int filterbpp = -1, filterfs = -1, found = 0;
 
+	if (parm->numparms == 1 && strcasecmp(parm->parms[0], "displays") == 0) {
+		for (int i = 0; i < displaycnt; i++) {
+			buildprintf("Display %d: %s\n", i, getdisplayname(i));
+		}
+		return OSDCMD_OK;
+	}
 	for (int i = 0; i < parm->numparms; i++) {
 		if (strcasecmp(parm->parms[i], "win") == 0) {
 			filterfs = 0;
@@ -257,9 +337,16 @@ static int osdcmd_listvidmodes(const osdfuncparm_t *parm)
 
 	for (int i = 0; i < validmodecnt; i++) {
 		if (filterbpp >= 0 && validmode[i].bpp != filterbpp) continue;
-		if (filterfs >= 0 && (validmode[i].fs & 1) != filterfs) continue;
-		buildprintf(" %4dx%-4d %d-bit %s\n", validmode[i].xdim, validmode[i].ydim,
-			validmode[i].bpp, (validmode[i].fs & 1) ? "fullscreen" : "windowed");
+		if (filterfs >= 0 && validmode[i].fs != filterfs) continue;
+		if (validmode[i].fs) {
+			buildprintf(" %4dx%-4d %d-bit fullscreen, display %d\n",
+				validmode[i].xdim, validmode[i].ydim,
+				validmode[i].bpp, validmode[i].display);
+		} else {
+			buildprintf(" %4dx%-4d %d-bit windowed\n",
+				validmode[i].xdim, validmode[i].ydim,
+				validmode[i].bpp);
+		}
 		found++;
 	}
 	buildprintf("%d modes identified\n", found);
@@ -275,7 +362,7 @@ int baselayer_init(void)
 	OSD_RegisterFunction("novoxmips","novoxmips: turn off/on the use of mipmaps when rendering 8-bit voxels",osdcmd_vars);
 	OSD_RegisterFunction("usevoxels","usevoxels: enable/disable automatic sprite->voxel rendering",osdcmd_vars);
 	OSD_RegisterFunction("usegammabrightness","usegammabrightness: set brightness using system gamma (2), shader (1), or palette (0)",osdcmd_vars);
-	OSD_RegisterFunction("listvidmodes","listvidmodes [bpp|win|fs]: show all available video mode combinations",osdcmd_listvidmodes);
+	OSD_RegisterFunction("listvidmodes","listvidmodes [<bpp>|win|fs] / listvidmodes displays: show all available video mode combinations",osdcmd_listvidmodes);
 
 #if USE_POLYMOST
 	OSD_RegisterFunction("setrendermode","setrendermode <number>: sets the engine's rendering mode.\n"

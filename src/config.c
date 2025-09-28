@@ -66,6 +66,7 @@ enum {
 #if USE_POLYMOST
 static int tmprenderer = -1;
 #endif
+static int tmpfullscreen = -1, tmpdisplay = -1;
 static int tmpbrightness = -1;
 #ifdef RENDERTYPEWIN
 static unsigned tmpmaxrefreshfreq = -1;
@@ -82,10 +83,14 @@ static struct {
 		";   0 - No\n"
 		";   1 - Yes\n"
 	},
-	{ "fullscreen", type_bool, &fullscreen,
+	{ "fullscreen", type_bool, &tmpfullscreen,
 		"; Video mode selection\n"
 		";   0 - Windowed\n"
 		";   1 - Fullscreen\n"
+	},
+	{ "display", type_int, &tmpdisplay,
+		"; Video display number\n"
+		";   0 - Primary display\n"
 	},
 	{ "xdim2d", type_int, &xdim2d,
 		"; Video resolution\n"
@@ -261,6 +266,13 @@ int loadsetup(const char *fn)
 	if (tmpbrightness >= 0) {
 		brightness = min(max(tmpbrightness,0),15);
 	}
+	fullscreen = 0;
+	if (tmpfullscreen >= 0) {
+		fullscreen = tmpfullscreen;
+	}
+	if (tmpdisplay >= 0) {
+		fullscreen |= tmpdisplay<<8;
+	}
 	OSD_CaptureKey(keys[19]);
 
 	scriptfile_close(cfg);
@@ -278,6 +290,8 @@ int writesetup(const char *fn)
 	if (!fp) return -1;
 
 	tmpbrightness = brightness;
+	tmpfullscreen = !!(fullscreen&255);
+	tmpdisplay = fullscreen>>8;
 #if USE_POLYMOST
 	tmprenderer = getrendermode();
 #endif

@@ -344,7 +344,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 {
 	int newx = xdim, newy = ydim, newbpp = bpp, newfullscreen = fullscreen;
 
-	if (parm->numparms < 1 || parm->numparms > 4) return OSDCMD_SHOWHELP;
+	if (parm->numparms < 1 || parm->numparms > 5) return OSDCMD_SHOWHELP;
 
 	switch (parm->numparms) {
 		case 1:   // bpp switch
@@ -354,13 +354,17 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 			newx = atoi(parm->parms[0]);
 			newy = atoi(parm->parms[1]);
 			break;
-		case 3:   // res & bpp switch
+		case 3:   // res, bpp, fullscreen, display switch
 		case 4:
+		case 5:
 			newx = atoi(parm->parms[0]);
 			newy = atoi(parm->parms[1]);
 			newbpp = atoi(parm->parms[2]);
-			if (parm->numparms == 4)
-				newfullscreen = (atoi(parm->parms[3]) != 0);
+			if (parm->numparms == 4) {
+				newfullscreen = (atoi(parm->parms[3]) != 0) | (fullscreen&0xff00);
+			} else if (parm->numparms == 5) {
+				newfullscreen = (atoi(parm->parms[3]) != 0) | (max(0,atoi(parm->parms[4]))<<8);
+			}
 			break;
 	}
 
@@ -370,6 +374,7 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 		xdimgame = xdim;
 		ydimgame = ydim;
 		bppgame = bpp;
+		fullscreen = newfullscreen;
 	}
 	screensize = xdim+1;
 	return OSDCMD_OK;
@@ -485,7 +490,7 @@ int app_main(int argc, char const * const argv[])
 	buildsetlogfile("console.txt");
 
 	OSD_RegisterFunction("restartvid","restartvid: reinitialise the video mode",osdcmd_restartvid);
-	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen]: immediately change the video mode",osdcmd_vidmode);
+	OSD_RegisterFunction("vidmode","vidmode [xdim ydim] [bpp] [fullscreen] [display]: immediately change the video mode",osdcmd_vidmode);
 	OSD_RegisterFunction("map", "map [filename]: load a map", osdcmd_map);
 
 	wm_setapptitle("KenBuild by Ken Silverman");

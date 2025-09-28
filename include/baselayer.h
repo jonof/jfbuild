@@ -33,6 +33,7 @@ extern int startwin_run(struct startwin_settings *);
 extern int xres, yres, bpp, fullscreen, bytesperline, imageSize;
 extern char offscreenrendering;
 extern intptr_t frameplace;
+extern int displaycnt;
 
 extern void (*baselayer_videomodewillchange)(void);
 extern void (*baselayer_videomodedidchange)(void);
@@ -87,10 +88,14 @@ unsigned int getticks(void);
 unsigned int getusecticks(void);
 int gettimerfreq(void);
 
-int checkvideomode(int *x, int *y, int c, int fs, int forced);
-int setvideomode(int x, int y, int c, int fs);
+// If 'strict' is zero and 'fullsc' is zero, only 'bitspp' needs be valid
+// and VIDEOMODE_RELAXED is returned, otherwise the mode matched, or -1 if none.
+#define VIDEOMODE_RELAXED 0x7fffffff
+int checkvideomode(int *xdim, int *ydim, int bitspp, int fullsc, int strict);
+int setvideomode(int xdim, int ydim, int bitspp, int fullsc);
 void getvalidmodes(void);
 void resetvideomode(void);
+const char *getdisplayname(int display);
 
 void showframe(void);
 

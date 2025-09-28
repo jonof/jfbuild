@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23727" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24128" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23727"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24128"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -10,6 +10,7 @@
             <connections>
                 <outlet property="alwaysShowButton" destination="37" id="59"/>
                 <outlet property="cancelButton" destination="22" id="65"/>
+                <outlet property="displayPUButton" destination="UKt-zM-JkN" id="dre-p4-A8M"/>
                 <outlet property="fullscreenButton" destination="14" id="58"/>
                 <outlet property="hostField" destination="kLw-xj-ksb" id="ihx-Zq-c5p"/>
                 <outlet property="hostMultiButton" destination="ykL-7f-xxy" id="zyx-WT-QKQ"/>
@@ -69,6 +70,7 @@
                                             </buttonCell>
                                             <connections>
                                                 <action selector="multiPlayerModeClicked:" target="-2" id="qiP-GJ-luS"/>
+                                                <outlet property="nextKeyView" destination="Mc6-lv-e5A" id="xb3-vx-hMg"/>
                                             </connections>
                                         </button>
                                         <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Mc6-lv-e5A">
@@ -80,6 +82,7 @@
                                             </buttonCell>
                                             <connections>
                                                 <action selector="multiPlayerModeClicked:" target="-2" id="9bn-vc-kor"/>
+                                                <outlet property="nextKeyView" destination="kLw-xj-ksb" id="max-th-hg7"/>
                                             </connections>
                                         </button>
                                         <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ykL-7f-xxy">
@@ -91,6 +94,7 @@
                                             </buttonCell>
                                             <connections>
                                                 <action selector="multiPlayerModeClicked:" target="-2" id="FUa-Cl-PHt"/>
+                                                <outlet property="nextKeyView" destination="AJL-iO-wca" id="Y70-M1-j6Q"/>
                                             </connections>
                                         </button>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tAz-23-xz5">
@@ -132,6 +136,9 @@
                                                 <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
+                                            <connections>
+                                                <outlet property="nextKeyView" destination="ykL-7f-xxy" id="UDg-i8-nP5"/>
+                                            </connections>
                                         </textField>
                                         <stepper horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="AJL-iO-wca">
                                             <rect key="frame" x="194" y="19" width="19" height="27"/>
@@ -158,7 +165,8 @@
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                             <connections>
-                                                <action selector="fullscreenClicked:" target="-2" id="60"/>
+                                                <action selector="fullscreenOrDisplayClicked:" target="-2" id="GLc-Fg-C9R"/>
+                                                <outlet property="nextKeyView" destination="UKt-zM-JkN" id="iku-ti-AO9"/>
                                             </connections>
                                         </button>
                                         <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="67">
@@ -173,9 +181,34 @@
                                                     </items>
                                                 </menu>
                                             </popUpButtonCell>
+                                            <connections>
+                                                <outlet property="nextKeyView" destination="14" id="56l-fm-YRa"/>
+                                            </connections>
+                                        </popUpButton>
+                                        <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UKt-zM-JkN">
+                                            <rect key="frame" x="222" y="204" width="159" height="25"/>
+                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                            <popUpButtonCell key="cell" type="push" title="Display 0" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="L4k-fp-AK7" id="OuJ-Ww-SuP">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="pGr-n7-js9">
+                                                    <items>
+                                                        <menuItem title="Display 0" state="on" id="L4k-fp-AK7"/>
+                                                        <menuItem title="Item 2" id="y41-jI-r6Q"/>
+                                                        <menuItem title="Item 3" id="dcp-z6-i2r"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                            <connections>
+                                                <action selector="fullscreenOrDisplayClicked:" target="-2" id="yW3-1p-hhJ"/>
+                                                <outlet property="nextKeyView" destination="IgV-Vy-3rB" id="1U1-xe-AbR"/>
+                                            </connections>
                                         </popUpButton>
                                     </subviews>
                                 </view>
+                                <connections>
+                                    <outlet property="initialFirstResponder" destination="67" id="iUa-gO-faR"/>
+                                </connections>
                             </tabViewItem>
                             <tabViewItem label="Messages" identifier="" id="32">
                                 <view key="view" id="6">
@@ -226,6 +259,7 @@ DQ
                         </buttonCell>
                         <connections>
                             <action selector="start:" target="-2" id="51"/>
+                            <outlet property="nextKeyView" destination="22" id="Hx2-9w-aPw"/>
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="22">
@@ -240,6 +274,7 @@ Gw
                         </buttonCell>
                         <connections>
                             <action selector="cancel:" target="-2" id="50"/>
+                            <outlet property="nextKeyView" destination="37" id="etC-DH-QgL"/>
                         </connections>
                     </button>
                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="37">
@@ -249,6 +284,9 @@ Gw
                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
+                        <connections>
+                            <outlet property="nextKeyView" destination="8" id="oVa-FU-OQQ"/>
+                        </connections>
                     </button>
                 </subviews>
             </view>

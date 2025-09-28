@@ -18,6 +18,9 @@
 #include <xinput.h>
 #include <math.h>
 
+#define COMPILE_MULTIMON_STUBS
+#include <multimon.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
@@ -52,6 +55,14 @@ static char wintitle[256] = "";
 
 static WORD defgamma[3][256], defgammaread = FALSE;
 static float curshadergamma = 1.f, cursysgamma = -1.f;
+
+static struct displayinfo {
+	RECT bounds;
+	RECT usablebounds;
+	CHAR device[CCHDEVICENAME];
+	char name[128];
+} *displays;
+int displaycnt;
 
 #if USE_OPENGL
 // OpenGL stuff
@@ -101,10 +112,11 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 static void DestroyAppWindow(void);
 static void UpdateAppWindowTitle(void);
 
+static void enumdisplays(void);
 static void shutdownvideo(void);
 
 // video
-static int desktopxdim=0,desktopydim=0,desktopbpp=0, desktopmodeset=0;
+static int desktopxdim=0,desktopydim=0,desktopbpp=0,desktopmodeset=-1;
 static int windowposx, windowposy;
 static unsigned modeschecked=0;
 static unsigned maxrefreshfreq=60;
@@ -480,18 +492,10 @@ static int set_glswapinterval(const osdfuncparm_t *parm)
 //
 int initsystem(void)
 {
-	DEVMODE desktopmode;
-
 	buildputs("Initialising Windows system interface\n");
 
-	// get the desktop dimensions before anything changes them
-	ZeroMemory(&desktopmode, sizeof(DEVMODE));
-	desktopmode.dmSize = sizeof(DEVMODE);
-	EnumDisplaySettings(NULL,ENUM_CURRENT_SETTINGS,&desktopmode);
-
-	desktopxdim = desktopmode.dmPelsWidth;
-	desktopydim = desktopmode.dmPelsHeight;
-	desktopbpp  = desktopmode.dmBitsPerPel;
+	// Get connected displays and primary desktop colour depth before any changes happen.
+	enumdisplays();
 
 	memset(curpalette, 0, sizeof(palette_t) * 256);
 
@@ -548,6 +552,12 @@ void uninitsystem(void)
 	memset(&wglfunc, 0, sizeof(wglfunc));
 	unloadgldriver();
 #endif
+
+	if (displays) {
+		free(displays);
+		displays = NULL;
+		displaycnt = 0;
+	}
 }
 
 
@@ -756,6 +766,7 @@ static void constrainmouse(int a)
 		rect.bottom = y + 1;
 
 		ClipCursor(&rect);
+		SetCursorPos(rect.left+1, rect.top+1);
 		ShowCursor(FALSE);
 	} else {
 		ClipCursor(NULL);
@@ -1084,39 +1095,40 @@ static void shutdownvideo(void)
 #endif
 	UninitDIB();
 
-	if (desktopmodeset) {
-		ChangeDisplaySettings(NULL, 0);
-		desktopmodeset = 0;
+	if (desktopmodeset>=0) {
+		ChangeDisplaySettingsEx(displays[desktopmodeset].device, NULL, NULL, 0, NULL);
+		desktopmodeset = -1;
 	}
 }
 
 //
 // setvideomode() -- set the video mode
 //
-int setvideomode(int x, int y, int c, int fs)
+int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 {
-	int modenum, refresh=-1;
+	int display, modenum, refresh=-1;
 
-	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) && !videomodereset) {
+	if ((fullsc == fullscreen) && (xdim == xres) && (ydim == yres) && (bitspp == bpp) && !videomodereset) {
 		OSD_ResizeDisplay(xres,yres);
 		return 0;
 	}
 
-	modenum = checkvideomode(&x,&y,c,fs,0);
+	display = fullsc>>8;
+	if (display >= displaycnt) display = 0, fullsc &= 255; // Display number out of range, use primary instead.
+	modenum = checkvideomode(&xdim,&ydim,bitspp,fullsc,0);
 	if (modenum < 0) return -1;
-	if (modenum != 0x7fffffff) {
-		refresh = validmode[modenum].extra;
-	}
+	else if (modenum != VIDEOMODE_RELAXED) refresh = validmode[modenum].extra;
+	else if (fullsc&255) return -1; // Must be a perfect match for fullscreen.
 
 	if (defgammaread) setgammaramp(defgamma);
 
 	if (baselayer_videomodewillchange) baselayer_videomodewillchange();
 	shutdownvideo();
 
-	buildprintf("Setting video mode %dx%d (%d-bit %s)\n",
-			x,y,c, ((fs&1) ? "fullscreen" : "windowed"));
+	buildprintf("Setting video mode %dx%d (%d-bit %s, display %d)\n",
+		xdim,ydim,bitspp, (fullsc&255) ? "fullscreen" : "windowed", display);
 
-	if (CreateAppWindow(x, y, c, fs, refresh)) return -1;
+	if (CreateAppWindow(xdim, ydim, bitspp, fullsc, refresh)) return -1;
 
 	if (!defgammaread && getgammaramp(defgamma) == 0) defgammaread = 1;
 	if (!defgammaread && usegammabrightness > 0) usegammabrightness = 1;
@@ -1128,138 +1140,158 @@ int setvideomode(int x, int y, int c, int fs)
 	return 0;
 }
 
-
-//
-// getvalidmodes() -- figure out what video modes are available
-//
-#define ADDMODE(x,y,c,f,n) if (validmodecnt<MAXVALIDMODES) { \
-	validmode[validmodecnt].xdim=x; \
-	validmode[validmodecnt].ydim=y; \
-	validmode[validmodecnt].bpp=c; \
-	validmode[validmodecnt].fs=f; \
-	validmode[validmodecnt].extra=n; \
-	validmodecnt++; \
-	debugprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
-	}
-
-#define CHECKL(w,h) if ((w < maxx) && (h < maxy))
-#define CHECKLE(w,h) if ((w <= maxx) && (h <= maxy))
-
-#if USE_OPENGL
-static void cdsenummodes(void)
+#if USE_POLYMOST && USE_OPENGL
+static void enumdisplaymodes(CHAR *device, int display)
 {
 	DEVMODE dm;
-	int i = 0, j = 0;
+	int i,m,nmodes=0;
+	struct {
+		DWORD dmPelsWidth,dmPelsHeight;
+		DWORD dmBitsPerPel,dmDisplayFrequency;
+	} modes[MAXVALIDMODES];
 
-	struct { unsigned x,y,bpp,freq; } modes[MAXVALIDMODES];
-	int nmodes=0;
-	unsigned maxx = MAXXDIM, maxy = MAXYDIM;
-
-	// Enumerate display modes.
-	ZeroMemory(&dm,sizeof(DEVMODE));
 	dm.dmSize = sizeof(DEVMODE);
-	while (nmodes < MAXVALIDMODES && EnumDisplaySettings(NULL, j, &dm)) {
+	for (m=0; nmodes<MAXVALIDMODES && EnumDisplaySettings(device, m, &dm); m++) {
+		if (maxrefreshfreq > 0 && dm.dmDisplayFrequency > maxrefreshfreq)
+			continue;	// Frequency beyond the limit; ignore this mode.
+
 		// Identify the same resolution and bit depth in the existing set.
-		for (i=0;i<nmodes;i++) {
-			if (modes[i].x == dm.dmPelsWidth
-			 && modes[i].y == dm.dmPelsHeight
-			 && modes[i].bpp == dm.dmBitsPerPel)
-				break;
-		}
+		for (i=0;i<nmodes;i++)
+			if (modes[i].dmPelsWidth == dm.dmPelsWidth &&
+				modes[i].dmPelsHeight == dm.dmPelsHeight &&
+				modes[i].dmBitsPerPel == dm.dmBitsPerPel) break;
+
+		if (i<nmodes) {
+			if (dm.dmDisplayFrequency < modes[i].dmDisplayFrequency)
+				continue;	// Frequency below the existing mode; ignore this mode.
+		} else nmodes++;
+
 		// A new mode, or a same format mode with a better refresh rate match.
-		if ((i==nmodes) ||
-		    (dm.dmDisplayFrequency <= maxrefreshfreq && dm.dmDisplayFrequency > modes[i].freq && maxrefreshfreq > 0) ||
-		    (dm.dmDisplayFrequency > modes[i].freq && maxrefreshfreq == 0)) {
-			if (i==nmodes) nmodes++;
-
-			modes[i].x = dm.dmPelsWidth;
-			modes[i].y = dm.dmPelsHeight;
-			modes[i].bpp = dm.dmBitsPerPel;
-			modes[i].freq = dm.dmDisplayFrequency;
-		}
-
-		j++;
-		ZeroMemory(&dm,sizeof(DEVMODE));
-		dm.dmSize = sizeof(DEVMODE);
+		modes[i].dmPelsWidth = dm.dmPelsWidth;
+		modes[i].dmPelsHeight = dm.dmPelsHeight;
+		modes[i].dmBitsPerPel = dm.dmBitsPerPel;
+		modes[i].dmDisplayFrequency = dm.dmDisplayFrequency;
 	}
 
 	// Add what was found to the list.
 	for (i=0;i<nmodes;i++) {
-		CHECKLE(modes[i].x, modes[i].y) {
-			ADDMODE(modes[i].x, modes[i].y, modes[i].bpp, 1, modes[i].freq);
-		}
+		addvalidmode(modes[i].dmPelsWidth, modes[i].dmPelsHeight, modes[i].dmBitsPerPel,
+			1, display, modes[i].dmDisplayFrequency);
 	}
 }
 #endif
 
-static int sortmodes(const struct validmode_t *a, const struct validmode_t *b)
+static BOOL edmcallback(HMONITOR hMonitor, HDC hDC, LPRECT lprcBounds, LPARAM lParam)
 {
-	int x;
+	MONITORINFOEX info;
+	int destidx;
 
-	if ((x = a->fs   - b->fs)   != 0) return x;
-	if ((x = a->bpp  - b->bpp)  != 0) return x;
-	if ((x = a->xdim - b->xdim) != 0) return x;
-	if ((x = a->ydim - b->ydim) != 0) return x;
+	(void)hDC; (void)lprcBounds; (void)lParam;
 
-	return 0;
+	ZeroMemory(&info, sizeof(info));
+	info.cbSize = sizeof(MONITORINFOEX);
+	if (!GetMonitorInfo(hMonitor, (LPMONITORINFO)&info)) {
+		debugprintf("edmcallback(): error getting monitor info for %p\n", hMonitor);
+		return TRUE;
+	}
+
+	if (displaycnt == lParam) {
+		debugprintf("edmcallback(): enumerating more than the anticipated number of monitors\n");
+		return FALSE;
+	}
+
+	if ((info.dwFlags & MONITORINFOF_PRIMARY) && displaycnt > 0) {
+		// Put the primary monitor in position 0 by moving everything so far one along.
+		memmove(&displays[1], &displays[0], displaycnt*sizeof(struct displayinfo));
+		memset(&displays[0], 0, sizeof(struct displayinfo));
+		destidx = 0;
+	} else {
+		destidx = displaycnt;
+	}
+
+	memcpy(&displays[destidx].bounds, &info.rcMonitor, sizeof(RECT));
+	memcpy(&displays[destidx].usablebounds, &info.rcWork, sizeof(RECT));
+	strncpy(displays[destidx].device, info.szDevice, sizeof(displays[0].device)-1);
+	strncpy(displays[destidx].name, info.szDevice, sizeof(displays[0].name)-1);
+
+	// Extended desktops have 1:1 device:monitor correlation,
+	// cloned desktops have 1:n device:monitor correlation.
+	DISPLAY_DEVICE ddev;
+	ZeroMemory(&ddev, sizeof(ddev));
+	ddev.cb = sizeof(DISPLAY_DEVICE);
+	if (EnumDisplayDevices(info.szDevice, 0, &ddev, 0)) {
+		strncpy(displays[destidx].name, ddev.DeviceString, sizeof(displays[0].name)-1);
+	}
+
+	displaycnt++;
+	return TRUE;
 }
+
+static void enumdisplays(void)
+{
+	DEVMODE desktopmode;
+	int i, nalloc;
+
+	ZeroMemory(&desktopmode, sizeof(DEVMODE));
+	desktopmode.dmSize = sizeof(DEVMODE);
+	if (EnumDisplaySettings(NULL,ENUM_CURRENT_SETTINGS,&desktopmode)) {
+		desktopbpp = desktopmode.dmBitsPerPel;
+	}
+
+	displaycnt = 0;
+	nalloc = GetSystemMetrics(SM_CMONITORS);
+	displays = (struct displayinfo *)calloc(nalloc, sizeof(struct displayinfo));
+	if (!displays) {
+		buildputs("Could not allocate display information structures!\n");
+		return;
+	}
+	EnumDisplayMonitors(NULL, NULL, edmcallback, nalloc);
+	debugprintf("Displays available:\n");
+	for (i=0; i<displaycnt; i++) {
+		debugprintf("  %d) %s (%ldx%ld)\n", i, displays[i].name,
+			displays[i].bounds.right-displays[i].bounds.left,
+			displays[i].bounds.bottom-displays[i].bounds.top);
+	}
+}
+
+//
+// getvalidmodes() -- figure out what video modes are available
+//
 void getvalidmodes(void)
 {
-	static int defaultres[][2] = {
-		{1920,1200},{1920,1080},{1600,1200},{1680,1050},{1600,900},{1400,1050},{1440,900},{1366,768},
-		{1280,1024},{1280,960},{1280,800},{1280,720},{1152,864},{1024,768},{800,600},{640,480},
-		{640,400},{512,384},{480,360},{400,300},{320,240},{320,200},{0,0}
-	};
-	int i, maxx=0, maxy=0;
+	int i, maxx, maxy;
 
 	if (modeschecked) return;
 
 	validmodecnt=0;
-	debugprintf("Detecting video modes:\n");
 
-	// Fullscreen 8-bit modes: upsamples to the desktop mode.
-	maxx = desktopxdim;
-	maxy = desktopydim;
-	for (i=0; defaultres[i][0]; i++) {
-		CHECKLE(defaultres[i][0],defaultres[i][1]) {
-			ADDMODE(defaultres[i][0], defaultres[i][1], 8, 1, -1);
-		}
-	}
-
+	// Fullscreen modes
+	for (i=0; i<displaycnt; i++) {
+		// 8-bit modes upsample to the desktop.
+		addstandardvalidmodes(displays[i].bounds.right-displays[i].bounds.left,
+			displays[i].bounds.bottom-displays[i].bounds.top, 8, 1, i, -1);
 #if USE_POLYMOST && USE_OPENGL
-	// Fullscreen >8-bit modes.
-	if (!glunavailable) cdsenummodes();
+		if (!glunavailable) enumdisplaymodes(displays[i].device, i);
 #endif
-
-	// Windowed modes can't be bigger than the current desktop resolution.
-	maxx = desktopxdim-1;
-	maxy = desktopydim-1;
-
-	// Windows 8-bit modes
-	for (i=0; defaultres[i][0]; i++) {
-		CHECKL(defaultres[i][0],defaultres[i][1]) {
-			ADDMODE(defaultres[i][0], defaultres[i][1], 8, 0, -1);
-		}
 	}
 
+	// Windowed modes
+	maxx = maxy = INT_MIN;
+	for (i=0; i<displaycnt; i++) {
+		maxx = max(maxx, displays[i].usablebounds.right-displays[i].usablebounds.left);
+		maxy = max(maxy, displays[i].usablebounds.bottom-displays[i].usablebounds.top);
+	}
+	addstandardvalidmodes(maxx, maxy, 8, 0, 0, -1);
 #if USE_POLYMOST && USE_OPENGL
-	// Windowed >8-bit modes
 	if (!glunavailable) {
-		for (i=0; defaultres[i][0]; i++) {
-			CHECKL(defaultres[i][0],defaultres[i][1]) {
-				ADDMODE(defaultres[i][0], defaultres[i][1], desktopbpp, 0, -1);
-			}
-		}
+		addstandardvalidmodes(maxx, maxy, desktopbpp, 0, 0, -1);
 	}
 #endif
 
-	qsort((void*)validmode, validmodecnt, sizeof(struct validmode_t), (int(*)(const void*,const void*))sortmodes);
+	sortvalidmodes();
 
 	modeschecked=1;
 }
-
-#undef CHECK
-#undef ADDMODE
 
 
 //
@@ -1269,6 +1301,16 @@ void resetvideomode(void)
 {
 	videomodereset = 1;
 	modeschecked = 0;
+}
+
+
+//
+// getdisplaynamee() -- returns a human friendly name for a particular display
+//
+const char *getdisplayname(int display)
+{
+	if (!displays || (unsigned)display >= (unsigned)displaycnt) return NULL;
+	return displays[display].name;
 }
 
 
@@ -1860,9 +1902,12 @@ fail:
 static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refresh)
 {
 	RECT rect;
-	int ww, wh, wx, wy, vw, vh, stylebits = 0, stylebitsex = 0;
+	int winw, winh, winx, winy, vieww, viewh, stylebits = 0, stylebitsex = 0, display;
 
 	if (width == xres && height == yres && fs == fullscreen && bitspp == bpp && !videomodereset) return FALSE;
+
+	display = fs>>8;
+	fs &= 255;
 
 	if (hWindow) {
 		ShowWindow(hWindow, SW_HIDE);	// so Windows redraws what's behind if the window shrinks
@@ -1908,6 +1953,8 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 	}
 
 	// resize the window
+	desktopxdim = displays[display].bounds.right - displays[display].bounds.left;
+	desktopydim = displays[display].bounds.bottom - displays[display].bounds.top;
 	if (!fs) {
 		rect.left = 0;
 		rect.top = 0;
@@ -1915,18 +1962,51 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 		rect.bottom = height;
 		AdjustWindowRectEx(&rect, stylebits, FALSE, stylebitsex);
 
-		ww = (rect.right - rect.left);
-		wh = (rect.bottom - rect.top);
-		wx = (desktopxdim - ww) / 2;
-		wy = (desktopydim - wh) / 2;
-		vw = width;
-		vh = height;
+		// Centre on the relevant desktop.
+		winw = (rect.right - rect.left);
+		winh = (rect.bottom - rect.top);
+		winx = displays[display].bounds.left + (desktopxdim - winw) / 2;
+		winy = displays[display].bounds.top + (desktopydim - winh) / 2;
+		vieww = width;
+		viewh = height;
+#if USE_OPENGL
+	} else if (bitspp > 8) {
+		DEVMODE dmScreenSettings;
+
+		ZeroMemory(&dmScreenSettings, sizeof(DEVMODE));
+		dmScreenSettings.dmSize = sizeof(DEVMODE);
+		dmScreenSettings.dmPelsWidth = width;
+		dmScreenSettings.dmPelsHeight = height;
+		dmScreenSettings.dmBitsPerPel = bitspp;
+		dmScreenSettings.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
+		if (refresh > 0) {
+			dmScreenSettings.dmDisplayFrequency = refresh;
+			dmScreenSettings.dmFields |= DM_DISPLAYFREQUENCY;
+		}
+
+		if (ChangeDisplaySettingsEx(displays[display].device, &dmScreenSettings, NULL,
+				CDS_FULLSCREEN, NULL) != DISP_CHANGE_SUCCESSFUL) {
+			ShowErrorBox("Video mode not supported");
+			return TRUE;
+		}
+		desktopmodeset = display;
+
+		// Read back what was just set to get the position and dimensions.
+		ZeroMemory(&dmScreenSettings, sizeof(DEVMODE));
+		dmScreenSettings.dmSize = sizeof(DEVMODE);
+		EnumDisplaySettings(displays[display].device, ENUM_CURRENT_SETTINGS, &dmScreenSettings);
+		winx = dmScreenSettings.dmPosition.x;
+		winy = dmScreenSettings.dmPosition.y;
+		desktopxdim = winw = vieww = dmScreenSettings.dmPelsWidth;
+		desktopydim = winh = viewh = dmScreenSettings.dmPelsHeight;
+#endif
 	} else {
-		wx=wy=0;
-		ww=vw=desktopxdim;
-		wh=vh=desktopydim;
+		winx = displays[display].bounds.left;
+		winy = displays[display].bounds.top;
+		winw = vieww = desktopxdim;
+		winh = viewh = desktopydim;
 	}
-	SetWindowPos(hWindow, HWND_TOP, wx, wy, ww, wh, 0);
+	SetWindowPos(hWindow, HWND_TOP, winx, winy, winw, winh, 0);
 
 	UpdateAppWindowTitle();
 	ShowWindow(hWindow, SW_SHOWNORMAL);
@@ -1949,7 +2029,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 #if USE_OPENGL
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
-			if (SetupOpenGL(vw, vh, bitspp)) {
+			if (SetupOpenGL(vieww, viewh, bitspp)) {
 				// No luck. Write off OpenGL and try DIB.
 				buildputs("OpenGL initialisation failed. Falling back to DIB mode.\n");
 				glunavailable = 1;
@@ -1958,7 +2038,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 
 			bytesperline = (((width|1) + 4) & ~3);
 
-			if (glbuild_prepare_8bit_shader(&gl8bit, width, height, bytesperline, vw, vh) < 0) {
+			if (glbuild_prepare_8bit_shader(&gl8bit, width, height, bytesperline, vieww, viewh) < 0) {
 				shutdownvideo();
 				return -1;
 			}
@@ -1982,27 +2062,6 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 		numpages = 1;
 	} else {
 #if USE_OPENGL
-		if (fs) {
-			DEVMODE dmScreenSettings;
-
-			ZeroMemory(&dmScreenSettings, sizeof(DEVMODE));
-			dmScreenSettings.dmSize = sizeof(DEVMODE);
-			dmScreenSettings.dmPelsWidth = width;
-			dmScreenSettings.dmPelsHeight = height;
-			dmScreenSettings.dmBitsPerPel = bitspp;
-			dmScreenSettings.dmFields = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
-			if (refresh > 0) {
-				dmScreenSettings.dmDisplayFrequency = refresh;
-				dmScreenSettings.dmFields |= DM_DISPLAYFREQUENCY;
-			}
-
-			if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL) {
-				ShowErrorBox("Video mode not supported");
-				return TRUE;
-			}
-			desktopmodeset = 1;
-		}
-
 		ShowWindow(hWindow, SW_SHOWNORMAL);
 		SetForegroundWindow(hWindow);
 		SetFocus(hWindow);
@@ -2022,7 +2081,7 @@ static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refre
 	xres = width;
 	yres = height;
 	bpp = bitspp;
-	fullscreen = fs;
+	fullscreen = (display<<8)|fs;
 
 	UpdateWindow(hWindow);
 
@@ -2187,14 +2246,6 @@ static LRESULT CALLBACK WndProcCallback(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 			if (wParam == SIZE_MAXHIDE || wParam == SIZE_MINIMIZED) appactive = 0;
 			else appactive = 1;
 //			AcquireInputDevices(appactive);
-			break;
-
-		case WM_DISPLAYCHANGE:
-			// desktop settings changed so adjust our world-view accordingly
-			desktopxdim = LOWORD(lParam);
-			desktopydim = HIWORD(lParam);
-			desktopbpp  = wParam;
-			getvalidmodes();
 			break;
 
 		case WM_PAINT:

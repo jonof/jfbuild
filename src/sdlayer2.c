@@ -51,6 +51,15 @@ static int usesdlrenderer = 0;
 static unsigned char *frame;
 static float curshadergamma = 1.f, cursysgamma = -1.f;
 
+static struct displayinfo {
+	SDL_DisplayMode mode;
+	SDL_Rect bounds;
+	SDL_Rect usablebounds;
+	int index;
+	char name[128];
+} *displays;
+int displaycnt;
+
 #if USE_OPENGL
 static SDL_GLContext sdl_glcontext;
 static glbuild8bit gl8bit;
@@ -71,6 +80,7 @@ struct keytranslate {
 static struct keytranslate keytranslation[SDL_NUM_SCANCODES];
 static int buildkeytranslationtable(void);
 
+static void enumdisplays(void);
 static void shutdownvideo(void);
 
 #ifndef __APPLE__
@@ -306,6 +316,8 @@ int initsystem(void)
 		linked.major, linked.minor, linked.patch,
 		compiled.major, compiled.minor, compiled.patch);
 
+	enumdisplays();
+
 	atexit(uninitsystem);
 
 #if USE_OPENGL
@@ -344,6 +356,12 @@ void uninitsystem(void)
 	glbuild_unloadfunctions();
 	unloadgldriver();
 #endif
+
+	if (displays) {
+		free(displays);
+		displays = NULL;
+		displaycnt = 0;
+	}
 }
 
 
@@ -656,105 +674,87 @@ int gettimerfreq(void)
 //
 //
 
+static void enumdisplays(void)
+{
+	int i, n;
+
+	displaycnt = SDL_GetNumVideoDisplays();
+	if (displaycnt < 1) {
+		buildputs("No video displays available!\n");
+		return;
+	}
+	displays = (struct displayinfo *)calloc(displaycnt, sizeof(struct displayinfo));
+	if (!displays) {
+		buildputs("Could not allocate display information structures!\n");
+		displaycnt = 0;
+		return;
+	}
+
+	debugprintf("Displays available:\n");
+	for (i=n=0; i<displaycnt; i++) {
+		displays[n].index = i;
+		strncpy(displays[n].name, SDL_GetDisplayName(i), sizeof(displays[0].name)-1);
+		if (SDL_GetDesktopDisplayMode(i, &displays[n].mode) < 0) {
+			debugprintf("getvalidmodes(): error getting mode of display %d (%s)\n", i, SDL_GetError());
+			continue;
+		}
+		if (SDL_GetDisplayBounds(i, &displays[n].bounds) < 0) {
+			debugprintf("getvalidmodes(): error getting bounds of display %d (%s)\n", i, SDL_GetError());
+			continue;
+		}
+		if (SDL_GetDisplayUsableBounds(i, &displays[n].usablebounds) < 0) {
+			debugprintf("getvalidmodes(): error getting usable bounds of display %d (%s)\n", i, SDL_GetError());
+			continue;
+		}
+		debugprintf("  %d) %s (%dx%d)\n", n, displays[n].name, displays[n].mode.w, displays[n].mode.h);
+		n++;
+	}
+	displaycnt = n;
+}
 
 //
 // getvalidmodes() -- figure out what video modes are available
 //
-static int sortmodes(const struct validmode_t *a, const struct validmode_t *b)
-{
-	int x;
-
-	if ((x = a->fs   - b->fs)   != 0) return x;
-	if ((x = a->bpp  - b->bpp)  != 0) return x;
-	if ((x = a->xdim - b->xdim) != 0) return x;
-	if ((x = a->ydim - b->ydim) != 0) return x;
-
-	return 0;
-}
 static char modeschecked=0;
 void getvalidmodes(void)
 {
-	static int defaultres[][2] = {
-		{1920,1200},{1920,1080},{1600,1200},{1680,1050},{1600,900},{1400,1050},{1440,900},{1366,768},
-		{1280,1024},{1280,960},{1280,800},{1280,720},{1152,864},{1024,768},{800,600},{640,480},
-		{640,400},{512,384},{480,360},{400,300},{320,240},{320,200},{0,0}
-	};
-	SDL_DisplayMode desktop;
-	int i, maxx=0, maxy=0;
+	int i, n, maxx, maxy;
 
 	if (modeschecked) return;
 
 	validmodecnt=0;
 
-	if (SDL_GetNumVideoDisplays() < 1) {
-		buildputs("No video displays available!\n");
-		return;
+	// Fullscreen modes
+	for (i=0; i<displaycnt; i++) {
+		// 8-bit modes upsample to the desktop.
+		addstandardvalidmodes(displays[i].mode.w, displays[i].mode.h, 8, 1, i, -1);
+#if USE_POLYMOST && USE_OPENGL
+		if (glunavailable) continue;
+
+		n = SDL_GetNumDisplayModes(displays[i].index);
+		for (int j=0; j<n; j++) {
+			SDL_DisplayMode mode;
+			SDL_GetDisplayMode(displays[i].index, j, &mode);
+			if (SDL_BITSPERPIXEL(mode.format) <= 8) continue;
+			addvalidmode(mode.w, mode.h, SDL_BITSPERPIXEL(mode.format), 1, i, j);
+		}
+#endif
 	}
 
-	debugprintf("Detecting video modes:\n");
-
-#define ADDMODE(x,y,c,f) if (validmodecnt<MAXVALIDMODES) { \
-	int mn; \
-	for(mn=0;mn<validmodecnt;mn++) \
-		if (validmode[mn].xdim==x && validmode[mn].ydim==y && \
-			validmode[mn].bpp==c  && validmode[mn].fs==f) break; \
-	if (mn==validmodecnt) { \
-		validmode[validmodecnt].xdim=x; \
-		validmode[validmodecnt].ydim=y; \
-		validmode[validmodecnt].bpp=c; \
-		validmode[validmodecnt].fs=f; \
-		validmodecnt++; \
-		debugprintf("  - %dx%d %d-bit %s\n", x, y, c, (f&1)?"fullscreen":"windowed"); \
-	} \
-}
-
-#define CHECKL(w,h) if ((w < maxx) && (h < maxy))
-#define CHECKLE(w,h) if ((w <= maxx) && (h <= maxy))
-
-	SDL_GetDesktopDisplayMode(0, &desktop);
-	maxx = desktop.w;
-	maxy = desktop.h;
-
-	// Fullscreen 8-bit modes: upsamples to the desktop mode
-	for (i=0; defaultres[i][0]; i++)
-		CHECKLE(defaultres[i][0],defaultres[i][1])
-			ADDMODE(defaultres[i][0],defaultres[i][1],8,1)
-
+	// Windowed modes
+	maxx = maxy = INT_MIN;
+	for (i=0; i<displaycnt; i++) {
+		maxx = max(maxx, displays[i].usablebounds.w);
+		maxy = max(maxy, displays[i].usablebounds.h);
+	}
+	addstandardvalidmodes(maxx, maxy, 8, 0, 0, -1);
 #if USE_POLYMOST && USE_OPENGL
-	// Fullscreen >8-bit modes
 	if (!glunavailable) {
-		SDL_DisplayMode mode;
-		for (int j = SDL_GetNumDisplayModes(0) - 1; j >= 0; j--) {
-			SDL_GetDisplayMode(0, j, &mode);
-			if ((mode.w > MAXXDIM) || (mode.h > MAXYDIM)) continue;
-			if (SDL_BITSPERPIXEL(mode.format) < 8) continue;
-			ADDMODE(mode.w, mode.h, SDL_BITSPERPIXEL(mode.format), 1)
-		}
+		addstandardvalidmodes(maxx, maxy, SDL_BITSPERPIXEL(displays[0].mode.format), 0, 0, -1);
 	}
 #endif
 
-	// Windowed 8-bit modes
-	for (i=0; defaultres[i][0]; i++) {
-		CHECKL(defaultres[i][0],defaultres[i][1]) {
-			ADDMODE(defaultres[i][0], defaultres[i][1], 8, 0)
-		}
-	}
-
-#if USE_POLYMOST && USE_OPENGL
-	// Windowed >8-bit modes
-	if (!glunavailable) {
-		for (i=0; defaultres[i][0]; i++) {
-			CHECKL(defaultres[i][0],defaultres[i][1]) {
-				ADDMODE(defaultres[i][0], defaultres[i][1], SDL_BITSPERPIXEL(desktop.format), 0)
-			}
-		}
-	}
-#endif
-
-#undef CHECK
-#undef ADDMODE
-
-	qsort((void*)validmode, validmodecnt, sizeof(struct validmode_t), (int(*)(const void*,const void*))sortmodes);
+	sortvalidmodes();
 
 	modeschecked=1;
 }
@@ -765,6 +765,7 @@ static void shutdownvideo(void)
 		free(frame);
 		frame = NULL;
 	}
+
 #if USE_OPENGL
 	if (!glunavailable) {
 		glbuild_delete_8bit_shader(&gl8bit);
@@ -773,11 +774,11 @@ static void shutdownvideo(void)
 #if USE_POLYMOST
 		polymost_glreset();
 #endif
-
 		SDL_GL_DeleteContext(sdl_glcontext);
 		sdl_glcontext = NULL;
 	}
 #endif
+
 	if (sdl_texture) {
 		SDL_DestroyTexture(sdl_texture);
 		sdl_texture = NULL;
@@ -799,19 +800,24 @@ static void shutdownvideo(void)
 //
 // setvideomode() -- set SDL video mode
 //
-int setvideomode(int x, int y, int c, int fs)
+int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 {
 	int regrab = 0;
-	int flags;
-	int winx, winy;
+	int flags, display, modenum;
+	int winx, winy, winw, winh;
 
-	if ((fs == fullscreen) && (x == xres) && (y == yres) && (c == bpp) &&
-		!videomodereset) {
+	if ((fullsc == fullscreen) && (xdim == xres) && (ydim == yres) && (bitspp == bpp) && !videomodereset) {
 		OSD_ResizeDisplay(xres,yres);
 		return 0;
 	}
 
-	if (checkvideomode(&x,&y,c,fs,0) < 0) return -1;	// Will return if GL mode not available.
+	display = fullsc>>8;
+	if (display >= displaycnt) display = 0, fullsc &= 255; // Display number out of range, use primary instead.
+	modenum = checkvideomode(&xdim,&ydim,bitspp,fullsc,0);	// Will return if GL mode not available.
+	if (modenum < 0) return -1;
+	if (modenum == VIDEOMODE_RELAXED) {
+		if (fullsc&255) return -1; // Must be a perfect match for fullscreen.
+	}
 
 	if (mouseacquired) {
 		regrab = 1;
@@ -821,8 +827,8 @@ int setvideomode(int x, int y, int c, int fs)
 	if (baselayer_videomodewillchange) baselayer_videomodewillchange();
 	shutdownvideo();
 
-	buildprintf("Setting video mode %dx%d (%d-bpp %s)\n", x,y,c,
-		(fs & 1) ? "fullscreen" : "windowed");
+	buildprintf("Setting video mode %dx%d (%d-bpp %s, display %d)\n",
+		xdim,ydim,bitspp, (fullsc&255) ? "fullscreen" : "windowed", display);
 
 	do {
 		flags = SDL_WINDOW_HIDDEN;
@@ -854,13 +860,16 @@ int setvideomode(int x, int y, int c, int fs)
 		}
 #endif
 
-		winx = x; winy = y;
-		if (fs & 1) {
-			if (c > 8) flags |= SDL_WINDOW_FULLSCREEN;
+		// Centre on whichever display is given.
+		winx = displays[display].bounds.x + (displays[display].bounds.w - xdim) / 2;
+		winy = displays[display].bounds.y + (displays[display].bounds.h - ydim) / 2;
+		winw = xdim; winh = ydim;
+		if (fullsc&255) {
+			if (bitspp > 8) flags |= SDL_WINDOW_FULLSCREEN;
 			else flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 		}
 
-		sdl_window = SDL_CreateWindow(wintitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, winx, winy, flags);
+		sdl_window = SDL_CreateWindow(wintitle, winx, winy, winw, winh, flags);
 		if (!sdl_window) {
 			buildprintf("Error creating window: %s\n", SDL_GetError());
 
@@ -873,6 +882,13 @@ int setvideomode(int x, int y, int c, int fs)
 #endif
 
 			return -1;
+		} else if ((fullsc&255) && bitspp>8) {
+			SDL_DisplayMode mode;
+			if (SDL_GetDisplayMode(displays[display].index, validmode[modenum].extra, &mode) == 0) {
+				if (SDL_SetWindowDisplayMode(sdl_window, &mode) < 0) {
+					buildprintf("Error setting window display mode: %s\n", SDL_GetError());
+				}
+			}
 		}
 		break;
 	} while (1);
@@ -885,11 +901,11 @@ int setvideomode(int x, int y, int c, int fs)
 	}
 #endif
 
-	if (c == 8) {
+	if (bitspp == 8) {
 		int i, j, pitch;
 
 		// Round up to a multiple of 4.
-		pitch = (((x|1) + 4) & ~3);
+		pitch = (((xdim|1) + 4) & ~3);
 
 #if USE_OPENGL
 		if (glunavailable) {
@@ -907,14 +923,14 @@ int setvideomode(int x, int y, int c, int fs)
 
 				sdl_texture = SDL_CreateTexture(sdl_renderer,
 					B_LITTLE_ENDIAN ? SDL_PIXELFORMAT_ABGR8888 : SDL_PIXELFORMAT_RGBA8888,
-					SDL_TEXTUREACCESS_STREAMING, x, y);
+					SDL_TEXTUREACCESS_STREAMING, xdim, ydim);
 				if (!sdl_texture) {
 					buildprintf("Error creating texture: %s\n", SDL_GetError());
 					return -1;
 				}
 			} else {
 				// 8-bit software with no GL shader blitting goes via the SDL rendering apparatus.
-				sdl_surface = SDL_CreateRGBSurface(0, x, y, 32,
+				sdl_surface = SDL_CreateRGBSurface(0, xdim, ydim, 32,
 					255l<<(8*offsetof(palette_t, r)),
 					255l<<(8*offsetof(palette_t, g)),
 					255l<<(8*offsetof(palette_t, b)),
@@ -927,7 +943,7 @@ int setvideomode(int x, int y, int c, int fs)
 #if USE_OPENGL
 		} else {
 			// Prepare the GLSL shader for 8-bit blitting.
-			int winx = x, winy = y;
+			int winx = xdim, winy = ydim;
 
 			sdl_glcontext = SDL_GL_CreateContext(sdl_window);
 			if (!sdl_glcontext) {
@@ -937,19 +953,19 @@ int setvideomode(int x, int y, int c, int fs)
 				glunavailable = 1;
 			} else {
 				SDL_GL_GetDrawableSize(sdl_window, &winx, &winy);
-				if (glbuild_prepare_8bit_shader(&gl8bit, x, y, pitch, winx, winy) < 0) {
+				if (glbuild_prepare_8bit_shader(&gl8bit, xdim, ydim, pitch, winx, winy) < 0) {
 					glunavailable = 1;
 				}
 			}
 			if (glunavailable) {
 				// Try again but without OpenGL.
 				buildputs("Falling back to non-OpenGL render.\n");
-				return setvideomode(x, y, c, fs);
+				return setvideomode(xdim, ydim, bitspp, fullsc);
 			}
 		}
 #endif
 
-		frame = (unsigned char *) malloc(pitch * y);
+		frame = (unsigned char *) malloc(pitch * ydim);
 		if (!frame) {
 			buildputs("Unable to allocate framebuffer\n");
 			return -1;
@@ -957,11 +973,11 @@ int setvideomode(int x, int y, int c, int fs)
 
 		frameplace = (intptr_t) frame;
 		bytesperline = pitch;
-		imageSize = bytesperline * y;
+		imageSize = bytesperline * ydim;
 		numpages = 1;
 
 		setvlinebpl(bytesperline);
-		for (i = j = 0; i <= y; i++) {
+		for (i = j = 0; i <= ydim; i++) {
 			ylookup[i] = j;
 			j += bytesperline;
 		}
@@ -992,11 +1008,12 @@ int setvideomode(int x, int y, int c, int fs)
 	}
 
 	SDL_ShowWindow(sdl_window);
+	SDL_RaiseWindow(sdl_window);
 
-	xres = x;
-	yres = y;
-	bpp = c;
-	fullscreen = fs;
+	xres = xdim;
+	yres = ydim;
+	bpp = bitspp;
+	fullscreen = fullsc;
 
 #if USE_OPENGL
 	if (sdl_glcontext) {
@@ -1004,7 +1021,7 @@ int setvideomode(int x, int y, int c, int fs)
 			buildputs("note: OpenGL swap interval could not be changed\n");
 		}
 	}
-	if (c == 8 && !glunavailable) {
+	if (bitspp == 8 && !glunavailable) {
 		// The drawable size may have changed once the window was shown.
 		SDL_GL_GetDrawableSize(sdl_window, &winx, &winy);
 		glbuild_update_window_size(&gl8bit, winx, winy);
@@ -1036,6 +1053,16 @@ void resetvideomode(void)
 {
 	videomodereset = 1;
 	modeschecked = 0;
+}
+
+
+//
+// getdisplaynamee() -- returns a human friendly name for a particular display
+//
+const char *getdisplayname(int display)
+{
+	if (!displays || (unsigned)display >= (unsigned)displaycnt) return NULL;
+	return displays[display].name;
 }
 
 

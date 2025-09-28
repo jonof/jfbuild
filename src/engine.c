@@ -7869,13 +7869,12 @@ writeerror:
 //
 // setgamemode
 //
-// JBF: davidoption now functions as a windowed-mode flag (0 == windowed, 1 == fullscreen)
-int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
+int setgamemode(int dafullscreen, int daxdim, int daydim, int dabpp)
 {
 	int i, j;
 
 	if ((qsetmode == 200) && (videomodereset == 0) &&
-	    (davidoption == fullscreen) && (xdim == daxdim) && (ydim == daydim) && (bpp == dabpp))
+	    (fullscreen == dafullscreen) && (xdim == daxdim) && (ydim == daydim) && (bpp == dabpp))
 		return(0);
 
 	strcpy(kensmessage,"!!!! BUILD engine&tools programmed by Ken Silverman of E.G. RI.  (c) Copyright 1995 Ken Silverman.  Summary:  BUILD = Ken. !!!!");
@@ -7884,7 +7883,7 @@ int setgamemode(char davidoption, int daxdim, int daydim, int dabpp)
 	int oldbpp = bpp;
 #endif
 	//bytesperline is set in this function
-	if (setvideomode(daxdim,daydim,dabpp,davidoption) < 0) return(-1);
+	if (setvideomode(daxdim,daydim,dabpp,dafullscreen) < 0) return(-1);
 
 #ifndef USING_A_C
 	// it's possible the previous call protected our code sections again

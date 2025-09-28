@@ -202,9 +202,10 @@ EXTERN int validmodecnt;
 struct validmode_t {
 	int xdim,ydim;
 	unsigned char bpp;
-	unsigned char fs;	// bit 0 = fullscreen flag
-	char filler[2];
-	int extra;	// internal use
+	unsigned char fs;
+	unsigned char display; // 0 for windowed modes or the primary display.
+	unsigned char filler;
+	int extra;			// *layer-defined use
 };
 EXTERN struct validmode_t validmode[MAXVALIDMODES];
 
@@ -404,7 +405,8 @@ void   setbrightness(int dabrightness, unsigned char *dapal, char noapply);
 void   setpalettefade(unsigned char r, unsigned char g, unsigned char b, unsigned char offset);
 void   squarerotatetile(short tilenume);
 
-int   setgamemode(char davidoption, int daxdim, int daydim, int dabpp);
+#define SETGAMEMODE_FULLSCREEN(display,fulls) ((((int)(display)&255)<<8)|((int)(fulls)&255))
+int   setgamemode(int dafullscreen, int daxdim, int daydim, int dabpp);
 void   nextpage(void);
 void   setview(int x1, int y1, int x2, int y2);
 void   setaspect(int daxrange, int daaspect);

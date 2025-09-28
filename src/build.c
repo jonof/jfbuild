@@ -169,30 +169,33 @@ static int osdcmd_vidmode(const osdfuncparm_t *parm)
 		return OSDCMD_SHOWHELP;
 	}
 
-	if (parm->numparms == 4) {
-		// fs, res, bpp switch
-		newfullscreen = (atoi(parm->parms[3]) != 0);
-	}
-	if (parm->numparms >= 3) {
-		// res & bpp switch
-		newbpp = atoi(parm->parms[2]);
-	}
-	if (parm->numparms >= 2) {
-		// res switch
-		newy = atoi(parm->parms[1]);
-		newx = atoi(parm->parms[0]);
-	}
-	if (parm->numparms == 1) {
-		// bpp switch
-		newbpp = atoi(parm->parms[0]);
+	switch (parm->numparms) {
+		case 1:   // bpp switch
+			newbpp = atoi(parm->parms[0]);
+			break;
+		case 2: // res switch
+			newx = atoi(parm->parms[0]);
+			newy = atoi(parm->parms[1]);
+			break;
+		case 3:   // res, bpp, fullscreen, display switch
+		case 4:
+			newx = atoi(parm->parms[0]);
+			newy = atoi(parm->parms[1]);
+			newbpp = atoi(parm->parms[2]);
+			if (parm->numparms == 4) {
+				newfullscreen = (atoi(parm->parms[3]) != 0) | (fullscreen&0xff00);
+			}
+			break;
 	}
 
 	if (setgamemode(newfullscreen,newx,newy,newbpp))
 		buildputs("vidmode: Mode change failed!\n");
-	xdimgame = newx;
-	ydimgame = newy;
-	bppgame = newbpp;
-	fullscreen = newfullscreen;
+	else {
+		xdimgame = newx;
+		ydimgame = newy;
+		bppgame = newbpp;
+		fullscreen = newfullscreen;
+	}
 	return OSDCMD_OK;
 }
 
