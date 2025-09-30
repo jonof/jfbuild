@@ -314,7 +314,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 {
 	int r;
 	char *argp;
-	FILE *fp;
+	FILE *fpout = NULL, *fperr = NULL;
 	HDC hdc;
 
 	(void)lpCmdLine; (void)nCmdShow;
@@ -388,15 +388,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	}
 
 	// pipe standard outputs to files
-	if ((argp = Bgetenv("BUILD_LOGSTDOUT")) != NULL)
+	if ((argp = Bgetenv("BUILD_REDIR_STDIO")) != NULL)
 		if (!Bstrcasecmp(argp, "TRUE")) {
-			fp = freopen("stdout.txt", "w", stdout);
-			if (!fp) {
-				fp = fopen("stdout.txt", "w");
-			}
-			if (fp) setvbuf(fp, 0, _IONBF, 0);
-			*stdout = *fp;
-			*stderr = *fp;
+			fpout = freopen("stdout.txt", "w", stdout);
+			fperr = freopen("stderr.txt", "w", stderr);
+			if (!fpout) fpout = fopen("stdout.txt", "w");
+			if (!fperr) fperr = fopen("stderr.txt", "w");
+			if (fpout) setvbuf(fpout, 0, _IONBF, 0);
+			if (fperr) setvbuf(fperr, 0, _IONBF, 0);
 		}
 
 	// install signal handlers
@@ -412,7 +411,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	baselayer_init();
 	r = app_main(_buildargc, _buildargv);
 
-	fclose(stdout);
+	if (fpout) fclose(fpout);
+	if (fperr) fclose(fperr);
 
 	startwin_close();
 	if (instanceflag) CloseHandle(instanceflag);
@@ -567,17 +567,21 @@ void debugprintf(const char *f, ...)
 {
 #ifdef DEBUGGINGAIDS
 	va_list va;
-	char buf[1024];
 
 	va_start(va,f);
-	vsnprintf(buf, sizeof(buf), f, va);
-	va_end(va);
 
 	if (IsDebuggerPresent()) {
+		va_list va2;
+		char buf[1024];
+
+		va_copy(va2, va);
+		vsnprintf(buf, sizeof(buf), f, va2);
 		OutputDebugString(buf);
-	} else {
-		fputs(buf, stdout);
+		va_end(va2);
 	}
+
+	vfprintf(stderr, f, va);
+	va_end(va);
 #endif
 }
 
