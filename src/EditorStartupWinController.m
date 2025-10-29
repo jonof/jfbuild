@@ -324,7 +324,14 @@ int startwin_puts(const char *s)
     if (startwin == nil) return 1;
 
     @autoreleasepool {
-        [startwin putsMessage:[NSString stringWithUTF8String:s]];
+        NSString *str = [NSString stringWithUTF8String:s];
+        if ([NSThread isMainThread]) {
+            [startwin putsMessage:str];
+        } else {
+            [startwin performSelectorOnMainThread:@selector(putsMessage:)
+                                       withObject:str
+                                    waitUntilDone:TRUE];
+        }
 
         return 0;
     }

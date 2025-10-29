@@ -364,20 +364,17 @@ int startwin_close(void)
     return 0;
 }
 
-int startwin_puts(const char *str)
+static gboolean startwin_puts_inner(gpointer str)
 {
     GtkTextBuffer *textbuffer;
     GtkTextIter enditer;
     GtkTextMark *mark;
     const char *aptr, *bptr;
 
-    if (!gtkenabled || !str) return 0;
-    if (!startwin) return 1;
-
     textbuffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(controls.messagestext));
 
     gtk_text_buffer_get_end_iter(textbuffer, &enditer);
-    for (aptr = bptr = str; *aptr != 0; ) {
+    for (aptr = bptr = (const char *)str; *aptr != 0; ) {
         switch (*bptr) {
             case '\b':
                 if (bptr > aptr) {
@@ -403,6 +400,18 @@ int startwin_puts(const char *str)
     gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(controls.messagestext), mark, 0.0, FALSE, 0.0, 1.0);
     gtk_text_buffer_delete_mark(textbuffer, mark);
 
+    free(str);
+    return FALSE;
+}
+
+int startwin_puts(const char *str)
+{
+    // Called in either the main thread or the import thread via buildprintf.
+    if (!gtkenabled || !str) return 0;
+    if (!startwin) return 1;
+
+    g_main_context_invoke(NULL, startwin_puts_inner, (gpointer)strdup(str));
+
     return 0;
 }
 
@@ -425,7 +434,7 @@ int startwin_idle(void *s)
 
 int startwin_run(struct startwin_settings *settings)
 {
-    if (!gtkenabled || !startwin) return 0;
+    if (!gtkenabled || !startwin) return STARTWIN_RUN;
 
     set_settings(settings);
     setup_config_mode();
