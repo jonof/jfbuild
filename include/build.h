@@ -198,16 +198,26 @@ EXTERN int xdim, ydim, ylookup[MAXYDIM+1], numpages;
 EXTERN int yxaspect, xyaspect, pixelaspect, widescreen, tallscreen, viewingrange;
 
 #define MAXVALIDMODES 256
-EXTERN int validmodecnt;
+#define MAXVALIDMODESETS 32
+EXTERN int validmodecnt, validmodesetcnt;
 struct validmode_t {
 	int xdim,ydim;
 	unsigned char bpp;
 	unsigned char fs;
 	unsigned char display; // 0 for windowed modes or the primary display.
-	unsigned char filler;
+	signed char validmodeset;
 	int extra;			// *layer-defined use
 };
+struct validmodeset_t {
+	unsigned char bpp;
+	unsigned char fs;
+	unsigned char display; // 0 for windowed modes or the primary display.
+	int firstmode, lastmode; // Mode numbers of the first and last modes of this set.
+	int nextbppmodeset, prevbppmodeset; // Mode set number of the next/prev bpp mode with the same display/fs pair.
+	int nextfsmodeset, prevfsmodeset; // Mode set number of the next/prev display/fs pair with nearest-match to bpp.
+};
 EXTERN struct validmode_t validmode[MAXVALIDMODES];
+EXTERN struct validmodeset_t validmodeset[MAXVALIDMODESETS];
 
 EXTERN short numsectors, numwalls;
 EXTERN /*volatile*/ int totalclock;

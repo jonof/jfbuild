@@ -118,7 +118,6 @@ static void shutdownvideo(void);
 // video
 static int desktopxdim=0,desktopydim=0,desktopbpp=0,desktopmodeset=-1;
 static int windowposx, windowposy;
-static unsigned modeschecked=0;
 static unsigned maxrefreshfreq=60;
 
 // input and events
@@ -451,7 +450,8 @@ static int set_maxrefreshfreq(const osdfuncparm_t *parm)
 	if (freq < 0) return OSDCMD_SHOWHELP;
 
 	maxrefreshfreq = (unsigned)freq;
-	modeschecked = 0;
+	validmodecnt = 0; // Re-enumerate valid modes.
+	validmodesetcnt = 0;
 
 	return OSDCMD_OK;
 }
@@ -1261,9 +1261,7 @@ void getvalidmodes(void)
 {
 	int i, maxx, maxy;
 
-	if (modeschecked) return;
-
-	validmodecnt=0;
+	if (validmodecnt) return;
 
 	// Fullscreen modes
 	for (i=0; i<displaycnt; i++) {
@@ -1289,18 +1287,6 @@ void getvalidmodes(void)
 #endif
 
 	sortvalidmodes();
-
-	modeschecked=1;
-}
-
-
-//
-// resetvideomode() -- resets the video system
-//
-void resetvideomode(void)
-{
-	videomodereset = 1;
-	modeschecked = 0;
 }
 
 

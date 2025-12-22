@@ -97,6 +97,20 @@ void getvalidmodes(void);
 void resetvideomode(void);
 const char *getdisplayname(int display);
 
+// 'search' is a FINDVIDEOMODE_SEARCH_xxx value.
+// 'refmode' is a validmode index used as the search reference, or -1 to use the current mode.
+// 'dir' is a FINDVIDEOMODE_DIR_xxx value.
+// Returns the found mode number.
+#define FINDVIDEOMODE_SEARCH_ANY (0)    // No constraints.
+#define FINDVIDEOMODE_SEARCH_XYDIM (1)  // Preserve bpp and fullscreen.
+#define FINDVIDEOMODE_SEARCH_BITSPP (2) // Preserve x/ydim and fullscreen.
+#define FINDVIDEOMODE_SEARCH_FULLSC (3) // Preserve x/ydim and bpp.
+#define FINDVIDEOMODE_DIR_FIRST (-0x7fffffff)
+#define FINDVIDEOMODE_DIR_PREV  (-1)
+#define FINDVIDEOMODE_DIR_NEXT  (1)
+#define FINDVIDEOMODE_DIR_LAST  (0x7fffffff)
+int findvideomode(int search, int refmode, int dir);
+
 void showframe(void);
 
 int setpalette(int start, int num, unsigned char *dapal);

@@ -715,14 +715,11 @@ static void enumdisplays(void)
 //
 // getvalidmodes() -- figure out what video modes are available
 //
-static char modeschecked=0;
 void getvalidmodes(void)
 {
 	int i, n, maxx, maxy;
 
-	if (modeschecked) return;
-
-	validmodecnt=0;
+	if (validmodecnt) return;
 
 	// Fullscreen modes
 	for (i=0; i<displaycnt; i++) {
@@ -755,8 +752,6 @@ void getvalidmodes(void)
 #endif
 
 	sortvalidmodes();
-
-	modeschecked=1;
 }
 
 static void shutdownvideo(void)
@@ -1043,16 +1038,6 @@ int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 	SDL_EventState(SDL_TEXTINPUT, SDL_ENABLE);
 
 	return 0;
-}
-
-
-//
-// resetvideomode() -- resets the video system
-//
-void resetvideomode(void)
-{
-	videomodereset = 1;
-	modeschecked = 0;
 }
 
 

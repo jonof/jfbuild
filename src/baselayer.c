@@ -52,6 +52,17 @@ char joynumaxes=0, joynumbuttons=0;
 
 
 //
+// resetvideomode() -- forces a reset of the video mode at next setgamemode() call
+//
+void resetvideomode(void)
+{
+	videomodereset = 1;
+	validmodecnt = 0; // Re-enumerate valid modes.
+	validmodesetcnt = 0;
+}
+
+
+//
 // checkvideomode() -- makes sure the video mode passed is legal
 //
 int checkvideomode(int *xdim, int *ydim, int bitspp, int fullsc, int strict)
@@ -134,6 +145,7 @@ void addvalidmode(int w, int h, int bpp, int fs, int display, int extra)
 	validmode[validmodecnt].fs=fs;
 	validmode[validmodecnt].display=display;
 	validmode[validmodecnt].extra=extra;
+	validmode[validmodecnt].validmodeset=-1;
 	validmodecnt++;
 }
 
@@ -182,6 +194,138 @@ void sortvalidmodes(void)
 
 	}
 #endif
+
+	int i, vs, bppvs, nextfsvs, bestnextfsvs, prevfsvs, bestprevfsvs;
+
+	vs = -1;
+	for (i = 0; i < validmodecnt && vs < MAXVALIDMODESETS-1; i++) {
+		if (vs < 0 ||
+				validmode[i].fs != validmodeset[vs].fs ||
+				validmode[i].display != validmodeset[vs].display ||
+				validmode[i].bpp != validmodeset[vs].bpp) {
+			++vs;
+			validmodeset[vs].fs = validmode[i].fs;
+			validmodeset[vs].display = validmode[i].display;
+			validmodeset[vs].bpp = validmode[i].bpp;
+
+			validmodeset[vs].firstmode = validmodeset[vs].lastmode = i;
+			validmodeset[vs].nextbppmodeset = validmodeset[vs].prevbppmodeset = -1;
+			validmodeset[vs].nextfsmodeset = validmodeset[vs].prevfsmodeset = -1;
+		} else {
+			validmodeset[vs].lastmode = i;
+		}
+		validmode[i].validmodeset = (signed char)vs;
+	}
+	validmodesetcnt = vs + 1;
+
+	bppvs = 0;
+	for (i = 0; i < validmodesetcnt; i++) {
+		// Find the next/prev change of bpp with a perfect match on display/fs.
+		if (validmodeset[bppvs].fs == validmodeset[i].fs &&
+				validmodeset[bppvs].display == validmodeset[i].display) {
+			if (validmodeset[bppvs].bpp != validmodeset[i].bpp) {
+				validmodeset[bppvs].nextbppmodeset = i;
+				validmodeset[i].prevbppmodeset = bppvs;
+				bppvs = i;
+			}
+		} else {
+			bppvs = i;
+		}
+
+		// Find the next/prev change of display/fs with a perfect match on bpp whilst keeping track of the closest bpp match.
+		bestnextfsvs = nextfsvs = bestprevfsvs = prevfsvs = -1;
+		for (vs=1; nextfsvs<0 && prevfsvs<0 && vs<validmodesetcnt; vs++) {
+			if (i+vs<validmodesetcnt && (validmodeset[i+vs].fs != validmodeset[i].fs ||
+					validmodeset[i+vs].display != validmodeset[i].display)) {
+				if (validmodeset[i+vs].bpp == validmodeset[i].bpp)
+					nextfsvs = i+vs;
+				else if (bestnextfsvs < 0 || (validmodeset[i+vs].bpp - validmodeset[i].bpp <
+						validmodeset[bestnextfsvs].bpp - validmodeset[i].bpp))
+					bestnextfsvs = i+vs;
+			}
+			if (i-vs>=0 && (validmodeset[i-vs].fs != validmodeset[i].fs ||
+					validmodeset[i-vs].display != validmodeset[i].display)) {
+				if (validmodeset[i-vs].bpp == validmodeset[i].bpp)
+					prevfsvs = i-vs;
+				else if (bestprevfsvs < 0 || (validmodeset[i-vs].bpp - validmodeset[i].bpp <
+						validmodeset[bestprevfsvs].bpp - validmodeset[i].bpp))
+					bestprevfsvs = i-vs;
+			}
+		}
+		if (nextfsvs >= 0) validmodeset[i].nextfsmodeset = nextfsvs;
+		else if (bestnextfsvs >= 0) validmodeset[i].nextfsmodeset = bestnextfsvs;
+		if (prevfsvs >= 0) validmodeset[i].prevfsmodeset = prevfsvs;
+		else if (bestprevfsvs >= 0) validmodeset[i].prevfsmodeset = bestprevfsvs;
+	}
+
+#ifdef DEBUGGINGAIDS
+	debugprintf("Video mode sets:\n");
+	for (int i=0; i<validmodesetcnt; i++) {
+		if (validmodeset[i].fs) {
+			debugprintf("%d) %d-bit fullscreen, display %d\n", i, validmodeset[i].bpp, validmodeset[i].display);
+		} else {
+			debugprintf("%d) %d-bit windowed\n", i, validmodeset[i].bpp);
+		}
+		debugprintf("   mode: first %d, last %d\n", validmodeset[i].firstmode, validmodeset[i].lastmode);
+		debugprintf("   bpp set: next %d, prev %d\n", validmodeset[i].nextbppmodeset, validmodeset[i].prevbppmodeset);
+		debugprintf("   fs-display set: next %d, prev %d\n", validmodeset[i].nextfsmodeset, validmodeset[i].prevfsmodeset);
+	}
+#endif
+}
+
+//
+// findvideomode() -- identify the next/previous mode in the valid modes list
+//
+int findvideomode(int search, int refmode, int dir)
+{
+	int vs, mode, last, foundmode, txdim, tydim;
+	int steps = abs(dir), incr = dir < 0 ? -1 : 1;
+
+	if (refmode < 0) {
+		txdim = xdim; tydim = ydim;
+		refmode = checkvideomode(&txdim, &tydim, bpp, fullscreen, 1);
+	}
+	if ((unsigned)refmode >= (unsigned)validmodecnt) return -1;
+
+	foundmode = refmode;
+	vs = validmode[refmode].validmodeset;
+
+	switch (search) {
+		case FINDVIDEOMODE_SEARCH_ANY:
+			mode = refmode + dir;
+			if (mode < 0) foundmode = 0;
+			else if (mode >= validmodecnt) foundmode = validmodecnt-1;
+			else foundmode = mode;
+			break;
+		case FINDVIDEOMODE_SEARCH_XYDIM:
+			for (mode = refmode + incr;
+				steps && mode >= validmodeset[vs].firstmode && mode <= validmodeset[vs].lastmode;
+				steps--, mode += incr) {
+				foundmode = mode;
+			}
+			break;
+		case FINDVIDEOMODE_SEARCH_BITSPP:
+		case FINDVIDEOMODE_SEARCH_FULLSC:
+			for (last = vs; steps && vs >= 0; steps--) {
+				last = vs;
+				if (search == FINDVIDEOMODE_SEARCH_BITSPP) {
+					if (incr < 0) vs = validmodeset[vs].prevbppmodeset;
+					else vs = validmodeset[vs].nextbppmodeset;
+				} else {
+					if (incr < 0) vs = validmodeset[vs].prevfsmodeset;
+					else vs = validmodeset[vs].nextfsmodeset;
+				}
+			}
+			if (vs < 0) vs = last;
+
+			txdim = validmode[refmode].xdim; tydim = validmode[refmode].ydim;
+			mode = checkvideomode(&txdim, &tydim, validmodeset[vs].bpp,
+				SETGAMEMODE_FULLSCREEN(validmodeset[vs].display, validmodeset[vs].fs), 1);
+			if (mode >= 0) foundmode = mode;
+			break;
+	}
+
+	return foundmode;
 }
 
 //
@@ -339,11 +483,11 @@ static int osdcmd_listvidmodes(const osdfuncparm_t *parm)
 		if (filterbpp >= 0 && validmode[i].bpp != filterbpp) continue;
 		if (filterfs >= 0 && validmode[i].fs != filterfs) continue;
 		if (validmode[i].fs) {
-			buildprintf(" %4dx%-4d %d-bit fullscreen, display %d\n",
+			buildprintf("%d) %4dx%-4d %d-bit fullscreen, display %d\n", i,
 				validmode[i].xdim, validmode[i].ydim,
 				validmode[i].bpp, validmode[i].display);
 		} else {
-			buildprintf(" %4dx%-4d %d-bit windowed\n",
+			buildprintf("%d) %4dx%-4d %d-bit windowed\n", i,
 				validmode[i].xdim, validmode[i].ydim,
 				validmode[i].bpp);
 		}
@@ -352,6 +496,28 @@ static int osdcmd_listvidmodes(const osdfuncparm_t *parm)
 	buildprintf("%d modes identified\n", found);
 	return OSDCMD_OK;
 }
+
+#if defined(DEBUGGINGAIDS)
+static int osdcmd_findvideomode(const osdfuncparm_t *parm)
+{
+	int mode;
+
+	if (parm->numparms != 3) return OSDCMD_SHOWHELP;
+	mode = findvideomode(atoi(parm->parms[0]), atoi(parm->parms[1]), atoi(parm->parms[2]));
+	if (mode >= 0) {
+		if (validmode[mode].fs) {
+			buildprintf("mode %d: %dx%d %d-bit fullscreen, display %d\n", mode,
+				validmode[mode].xdim, validmode[mode].ydim, validmode[mode].bpp, validmode[mode].display);
+		} else {
+			buildprintf("mode %d: %dx%d %d-bit windowed\n", mode,
+				validmode[mode].xdim, validmode[mode].ydim, validmode[mode].bpp);
+		}
+	} else {
+		buildputs("No mode found\n");
+	}
+	return OSDCMD_OK;
+}
+#endif
 
 int baselayer_init(void)
 {
@@ -363,6 +529,9 @@ int baselayer_init(void)
 	OSD_RegisterFunction("usevoxels","usevoxels: enable/disable automatic sprite->voxel rendering",osdcmd_vars);
 	OSD_RegisterFunction("usegammabrightness","usegammabrightness: set brightness using system gamma (2), shader (1), or palette (0)",osdcmd_vars);
 	OSD_RegisterFunction("listvidmodes","listvidmodes [<bpp>|win|fs] / listvidmodes displays: show all available video mode combinations",osdcmd_listvidmodes);
+#ifdef DEBUGGINGAIDS
+	OSD_RegisterFunction("findvideomode","findvideomode [search] [refmode] [dir]: explore video mode. search: 0 res, 1 bpp, 2 display/fs. refmode: -1 current. dir: 1 forward, 2 back.",osdcmd_findvideomode);
+#endif
 
 #if USE_POLYMOST
 	OSD_RegisterFunction("setrendermode","setrendermode <number>: sets the engine's rendering mode.\n"
