@@ -97,7 +97,7 @@
         ydim = settings->ydim3d;
         bitspp = settings->bpp3d;
         fullsc = settings->fullscreen & 255;
-        display = min(displaycnt, max(0, (settings->fullscreen >> 8)));
+        display = min(displaycnt-1, max(0, (settings->fullscreen >> 8)));
 
         xdim2d = settings->xdim2d;
         ydim2d = settings->ydim2d;

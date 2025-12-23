@@ -104,7 +104,7 @@
         ydim = settings->ydim3d;
         bitspp = settings->bpp3d;
         fullsc = settings->fullscreen & 255;
-        display = min(displaycnt, max(0, (settings->fullscreen >> 8)));
+        display = min(displaycnt-1, max(0, (settings->fullscreen >> 8)));
 
         NSMenu *menu = [displayPUButton menu];
         [menu removeAllItems];

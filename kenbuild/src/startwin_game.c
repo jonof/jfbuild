@@ -46,7 +46,7 @@ static void populate_video_modes(BOOL firstTime)
         ydim = settings->ydim3d;
         bitspp = settings->bpp3d;
         fullsc = settings->fullscreen & 255;
-        display = min(displaycnt, max(0, (settings->fullscreen >> 8)));
+        display = min(displaycnt-1, max(0, (settings->fullscreen >> 8)));
 
         ComboBox_ResetContent(hwnddisp);
         for (i = 0; i < displaycnt; i++) {
