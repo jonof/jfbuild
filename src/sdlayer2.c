@@ -736,7 +736,7 @@ void getvalidmodes(void)
 	// Fullscreen modes
 	for (i=0; i<displaycnt; i++) {
 		// 8-bit modes upsample to the desktop.
-		addstandardvalidmodes(displays[i].mode.w, displays[i].mode.h, 8, 1, i, -1);
+		addstandardvalidmodes(displays[i].mode.w, displays[i].mode.h, 8, 1, i, 0, -1);
 #if USE_POLYMOST && USE_OPENGL
 		if (glunavailable) continue;
 
@@ -745,7 +745,7 @@ void getvalidmodes(void)
 			SDL_DisplayMode mode;
 			SDL_GetDisplayMode(displays[i].index, j, &mode);
 			if (SDL_BITSPERPIXEL(mode.format) <= 8) continue;
-			addvalidmode(mode.w, mode.h, SDL_BITSPERPIXEL(mode.format), 1, i, j);
+			addvalidmode(mode.w, mode.h, SDL_BITSPERPIXEL(mode.format), 1, i, mode.refresh_rate, j);
 		}
 #endif
 	}
@@ -756,10 +756,10 @@ void getvalidmodes(void)
 		maxx = max(maxx, displays[i].usablebounds.w);
 		maxy = max(maxy, displays[i].usablebounds.h);
 	}
-	addstandardvalidmodes(maxx, maxy, 8, 0, 0, -1);
+	addstandardvalidmodes(maxx, maxy, 8, 0, 0, 0, -1);
 #if USE_POLYMOST && USE_OPENGL
 	if (!glunavailable) {
-		addstandardvalidmodes(maxx, maxy, SDL_BITSPERPIXEL(displays[0].mode.format), 0, 0, -1);
+		addstandardvalidmodes(maxx, maxy, SDL_BITSPERPIXEL(displays[0].mode.format), 0, 0, 0, -1);
 	}
 #endif
 
@@ -812,6 +812,8 @@ int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 	int regrab = 0;
 	int flags, display, modenum;
 	int winx, winy, winw, winh;
+	unsigned refresh=0;
+	const char *str;
 
 	if ((fullsc == fullscreen) && (xdim == xres) && (ydim == yres) && (bitspp == bpp) && !videomodereset) {
 		OSD_ResizeDisplay(xres,yres);
@@ -822,9 +824,8 @@ int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 	if (display >= displaycnt) display = 0, fullsc &= 255; // Display number out of range, use primary instead.
 	modenum = checkvideomode(&xdim,&ydim,bitspp,fullsc,0);	// Will return if GL mode not available.
 	if (modenum < 0) return -1;
-	if (modenum == VIDEOMODE_RELAXED) {
-		if (fullsc&255) return -1; // Must be a perfect match for fullscreen.
-	}
+	else if (modenum != VIDEOMODE_RELAXED) refresh = validmode[modenum].refresh;
+	else if (fullsc&255) return -1; // Must be a perfect match for fullscreen.
 
 	if (mouseacquired) {
 		regrab = 1;
@@ -834,8 +835,10 @@ int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 	if (baselayer_videomodewillchange) baselayer_videomodewillchange();
 	shutdownvideo();
 
-	buildprintf("Setting video mode %dx%d (%d-bpp %s, display %d)\n",
-		xdim,ydim,bitspp, (fullsc&255) ? "fullscreen" : "windowed", display);
+	if ((fullsc&255) && refresh) str = "Setting video mode %dx%d (%d-bit fullscreen, display %d, %u Hz)\n";
+	else if (fullsc&255) str = "Setting video mode %dx%d (%d-bit fullscreen, display %d)\n";
+	else str = "Setting video mode %dx%d (%d-bit windowed)\n";
+	buildprintf(str,xdim,ydim,bitspp,display,refresh);
 
 	do {
 		flags = SDL_WINDOW_HIDDEN;

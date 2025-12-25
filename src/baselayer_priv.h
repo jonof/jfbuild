@@ -6,14 +6,15 @@
 #define __baselayer_priv_h__
 
 extern char videomodereset;
+extern unsigned maxrefreshfreq;
 
 int baselayer_init(void);
 
 int initsystem(void);
 void uninitsystem(void);
 
-void addvalidmode(int w, int h, int bpp, int fs, int display, int extra);
-void addstandardvalidmodes(int maxx, int maxy, int bpp, int fs, int display, int extra);
+void addvalidmode(int w, int h, int bpp, int fs, int display, unsigned refresh, int extra);
+void addstandardvalidmodes(int maxx, int maxy, int bpp, int fs, int display, unsigned refresh, int extra);
 void sortvalidmodes(void);
 
 #if USE_OPENGL

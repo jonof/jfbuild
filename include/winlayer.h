@@ -12,9 +12,6 @@ extern "C" {
 intptr_t win_gethwnd(void);
 intptr_t win_gethinstance(void);
 
-void win_setmaxrefreshfreq(unsigned frequency);
-unsigned win_getmaxrefreshfreq(void);
-
 #ifdef __cplusplus
 }
 #endif

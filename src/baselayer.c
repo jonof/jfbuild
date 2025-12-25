@@ -10,10 +10,6 @@
 #include "baselayer.h"
 #include "baselayer_priv.h"
 
-#ifdef RENDERTYPEWIN
-#include "winlayer.h"
-#endif
-
 #if USE_OPENGL
 #include "glbuild.h"
 struct glbuild_info glinfo;
@@ -30,6 +26,7 @@ int xres=-1, yres=-1, bpp=0, fullscreen=0, bytesperline, imageSize;
 intptr_t frameplace=0;
 char offscreenrendering=0;
 char videomodereset = 0;
+unsigned maxrefreshfreq = 0;
 void (*baselayer_videomodewillchange)(void) = NULL;
 void (*baselayer_videomodedidchange)(void) = NULL;
 
@@ -124,32 +121,41 @@ int checkvideomode(int *xdim, int *ydim, int bitspp, int fullsc, int strict)
 	return nearest;		// JBF 20031206: Returns the mode number
 }
 
-void addvalidmode(int w, int h, int bpp, int fs, int display, int extra)
+void addvalidmode(int w, int h, int bpp, int fs, int display, unsigned refresh, int extra)
 {
 	int m;
 
 	if (validmodecnt>=MAXVALIDMODES) return;
 	if ((w > MAXXDIM) || (h > MAXYDIM)) return;
-	if (!(fs&255)) display=0; // Windowed modes don't declare a display.
+	if (!(fs&255)) display=0, refresh=0; // Windowed modes don't declare a display or refresh rate.
+	if (maxrefreshfreq > 0 && refresh > maxrefreshfreq) return;
 
 	// Check for a duplicate.
 	for (m=0; m<validmodecnt; m++)
 		if (validmode[m].xdim==w && validmode[m].ydim==h &&
 				validmode[m].bpp==bpp && validmode[m].fs==fs &&
 				validmode[m].display==display)
+		{
+			if (maxrefreshfreq > 0 && refresh > maxrefreshfreq) return;
+			if (refresh > validmode[m].refresh) {
+				validmode[m].refresh = refresh;
+				validmode[m].extra = extra;
+			}
 			return;
+		}
 
 	validmode[validmodecnt].xdim=w;
 	validmode[validmodecnt].ydim=h;
 	validmode[validmodecnt].bpp=bpp;
 	validmode[validmodecnt].fs=fs;
 	validmode[validmodecnt].display=display;
+	validmode[validmodecnt].refresh=refresh;
 	validmode[validmodecnt].extra=extra;
 	validmode[validmodecnt].validmodeset=-1;
 	validmodecnt++;
 }
 
-void addstandardvalidmodes(int maxx, int maxy, int bpp, int fs, int display, int extra)
+void addstandardvalidmodes(int maxx, int maxy, int bpp, int fs, int display, unsigned refresh, int extra)
 {
 	static const int defaultres[][2] = {
 		{1920,1200}, {1920,1080}, {1600,1200}, {1680,1050}, {1600,900},
@@ -159,7 +165,7 @@ void addstandardvalidmodes(int maxx, int maxy, int bpp, int fs, int display, int
 	};
 	for (int i=0; defaultres[i][0]; i++) {
 		if (defaultres[i][0] <= maxx && defaultres[i][1] <= maxy)
-			addvalidmode(defaultres[i][0], defaultres[i][1], bpp, fs, display, extra);
+			addvalidmode(defaultres[i][0], defaultres[i][1], bpp, fs, display, refresh, extra);
 	}
 }
 
@@ -184,9 +190,9 @@ void sortvalidmodes(void)
 	debugprintf("Video modes available:\n");
 	for (int i=0; i<validmodecnt; i++) {
 		if (validmode[i].fs) {
-			debugprintf("  - %dx%d %d-bit fullscreen, display %d\n",
-				validmode[i].xdim, validmode[i].ydim,
-				validmode[i].bpp, validmode[i].display);
+			debugprintf("  - %dx%d %d-bit fullscreen, display %d, %u Hz\n",
+				validmode[i].xdim, validmode[i].ydim, validmode[i].bpp,
+				validmode[i].display, validmode[i].refresh);
 		} else {
 			debugprintf("  - %dx%d %d-bit windowed\n",
 				validmode[i].xdim, validmode[i].ydim, validmode[i].bpp);
@@ -214,7 +220,7 @@ void sortvalidmodes(void)
 		} else {
 			validmodeset[vs].lastmode = i;
 		}
-		validmode[i].validmodeset = (signed char)vs;
+		validmode[i].validmodeset = (short)vs;
 	}
 	validmodesetcnt = vs + 1;
 
@@ -327,6 +333,17 @@ int findvideomode(int search, int refmode, int dir)
 
 	return foundmode;
 }
+
+void setmaxrefreshfreq(unsigned frequency)
+{
+	maxrefreshfreq = frequency;
+}
+
+unsigned getmaxrefreshfreq(void)
+{
+	return maxrefreshfreq;
+}
+
 
 //
 // bgetchar, bkbhit, bflushchars -- character-based input functions
@@ -453,6 +470,19 @@ static int osdcmd_vars(const osdfuncparm_t *parm)
 		buildprintf("usegammabrightness is %d (%s)\n", usegammabrightness, types[usegammabrightness]);
 		return OSDCMD_OK;
 	}
+	else if (!Bstrcasecmp(parm->name, "maxrefreshfreq")) {
+		if (showval) {
+			buildprintf("maxrefreshfreq is %u%s\n", maxrefreshfreq, maxrefreshfreq ? " Hz" : " (no maximum)");
+		} else {
+			int freq = atoi(parm->parms[0]);
+			if (freq < 0) freq = 0;
+			maxrefreshfreq = (unsigned)freq;
+			validmodecnt = 0; // Re-enumerate valid modes.
+			validmodesetcnt = 0;
+		}
+		return OSDCMD_OK;
+	}
+
 	return OSDCMD_SHOWHELP;
 }
 
@@ -480,17 +510,14 @@ static int osdcmd_listvidmodes(const osdfuncparm_t *parm)
 	}
 
 	for (int i = 0; i < validmodecnt; i++) {
+		const char *str;
 		if (filterbpp >= 0 && validmode[i].bpp != filterbpp) continue;
 		if (filterfs >= 0 && validmode[i].fs != filterfs) continue;
-		if (validmode[i].fs) {
-			buildprintf("%d) %4dx%-4d %d-bit fullscreen, display %d\n", i,
-				validmode[i].xdim, validmode[i].ydim,
-				validmode[i].bpp, validmode[i].display);
-		} else {
-			buildprintf("%d) %4dx%-4d %d-bit windowed\n", i,
-				validmode[i].xdim, validmode[i].ydim,
-				validmode[i].bpp);
-		}
+		if (validmode[i].fs && validmode[i].refresh) str = "%2d) %4dx%-4d %d-bit fullscreen, display %d, %u Hz\n";
+		else if (validmode[i].fs) str = "%2d) %4dx%-4d %d-bit fullscreen, display %d\n";
+		else str = "%2d) %4dx%-4d %d-bit windowed\n";
+		buildprintf(str, i, validmode[i].xdim, validmode[i].ydim, validmode[i].bpp,
+			validmode[i].display, validmode[i].refresh);
 		found++;
 	}
 	buildprintf("%d modes identified\n", found);
@@ -506,8 +533,9 @@ static int osdcmd_findvideomode(const osdfuncparm_t *parm)
 	mode = findvideomode(atoi(parm->parms[0]), atoi(parm->parms[1]), atoi(parm->parms[2]));
 	if (mode >= 0) {
 		if (validmode[mode].fs) {
-			buildprintf("mode %d: %dx%d %d-bit fullscreen, display %d\n", mode,
-				validmode[mode].xdim, validmode[mode].ydim, validmode[mode].bpp, validmode[mode].display);
+			buildprintf("mode %d: %dx%d %d-bit fullscreen, display %d, %u Hz\n", mode,
+				validmode[mode].xdim, validmode[mode].ydim, validmode[mode].bpp,
+				validmode[mode].display, validmode[mode].refresh);
 		} else {
 			buildprintf("mode %d: %dx%d %d-bit windowed\n", mode,
 				validmode[mode].xdim, validmode[mode].ydim, validmode[mode].bpp);
@@ -528,6 +556,7 @@ int baselayer_init(void)
 	OSD_RegisterFunction("novoxmips","novoxmips: turn off/on the use of mipmaps when rendering 8-bit voxels",osdcmd_vars);
 	OSD_RegisterFunction("usevoxels","usevoxels: enable/disable automatic sprite->voxel rendering",osdcmd_vars);
 	OSD_RegisterFunction("usegammabrightness","usegammabrightness: set brightness using system gamma (2), shader (1), or palette (0)",osdcmd_vars);
+	OSD_RegisterFunction("maxrefreshfreq", "maxrefreshfreq: maximum display frequency to set for fullscreen modes (0=no maximum)", osdcmd_vars);
 	OSD_RegisterFunction("listvidmodes","listvidmodes [<bpp>|win|fs] / listvidmodes displays: show all available video mode combinations",osdcmd_listvidmodes);
 #ifdef DEBUGGINGAIDS
 	OSD_RegisterFunction("findvideomode","findvideomode [search] [refmode] [dir]: explore video mode. search: 0 res, 1 bpp, 2 display/fs. refmode: -1 current. dir: 1 forward, 2 back.",osdcmd_findvideomode);

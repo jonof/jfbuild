@@ -5,10 +5,6 @@
 #include "editor.h"
 #include "osd.h"
 #include "scriptfile.h"
-
-#ifdef RENDERTYPEWIN
-#include "winlayer.h"
-#endif
 #include "baselayer.h"
 
 extern short brightness;
@@ -68,9 +64,7 @@ static int tmprenderer = -1;
 #endif
 static int tmpfullscreen = -1, tmpdisplay = -1;
 static int tmpbrightness = -1;
-#ifdef RENDERTYPEWIN
-static unsigned tmpmaxrefreshfreq = -1;
-#endif
+static unsigned tmpmaxrefreshfreq = 0;
 
 static struct {
 	const char *name;
@@ -127,11 +121,9 @@ static struct {
 		"; OpenGL mode options\n"
 	},
 #endif
-#ifdef RENDERTYPEWIN
 	{ "maxrefreshfreq", type_int, &tmpmaxrefreshfreq,
-		"; Maximum OpenGL mode refresh rate (Windows only, in Hertz)\n"
+		"; Maximum fullscreen mode refresh rate (in Hertz, 0 indicates no limit)\n"
 	},
-#endif
 	{ "mousesensitivity", type_fixed16, &msens,
 		"; Mouse sensitivity\n"
 	},
@@ -260,9 +252,7 @@ int loadsetup(const char *fn)
 		setrendermode(tmprenderer);
 	}
 #endif
-#ifdef RENDERTYPEWIN
-	win_setmaxrefreshfreq(tmpmaxrefreshfreq);
-#endif
+	setmaxrefreshfreq(tmpmaxrefreshfreq);
 	if (tmpbrightness >= 0) {
 		brightness = min(max(tmpbrightness,0),15);
 	}
@@ -295,9 +285,7 @@ int writesetup(const char *fn)
 #if USE_POLYMOST
 	tmprenderer = getrendermode();
 #endif
-#ifdef RENDERTYPEWIN
-	tmpmaxrefreshfreq = win_getmaxrefreshfreq();
-#endif
+	tmpmaxrefreshfreq = getmaxrefreshfreq();
 
 	for (item = 0; configspec[item].name; item++) {
 		if (configspec[item].doc) {

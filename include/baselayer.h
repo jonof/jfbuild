@@ -96,6 +96,8 @@ int setvideomode(int xdim, int ydim, int bitspp, int fullsc);
 void getvalidmodes(void);
 void resetvideomode(void);
 const char *getdisplayname(int display);
+void setmaxrefreshfreq(unsigned frequency);
+unsigned getmaxrefreshfreq(void);
 
 // 'search' is a FINDVIDEOMODE_SEARCH_xxx value.
 // 'refmode' is a validmode index used as the search reference, or -1 to use the current mode.

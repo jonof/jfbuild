@@ -205,7 +205,8 @@ struct validmode_t {
 	unsigned char bpp;
 	unsigned char fs;
 	unsigned char display; // 0 for windowed modes or the primary display.
-	signed char validmodeset;
+	unsigned short refresh;
+	short validmodeset;
 	int extra;			// *layer-defined use
 };
 struct validmodeset_t {

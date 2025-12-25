@@ -107,7 +107,7 @@ static int SetupDIB(int width, int height);
 static void UninitOpenGL(void);
 static int SetupOpenGL(int width, int height, int bitspp);
 static BOOL RegisterWindowClass(void);
-static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refresh);
+static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, unsigned refresh);
 static void DestroyAppWindow(void);
 static void UpdateAppWindowTitle(void);
 
@@ -117,7 +117,6 @@ static void shutdownvideo(void);
 // video
 static int desktopxdim=0,desktopydim=0,desktopbpp=0,desktopmodeset=-1;
 static int windowposx, windowposy;
-static unsigned maxrefreshfreq=60;
 
 // input and events
 static unsigned int mousewheel[2] = { 0,0 };
@@ -151,18 +150,6 @@ intptr_t win_gethwnd(void)
 intptr_t win_gethinstance(void)
 {
 	return (intptr_t)hInstance;
-}
-
-
-
-void win_setmaxrefreshfreq(unsigned frequency)
-{
-	maxrefreshfreq = frequency;
-}
-
-unsigned win_getmaxrefreshfreq(void)
-{
-	return maxrefreshfreq;
 }
 
 
@@ -420,28 +407,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 }
 
 
-static int set_maxrefreshfreq(const osdfuncparm_t *parm)
-{
-	int freq;
-	if (parm->numparms == 0) {
-		if (maxrefreshfreq == 0)
-			buildputs("maxrefreshfreq = No maximum\n");
-		else
-			buildprintf("maxrefreshfreq = %d Hz\n",maxrefreshfreq);
-		return OSDCMD_OK;
-	}
-	if (parm->numparms != 1) return OSDCMD_SHOWHELP;
-
-	freq = atoi(parm->parms[0]);
-	if (freq < 0) return OSDCMD_SHOWHELP;
-
-	maxrefreshfreq = (unsigned)freq;
-	validmodecnt = 0; // Re-enumerate valid modes.
-	validmodesetcnt = 0;
-
-	return OSDCMD_OK;
-}
-
 #if USE_OPENGL
 static int set_glswapinterval(const osdfuncparm_t *parm)
 {
@@ -513,7 +478,6 @@ int initsystem(void)
 	}
 #endif
 
-	OSD_RegisterFunction("maxrefreshfreq", "maxrefreshfreq: maximum display frequency to set for OpenGL Polymost modes (0=no maximum)", set_maxrefreshfreq);
 	return 0;
 }
 
@@ -1092,7 +1056,9 @@ static void shutdownvideo(void)
 //
 int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 {
-	int display, modenum, refresh=-1;
+	int display, modenum;
+	unsigned refresh=0;
+	const char *str;
 
 	if ((fullsc == fullscreen) && (xdim == xres) && (ydim == yres) && (bitspp == bpp) && !videomodereset) {
 		OSD_ResizeDisplay(xres,yres);
@@ -1103,7 +1069,7 @@ int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 	if (display >= displaycnt) display = 0, fullsc &= 255; // Display number out of range, use primary instead.
 	modenum = checkvideomode(&xdim,&ydim,bitspp,fullsc,0);
 	if (modenum < 0) return -1;
-	else if (modenum != VIDEOMODE_RELAXED) refresh = validmode[modenum].extra;
+	else if (modenum != VIDEOMODE_RELAXED) refresh = validmode[modenum].refresh;
 	else if (fullsc&255) return -1; // Must be a perfect match for fullscreen.
 
 	if (defgammaread) setgammaramp(defgamma);
@@ -1111,8 +1077,10 @@ int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 	if (baselayer_videomodewillchange) baselayer_videomodewillchange();
 	shutdownvideo();
 
-	buildprintf("Setting video mode %dx%d (%d-bit %s, display %d)\n",
-		xdim,ydim,bitspp, (fullsc&255) ? "fullscreen" : "windowed", display);
+	if ((fullsc&255) && refresh) str = "Setting video mode %dx%d (%d-bit fullscreen, display %d, %u Hz)\n";
+	else if (fullsc&255) str = "Setting video mode %dx%d (%d-bit fullscreen, display %d)\n";
+	else str = "Setting video mode %dx%d (%d-bit windowed)\n";
+	buildprintf(str,xdim,ydim,bitspp,display,refresh);
 
 	if (CreateAppWindow(xdim, ydim, bitspp, fullsc, refresh)) return -1;
 
@@ -1130,39 +1098,13 @@ int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 static void enumdisplaymodes(CHAR *device, int display)
 {
 	DEVMODE dm;
-	int i,m,nmodes=0;
-	struct {
-		DWORD dmPelsWidth,dmPelsHeight;
-		DWORD dmBitsPerPel,dmDisplayFrequency;
-	} modes[MAXVALIDMODES];
+	int m;
 
 	dm.dmSize = sizeof(DEVMODE);
-	for (m=0; nmodes<MAXVALIDMODES && EnumDisplaySettings(device, m, &dm); m++) {
-		if (maxrefreshfreq > 0 && dm.dmDisplayFrequency > maxrefreshfreq)
-			continue;	// Frequency beyond the limit; ignore this mode.
-
-		// Identify the same resolution and bit depth in the existing set.
-		for (i=0;i<nmodes;i++)
-			if (modes[i].dmPelsWidth == dm.dmPelsWidth &&
-				modes[i].dmPelsHeight == dm.dmPelsHeight &&
-				modes[i].dmBitsPerPel == dm.dmBitsPerPel) break;
-
-		if (i<nmodes) {
-			if (dm.dmDisplayFrequency < modes[i].dmDisplayFrequency)
-				continue;	// Frequency below the existing mode; ignore this mode.
-		} else nmodes++;
-
-		// A new mode, or a same format mode with a better refresh rate match.
-		modes[i].dmPelsWidth = dm.dmPelsWidth;
-		modes[i].dmPelsHeight = dm.dmPelsHeight;
-		modes[i].dmBitsPerPel = dm.dmBitsPerPel;
-		modes[i].dmDisplayFrequency = dm.dmDisplayFrequency;
-	}
-
-	// Add what was found to the list.
-	for (i=0;i<nmodes;i++) {
-		addvalidmode(modes[i].dmPelsWidth, modes[i].dmPelsHeight, modes[i].dmBitsPerPel,
-			1, display, modes[i].dmDisplayFrequency);
+	for (m=0; EnumDisplaySettings(device, m, &dm); m++) {
+		if (dm.dmBitsPerPel <= 8) continue;
+		addvalidmode(dm.dmPelsWidth, dm.dmPelsHeight, dm.dmBitsPerPel,
+			1, display, dm.dmDisplayFrequency, -1);
 	}
 }
 #endif
@@ -1253,7 +1195,7 @@ void getvalidmodes(void)
 	for (i=0; i<displaycnt; i++) {
 		// 8-bit modes upsample to the desktop.
 		addstandardvalidmodes(displays[i].bounds.right-displays[i].bounds.left,
-			displays[i].bounds.bottom-displays[i].bounds.top, 8, 1, i, -1);
+			displays[i].bounds.bottom-displays[i].bounds.top, 8, 1, i, 0, -1);
 #if USE_POLYMOST && USE_OPENGL
 		if (!glunavailable) enumdisplaymodes(displays[i].device, i);
 #endif
@@ -1265,10 +1207,10 @@ void getvalidmodes(void)
 		maxx = max(maxx, displays[i].usablebounds.right-displays[i].usablebounds.left);
 		maxy = max(maxy, displays[i].usablebounds.bottom-displays[i].usablebounds.top);
 	}
-	addstandardvalidmodes(maxx, maxy, 8, 0, 0, -1);
+	addstandardvalidmodes(maxx, maxy, 8, 0, 0, 0, -1);
 #if USE_POLYMOST && USE_OPENGL
 	if (!glunavailable) {
-		addstandardvalidmodes(maxx, maxy, desktopbpp, 0, 0, -1);
+		addstandardvalidmodes(maxx, maxy, desktopbpp, 0, 0, 0, -1);
 	}
 #endif
 
@@ -1871,7 +1813,7 @@ fail:
 //
 // CreateAppWindow() -- create the application window
 //
-static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, int refresh)
+static BOOL CreateAppWindow(int width, int height, int bitspp, int fs, unsigned refresh)
 {
 	RECT rect;
 	int winw, winh, winx, winy, vieww, viewh, stylebits = 0, stylebitsex = 0, display;
