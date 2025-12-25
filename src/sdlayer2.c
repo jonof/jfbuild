@@ -1224,11 +1224,17 @@ void *getglprocaddress(const char *name, int ext)
 static void loadappicon(void)
 {
 #if !defined(__APPLE__) || (defined(__APPLE__) && !defined(HAVE_OSX_FRAMEWORKS))
-	extern struct sdlappicon sdlappicon;
+	extern const unsigned char appicon_bmp[];
+	extern const int appicon_bmp_size;
+	SDL_RWops *rwops;
 
-	sdl_appicon = SDL_CreateRGBSurfaceFrom((void*)sdlappicon.pixels,
-			sdlappicon.width, sdlappicon.height, 32, sdlappicon.width*4,
-			0xffl,0xff00l,0xff0000l,0xff000000l);
+	rwops = SDL_RWFromConstMem(appicon_bmp, appicon_bmp_size);
+	if (!rwops) {
+		debugprintf("loadappicon: error creating rwops object: %s\n", SDL_GetError());
+		return;
+	}
+
+	sdl_appicon = SDL_LoadBMP_RW(rwops, 1);
 	if (!sdl_appicon) {
 		debugprintf("loadappicon: error creating appicon surface: %s\n", SDL_GetError());
 	}

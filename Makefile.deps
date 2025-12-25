@@ -70,5 +70,4 @@ $(TOOLS)/klist.$o: $(TOOLS)/klist.c $(INC)/compat.h $(INC)/crc32.h
 $(TOOLS)/transpal.$o: $(TOOLS)/transpal.c $(INC)/compat.h $(INC)/pragmas.h
 $(TOOLS)/wad2art.$o: $(TOOLS)/wad2art.c $(INC)/compat.h $(INC)/pragmas.h
 $(TOOLS)/wad2map.$o: $(TOOLS)/wad2map.c $(INC)/compat.h $(INC)/pragmas.h
-$(TOOLS)/generatesdlappicon.$o: $(TOOLS)/generatesdlappicon.c
 $(TOOLS)/bin2c.$o: $(TOOLS)/bin2c.cc

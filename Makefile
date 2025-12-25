@@ -173,7 +173,7 @@ ENGINEOBJS+= $(SRC)/version.$o
 endif
 
 UTILS=kextract$(EXESUFFIX) kgroup$(EXESUFFIX) klist$(EXESUFFIX) transpal$(EXESUFFIX) arttool$(EXESUFFIX)
-BUILDUTILS=generatesdlappicon$(EXESUFFIX) bin2c$(EXESUFFIX)
+BUILDUTILS=bin2c$(EXESUFFIX)
 
 .PHONY: clean veryclean all utils libs enginelib editorlib kenbuild
 all: libs utils kenbuild
@@ -207,8 +207,6 @@ wad2map$(EXESUFFIX): $(TOOLS)/wad2map.$o $(ENGINELIB)
 
 # These tools are only used at build time and should be compiled
 # using the host toolchain rather than any cross-compiler.
-generatesdlappicon$(EXESUFFIX): $(TOOLS)/generatesdlappicon.c $(SRC)/kplib.c
-	$(HOSTCC) $(CFLAGS) -I$(SRC) -I$(INC) -o $@ $^
 bin2c$(EXESUFFIX): $(TOOLS)/bin2c.cc
 	$(HOSTCXX) $(CXXFLAGS) -o $@ $^
 

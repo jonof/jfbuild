@@ -74,8 +74,8 @@ ifeq ($(RENDERTYPE),SDL)
 	GAMECFLAGS+= $(SDLCONFIG_CFLAGS)
 	GAMELDFLAGS+= $(SDLCONFIG_LIBS)
 
-	GAMEEXEOBJS+= $(SRC)/kdmsound_sdl2.$o $(RSRC)/sdlappicon_game.$o
-	EDITOREXEOBJS+= $(RSRC)/sdlappicon_build.$o
+	GAMEEXEOBJS+= $(SRC)/kdmsound_sdl2.$o $(RSRC)/game_bmp.$o
+	EDITOREXEOBJS+= $(RSRC)/build_bmp.$o
 
 	ifeq (1,$(HAVE_GTK))
 		GAMECFLAGS+= $(GTKCONFIG_CFLAGS)
@@ -121,10 +121,15 @@ $(RSRC)/%.$o: $(RSRC)/%.c
 $(SRC)/%.$(res): $(SRC)/%.rc
 	$(RC) -O coff -i $< -o $@ --include-dir=$(SRC) --include-dir=$(ENGINEINC)
 
-$(RSRC)/%_gresource.c $(RSRC)/%_gresource.h: $(RSRC)/%.gresource.xml
-	glib-compile-resources --generate --manual-register --c-name=startgtk --target=$@ --sourcedir=$(RSRC) $<
-$(RSRC)/sdlappicon_%.c: $(RSRC)/%.png | $(ENGINEROOT)/generatesdlappicon$(EXESUFFIX)
-	$(ENGINEROOT)/generatesdlappicon$(EXESUFFIX) $< > $@
+$(RSRC)/%_gresource.c: $(RSRC)/%.gresource.xml
+	glib-compile-resources --generate-source --manual-register --c-name=startgtk --target=$@ --sourcedir=$(RSRC) $<
+$(RSRC)/%_gresource.h: $(RSRC)/%.gresource.xml
+	glib-compile-resources --generate-header --manual-register --c-name=startgtk --target=$@ --sourcedir=$(RSRC) $<
+
+$(RSRC)/%_bmp.c: $(RSRC)/%.bmp | $(ENGINEROOT)/bin2c$(EXESUFFIX)
+	$(ENGINEROOT)/bin2c$(EXESUFFIX) $< appicon_bmp > $@
+$(RSRC)/%.bmp: $(RSRC)/%.png
+	$(shell which magick convert true | head -1) $< $@
 
 clean:
 	-rm -f $(GAMEEXEOBJS) $(EDITOREXEOBJS)

@@ -7,12 +7,6 @@
 
 #include "baselayer.h"
 
-struct sdlappicon {
-	int width,height;
-	unsigned int *pixels;
-	unsigned char *mask;
-};
-
 #else
 #if (__build_interface_layer__ != SDL)
 #error "Already using the " __build_interface_layer__ ". Can't now use SDL."

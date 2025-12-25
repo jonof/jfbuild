@@ -9,15 +9,13 @@ $(SRC)/kdmsound_stub.$o: $(SRC)/kdmsound_stub.c
 $(SRC)/startgtk_game.$o: $(SRC)/startgtk_game.c $(ENGINEINC)/compat.h $(ENGINEINC)/baselayer.h $(ENGINEINC)/build.h $(ENGINEINC)/compat.h $(SRC)/game.h
 $(SRC)/startwin_game.$o: $(SRC)/startwin_game.c $(ENGINEINC)/build.h $(ENGINEINC)/winlayer.h $(ENGINEINC)/compat.h $(SRC)/game.h $(SRC)/gameres.h
 
-$(SRC)/buildres.$(res): $(SRC)/buildres.rc $(ENGINEINC)/buildres.h $(RSRC)/build.bmp $(RSRC)/build_icon.ico $(RSRC)/build.manifest
-$(SRC)/gameres.$(res): $(SRC)/gameres.rc $(SRC)/gameres.h $(RSRC)/game_icon.ico $(RSRC)/game.manifest
+$(SRC)/buildres.$(res): $(SRC)/buildres.rc $(ENGINEINC)/buildres.h $(RSRC)/startwin_build.bmp $(RSRC)/build_icon.ico $(RSRC)/build.manifest
+$(SRC)/gameres.$(res): $(SRC)/gameres.rc $(SRC)/gameres.h $(RSRC)/startwin_game.bmp $(RSRC)/game_icon.ico $(RSRC)/game.manifest
 
 # Derived source files from art assets
-$(RSRC)/startgtk_game_gresource.c: $(RSRC)/startgtk_game.gresource.xml $(RSRC)/game.png $(RSRC)/startgtk_game.glade
-$(RSRC)/startgtk_game_gresource.h: $(RSRC)/startgtk_game.gresource.xml
-$(RSRC)/startgtk_build_gresource.c: $(RSRC)/startgtk_build.gresource.xml $(RSRC)/build.png $(RSRC)/startgtk_build.glade
-$(RSRC)/startgtk_build_gresource.h: $(RSRC)/startgtk_build.gresource.xml
-$(RSRC)/sdlappicon_game.c: $(RSRC)/game.png
-$(RSRC)/sdlappicon_game.$o: $(RSRC)/sdlappicon_game.c
-$(RSRC)/sdlappicon_build.c: $(RSRC)/build.png
-$(RSRC)/sdlappicon_build.$o: $(RSRC)/sdlappicon_build.c
+$(RSRC)/startgtk_game_gresource.c $(RSRC)/startgtk_game_gresource.h: $(RSRC)/startgtk_game.gresource.xml $(RSRC)/game.png $(RSRC)/startgtk_game.glade
+$(RSRC)/startgtk_build_gresource.c $(RSRC)/startgtk_build_gresource.h: $(RSRC)/startgtk_build.gresource.xml $(RSRC)/build.png $(RSRC)/startgtk_build.glade
+$(RSRC)/game_bmp.c: $(RSRC)/game.bmp
+$(RSRC)/game_bmp.$o: $(RSRC)/game_bmp.c
+$(RSRC)/build_bmp.c: $(RSRC)/build.bmp
+$(RSRC)/build_bmp.$o: $(RSRC)/build_bmp.c
