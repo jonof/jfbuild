@@ -94,7 +94,7 @@ char *Bgethomedir(void)
 		dir = strdup(appdata);
     }
 
-#elif defined __APPLE__
+#elif defined(__APPLE__)
     dir = osx_gethomedir();
     
 #else
@@ -129,7 +129,7 @@ char *Bgetappdir(void)
 		dir = strdup(appdir);
     }
 
-#elif defined __APPLE__
+#elif defined(__APPLE__)
     dir = osx_getappdir();
     
 #elif defined(__linux) || defined(__NetBSD__) || defined(__OpenBSD__)

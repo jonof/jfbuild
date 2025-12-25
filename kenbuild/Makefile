@@ -66,8 +66,7 @@ EDITOREXEOBJS=$(SRC)/bstub.$o
 
 # Specialise for the platform
 ifeq ($(PLATFORM),DARWIN)
-	GAMEEXEOBJS+= $(SRC)/StartupWinController.$o
-	GAMELDFLAGS+= -framework AppKit
+	GAMELDFLAGS+= -framework Foundation
 endif
 
 # Select the system layer

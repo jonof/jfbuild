@@ -140,10 +140,7 @@ ifeq ($(PLATFORM),WINDOWS)
 	OURLDFLAGS+= -lm
 endif
 ifeq ($(PLATFORM),DARWIN)
-	OURLDFLAGS+= -framework AppKit
-
 	ENGINEOBJS+= $(SRC)/osxbits.$o
-	EDITOROBJS+= $(SRC)/EditorStartupWinController.$o
 endif
 
 # Select the system layer
@@ -157,6 +154,8 @@ ifeq ($(RENDERTYPE),SDL)
 		OURLDFLAGS+= $(GTKCONFIG_LIBS)
 		ENGINEOBJS+= $(SRC)/gtkbits.$o
 		EDITOROBJS+= $(SRC)/startgtk_editor.$o
+	else
+		ENGINEOBJS+= $(SRC)/startwin_stub.$o
 	endif
 endif
 ifeq ($(RENDERTYPE),WIN)
@@ -253,7 +252,7 @@ kenbuild:
 		RELEASE=$(RELEASE)
 
 clean:
-	-rm -f $(ENGINEOBJS) $(EDITOROBJS)
+	-rm -f $(ENGINEOBJS) $(EDITOROBJS) $(TOOLS)/*.$o
 	-$(MAKE) -C kenbuild -f Makefile clean
 
 veryclean: clean

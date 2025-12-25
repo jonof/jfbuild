@@ -46,6 +46,7 @@ $(LIBSQUISH)/squish.$o: $(LIBSQUISH)/squish.cpp $(LIBSQUISH)/squish.h $(LIBSQUIS
 
 $(SRC)/startgtk_editor.$o: $(SRC)/startgtk_editor.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h $(INC)/editor.h
 $(SRC)/startwin_editor.$o: $(SRC)/startwin_editor.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(INC)/buildres.h
+$(SRC)/startwin_stub.$o: $(SRC)/startwin_stub.c
 
 # Derived source files from shader files
 $(SRC)/glbuild_fs.c: $(SRC)/glbuild_fs.glsl

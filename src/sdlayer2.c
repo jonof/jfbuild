@@ -6,7 +6,7 @@
 
 #include "build.h"
 
-#if defined __APPLE__
+#if defined(__APPLE__) && defined(HAVE_OSX_FRAMEWORKS)
 # include <SDL2/SDL.h>
 #else
 # include "SDL.h"
@@ -29,14 +29,9 @@
 
 #if defined(__APPLE__)
 # include "osxbits.h"
-#elif defined(HAVE_GTK)
+#endif
+#if defined(HAVE_GTK)
 # include "gtkbits.h"
-#else
-int startwin_open(void) { return 0; }
-int startwin_close(void) { return 0; }
-int startwin_puts(const char *s) { (void)s; return 0; }
-int startwin_idle(void *s) { (void)s; return 0; }
-int startwin_settitle(const char *s) { (void)s; return 0; }
 #endif
 
 static int backgroundidle = 0;
@@ -48,6 +43,7 @@ static SDL_Window *sdl_window;
 static SDL_Renderer *sdl_renderer;	// For non-GL 8-bit mode output.
 static SDL_Texture *sdl_texture;	// For non-GL 8-bit mode output.
 static SDL_Surface *sdl_surface;	// For non-GL 8-bit mode output.
+static SDL_Surface *sdl_appicon;
 static int usesdlrenderer = 0;
 static unsigned char *frame;
 static float curshadergamma = 1.f, cursysgamma = -1.f;
@@ -84,9 +80,7 @@ static int buildkeytranslationtable(void);
 static void enumdisplays(void);
 static void shutdownvideo(void);
 
-#ifndef __APPLE__
-static SDL_Surface * loadappicon(void);
-#endif
+static void loadappicon(void);
 
 int wm_msgbox(const char *name, const char *fmt, ...)
 {
@@ -107,7 +101,7 @@ int wm_msgbox(const char *name, const char *fmt, ...)
 	do {
 		rv = 0;
 
-#if defined HAVE_GTK
+#if defined(HAVE_GTK)
 		if (wmgtk_msgbox(name, buf) >= 0) {
 			rv = 1;
 			break;
@@ -159,7 +153,7 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 	do {
 		rv = 0;
 
-#if defined HAVE_GTK
+#if defined(HAVE_GTK)
 		if ((rv = wmgtk_ynbox(name, buf)) >= 0) {
 			break;
 		}
@@ -181,14 +175,14 @@ int wm_ynbox(const char *name, const char *fmt, ...)
 
 int wm_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice)
 {
-#if defined __APPLE__ || defined HAVE_GTK
+#if (defined(__APPLE__) && defined(HAVE_OSX_FRAMEWORKS)) || defined(HAVE_GTK)
     int rv;
     if (mouseacquired && moustat) {
         SDL_SetRelativeMouseMode(SDL_FALSE);
     }
-#if defined __APPLE__
+#if defined(__APPLE__) && defined(HAVE_OSX_FRAMEWORKS)
     rv = wmosx_filechooser(initialdir, initialfile, type, foropen, choice);
-#elif defined HAVE_GTK
+#elif defined(HAVE_GTK)
     rv = wmgtk_filechooser(initialdir, initialfile, type, foropen, choice);
 #endif
     SDL_RaiseWindow(sdl_window);
@@ -204,7 +198,7 @@ int wm_filechooser(const char *initialdir, const char *initialfile, const char *
 
 int wm_idle(void *ptr)
 {
-#if defined HAVE_GTK
+#if defined(HAVE_GTK)
     return wmgtk_idle(ptr);
 #else
     (void)ptr;
@@ -295,7 +289,11 @@ int main(int argc, char *argv[])
 	// This avoids doubled character input in the (OSX) startup window's edit fields.
 	SDL_EventState(SDL_TEXTINPUT, SDL_IGNORE);
 
+	loadappicon();
+
 	r = app_main(_buildargc, (char const * const*)_buildargv);
+
+	if (sdl_appicon) SDL_FreeSurface(sdl_appicon);
 
 #ifdef __APPLE__
 	free(_buildargv);
@@ -903,13 +901,7 @@ int setvideomode(int xdim, int ydim, int bitspp, int fullsc)
 		break;
 	} while (1);
 
-#ifndef __APPLE__
-	{
-		SDL_Surface *icon = loadappicon();
-		SDL_SetWindowIcon(sdl_window, icon);
-		SDL_FreeSurface(icon);
-	}
-#endif
+	if (sdl_appicon) SDL_SetWindowIcon(sdl_window, sdl_appicon);
 
 	if (bitspp == 8) {
 		int i, j, pitch;
@@ -1229,19 +1221,19 @@ void *getglprocaddress(const char *name, int ext)
 #endif
 
 
-#ifndef __APPLE__
-extern struct sdlappicon sdlappicon;
-static SDL_Surface * loadappicon(void)
+static void loadappicon(void)
 {
-	SDL_Surface *surf;
+#if !defined(__APPLE__) || (defined(__APPLE__) && !defined(HAVE_OSX_FRAMEWORKS))
+	extern struct sdlappicon sdlappicon;
 
-	surf = SDL_CreateRGBSurfaceFrom((void*)sdlappicon.pixels,
+	sdl_appicon = SDL_CreateRGBSurfaceFrom((void*)sdlappicon.pixels,
 			sdlappicon.width, sdlappicon.height, 32, sdlappicon.width*4,
 			0xffl,0xff00l,0xff0000l,0xff000000l);
-
-	return surf;
-}
+	if (!sdl_appicon) {
+		debugprintf("loadappicon: error creating appicon surface: %s\n", SDL_GetError());
+	}
 #endif
+}
 
 //
 //

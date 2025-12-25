@@ -4,7 +4,7 @@
 // This file has been modified from Ken Silverman's original release
 // by Jonathon Fowler (jf@jonof.id.au)
 
-#if defined __APPLE__
+#if defined(__APPLE__) && defined(HAVE_OSX_FRAMEWORKS)
 # include <SDL2/SDL.h>
 #else
 # include "SDL.h"

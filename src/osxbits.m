@@ -1,5 +1,4 @@
 #include "osxbits.h"
-#import <AppKit/AppKit.h>
 #import <Foundation/Foundation.h>
 
 char *osx_gethomedir(void)
@@ -37,6 +36,9 @@ char *osx_getsupportdir(int global)
     return NULL;
 }
 
+#ifdef HAVE_OSX_FRAMEWORKS
+#import <AppKit/AppKit.h>
+
 int wmosx_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice)
 {
     NSSavePanel *panel = nil;
@@ -71,3 +73,4 @@ int wmosx_filechooser(const char *initialdir, const char *initialfile, const cha
 
     return resp == NSModalResponseOK ? 1 : 0;
 }
+#endif
