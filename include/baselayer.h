@@ -128,6 +128,8 @@ int wm_ynbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 int wm_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice);
 
 int wm_idle(void *);
+void wm_allowbackgroundidle(int onf);
+void wm_allowtaskswitching(int onf);
 void wm_setapptitle(const char *name);
 void wm_setwindowtitle(const char *name);
 

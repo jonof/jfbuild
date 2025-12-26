@@ -11,11 +11,7 @@
 #include "osd.h"
 #include "cache1d.h"
 #include "editor.h"
-
 #include "baselayer.h"
-#ifdef RENDERTYPEWIN
-#include "winlayer.h"
-#endif
 
 
 #define TIMERINTSPERSECOND 120
@@ -263,10 +259,7 @@ int app_main(int argc, char const * const argv[])
 		"walldist clipping boundary (0 = off, 1 = extents, 2 = +clip)", osdcmd_showspriteextents);
 
 	wm_setapptitle("BUILD by Ken Silverman");
-
-#ifdef RENDERTYPEWIN
-	win_allowbackgroundidle(1);
-#endif
+	wm_allowbackgroundidle(1);
 
 	editstatus = 1;
 	boardfilename[0] = 0;

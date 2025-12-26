@@ -39,6 +39,7 @@ int startwin_idle(void *s) { (void)s; return 0; }
 int startwin_settitle(const char *s) { (void)s; return 0; }
 #endif
 
+static int backgroundidle = 0;
 static char apptitle[256] = "Build Engine";
 static char wintitle[256] = "";
 
@@ -233,6 +234,17 @@ void wm_setwindowtitle(const char *name)
 		SDL_SetWindowTitle(sdl_window, wintitle);
 	}
 }
+
+void wm_allowbackgroundidle(int onf)
+{
+	backgroundidle = onf;
+}
+
+void wm_allowtaskswitching(int onf)
+{
+	(void)onf;
+}
+
 
 
 //
@@ -1345,6 +1357,8 @@ int handleevents(void)
 					if (mouseacquired && moustat) {
 						SDL_SetRelativeMouseMode(appactive ? SDL_TRUE : SDL_FALSE);
 					}
+					if (backgroundidle) SDL_SetThreadPriority(appactive ?
+						SDL_THREAD_PRIORITY_NORMAL : SDL_THREAD_PRIORITY_LOW);
 					rv=-1;
 				}
 				break;

@@ -47,7 +47,6 @@ static HWND hWindow = 0;
 static HDC hDCWindow = NULL;
 #define WINDOW_CLASS "buildapp"
 static BOOL window_class_registered = FALSE;
-static HANDLE instanceflag = NULL;
 
 static int backgroundidle = 0;
 static char apptitle[256] = "Build Engine";
@@ -155,43 +154,6 @@ intptr_t win_gethinstance(void)
 }
 
 
-//
-// win_allowtaskswitching() -- captures/releases alt+tab hotkeys
-//
-void win_allowtaskswitching(int onf)
-{
-	if (onf == taskswitching) return;
-
-	if (onf) {
-		UnregisterHotKey(0,0);
-		UnregisterHotKey(0,1);
-	} else {
-		RegisterHotKey(0,0,MOD_ALT,VK_TAB);
-		RegisterHotKey(0,1,MOD_ALT|MOD_SHIFT,VK_TAB);
-	}
-
-	taskswitching = onf;
-}
-
-
-//
-// win_allowbackgroundidle() -- allow the application to idle in the background
-//
-void win_allowbackgroundidle(int onf)
-{
-	backgroundidle = onf;
-}
-
-
-//
-// win_checkinstance() -- looks for another instance of a Build app
-//
-int win_checkinstance(void)
-{
-	if (!instanceflag) return 0;
-	return (WaitForSingleObject(instanceflag,0) == WAIT_TIMEOUT);
-}
-
 
 void win_setmaxrefreshfreq(unsigned frequency)
 {
@@ -219,6 +181,7 @@ int wm_msgbox(const char *name, const char *fmt, ...)
 	MessageBox(hWindow,buf,name,MB_OK|MB_TASKMODAL);
 	return 0;
 }
+
 int wm_ynbox(const char *name, const char *fmt, ...)
 {
 	char buf[1000];
@@ -299,6 +262,32 @@ void wm_setwindowtitle(const char *name)
 	}
 
 	UpdateAppWindowTitle();
+}
+
+//
+// wm_allowbackgroundidle() -- allow the application to idle in the background
+//
+void wm_allowbackgroundidle(int onf)
+{
+	backgroundidle = onf;
+}
+
+//
+// wm_allowtaskswitching() -- captures/releases alt+tab hotkeys
+//
+void wm_allowtaskswitching(int onf)
+{
+	if (onf == taskswitching) return;
+
+	if (onf) {
+		UnregisterHotKey(0,0);
+		UnregisterHotKey(0,1);
+	} else {
+		RegisterHotKey(0,0,MOD_ALT,VK_TAB);
+		RegisterHotKey(0,1,MOD_ALT|MOD_SHIFT,VK_TAB);
+	}
+
+	taskswitching = onf;
 }
 
 //
@@ -416,8 +405,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 
 	atexit(uninitsystem);
 
-	instanceflag = CreateSemaphore(NULL, 1,1, WINDOW_CLASS);
-
 	startwin_open();
 	baselayer_init();
 	r = app_main(_buildargc, _buildargv);
@@ -426,7 +413,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
 	if (fperr) fclose(fperr);
 
 	startwin_close();
-	if (instanceflag) CloseHandle(instanceflag);
 
 	if (argvbuf) free(argvbuf);
 
@@ -544,7 +530,7 @@ void uninitsystem(void)
 	uninitinput();
 	uninittimer();
 
-	win_allowtaskswitching(1);
+	wm_allowtaskswitching(1);
 
 	shutdownvideo();
 #if USE_OPENGL

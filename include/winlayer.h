@@ -1,4 +1,4 @@
-// Windows DIB/DirectDraw interface layer
+// Windows interface layer
 // for the Build Engine
 // by Jonathon Fowler (jf@jonof.id.au)
 
@@ -11,10 +11,6 @@ extern "C" {
 
 intptr_t win_gethwnd(void);
 intptr_t win_gethinstance(void);
-
-void win_allowtaskswitching(int onf);
-void win_allowbackgroundidle(int onf);
-int win_checkinstance(void);
 
 void win_setmaxrefreshfreq(unsigned frequency);
 unsigned win_getmaxrefreshfreq(void);
