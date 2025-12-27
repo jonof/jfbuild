@@ -69,7 +69,7 @@ endif
 ifeq ($(PLATFORM),WINDOWS)
 	RENDERTYPE ?= WIN
 	EXESUFFIX=.exe
-	BUILDLDFLAGS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -lcomdlg32 -luxtheme -lxinput9_1_0
+	BUILDLDFLAGS+= -lmingwex -lwinmm -lws2_32 -lcomctl32 -lcomdlg32 -luxtheme -lversion -lxinput9_1_0
 else
 	RENDERTYPE=SDL
 	EXESUFFIX=

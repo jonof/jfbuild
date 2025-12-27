@@ -31,13 +31,6 @@ extern int buildkeys[NUMBUILDKEYS];
 
 extern int ydim16, halfxdim16, midydim16, xdimgame, ydimgame, bppgame, xdim2d, ydim2d, forcesetup;
 
-struct startwin_settings {
-    int fullscreen;
-    int xdim2d, ydim2d;
-    int xdim3d, ydim3d, bpp3d;
-    int forcesetup;
-};
-
 extern int ExtInit(void);
 extern void ExtUnInit(void);
 extern void ExtPreCheckKeys(void);

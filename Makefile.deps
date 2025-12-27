@@ -3,7 +3,7 @@
 $(SRC)/a-c.$o: $(SRC)/a-c.c $(INC)/compat.h $(SRC)/a.h
 $(SRC)/a.$o: $(SRC)/a.$(asm)
 $(SRC)/asmprot.$o: $(SRC)/asmprot.c $(SRC)/a.h
-$(SRC)/baselayer.$o: $(SRC)/baselayer.c $(INC)/build.h $(INC)/compat.h $(INC)/osd.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/glbuild.h
+$(SRC)/baselayer.$o: $(SRC)/baselayer.c $(INC)/build.h $(INC)/compat.h $(INC)/osd.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(SRC)/startwin_priv.h $(INC)/glbuild.h
 $(SRC)/build.$o: $(SRC)/build.c $(INC)/build.h $(SRC)/engine_priv.h $(INC)/compat.h $(INC)/pragmas.h $(INC)/osd.h $(INC)/cache1d.h $(INC)/editor.h $(INC)/baselayer.h
 $(SRC)/cache1d.$o: $(SRC)/cache1d.c $(INC)/build.h $(INC)/compat.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/kplib.h
 $(SRC)/compat.$o: $(SRC)/compat.c $(INC)/compat.h
@@ -26,13 +26,16 @@ $(SRC)/polymosttex.$o: $(SRC)/polymosttex.c $(INC)/build.h $(INC)/compat.h $(INC
 $(SRC)/pragmas.$o: $(SRC)/pragmas.c $(INC)/compat.h
 $(SRC)/rg_etc1.$o: $(SRC)/rg_etc1.cpp $(SRC)/rg_etc1.h
 $(SRC)/scriptfile.$o: $(SRC)/scriptfile.c $(INC)/build.h $(INC)/compat.h $(INC)/scriptfile.h $(INC)/cache1d.h
-$(SRC)/sdlayer2.$o: $(SRC)/sdlayer2.c $(INC)/build.h $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/osd.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(SRC)/gtkbits.h
+$(SRC)/sdlayer2.$o: $(SRC)/sdlayer2.c $(INC)/build.h $(INC)/compat.h $(INC)/sdlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/cache1d.h $(INC)/pragmas.h $(SRC)/a.h $(INC)/osd.h $(SRC)/glbuild_priv.h $(INC)/startwin.h $(SRC)/startwin_priv.h $(INC)/glbuild.h $(SRC)/glext.h $(SRC)/gtkbits.h
 $(SRC)/smalltextfont.$o: $(SRC)/smalltextfont.c
+$(SRC)/startwin.$o: $(SRC)/startwin.c $(INC)/startwin.h $(SRC)/startwin_priv.h $(INC)/compat.h $(INC)/cache1d.h $(INC)/crc32.h $(INC)/scriptfile.h
+$(SRC)/startwin_gtk.$o: $(SRC)/startwin_gtk.c $(INC)/startwin.h $(SRC)/startwin_priv.h $(INC)/build.h $(INC)/baselayer.h
+$(SRC)/startwin_win.$o: $(SRC)/startwin_win.c $(INC)/startwin.h $(SRC)/startwin_priv.h $(INC)/startwin_win.h $(INC)/build.h $(INC)/winlayer.h
 $(SRC)/talltextfont.$o: $(SRC)/talltextfont.c
 $(SRC)/textfont.$o: $(SRC)/textfont.c
 $(SRC)/version-auto.$o: $(SRC)/version-auto.c
 $(SRC)/version.$o: $(SRC)/version.c
-$(SRC)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/pragmas.h $(INC)/build.h $(SRC)/a.h $(INC)/osd.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h
+$(SRC)/winlayer.$o: $(SRC)/winlayer.c $(INC)/compat.h $(INC)/winlayer.h $(INC)/baselayer.h $(SRC)/baselayer_priv.h $(INC)/pragmas.h $(INC)/build.h $(SRC)/a.h $(INC)/osd.h $(SRC)/glbuild_priv.h $(INC)/glbuild.h $(INC)/startwin.h $(SRC)/startwin_priv.h
 
 $(LIBSQUISH)/alpha.$o: $(LIBSQUISH)/alpha.cpp $(LIBSQUISH)/alpha.h $(LIBSQUISH)/squish.h
 $(LIBSQUISH)/clusterfit.$o: $(LIBSQUISH)/clusterfit.cpp $(LIBSQUISH)/clusterfit.h $(LIBSQUISH)/squish.h $(LIBSQUISH)/maths.h $(LIBSQUISH)/config.h $(LIBSQUISH)/simd.h $(LIBSQUISH)/simd_float.h $(LIBSQUISH)/colourfit.h $(LIBSQUISH)/colourset.h $(LIBSQUISH)/colourblock.h
@@ -43,10 +46,6 @@ $(LIBSQUISH)/maths.$o: $(LIBSQUISH)/maths.cpp $(LIBSQUISH)/maths.h $(LIBSQUISH)/
 $(LIBSQUISH)/rangefit.$o: $(LIBSQUISH)/rangefit.cpp $(LIBSQUISH)/rangefit.h $(LIBSQUISH)/squish.h $(LIBSQUISH)/colourfit.h $(LIBSQUISH)/maths.h $(LIBSQUISH)/config.h $(LIBSQUISH)/colourset.h $(LIBSQUISH)/colourblock.h
 $(LIBSQUISH)/singlecolourfit.$o: $(LIBSQUISH)/singlecolourfit.cpp $(LIBSQUISH)/singlecolourfit.h $(LIBSQUISH)/squish.h $(LIBSQUISH)/colourfit.h $(LIBSQUISH)/maths.h $(LIBSQUISH)/config.h $(LIBSQUISH)/colourset.h $(LIBSQUISH)/colourblock.h $(LIBSQUISH)/singlecolourlookup.inl
 $(LIBSQUISH)/squish.$o: $(LIBSQUISH)/squish.cpp $(LIBSQUISH)/squish.h $(LIBSQUISH)/colourset.h $(LIBSQUISH)/maths.h $(LIBSQUISH)/config.h $(LIBSQUISH)/rangefit.h $(LIBSQUISH)/colourfit.h $(LIBSQUISH)/clusterfit.h $(LIBSQUISH)/simd.h $(LIBSQUISH)/simd_float.h $(LIBSQUISH)/colourblock.h $(LIBSQUISH)/alpha.h $(LIBSQUISH)/singlecolourfit.h
-
-$(SRC)/startgtk_editor.$o: $(SRC)/startgtk_editor.c $(INC)/compat.h $(INC)/baselayer.h $(INC)/build.h $(INC)/compat.h $(INC)/editor.h
-$(SRC)/startwin_editor.$o: $(SRC)/startwin_editor.c $(INC)/build.h $(INC)/editor.h $(INC)/winlayer.h $(INC)/compat.h $(INC)/buildres.h
-$(SRC)/startwin_stub.$o: $(SRC)/startwin_stub.c
 
 # Derived source files from shader files
 $(SRC)/glbuild_fs.c: $(SRC)/glbuild_fs.glsl

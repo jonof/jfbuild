@@ -11,6 +11,7 @@
 #include "osd.h"
 #include "cache1d.h"
 #include "editor.h"
+#include "startwin.h"
 #include "baselayer.h"
 
 
@@ -232,13 +233,14 @@ static int osdcmd_showspriteextents(const osdfuncparm_t *parm)
 	return OSDCMD_OK;
 }
 
-#if defined(RENDERTYPEWIN)
-# define HAVE_STARTWIN
-#elif defined(RENDERTYPESDL) && defined(__APPLE__) && defined(HAVE_OSX_FRAMEWORKS)
-# define HAVE_STARTWIN
-#elif defined(RENDERTYPESDL) && defined(HAVE_GTK)
-# define HAVE_STARTWIN
-#endif
+
+struct startwin_settings startwin_settings = {
+	.features = {
+		.video = 1,
+		.editor = 1,
+	},
+};
+
 
 extern char *defsfilename;	// set in bstub.c
 int app_main(int argc, char const * const argv[])
@@ -247,12 +249,8 @@ int app_main(int argc, char const * const argv[])
 	int grpstoadd = 0;
 	char const ** grps = NULL;
 	int i, j;
-
-#ifdef HAVE_STARTWIN
 	char cmdsetup = 0;
-    struct startwin_settings settings;
-    int startretval = STARTWIN_RUN;
-#endif
+	int startretval = STARTWIN_RUN;
 
 	pathsearchmode = PATHSEARCH_SYSTEM;		// unrestrict findfrompath so that full access to the filesystem can be had
 
@@ -281,20 +279,12 @@ int app_main(int argc, char const * const argv[])
 					"Options:\n"
 					"\t-grp name.ext\tUse an extra GRP or ZIP file.\n"
 					"\t-g name.ext\tSame as above.\n"
-#ifdef HAVE_STARTWIN
 					"\t-setup\tDisplays the configuration dialogue box before entering the editor.\n"
-#endif
 					;
-#ifdef HAVE_STARTWIN
 				wm_msgbox("BUILD by Ken Silverman","%s",s);
-#else
-				puts(s);
-#endif
 				return 0;
 			}
-#ifdef HAVE_STARTWIN
 			else if (!strcmp(argv[i], "-setup")) cmdsetup = 1;
-#endif
 			continue;
 		}
 		if (!boardfilename[0]) {
@@ -311,32 +301,32 @@ int app_main(int argc, char const * const argv[])
 
 	if ((i = ExtInit()) < 0) return -1;
 
-#ifdef HAVE_STARTWIN
-    memset(&settings, 0, sizeof(settings));
-    settings.fullscreen = fullscreen;
-    settings.xdim2d = xdim2d;
-    settings.ydim2d = ydim2d;
-    settings.xdim3d = xdimgame;
-    settings.ydim3d = ydimgame;
-    settings.bpp3d = bppgame;
-    settings.forcesetup = forcesetup;
+	startwin_settings.video.fullscreen = fullscreen&255;
+	startwin_settings.video.display = fullscreen>>8;
+	startwin_settings.video.xdim = xdimgame;
+	startwin_settings.video.ydim = ydimgame;
+	startwin_settings.video.bpp = bppgame;
+	startwin_settings.editor.xdim = xdim2d;
+	startwin_settings.editor.ydim = ydim2d;
+	startwin_settings.alwaysshow = forcesetup;
 
-    if (i || forcesetup || cmdsetup) {
-        if (quitevent) return 0;
+	if (i || forcesetup || cmdsetup) {
+		if (quitevent) return 0;
 
-        startretval = startwin_run(&settings);
-        if (startretval == STARTWIN_CANCEL)
-            return 0;
-    }
-
-    fullscreen = settings.fullscreen;
-    xdim2d = settings.xdim2d;
-    ydim2d = settings.ydim2d;
-    xdimgame = settings.xdim3d;
-    ydimgame = settings.ydim3d;
-    bppgame = settings.bpp3d;
-    forcesetup = settings.forcesetup;
-#endif
+		startretval = startwin_run();
+		if (startretval == STARTWIN_CANCEL)
+			return 0;
+		else {
+			fullscreen = SETGAMEMODE_FULLSCREEN(startwin_settings.video.display,
+				startwin_settings.video.fullscreen);
+			xdim2d = startwin_settings.editor.xdim;
+			ydim2d = startwin_settings.editor.ydim;
+			xdimgame = startwin_settings.video.xdim;
+			ydimgame = startwin_settings.video.ydim;
+			bppgame = startwin_settings.video.bpp;
+			forcesetup = startwin_settings.alwaysshow;
+		}
+	}
 
 	if (grps && grpstoadd > 0) {
 		for (i=0;i<grpstoadd;i++) {
@@ -6157,8 +6147,8 @@ int getfilenames(char *path, char *kind)
 	}
 
 	clearfilenames();
-	finddirs = klistpath(path,"*",CACHE1D_FIND_DIR|CACHE1D_FIND_DRIVE|type);
-	findfiles = klistpath(path,kind,CACHE1D_FIND_FILE|type);
+	finddirs = klistpath(path,KLISTPATH_MASK("*"),CACHE1D_FIND_DIR|CACHE1D_FIND_DRIVE|type,0);
+	findfiles = klistpath(path,KLISTPATH_MASK(kind),CACHE1D_FIND_FILE|type,0);
 	for (r = finddirs; r; r=r->next) numdirs++;
 	for (r = findfiles; r; r=r->next) numfiles++;
 

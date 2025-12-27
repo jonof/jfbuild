@@ -9,7 +9,7 @@ EXESUFFIX=.exe
 BUILDCFLAGS=
 BUILDCXXFLAGS=
 BUILDCPPFLAGS=/DRENDERTYPEWIN=1
-BUILDLIBS=user32.lib gdi32.lib shell32.lib ws2_32.lib comctl32.lib comdlg32.lib uxtheme.lib xinput9_1_0.lib
+BUILDLIBS=user32.lib gdi32.lib shell32.lib ws2_32.lib comctl32.lib comdlg32.lib uxtheme.lib version.lib xinput9_1_0.lib
 BUILDRFLAGS=
 
 !if "$(PLATFORM)" == "X64" || "$(PLATFORM)" == "x64"

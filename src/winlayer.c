@@ -37,7 +37,8 @@
 #include "pragmas.h"
 #include "a.h"
 #include "osd.h"
-
+#include "startwin.h"
+#include "startwin_priv.h"
 
 static char *argvbuf = NULL;
 
@@ -222,6 +223,16 @@ int wm_filechooser(const char *initialdir, const char *initialfile, const char *
 	} else {
 		return 0;
 	}
+}
+
+//
+// wm_idle() -- twiddle thumbs
+//
+int wm_idle(void *v)
+{
+	int rv;
+	if ((rv = startwin_idle(v))) return rv;
+	return 0;
 }
 
 //
@@ -560,7 +571,7 @@ int handleevents(void)
 		if (msg.message == WM_QUIT)
 			quitevent = 1;
 
-		if (startwin_idle((void*)&msg) > 0) continue;
+		if (wm_idle((void*)&msg) > 0) continue;
 
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);

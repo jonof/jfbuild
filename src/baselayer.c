@@ -9,6 +9,7 @@
 #include "osd.h"
 #include "baselayer.h"
 #include "baselayer_priv.h"
+#include "startwin_priv.h"
 
 #if USE_OPENGL
 #include "glbuild.h"

@@ -25,4 +25,6 @@ void *getglprocaddress(const char *name, int ext);
 int unloadgldriver(void);
 #endif
 
+int wm_idle(void *);
+
 #endif // __baselayer_priv_h__

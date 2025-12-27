@@ -14,20 +14,8 @@ extern const char **_buildargv;
 
 extern char quitevent, appactive;
 
-enum {
-    STARTWIN_CANCEL = 0,
-    STARTWIN_RUN = 1,
-};
-struct startwin_settings;
-
 // NOTE: these are implemented in game-land so they may be overridden in game specific ways
 extern int app_main(int argc, char const * const argv[]);
-extern int startwin_open(void);
-extern int startwin_close(void);
-extern int startwin_puts(const char *);
-extern int startwin_settitle(const char *);
-extern int startwin_idle(void *);
-extern int startwin_run(struct startwin_settings *);
 
 // video
 extern int xres, yres, bpp, fullscreen, bytesperline, imageSize;
@@ -129,7 +117,6 @@ int wm_ynbox(const char *name, const char *fmt, ...) PRINTF_FORMAT(2, 3);
 // Returns -1 if not supported, 0 if cancelled, 1 if accepted
 int wm_filechooser(const char *initialdir, const char *initialfile, const char *type, int foropen, char **choice);
 
-int wm_idle(void *);
 void wm_allowbackgroundidle(int onf);
 void wm_allowtaskswitching(int onf);
 void wm_setapptitle(const char *name);

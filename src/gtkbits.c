@@ -2,16 +2,16 @@
 
 #include <gtk/gtk.h>
 
-#if GTK_CHECK_VERSION(3,4,0) != TRUE
-# error Gtk+ 3.4 or higher required.
+#if GTK_CHECK_VERSION(3,24,0) != TRUE
+# error Gtk+ 3.24 or higher required.
 #endif
 
 #include "baselayer.h"
 
 // Copied from a glib-compile-resource generated header.
-extern GResource *startgtk_get_resource (void);
-extern void startgtk_register_resource (void);
-extern void startgtk_unregister_resource (void);
+extern GResource *startwin_gtk_get_resource (void);
+extern void startwin_gtk_register_resource (void);
+extern void startwin_gtk_unregister_resource (void);
 
 
 int gtkenabled = 0;
@@ -121,7 +121,7 @@ void wmgtk_init(int *argc, char ***argv)
 		return;
 	}
 
-	startgtk_register_resource();
+	startwin_gtk_register_resource();
 
 	appicon = gdk_pixbuf_new_from_resource("/appicon.png", &error);
 	if (!appicon) {
@@ -138,7 +138,7 @@ void wmgtk_exit(void)
 		return;
 	}
 
-    startgtk_unregister_resource();
+    startwin_gtk_unregister_resource();
 }
 
 int wmgtk_idle(void *ptr)

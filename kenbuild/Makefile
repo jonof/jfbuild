@@ -24,6 +24,7 @@ RELEASE?=1
 # Engine source tree and game source locations
 ENGINEROOT=..
 ENGINEINC=$(ENGINEROOT)/include
+ENGINERSRC=$(ENGINEROOT)/rsrc
 SRC=src
 RSRC=rsrc
 GAMEDATA=data
@@ -81,12 +82,12 @@ ifeq ($(RENDERTYPE),SDL)
 		GAMECFLAGS+= $(GTKCONFIG_CFLAGS)
 		GAMELDFLAGS+= $(GTKCONFIG_LIBS)
 
-		GAMEEXEOBJS+= $(SRC)/startgtk_game.$o $(RSRC)/startgtk_game_gresource.$o
-		EDITOREXEOBJS+= $(RSRC)/startgtk_build_gresource.$o
+		GAMEEXEOBJS+= $(RSRC)/game_startwin_gtk_gresource.$o
+		EDITOREXEOBJS+= $(RSRC)/build_startwin_gtk_gresource.$o
 	endif
 endif
 ifeq ($(RENDERTYPE),WIN)
-	GAMEEXEOBJS+= $(SRC)/kdmsound_xaudio2.$o $(SRC)/gameres.$(res) $(SRC)/startwin_game.$o
+	GAMEEXEOBJS+= $(SRC)/kdmsound_xaudio2.$o $(SRC)/gameres.$(res)
 	EDITOREXEOBJS+= $(SRC)/buildres.$(res)
 	GAMELDFLAGS+= -lxaudio2_9 -lole32
 endif
@@ -119,12 +120,12 @@ $(RSRC)/%.$o: $(RSRC)/%.c
 	$(CC) $(CPPFLAGS) $(GAMECPPFLAGS) $(CFLAGS) $(GAMECFLAGS) -c $< -o $@
 
 $(SRC)/%.$(res): $(SRC)/%.rc
-	$(RC) -O coff -i $< -o $@ --include-dir=$(SRC) --include-dir=$(ENGINEINC)
+	$(RC) -O coff -i $< -o $@ --include-dir=$(SRC) --include-dir=$(ENGINEINC) --include-dir=$(RSRC)
 
 $(RSRC)/%_gresource.c: $(RSRC)/%.gresource.xml
-	glib-compile-resources --generate-source --manual-register --c-name=startgtk --target=$@ --sourcedir=$(RSRC) $<
+	glib-compile-resources --generate-source --manual-register --c-name=startwin_gtk --target=$@ --sourcedir=$(RSRC) --sourcedir=$(ENGINERSRC) $<
 $(RSRC)/%_gresource.h: $(RSRC)/%.gresource.xml
-	glib-compile-resources --generate-header --manual-register --c-name=startgtk --target=$@ --sourcedir=$(RSRC) $<
+	glib-compile-resources --generate-header --manual-register --c-name=startwin_gtk --target=$@ --sourcedir=$(RSRC) --sourcedir=$(ENGINERSRC) $<
 
 $(RSRC)/%_bmp.c: $(RSRC)/%.bmp | $(ENGINEROOT)/bin2c$(EXESUFFIX)
 	$(ENGINEROOT)/bin2c$(EXESUFFIX) $< appicon_bmp > $@

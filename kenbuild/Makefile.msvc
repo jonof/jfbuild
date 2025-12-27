@@ -34,7 +34,7 @@ GAMECFLAGS=/nologo /MD /Zl
 GAMECXXFLAGS=/nologo /MD /Zl /EHsc
 GAMECPPFLAGS=/I$(SRC) /I$(ENGINEINC)
 GAMELINKFLAGS=/opt:ref /nologo
-GAMERFLAGS=/nologo /i$(SRC) /i$(ENGINEINC)
+GAMERFLAGS=/nologo /i$(SRC) /i$(RSRC) /i$(ENGINEINC)
 GAMELIBS=msvcrt.lib
 
 !if $(RELEASE)
@@ -63,7 +63,6 @@ GAMERFLAGS=$(GAMERFLAGS) $(BUILDRFLAGS)
 GAMEEXEOBJS=$(SRC)\config.$o \
 	$(SRC)\game.$o \
 	$(SRC)\gameres.$(res) \
-	$(SRC)\startwin_game.$o \
 	$(SRC)\kdmsound.$o
 
 EDITOREXEOBJS=$(SRC)\bstub.$o \

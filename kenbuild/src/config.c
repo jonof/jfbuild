@@ -9,7 +9,7 @@
 
 extern short brightness;
 extern int fullscreen;
-extern char option[8];
+extern char option[NUMOPTIONS];
 extern int keys[NUMKEYS];
 
 /*
@@ -62,7 +62,7 @@ static int tmprenderer = -1;
 #endif
 static int tmpfullscreen = -1, tmpdisplay = -1;
 static int tmpbrightness = -1;
-static int tmpsamplerate = -1;
+static int tmpsamplerate = -1, tmpchannels = -1, tmpbitspersample = -1;
 static int tmpmusic = -1;
 static int tmpmouse = -1;
 static int tmpjoystick = -1;
@@ -134,6 +134,12 @@ static struct {
 		";   5 - 32 KHz\n"
 		";   6 - 44.1 KHz\n"
 		";   7 - 48 KHz\n"
+	},
+	{ "channels", type_int, &tmpchannels,
+		"; Sound channels (1 or 2)\n"
+	},
+	{ "bitspersample", type_int, &tmpbitspersample,
+		"; Sound sample size (8 or 16)\n"
 	},
 	{ "music", type_bool, &tmpmusic,
 		"; Music playback\n"
@@ -275,9 +281,15 @@ int loadsetup(const char *fn)
 	if (tmpdisplay >= 0) {
 		fullscreen |= tmpdisplay<<8;
 	}
+	option[7] = 1;
 	if (tmpsamplerate >= 0) {
-		option[7] = (tmpsamplerate & 0x0f) << 4;
-		option[7] |= 1|2|4;
+		option[7] |= (tmpsamplerate & 0x0f) << 4;
+	}
+	if (tmpchannels >= 0) {
+		option[7] |= ((tmpchannels>>1)&1) << 2;
+	}
+	if (tmpbitspersample >= 0) {
+		option[7] |= ((tmpbitspersample>>4)&1) << 1;
 	}
 	if (tmpmusic >= 0) {
 		option[2] = !!tmpmusic;
@@ -316,6 +328,8 @@ int writesetup(const char *fn)
 #endif
 	tmpmaxrefreshfreq = getmaxrefreshfreq();
 	tmpsamplerate = option[7]>>4;
+	tmpchannels = 1+((option[7]&4)>0);
+	tmpbitspersample = 1<<(((option[7]&2)>0)+3);
 	tmpmusic = option[2];
 	tmpmouse = !!(option[3]&1);
 	tmpjoystick = !!(option[3]&2);

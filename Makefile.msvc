@@ -74,6 +74,8 @@ ENGINEOBJS=$(SRC)\a-c.$o \
 	$(SRC)\osd.$o \
 	$(SRC)\pragmas.$o \
 	$(SRC)\scriptfile.$o \
+	$(SRC)\startwin.$o \
+	$(SRC)\startwin_win.$o \
 	$(SRC)\textfont.$o \
 	$(SRC)\talltextfont.$o \
 	$(SRC)\smalltextfont.$o \
@@ -118,7 +120,6 @@ ENGINEOBJS=$(ENGINEOBJS) \
 !endif
 
 EDITOROBJS=$(SRC)\build.$o \
-	$(SRC)\startwin_editor.$o \
 	$(SRC)\config.$o
 
 # Source-control version stamping

@@ -12,7 +12,7 @@
 #include "osd.h"
 #include "mmulti.h"
 #include "kdmsound.h"
-
+#include "startwin.h"
 #include "baselayer.h"
 
 #define TIMERINTSPERSECOND 280
@@ -408,24 +408,57 @@ static int osdcmd_map(const osdfuncparm_t *parm) {
     return OSDCMD_OK;
 }
 
-#if defined(RENDERTYPEWIN)
-# define HAVE_STARTWIN
-#elif defined(RENDERTYPESDL) && defined(__APPLE__) && defined(HAVE_OSX_FRAMEWORKS)
-# define HAVE_STARTWIN
-#elif defined(RENDERTYPESDL) && defined(HAVE_GTK)
-# define HAVE_STARTWIN
-#endif
+enum {
+    GAMETYPE_BASE = 1,
+    GAMETYPE_ADDON = 2,
+};
+
+struct startwin_settings startwin_settings = {
+	.features = {
+		.video = 1,
+		.audio = 1,
+		.input = 1,
+		.network = 1,
+		.game = 1,
+	},
+	.game = {
+		.gamedatafilepatterns = (const char *[]) { "*.grp", "*.dat", "*.map", NULL },
+		.gamedata = (struct startwin_dataset []) {
+			{
+				.name = "KenBuild",
+				.id = 1,
+				.type = GAMETYPE_BASE,
+				.filespec = (struct startwin_datasetfilespec []) {
+					{ .name = "stuff.dat",    .size = 840714, .crc = 0xbd4bd919, .presence = STARTWIN_PRESENCE_GROUP },
+					{ .name = "nukeland.map", .size = 50394,  .crc = 0x22db3338, .presence = STARTWIN_PRESENCE_REQUIRED },
+					{ .name = "*.map", .presence = STARTWIN_PRESENCE_OPTIONAL },
+					{ 0 }
+				}
+			},
+			{
+				// https://advsys.net/ken/buildsrc/xtramaps.zip, just the .map files grouped.
+				.name = "Extra Maps",
+				.id = 2,
+				.type = GAMETYPE_ADDON,
+				.filespec = (struct startwin_datasetfilespec []) {
+					{ .name = "xtramaps.grp", .size = 67236, .crc = 0x1c617a34, .presence = STARTWIN_PRESENCE_GROUP },
+					{ 0 }
+				}
+			},
+			{ 0 }
+		},
+		.demourl = "https://www.jonof.id.au/jfbuild/kenbuild-data.html",
+		.moreinfobrief = "JFBuild can scan locations of your choosing for KenBuild game data",
+		.moreinfodetail = "Click the 'Choose a location...' button, then locate a folder to scan.",
+	},
+};
 
 int app_main(int argc, char const * const argv[])
 {
 	int i, j, k, waitplayers, x1, y1, x2, y2;
 	int other, netparm = 0, endnetparm = 0, netsuccess = 0;
-
-#ifdef HAVE_STARTWIN
 	int cmdsetup = 0;
-    int startretval = STARTWIN_RUN;
-    struct startwin_settings settings;
-#endif
+	int startretval = STARTWIN_RUN;
 
 #if defined(DATADIR)
     {
@@ -512,10 +545,8 @@ int app_main(int argc, char const * const argv[])
 					if (!strcmp(argv[i], "--")) break;
 				endnetparm = i;
 			}
-#ifdef HAVE_STARTWIN
 			else if (!Bstrcasecmp(&argv[i][1], "setup")) cmdsetup = 1;
 			else if (!Bstrcasecmp(&argv[i][1], "nosetup")) cmdsetup = -1;
-#endif
 		}
 		else {
 			Bstrcpy(boardfilename, argv[i]);
@@ -523,8 +554,7 @@ int app_main(int argc, char const * const argv[])
 		}
 	}
 
-	initgroupfile("stuff.dat");
-	if (initengine()) {
+	if (preinitengine()) {
 		wm_msgbox(NULL, "There was a problem initialising the engine: %s.\n", engineerrstr);
 		return -1;
 	}
@@ -532,31 +562,76 @@ int app_main(int argc, char const * const argv[])
 	if ((i = loadsetup("game.cfg")) < 0)
 		buildputs("Configuration file not found, using defaults.\n");
 
-#ifdef HAVE_STARTWIN
-    memset(&settings, 0, sizeof(settings));
-    settings.fullscreen = fullscreen;
-    settings.xdim3d = xdimgame;
-    settings.ydim3d = ydimgame;
-    settings.bpp3d = bppgame;
-    settings.forcesetup = forcesetup;
-    settings.netoverride = netparm > 0;
+	const char *grpfile = "stuff.dat", *addongrpfile = NULL;
+	if (startwin_scan_gamedata() && startwin_find_id(1)) startwin_settings.game.gamedataid = 1;
+
+	startwin_settings.video.fullscreen = fullscreen&255;
+	startwin_settings.video.display = fullscreen>>8;
+	startwin_settings.video.xdim = xdimgame;
+	startwin_settings.video.ydim = ydimgame;
+	startwin_settings.video.bpp = bppgame;
+	startwin_settings.audio.samplerate = digihz[option[7]>>4];
+	startwin_settings.audio.channels = 1+((option[7]&4)>0);
+	startwin_settings.audio.bitspersample = 1<<(((option[7]&2)>0)+3);
+	startwin_settings.input.mouse = (option[3]&1)>0;
+	startwin_settings.input.controller = (option[3]&2)>0;
+	startwin_settings.network.netoverride = netparm > 0;
+	startwin_settings.alwaysshow = forcesetup;
 
 	if (i || (forcesetup && cmdsetup == 0) || (cmdsetup > 0)) {
-        if (quitevent) return 0;
+		if (quitevent) return 0;
 
-        startretval = startwin_run(&settings);
-        if (startretval == STARTWIN_CANCEL)
-            return 0;
+		startretval = startwin_run();
+		if (startretval == STARTWIN_CANCEL)
+			return 0;
+		else {
+			fullscreen = SETGAMEMODE_FULLSCREEN(startwin_settings.video.display,
+				startwin_settings.video.fullscreen);
+			xdimgame = startwin_settings.video.xdim;
+			ydimgame = startwin_settings.video.ydim;
+			bppgame = startwin_settings.video.bpp;
+			option[3] = 0;
+			option[3] |= startwin_settings.input.mouse ? 1 : 0;
+			option[3] |= startwin_settings.input.controller ? 2 : 0;
+			option[7] = 1;
+			for (size_t i=0; i<Barraylen(digihz) && digihz[i] <= startwin_settings.audio.samplerate; i++)
+				option[7] = (i<<4)|1;
+			option[7] |= startwin_settings.audio.channels == 2 ? 4 : 0;
+			option[7] |= startwin_settings.audio.bitspersample == 16 ? 2 : 0;
+			forcesetup = startwin_settings.alwaysshow;
+
+			if (startwin_settings.game.gamedataid) {
+				const struct startwin_datasetfound *df;
+				const struct startwin_datasetfoundfile *dff;
+				if ((df = startwin_find_id(startwin_settings.game.gamedataid))) {
+					if ((dff = startwin_find_dataset_group(df))) {
+						if (df->dataset->type == GAMETYPE_BASE) grpfile = dff->name;
+						else {
+							// Contrived to illustrate how to combine base game and an addon.
+							addongrpfile = dff->name;
+							if ((dff = startwin_find_type_group(GAMETYPE_BASE))) grpfile = dff->name;
+						}
+					}
+				}
+			}
+		}
 	}
 
-    fullscreen = settings.fullscreen;
-    xdimgame = settings.xdim3d;
-    ydimgame = settings.ydim3d;
-    bppgame = settings.bpp3d;
-    forcesetup = settings.forcesetup;
-#endif
+	writesetup("game.cfg");
 
-    writesetup("game.cfg");
+	buildprintf("Using %s\n", grpfile);
+	initgroupfile(grpfile);
+	if (addongrpfile) {
+		buildprintf("Using addon %s\n", addongrpfile);
+		initgroupfile(addongrpfile);
+	}
+
+	startwin_free_gamedata();
+
+	if (initengine()) {
+		wm_msgbox(NULL, "There was a problem initialising the engine: %s.\n", engineerrstr);
+		return -1;
+	}
 
 	initinput();
 	if (option[3] != 0) initmouse();
@@ -565,18 +640,18 @@ int app_main(int argc, char const * const argv[])
 	if (netparm) {
 		netsuccess = initmultiplayersparms(endnetparm - netparm, &argv[netparm]);
 	}
-#ifdef HAVE_STARTWIN
-	else if (settings.numplayers > 1) {
+	else if (startwin_settings.network.numplayers > 1) {
 		char modeparm[8];
 		const char *parmarr[3] = { modeparm, NULL, NULL };
 		int parmc = 0;
 
-		if (settings.joinhost) {
+		if (startwin_settings.network.joinhost) {
 			strcpy(modeparm, "-nm");
-			parmarr[1] = settings.joinhost;
+			parmarr[1] = startwin_settings.network.joinhost;
 			parmc = 2;
-		} else if (settings.numplayers > 1 && settings.numplayers <= MAXPLAYERS) {
-			sprintf(modeparm, "-nm:%d", settings.numplayers);
+		} else if (startwin_settings.network.numplayers > 1 &&
+				startwin_settings.network.numplayers <= MAXPLAYERS) {
+			snprintf(modeparm, sizeof(modeparm), "-nm:%d", startwin_settings.network.numplayers);
 			parmc = 1;
 		}
 
@@ -584,13 +659,13 @@ int app_main(int argc, char const * const argv[])
 			netsuccess = initmultiplayersparms(parmc, parmarr);
 		}
 
-		if (settings.joinhost) {
-			free(settings.joinhost);
+		if (startwin_settings.network.joinhost) {
+			free(startwin_settings.network.joinhost);
 		}
 	}
-#endif
 
     if (netsuccess) {
+    	grabmouse(0);
         buildputs("Waiting for players...\n");
         while (initmultiplayerscycle()) {
             handleevents();
@@ -604,6 +679,7 @@ int app_main(int argc, char const * const argv[])
                 return 0;
             }
         }
+    	grabmouse(1);
     } else {
         initsingleplayers();
     }

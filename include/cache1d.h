@@ -44,6 +44,8 @@ enum {
 	CACHE1D_FIND_DRIVE = 4,
 
 	CACHE1D_OPT_NOSTACK = 0x100,
+	CACHE1D_OPT_NOZIP = 0x200,
+	CACHE1D_OPT_NOGRP = 0x400,
 	
 	// the lower the number, the higher the priority
 	CACHE1D_SOURCE_DRIVE = 0,
@@ -55,10 +57,15 @@ enum {
 typedef struct _CACHE1D_FIND_REC {
 	char *name;
 	int type, source;
-	struct _CACHE1D_FIND_REC *next, *prev, *usera, *userb;
+	void *user;
+	struct _CACHE1D_FIND_REC *next, *prev;
 } CACHE1D_FIND_REC;
+
+// 'mask' is a null-pointer terminated list of patterns.
+// 'usersize' allocates extra memory pointed to by the user member of each record.
+CACHE1D_FIND_REC *klistpath(const char *path, const char **masks, int type, unsigned usersize);
+#define KLISTPATH_MASK(m) (const char *[]){m,NULL}
 void klistfree(CACHE1D_FIND_REC *rec);
-CACHE1D_FIND_REC *klistpath(const char *path, const char *mask, int type);
 
 unsigned kdfread(void *buffer, unsigned dasizeof, unsigned count, int fil);
 unsigned dfread(void *buffer, unsigned dasizeof, unsigned count, BFILE *fil);

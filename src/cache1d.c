@@ -799,7 +799,7 @@ void kclose(int handle)
 	filehan[handle] = -1;
 }
 
-static int klistaddentry(CACHE1D_FIND_REC **rec, char *name, int type, int source)
+static int klistaddentry(CACHE1D_FIND_REC **rec, char *name, int type, int source, unsigned usersize)
 {
 	CACHE1D_FIND_REC *r = NULL, *attach = NULL;
 
@@ -846,12 +846,16 @@ static int klistaddentry(CACHE1D_FIND_REC **rec, char *name, int type, int sourc
 		return 0;
 	}
 
-	r = (CACHE1D_FIND_REC *)malloc(sizeof(CACHE1D_FIND_REC)+strlen(name)+1);
+	size_t basesize = sizeof(CACHE1D_FIND_REC)+strlen(name)+1;
+	r = (CACHE1D_FIND_REC *)malloc(basesize+usersize);
 	if (!r) return -1;
 	r->name = (char*)r + sizeof(CACHE1D_FIND_REC); strcpy(r->name, name);
 	r->type = type;
 	r->source = source;
-	r->usera = r->userb = NULL;
+	if (usersize > 0) {
+		r->user = (void*)((char*)r + basesize);
+		memset(r->user, 0, usersize);
+	} else r->user = NULL;
 
 	if (!attach) {	// we are the first item
 		r->prev = NULL;
@@ -879,29 +883,27 @@ void klistfree(CACHE1D_FIND_REC *rec)
 	}
 }
 
-CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
+CACHE1D_FIND_REC *klistpath(const char *dpath, const char **masks, int type, unsigned usersize)
 {
 	CACHE1D_FIND_REC *rec = NULL;
 	char *path;
+	int i, j;
 	
 	// pathsearchmode == 0: enumerates a path in the virtual filesystem
 	// pathsearchmode == 1: enumerates the system filesystem path passed in
 	
-	path = strdup(_path);
+	path = strdup(dpath);
 	if (!path) return NULL;
 
 	// we don't need any leading dots and slashes or trailing slashes either
-	{
-		int i,j;
-		for (i=0; path[i] == '.' || toupperlookup[(int)(unsigned char)path[i]] == '/'; ) i++;
-		for (j=0; (path[j] = path[i]); j++,i++) ;
-		while (j>0 && toupperlookup[(int)(unsigned char)path[j-1]] == '/') j--;
-		path[j] = 0;
-		//buildprintf("Cleaned up path = \"%s\"\n",path);
-	}
+	for (i=0; path[i] == '.' || toupperlookup[(int)(unsigned char)path[i]] == '/'; ) i++;
+	for (j=0; (path[j] = path[i]); j++,i++) ;
+	while (j>0 && toupperlookup[(int)(unsigned char)path[j-1]] == '/') j--;
+	path[j] = 0;
+	//buildprintf("Cleaned up path = \"%s\"\n",path);
 	
 	if (*path && (type & CACHE1D_FIND_DIR)) {
-		if (klistaddentry(&rec, "..", CACHE1D_FIND_DIR, CACHE1D_SOURCE_CURDIR) < 0) goto failure;
+		if (klistaddentry(&rec, "..", CACHE1D_FIND_DIR, CACHE1D_SOURCE_CURDIR, usersize) < 0) goto failure;
 	}
 	
 	if (!(type & CACHE1D_OPT_NOSTACK)) {	// current directory and paths in the search stack
@@ -911,15 +913,17 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 		const char *d = ".";
 		int stackdepth = CACHE1D_SOURCE_CURDIR;
 		char buf[BMAX_PATH];
+		int interest, m;
 
-		if (pathsearchmode) d = _path;
+		if (pathsearchmode) d = dpath;
 
 		do {
 			if (!pathsearchmode) {
-				strcpy(buf, path);
-				if (*path) strcat(buf, "/");
-				strcat(buf, d);
-			} else strcpy(buf, d);
+				snprintf(buf, sizeof(buf), "%s%s%s", path, *path ? "/" : "", d);
+			} else {
+				strncpy(buf, d, sizeof(buf));
+				buf[sizeof(buf)-1] = 0;
+			}
 			dir = Bopendir(buf);
 			if (dir) {
 				while ((dirent = Breaddir(dir))) {
@@ -928,10 +932,14 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 						continue;
 					if ((type & CACHE1D_FIND_DIR) && !(dirent->mode & BS_IFDIR)) continue;
 					if ((type & CACHE1D_FIND_FILE) && (dirent->mode & BS_IFDIR)) continue;
-					if (!Bwildmatch(dirent->name, mask)) continue;
+
+					for (interest=m=0; !interest && masks[m]; m++)
+						interest = Bwildmatch(dirent->name, masks[m]);
+					if (!interest) continue;
+
 					switch (klistaddentry(&rec, dirent->name,
-								(dirent->mode & BS_IFDIR) ? CACHE1D_FIND_DIR : CACHE1D_FIND_FILE,
-										  stackdepth)) {
+							(dirent->mode & BS_IFDIR) ? CACHE1D_FIND_DIR : CACHE1D_FIND_FILE,
+							stackdepth, usersize)) {
 						case -1: goto failure;
 						//case 1: buildprintf("%s:%s dropped for lower priority\n", d,dirent->name); break;
 						//case 0: buildprintf("%s:%s accepted\n", d,dirent->name); break;
@@ -955,77 +963,83 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 	}
 
 #ifdef WITHKPLIB
-	if (!pathsearchmode) {	// next, zip files
+	if (!pathsearchmode && !(type & CACHE1D_OPT_NOZIP)) {	// next, zip files
 		char buf[BMAX_PATH];
-		int i, j, ftype;
-		strcpy(buf,path);
-		if (*path) strcat(buf,"/");
-		strcat(buf,mask);
-		for (kzfindfilestart(buf); kzfindfile(buf); ) {
-			if (buf[0] != '|') continue;	// local files we don't need
-			
-			// scan for the end of the string and shift
-			// everything left a char in the process
-			for (i=1; (buf[i-1]=buf[i]); i++) ;
-			i-=2;
+		int ftype, m;
 
-			// if there's a slash at the end, this is a directory entry
-			if (toupperlookup[(int)(unsigned char)buf[i]] == '/') { ftype = CACHE1D_FIND_DIR; buf[i] = 0; }
-			else ftype = CACHE1D_FIND_FILE;
+		for (m=0; masks[m]; m++) {
+			snprintf(buf, sizeof(buf), "%s%s%s", path, *path ? "/" : "", masks[m]);
+			for (kzfindfilestart(buf); kzfindfile(buf); ) {
+				if (buf[0] != '|') continue;	// local files we don't need
 
-			// skip over the common characters at the beginning of the base path and the zip entry
-			for (j=0; buf[j] && path[j]; j++) {
-				if (toupperlookup[(int)(unsigned char)path[j] ] == toupperlookup[(int)(unsigned char)buf[j] ]) continue;
-				break;
-			}
-			// we've now hopefully skipped the common path component at the beginning.
-			// if that's true, we should be staring at a null byte in path and either any character in buf
-			// if j==0, or a slash if j>0
-			if ((!path[0] && buf[j]) || (!path[j] && toupperlookup[(int)(unsigned char)buf[j] ] == '/')) {
-				if (j>0) j++;
-				
-				// yep, so now we shift what follows back to the start of buf and while we do that,
-				// keep an eye out for any more slashes which would mean this entry has sub-entities
-				// and is useless to us.
-				for (i = 0; (buf[i] = buf[j]) && toupperlookup[(int)(unsigned char)buf[j]] != '/'; i++,j++) ;
-				if (toupperlookup[(int)(unsigned char)buf[j]] == '/') continue;	// damn, try next entry
-			} else {
-				// if we're here it means we have a situation where:
-				//   path = foo
-				//   buf = foobar...
-				// or
-				//   path = foobar
-				//   buf = foo...
-				// which would mean the entry is higher up in the directory tree and is also useless
-				continue;
-			}
+				// scan for the end of the string and shift
+				// everything left a char in the process
+				for (i=1; (buf[i-1]=buf[i]); i++) ;
+				i-=2;
 
-			if ((type & CACHE1D_FIND_DIR) && ftype != CACHE1D_FIND_DIR) continue;
-			if ((type & CACHE1D_FIND_FILE) && ftype != CACHE1D_FIND_FILE) continue;
-			
-			// the entry is in the clear
-			switch (klistaddentry(&rec, buf, ftype, CACHE1D_SOURCE_ZIP)) {
-				case -1: goto failure;
-				//case 1: buildprintf("<ZIP>:%s dropped for lower priority\n", buf); break;
-				//case 0: buildprintf("<ZIP>:%s accepted\n", buf); break;
-				default: break;
+				// if there's a slash at the end, this is a directory entry
+				if (toupperlookup[(int)(unsigned char)buf[i]] == '/') { ftype = CACHE1D_FIND_DIR; buf[i] = 0; }
+				else ftype = CACHE1D_FIND_FILE;
+
+				// skip over the common characters at the beginning of the base path and the zip entry
+				for (j=0; buf[j] && path[j]; j++) {
+					if (toupperlookup[(int)(unsigned char)path[j] ] == toupperlookup[(int)(unsigned char)buf[j] ]) continue;
+					break;
+				}
+				// we've now hopefully skipped the common path component at the beginning.
+				// if that's true, we should be staring at a null byte in path and either any character in buf
+				// if j==0, or a slash if j>0
+				if ((!path[0] && buf[j]) || (!path[j] && toupperlookup[(int)(unsigned char)buf[j] ] == '/')) {
+					if (j>0) j++;
+
+					// yep, so now we shift what follows back to the start of buf and while we do that,
+					// keep an eye out for any more slashes which would mean this entry has sub-entities
+					// and is useless to us.
+					for (i = 0; (buf[i] = buf[j]) && toupperlookup[(int)(unsigned char)buf[j]] != '/'; i++,j++) ;
+					if (toupperlookup[(int)(unsigned char)buf[j]] == '/') continue;	// damn, try next entry
+				} else {
+					// if we're here it means we have a situation where:
+					//   path = foo
+					//   buf = foobar...
+					// or
+					//   path = foobar
+					//   buf = foo...
+					// which would mean the entry is higher up in the directory tree and is also useless
+					continue;
+				}
+
+				if ((type & CACHE1D_FIND_DIR) && ftype != CACHE1D_FIND_DIR) continue;
+				if ((type & CACHE1D_FIND_FILE) && ftype != CACHE1D_FIND_FILE) continue;
+
+				// the entry is in the clear
+				switch (klistaddentry(&rec, buf, ftype, CACHE1D_SOURCE_ZIP, usersize)) {
+					case -1: goto failure;
+					//case 1: buildprintf("<ZIP>:%s dropped for lower priority\n", buf); break;
+					//case 0: buildprintf("<ZIP>:%s accepted\n", buf); break;
+					default: break;
+				}
 			}
 		}
 	}
 #endif
 	
 	// then, grp files
-	if (!pathsearchmode && !*path && (type & CACHE1D_FIND_FILE)) {
+	if (!pathsearchmode && !*path && (type & CACHE1D_FIND_FILE) && !(type & CACHE1D_OPT_NOGRP)) {
 		char buf[13];
-		int i,j;
+		int interest, m;
+
 		buf[12] = 0;
 		for (i=0;i<MAXGROUPFILES;i++) {
 			if (groupfil[i] == -1) continue;
 			for(j=gnumfiles[i]-1;j>=0;j--)
 			{
 				Bmemcpy(buf,&gfilelist[i][j<<4],12);
-				if (!Bwildmatch(buf,mask)) continue;
-				switch (klistaddentry(&rec, buf, CACHE1D_FIND_FILE, CACHE1D_SOURCE_GRP)) {
+
+				for (interest=m=0; !interest && masks[m]; m++)
+					interest = Bwildmatch(buf, masks[m]);
+				if (!interest) continue;
+
+				switch (klistaddentry(&rec, buf, CACHE1D_FIND_FILE, CACHE1D_SOURCE_GRP, usersize)) {
 					case -1: goto failure;
 					//case 1: buildprintf("<GRP>:%s dropped for lower priority\n", workspace); break;
 					//case 0: buildprintf("<GRP>:%s accepted\n", workspace); break;
@@ -1040,7 +1054,7 @@ CACHE1D_FIND_REC *klistpath(const char *_path, const char *mask, int type)
 		drives = Bgetsystemdrives();
 		if (drives) {
 			for (drp=drives; *drp; drp+=strlen(drp)+1) {
-				if (klistaddentry(&rec, drp, CACHE1D_FIND_DRIVE, CACHE1D_SOURCE_DRIVE) < 0) {
+				if (klistaddentry(&rec, drp, CACHE1D_FIND_DRIVE, CACHE1D_SOURCE_DRIVE, usersize) < 0) {
 					free(drives);
 					goto failure;
 				}

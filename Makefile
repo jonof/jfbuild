@@ -83,6 +83,7 @@ ENGINEOBJS= \
 	$(SRC)/osd.$o \
 	$(SRC)/pragmas.$o \
 	$(SRC)/scriptfile.$o \
+	$(SRC)/startwin.$o \
 	$(SRC)/textfont.$o \
 	$(SRC)/talltextfont.$o \
 	$(SRC)/smalltextfont.$o
@@ -152,15 +153,15 @@ ifeq ($(RENDERTYPE),SDL)
 	ifeq (1,$(HAVE_GTK))
 		OURCFLAGS+= $(GTKCONFIG_CFLAGS)
 		OURLDFLAGS+= $(GTKCONFIG_LIBS)
-		ENGINEOBJS+= $(SRC)/gtkbits.$o
-		EDITOROBJS+= $(SRC)/startgtk_editor.$o
-	else
-		ENGINEOBJS+= $(SRC)/startwin_stub.$o
+		ENGINEOBJS+= \
+			$(SRC)/gtkbits.$o \
+			$(SRC)/startwin_gtk.$o
 	endif
 endif
 ifeq ($(RENDERTYPE),WIN)
-	ENGINEOBJS+= $(SRC)/winlayer.$o
-	EDITOROBJS+= $(SRC)/startwin_editor.$o
+	ENGINEOBJS+= \
+		$(SRC)/winlayer.$o \
+		$(SRC)/startwin_win.$o
 endif
 
 # TARGETS

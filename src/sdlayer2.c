@@ -26,7 +26,8 @@
 #include "a.h"
 #include "osd.h"
 #include "glbuild_priv.h"
-
+#include "startwin.h"
+#include "startwin_priv.h"
 #if defined(__APPLE__)
 # include "osxbits.h"
 #endif
@@ -198,10 +199,10 @@ int wm_filechooser(const char *initialdir, const char *initialfile, const char *
 
 int wm_idle(void *ptr)
 {
+	startwin_idle(ptr);
 #if defined(HAVE_GTK)
     return wmgtk_idle(ptr);
 #else
-    (void)ptr;
     return 0;
 #endif
 }
@@ -1429,7 +1430,6 @@ int handleevents(void)
 	}
 
 	sampletimer();
-	startwin_idle(NULL);
 	wm_idle(NULL);
 
 	firstcall = 0;
