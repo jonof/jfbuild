@@ -44,7 +44,7 @@ char *strlwr(char *s)
 {
     char *t = s;
     if (!s) return s;
-    while (*t) { *t = tolower(*t); t++; }
+    while (*t) { *t = tolower((unsigned char)*t); t++; }
     return s;
 }
 
