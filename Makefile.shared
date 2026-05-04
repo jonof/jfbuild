@@ -31,6 +31,9 @@ ifndef PLATFORM
 	ifneq (,$(findstring -freebsd,$(TARGETMACHINE)))
 		PLATFORM=BSD
 	endif
+	ifneq (,$(findstring -netbsd,$(TARGETMACHINE)))
+		PLATFORM=BSD
+	endif
 	ifneq (,$(findstring -mingw32,$(TARGETMACHINE)))
 		PLATFORM=WINDOWS
 	endif
@@ -96,7 +99,10 @@ ifeq ($(RENDERTYPE),SDL)
 		ifneq (,$(shell $(PKGCONFIG) --atleast-version=3.4 gtk+-3.0 && echo yes))
 			HAVE_GTK=1
 			GTKCONFIG_CFLAGS=-DHAVE_GTK $(shell $(PKGCONFIG) --cflags gtk+-3.0)
-			GTKCONFIG_LIBS=$(shell $(PKGCONFIG) --libs gtk+-3.0) -ldl
+			GTKCONFIG_LIBS=$(shell $(PKGCONFIG) --libs gtk+-3.0)
+			ifeq ($(PLATFORM),LINUX)
+				BUILDLDFLAGS+= -ldl
+			endif
 		else
 			HAVE_GTK=0
 		endif

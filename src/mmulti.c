@@ -911,9 +911,11 @@ static int lookuphost(const char *name, struct sockaddr *host, int warnifmany)
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_flags = AI_ADDRCONFIG;
 	hints.ai_family = domain;
+#ifdef AI_V4MAPPED
 	if (domain == PF_INET6) {
 		hints.ai_flags |= AI_V4MAPPED;
 	}
+#endif
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = IPPROTO_UDP;
 
