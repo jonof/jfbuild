@@ -4927,11 +4927,12 @@ static int loadtables(void)
     }
 	calcbritable();
 
-    if (crc32once((unsigned char *)sintable, sizeof(sintable)) != 0xee1e7aba) {
+    // The checksums are of the tables' in-memory bytes, which depend on the byte order.
+    if (crc32once((unsigned char *)sintable, sizeof(sintable)) != (B_BIG_ENDIAN ? 0x995645a5 : 0xee1e7aba)) {
         engineerrstr = "Calculation of sintable yielded unexpected results.";
         return 1;
     }
-    if (crc32once((unsigned char *)radarang, sizeof(radarang)/2) != 0xee893d92) {
+    if (crc32once((unsigned char *)radarang, sizeof(radarang)/2) != (B_BIG_ENDIAN ? 0xc0043ab6 : 0xee893d92)) {
         engineerrstr = "Calculation of radarang yielded unexpected results.";
         return 1;
     }

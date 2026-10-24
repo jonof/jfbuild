@@ -37,6 +37,7 @@ NASMFLAGS=-s #-g
 # Host platform compiler for build-time tools
 HOSTCC?=$(CC)
 HOSTCXX?=$(CXX)
+HOSTCXXFLAGS?=$(CXXFLAGS)
 
 OURCFLAGS=-g -W -Wall -fno-strict-aliasing -std=c99
 OURCXXFLAGS=-g -W -Wall -fno-exceptions -fno-rtti -std=c++98
@@ -208,7 +209,7 @@ wad2map$(EXESUFFIX): $(TOOLS)/wad2map.$o $(ENGINELIB)
 # These tools are only used at build time and should be compiled
 # using the host toolchain rather than any cross-compiler.
 bin2c$(EXESUFFIX): $(TOOLS)/bin2c.cc
-	$(HOSTCXX) $(CXXFLAGS) -o $@ $^
+	$(HOSTCXX) $(HOSTCXXFLAGS) -o $@ $^
 
 # DEPENDENCIES
 include Makefile.deps
