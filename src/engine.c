@@ -4484,7 +4484,7 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 		if (dax1 != dax2)
 		{
 			y1 = nry1[v]; y2 = nry1[nextv];
-			yinc = divscale16(y2-y1,x2-x1);
+			yinc = (y1 == y2) ? 0 : divscale16(y2-y1,x2-x1);
 			if (dax2 > dax1)
 			{
 				yplc = y1 + mulscale16((dax1<<16)+65535-x1,yinc);
@@ -4505,7 +4505,7 @@ static void dorotatesprite(int sx, int sy, int z, short a, short picnum, signed 
 
 	palookupoffs = (intptr_t)palookup[dapalnum] + (getpalookup(0L,(int)dashade)<<8);
 
-	iv = divscale32(1L,z);
+	iv = (z == 65536) ? 65536 : divscale32(1L,z);
 	xv = mulscale14(sinang,iv);
 	yv = mulscale14(cosang,iv);
 	if (((dastat&2) != 0 && (dastat&256) == 0) || ((dastat&8) == 0)) //Don't aspect unscaled perms
