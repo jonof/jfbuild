@@ -58,6 +58,7 @@ int voxscale[MAXVOXELS];
 static int ggxinc[MAXXSIZ+1], ggyinc[MAXXSIZ+1];
 static int lowrecip[1024], nytooclose, nytoofar;
 static unsigned int distrecip[65536];
+static int voxxdimen = -1;
 
 static int *lookups = NULL;
 int dommxoverlay = 1, beforedrawrooms = 1;
@@ -2766,6 +2767,14 @@ static void drawvox(int dasprx, int daspry, int dasprz, int dasprang,
 
 	(void)dazsiz;
 
+	if (xdimen != voxxdimen)
+	{
+		voxxdimen = xdimen;
+		for(i=1;i<65536;i++) distrecip[i] = divscale20(xdimen,i);
+		nytooclose = xdimen*2100;
+		nytoofar = 65536*16384-1048576;
+	}
+
 	cosang = sintable[(globalang+512)&2047];
 	sinang = sintable[globalang&2047];
 	sprcosang = sintable[(dasprang+512)&2047];
@@ -4890,9 +4899,6 @@ static void dosetaspect(void)
 			if (j != 0) j = mulscale16((int)radarang[k+1]-(int)radarang[k],j);
 			radarang2[i] = (short)(((int)radarang[k]+j)>>6);
 		}
-		for(i=1;i<65536;i++) distrecip[i] = divscale20(xdimen,i);
-		nytooclose = xdimen*2100;
-		nytoofar = 65536*16384-1048576;
 	}
 }
 
